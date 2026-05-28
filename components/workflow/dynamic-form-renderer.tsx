@@ -3,10 +3,8 @@
 import { useMemo, useState } from "react";
 import { Save, Send } from "lucide-react";
 
-import { useState } from "react";
-import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
-
+import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
 import { RuntimeProgressSidebar } from "@/components/runtime/runtime-progress-sidebar";
 import { RuntimeStatusBar } from "@/components/runtime/runtime-status-bar";
 import { RuntimeStepNavigation } from "@/components/runtime/runtime-step-navigation";
@@ -21,6 +19,14 @@ import {
 import type { RuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
 import { useRuntimeAutosave } from "@/hooks/use-runtime-autosave";
 import { useRuntimeProgress } from "@/hooks/use-runtime-progress";
+
+type EvidenceItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
 
 type DynamicFormRendererProps = {
   workflow: RuntimeWorkflow;
@@ -74,7 +80,8 @@ export function DynamicFormRenderer({
 }: DynamicFormRendererProps) {
   const [values, setValues] = useState<RuntimeValues>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [evidenceItems, setEvidenceItems] = useState<any[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
 
   const [feedbackModal, setFeedbackModal] = useState<{
     open: boolean;
@@ -124,6 +131,8 @@ export function DynamicFormRenderer({
         missingFields: [],
       };
 
+  const shouldShowEvidence = workflow.serviceSlug === "guidance-programs";
+
   function handleChange(key: string, value: unknown) {
     setValues((current) => ({
       ...current,
@@ -156,7 +165,7 @@ export function DynamicFormRenderer({
           title: title || workflow.name,
           studentId: extractStudentId(values),
           values,
-evidenceItems,
+          evidenceItems: shouldShowEvidence ? evidenceItems : [],
         }),
       });
 
@@ -189,18 +198,6 @@ evidenceItems,
       setIsSaving(false);
     }
   }
-
-async function handleEvidenceFiles(files: FileList) {
-  const nextItems = Array.from(files).map((file) => ({
-    id: crypto.randomUUID(),
-    fileName: file.name,
-    fileUrl: URL.createObjectURL(file),
-    mimeType: file.type,
-    size: file.size,
-  }));
-
-  setEvidenceItems((current) => [...current, ...nextItems]);
-}
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -258,36 +255,36 @@ async function handleEvidenceFiles(files: FileList) {
             </section>
           )}
 
+          {shouldShowEvidence ? (
+            <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div>
+                <p className="text-sm font-black text-sky-700">Evidence System</p>
 
-<section className="space-y-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-  <div>
-    <p className="text-sm font-black text-sky-700">
-      Evidence System
-    </p>
+                <h2 className="mt-2 text-3xl font-black text-slate-900">
+                  الشواهد والمرفقات
+                </h2>
 
-    <h2 className="mt-2 text-3xl font-black text-slate-900">
-      الشواهد والمرفقات
-    </h2>
+                <p className="mt-3 text-sm leading-7 text-slate-500">
+                  أضف صور الشواهد الخاصة بتنفيذ البرنامج الإرشادي فقط.
+                </p>
+              </div>
 
-    <p className="mt-3 text-sm leading-7 text-slate-500">
-      أضف الصور والملفات المرتبطة بالحالة ليتم حفظها داخل السجل.
-    </p>
-  </div>
+              <EvidenceUploadCard
+                onUploaded={(items) => {
+                  setEvidenceItems((current) => [...current, ...items]);
+                }}
+              />
 
-  <EvidenceUploadCard
-    onFilesSelected={handleEvidenceFiles}
-  />
-
-  <EvidencePreviewGrid
-    items={evidenceItems}
-    onDelete={(id) =>
-      setEvidenceItems((current) =>
-        current.filter((item) => item.id !== id)
-      )
-    }
-  />
-</section>
-
+              <EvidencePreviewGrid
+                items={evidenceItems}
+                onDelete={(id) =>
+                  setEvidenceItems((current) =>
+                    current.filter((item) => item.id !== id)
+                  )
+                }
+              />
+            </section>
+          ) : null}
 
           {sortedSteps.length > 0 ? (
             <RuntimeStepNavigation

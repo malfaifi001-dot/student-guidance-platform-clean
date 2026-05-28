@@ -5,14 +5,29 @@ import {
   type RuntimeCaseValues,
 } from "@/lib/cases/case-values";
 
+type EvidenceItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
+
 type SaveRuntimeCaseParams = {
   workflowId?: string | null;
   serviceId: string;
   title?: string | null;
   studentId?: string | null;
   values: RuntimeCaseValues;
+  evidenceItems?: EvidenceItem[];
   status: "DRAFT" | "SUBMITTED";
 };
+
+function getEvidenceType(mimeType: string) {
+  if (mimeType.startsWith("image")) return "IMAGE";
+  if (mimeType) return "FILE";
+  return "LINK";
+}
 
 export async function saveRuntimeCase({
   workflowId,
@@ -20,10 +35,10 @@ export async function saveRuntimeCase({
   title,
   studentId,
   values,
+  evidenceItems = [],
   status,
 }: SaveRuntimeCaseParams) {
   const school = await ensureDefaultSchoolAccount();
-
   const serializedValues = serializeCaseValues(values);
 
   const caseEntry = await prisma.caseEntry.create({
@@ -39,9 +54,20 @@ export async function saveRuntimeCase({
       values: {
         create: serializedValues,
       },
+
+      evidences: {
+        create: evidenceItems.map((item) => ({
+          type: getEvidenceType(item.mimeType),
+          fileName: item.fileName,
+          fileUrl: item.fileUrl,
+          mimeType: item.mimeType,
+          size: item.size,
+        })),
+      },
     },
     include: {
       values: true,
+      evidences: true,
     },
   });
 
@@ -50,11 +76,10 @@ export async function saveRuntimeCase({
 
 export async function restoreCaseDraft(caseId: string) {
   const caseEntry = await prisma.caseEntry.findUnique({
-    where: {
-      id: caseId,
-    },
+    where: { id: caseId },
     include: {
       values: true,
+      evidences: true,
       student: {
         include: {
           guardian: true,
@@ -70,10 +95,7 @@ export async function restoreCaseDraft(caseId: string) {
   }
 
   const restoredValues = Object.fromEntries(
-    caseEntry.values.map((value) => [
-      value.fieldKey,
-      value.jsonValue ?? value.value,
-    ])
+    caseEntry.values.map((value) => [value.fieldKey, value.jsonValue ?? value.value])
   );
 
   return {
@@ -81,11 +103,10 @@ export async function restoreCaseDraft(caseId: string) {
     restoredValues,
   };
 }
+
 export async function getCaseById(caseId: string) {
   const caseEntry = await prisma.caseEntry.findUnique({
-    where: {
-      id: caseId,
-    },
+    where: { id: caseId },
     include: {
       student: {
         include: {
@@ -107,6 +128,7 @@ export async function getCaseById(caseId: string) {
         },
       },
       values: true,
+      evidences: true,
     },
   });
 

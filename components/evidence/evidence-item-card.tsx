@@ -15,29 +15,18 @@ type EvidenceItemCardProps = {
 
 function formatSize(size: number) {
   if (size < 1024) return `${size} B`;
-
-  if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(1)} KB`;
-  }
-
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function EvidenceItemCard({
-  item,
-  onDelete,
-}: EvidenceItemCardProps) {
+export function EvidenceItemCard({ item, onDelete }: EvidenceItemCardProps) {
   const isImage = item.mimeType.startsWith("image");
 
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-      <div className="relative aspect-video overflow-hidden bg-slate-100">
+    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="aspect-video overflow-hidden bg-slate-100">
         {isImage ? (
-          <img
-            src={item.fileUrl}
-            alt={item.fileName}
-            className="h-full w-full object-cover"
-          />
+          <img src={item.fileUrl} alt={item.fileName} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center">
             <FileText className="h-14 w-14 text-slate-400" />
@@ -48,13 +37,8 @@ export function EvidenceItemCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-black text-slate-900">
-              {item.fileName}
-            </p>
-
-            <p className="mt-1 text-xs text-slate-400">
-              {formatSize(item.size)}
-            </p>
+            <p className="truncate text-sm font-black text-slate-900">{item.fileName}</p>
+            <p className="mt-1 text-xs text-slate-400">{formatSize(item.size)}</p>
           </div>
 
           {isImage ? (
@@ -73,13 +57,15 @@ export function EvidenceItemCard({
             معاينة
           </a>
 
-          <button
-            type="button"
-            onClick={() => onDelete?.(item.id)}
-            className="rounded-xl border border-rose-200 px-3 py-2 text-rose-600 hover:bg-rose-50"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={() => onDelete(item.id)}
+              className="rounded-xl border border-rose-200 px-3 py-2 text-rose-600 hover:bg-rose-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
