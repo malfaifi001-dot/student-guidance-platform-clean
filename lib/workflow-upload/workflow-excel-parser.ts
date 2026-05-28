@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 export type ParsedWorkflowRow = {
   stepTitle: string;
   stepDescription?: string;
+  stepOrder?: number;
   fieldKey: string;
   fieldLabel: string;
   fieldType: string;
@@ -31,8 +32,9 @@ function numberOrUndefined(value: unknown) {
 }
 
 const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
-  stepTitle: ["stepTitle", "step_title", "عنوان الخطوة", "الخطوة"],
-  stepDescription: ["stepDescription", "step_description", "وصف الخطوة"],
+  stepTitle: ["stepTitle", "step_title", "عنوان الخطوة", "الخطوة", "القسم"],
+  stepDescription: ["stepDescription", "step_description", "وصف الخطوة", "وصف القسم"],
+  stepOrder: ["stepOrder", "step_order", "ترتيب الخطوة", "ترتيب القسم"],
   fieldKey: ["fieldKey", "field_key", "مفتاح الحقل", "key"],
   fieldLabel: ["fieldLabel", "field_label", "اسم الحقل", "الحقل"],
   fieldType: ["fieldType", "field_type", "نوع الحقل", "type"],
@@ -40,7 +42,7 @@ const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
   fieldOrder: ["fieldOrder", "field_order", "ترتيب الحقل"],
   allowOther: ["allowOther", "allow_other", "أخرى", "يسمح أخرى"],
   dependsOnFieldKey: ["dependsOnFieldKey", "depends_on", "يعتمد على"],
-  linkedToValue: ["linkedToValue", "linked_to_value", "القيمة المرتبطة"],
+  linkedToValue: ["linkedToValue", "linked_to_value", "القيمة المرتبطة", "يرتبط بالقيمة"],
   optionLabel: ["optionLabel", "option_label", "الخيار"],
   optionValue: ["optionValue", "option_value", "قيمة الخيار"],
   optionOrder: ["optionOrder", "option_order", "ترتيب الخيار"],
@@ -50,7 +52,7 @@ function detectHeaderIndex(rows: unknown[][]) {
   let bestIndex = 0;
   let bestScore = 0;
 
-  rows.slice(0, 10).forEach((row, index) => {
+  rows.slice(0, 15).forEach((row, index) => {
     const cells = row.map(normalize);
     let score = 0;
 
@@ -101,7 +103,6 @@ export async function parseWorkflowExcel(buffer: ArrayBuffer) {
   const headerIndex = detectHeaderIndex(rows);
   const headers = rows[headerIndex].map(normalize);
   const mapped = mapHeaders(headers);
-
   const dataRows = rows.slice(headerIndex + 1);
 
   return dataRows
@@ -114,6 +115,7 @@ export async function parseWorkflowExcel(buffer: ArrayBuffer) {
       return {
         stepTitle: get("stepTitle"),
         stepDescription: get("stepDescription") || undefined,
+        stepOrder: numberOrUndefined(get("stepOrder")),
         fieldKey: get("fieldKey"),
         fieldLabel: get("fieldLabel"),
         fieldType: get("fieldType") || "TEXT",

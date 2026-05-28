@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getCaseById } from "@/engine/cases/case-runtime-engine";
+import {
+  getCaseById,
+  updateRuntimeCase,
+} from "@/engine/cases/case-runtime-engine";
 
 type RouteContext = {
   params: Promise<{
@@ -7,10 +10,7 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(
-  _request: NextRequest,
-  context: RouteContext
-) {
+export async function GET(_request: NextRequest, context: RouteContext) {
   const { caseId } = await context.params;
 
   try {
@@ -22,12 +22,43 @@ export async function GET(
   } catch (error) {
     return NextResponse.json(
       {
+        error: error instanceof Error ? error.message : "الحالة غير موجودة.",
+      },
+      { status: 404 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  const { caseId } = await context.params;
+
+  try {
+    const body = await request.json();
+
+    const result = await updateRuntimeCase({
+      caseId,
+      title: body.title,
+      studentId: body.studentId,
+      values: body.values || {},
+      status: body.status || "DRAFT",
+    });
+
+    return NextResponse.json({
+      message:
+        body.status === "SUBMITTED"
+          ? "تم إرسال الحالة بنجاح."
+          : "تم تحديث المسودة بنجاح.",
+      caseId: result.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
         error:
           error instanceof Error
             ? error.message
-            : "الحالة غير موجودة.",
+            : "حدث خطأ أثناء تحديث الحالة.",
       },
-      { status: 404 }
+      { status: 400 }
     );
   }
 }

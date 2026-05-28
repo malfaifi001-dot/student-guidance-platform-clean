@@ -12,13 +12,26 @@ type EvidenceItem = {
 };
 
 type EvidenceUploadCardProps = {
-  onUploaded: (items: EvidenceItem[]) => void;
+  onUploaded?: (items: EvidenceItem[]) => void;
+  onFilesSelected?: (files: FileList) => void;
 };
 
-export function EvidenceUploadCard({ onUploaded }: EvidenceUploadCardProps) {
+export function EvidenceUploadCard({
+  onUploaded,
+  onFilesSelected,
+}: EvidenceUploadCardProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   async function uploadFiles(files: FileList) {
+    if (onFilesSelected) {
+      onFilesSelected(files);
+      return;
+    }
+
+    if (!onUploaded) {
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -36,7 +49,7 @@ export function EvidenceUploadCard({ onUploaded }: EvidenceUploadCardProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error("فشل رفع الشواهد.");
+        throw new Error(data.error || "فشل رفع الشواهد.");
       }
 
       onUploaded(data.items || []);
@@ -66,7 +79,9 @@ export function EvidenceUploadCard({ onUploaded }: EvidenceUploadCardProps) {
         disabled={isUploading}
         className="hidden"
         onChange={(event) => {
-          if (event.target.files) uploadFiles(event.target.files);
+          if (event.target.files) {
+            uploadFiles(event.target.files);
+          }
         }}
       />
     </label>

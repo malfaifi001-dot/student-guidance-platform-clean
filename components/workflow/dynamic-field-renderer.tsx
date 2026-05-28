@@ -1,28 +1,43 @@
 "use client";
 
 import type { RuntimeField, RuntimeOption } from "@/engine/runtime/runtime-resolver";
+import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
 
 type DynamicFieldRendererProps = {
   field: RuntimeField;
   value: unknown;
+  values: RuntimeValues;
   onChange: (key: string, value: unknown) => void;
 };
 
 function FieldLabel({ field }: { field: RuntimeField }) {
   return (
-   <label className="mb-3 block text-sm font-black text-slate-800">
-  {field.label}
-
-  {field.isRequired ? (
-    <span className="mr-1 text-rose-500">*</span>
-  ) : null}
-</label>
+    <label className="mb-3 block text-sm font-black text-slate-800">
+      {field.label}
+      {field.isRequired ? <span className="mr-1 text-rose-500">*</span> : null}
+    </label>
   );
 }
 
 function HelpText({ text }: { text?: string | null }) {
   if (!text) return null;
   return <p className="mt-2 text-xs leading-6 text-slate-400">{text}</p>;
+}
+
+function getFilteredOptions(field: RuntimeField, values: RuntimeValues) {
+  if (!field.dependsOnFieldKey) return field.options;
+
+  const parentValue = values[field.dependsOnFieldKey];
+
+  return field.options.filter((option) => {
+    if (!option.linkedToValue) return true;
+
+    if (Array.isArray(parentValue)) {
+      return parentValue.includes(option.linkedToValue);
+    }
+
+    return String(parentValue ?? "") === String(option.linkedToValue);
+  });
 }
 
 function SelectOptions({
@@ -48,14 +63,17 @@ function SelectOptions({
 export function DynamicFieldRenderer({
   field,
   value,
+  values,
   onChange,
 }: DynamicFieldRendererProps) {
   const baseInputClass =
     "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100";
 
+  const filteredOptions = getFilteredOptions(field, values);
+
   if (field.type === "TEXT" || field.type === "NUMBER" || field.type === "DATE") {
     return (
-      <div>
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
         <FieldLabel field={field} />
         <input
           type={field.type === "NUMBER" ? "number" : field.type === "DATE" ? "date" : "text"}
@@ -71,7 +89,7 @@ export function DynamicFieldRenderer({
 
   if (field.type === "TEXTAREA" || field.type === "RICH_TEXT") {
     return (
-      <div>
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
         <FieldLabel field={field} />
         <textarea
           value={String(value ?? "")}
@@ -87,15 +105,25 @@ export function DynamicFieldRenderer({
 
   if (field.type === "SELECT" || field.type === "RADIO") {
     return (
-      <div>
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
         <FieldLabel field={field} />
         <select
           value={String(value ?? "")}
           onChange={(event) => onChange(field.key, event.target.value)}
           className={baseInputClass}
         >
-          <SelectOptions options={field.options} allowOther={field.allowOther} />
+          <SelectOptions options={filteredOptions} allowOther={field.allowOther} />
         </select>
+
+        {value === "__OTHER__" ? (
+          <input
+            value={String(values[`${field.key}__other`] ?? "")}
+            onChange={(event) => onChange(`${field.key}__other`, event.target.value)}
+            placeholder="اكتب خيار أخرى..."
+            className={baseInputClass}
+          />
+        ) : null}
+
         <HelpText text={field.helpText} />
       </div>
     );
@@ -104,36 +132,52 @@ export function DynamicFieldRenderer({
   if (field.type === "MULTI_SELECT" || field.type === "CHECKBOX") {
     const selectedValues = Array.isArray(value) ? value.map(String) : [];
 
+    const allOptions = [
+      ...filteredOptions,
+      ...(field.allowOther
+        ? [{ id: "__other__", label: "أخرى", value: "__OTHER__", order: 999, linkedToValue: null }]
+        : []),
+    ];
+
     return (
-      <div>
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
         <FieldLabel field={field} />
-        <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
-          {[...field.options, ...(field.allowOther ? [{ id: "__other__", label: "أخرى", value: "__OTHER__", order: 999 }] : [])].map(
-            (option) => {
-              const checked = selectedValues.includes(option.value);
 
-              return (
-                <label
-                  key={option.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(event) => {
-                      const next = event.target.checked
-                        ? [...selectedValues, option.value]
-                        : selectedValues.filter((item) => item !== option.value);
+        <div className="grid gap-2 md:grid-cols-2">
+          {allOptions.map((option) => {
+            const checked = selectedValues.includes(option.value);
 
-                      onChange(field.key, next);
-                    }}
-                  />
-                  {option.label}
-                </label>
-              );
-            }
-          )}
+            return (
+              <label
+                key={option.id}
+                className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(event) => {
+                    const next = event.target.checked
+                      ? [...selectedValues, option.value]
+                      : selectedValues.filter((item) => item !== option.value);
+
+                    onChange(field.key, next);
+                  }}
+                />
+                {option.label}
+              </label>
+            );
+          })}
         </div>
+
+        {selectedValues.includes("__OTHER__") ? (
+          <input
+            value={String(values[`${field.key}__other`] ?? "")}
+            onChange={(event) => onChange(`${field.key}__other`, event.target.value)}
+            placeholder="اكتب خيار أخرى..."
+            className={baseInputClass}
+          />
+        ) : null}
+
         <HelpText text={field.helpText} />
       </div>
     );
@@ -141,7 +185,7 @@ export function DynamicFieldRenderer({
 
   if (field.type === "FILE_UPLOAD" || field.type === "IMAGE_UPLOAD") {
     return (
-      <div>
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
         <FieldLabel field={field} />
         <input
           type="file"

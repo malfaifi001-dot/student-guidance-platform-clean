@@ -33,6 +33,8 @@ type DynamicFormRendererProps = {
   serviceId: string;
   requiresStudent?: boolean;
   title?: string;
+  caseId?: string;
+  initialValues?: RuntimeValues;
 };
 
 function extractStudentId(values: RuntimeValues) {
@@ -65,11 +67,12 @@ function isSerializableValue(value: unknown): value is RuntimeValues[string] {
     return value.every((item) => typeof item === "string");
   }
 
-  if (typeof value === "object") {
-    return true;
-  }
+  return typeof value === "object";
+}
 
-  return false;
+function isEvidenceStep(stepTitle?: string | null) {
+  const title = String(stepTitle ?? "").trim();
+  return title.includes("الشواهد") || title.includes("المرفقات");
 }
 
 export function DynamicFormRenderer({
@@ -77,10 +80,12 @@ export function DynamicFormRenderer({
   serviceId,
   requiresStudent = false,
   title,
+  caseId,
+  initialValues,
 }: DynamicFormRendererProps) {
-  const [values, setValues] = useState<RuntimeValues>({});
-  const [isSaving, setIsSaving] = useState(false);
+  const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
 
   const [feedbackModal, setFeedbackModal] = useState<{
@@ -131,7 +136,8 @@ export function DynamicFormRenderer({
         missingFields: [],
       };
 
-  const shouldShowEvidence = workflow.serviceSlug === "guidance-programs";
+  const shouldShowEvidence =
+    workflow.serviceSlug === "guidance-programs" && isEvidenceStep(visibleStep?.title);
 
   function handleChange(key: string, value: unknown) {
     setValues((current) => ({
@@ -142,20 +148,17 @@ export function DynamicFormRenderer({
 
   async function persistCase(type: "draft" | "submit") {
     setIsSaving(true);
-
-    setFeedbackModal((current) => ({
-      ...current,
-      open: false,
-    }));
+    setFeedbackModal((current) => ({ ...current, open: false }));
 
     try {
-      const endpoint =
-        type === "draft"
+      const endpoint = caseId
+        ? `/api/dashboard/cases/${caseId}`
+        : type === "draft"
           ? "/api/dashboard/cases/save-draft"
           : "/api/dashboard/cases/submit";
 
       const response = await fetch(endpoint, {
-        method: "POST",
+        method: caseId ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -165,7 +168,9 @@ export function DynamicFormRenderer({
           title: title || workflow.name,
           studentId: extractStudentId(values),
           values,
-          evidenceItems: shouldShowEvidence ? evidenceItems : [],
+          status: type === "submit" ? "SUBMITTED" : "DRAFT",
+          evidenceItems:
+            workflow.serviceSlug === "guidance-programs" ? evidenceItems : [],
         }),
       });
 
@@ -230,9 +235,7 @@ export function DynamicFormRenderer({
 
           {requiresStudent ? (
             <StudentContextCard
-              onStudentChange={(student) => {
-                handleChange("student", student);
-              }}
+              onStudentChange={(student) => handleChange("student", student)}
             />
           ) : null}
 
@@ -248,31 +251,29 @@ export function DynamicFormRenderer({
               <h2 className="text-2xl font-black text-amber-800">
                 لا توجد خطوات داخل هذا الـ Workflow
               </h2>
-
-              <p className="mt-3 text-sm leading-7 text-amber-700">
-                ارفع Workflow يحتوي على خطوات وحقول من لوحة الأدمن.
-              </p>
             </section>
           )}
 
           {shouldShowEvidence ? (
             <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div>
-                <p className="text-sm font-black text-sky-700">Evidence System</p>
+                <p className="text-sm font-black text-sky-700">
+                  شواهد البرنامج
+                </p>
 
                 <h2 className="mt-2 text-3xl font-black text-slate-900">
                   الشواهد والمرفقات
                 </h2>
 
                 <p className="mt-3 text-sm leading-7 text-slate-500">
-                  أضف صور الشواهد الخاصة بتنفيذ البرنامج الإرشادي فقط.
+                  أضف صور أو ملفات الشواهد الخاصة بتنفيذ البرنامج الإرشادي.
                 </p>
               </div>
 
               <EvidenceUploadCard
-                onUploaded={(items) => {
-                  setEvidenceItems((current) => [...current, ...items]);
-                }}
+                onUploaded={(items) =>
+                  setEvidenceItems((current) => [...current, ...items])
+                }
               />
 
               <EvidencePreviewGrid
@@ -334,10 +335,7 @@ export function DynamicFormRenderer({
           description={feedbackModal.description}
           primaryActionLabel="إغلاق"
           onPrimaryAction={() =>
-            setFeedbackModal((current) => ({
-              ...current,
-              open: false,
-            }))
+            setFeedbackModal((current) => ({ ...current, open: false }))
           }
         />
       </div>

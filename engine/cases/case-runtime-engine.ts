@@ -138,3 +138,42 @@ export async function getCaseById(caseId: string) {
 
   return caseEntry;
 }
+
+import type { RuntimeCaseValues } from "@/lib/cases/case-values";
+
+export async function updateRuntimeCase(params: {
+  caseId: string;
+  title?: string | null;
+  studentId?: string | null;
+  values: RuntimeCaseValues;
+  status?: "DRAFT" | "SUBMITTED";
+}) {
+  const serializedValues = serializeCaseValues(params.values);
+
+  await prisma.caseValue.deleteMany({
+    where: {
+      caseEntryId: params.caseId,
+    },
+  });
+
+  const caseEntry = await prisma.caseEntry.update({
+    where: {
+      id: params.caseId,
+    },
+    data: {
+      title: params.title || undefined,
+      studentId: params.studentId || undefined,
+      status: params.status,
+      submittedAt: params.status === "SUBMITTED" ? new Date() : undefined,
+      values: {
+        create: serializedValues,
+      },
+    },
+    include: {
+      values: true,
+      evidences: true,
+    },
+  });
+
+  return caseEntry;
+}
