@@ -1,0 +1,159 @@
+"use client";
+
+import type { RuntimeField, RuntimeOption } from "@/engine/runtime/runtime-resolver";
+
+type DynamicFieldRendererProps = {
+  field: RuntimeField;
+  value: unknown;
+  onChange: (key: string, value: unknown) => void;
+};
+
+function FieldLabel({ field }: { field: RuntimeField }) {
+  return (
+    <label className="mb-2 block text-sm font-black text-slate-800">
+      {field.label}
+      {field.isRequired ? <span className="mr-1 text-rose-600">*</span> : null}
+    </label>
+  );
+}
+
+function HelpText({ text }: { text?: string | null }) {
+  if (!text) return null;
+  return <p className="mt-2 text-xs leading-6 text-slate-400">{text}</p>;
+}
+
+function SelectOptions({
+  options,
+  allowOther,
+}: {
+  options: RuntimeOption[];
+  allowOther: boolean;
+}) {
+  return (
+    <>
+      <option value="">اختر...</option>
+      {options.map((option) => (
+        <option key={option.id} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+      {allowOther ? <option value="__OTHER__">أخرى</option> : null}
+    </>
+  );
+}
+
+export function DynamicFieldRenderer({
+  field,
+  value,
+  onChange,
+}: DynamicFieldRendererProps) {
+  const baseInputClass =
+    "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100";
+
+  if (field.type === "TEXT" || field.type === "NUMBER" || field.type === "DATE") {
+    return (
+      <div>
+        <FieldLabel field={field} />
+        <input
+          type={field.type === "NUMBER" ? "number" : field.type === "DATE" ? "date" : "text"}
+          value={String(value ?? "")}
+          placeholder={field.placeholder ?? ""}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          className={baseInputClass}
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "TEXTAREA" || field.type === "RICH_TEXT") {
+    return (
+      <div>
+        <FieldLabel field={field} />
+        <textarea
+          value={String(value ?? "")}
+          placeholder={field.placeholder ?? ""}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          rows={5}
+          className={baseInputClass}
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "SELECT" || field.type === "RADIO") {
+    return (
+      <div>
+        <FieldLabel field={field} />
+        <select
+          value={String(value ?? "")}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          className={baseInputClass}
+        >
+          <SelectOptions options={field.options} allowOther={field.allowOther} />
+        </select>
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "MULTI_SELECT" || field.type === "CHECKBOX") {
+    const selectedValues = Array.isArray(value) ? value.map(String) : [];
+
+    return (
+      <div>
+        <FieldLabel field={field} />
+        <div className="grid gap-2 md:grid-cols-2">
+          {[...field.options, ...(field.allowOther ? [{ id: "__other__", label: "أخرى", value: "__OTHER__", order: 999 }] : [])].map(
+            (option) => {
+              const checked = selectedValues.includes(option.value);
+
+              return (
+                <label
+                  key={option.id}
+                  className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => {
+                      const next = event.target.checked
+                        ? [...selectedValues, option.value]
+                        : selectedValues.filter((item) => item !== option.value);
+
+                      onChange(field.key, next);
+                    }}
+                  />
+                  {option.label}
+                </label>
+              );
+            }
+          )}
+        </div>
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "FILE_UPLOAD" || field.type === "IMAGE_UPLOAD") {
+    return (
+      <div>
+        <FieldLabel field={field} />
+        <input
+          type="file"
+          accept={field.type === "IMAGE_UPLOAD" ? "image/*" : undefined}
+          onChange={(event) => onChange(field.key, event.target.files?.[0] ?? null)}
+          className="w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm"
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+      نوع الحقل غير مدعوم حاليًا: {field.type}
+    </div>
+  );
+}
