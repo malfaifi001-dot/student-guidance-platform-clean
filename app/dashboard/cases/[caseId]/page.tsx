@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+
 import { CaseDetailsView } from "@/components/cases/case-details-view";
 import { getCaseById } from "@/engine/cases/case-runtime-engine";
 

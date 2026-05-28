@@ -2,61 +2,24 @@ import { CaseValueRenderer } from "@/components/cases/case-value-renderer";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
 
 type CaseDetailsViewProps = {
-  caseEntry: {
-    id: string;
-    title: string | null;
-    status: string;
-    createdAt: Date;
-    service: {
-      name: string;
-    };
-    student: {
-      fullName: string;
-      stage: string | null;
-      grade: string | null;
-      classroom: string | null;
-      guardian: {
-        name: string;
-        phone: string | null;
-      } | null;
-    } | null;
-    workflow: {
-      steps: Array<{
-        fields: Array<{
-          key: string;
-          label: string;
-        }>;
-      }>;
-    } | null;
-    values: Array<{
-      id: string;
-      fieldKey: string;
-      value: string | null;
-      jsonValue: unknown;
-    }>;
-    evidences: Array<{
-      id: string;
-      fileName: string | null;
-      fileUrl: string | null;
-      mimeType: string | null;
-      size: number | null;
-    }>;
-  };
+  caseEntry: any;
 };
 
-function buildFieldLabelMap(caseEntry: CaseDetailsViewProps["caseEntry"]) {
+function buildFieldLabelMap(caseEntry: any) {
   const map = new Map<string, string>();
 
-  caseEntry.workflow?.steps?.forEach((step) => {
-    step.fields?.forEach((field) => {
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
       map.set(field.key, field.label);
     });
   });
 
+  map.set("committee_items", "جدول الأعمال ومحاور النقاش والتوصيات");
+
   return map;
 }
 
-function getValue(item: CaseDetailsViewProps["caseEntry"]["values"][number]) {
+function getValue(item: any) {
   return item.jsonValue ?? item.value;
 }
 
@@ -64,18 +27,18 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
   const labelMap = buildFieldLabelMap(caseEntry);
 
   const displayValues = caseEntry.values.filter(
-    (value) => !["student", "guardian", "metadata"].includes(value.fieldKey)
+    (value: any) =>
+      !["student", "guardian", "metadata"].includes(value.fieldKey)
   );
 
-  const evidenceItems = caseEntry.evidences
-    .filter((item) => item.fileName && item.fileUrl && item.mimeType && item.size !== null)
-    .map((item) => ({
+  const evidenceItems =
+    caseEntry.evidences?.map((item: any) => ({
       id: item.id,
       fileName: item.fileName || "ملف",
       fileUrl: item.fileUrl || "#",
       mimeType: item.mimeType || "application/octet-stream",
       size: item.size || 0,
-    }));
+    })) || [];
 
   return (
     <div className="space-y-8">
@@ -87,33 +50,33 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
         </h1>
 
         <p className="mt-4 max-w-3xl leading-8 text-sky-50">
-          عرض منظم للحالة بدل عرض البيانات الخام.
+          عرض موحد ومنظم للحالات المحفوظة من جميع الخدمات.
         </p>
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 card-shadow">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">الخدمة</p>
           <p className="mt-2 text-lg font-black text-slate-900">
-            {caseEntry.service.name}
+            {caseEntry.service?.name || "—"}
           </p>
         </div>
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 card-shadow">
-          <p className="text-sm text-slate-500">الطالب</p>
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">الطالب/الطالبة</p>
           <p className="mt-2 text-lg font-black text-slate-900">
-            {caseEntry.student?.fullName || "بدون طالب"}
+            {caseEntry.student?.fullName || "غير مرتبط بطالب"}
           </p>
         </div>
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 card-shadow">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">الحالة</p>
           <p className="mt-2 text-lg font-black text-slate-900">
             {caseEntry.status}
           </p>
         </div>
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 card-shadow">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">التاريخ</p>
           <p className="mt-2 text-lg font-black text-slate-900">
             {new Date(caseEntry.createdAt).toLocaleDateString("ar-SA")}
@@ -122,7 +85,7 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
       </section>
 
       {caseEntry.student ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-900">
             بيانات الطالب/الطالبة
           </h2>
@@ -144,11 +107,11 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
         </section>
       ) : null}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-2xl font-black text-slate-900">بيانات الحالة</h2>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {displayValues.map((value) => (
+          {displayValues.map((value: any) => (
             <CaseValueRenderer
               key={value.id}
               label={labelMap.get(value.fieldKey) || value.fieldKey}
@@ -165,14 +128,10 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
       </section>
 
       {evidenceItems.length > 0 ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-900">
             الشواهد والمرفقات
           </h2>
-
-          <p className="mt-3 text-sm leading-7 text-slate-500">
-            الملفات والصور المرتبطة بهذه الحالة.
-          </p>
 
           <div className="mt-6">
             <EvidencePreviewGrid items={evidenceItems} />

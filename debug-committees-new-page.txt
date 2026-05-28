@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 
 import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
 import { getRuntimeWorkflowByServiceSlug } from "@/engine/runtime/runtime-resolver";
@@ -18,7 +18,7 @@ export default async function NewCommitteesMeetingsPage() {
       workflow={result.workflow}
       serviceId={result.service.id}
       requiresStudent={runtimePolicy.requiresStudent}
-      title="محضر لجنة أو اجتماع"
+      title="Ù…Ø­Ø¶Ø± Ù„Ø¬Ù†Ø© Ø£Ùˆ Ø§Ø¬ØªÙ…Ø§Ø¹"
     />
   );
 }

@@ -1,27 +1,77 @@
+﻿"use client";
 
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { RuntimeField } from "@/engine/runtime/runtime-resolver";
 
-export type CommitteeChainRow = {
+type CommitteeRow = {
   id: string;
-  agenda: string;
+  agenda?: string;
   agendaOther?: string;
-  discussion: string;
+  discussion?: string;
   discussionOther?: string;
-  recommendation: string;
+  recommendation?: string;
   recommendationOther?: string;
 };
 
 type CommitteeChainRepeaterProps = {
   fields: RuntimeField[];
-  value: CommitteeChainRow[] | undefined;
-  onChange: (rows: CommitteeChainRow[]) => void;
+  value: CommitteeRow[] | undefined;
+  onChange: (rows: CommitteeRow[]) => void;
 };
 
-function createEmptyRow(): CommitteeChainRow {
+function textOf(field: RuntimeField) {
+  return `${field.key} ${field.label}`.toLowerCase();
+}
+
+function findAgendaField(fields: RuntimeField[]) {
+  return fields.find((field) => {
+    const text = textOf(field);
+    return (
+      text.includes("agenda") ||
+      text.includes("Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„") ||
+      text.includes("Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø§Ø¹Ù…Ø§Ù„")
+    );
+  });
+}
+
+function findDiscussionField(fields: RuntimeField[]) {
+  return fields.find((field) => {
+    const text = textOf(field);
+    return (
+      text.includes("discussion") ||
+      text.includes("Ù…Ø­ÙˆØ±") ||
+      text.includes("Ù…Ø­Ø§ÙˆØ±") ||
+      text.includes("Ø§Ù„Ù†Ù‚Ø§Ø´")
+    );
+  });
+}
+
+function findRecommendationField(fields: RuntimeField[]) {
+  return fields.find((field) => {
+    const text = textOf(field);
+    return (
+      text.includes("recommendation") ||
+      text.includes("ØªÙˆØµÙŠØ©") ||
+      text.includes("Ø§Ù„ØªÙˆØµÙŠØ©") ||
+      text.includes("Ø§Ù„ØªÙˆØµÙŠØ§Øª")
+    );
+  });
+}
+function getOptions(field?: RuntimeField, linkedToValue?: string) {
+  if (!field) return [];
+
+  if (!linkedToValue || linkedToValue === "__OTHER__") {
+    return field.options;
+  }
+
+  const linkedOptions = field.options.filter(
+    (option) => option.linkedToValue === linkedToValue
+  );
+
+  return linkedOptions.length > 0 ? linkedOptions : field.options;
+}
+
+function createEmptyRow(): CommitteeRow {
   return {
     id: crypto.randomUUID(),
     agenda: "",
@@ -33,112 +83,23 @@ function createEmptyRow(): CommitteeChainRow {
   };
 }
 
-function fieldText(field: RuntimeField) {
-  return `${field.key} ${field.label}`.trim().toLowerCase();
-}
-
-function findAgendaField(fields: RuntimeField[]) {
-  return fields.find((field) => {
-    const text = fieldText(field);
-    return text.includes("agenda") || text.includes("committee_agenda") || text.includes("جدول");
-  });
-}
-
-function findDiscussionField(fields: RuntimeField[]) {
-  return fields.find((field) => {
-    const text = fieldText(field);
-    return text.includes("discussion") || text.includes("committee_discussion") || text.includes("محور") || text.includes("نقاش");
-  });
-}
-
-function findRecommendationField(fields: RuntimeField[]) {
-  return fields.find((field) => {
-    const text = fieldText(field);
-    return text.includes("recommendation") || text.includes("committee_recommendation") || text.includes("توصية");
-  });
-}
-
-function getOptions(field?: RuntimeField, linkedToValue?: string) {
-  if (!field) return [];
-
-  if (!linkedToValue || linkedToValue === "__OTHER__") {
-    return field.options;
-  }
-
-  const linkedOptions = field.options.filter(
-    (option) => String(option.linkedToValue ?? "") === String(linkedToValue)
-  );
-
-  return linkedOptions.length > 0 ? linkedOptions : field.options;
-}
-
-function hasValidValue(value?: string, other?: string) {
-  if (value === "__OTHER__") {
-    return Boolean(other?.trim());
-  }
-
-  return Boolean(value?.trim());
-}
-
-export function isCommitteeRowsValid(rows: unknown) {
-  if (!Array.isArray(rows)) {
-    return false;
-  }
-
-  return rows.some((item) => {
-    if (!item || typeof item !== "object") {
-      return false;
-    }
-
-    const row = item as CommitteeChainRow;
-
-    return (
-      hasValidValue(row.agenda, row.agendaOther) &&
-      hasValidValue(row.discussion, row.discussionOther) &&
-      hasValidValue(row.recommendation, row.recommendationOther)
-    );
-  });
-}
-
 export function CommitteeChainRepeater({
   fields,
   value,
   onChange,
 }: CommitteeChainRepeaterProps) {
-  const agendaField = useMemo(() => findAgendaField(fields), [fields]);
-  const discussionField = useMemo(() => findDiscussionField(fields), [fields]);
-  const recommendationField = useMemo(() => findRecommendationField(fields), [fields]);
+  const agendaField = findAgendaField(fields);
+  const discussionField = findDiscussionField(fields);
+  const recommendationField = findRecommendationField(fields);
 
-  const [rows, setRows] = useState<CommitteeChainRow[]>(
-    value && value.length > 0 ? value : [createEmptyRow()]
-  );
+  const rows = value && value.length > 0 ? value : [createEmptyRow()];
 
-  useEffect(() => {
-    if (!value || value.length === 0) {
-      return;
-    }
-
-    if (JSON.stringify(value) !== JSON.stringify(rows)) {
-      setRows(value);
-    }
-  }, [value]);
-
-  function commit(nextRows: CommitteeChainRow[]) {
-    setRows(nextRows);
+  function commit(nextRows: CommitteeRow[]) {
     onChange(nextRows);
   }
 
-  function updateRow(rowId: string, patch: Partial<CommitteeChainRow>) {
-    commit(
-      rows.map((row) =>
-        row.id === rowId
-          ? {
-              ...row,
-              ...patch,
-            }
-          : row
-      )
-    );
+  function updateRow(rowId: string, patch: Partial<CommitteeRow>) {
+    commit(rows.map((row) => (row.id === rowId ? { ...row, ...patch } : row)));
   }
 
   function addRow() {
@@ -154,14 +115,16 @@ export function CommitteeChainRepeater({
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:col-span-2">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-black text-sky-700">اللجان والاجتماعات</p>
+          <p className="text-sm font-black text-sky-700">
+            Ø§Ù„Ù„Ø¬Ø§Ù† ÙˆØ§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹Ø§Øª
+          </p>
 
           <h3 className="mt-2 text-2xl font-black text-slate-900">
-            جدول الأعمال ومحور النقاش والتوصية
+            Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„ ÙˆÙ…Ø­ÙˆØ± Ø§Ù„Ù†Ù‚Ø§Ø´ ÙˆØ§Ù„ØªÙˆØµÙŠØ©
           </h3>
 
           <p className="mt-2 text-sm leading-7 text-slate-500">
-            أضف أكثر من صف. كل صف مستقل: جدول أعمال ← محور نقاش ← توصية.
+            Ø£Ø¶Ù Ø£ÙƒØ«Ø± Ù…Ù† ØµÙ. ÙƒÙ„ ØµÙ Ù…Ø³ØªÙ‚Ù„: Ø¬Ø¯ÙˆÙ„ Ø£Ø¹Ù…Ø§Ù„ 1 â† Ù†Ù‚Ø§Ø´ 1 â† ØªÙˆØµÙŠØ© 1.
           </p>
         </div>
 
@@ -171,7 +134,7 @@ export function CommitteeChainRepeater({
           className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white hover:bg-sky-700"
         >
           <Plus className="h-4 w-4" />
-          إضافة جدول أعمال
+          Ø¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙˆÙ„ Ø£Ø¹Ù…Ø§Ù„
         </button>
       </div>
 
@@ -179,7 +142,10 @@ export function CommitteeChainRepeater({
         {rows.map((row, index) => {
           const agendaOptions = getOptions(agendaField);
           const discussionOptions = getOptions(discussionField, row.agenda);
-          const recommendationOptions = getOptions(recommendationField, row.discussion);
+          const recommendationOptions = getOptions(
+            recommendationField,
+            row.discussion
+          );
 
           return (
             <div
@@ -188,7 +154,7 @@ export function CommitteeChainRepeater({
             >
               <div className="mb-5 flex items-center justify-between">
                 <p className="text-sm font-black text-slate-700">
-                  جدول {index + 1} - نقاش {index + 1} - توصية {index + 1}
+                  Ø¬Ø¯ÙˆÙ„ {index + 1} - Ù†Ù‚Ø§Ø´ {index + 1} - ØªÙˆØµÙŠØ© {index + 1}
                 </p>
 
                 <button
@@ -203,11 +169,11 @@ export function CommitteeChainRepeater({
               <div className="grid gap-4 lg:grid-cols-3">
                 <div>
                   <label className="mb-2 block text-sm font-black text-slate-800">
-                    جدول الأعمال
+                    Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„
                   </label>
 
                   <select
-                    value={row.agenda}
+                    value={row.agenda ?? ""}
                     onChange={(event) =>
                       updateRow(row.id, {
                         agenda: event.target.value,
@@ -220,7 +186,7 @@ export function CommitteeChainRepeater({
                     }
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                   >
-                    <option value="">اختر جدول الأعمال...</option>
+                    <option value="">Ø§Ø®ØªØ± Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„...</option>
 
                     {agendaOptions.map((option) => (
                       <option key={option.id} value={option.value}>
@@ -228,7 +194,7 @@ export function CommitteeChainRepeater({
                       </option>
                     ))}
 
-                    <option value="__OTHER__">أخرى</option>
+                    <option value="__OTHER__">Ø£Ø®Ø±Ù‰</option>
                   </select>
 
                   {row.agenda === "__OTHER__" ? (
@@ -239,7 +205,7 @@ export function CommitteeChainRepeater({
                           agendaOther: event.target.value,
                         })
                       }
-                      placeholder="اكتب جدول الأعمال..."
+                      placeholder="Ø§ÙƒØªØ¨ Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„..."
                       className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                     />
                   ) : null}
@@ -247,11 +213,11 @@ export function CommitteeChainRepeater({
 
                 <div>
                   <label className="mb-2 block text-sm font-black text-slate-800">
-                    محور النقاش
+                    Ù…Ø­ÙˆØ± Ø§Ù„Ù†Ù‚Ø§Ø´
                   </label>
 
                   <select
-                    value={row.discussion}
+                    value={row.discussion ?? ""}
                     disabled={!row.agenda}
                     onChange={(event) =>
                       updateRow(row.id, {
@@ -263,7 +229,7 @@ export function CommitteeChainRepeater({
                     }
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100"
                   >
-                    <option value="">اختر محور النقاش...</option>
+                    <option value="">Ø§Ø®ØªØ± Ù…Ø­ÙˆØ± Ø§Ù„Ù†Ù‚Ø§Ø´...</option>
 
                     {discussionOptions.map((option) => (
                       <option key={option.id} value={option.value}>
@@ -271,7 +237,7 @@ export function CommitteeChainRepeater({
                       </option>
                     ))}
 
-                    <option value="__OTHER__">أخرى</option>
+                    <option value="__OTHER__">Ø£Ø®Ø±Ù‰</option>
                   </select>
 
                   {row.discussion === "__OTHER__" ? (
@@ -282,7 +248,7 @@ export function CommitteeChainRepeater({
                           discussionOther: event.target.value,
                         })
                       }
-                      placeholder="اكتب محور النقاش..."
+                      placeholder="Ø§ÙƒØªØ¨ Ù…Ø­ÙˆØ± Ø§Ù„Ù†Ù‚Ø§Ø´..."
                       className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                     />
                   ) : null}
@@ -290,11 +256,11 @@ export function CommitteeChainRepeater({
 
                 <div>
                   <label className="mb-2 block text-sm font-black text-slate-800">
-                    التوصية
+                    Ø§Ù„ØªÙˆØµÙŠØ©
                   </label>
 
                   <select
-                    value={row.recommendation}
+                    value={row.recommendation ?? ""}
                     disabled={!row.discussion}
                     onChange={(event) =>
                       updateRow(row.id, {
@@ -304,7 +270,7 @@ export function CommitteeChainRepeater({
                     }
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100"
                   >
-                    <option value="">اختر التوصية...</option>
+                    <option value="">Ø§Ø®ØªØ± Ø§Ù„ØªÙˆØµÙŠØ©...</option>
 
                     {recommendationOptions.map((option) => (
                       <option key={option.id} value={option.value}>
@@ -312,7 +278,7 @@ export function CommitteeChainRepeater({
                       </option>
                     ))}
 
-                    <option value="__OTHER__">أخرى</option>
+                    <option value="__OTHER__">Ø£Ø®Ø±Ù‰</option>
                   </select>
 
                   {row.recommendation === "__OTHER__" ? (
@@ -323,7 +289,7 @@ export function CommitteeChainRepeater({
                           recommendationOther: event.target.value,
                         })
                       }
-                      placeholder="اكتب التوصية..."
+                      placeholder="Ø§ÙƒØªØ¨ Ø§Ù„ØªÙˆØµÙŠØ©..."
                       className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                     />
                   ) : null}

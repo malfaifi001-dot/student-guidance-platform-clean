@@ -18,8 +18,8 @@ export default async function CasesPage() {
     title: caseItem.title || "بدون عنوان",
     status: caseItem.status,
     createdAt: new Date(caseItem.createdAt).toLocaleDateString("ar-SA"),
-    serviceName: caseItem.service.name,
-    studentName: caseItem.student?.fullName || "بدون طالب",
+    serviceName: caseItem.service?.name || "غير محدد",
+    studentName: caseItem.student?.fullName || "غير مرتبط بطالب",
   }));
 
   return (
@@ -30,7 +30,7 @@ export default async function CasesPage() {
         <h1 className="mt-3 text-4xl font-black">الحالات والسجلات</h1>
 
         <p className="mt-4 max-w-3xl leading-8 text-sky-50">
-          مركز شامل للبحث في سجلات كل الخدمات مع بقاء كل خدمة محتفظة بسجلاتها الخاصة.
+          مركز موحد لاستعراض سجلات جميع الخدمات والبحث فيها.
         </p>
       </section>
 

@@ -36,7 +36,7 @@ export function CasesSearchTable({ cases }: { cases: CaseRow[] }) {
   }, [cases, query]);
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white card-shadow">
+    <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-6">
         <div className="relative">
           <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -51,12 +51,12 @@ export function CasesSearchTable({ cases }: { cases: CaseRow[] }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] text-right text-sm">
+        <table className="w-full min-w-[1000px] text-right text-sm">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
               <th className="p-4">العنوان</th>
               <th className="p-4">الخدمة</th>
-              <th className="p-4">الطالب</th>
+              <th className="p-4">الطالب/الطالبة</th>
               <th className="p-4">الحالة</th>
               <th className="p-4">التاريخ</th>
               <th className="p-4">الإجراءات</th>
@@ -66,7 +66,10 @@ export function CasesSearchTable({ cases }: { cases: CaseRow[] }) {
           <tbody>
             {filteredCases.map((caseItem) => (
               <tr key={caseItem.id} className="border-t border-slate-100">
-                <td className="p-4 font-black text-slate-900">{caseItem.title}</td>
+                <td className="p-4 font-black text-slate-900">
+                  {caseItem.title}
+                </td>
+
                 <td className="p-4 text-slate-500">{caseItem.serviceName}</td>
                 <td className="p-4 text-slate-500">{caseItem.studentName}</td>
 

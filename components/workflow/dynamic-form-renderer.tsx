@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { Save, Send } from "lucide-react";
 
+import { isCommitteeRowsValid } from "@/components/committees/committee-chain-repeater";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
 import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
 import { RuntimeProgressSidebar } from "@/components/runtime/runtime-progress-sidebar";
@@ -10,7 +11,10 @@ import { RuntimeStatusBar } from "@/components/runtime/runtime-status-bar";
 import { RuntimeStepNavigation } from "@/components/runtime/runtime-step-navigation";
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
 import { StudentContextCard } from "@/components/service-ui/student-context-card";
-import { WorkflowStepCard } from "@/components/workflow/workflow-step-card";
+import {
+  isCommitteeChainStep,
+  WorkflowStepCard,
+} from "@/components/workflow/workflow-step-card";
 import { createAutosavePayload } from "@/engine/autosave/autosave-engine";
 import {
   validateStepRequiredFields,
@@ -64,7 +68,7 @@ function isSerializableValue(value: unknown): value is RuntimeValues[string] {
   }
 
   if (Array.isArray(value)) {
-    return value.every((item) => typeof item === "string");
+    return true;
   }
 
   return typeof value === "object";
@@ -72,7 +76,13 @@ function isSerializableValue(value: unknown): value is RuntimeValues[string] {
 
 function isEvidenceStep(stepTitle?: string | null) {
   const title = String(stepTitle ?? "").trim();
-  return title.includes("الشواهد") || title.includes("المرفقات");
+
+  return (
+    title.includes("الشواهد") ||
+    title.includes("المرفقات") ||
+    title.toLowerCase().includes("evidence") ||
+    title.toLowerCase().includes("attachment")
+  );
 }
 
 export function DynamicFormRenderer({
@@ -116,28 +126,46 @@ export function DynamicFormRenderer({
     values,
   });
 
+  const autosavePayload = useMemo(
+    () =>
+      createAutosavePayload({
+        workflowId: workflow.id,
+        serviceId,
+        values,
+        studentId: extractStudentId(values),
+      }),
+    [workflow.id, serviceId, values]
+  );
+
   const autosave = useRuntimeAutosave({
     enabled: Object.keys(values).length > 0,
-    payload: createAutosavePayload({
-      workflowId: workflow.id,
-      serviceId,
-      values,
-      studentId: extractStudentId(values),
-    }),
+    payload: autosavePayload,
   });
 
-  const currentStepValidation = visibleStep
-    ? validateStepRequiredFields({
-        fields: visibleStep.fields,
-        values,
-      })
-    : {
-        valid: true,
-        missingFields: [],
-      };
+  const isCommitteeStep =
+    workflow.serviceSlug === "committees-meetings" &&
+    isCommitteeChainStep(visibleStep);
+
+  const committeeRowsAreValid = isCommitteeRowsValid(values.committee_items);
+
+  const currentStepValidation = isCommitteeStep
+    ? {
+        valid: committeeRowsAreValid,
+        missingFields: committeeRowsAreValid ? [] : ["committee_items"],
+      }
+    : visibleStep
+      ? validateStepRequiredFields({
+          fields: visibleStep.fields,
+          values,
+        })
+      : {
+          valid: true,
+          missingFields: [],
+        };
 
   const shouldShowEvidence =
-    workflow.serviceSlug === "guidance-programs" && isEvidenceStep(visibleStep?.title);
+    workflow.serviceSlug === "guidance-programs" &&
+    isEvidenceStep(visibleStep?.title);
 
   function handleChange(key: string, value: unknown) {
     setValues((current) => ({
@@ -148,7 +176,11 @@ export function DynamicFormRenderer({
 
   async function persistCase(type: "draft" | "submit") {
     setIsSaving(true);
-    setFeedbackModal((current) => ({ ...current, open: false }));
+
+    setFeedbackModal((current) => ({
+      ...current,
+      open: false,
+    }));
 
     try {
       const endpoint = caseId
@@ -223,7 +255,9 @@ export function DynamicFormRenderer({
           />
 
           <section className="rounded-3xl bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
-            <p className="text-sm font-semibold text-sky-100">Workflow Runtime</p>
+            <p className="text-sm font-semibold text-sky-100">
+              Workflow Runtime
+            </p>
 
             <h1 className="mt-3 text-4xl font-black">{workflow.name}</h1>
 
@@ -244,6 +278,7 @@ export function DynamicFormRenderer({
               key={visibleStep.id}
               step={visibleStep}
               values={values}
+              serviceSlug={workflow.serviceSlug}
               onChange={handleChange}
             />
           ) : (
@@ -251,6 +286,10 @@ export function DynamicFormRenderer({
               <h2 className="text-2xl font-black text-amber-800">
                 لا توجد خطوات داخل هذا الـ Workflow
               </h2>
+
+              <p className="mt-3 text-sm leading-7 text-amber-700">
+                ارفع Workflow يحتوي على خطوات وحقول من لوحة الأدمن.
+              </p>
             </section>
           )}
 
@@ -335,7 +374,10 @@ export function DynamicFormRenderer({
           description={feedbackModal.description}
           primaryActionLabel="إغلاق"
           onPrimaryAction={() =>
-            setFeedbackModal((current) => ({ ...current, open: false }))
+            setFeedbackModal((current) => ({
+              ...current,
+              open: false,
+            }))
           }
         />
       </div>

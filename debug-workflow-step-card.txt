@@ -1,9 +1,6 @@
-"use client";
+﻿"use client";
 
-import {
-  CommitteeChainRepeater,
-  isCommitteeRowsValid,
-} from "@/components/committees/committee-chain-repeater";
+import { CommitteeChainRepeater } from "@/components/committees/committee-chain-repeater";
 import { DynamicFieldRenderer } from "@/components/workflow/dynamic-field-renderer";
 import {
   shouldShowField,
@@ -26,10 +23,8 @@ function isAgendaField(field: RuntimeField) {
   const text = textOf(field);
   return (
     text.includes("agenda") ||
-    text.includes("committee_agenda") ||
-    text.includes("جدول") ||
-    text.includes("الأعمال") ||
-    text.includes("الاعمال")
+    text.includes("Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„") ||
+    text.includes("Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø§Ø¹Ù…Ø§Ù„")
   );
 }
 
@@ -37,9 +32,9 @@ function isDiscussionField(field: RuntimeField) {
   const text = textOf(field);
   return (
     text.includes("discussion") ||
-    text.includes("committee_discussion") ||
-    text.includes("محور") ||
-    text.includes("نقاش")
+    text.includes("Ù…Ø­ÙˆØ±") ||
+    text.includes("Ù…Ø­Ø§ÙˆØ±") ||
+    text.includes("Ø§Ù„Ù†Ù‚Ø§Ø´")
   );
 }
 
@@ -47,10 +42,9 @@ function isRecommendationField(field: RuntimeField) {
   const text = textOf(field);
   return (
     text.includes("recommendation") ||
-    text.includes("committee_recommendation") ||
-    text.includes("توصية") ||
-    text.includes("التوصية") ||
-    text.includes("التوصيات")
+    text.includes("ØªÙˆØµÙŠØ©") ||
+    text.includes("Ø§Ù„ØªÙˆØµÙŠØ©") ||
+    text.includes("Ø§Ù„ØªÙˆØµÙŠØ§Øª")
   );
 }
 
@@ -58,13 +52,11 @@ function isCommitteeChainField(field: RuntimeField) {
   return isAgendaField(field) || isDiscussionField(field) || isRecommendationField(field);
 }
 
-export function isCommitteeChainStep(step?: RuntimeStep | null) {
-  if (!step) return false;
-
+function hasCommitteeChain(fields: RuntimeField[]) {
   return (
-    step.fields.some(isAgendaField) &&
-    step.fields.some(isDiscussionField) &&
-    step.fields.some(isRecommendationField)
+    fields.some(isAgendaField) &&
+    fields.some(isDiscussionField) &&
+    fields.some(isRecommendationField)
   );
 }
 
@@ -77,20 +69,16 @@ export function WorkflowStepCard({
   const visibleFields = step.fields.filter((field) =>
     shouldShowField(field, values)
   );
-
-  const shouldRenderCommitteeChain =
-    serviceSlug === "committees-meetings" && isCommitteeChainStep(step);
-
+const shouldRenderCommitteeChain =
+  serviceSlug === "committees-meetings" && hasCommitteeChain(step.fields);
   const normalFields = shouldRenderCommitteeChain
     ? visibleFields.filter((field) => !isCommitteeChainField(field))
     : visibleFields;
 
-  const committeeValid = isCommitteeRowsValid(values.committee_items);
-
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6 border-b border-slate-100 pb-5">
-        <p className="text-sm font-bold text-sky-700">الخطوة {step.order}</p>
+        <p className="text-sm font-bold text-sky-700">Ø§Ù„Ø®Ø·ÙˆØ© {step.order}</p>
 
         <h2 className="mt-2 text-2xl font-black text-slate-900">
           {step.title}
@@ -119,28 +107,20 @@ export function WorkflowStepCard({
         ))}
 
         {shouldRenderCommitteeChain ? (
-          <div className="md:col-span-2">
-            <CommitteeChainRepeater
-              fields={step.fields}
-              value={
-                Array.isArray(values.committee_items)
-                  ? (values.committee_items as any[])
-                  : undefined
-              }
-              onChange={(rows) => onChange("committee_items", rows)}
-            />
-
-            {!committeeValid ? (
-              <p className="mt-3 text-sm font-bold text-rose-500">
-                يجب إكمال صف واحد على الأقل: جدول أعمال + محور نقاش + توصية.
-              </p>
-            ) : null}
-          </div>
+          <CommitteeChainRepeater
+            fields={step.fields}
+            value={
+              Array.isArray(values.committee_items)
+                ? (values.committee_items as any[])
+                : undefined
+            }
+            onChange={(rows) => onChange("committee_items", rows)}
+          />
         ) : null}
 
         {normalFields.length === 0 && !shouldRenderCommitteeChain ? (
           <div className="rounded-2xl bg-slate-50 p-6 text-sm font-semibold text-slate-400">
-            لا توجد حقول ظاهرة في هذه الخطوة حاليًا.
+            Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­Ù‚ÙˆÙ„ Ø¸Ø§Ù‡Ø±Ø© ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„Ø®Ø·ÙˆØ© Ø­Ø§Ù„ÙŠÙ‹Ø§.
           </div>
         ) : null}
       </div>

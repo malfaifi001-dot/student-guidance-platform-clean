@@ -23,6 +23,14 @@ type SaveRuntimeCaseParams = {
   status: "DRAFT" | "SUBMITTED";
 };
 
+type UpdateRuntimeCaseParams = {
+  caseId: string;
+  title?: string | null;
+  studentId?: string | null;
+  values: RuntimeCaseValues;
+  status?: "DRAFT" | "SUBMITTED";
+};
+
 function getEvidenceType(mimeType: string) {
   if (mimeType.startsWith("image")) return "IMAGE";
   if (mimeType) return "FILE";
@@ -50,11 +58,9 @@ export async function saveRuntimeCase({
       title: title || "سجل جديد",
       status,
       submittedAt: status === "SUBMITTED" ? new Date() : null,
-
       values: {
         create: serializedValues,
       },
-
       evidences: {
         create: evidenceItems.map((item) => ({
           type: getEvidenceType(item.mimeType),
@@ -63,6 +69,43 @@ export async function saveRuntimeCase({
           mimeType: item.mimeType,
           size: item.size,
         })),
+      },
+    },
+    include: {
+      values: true,
+      evidences: true,
+    },
+  });
+
+  return caseEntry;
+}
+
+export async function updateRuntimeCase({
+  caseId,
+  title,
+  studentId,
+  values,
+  status,
+}: UpdateRuntimeCaseParams) {
+  const serializedValues = serializeCaseValues(values);
+
+  await prisma.caseValue.deleteMany({
+    where: {
+      caseEntryId: caseId,
+    },
+  });
+
+  const caseEntry = await prisma.caseEntry.update({
+    where: {
+      id: caseId,
+    },
+    data: {
+      title: title || undefined,
+      studentId: studentId || undefined,
+      status,
+      submittedAt: status === "SUBMITTED" ? new Date() : undefined,
+      values: {
+        create: serializedValues,
       },
     },
     include: {
@@ -95,7 +138,10 @@ export async function restoreCaseDraft(caseId: string) {
   }
 
   const restoredValues = Object.fromEntries(
-    caseEntry.values.map((value) => [value.fieldKey, value.jsonValue ?? value.value])
+    caseEntry.values.map((value) => [
+      value.fieldKey,
+      value.jsonValue ?? value.value,
+    ])
   );
 
   return {
@@ -135,45 +181,6 @@ export async function getCaseById(caseId: string) {
   if (!caseEntry) {
     throw new Error("الحالة غير موجودة.");
   }
-
-  return caseEntry;
-}
-
-import type { RuntimeCaseValues } from "@/lib/cases/case-values";
-
-export async function updateRuntimeCase(params: {
-  caseId: string;
-  title?: string | null;
-  studentId?: string | null;
-  values: RuntimeCaseValues;
-  status?: "DRAFT" | "SUBMITTED";
-}) {
-  const serializedValues = serializeCaseValues(params.values);
-
-  await prisma.caseValue.deleteMany({
-    where: {
-      caseEntryId: params.caseId,
-    },
-  });
-
-  const caseEntry = await prisma.caseEntry.update({
-    where: {
-      id: params.caseId,
-    },
-    data: {
-      title: params.title || undefined,
-      studentId: params.studentId || undefined,
-      status: params.status,
-      submittedAt: params.status === "SUBMITTED" ? new Date() : undefined,
-      values: {
-        create: serializedValues,
-      },
-    },
-    include: {
-      values: true,
-      evidences: true,
-    },
-  });
 
   return caseEntry;
 }
