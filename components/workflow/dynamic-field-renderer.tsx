@@ -10,10 +10,13 @@ type DynamicFieldRendererProps = {
 
 function FieldLabel({ field }: { field: RuntimeField }) {
   return (
-    <label className="mb-2 block text-sm font-black text-slate-800">
-      {field.label}
-      {field.isRequired ? <span className="mr-1 text-rose-600">*</span> : null}
-    </label>
+   <label className="mb-3 block text-sm font-black text-slate-800">
+  {field.label}
+
+  {field.isRequired ? (
+    <span className="mr-1 text-rose-500">*</span>
+  ) : null}
+</label>
   );
 }
 
@@ -104,7 +107,7 @@ export function DynamicFieldRenderer({
     return (
       <div>
         <FieldLabel field={field} />
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
           {[...field.options, ...(field.allowOther ? [{ id: "__other__", label: "أخرى", value: "__OTHER__", order: 999 }] : [])].map(
             (option) => {
               const checked = selectedValues.includes(option.value);

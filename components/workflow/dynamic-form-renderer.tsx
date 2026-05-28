@@ -6,10 +6,16 @@ import { Save, Send } from "lucide-react";
 import { RuntimeProgressSidebar } from "@/components/runtime/runtime-progress-sidebar";
 import { RuntimeStatusBar } from "@/components/runtime/runtime-status-bar";
 import { RuntimeStepNavigation } from "@/components/runtime/runtime-step-navigation";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
 import { StudentContextCard } from "@/components/service-ui/student-context-card";
 import { WorkflowStepCard } from "@/components/workflow/workflow-step-card";
-import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+import { createAutosavePayload } from "@/engine/autosave/autosave-engine";
+import {
+  validateStepRequiredFields,
+  type RuntimeValues,
+} from "@/engine/runtime/field-dependency-engine";
 import type { RuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+import { useRuntimeAutosave } from "@/hooks/use-runtime-autosave";
 import { useRuntimeProgress } from "@/hooks/use-runtime-progress";
 
 type DynamicFormRendererProps = {
@@ -64,8 +70,18 @@ export function DynamicFormRenderer({
 }: DynamicFormRendererProps) {
   const [values, setValues] = useState<RuntimeValues>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+
+  const [feedbackModal, setFeedbackModal] = useState<{
+    open: boolean;
+    type: "success" | "error" | "warning" | "info";
+    title: string;
+    description?: string;
+  }>({
+    open: false,
+    type: "success",
+    title: "",
+  });
 
   const sortedSteps = useMemo(
     () => [...workflow.steps].sort((a, b) => a.order - b.order),
@@ -84,6 +100,26 @@ export function DynamicFormRenderer({
     values,
   });
 
+  const autosave = useRuntimeAutosave({
+    enabled: Object.keys(values).length > 0,
+    payload: createAutosavePayload({
+      workflowId: workflow.id,
+      serviceId,
+      values,
+      studentId: extractStudentId(values),
+    }),
+  });
+
+  const currentStepValidation = visibleStep
+    ? validateStepRequiredFields({
+        fields: visibleStep.fields,
+        values,
+      })
+    : {
+        valid: true,
+        missingFields: [],
+      };
+
   function handleChange(key: string, value: unknown) {
     setValues((current) => ({
       ...current,
@@ -93,7 +129,11 @@ export function DynamicFormRenderer({
 
   async function persistCase(type: "draft" | "submit") {
     setIsSaving(true);
-    setMessage(null);
+
+    setFeedbackModal((current) => ({
+      ...current,
+      open: false,
+    }));
 
     try {
       const endpoint =
@@ -121,9 +161,25 @@ export function DynamicFormRenderer({
         throw new Error(data.error || "حدث خطأ أثناء الحفظ.");
       }
 
-      setMessage(data.message || "تمت العملية بنجاح.");
+      setFeedbackModal({
+        open: true,
+        type: "success",
+        title: type === "draft" ? "تم حفظ المسودة" : "تم إرسال الحالة بنجاح",
+        description:
+          type === "draft"
+            ? "تم حفظ البيانات الحالية ويمكنك العودة لاحقًا لإكمالها."
+            : "تم اعتماد الحالة وإرسالها للنظام بنجاح.",
+      });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "حدث خطأ غير معروف.");
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "حدث خطأ",
+        description:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ غير معروف أثناء العملية.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -131,18 +187,20 @@ export function DynamicFormRenderer({
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="space-y-6">
         <RuntimeProgressSidebar
           steps={runtimeProgress.stepsProgress}
           currentStep={safeCurrentStep}
           onSelectStep={setCurrentStep}
         />
 
-        <main className="min-w-0 space-y-6 pb-28">
+        <main className="space-y-6 pb-28">
           <RuntimeStatusBar
             overallPercent={runtimeProgress.overallPercent}
             completedRequired={runtimeProgress.completedRequired}
             totalRequired={runtimeProgress.totalRequired}
+            isSaving={autosave.isSaving}
+            lastSavedAt={autosave.lastSavedAt}
           />
 
           <section className="rounded-3xl bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
@@ -187,6 +245,7 @@ export function DynamicFormRenderer({
             <RuntimeStepNavigation
               currentStep={safeCurrentStep}
               totalSteps={sortedSteps.length}
+              canProceed={currentStepValidation.valid}
               onNext={() =>
                 setCurrentStep((previous) =>
                   Math.min(previous + 1, sortedSteps.length - 1)
@@ -196,12 +255,6 @@ export function DynamicFormRenderer({
                 setCurrentStep((previous) => Math.max(previous - 1, 0))
               }
             />
-          ) : null}
-
-          {message ? (
-            <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm font-bold text-sky-800">
-              {message}
-            </div>
           ) : null}
 
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -228,6 +281,20 @@ export function DynamicFormRenderer({
             </div>
           </div>
         </main>
+
+        <SmartFeedbackModal
+          open={feedbackModal.open}
+          type={feedbackModal.type}
+          title={feedbackModal.title}
+          description={feedbackModal.description}
+          primaryActionLabel="إغلاق"
+          onPrimaryAction={() =>
+            setFeedbackModal((current) => ({
+              ...current,
+              open: false,
+            }))
+          }
+        />
       </div>
     </div>
   );

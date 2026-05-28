@@ -1,7 +1,10 @@
 "use client";
 
 import { DynamicFieldRenderer } from "@/components/workflow/dynamic-field-renderer";
-import { isFieldVisible, type RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+import {
+  shouldShowField,
+  type RuntimeValues,
+} from "@/engine/runtime/field-dependency-engine";
 import type { RuntimeStep } from "@/engine/runtime/runtime-resolver";
 
 type WorkflowStepCardProps = {
@@ -10,35 +13,45 @@ type WorkflowStepCardProps = {
   onChange: (key: string, value: unknown) => void;
 };
 
-export function WorkflowStepCard({ step, values, onChange }: WorkflowStepCardProps) {
+export function WorkflowStepCard({
+  step,
+  values,
+  onChange,
+}: WorkflowStepCardProps) {
   const visibleFields = step.fields.filter((field) =>
-    isFieldVisible(
-      {
-        dependsOnFieldKey: field.dependsOnFieldKey,
-        linkedToValue: field.linkedToValue,
-      },
-      values
-    )
+    shouldShowField(field, values)
   );
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6 border-b border-slate-100 pb-5">
-        <p className="text-sm font-bold text-sky-700">الخطوة {step.order}</p>
-        <h2 className="mt-2 text-2xl font-black text-slate-900">{step.title}</h2>
+        <p className="text-sm font-bold text-sky-700">
+          الخطوة {step.order}
+        </p>
+
+        <h2 className="mt-2 text-2xl font-black text-slate-900">
+          {step.title}
+        </h2>
+
         {step.description ? (
-          <p className="mt-2 text-sm leading-7 text-slate-500">{step.description}</p>
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            {step.description}
+          </p>
         ) : null}
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
         {visibleFields.map((field) => (
-          <DynamicFieldRenderer
+          <div
             key={field.id}
-            field={field}
-            value={values[field.key]}
-            onChange={onChange}
-          />
+            className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+          >
+            <DynamicFieldRenderer
+              field={field}
+              value={values[field.key]}
+              onChange={(key, value) => onChange(key, value)}
+            />
+          </div>
         ))}
 
         {visibleFields.length === 0 ? (
