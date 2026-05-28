@@ -3,6 +3,10 @@
 import { useMemo, useState } from "react";
 import { Save, Send } from "lucide-react";
 
+import { useState } from "react";
+import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
+import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+
 import { RuntimeProgressSidebar } from "@/components/runtime/runtime-progress-sidebar";
 import { RuntimeStatusBar } from "@/components/runtime/runtime-status-bar";
 import { RuntimeStepNavigation } from "@/components/runtime/runtime-step-navigation";
@@ -70,7 +74,7 @@ export function DynamicFormRenderer({
 }: DynamicFormRendererProps) {
   const [values, setValues] = useState<RuntimeValues>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [evidenceItems, setEvidenceItems] = useState<any[]>([]);
 
   const [feedbackModal, setFeedbackModal] = useState<{
     open: boolean;
@@ -152,6 +156,7 @@ export function DynamicFormRenderer({
           title: title || workflow.name,
           studentId: extractStudentId(values),
           values,
+evidenceItems,
         }),
       });
 
@@ -184,6 +189,18 @@ export function DynamicFormRenderer({
       setIsSaving(false);
     }
   }
+
+async function handleEvidenceFiles(files: FileList) {
+  const nextItems = Array.from(files).map((file) => ({
+    id: crypto.randomUUID(),
+    fileName: file.name,
+    fileUrl: URL.createObjectURL(file),
+    mimeType: file.type,
+    size: file.size,
+  }));
+
+  setEvidenceItems((current) => [...current, ...nextItems]);
+}
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -240,6 +257,37 @@ export function DynamicFormRenderer({
               </p>
             </section>
           )}
+
+
+<section className="space-y-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+  <div>
+    <p className="text-sm font-black text-sky-700">
+      Evidence System
+    </p>
+
+    <h2 className="mt-2 text-3xl font-black text-slate-900">
+      الشواهد والمرفقات
+    </h2>
+
+    <p className="mt-3 text-sm leading-7 text-slate-500">
+      أضف الصور والملفات المرتبطة بالحالة ليتم حفظها داخل السجل.
+    </p>
+  </div>
+
+  <EvidenceUploadCard
+    onFilesSelected={handleEvidenceFiles}
+  />
+
+  <EvidencePreviewGrid
+    items={evidenceItems}
+    onDelete={(id) =>
+      setEvidenceItems((current) =>
+        current.filter((item) => item.id !== id)
+      )
+    }
+  />
+</section>
+
 
           {sortedSteps.length > 0 ? (
             <RuntimeStepNavigation
