@@ -18,5 +18,7 @@ export async function GET() {
     take: 50,
   });
 
+
+  
   return NextResponse.json({ sessions });
 }
