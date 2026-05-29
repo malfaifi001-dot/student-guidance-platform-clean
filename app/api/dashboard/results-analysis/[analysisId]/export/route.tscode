@@ -1,0 +1,32 @@
+export type StudentResultRow = {
+  studentName: string;
+  subject: string;
+  score: number;
+  maxScore: number;
+  grade?: string | null;
+  classroom?: string | null;
+  semester?: string | null;
+};
+
+export type StudentAverage = {
+  studentName: string;
+  average: number;
+};
+
+export type SubjectAverage = {
+  subject: string;
+  average: number;
+};
+
+export type ResultsAnalysisSummary = {
+  totalStudents: number;
+  totalSubjects: number;
+  averageScore: number;
+  studentAverages: StudentAverage[];
+  top5: StudentAverage[];
+  top10: StudentAverage[];
+  weakStudents: StudentAverage[];
+  subjectAverages: SubjectAverage[];
+  distribution: Record<string, number>;
+  insights: string[];
+};

@@ -32,7 +32,8 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
   );
 
   const evidenceItems =
-    caseEntry.evidences?.map((item: any) => ({
+   
+  caseEntry.evidences?.map((item: any) => ({
       id: item.id,
       fileName: item.fileName || "ملف",
       fileUrl: item.fileUrl || "#",

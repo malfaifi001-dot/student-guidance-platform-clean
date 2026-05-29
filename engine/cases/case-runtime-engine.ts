@@ -128,7 +128,19 @@ export async function restoreCaseDraft(caseId: string) {
           guardian: true,
         },
       },
-      workflow: true,
+     workflow: {
+  include: {
+    steps: {
+      include: {
+        fields: {
+          include: {
+            options: true,
+          },
+        },
+      },
+    },
+  },
+},
       service: true,
     },
   });

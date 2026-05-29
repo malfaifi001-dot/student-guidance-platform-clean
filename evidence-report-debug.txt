@@ -1,0 +1,1520 @@
+
+
+================ prisma\schema.prisma ================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+
+  users                 User[]
+  profile               SchoolProfile?
+  students              Student[]
+  guardians             Guardian[]
+  staff                 StaffMember[]
+  services              ServiceAccess[]
+  cases                 CaseEntry[]
+  subscription          Subscription?
+resultsAnalyses       ResultsAnalysis[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  isActive     Boolean  @default(true)
+
+  cases CaseEntry[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  caseEvidences CaseEvidence[]
+
+  @@index([schoolAccountId])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName      String
+  principalName   String?
+  city            String?
+  district        String?
+  academicYear    String?
+  currentSemester String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows Workflow[]
+  cases     CaseEntry[]
+  access    ServiceAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name     String
+  version  Int            @default(1)
+  status   WorkflowStatus @default(DRAFT)
+  isActive Boolean        @default(false)
+
+  steps WorkflowStep[]
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId String?
+  workflow   Workflow? @relation(fields: [workflowId], references: [id])
+guidanceReports GuidanceReport[]
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values    CaseValue[]
+  evidences Evidence[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  caseEvidences CaseEvidence[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+
+enum ReportStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  PERSONAL
+}
+
+model GuidanceReport {
+  id String @id @default(cuid())
+
+  title String
+
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id])
+
+  createdById String?
+  createdBy   User? @relation(fields: [createdById], references: [id])
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String?
+
+  editableContent String
+  renderedContent String?
+
+  notes String?
+
+  templateId String?
+
+  evidenceEnabled Boolean @default(true)
+
+  approvedAt DateTime?
+  approvedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report GuidanceReport @relation(fields: [reportId], references: [id])
+
+  fileName String
+  fileUrl String
+
+  caption String?
+
+  sortOrder Int @default(0)
+
+  visible Boolean @default(true)
+
+  createdAt DateTime @default(now())
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name String
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+
+  genderAware Boolean @default(true)
+
+  usageCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  createdById String?
+  createdBy   User? @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String?
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model ResultsAnalysis {
+  id              String        @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title       String
+  grade       String?
+  classroom   String?
+  sourceFile  String?
+  status      String @default("COMPLETED")
+
+  totalStudents Int @default(0)
+  totalSubjects Int @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+
+enum ReportStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  PERSONAL
+}
+
+model GuidanceReport {
+  id String @id @default(cuid())
+
+  title String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String
+  renderedContent String?
+
+  evidenceEnabled Boolean @default(true)
+
+  approvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+  sortOrder Int @default(0)
+  visible Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name String
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+  genderAware Boolean @default(true)
+
+  usageCount Int @default(0)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+  @@index([type])
+}
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+
+
+================ components\evidence\evidence-upload-card.tsx ================
+
+"use client";
+
+import { useState } from "react";
+import { UploadCloud } from "lucide-react";
+
+type EvidenceItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
+
+type EvidenceUploadCardProps = {
+  onUploaded?: (items: EvidenceItem[]) => void;
+  onFilesSelected?: (files: FileList) => void;
+};
+
+export function EvidenceUploadCard({
+  onUploaded,
+  onFilesSelected,
+}: EvidenceUploadCardProps) {
+  const [isUploading, setIsUploading] = useState(false);
+
+  async function uploadFiles(files: FileList) {
+    if (onFilesSelected) {
+      onFilesSelected(files);
+      return;
+    }
+
+    if (!onUploaded) {
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+
+      Array.from(files).forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const response = await fetch("/api/dashboard/evidence", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "??? ??? ???????.");
+      }
+
+      onUploaded(data.items || []);
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  return (
+    <label className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-sky-200 bg-sky-50 p-8 text-center transition hover:border-sky-400 hover:bg-sky-100">
+      <UploadCloud className="h-12 w-12 text-sky-600" />
+
+      <h3 className="mt-4 text-2xl font-black text-slate-900">??? ???????</h3>
+
+      <p className="mt-3 max-w-xl text-sm leading-7 text-slate-500">
+        ???? ??? ?? ????? ??? ????? ???????? ????????.
+      </p>
+
+      <div className="mt-5 rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white">
+        {isUploading ? "???? ?????..." : "?????? ???????"}
+      </div>
+
+      <input
+        type="file"
+        multiple
+        accept="image/*,.pdf,.doc,.docx"
+        disabled={isUploading}
+        className="hidden"
+        onChange={(event) => {
+          if (event.target.files) {
+            uploadFiles(event.target.files);
+          }
+        }}
+      />
+    </label>
+  );
+}
+
+
+================ components\evidence\evidence-preview-grid.tsx ================
+
+"use client";
+
+import { EvidenceItemCard } from "@/components/evidence/evidence-item-card";
+
+type EvidencePreviewGridProps = {
+  items: Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    mimeType: string;
+    size: number;
+  }>;
+  onDelete?: (id: string) => void;
+};
+
+export function EvidencePreviewGrid({ items, onDelete }: EvidencePreviewGridProps) {
+  if (items.length === 0) {
+    return (
+      <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm font-bold text-slate-400">
+        ?? ???? ????? ????? ??????.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {items.map((item) => (
+        <EvidenceItemCard key={item.id} item={item} onDelete={onDelete} />
+      ))}
+    </div>
+  );
+}
+
+
+================ engine\cases\case-runtime-engine.ts ================
+
+import { prisma } from "@/lib/prisma";
+import { ensureDefaultSchoolAccount } from "@/engine/students/student-import-engine";
+import {
+  serializeCaseValues,
+  type RuntimeCaseValues,
+} from "@/lib/cases/case-values";
+
+type EvidenceItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
+
+type SaveRuntimeCaseParams = {
+  workflowId?: string | null;
+  serviceId: string;
+  title?: string | null;
+  studentId?: string | null;
+  values: RuntimeCaseValues;
+  evidenceItems?: EvidenceItem[];
+  status: "DRAFT" | "SUBMITTED";
+};
+
+type UpdateRuntimeCaseParams = {
+  caseId: string;
+  title?: string | null;
+  studentId?: string | null;
+  values: RuntimeCaseValues;
+  status?: "DRAFT" | "SUBMITTED";
+};
+
+function getEvidenceType(mimeType: string) {
+  if (mimeType.startsWith("image")) return "IMAGE";
+  if (mimeType) return "FILE";
+  return "LINK";
+}
+
+export async function saveRuntimeCase({
+  workflowId,
+  serviceId,
+  title,
+  studentId,
+  values,
+  evidenceItems = [],
+  status,
+}: SaveRuntimeCaseParams) {
+  const school = await ensureDefaultSchoolAccount();
+  const serializedValues = serializeCaseValues(values);
+
+  const caseEntry = await prisma.caseEntry.create({
+    data: {
+      schoolAccountId: school.id,
+      serviceId,
+      workflowId,
+      studentId,
+      title: title || "??? ????",
+      status,
+      submittedAt: status === "SUBMITTED" ? new Date() : null,
+      values: {
+        create: serializedValues,
+      },
+      evidences: {
+        create: evidenceItems.map((item) => ({
+          type: getEvidenceType(item.mimeType),
+          fileName: item.fileName,
+          fileUrl: item.fileUrl,
+          mimeType: item.mimeType,
+          size: item.size,
+        })),
+      },
+    },
+    include: {
+      values: true,
+      evidences: true,
+    },
+  });
+
+  return caseEntry;
+}
+
+export async function updateRuntimeCase({
+  caseId,
+  title,
+  studentId,
+  values,
+  status,
+}: UpdateRuntimeCaseParams) {
+  const serializedValues = serializeCaseValues(values);
+
+  await prisma.caseValue.deleteMany({
+    where: {
+      caseEntryId: caseId,
+    },
+  });
+
+  const caseEntry = await prisma.caseEntry.update({
+    where: {
+      id: caseId,
+    },
+    data: {
+      title: title || undefined,
+      studentId: studentId || undefined,
+      status,
+      submittedAt: status === "SUBMITTED" ? new Date() : undefined,
+      values: {
+        create: serializedValues,
+      },
+    },
+    include: {
+      values: true,
+      evidences: true,
+    },
+  });
+
+  return caseEntry;
+}
+
+export async function restoreCaseDraft(caseId: string) {
+  const caseEntry = await prisma.caseEntry.findUnique({
+    where: { id: caseId },
+    include: {
+      values: true,
+      evidences: true,
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      workflow: true,
+      service: true,
+    },
+  });
+
+  if (!caseEntry) {
+    throw new Error("?????? ??? ??????.");
+  }
+
+  const restoredValues = Object.fromEntries(
+    caseEntry.values.map((value) => [
+      value.fieldKey,
+      value.jsonValue ?? value.value,
+    ])
+  );
+
+  return {
+    caseEntry,
+    restoredValues,
+  };
+}
+
+export async function getCaseById(caseId: string) {
+  const caseEntry = await prisma.caseEntry.findUnique({
+    where: { id: caseId },
+    include: {
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      service: true,
+      workflow: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      values: true,
+      evidences: true,
+    },
+  });
+
+  if (!caseEntry) {
+    throw new Error("?????? ??? ??????.");
+  }
+
+  return caseEntry;
+}
+
+
+================ app\api\dashboard\evidence\route.ts ================
+
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+
+export async function POST(request: Request) {
+  const formData = await request.formData();
+  const files = formData.getAll("files");
+
+  const uploadedItems = [];
+
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "evidence");
+  await mkdir(uploadDir, { recursive: true });
+
+  for (const file of files) {
+    if (!(file instanceof File)) continue;
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const safeName = file.name.replace(/[^\w.\-\u0600-\u06FF]/g, "_");
+    const storedName = `${Date.now()}-${safeName}`;
+    const storedPath = path.join(uploadDir, storedName);
+
+    await writeFile(storedPath, buffer);
+
+    uploadedItems.push({
+      id: crypto.randomUUID(),
+      fileName: file.name,
+      fileUrl: `/uploads/evidence/${storedName}`,
+      mimeType: file.type || "application/octet-stream",
+      size: file.size,
+    });
+  }
+
+  return NextResponse.json({
+    items: uploadedItems,
+  });
+}
+
+
+================ app\api\dashboard\reports\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+function valueToText(value: {
+  fieldKey: string;
+  value: string | null;
+  jsonValue: unknown;
+}) {
+  if (value.value) return value.value;
+  if (typeof value.jsonValue === "string") return value.jsonValue;
+  if (value.jsonValue) return JSON.stringify(value.jsonValue);
+  return "";
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    if (!body.caseEntryId) {
+      return NextResponse.json(
+        { error: "caseEntryId ????? ?????? ???????." },
+        { status: 400 }
+      );
+    }
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: body.caseEntryId,
+      },
+      include: {
+        service: true,
+        student: true,
+        values: true,
+        evidences: true,
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        { error: "????? ??? ?????." },
+        { status: 404 }
+      );
+    }
+
+    const valuesText = caseEntry.values
+      .map((item) => `${item.fieldKey}: ${valueToText(item)}`)
+      .join("\n");
+
+    const initialContent = `
+????? ?? ${caseEntry.title || caseEntry.service.name}
+
+?? ????? ???? ??????? ??? ???? "${caseEntry.service.name}".
+
+?????? ?????:
+${valuesText}
+
+?? ????? ????????? ???????? ????? ??? ???????? ??????? ?? ??????.
+`.trim();
+
+    const report = await prisma.guidanceReport.create({
+      data: {
+        title: body.title || `????? - ${caseEntry.title || caseEntry.service.name}`,
+        serviceSlug: caseEntry.service.slug,
+        caseEntryId: caseEntry.id,
+        genderMode: caseEntry.student?.gender === "FEMALE" ? "FEMALE" : "MALE",
+        editableContent: initialContent,
+        renderedContent: initialContent,
+        evidenceItems: {
+          create: caseEntry.evidences
+            .filter((item) => item.fileUrl)
+            .map((item, index) => ({
+              fileName: item.fileName || `evidence-${index + 1}`,
+              fileUrl: item.fileUrl || "",
+              caption: item.note || item.fileName || null,
+              sortOrder: index,
+              visible: true,
+            })),
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      reportId: report.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "??? ????? ???????.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+================ components\reports\report-evidence-gallery.tsx ================
+
+type Props = {
+  items: Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    caption: string | null;
+    visible: boolean;
+  }>;
+};
+
+export function ReportEvidenceGallery({ items }: Props) {
+  const visibleItems = items.filter((item) => item.visible);
+
+  if (visibleItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="mt-12 border-t border-slate-200 pt-8">
+      <h2 className="mb-6 text-2xl font-black text-slate-900">???????</h2>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {visibleItems.map((item) => (
+          <figure
+            key={item.id}
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+          >
+            <img
+              src={item.fileUrl}
+              alt={item.fileName}
+              className="h-56 w-full rounded-xl object-cover"
+            />
+
+            <figcaption className="mt-3 text-center text-sm font-bold text-slate-600">
+              {item.caption || item.fileName}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+
+================ components\reports\report-preview-a4.tsx ================
+
+
+"use client";
+
+import Link from "next/link";
+import { ReportEvidenceGallery } from "./report-evidence-gallery";
+type Props = {
+  report: {
+    id: string;
+    title: string;
+    editableContent: string;
+    renderedContent: string | null;
+    status: string;
+    evidenceEnabled: boolean;
+    evidenceItems: Array<{
+      id: string;
+      fileName: string;
+      fileUrl: string;
+      caption: string | null;
+      visible: boolean;
+    }>;
+    caseEntry: {
+      service: {
+        name: string;
+      };
+      student: {
+        fullName: string;
+      } | null;
+    };
+  };
+};
+
+export function ReportPreviewA4({ report }: Props) {
+  return (
+    <main className="min-h-screen bg-slate-100 p-8 print:bg-white">
+      <div className="mx-auto mb-6 flex max-w-4xl justify-end gap-3 print:hidden">
+        <Link
+          href={`/dashboard/reports/${report.id}/studio`}
+          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+        >
+          ????? / ????? ???
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800"
+        >
+          Export PDF
+        </button>
+      </div>
+
+      <article className="mx-auto min-h-[1123px] max-w-4xl bg-white p-14 shadow-2xl print:shadow-none">
+        <header className="mb-10 border-b border-slate-200 pb-6 text-center">
+          <div className="text-sm font-black text-slate-500">
+            ???? ????? ???????
+          </div>
+
+          <h1 className="mt-6 text-3xl font-black text-slate-900">
+            {report.title}
+          </h1>
+
+          <p className="mt-3 text-sm text-slate-500">
+            {report.caseEntry.service.name}
+          </p>
+        </header>
+
+        <section className="prose prose-slate max-w-none whitespace-pre-line text-right text-lg leading-[2.7rem] text-slate-800">
+          {report.renderedContent || report.editableContent}
+        </section>
+
+        {report.evidenceEnabled ? (
+          <ReportEvidenceGallery items={report.evidenceItems} />
+        ) : null}
+      </article>
+    </main>
+  );
+}

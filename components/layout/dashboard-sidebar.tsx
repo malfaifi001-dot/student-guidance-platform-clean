@@ -13,6 +13,7 @@ import {
 import { dashboardServices } from "@/lib/constants/services";
 import { cn } from "@/lib/utils";
 
+
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "guidance-programs": ClipboardList,
   "student-follow-up": Users,
@@ -21,7 +22,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "student-guidance-services": FileText,
   "comprehensive-reference": BookOpen,
   "results-analysis": BarChart3,
-  reports: FileText,
+  "reports": FileText,
 };
 
 export function DashboardSidebar() {

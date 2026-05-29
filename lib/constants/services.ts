@@ -9,36 +9,36 @@ export type AppService = {
 export const workflowServices: AppService[] = [
   {
     slug: "guidance-programs",
-    title: "البرامج التوجيهية",
-    description: "إدارة البرامج وخطط التنفيذ والشواهد.",
+    title: "البرامج الإرشادية",
+    description: "إدارة البرامج الإرشادية وخطط التنفيذ.",
     href: "/dashboard/guidance-programs",
     kind: "workflow",
   },
   {
     slug: "student-follow-up",
     title: "متابعة الطلاب",
-    description: "متابعة الحالات وربطها ببيانات نور.",
+    description: "متابعة الحالات الطلابية عبر Workflow ديناميكي.",
     href: "/dashboard/student-follow-up",
     kind: "workflow",
   },
   {
     slug: "committees-meetings",
     title: "اللجان والاجتماعات",
-    description: "محاضر وتوصيات وأعضاء اللجان.",
+    description: "إدارة محاضر اللجان والاجتماعات والتوصيات.",
     href: "/dashboard/committees-meetings",
     kind: "workflow",
   },
   {
     slug: "family-school-communication",
     title: "التواصل بين الأسرة والمدرسة",
-    description: "توثيق التواصل ونتائجه بطريقة مترابطة.",
+    description: "توثيق التواصل مع ولي الأمر ونتائج التواصل.",
     href: "/dashboard/family-school-communication",
     kind: "workflow",
   },
   {
     slug: "student-guidance-services",
     title: "الخدمات التوجيهية المقدمة للطلاب",
-    description: "إرشاد فردي وجمعي ودراسة حالة وتوجيه جمعي.",
+    description: "إدارة الخدمات التوجيهية عبر Workflow ديناميكي.",
     href: "/dashboard/student-guidance-services",
     kind: "workflow",
   },
@@ -47,25 +47,28 @@ export const workflowServices: AppService[] = [
 export const standaloneServices: AppService[] = [
   {
     slug: "comprehensive-reference",
-    title: "المرجع الشامل للموجه الطلابي",
-    description: "مكتبة ملفات ونماذج وحقائب تدريبية.",
+    title: "السجل الشامل للطالب",
+    description: "عرض بيانات الطالب وسجلاته التربوية.",
     href: "/dashboard/comprehensive-reference",
     kind: "standalone",
   },
   {
     slug: "results-analysis",
     title: "تحليل النتائج",
-    description: "تحليل ملفات Excel والرسوم البيانية.",
+    description: "رفع وتحليل نتائج الطلاب من ملفات Excel.",
     href: "/dashboard/results-analysis",
     kind: "standalone",
   },
   {
     slug: "reports",
     title: "التقارير",
-    description: "تقارير رسمية قابلة للتصدير لاحقًا.",
+    description: "إنشاء ومعاينة واعتماد التقارير الإرشادية.",
     href: "/dashboard/reports",
     kind: "standalone",
   },
 ];
 
-export const dashboardServices = [...workflowServices, ...standaloneServices];
+export const dashboardServices = [
+  ...workflowServices,
+  ...standaloneServices,
+];

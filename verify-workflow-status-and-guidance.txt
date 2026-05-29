@@ -1,0 +1,1856 @@
+
+
+================ prisma\schema.prisma ================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+enum WorkflowStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+  users                 User[]
+  profile               SchoolProfile?
+  students              Student[]
+  guardians             Guardian[]
+  staff                 StaffMember[]
+  services              ServiceAccess[]
+  cases                 CaseEntry[]
+  subscription          Subscription?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  isActive     Boolean  @default(true)
+
+  cases CaseEntry[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  caseEvidences CaseEvidence[]
+
+  @@index([schoolAccountId])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName      String
+  principalName   String?
+  city            String?
+  district        String?
+  academicYear    String?
+  currentSemester String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows Workflow[]
+  cases     CaseEntry[]
+  access    ServiceAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name     String
+  version  Int            @default(1)
+  status   WorkflowStatus @default(DRAFT)
+  isActive Boolean        @default(false)
+  publishedAt DateTime?
+
+  steps WorkflowStep[]
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId String?
+  workflow   Workflow? @relation(fields: [workflowId], references: [id])
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values    CaseValue[]
+  evidences Evidence[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  caseEvidences CaseEvidence[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String?
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+
+
+================ app\dashboard\guidance-programs\page.tsx ================
+
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+
+export default async function GuidanceProgramsPage() {
+  const totalCases = await prisma.caseEntry.count({
+    where: {
+      service: {
+        slug: "guidance-programs",
+      },
+    },
+  });
+
+  const draftCases = await prisma.caseEntry.count({
+    where: {
+      service: {
+        slug: "guidance-programs",
+      },
+      status: "DRAFT",
+    },
+  });
+
+  const submittedCases = await prisma.caseEntry.count({
+    where: {
+      service: {
+        slug: "guidance-programs",
+      },
+      status: "SUBMITTED",
+    },
+  });
+
+  const recentCases = await prisma.caseEntry.findMany({
+    where: {
+      service: {
+        slug: "guidance-programs",
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 10,
+  });
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-cyan-500 to-sky-600 p-10 text-white shadow-2xl">
+        <p className="text-sm font-bold text-cyan-100">
+          Guidance Programs Workspace
+        </p>
+
+        <h1 className="mt-4 text-5xl font-black">
+          ??????? ?????????
+        </h1>
+
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-cyan-50">
+          ????? ??????? ????????? ????????? ????????? ???? ???????
+          ???????? ??????????? ??????? ?????? ??? Runtime ????.
+        </p>
+
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link
+            href="/dashboard/guidance-programs/new"
+            className="rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-50"
+          >
+            ????? ?????? ????
+          </Link>
+
+          <Link
+            href="/dashboard/cases"
+            className="rounded-2xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-black text-white transition hover:bg-white/20"
+          >
+            ???? ??????? ?????
+          </Link>
+        </div>
+      </section>
+
+      <section className="grid gap-5 md:grid-cols-3">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">
+            ?????? ???????
+          </p>
+
+          <p className="mt-4 text-5xl font-black text-slate-900">
+            {totalCases}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">
+            ????????
+          </p>
+
+          <p className="mt-4 text-5xl font-black text-amber-500">
+            {draftCases}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">
+            ??????? ????????
+          </p>
+
+          <p className="mt-4 text-5xl font-black text-emerald-600">
+            {submittedCases}
+          </p>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-8 py-6">
+          <h2 className="text-3xl font-black text-slate-900">
+            ???? ???????
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            ???? ??????? ?????? ?????? ????? ??????? ??????????.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  ???????
+                </th>
+
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  ??????
+                </th>
+
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  ???????
+                </th>
+
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  ???????
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {recentCases.map((item) => (
+                <tr
+                  key={item.id}
+                  className="border-t border-slate-100"
+                >
+                  <td className="px-6 py-5 font-bold text-slate-900">
+                    {item.title}
+                  </td>
+
+                  <td className="px-6 py-5">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                      {item.status}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-5 text-sm text-slate-500">
+                    {new Date(item.createdAt).toLocaleDateString(
+                      "ar-SA"
+                    )}
+                  </td>
+
+                  <td className="px-6 py-5">
+                    <Link
+                      href={`/dashboard/cases/${item.id}`}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                    >
+                      ???
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
+================ app\dashboard\guidance-programs\new\page.tsx ================
+
+import { notFound } from "next/navigation";
+
+import { prisma } from "@/lib/prisma";
+
+export default async function NewGuidanceProgramPage() {
+  const workflow = await prisma.workflow.findFirst({
+    where: {
+      service: {
+        slug: "guidance-programs",
+      },
+      status: "PUBLISHED",
+    },
+    include: {
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+        orderBy: {
+          order: "asc",
+        },
+      },
+    },
+    orderBy: {
+      version: "desc",
+    },
+  });
+
+  if (!workflow) {
+    return (
+      <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-10 text-amber-700">
+        ?? ???? Workflow ????? ????? ??????? ?????????.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-cyan-500 to-sky-600 p-10 text-white shadow-2xl">
+        <p className="text-sm font-bold text-cyan-100">
+          Guidance Program Runtime
+        </p>
+
+        <h1 className="mt-4 text-5xl font-black">
+          ????? ?????? ??????
+        </h1>
+
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-cyan-50">
+          ???? ??? ?????? ????? DynamicFormRenderer ?????? ?????
+          ???????? ?????????.
+        </p>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="space-y-6">
+          {workflow.steps.map((step) => (
+            <div
+              key={step.id}
+              className="rounded-2xl border border-slate-200 p-6"
+            >
+              <h2 className="text-2xl font-black text-slate-900">
+                {step.title}
+              </h2>
+
+              <div className="mt-5 grid gap-4">
+                {step.fields.map((field) => (
+                  <div
+                    key={field.id}
+                    className="rounded-xl border border-slate-100 bg-slate-50 p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-black text-slate-900">
+                        {field.label}
+                      </p>
+
+                      <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-black text-sky-700">
+                        {field.type}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-xs text-slate-500">
+                      {field.fieldKey}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
+================ app\dashboard\family-school-communication\new\page.tsx ================
+
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { ensureServiceBySlug } from "@/engine/services/service-workspace-engine";
+import { prisma } from "@/lib/prisma";
+
+async function ensureFamilyCommunicationWorkflow() {
+  const service = await ensureServiceBySlug({
+    slug: "family-school-communication",
+    name: "??????? ??? ?????? ????????",
+    description: "????? ??????? ??? ?????? ????????.",
+  });
+
+  const existingWorkflow = await prisma.workflow.findFirst({
+    where: {
+      serviceId: service.id,
+      isActive: true,
+    },
+    include: {
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (existingWorkflow) return { service, workflow: existingWorkflow };
+
+  const workflow = await prisma.workflow.create({
+    data: {
+      serviceId: service.id,
+      name: "????? ??????? ??? ?????? ????????",
+      version: 1,
+      status: "ACTIVE",
+      isActive: true,
+      steps: {
+        create: [
+          {
+            title: "?????? ???????",
+            description: "??? ????? ??????? ?????.",
+            order: 1,
+            fields: {
+              create: [
+                {
+                  key: "communication_method",
+                  label: "????? ???????",
+                  type: "SELECT",
+                  isRequired: true,
+                  order: 1,
+                  options: {
+                    create: [
+                      { label: "????? ?????", value: "phone", order: 1 },
+                      { label: "?????", value: "message", order: 2 },
+                      { label: "???? ??? ?????", value: "visit", order: 3 },
+                    ],
+                  },
+                },
+                {
+                  key: "communication_reason",
+                  label: "??? ???????",
+                  type: "SELECT",
+                  isRequired: true,
+                  order: 2,
+                  allowOther: true,
+                  options: {
+                    create: [
+                      { label: "???? ??????", value: "absence", order: 1 },
+                      { label: "??? ??????", value: "low_achievement", order: 2 },
+                      { label: "???? ???? ???????", value: "behavior", order: 3 },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            title: "????? ???????",
+            description: "???? ?? ?? ??????? ????????.",
+            order: 2,
+            fields: {
+              create: [
+                {
+                  key: "discussion_summary",
+                  label: "?? ?? ???????",
+                  type: "TEXTAREA",
+                  isRequired: true,
+                  order: 1,
+                },
+                {
+                  key: "communication_result",
+                  label: "????? ???????",
+                  type: "SELECT",
+                  isRequired: true,
+                  order: 2,
+                  allowOther: true,
+                  options: {
+                    create: [
+                      { label: "?? ??????? ??? ??????", value: "followup", order: 1 },
+                      { label: "?? ?? ???????", value: "resolved", order: 2 },
+                      { label: "?? ??? ????", value: "no_response", order: 3 },
+                    ],
+                  },
+                },
+                {
+                  key: "notes",
+                  label: "???????",
+                  type: "TEXTAREA",
+                  isRequired: false,
+                  order: 3,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+    include: {
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return { service, workflow };
+}
+
+export default async function NewFamilySchoolCommunicationPage() {
+  const { service, workflow } = await ensureFamilyCommunicationWorkflow();
+
+  const runtimeWorkflow = {
+    id: workflow.id,
+    name: workflow.name,
+    serviceSlug: service.slug,
+    steps: workflow.steps
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        order: step.order,
+        fields: step.fields
+          .sort((a, b) => a.order - b.order)
+          .map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            type: field.type,
+            placeholder: field.placeholder,
+            helpText: field.helpText,
+            isRequired: field.isRequired,
+            order: field.order,
+            dependsOnFieldKey: field.dependsOnFieldKey,
+            linkedToValue: field.linkedToValue,
+            allowOther: field.allowOther,
+            options: field.options
+              .sort((a, b) => a.order - b.order)
+              .map((option) => ({
+                id: option.id,
+                label: option.label,
+                value: option.value,
+                order: option.order,
+                linkedToValue: option.linkedToValue,
+              })),
+          })),
+      })),
+  };
+
+  return (
+    <DynamicFormRenderer
+      workflow={runtimeWorkflow}
+      serviceId={service.id}
+      requiresStudent
+      title="????? ??? ?????? ????????"
+    />
+  );
+}
+
+
+================ app\dashboard\runtime-lab\page.tsx ================
+
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { prisma } from "@/lib/prisma";
+
+async function ensureRuntimeLabServiceAndWorkflow() {
+  const service = await prisma.service.upsert({
+    where: {
+      slug: "runtime-lab",
+    },
+    update: {},
+    create: {
+      slug: "runtime-lab",
+      name: "????? Runtime",
+      description: "???? ??????? ??????? ?????? ??????????.",
+      status: "ACTIVE",
+    },
+  });
+
+  const existingWorkflow = await prisma.workflow.findFirst({
+    where: {
+      serviceId: service.id,
+      isActive: true,
+    },
+    include: {
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (existingWorkflow) {
+    return {
+      service,
+      workflow: existingWorkflow,
+    };
+  }
+
+  const workflow = await prisma.workflow.create({
+    data: {
+      serviceId: service.id,
+      name: "????? ????? ?????? ??????????",
+      version: 1,
+      status: "ACTIVE",
+      isActive: true,
+      steps: {
+        create: [
+          {
+            title: "?????? ??????",
+            description: "????? ?????? ???????? ?????????.",
+            order: 1,
+            fields: {
+              create: [
+                {
+                  key: "case_type",
+                  label: "??? ??????",
+                  type: "SELECT",
+                  isRequired: true,
+                  order: 1,
+                  allowOther: true,
+                  options: {
+                    create: [
+                      { label: "??????", value: "behavioral", order: 1 },
+                      { label: "????????", value: "academic", order: 2 },
+                      { label: "?????", value: "psychological", order: 3 },
+                    ],
+                  },
+                },
+                {
+                  key: "academic_level",
+                  label: "??????? ?????????",
+                  type: "SELECT",
+                  isRequired: false,
+                  order: 2,
+                  dependsOnFieldKey: "case_type",
+                  linkedToValue: "academic",
+                  options: {
+                    create: [
+                      { label: "??? ??????", value: "low_achievement", order: 1 },
+                      { label: "???? ?????", value: "late_learning", order: 2 },
+                    ],
+                  },
+                },
+                {
+                  key: "problem_description",
+                  label: "??? ???????",
+                  type: "TEXTAREA",
+                  isRequired: true,
+                  order: 3,
+                  placeholder: "???? ????? ??????? ??????...",
+                },
+              ],
+            },
+          },
+          {
+            title: "??????? ????????",
+            description: "????? ??? ????? ?????? ?? ????? ?????.",
+            order: 2,
+            fields: {
+              create: [
+                {
+                  key: "action_taken",
+                  label: "??????? ??????",
+                  type: "TEXTAREA",
+                  isRequired: true,
+                  order: 1,
+                },
+                {
+                  key: "result",
+                  label: "???????",
+                  type: "SELECT",
+                  isRequired: true,
+                  order: 2,
+                  options: {
+                    create: [
+                      { label: "????", value: "improved", order: 1 },
+                      { label: "????? ??????", value: "needs_followup", order: 2 },
+                      { label: "?????", value: "referral", order: 3 },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+    include: {
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return {
+    service,
+    workflow,
+  };
+}
+
+export default async function RuntimeLabPage() {
+  const { service, workflow } = await ensureRuntimeLabServiceAndWorkflow();
+
+  const runtimeWorkflow = {
+    id: workflow.id,
+    name: workflow.name,
+    serviceSlug: service.slug,
+    steps: workflow.steps
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        order: step.order,
+        fields: step.fields
+          .sort((a, b) => a.order - b.order)
+          .map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            type: field.type,
+            placeholder: field.placeholder,
+            helpText: field.helpText,
+            isRequired: field.isRequired,
+            order: field.order,
+            dependsOnFieldKey: field.dependsOnFieldKey,
+            linkedToValue: field.linkedToValue,
+            allowOther: field.allowOther,
+            options: field.options
+              .sort((a, b) => a.order - b.order)
+              .map((option) => ({
+                id: option.id,
+                label: option.label,
+                value: option.value,
+                order: option.order,
+                linkedToValue: option.linkedToValue,
+              })),
+          })),
+      })),
+  };
+
+  return (
+    <DynamicFormRenderer
+      workflow={runtimeWorkflow}
+      serviceId={service.id}
+      requiresStudent
+      title="????? ??? Runtime"
+    />
+  );
+}
+
+
+================ app\dashboard\admin\workflow-builder\page.tsx ================
+
+import { WorkflowBuilderSidebar } from "@/components/admin/workflow-builder-sidebar";
+import { getWorkflowBuilderData } from "@/engine/workflow-builder/workflow-builder-engine";
+
+export default async function WorkflowBuilderPage() {
+  const workflows = await getWorkflowBuilderData();
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
+      <WorkflowBuilderSidebar workflows={workflows} />
+
+      <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center card-shadow">
+        <p className="text-sm font-bold text-sky-700">
+          Workflow Admin Builder
+        </p>
+
+        <h1 className="mt-4 text-4xl font-black text-slate-900">
+          ???? Workflow ?? ???????
+        </h1>
+
+        <p className="mt-4 text-sm leading-8 text-slate-500">
+          ???? ??? ???? ?????? ??????? ??????????? ??????? ???? ????? ???.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+
+================ app\dashboard\admin\workflows\[serviceSlug]\page.tsx ================
+
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { WorkflowHealthReport } from "@/components/admin/workflow-health/workflow-health-report";
+import { validateWorkflow } from "@/engine/workflow-validation/workflow-validator";
+import { dashboardServices } from "@/lib/constants/services";
+import { prisma } from "@/lib/prisma";
+
+type PageProps = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+export default async function ServiceWorkflowPage({ params }: PageProps) {
+  const { serviceSlug } = await params;
+
+  const serviceConfig = dashboardServices.find(
+    (service) => service.slug === serviceSlug
+  );
+
+  if (!serviceConfig) {
+    notFound();
+  }
+
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          version: "desc",
+        },
+      },
+    },
+  });
+
+  const activeWorkflow = service?.workflows.find((workflow) => workflow.isActive);
+
+  const healthReport = activeWorkflow
+    ? validateWorkflow({
+        id: activeWorkflow.id,
+        name: activeWorkflow.name,
+        steps: activeWorkflow.steps.map((step) => ({
+          id: step.id,
+          title: step.title,
+          fields: step.fields.map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            type: field.type,
+            isRequired: field.isRequired,
+            dependsOnFieldKey: field.dependsOnFieldKey,
+            linkedToValue: field.linkedToValue,
+            allowOther: field.allowOther,
+            options: field.options.map((option) => ({
+              id: option.id,
+              label: option.label,
+              value: option.value,
+              linkedToValue: option.linkedToValue,
+            })),
+          })),
+        })),
+      })
+    : null;
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
+        <p className="text-sm font-bold text-sky-100">Service Workflow</p>
+
+        <h1 className="mt-3 text-4xl font-black">{serviceConfig.title}</h1>
+
+        <p className="mt-4 max-w-3xl leading-8 text-sky-50">
+          ????? Workflow ????? ???? ?????? ???.
+        </p>
+
+        <div className="mt-8">
+          <Link
+            href={`/dashboard/admin/workflows/${serviceSlug}/upload`}
+            className="rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-700 hover:bg-sky-50"
+          >
+            ??? Workflow Excel
+          </Link>
+        </div>
+      </section>
+
+      {healthReport ? <WorkflowHealthReport report={healthReport} /> : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+        <h2 className="text-2xl font-black text-slate-900">Workflow ??????</h2>
+
+        {activeWorkflow ? (
+          <div className="mt-6 space-y-4">
+            <div className="rounded-2xl bg-slate-50 p-5">
+              <p className="text-sm text-slate-500">?????</p>
+              <p className="mt-1 text-xl font-black text-slate-900">
+                {activeWorkflow.name}
+              </p>
+              <p className="mt-2 text-sm text-slate-500">
+                Version {activeWorkflow.version} � {activeWorkflow.steps.length} ?????
+              </p>
+            </div>
+
+            {activeWorkflow.steps
+              .sort((a, b) => a.order - b.order)
+              .map((step) => (
+                <div
+                  key={step.id}
+                  className="rounded-2xl border border-slate-100 bg-slate-50 p-5"
+                >
+                  <h3 className="font-black text-slate-900">
+                    {step.order}. {step.title}
+                  </h3>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    {step.fields.length} ????
+                  </p>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl bg-amber-50 p-6 text-sm font-bold text-amber-700">
+            ?? ???? Workflow ???? ???? ??????.
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+
+================ app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx ================
+
+import { notFound } from "next/navigation";
+
+import { prisma } from "@/lib/prisma";
+import { dashboardServices } from "@/lib/constants/services";
+
+type PageProps = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+export default async function WorkflowPreviewPage({
+  params,
+}: PageProps) {
+  const { serviceSlug } = await params;
+
+  const serviceConfig = dashboardServices.find(
+    (service) => service.slug === serviceSlug
+  );
+
+  if (!serviceConfig) {
+    notFound();
+  }
+
+  const workflow = await prisma.workflow.findFirst({
+    where: {
+      service: {
+        slug: serviceSlug,
+      },
+      status: "DRAFT",
+    },
+    include: {
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+        orderBy: {
+          order: "asc",
+        },
+      },
+    },
+    orderBy: {
+      version: "desc",
+    },
+  });
+
+  if (!workflow) {
+    return (
+      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-amber-700">
+        ?? ???? Draft Workflow ???? ??????.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white shadow-2xl">
+        <p className="text-sm font-bold text-sky-300">
+          Workflow Preview
+        </p>
+
+        <h1 className="mt-3 text-4xl font-black">
+          Preview - {workflow.name}
+        </h1>
+
+        <p className="mt-4 text-slate-300">
+          Version {workflow.version}
+        </p>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="space-y-6">
+          {workflow.steps.map((step) => (
+            <div
+              key={step.id}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+            >
+              <h2 className="text-xl font-black text-slate-900">
+                {step.order}. {step.title}
+              </h2>
+
+              <div className="mt-5 grid gap-4">
+                {step.fields.map((field) => (
+                  <div
+                    key={field.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold text-slate-900">
+                        {field.label}
+                      </p>
+
+                      <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-700">
+                        {field.type}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-xs text-slate-500">
+                      key: {field.key}
+                    </p>
+
+                    {field.options.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {field.options.map((option) => (
+                          <span
+                            key={option.id}
+                            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700"
+                          >
+                            {option.label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
+================ app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts ================
+
+import { NextResponse } from "next/server";
+
+import { prisma } from "@/lib/prisma";
+
+type RouteContext = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+export async function POST(
+  request: Request,
+  context: RouteContext
+) {
+  try {
+    const { serviceSlug } = await context.params;
+
+    const draftWorkflow = await prisma.workflow.findFirst({
+      where: {
+        service: {
+          slug: serviceSlug,
+        },
+        status: "DRAFT",
+      },
+      orderBy: {
+        version: "desc",
+      },
+    });
+
+    if (!draftWorkflow) {
+      return NextResponse.json(
+        {
+          error: "?? ???? Draft Workflow.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    await prisma.workflow.updateMany({
+      where: {
+        serviceId: draftWorkflow.serviceId,
+        status: "PUBLISHED",
+      },
+      data: {
+        status: "ARCHIVED",
+        isActive: false,
+      },
+    });
+
+    const publishedWorkflow = await prisma.workflow.update({
+      where: {
+        id: draftWorkflow.id,
+      },
+      data: {
+        status: "PUBLISHED",
+        isActive: true,
+        publishedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      workflowId: publishedWorkflow.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "??? ??? ????? ??? Workflow.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+}
+
+
+================ components\admin\workflow-publish-button.tsx ================
+
+"use client";
+
+import { useState } from "react";
+
+type Props = {
+  serviceSlug: string;
+};
+
+export function WorkflowPublishButton({ serviceSlug }: Props) {
+  const [loading, setLoading] = useState(false);
+
+  async function publishWorkflow() {
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `/api/dashboard/admin/workflows/${serviceSlug}/publish`,
+        {
+          method: "POST",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "فشل نشر Workflow");
+        return;
+      }
+
+      alert("تم نشر Workflow بنجاح.");
+      window.location.reload();
+    } catch {
+      alert("حدث خطأ أثناء النشر.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={publishWorkflow}
+      disabled={loading}
+      className="rounded-2xl bg-emerald-600 px-6 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+    >
+      {loading ? "جارٍ النشر..." : "اعتماد ونشر Workflow"}
+    </button>
+  );
+}
+

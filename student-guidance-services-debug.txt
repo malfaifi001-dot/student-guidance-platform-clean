@@ -1,0 +1,688 @@
+
+
+================ app\dashboard\student-guidance-services\page.tsx ================
+
+[NOT FOUND]
+
+
+================ app\dashboard\student-guidance-services\new\page.tsx ================
+
+[NOT FOUND]
+
+
+================ lib\constants\services.ts ================
+
+export type AppService = {
+  slug: string;
+  title: string;
+  description: string;
+  href: string;
+  kind: "workflow" | "standalone" | "admin";
+};
+
+export const workflowServices: AppService[] = [
+  {
+    slug: "guidance-programs",
+    title: "??????? ?????????",
+    description: "????? ??????? ???? ??????? ????????.",
+    href: "/dashboard/guidance-programs",
+    kind: "workflow",
+  },
+  {
+    slug: "student-follow-up",
+    title: "?????? ??????",
+    description: "?????? ??????? ?????? ??????? ???.",
+    href: "/dashboard/student-follow-up",
+    kind: "workflow",
+  },
+  {
+    slug: "committees-meetings",
+    title: "?????? ???????????",
+    description: "????? ??????? ?????? ??????.",
+    href: "/dashboard/committees-meetings",
+    kind: "workflow",
+  },
+  {
+    slug: "family-school-communication",
+    title: "??????? ??? ?????? ????????",
+    description: "????? ??????? ??????? ?????? ???????.",
+    href: "/dashboard/family-school-communication",
+    kind: "workflow",
+  },
+  {
+    slug: "student-guidance-services",
+    title: "??????? ????????? ??????? ??????",
+    description: "????? ???? ????? ?????? ???? ?????? ????.",
+    href: "/dashboard/student-guidance-services",
+    kind: "workflow",
+  },
+];
+
+export const standaloneServices: AppService[] = [
+  {
+    slug: "comprehensive-reference",
+    title: "?????? ?????? ?????? ???????",
+    description: "????? ????? ?????? ?????? ???????.",
+    href: "/dashboard/comprehensive-reference",
+    kind: "standalone",
+  },
+  {
+    slug: "results-analysis",
+    title: "????? ???????",
+    description: "????? ????? Excel ??????? ????????.",
+    href: "/dashboard/results-analysis",
+    kind: "standalone",
+  },
+  {
+    slug: "reports",
+    title: "????????",
+    description: "?????? ????? ????? ??????? ??????.",
+    href: "/dashboard/reports",
+    kind: "standalone",
+  },
+];
+
+export const dashboardServices = [...workflowServices, ...standaloneServices];
+
+
+================ components\layout\dashboard-sidebar.tsx ================
+
+import Link from "next/link";
+import {
+  BarChart3,
+  BookOpen,
+  ClipboardList,
+  FileText,
+  Home,
+  MessageCircle,
+  Settings,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import { dashboardServices } from "@/lib/constants/services";
+import { cn } from "@/lib/utils";
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  "guidance-programs": ClipboardList,
+  "student-follow-up": Users,
+  "committees-meetings": ShieldCheck,
+  "family-school-communication": MessageCircle,
+  "student-guidance-services": FileText,
+  "comprehensive-reference": BookOpen,
+  "results-analysis": BarChart3,
+  reports: FileText,
+};
+
+export function DashboardSidebar() {
+  return (
+    <aside className="hidden min-h-screen w-80 border-l border-slate-200 bg-white/90 p-5 lg:block">
+      <div className="mb-8 rounded-3xl bg-gradient-to-br from-sky-600 to-cyan-500 p-5 text-white shadow-lg">
+        <p className="text-sm opacity-90">????</p>
+        <h1 className="mt-1 text-2xl font-bold">??????? ???????</h1>
+        <p className="mt-2 text-sm opacity-90">???? ????? ??? ?????? ???????? ????????</p>
+      </div>
+
+      <nav className="space-y-2">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-700"
+        >
+          <Home className="h-5 w-5" />
+          ????????
+        </Link>
+
+        <div className="pt-4">
+          <p className="mb-2 px-4 text-xs font-bold text-slate-400">???????</p>
+          {dashboardServices.map((service) => {
+            const Icon = iconMap[service.slug] ?? FileText;
+
+            return (
+              <Link
+                key={service.slug}
+                href={service.href}
+                className={cn(
+                  "group flex items-start gap-3 rounded-2xl px-4 py-3 transition",
+                  "text-slate-700 hover:bg-sky-50 hover:text-sky-700"
+                )}
+              >
+                <Icon className="mt-0.5 h-5 w-5 shrink-0" />
+                <span>
+                  <span className="block text-sm font-semibold">{service.title}</span>
+                  <span className="mt-0.5 block text-xs text-slate-400 group-hover:text-sky-500">
+                    {service.kind === "workflow" ? "Workflow Runtime" : "???? ??????"}
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="pt-4">
+          <p className="mb-2 px-4 text-xs font-bold text-slate-400">???????</p>
+          <Link
+            href="/dashboard/admin"
+            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-700"
+          >
+            <Settings className="h-5 w-5" />
+            ???? ??????
+          </Link>
+        </div>
+      </nav>
+    </aside>
+  );
+}
+
+
+================ components\workflow\dynamic-form-renderer.tsx ================
+
+"use client";
+
+import { useMemo, useState } from "react";
+import { Save, Send } from "lucide-react";
+
+import { isCommitteeRowsValid } from "@/components/committees/committee-chain-repeater";
+import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
+import { RuntimeProgressSidebar } from "@/components/runtime/runtime-progress-sidebar";
+import { RuntimeStatusBar } from "@/components/runtime/runtime-status-bar";
+import { RuntimeStepNavigation } from "@/components/runtime/runtime-step-navigation";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { StudentContextCard } from "@/components/service-ui/student-context-card";
+import {
+  isCommitteeChainStep,
+  WorkflowStepCard,
+} from "@/components/workflow/workflow-step-card";
+import { createAutosavePayload } from "@/engine/autosave/autosave-engine";
+import {
+  validateStepRequiredFields,
+  type RuntimeValues,
+} from "@/engine/runtime/field-dependency-engine";
+import type { RuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+import { useRuntimeAutosave } from "@/hooks/use-runtime-autosave";
+import { useRuntimeProgress } from "@/hooks/use-runtime-progress";
+
+type EvidenceItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
+
+type DynamicFormRendererProps = {
+  workflow: RuntimeWorkflow;
+  serviceId: string;
+  requiresStudent?: boolean;
+  title?: string;
+  caseId?: string;
+  initialValues?: RuntimeValues;
+};
+
+function extractStudentId(values: RuntimeValues) {
+  const student = values.student;
+
+  if (
+    student &&
+    typeof student === "object" &&
+    "id" in student &&
+    typeof student.id === "string"
+  ) {
+    return student.id;
+  }
+
+  return null;
+}
+
+function isSerializableValue(value: unknown): value is RuntimeValues[string] {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return true;
+  }
+
+  return typeof value === "object";
+}
+
+function isEvidenceStep(stepTitle?: string | null) {
+  const title = String(stepTitle ?? "").trim();
+
+  return (
+    title.includes("???????") ||
+    title.includes("????????") ||
+    title.toLowerCase().includes("evidence") ||
+    title.toLowerCase().includes("attachment")
+  );
+}
+
+export function DynamicFormRenderer({
+  workflow,
+  serviceId,
+  requiresStudent = false,
+  title,
+  caseId,
+  initialValues,
+}: DynamicFormRendererProps) {
+  const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
+
+  const [feedbackModal, setFeedbackModal] = useState<{
+    open: boolean;
+    type: "success" | "error" | "warning" | "info";
+    title: string;
+    description?: string;
+  }>({
+    open: false,
+    type: "success",
+    title: "",
+  });
+
+  const sortedSteps = useMemo(
+    () => [...workflow.steps].sort((a, b) => a.order - b.order),
+    [workflow.steps]
+  );
+
+  const safeCurrentStep = Math.min(
+    Math.max(currentStep, 0),
+    Math.max(sortedSteps.length - 1, 0)
+  );
+
+  const visibleStep = sortedSteps[safeCurrentStep];
+
+  const runtimeProgress = useRuntimeProgress({
+    steps: sortedSteps,
+    values,
+  });
+
+  const autosavePayload = useMemo(
+    () =>
+      createAutosavePayload({
+        workflowId: workflow.id,
+        serviceId,
+        values,
+        studentId: extractStudentId(values),
+      }),
+    [workflow.id, serviceId, values]
+  );
+
+  const autosave = useRuntimeAutosave({
+    enabled: Object.keys(values).length > 0,
+    payload: autosavePayload,
+  });
+
+  const isCommitteeStep =
+    workflow.serviceSlug === "committees-meetings" &&
+    isCommitteeChainStep(visibleStep);
+
+  const committeeRowsAreValid = isCommitteeRowsValid(values.committee_items);
+
+  const currentStepValidation = isCommitteeStep
+    ? {
+        valid: committeeRowsAreValid,
+        missingFields: committeeRowsAreValid ? [] : ["committee_items"],
+      }
+    : visibleStep
+      ? validateStepRequiredFields({
+          fields: visibleStep.fields,
+          values,
+        })
+      : {
+          valid: true,
+          missingFields: [],
+        };
+
+  const shouldShowEvidence =
+    workflow.serviceSlug === "guidance-programs" &&
+    isEvidenceStep(visibleStep?.title);
+
+  function handleChange(key: string, value: unknown) {
+    setValues((current) => ({
+      ...current,
+      [key]: isSerializableValue(value) ? value : null,
+    }));
+  }
+
+  async function persistCase(type: "draft" | "submit") {
+    setIsSaving(true);
+
+    setFeedbackModal((current) => ({
+      ...current,
+      open: false,
+    }));
+
+    try {
+      const endpoint = caseId
+        ? `/api/dashboard/cases/${caseId}`
+        : type === "draft"
+          ? "/api/dashboard/cases/save-draft"
+          : "/api/dashboard/cases/submit";
+
+      const response = await fetch(endpoint, {
+        method: caseId ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          workflowId: workflow.id,
+          serviceId,
+          title: title || workflow.name,
+          studentId: extractStudentId(values),
+          values,
+          status: type === "submit" ? "SUBMITTED" : "DRAFT",
+          evidenceItems:
+            workflow.serviceSlug === "guidance-programs" ? evidenceItems : [],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "??? ??? ????? ?????.");
+      }
+
+      setFeedbackModal({
+        open: true,
+        type: "success",
+        title: type === "draft" ? "?? ??? ???????" : "?? ????? ?????? ?????",
+        description:
+          type === "draft"
+            ? "?? ??? ???????? ??????? ?????? ?????? ?????? ????????."
+            : "?? ?????? ?????? ???????? ?????? ?????.",
+      });
+    } catch (error) {
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "??? ???",
+        description:
+          error instanceof Error
+            ? error.message
+            : "??? ??? ??? ????? ????? ???????.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl">
+      <div className="space-y-6">
+        <RuntimeProgressSidebar
+          steps={runtimeProgress.stepsProgress}
+          currentStep={safeCurrentStep}
+          onSelectStep={setCurrentStep}
+        />
+
+        <main className="space-y-6 pb-28">
+          <RuntimeStatusBar
+            overallPercent={runtimeProgress.overallPercent}
+            completedRequired={runtimeProgress.completedRequired}
+            totalRequired={runtimeProgress.totalRequired}
+            isSaving={autosave.isSaving}
+            lastSavedAt={autosave.lastSavedAt}
+          />
+
+          <section className="rounded-3xl bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
+            <p className="text-sm font-semibold text-sky-100">
+              Workflow Runtime
+            </p>
+
+            <h1 className="mt-3 text-4xl font-black">{workflow.name}</h1>
+
+            <p className="mt-4 max-w-3xl leading-8 text-sky-50">
+              ??????? ???? ?? Workflow ????????? ?? ??? ???????? ???????? ????
+              CaseEntry ? CaseValue.
+            </p>
+          </section>
+
+          {requiresStudent ? (
+            <StudentContextCard
+              onStudentChange={(student) => handleChange("student", student)}
+            />
+          ) : null}
+
+          {visibleStep ? (
+            <WorkflowStepCard
+              key={visibleStep.id}
+              step={visibleStep}
+              values={values}
+              serviceSlug={workflow.serviceSlug}
+              onChange={handleChange}
+            />
+          ) : (
+            <section className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center">
+              <h2 className="text-2xl font-black text-amber-800">
+                ?? ???? ????? ???? ??? ??? Workflow
+              </h2>
+
+              <p className="mt-3 text-sm leading-7 text-amber-700">
+                ???? Workflow ????? ??? ????? ????? ?? ???? ??????.
+              </p>
+            </section>
+          )}
+
+          {shouldShowEvidence ? (
+            <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div>
+                <p className="text-sm font-black text-sky-700">
+                  ????? ????????
+                </p>
+
+                <h2 className="mt-2 text-3xl font-black text-slate-900">
+                  ??????? ?????????
+                </h2>
+
+                <p className="mt-3 text-sm leading-7 text-slate-500">
+                  ??? ??? ?? ????? ??????? ?????? ?????? ???????? ????????.
+                </p>
+              </div>
+
+              <EvidenceUploadCard
+                onUploaded={(items) =>
+                  setEvidenceItems((current) => [...current, ...items])
+                }
+              />
+
+              <EvidencePreviewGrid
+                items={evidenceItems}
+                onDelete={(id) =>
+                  setEvidenceItems((current) =>
+                    current.filter((item) => item.id !== id)
+                  )
+                }
+              />
+            </section>
+          ) : null}
+
+          {sortedSteps.length > 0 ? (
+            <RuntimeStepNavigation
+              currentStep={safeCurrentStep}
+              totalSteps={sortedSteps.length}
+              canProceed={currentStepValidation.valid}
+              onNext={() =>
+                setCurrentStep((previous) =>
+                  Math.min(previous + 1, sortedSteps.length - 1)
+                )
+              }
+              onPrevious={() =>
+                setCurrentStep((previous) => Math.max(previous - 1, 0))
+              }
+            />
+          ) : null}
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => persistCase("draft")}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-6 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                <Save className="h-4 w-4" />
+                {isSaving ? "???? ?????..." : "??? ??????"}
+              </button>
+
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => persistCase("submit")}
+                className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-6 py-3 text-sm font-bold text-white hover:bg-sky-700 disabled:opacity-60"
+              >
+                <Send className="h-4 w-4" />
+                {isSaving ? "???? ???????..." : "????? ?????"}
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <SmartFeedbackModal
+          open={feedbackModal.open}
+          type={feedbackModal.type}
+          title={feedbackModal.title}
+          description={feedbackModal.description}
+          primaryActionLabel="?????"
+          onPrimaryAction={() =>
+            setFeedbackModal((current) => ({
+              ...current,
+              open: false,
+            }))
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+
+================ engine\runtime\runtime-resolver.ts ================
+
+export type RuntimeOption = {
+  id: string;
+  label: string;
+  value: string;
+  order: number;
+  linkedToValue?: string | null;
+};
+
+export type RuntimeField = {
+  id: string;
+  key: string;
+  label: string;
+  type: string;
+  placeholder?: string | null;
+  helpText?: string | null;
+  isRequired: boolean;
+  order: number;
+  dependsOnFieldKey?: string | null;
+  linkedToValue?: string | null;
+  allowOther: boolean;
+  options: RuntimeOption[];
+};
+
+export type RuntimeStep = {
+  id: string;
+  title: string;
+  description?: string | null;
+  order: number;
+  fields: RuntimeField[];
+};
+
+export type RuntimeWorkflow = {
+  id: string;
+  name: string;
+  serviceSlug: string;
+  steps: RuntimeStep[];
+};
+
+export function sortRuntimeWorkflow(workflow: RuntimeWorkflow): RuntimeWorkflow {
+  return {
+    ...workflow,
+    steps: [...workflow.steps]
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        ...step,
+        fields: [...step.fields].sort((a, b) => a.order - b.order),
+      })),
+  };
+}
+import { prisma } from "@/lib/prisma";
+
+export async function getRuntimeWorkflowByServiceSlug(serviceSlug: string) {
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        where: {
+          isActive: true,
+        },
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          version: "desc",
+        },
+        take: 1,
+      },
+    },
+  });
+
+  const workflow = service?.workflows[0];
+
+  if (!service || !workflow) {
+    return null;
+  }
+
+  return {
+    service,
+    workflow: sortRuntimeWorkflow({
+      id: workflow.id,
+      name: workflow.name,
+      serviceSlug: service.slug,
+      steps: workflow.steps.map((step) => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        order: step.order,
+        fields: step.fields.map((field) => ({
+          id: field.id,
+          key: field.key,
+          label: field.label,
+          type: field.type,
+          placeholder: field.placeholder,
+          helpText: field.helpText,
+          isRequired: field.isRequired,
+          order: field.order,
+          allowOther: field.allowOther,
+          dependsOnFieldKey: field.dependsOnFieldKey,
+          linkedToValue: field.linkedToValue,
+          options: field.options.map((option) => ({
+            id: option.id,
+            label: option.label,
+            value: option.value,
+            order: option.order,
+            linkedToValue: option.linkedToValue,
+          })),
+        })),
+      })),
+    }),
+  };
+}

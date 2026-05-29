@@ -32,6 +32,7 @@ type EvidenceItem = {
   size: number;
 };
 
+
 type DynamicFormRendererProps = {
   workflow: RuntimeWorkflow;
   serviceId: string;
@@ -39,6 +40,8 @@ type DynamicFormRendererProps = {
   title?: string;
   caseId?: string;
   initialValues?: RuntimeValues;
+
+  initialEvidenceItems?: EvidenceItem[];
 };
 
 function extractStudentId(values: RuntimeValues) {
@@ -92,12 +95,16 @@ export function DynamicFormRenderer({
   title,
   caseId,
   initialValues,
-}: DynamicFormRendererProps) {
+initialEvidenceItems,
+}: DynamicFormRendererProps)
+{
+
   const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
-
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>(
+  initialEvidenceItems ?? []
+);
   const [feedbackModal, setFeedbackModal] = useState<{
     open: boolean;
     type: "success" | "error" | "warning" | "info";

@@ -1,15 +1,100 @@
-export default function NewGuidanceProgramPage() {
+import { notFound } from "next/navigation";
+
+import { prisma } from "@/lib/prisma";
+
+import { sortRuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+
+
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+
+export default async function NewGuidanceProgramPage() {
+  const workflow = await prisma.workflow.findFirst({
+    where: {
+      service: {
+        slug: "guidance-programs",
+      },
+      isActive: true,
+    },
+    include: {
+      service: true,
+
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+
+        orderBy: {
+          order: "asc",
+        },
+      },
+    },
+
+    orderBy: {
+      version: "desc",
+    },
+  });
+
+  if (!workflow) {
+    return (
+      <main className="space-y-6">
+        <section className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
+          <h1 className="text-2xl font-black text-amber-900">
+            لا يوجد Workflow منشور
+          </h1>
+
+          <p className="mt-3 text-sm text-amber-700">
+            قم برفع Workflow لخدمة البرامج الإرشادية أولًا.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+const runtimeWorkflow = sortRuntimeWorkflow({
+  id: workflow.id,
+  name: workflow.name,
+  serviceSlug: workflow.service.slug,
+  steps: workflow.steps.map((step) => ({
+    id: step.id,
+    title: step.title,
+    description: step.description,
+    order: step.order,
+    fields: step.fields.map((field) => ({
+      id: field.id,
+      key: field.key,
+      label: field.label,
+      type: field.type,
+      placeholder: field.placeholder,
+      helpText: field.helpText,
+      isRequired: field.isRequired,
+      order: field.order,
+      dependsOnFieldKey: field.dependsOnFieldKey,
+      linkedToValue: field.linkedToValue,
+      allowOther: field.allowOther,
+      isRepeater: field.isRepeater,
+      options: field.options.map((option) => ({
+        id: option.id,
+        label: option.label,
+        value: option.value,
+        order: option.order,
+        linkedToValue: option.linkedToValue,
+      })),
+    })),
+  })),
+});
+
   return (
     <main className="space-y-6">
-      <section className="rounded-3xl border bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-900">
-          إنشاء برنامج إرشادي جديد
-        </h1>
-
-        <p className="mt-2 text-sm text-slate-500">
-          هذه الصفحة جاهزة للربط لاحقًا مع Workflow Runtime الخاص بخدمة البرامج الإرشادية.
-        </p>
-      </section>
+      <DynamicFormRenderer
+        workflow={runtimeWorkflow}
+        serviceId={workflow.serviceId}
+        requiresStudent={false}
+        title="برنامج إرشادي جديد"
+      />
     </main>
   );
 }

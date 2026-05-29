@@ -58,6 +58,7 @@ export async function getRuntimeWorkflowByServiceSlug(serviceSlug: string) {
       workflows: {
         where: {
           isActive: true,
+          
         },
         include: {
           steps: {
