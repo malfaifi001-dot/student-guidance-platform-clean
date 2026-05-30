@@ -290,25 +290,38 @@ export async function restoreCaseDraft(caseId: string) {
   };
 }
 
+
+
 export async function getCaseById(caseId: string) {
   const caseEntry = await prisma.caseEntry.findUnique({
     where: {
       id: caseId,
     },
     include: {
+      schoolAccount: true,
+
+      service: true,
+
       student: {
         include: {
           guardian: true,
         },
       },
-      service: true,
+
       workflow: {
         include: {
           steps: {
             include: {
               fields: {
                 include: {
-                  options: true,
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+                orderBy: {
+                  order: "asc",
                 },
               },
             },
@@ -318,17 +331,34 @@ export async function getCaseById(caseId: string) {
           },
         },
       },
+
       values: {
         include: {
-          field: true,
+          field: {
+            include: {
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
         },
       },
-      evidences: true,
+
+      evidences: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
     },
   });
 
   if (!caseEntry) {
-    throw new Error("الحالة غير موجودة.");
+    throw new Error("لم يتم العثور على الحالة.");
   }
 
   return caseEntry;

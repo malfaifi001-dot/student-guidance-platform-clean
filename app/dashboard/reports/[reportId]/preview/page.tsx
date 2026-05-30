@@ -12,6 +12,13 @@ import type {
   ReportTemplateId,
 } from "@/lib/report-engine/report-types";
 
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldKey,
+  getWorkflowFieldLabel,
+  stringifyWorkflowRawValue,
+} from "@/lib/workflow-values/workflow-display-value";
+
 type PageProps = {
   params: Promise<{
     reportId: string;
@@ -20,8 +27,8 @@ type PageProps = {
     template?: string;
     evidenceLayout?: string;
     cover?: string;
-    editorial?: string;
     studio?: string;
+    view?: string;
     v?: string;
   }>;
 };
@@ -44,6 +51,16 @@ type ReportValueItem = {
   originalValue: string;
   displayValue: string;
   isChanged: boolean;
+};
+
+type ReportFieldLookupItem = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: Array<{
+    label?: string | null;
+    value?: string | null;
+  }> | null;
 };
 
 const blockLabels: Record<string, string> = {
@@ -93,14 +110,6 @@ export default async function ReportRealPreviewPage({
   const studioMode = resolvedSearchParams.studio === "true";
   const showCover = resolvedSearchParams.cover !== "false";
 
-  const selectedTemplate = resolveTemplateId(
-    resolvedSearchParams.template || reportId
-  );
-
-  const selectedEvidenceLayout = resolveEvidenceLayout(
-    resolvedSearchParams.evidenceLayout
-  );
-
   const report = await prisma.guidanceReport.findUnique({
     where: {
       id: reportId,
@@ -115,6 +124,29 @@ export default async function ReportRealPreviewPage({
             },
           },
           createdBy: true,
+          workflow: {
+            include: {
+              steps: {
+                include: {
+                  fields: {
+                    include: {
+                      options: {
+                        orderBy: {
+                          order: "asc",
+                        },
+                      },
+                    },
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
           student: {
             include: {
               guardian: true,
@@ -122,7 +154,15 @@ export default async function ReportRealPreviewPage({
           },
           values: {
             include: {
-              field: true,
+              field: {
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+              },
             },
             orderBy: {
               createdAt: "asc",
@@ -147,16 +187,31 @@ export default async function ReportRealPreviewPage({
     notFound();
   }
 
+  const selectedTemplate = resolveTemplateId(
+    resolvedSearchParams.template || report.templateId
+  );
+
+  const selectedEvidenceLayout = resolveEvidenceLayout(
+    resolvedSearchParams.evidenceLayout
+  );
+
   const parsedEditableContent = parseEditableContent(report.editableContent);
   const workflowValueOverrides =
     parsedEditableContent.workflowValueOverrides || [];
 
+  const fieldMap = buildReportFieldMap(report.caseEntry);
+
+  const normalizedCaseValues = report.caseEntry.values.map((value) =>
+    normalizeReportCaseValue(value, fieldMap)
+  );
+
   const reportValues = buildReportValues(
-    report.caseEntry.values,
+    normalizedCaseValues,
     workflowValueOverrides
   );
 
   const identity = buildReportIdentity(report);
+
   const officialReport = buildOfficialReportData({
     report,
     reportValues,
@@ -213,14 +268,16 @@ function PreviewToolbar({
   showCover: boolean;
 }) {
   return (
-    <section className="mx-auto mb-6 flex max-w-[260mm] flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="mx-auto mb-6 flex max-w-[260mm] flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm print:hidden">
       <div>
-        <p className="text-sm font-black text-sky-700">معاينة التقرير الحقيقية</p>
+        <p className="text-sm font-black text-sky-700">
+          معاينة التقرير الحقيقية
+        </p>
 
         <h1 className="mt-2 text-2xl font-black text-slate-900">{title}</h1>
 
         <p className="mt-1 text-sm text-slate-500">
-          {serviceName} — قالب: {getTemplateName(selectedTemplate)} — الشواهد:{" "}
+          {serviceName} — {getTemplateName(selectedTemplate)} —{" "}
           {getEvidenceLayoutName(selectedEvidenceLayout)}
         </p>
       </div>
@@ -233,13 +290,26 @@ function PreviewToolbar({
           تعديل التقرير
         </Link>
 
-        <button
-          type="button"
-          onClick={undefined}
-          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 print:hidden"
+        <Link
+          href={`/dashboard/reports/${reportId}/preview?template=official-long&evidenceLayout=${selectedEvidenceLayout}&cover=${showCover}`}
+          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
         >
-          استخدم Ctrl + P للطباعة
-        </button>
+          رسمي
+        </Link>
+
+        <Link
+          href={`/dashboard/reports/${reportId}/preview?template=executive-brief&evidenceLayout=${selectedEvidenceLayout}&cover=${showCover}`}
+          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
+        >
+          مختصر
+        </Link>
+
+        <Link
+          href={`/dashboard/reports/${reportId}/preview?template=visual-activity&evidenceLayout=${selectedEvidenceLayout}&cover=${showCover}`}
+          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
+        >
+          بصري
+        </Link>
 
         <Link
           href={`/dashboard/reports/${reportId}/preview?template=${selectedTemplate}&evidenceLayout=${selectedEvidenceLayout}&cover=${showCover ? "false" : "true"}`}
@@ -252,36 +322,91 @@ function PreviewToolbar({
           href="/dashboard/reports"
           className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
         >
-          الرجوع للتقارير
+          الرجوع
         </Link>
       </div>
     </section>
   );
 }
 
-function buildReportIdentity(report: NonNullable<Awaited<ReturnType<typeof getReportForTypeOnly>>>) {
+function buildReportIdentity(report: any) {
   const profile = report.caseEntry.schoolAccount.profile;
   const schoolAccount = report.caseEntry.schoolAccount;
 
   return {
     ministryName: "وزارة التعليم",
+
     educationDepartment: profile?.district
       ? `إدارة التعليم - ${profile.district}`
       : "إدارة التعليم",
+
     educationOffice: profile?.city
       ? `مكتب التعليم - ${profile.city}`
       : "مكتب التعليم",
+
     schoolName: profile?.schoolName || schoolAccount.name || "اسم المدرسة",
+
     counselorName:
-      report.caseEntry.createdBy?.name ||
-      report.approvalSnapshot?.counselorName ||
-      "الموجه/الموجهة الطلابية",
-    principalName: profile?.principalName || "قائد/قائدة المدرسة",
+      report.caseEntry.createdBy?.name || "الموجه/الموجهة الطلابية",
+
+    counselorTitle: "الموجه/الموجهة الطلابية",
+
     academicYear: profile?.academicYear || "العام الدراسي",
+
     semester: profile?.currentSemester || "الفصل الدراسي",
+
     schoolLogoUrl: undefined,
+
     ministryLogoUrl: undefined,
-  } satisfies ReportIdentity;
+  } as ReportIdentity;
+}
+
+function buildReportFieldMap(caseEntry: any) {
+  const map = new Map<string, ReportFieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function normalizeReportCaseValue(
+  value: any,
+  fieldMap: Map<string, ReportFieldLookupItem>
+) {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
 }
 
 function buildOfficialReportData({
@@ -290,7 +415,7 @@ function buildOfficialReportData({
   parsedEditableContent,
   evidenceLayout,
 }: {
-  report: NonNullable<Awaited<ReturnType<typeof getReportForTypeOnly>>>;
+  report: any;
   reportValues: ReportValueItem[];
   parsedEditableContent: EditableContentPayload;
   evidenceLayout: EvidenceLayout;
@@ -299,22 +424,14 @@ function buildOfficialReportData({
   const guardian = student?.guardian;
   const profile = report.caseEntry.schoolAccount.profile;
 
-  const editableSections = buildEditableSections(parsedEditableContent);
-  const workflowSections = buildWorkflowSections(reportValues);
-
-  const sections: ReportSection[] = [
-    ...editableSections,
-    ...workflowSections,
-  ].filter(Boolean);
-
-  const evidences = buildReportEvidences(report);
-
   const reportDate = formatDate(report.generatedAt || report.createdAt);
+
   const executionDate =
     findValueByKeys(reportValues, [
       "date",
       "execution_date",
       "program_date",
+      "gregorian_date",
       "تاريخ",
       "التاريخ",
     ]) || reportDate;
@@ -341,6 +458,69 @@ function buildOfficialReportData({
       .join(" - ") ||
     "غير محدد";
 
+  const editableSections = buildEditableSections(parsedEditableContent);
+
+  const smartNarrativeSections = buildSmartNarrativeSections({
+    serviceName: report.caseEntry.service.name,
+    reportTitle: report.title,
+    programTitle,
+    executionDate,
+    targetGroup,
+    reportValues,
+    parsedEditableContent,
+  });
+
+  const studentSection: ReportSection[] = student
+    ? [
+        {
+          id: "student-info",
+          title: "بيانات الطالب/الطالبة",
+          content: "",
+          items: [
+            {
+              label: "اسم الطالب/الطالبة",
+              value: student.fullName,
+            },
+            {
+              label: "رقم الهوية",
+              value: student.nationalId || "غير متوفر",
+            },
+            {
+              label: "المرحلة",
+              value: student.stage || "غير محدد",
+            },
+            {
+              label: "الصف",
+              value: student.grade || "غير محدد",
+            },
+            {
+              label: "الفصل",
+              value: student.classroom || "غير محدد",
+            },
+            {
+              label: "ولي الأمر",
+              value: guardian?.name || "غير متوفر",
+            },
+            {
+              label: "جوال ولي الأمر",
+              value: guardian?.phone || "غير متوفر",
+            },
+          ],
+        },
+      ]
+    : [];
+
+  const workflowSections = buildWorkflowSections(reportValues);
+
+  const sections: ReportSection[] = [
+    ...smartNarrativeSections,
+    ...editableSections,
+    ...studentSection,
+    ...workflowSections,
+  ];
+
+  const evidences = buildReportEvidences(report);
+
   return {
     title: report.title,
     subtitle: report.caseEntry.title || report.caseEntry.service.name,
@@ -349,34 +529,136 @@ function buildOfficialReportData({
     reportDate,
     targetGroup,
     evidenceLayout,
+
     cover: {
       programTitle,
       executionDate,
+
+      schoolYear:
+        profile?.academicYear ||
+        findValueByKeys(reportValues, [
+          "academic_year",
+          "school_year",
+          "العام الدراسي",
+          "السنة الدراسية",
+        ]) ||
+        "العام الدراسي",
+
+      semester:
+        findValueByKeys(reportValues, [
+          "semester",
+          "الفصل الدراسي",
+          "الفصل",
+        ]) ||
+        profile?.currentSemester ||
+        "الفصل الدراسي",
+
       shortDescription:
         parsedEditableContent.blocks?.summaryIntro ||
         parsedEditableContent.blocks?.intro ||
         `تقرير يوثق ${report.caseEntry.service.name} بناءً على بيانات الحالة والشواهد المرتبطة بها.`,
     },
+
     sections,
+
     evidences,
+
     approval: {
       counselorName:
         report.caseEntry.createdBy?.name || "الموجه/الموجهة الطلابية",
       principalName: profile?.principalName || "قائد/قائدة المدرسة",
       date: reportDate,
     },
-    student: student
-      ? {
-          name: student.fullName,
-          nationalId: student.nationalId || "غير متوفر",
-          stage: student.stage || "غير محدد",
-          grade: student.grade || "غير محدد",
-          classroom: student.classroom || "غير محدد",
-          guardianName: guardian?.name || "غير متوفر",
-          guardianPhone: guardian?.phone || "غير متوفر",
-        }
-      : undefined,
-  } satisfies OfficialReportData;
+  } as OfficialReportData;
+}
+
+function buildSmartNarrativeSections({
+  serviceName,
+  reportTitle,
+  programTitle,
+  executionDate,
+  targetGroup,
+  reportValues,
+  parsedEditableContent,
+}: {
+  serviceName: string;
+  reportTitle: string;
+  programTitle: string;
+  executionDate: string;
+  targetGroup: string;
+  reportValues: ReportValueItem[];
+  parsedEditableContent: EditableContentPayload;
+}): ReportSection[] {
+  if (
+    parsedEditableContent.blocks?.intro ||
+    parsedEditableContent.blocks?.summaryIntro
+  ) {
+    return [];
+  }
+
+  const day = findValueByKeys(reportValues, ["day", "اليوم"]);
+  const week = findValueByKeys(reportValues, ["week", "الأسبوع", "الاسبوع"]);
+  const semester = findValueByKeys(reportValues, ["semester", "الفصل"]);
+
+  const action = findValueByKeys(reportValues, [
+    "execution_action",
+    "action",
+    "الإجراء",
+    "الاجراء",
+  ]);
+
+  const mechanism = findValueByKeys(reportValues, [
+    "execution_mechanism",
+    "mechanism",
+    "آلية",
+    "الية",
+  ]);
+
+  const indicator = findValueByKeys(reportValues, [
+    "performance_indicator",
+    "indicator",
+    "مؤشر",
+    "قياس",
+  ]);
+
+  const intro = [
+    `تم إعداد هذا التقرير لتوثيق ${serviceName} بعنوان "${programTitle || reportTitle}".`,
+    executionDate
+      ? `وقد تم تنفيذ البرنامج بتاريخ ${executionDate}${day ? `، الموافق يوم ${day}` : ""}.`
+      : "",
+    targetGroup ? `واستهدف البرنامج الفئة التالية: ${targetGroup}.` : "",
+    semester || week
+      ? `ويأتي هذا التنفيذ ضمن ${semester || "الفصل الدراسي"}${week ? `، ${week}` : ""}.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const procedureText = [
+    action ? `تم تنفيذ الإجراء التالي: ${action}.` : "",
+    mechanism ? `وتمت آلية التنفيذ من خلال: ${mechanism}.` : "",
+    indicator ? `وتم اعتماد مؤشر قياس الأداء التالي: ${indicator}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const sections: ReportSection[] = [
+    {
+      id: "smart-intro",
+      title: "وصف التقرير",
+      content: intro,
+    },
+  ];
+
+  if (procedureText) {
+    sections.push({
+      id: "smart-procedure",
+      title: "ملخص التنفيذ",
+      content: procedureText,
+    });
+  }
+
+  return sections;
 }
 
 function buildEditableSections(
@@ -408,10 +690,14 @@ function buildWorkflowSections(reportValues: ReportValueItem[]): ReportSection[]
     "week",
     "day",
     "date",
+    "gregorian_date",
+    "hijri_date",
     "beneficiaries",
     "execution_action",
     "execution_mechanism",
     "performance_indicator",
+    "evidence_suggestion",
+    "operation",
     "recommendations",
     "notes",
   ];
@@ -419,7 +705,8 @@ function buildWorkflowSections(reportValues: ReportValueItem[]): ReportSection[]
   const primaryItems = reportValues
     .filter((item) =>
       importantKeys.some((key) =>
-        item.fieldKey.toLowerCase().includes(key.toLowerCase())
+        item.fieldKey.toLowerCase().includes(key.toLowerCase()) ||
+        normalizeSearchText(item.fieldLabel).includes(normalizeSearchText(key))
       )
     )
     .map((item) => ({
@@ -431,7 +718,8 @@ function buildWorkflowSections(reportValues: ReportValueItem[]): ReportSection[]
     .filter(
       (item) =>
         !importantKeys.some((key) =>
-          item.fieldKey.toLowerCase().includes(key.toLowerCase())
+          item.fieldKey.toLowerCase().includes(key.toLowerCase()) ||
+          normalizeSearchText(item.fieldLabel).includes(normalizeSearchText(key))
         )
     )
     .map((item) => ({
@@ -462,23 +750,23 @@ function buildWorkflowSections(reportValues: ReportValueItem[]): ReportSection[]
   return sections;
 }
 
-function buildReportEvidences(
-  report: NonNullable<Awaited<ReturnType<typeof getReportForTypeOnly>>>
-): ReportEvidence[] {
-  const reportEvidenceItems = report.evidenceItems.map((item) => ({
-    id: item.id,
-    title: item.caption || item.fileName,
-    description: item.caption || "",
-    fileName: item.fileName,
-    imageUrl: isImageMime(item.mimeType) ? item.fileUrl : undefined,
-    fileUrl: item.fileUrl,
-  }));
+function buildReportEvidences(report: any): ReportEvidence[] {
+  const reportEvidenceItems = report.evidenceItems
+    .filter((item: any) => item.visible)
+    .map((item: any) => ({
+      id: item.id,
+      title: item.caption || item.fileName,
+      description: item.caption || "",
+      fileName: item.fileName,
+      imageUrl: isImageMime(item.mimeType) ? item.fileUrl : undefined,
+      fileUrl: item.fileUrl,
+    }));
 
   if (reportEvidenceItems.length) {
     return reportEvidenceItems;
   }
 
-  return report.caseEntry.evidences.map((item) => ({
+  return report.caseEntry.evidences.map((item: any) => ({
     id: item.id,
     title: item.note || item.fileName || "شاهد",
     description: item.note || "",
@@ -497,6 +785,11 @@ function buildReportValues(
     field?: {
       key?: string | null;
       label?: string | null;
+      type?: string | null;
+      options?: Array<{
+        label?: string | null;
+        value?: string | null;
+      }> | null;
     } | null;
   }>,
   overrides: WorkflowValueOverride[]
@@ -513,30 +806,40 @@ function buildReportValues(
     }
   }
 
-  return values.map((item, index) => {
-    const fieldKey = item.field?.key || item.fieldKey || item.id;
-    const fieldLabel =
-      item.field?.label || item.fieldKey || `قيمة رقم ${index + 1}`;
+  return values
+    .filter((item) => {
+      const key = getWorkflowFieldKey(item);
 
-    const originalValue = stringifyValue(item.value ?? item.jsonValue);
+      return key && key !== "selectedStudent" && !key.endsWith("__other");
+    })
+    .map((item, index) => {
+      const fieldKey = getWorkflowFieldKey(item);
+      const fieldLabel = getWorkflowFieldLabel(item, index);
 
-    const override =
-      overrideMap.get(fieldKey) ||
-      overrideMap.get(fieldLabel) ||
-      overrideMap.get(item.fieldKey || "");
+      const originalValue = stringifyWorkflowRawValue(
+        item.value ?? item.jsonValue
+      );
 
-    const displayValue = override?.editedValue ?? originalValue;
+      const originalDisplayValue = formatWorkflowDisplayValue(item, values);
 
-    return {
-      fieldKey,
-      fieldLabel,
-      originalValue,
-      displayValue,
-      isChanged: Boolean(
-        override && override.editedValue.trim() !== originalValue.trim()
-      ),
-    };
-  });
+      const override =
+        overrideMap.get(fieldKey) ||
+        overrideMap.get(fieldLabel) ||
+        overrideMap.get(item.fieldKey || "");
+
+      const displayValue = override?.editedValue ?? originalDisplayValue;
+
+      return {
+        fieldKey,
+        fieldLabel,
+        originalValue,
+        displayValue,
+        isChanged: Boolean(
+          override &&
+            override.editedValue.trim() !== originalDisplayValue.trim()
+        ),
+      };
+    });
 }
 
 function parseEditableContent(value?: string | null): EditableContentPayload {
@@ -584,30 +887,6 @@ function normalizeSearchText(value: string) {
     .trim();
 }
 
-function stringifyValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => stringifyValue(item)).filter(Boolean).join("، ");
-  }
-
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
-}
-
 function resolveTemplateId(value?: string | null): ReportTemplateId {
   if (value && allowedTemplates.includes(value as ReportTemplateId)) {
     return value as ReportTemplateId;
@@ -652,41 +931,4 @@ function getEvidenceLayoutName(layout: EvidenceLayout) {
   if (layout === "two-columns") return "عمودان";
   if (layout === "grid-2x2") return "شبكة 2×2";
   return "تلقائي";
-}
-
-/**
- * هذه الدالة لا تُستدعى فعليًا.
- * الهدف منها فقط استخراج نوع التقرير الناتج من Prisma include بدون كتابة نوع ضخم يدويًا.
- */
-async function getReportForTypeOnly() {
-  return prisma.guidanceReport.findUnique({
-    where: {
-      id: "__type_only__",
-    },
-    include: {
-      caseEntry: {
-        include: {
-          service: true,
-          schoolAccount: {
-            include: {
-              profile: true,
-            },
-          },
-          createdBy: true,
-          student: {
-            include: {
-              guardian: true,
-            },
-          },
-          values: {
-            include: {
-              field: true,
-            },
-          },
-          evidences: true,
-        },
-      },
-      evidenceItems: true,
-    },
-  });
 }

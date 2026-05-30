@@ -2,16 +2,45 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ReportStudioEditor } from "@/components/reports/report-studio-editor";
 
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldKey,
+  getWorkflowFieldLabel,
+  stringifyWorkflowRawValue,
+} from "@/lib/workflow-values/workflow-display-value";
+
 type PageProps = {
   params: Promise<{
     reportId: string;
   }>;
 };
 
-type SnapshotValue = {
+type WorkflowValueOverride = {
+  fieldKey: string;
+  fieldLabel: string;
+  originalValue: string;
+  editedValue: string;
+};
+
+type EditableContentPayload = {
+  blocks?: Record<string, string>;
+  workflowValueOverrides?: WorkflowValueOverride[];
+};
+
+type StudioReportValue = {
   fieldKey: string;
   fieldLabel: string;
   value: string;
+};
+
+type ReportFieldLookupItem = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: Array<{
+    label?: string | null;
+    value?: string | null;
+  }> | null;
 };
 
 export default async function ReportStudioPage({ params }: PageProps) {
@@ -27,17 +56,52 @@ export default async function ReportStudioPage({ params }: PageProps) {
           sortOrder: "asc",
         },
       },
+
       caseEntry: {
         include: {
           service: true,
+
+          workflow: {
+            include: {
+              steps: {
+                include: {
+                  fields: {
+                    include: {
+                      options: {
+                        orderBy: {
+                          order: "asc",
+                        },
+                      },
+                    },
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+
           student: {
             include: {
               guardian: true,
             },
           },
+
           values: {
             include: {
-              field: true,
+              field: {
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+              },
             },
             orderBy: {
               createdAt: "asc",
@@ -52,15 +116,20 @@ export default async function ReportStudioPage({ params }: PageProps) {
     notFound();
   }
 
-  const snapshotValues = extractSnapshotValues(report.reportDataSnapshot);
+  const parsedEditableContent = parseEditableContent(report.editableContent);
+  const workflowValueOverrides =
+    parsedEditableContent.workflowValueOverrides || [];
 
-  const liveCaseValues = report.caseEntry.values.map((item) => ({
-    fieldKey: item.field?.key || item.fieldKey || item.id,
-    fieldLabel: item.field?.label || item.fieldKey || "قيمة من التقرير",
-    value: stringifyValue(item.value ?? item.jsonValue),
-  }));
+  const fieldMap = buildReportFieldMap(report.caseEntry);
 
-  const reportValues = snapshotValues.length ? snapshotValues : liveCaseValues;
+  const normalizedCaseValues = report.caseEntry.values.map((value) =>
+    normalizeReportCaseValue(value, fieldMap)
+  );
+
+  const liveCaseValues = buildStudioReportValues(
+    normalizedCaseValues,
+    workflowValueOverrides
+  );
 
   const normalizedReport = {
     id: report.id,
@@ -79,7 +148,12 @@ export default async function ReportStudioPage({ params }: PageProps) {
     createdAt: report.createdAt.toISOString(),
     updatedAt: report.updatedAt.toISOString(),
 
-    reportValues,
+    /**
+     * مهم:
+     * لا نستخدم reportDataSnapshot هنا كمصدر أول؛ لأنه غالبًا يحتوي قيم تقنية قديمة.
+     * نستخدم قيم الحالة الحية بعد تحويلها من option.value إلى option.label.
+     */
+    reportValues: liveCaseValues,
 
     evidenceItems: report.evidenceItems.map((item) => ({
       id: item.id,
@@ -140,58 +214,133 @@ export default async function ReportStudioPage({ params }: PageProps) {
   );
 }
 
-function extractSnapshotValues(value: unknown): SnapshotValue[] {
-  if (!value || typeof value !== "object") {
-    return [];
-  }
+function buildReportFieldMap(caseEntry: any) {
+  const map = new Map<string, ReportFieldLookupItem>();
 
-  const snapshot = value as {
-    values?: Array<{
-      fieldKey?: unknown;
-      fieldLabel?: unknown;
-      value?: unknown;
-    }>;
-  };
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
 
-  if (!Array.isArray(snapshot.values)) {
-    return [];
-  }
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
 
-  return snapshot.values
-    .map((item, index) => ({
-      fieldKey:
-        typeof item.fieldKey === "string" && item.fieldKey.trim()
-          ? item.fieldKey
-          : `snapshot-field-${index}`,
-      fieldLabel:
-        typeof item.fieldLabel === "string" && item.fieldLabel.trim()
-          ? item.fieldLabel
-          : `قيمة رقم ${index + 1}`,
-      value: stringifyValue(item.value),
-    }))
-    .filter((item) => item.fieldLabel.trim());
+  return map;
 }
 
-function stringifyValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
+function normalizeReportCaseValue(
+  value: any,
+  fieldMap: Map<string, ReportFieldLookupItem>
+) {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function buildStudioReportValues(
+  values: Array<{
+    id: string;
+    fieldKey?: string | null;
+    value?: string | null;
+    jsonValue?: unknown;
+    field?: {
+      key?: string | null;
+      label?: string | null;
+      type?: string | null;
+      options?: Array<{
+        label?: string | null;
+        value?: string | null;
+      }> | null;
+    } | null;
+  }>,
+  overrides: WorkflowValueOverride[]
+): StudioReportValue[] {
+  const overrideMap = new Map<string, WorkflowValueOverride>();
+
+  for (const override of overrides) {
+    if (override.fieldKey) {
+      overrideMap.set(override.fieldKey, override);
+    }
+
+    if (override.fieldLabel) {
+      overrideMap.set(override.fieldLabel, override);
+    }
   }
 
-  if (typeof value === "string") {
-    return value;
-  }
+  return values
+    .filter((item) => {
+      const key = getWorkflowFieldKey(item);
 
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
+      return (
+        key &&
+        key !== "selectedStudent" &&
+        !key.endsWith("__other") &&
+        !["student", "guardian", "metadata"].includes(key)
+      );
+    })
+    .map((item, index) => {
+      const fieldKey = getWorkflowFieldKey(item);
+      const fieldLabel = getWorkflowFieldLabel(item, index);
 
-  if (Array.isArray(value)) {
-    return value.map((item) => stringifyValue(item)).filter(Boolean).join("، ");
+      const displayValue = formatWorkflowDisplayValue(item, values);
+      const originalRawValue = stringifyWorkflowRawValue(
+        item.value ?? item.jsonValue
+      );
+
+      const override =
+        overrideMap.get(fieldKey) ||
+        overrideMap.get(fieldLabel) ||
+        overrideMap.get(item.fieldKey || "");
+
+      return {
+        fieldKey,
+        fieldLabel,
+        value: override?.editedValue ?? displayValue ?? originalRawValue,
+      };
+    });
+}
+
+function parseEditableContent(value?: string | null): EditableContentPayload {
+  const content = value?.trim();
+
+  if (!content) {
+    return {};
   }
 
   try {
-    return JSON.stringify(value, null, 2);
+    const parsed = JSON.parse(content) as EditableContentPayload;
+
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+
+    return {};
   } catch {
-    return String(value);
+    return {};
   }
 }

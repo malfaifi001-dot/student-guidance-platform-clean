@@ -1,39 +1,111 @@
 import { CaseValueRenderer } from "@/components/cases/case-value-renderer";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldLabel,
+  type WorkflowFieldLike,
+  type WorkflowValueLike,
+} from "@/lib/workflow-values/workflow-display-value";
 
 type CaseDetailsViewProps = {
   caseEntry: any;
 };
 
-function buildFieldLabelMap(caseEntry: any) {
-  const map = new Map<string, string>();
+type FieldLookupItem = WorkflowFieldLike & {
+  key?: string | null;
+  label?: string | null;
+};
+
+function buildFieldMap(caseEntry: any) {
+  const map = new Map<string, FieldLookupItem>();
 
   caseEntry.workflow?.steps?.forEach((step: any) => {
     step.fields?.forEach((field: any) => {
-      map.set(field.key, field.label);
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
     });
   });
-
-  map.set("committee_items", "جدول الأعمال ومحاور النقاش والتوصيات");
 
   return map;
 }
 
-function getValue(item: any) {
-  return item.jsonValue ?? item.value;
+function shouldHideCaseValue(fieldKey: string) {
+  return [
+    "student",
+    "guardian",
+    "metadata",
+    "selectedStudent",
+  ].includes(fieldKey) || fieldKey.endsWith("__other");
+}
+
+function normalizeCaseValue(
+  value: any,
+  fieldMap: Map<string, FieldLookupItem>
+): WorkflowValueLike {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function formatCommitteeRows(value: unknown) {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((row) => {
+    if (!row || typeof row !== "object") return row;
+
+    const item = row as Record<string, unknown>;
+
+    return {
+      "جدول الأعمال": item.agendaOther || item.agenda || "—",
+      "محور النقاش": item.discussionOther || item.discussion || "—",
+      "التوصية": item.recommendationOther || item.recommendation || "—",
+    };
+  });
 }
 
 export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
-  const labelMap = buildFieldLabelMap(caseEntry);
+  const fieldMap = buildFieldMap(caseEntry);
 
-  const displayValues = caseEntry.values.filter(
-    (value: any) =>
-      !["student", "guardian", "metadata"].includes(value.fieldKey)
+  const workflowValues: WorkflowValueLike[] = caseEntry.values.map((value: any) =>
+    normalizeCaseValue(value, fieldMap)
   );
 
+  const displayValues = caseEntry.values
+    .map((value: any) => normalizeCaseValue(value, fieldMap))
+    .filter((value: WorkflowValueLike) => {
+      const key = value.field?.key || value.fieldKey || "";
+      return !shouldHideCaseValue(key);
+    });
+
   const evidenceItems =
-   
-  caseEntry.evidences?.map((item: any) => ({
+    caseEntry.evidences?.map((item: any) => ({
       id: item.id,
       fileName: item.fileName || "ملف",
       fileUrl: item.fileUrl || "#",
@@ -112,13 +184,23 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
         <h2 className="text-2xl font-black text-slate-900">بيانات الحالة</h2>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {displayValues.map((value: any) => (
-            <CaseValueRenderer
-              key={value.id}
-              label={labelMap.get(value.fieldKey) || value.fieldKey}
-              value={getValue(value)}
-            />
-          ))}
+          {displayValues.map((value: WorkflowValueLike, index: number) => {
+            const key = value.field?.key || value.fieldKey || "";
+            const label = getWorkflowFieldLabel(value, index);
+
+            const displayValue =
+              key === "committee_items"
+                ? formatCommitteeRows(value.jsonValue ?? value.value)
+                : formatWorkflowDisplayValue(value, workflowValues);
+
+            return (
+              <CaseValueRenderer
+                key={value.id || key}
+                label={label}
+                value={displayValue}
+              />
+            );
+          })}
 
           {displayValues.length === 0 ? (
             <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-400 md:col-span-2">
