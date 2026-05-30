@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
-import { ReportPrintButton } from "@/components/report-engine/report-print-button";
-import { buildOfficialReportDataFromCase } from "@/lib/report-engine/report-data-mapper";
-import type {
-  EvidenceLayout,
-  ReportTemplateId,
-} from "@/lib/report-engine/report-types";
 
 type PageProps = {
   params: Promise<{
@@ -17,22 +10,52 @@ type PageProps = {
     template?: string;
     evidenceLayout?: string;
     cover?: string;
+    editorial?: string;
+    studio?: string;
+    v?: string;
   }>;
 };
 
-const allowedTemplates: ReportTemplateId[] = [
-  "official-long",
-  "visual-activity",
-  "executive-brief",
-];
+type WorkflowValueOverride = {
+  fieldKey: string;
+  fieldLabel: string;
+  originalValue: string;
+  editedValue: string;
+};
 
-const allowedEvidenceLayouts: EvidenceLayout[] = [
-  "auto",
-  "single-large",
-  "two-columns",
-  "stacked",
-  "grid-2x2",
-  "one-per-page",
+type EditableContentPayload = {
+  blocks?: Record<string, string>;
+  workflowValueOverrides?: WorkflowValueOverride[];
+};
+
+type ReportValueItem = {
+  fieldKey: string;
+  fieldLabel: string;
+  originalValue: string;
+  displayValue: string;
+  isChanged: boolean;
+};
+
+const blockLabels: Record<string, string> = {
+  summaryIntro: "ملخص التقرير",
+  intro: "مقدمة التقرير",
+  goals: "أهداف البرنامج",
+  procedures: "الإجراءات",
+  results: "النتائج",
+  recommendations: "التوصيات",
+  closingNotes: "ملاحظات ختامية",
+  evidenceNotes: "ملاحظات الشواهد",
+};
+
+const blockOrder = [
+  "summaryIntro",
+  "intro",
+  "goals",
+  "procedures",
+  "results",
+  "recommendations",
+  "closingNotes",
+  "evidenceNotes",
 ];
 
 export default async function ReportRealPreviewPage({
@@ -42,316 +65,583 @@ export default async function ReportRealPreviewPage({
   const { reportId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
 
-  const templateId = normalizeTemplateId(resolvedSearchParams.template);
-  const evidenceLayout = normalizeEvidenceLayout(
-    resolvedSearchParams.evidenceLayout
-  );
-  const showCover = resolvedSearchParams.cover !== "false";
+  const studioMode = resolvedSearchParams.studio === "true";
+  const showEditorial = resolvedSearchParams.editorial !== "false";
 
-  const caseEntry = await prisma.caseEntry.findUnique({
+  const report = await prisma.guidanceReport.findUnique({
     where: {
       id: reportId,
     },
     include: {
-      service: true,
-      student: true,
-      values: {
+      caseEntry: {
         include: {
-          field: true,
+          service: true,
+          student: {
+            include: {
+              guardian: true,
+            },
+          },
+          values: {
+            include: {
+              field: true,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+          evidences: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
         },
       },
-      evidences: true,
+      evidenceItems: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
     },
   });
 
-  if (!caseEntry) {
+  if (!report) {
     notFound();
   }
 
-  const { identity, report } = buildOfficialReportDataFromCase({
-    caseEntry,
-    evidenceLayout,
-    identity: {
-      schoolName: "مدرسة الملك عبدالعزيز الثانوية",
-      educationDepartment: "الإدارة العامة للتعليم بمنطقة جازان",
-      educationOffice: "مكتب التعليم بفيفاء",
-      counselorName: "محمد الفيفي",
-      counselorTitle: "الموجه الطلابي",
-      academicYear: "1447هـ",
-      semester: "الفصل الدراسي الأول",
-      ministryLogoUrl: "/sample/report-evidence/ministry-logo.png",
-      schoolLogoUrl: "/sample/report-evidence/square-evidence-1.png",
-    },
+  const parsedEditableContent = parseEditableContent(report.editableContent);
+  const workflowValueOverrides =
+    parsedEditableContent.workflowValueOverrides || [];
+
+  const reportValues = buildReportValues(
+    report.caseEntry.values,
+    workflowValueOverrides
+  );
+
+  const editorialSections = buildEditorialSections({
+    renderedContent: report.renderedContent,
+    editableContent: report.editableContent,
+    parsedEditableContent,
+    workflowValueOverrides,
   });
 
   return (
-    <div className="real-report-preview" dir="rtl">
-      <aside className="report-actions">
-        <div>
-          <h1>معاينة التقرير</h1>
-          <p>
-            هذه معاينة التقرير الفعلية من بيانات الحالة/الخدمة، وليست بيانات
-            تجريبية.
-          </p>
+    <main
+      dir="rtl"
+      className={
+        studioMode
+          ? "min-h-screen bg-slate-100 px-4 py-5"
+          : "min-h-screen bg-slate-100 px-8 py-8"
+      }
+    >
+      {!studioMode ? (
+        <div className="mb-6 flex items-center justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <p className="text-sm font-black text-sky-700">معاينة التقرير</p>
+
+            <h1 className="mt-2 text-2xl font-black text-slate-900">
+              {report.title}
+            </h1>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {report.caseEntry.service.name}
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <Link
+              href={`/dashboard/reports/${report.id}/studio`}
+              className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white"
+            >
+              تعديل التقرير
+            </Link>
+
+            <Link
+              href="/dashboard/reports"
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
+            >
+              الرجوع للتقارير
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      <section className="mx-auto min-h-[297mm] w-[210mm] max-w-full overflow-hidden rounded-3xl bg-white shadow-sm">
+        <ReportHeader
+          title={report.title}
+          serviceName={report.caseEntry.service.name}
+          templateId={report.templateId}
+          status={report.status}
+        />
+
+        <div className="space-y-8 p-12">
+          <ReportSummary
+            serviceName={report.caseEntry.service.name}
+            studentName={report.caseEntry.student?.fullName || "غير مرتبط"}
+            nationalId={report.caseEntry.student?.nationalId || "غير متوفر"}
+            grade={report.caseEntry.student?.grade || "غير محدد"}
+            classroom={report.caseEntry.student?.classroom || "غير محدد"}
+            guardianName={
+              report.caseEntry.student?.guardian?.name || "غير متوفر"
+            }
+            guardianPhone={
+              report.caseEntry.student?.guardian?.phone || "غير متوفر"
+            }
+            reportStatus={getReportStatusName(report.status)}
+            templateId={report.templateId || "غير محدد"}
+            createdAt={report.createdAt.toISOString()}
+          />
+
+          <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">
+                  بيانات الحالة
+                </h3>
+
+                <p className="mt-1 text-sm leading-7 text-slate-500">
+                  القيم التالية مصدرها Workflow. اسم القيمة ثابت، والمحتوى قد
+                  يكون أصليًا أو معدلًا داخل التقرير.
+                </p>
+              </div>
+
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500">
+                {reportValues.length} قيمة
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {reportValues.map((item) => (
+                <ReportValueBox key={item.fieldKey} item={item} />
+              ))}
+            </div>
+
+            {!reportValues.length ? (
+              <p className="mt-5 rounded-2xl bg-white px-4 py-3 text-sm text-slate-500">
+                لا توجد قيم محفوظة في هذه الحالة.
+              </p>
+            ) : null}
+          </section>
+
+          {showEditorial ? (
+            <section className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-xl font-black text-emerald-950">
+                    المحتوى التحريري
+                  </h3>
+
+                  <p className="mt-1 text-sm leading-7 text-emerald-800">
+                    هذا المحتوى قابل للتعديل من Studio، ويظهر في التقرير بدون
+                    التأثير على الحالة الأصلية.
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-emerald-700">
+                  محفوظ داخل التقرير
+                </span>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {editorialSections.length ? (
+                  editorialSections.map((section) => (
+                    <EditorialSection
+                      key={section.title}
+                      title={section.title}
+                      content={section.content}
+                    />
+                  ))
+                ) : (
+                  <p className="rounded-2xl bg-white px-4 py-4 text-sm leading-7 text-slate-500">
+                    لا يوجد محتوى تحريري محفوظ بعد.
+                  </p>
+                )}
+              </div>
+            </section>
+          ) : null}
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">الشواهد</h3>
+
+                <p className="mt-1 text-sm leading-7 text-slate-500">
+                  الشواهد المرتبطة بالتقرير.
+                </p>
+              </div>
+
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
+                {report.evidenceItems.length} شاهد
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {report.evidenceItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                >
+                  <p className="text-sm font-black text-slate-900">
+                    {item.caption || item.fileName}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    {item.mimeType || "ملف"} —{" "}
+                    {item.visible ? "ظاهر" : "مخفي"}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {!report.evidenceItems.length ? (
+              <p className="mt-5 rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                لا توجد شواهد مرتبطة بهذا التقرير.
+              </p>
+            ) : null}
+          </section>
         </div>
 
-        <section className="action-section">
-          <h2>قالب التقرير</h2>
+        <ReportFooter />
+      </section>
+    </main>
+  );
+}
 
-          <div className="action-group">
-            <Link
-              href={buildPreviewUrl(
-                reportId,
-                "official-long",
-                evidenceLayout,
-                showCover
-              )}
-              className={templateId === "official-long" ? "active" : ""}
-            >
-              القالب الرسمي
-            </Link>
+function ReportHeader({
+  title,
+  serviceName,
+  templateId,
+  status,
+}: {
+  title: string;
+  serviceName: string;
+  templateId?: string | null;
+  status: string;
+}) {
+  return (
+    <header className="border-b border-slate-200 bg-gradient-to-br from-white to-slate-50 px-12 py-10 text-center">
+      <p className="text-sm font-black text-slate-500">تقرير محفوظ</p>
 
-            <Link
-              href={buildPreviewUrl(
-                reportId,
-                "visual-activity",
-                evidenceLayout,
-                showCover
-              )}
-              className={templateId === "visual-activity" ? "active" : ""}
-            >
-              القالب البصري
-            </Link>
+      <h2 className="mt-4 text-4xl font-black leading-[1.7] text-emerald-950">
+        {title}
+      </h2>
 
-            <Link
-              href={buildPreviewUrl(
-                reportId,
-                "executive-brief",
-                evidenceLayout,
-                showCover
-              )}
-              className={templateId === "executive-brief" ? "active" : ""}
-            >
-              القالب المختصر
-            </Link>
-          </div>
-        </section>
+      <p className="mt-2 text-sm font-bold text-slate-500">{serviceName}</p>
 
-        <section className="action-section">
-          <h2>تخطيط الشواهد</h2>
+      <div className="mt-5 flex flex-wrap justify-center gap-2">
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+          {getReportStatusName(status)}
+        </span>
 
-          <div className="action-group">
-            <Link
-              href={buildPreviewUrl(
-                reportId,
-                templateId,
-                "grid-2x2",
-                showCover
-              )}
-              className={evidenceLayout === "grid-2x2" ? "active" : ""}
-            >
-              شواهد 2×2
-            </Link>
+        <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
+          {getTemplateName(templateId)}
+        </span>
+      </div>
+    </header>
+  );
+}
 
-            <Link
-              href={buildPreviewUrl(
-                reportId,
-                templateId,
-                "two-columns",
-                showCover
-              )}
-              className={evidenceLayout === "two-columns" ? "active" : ""}
-            >
-              صورتان بجانب بعض
-            </Link>
+function ReportSummary({
+  serviceName,
+  studentName,
+  nationalId,
+  grade,
+  classroom,
+  guardianName,
+  guardianPhone,
+  reportStatus,
+  templateId,
+  createdAt,
+}: {
+  serviceName: string;
+  studentName: string;
+  nationalId: string;
+  grade: string;
+  classroom: string;
+  guardianName: string;
+  guardianPhone: string;
+  reportStatus: string;
+  templateId: string;
+  createdAt: string;
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6">
+      <h3 className="text-xl font-black text-slate-900">ملخص التقرير</h3>
 
-            <Link
-              href={buildPreviewUrl(
-                reportId,
-                templateId,
-                "stacked",
-                showCover
-              )}
-              className={evidenceLayout === "stacked" ? "active" : ""}
-            >
-              صور تحت بعض
-            </Link>
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <InfoRow label="الخدمة" value={serviceName} />
+        <InfoRow label="الطالب/الطالبة" value={studentName} />
+        <InfoRow label="رقم الهوية" value={nationalId} />
+        <InfoRow label="الصف" value={grade} />
+        <InfoRow label="الفصل" value={classroom} />
+        <InfoRow label="ولي الأمر" value={guardianName} />
+        <InfoRow label="جوال ولي الأمر" value={guardianPhone} />
+        <InfoRow label="حالة التقرير" value={reportStatus} />
+        <InfoRow label="القالب" value={getTemplateName(templateId)} />
+        <InfoRow label="تاريخ الإنشاء" value={formatDate(createdAt)} />
+      </div>
+    </section>
+  );
+}
 
-            <Link
-              href={buildPreviewUrl(
-                reportId,
-                templateId,
-                "one-per-page",
-                showCover
-              )}
-              className={evidenceLayout === "one-per-page" ? "active" : ""}
-            >
-              شاهد لكل صفحة
-            </Link>
-          </div>
-        </section>
+function ReportValueBox({ item }: { item: ReportValueItem }) {
+  return (
+    <div
+      className={[
+        "rounded-2xl border p-4",
+        item.isChanged
+          ? "border-emerald-200 bg-white"
+          : "border-slate-200 bg-white",
+      ].join(" ")}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-slate-500">اسم القيمة</p>
 
-        <section className="action-section">
-          <h2>خيارات التقرير</h2>
+          <h4 className="mt-1 text-sm font-black text-slate-900">
+            {item.fieldLabel}
+          </h4>
+        </div>
 
-          <div className="action-group">
-            <Link
-              href={buildPreviewUrl(
-                reportId,
-                templateId,
-                evidenceLayout,
-                !showCover
-              )}
-            >
-              {showCover ? "إخفاء الغلاف" : "إظهار الغلاف"}
-            </Link>
-          </div>
-        </section>
+        {item.isChanged ? (
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
+            معدل
+          </span>
+        ) : (
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">
+            أصلي
+          </span>
+        )}
+      </div>
 
-        <ReportPrintButton />
-      </aside>
-
-      <main className="report-canvas">
-        <ReportDocumentRenderer
-          identity={identity}
-          report={report}
-          templateId={templateId}
-          showCover={showCover}
-          evidenceLayout={evidenceLayout}
-        />
-      </main>
-
-      <style>{`
-        .real-report-preview {
-          min-height: 100vh;
-          display: grid;
-          grid-template-columns: 320px 1fr;
-          background: #eef1ef;
-          font-family: Tajawal, Cairo, Arial, sans-serif;
-        }
-
-        .report-actions {
-          position: sticky;
-          top: 0;
-          height: 100vh;
-          overflow: auto;
-          background: #fff;
-          border-left: 1px solid #e5e7eb;
-          padding: 24px;
-          z-index: 50;
-          display: flex;
-          flex-direction: column;
-          gap: 18px;
-        }
-
-        .report-actions h1 {
-          margin: 0;
-          color: #0f5132;
-          font-size: 24px;
-        }
-
-        .report-actions p {
-          margin: 8px 0 0;
-          color: #667085;
-          line-height: 1.8;
-          font-size: 13px;
-        }
-
-        .action-section {
-          display: grid;
-          gap: 10px;
-        }
-
-        .action-section h2 {
-          margin: 0;
-          font-size: 13px;
-          color: #344054;
-          font-weight: 900;
-        }
-
-        .action-group {
-          display: grid;
-          gap: 8px;
-        }
-
-        .action-group a {
-          text-decoration: none;
-          border: 1px solid #e5e7eb;
-          border-radius: 14px;
-          padding: 11px 12px;
-          color: #344054;
-          font-weight: 800;
-          font-size: 13px;
-          background: #fff;
-        }
-
-        .action-group a.active {
-          background: #eef8f2;
-          border-color: #0f5132;
-          color: #0f5132;
-        }
-
-        .report-print-button {
-          border: 0;
-          border-radius: 14px;
-          padding: 12px 14px;
-          background: #0f5132;
-          color: white;
-          font-family: inherit;
-          font-weight: 900;
-          cursor: pointer;
-        }
-
-        .report-canvas {
-          overflow: auto;
-        }
-
-        @media print {
-          .real-report-preview {
-            display: block;
-            background: white;
-          }
-
-          .report-actions {
-            display: none;
-          }
-
-          .report-canvas {
-            overflow: visible;
-          }
-        }
-      `}</style>
+      <p className="mt-3 whitespace-pre-wrap text-sm leading-8 text-slate-800">
+        {item.displayValue || "—"}
+      </p>
     </div>
   );
 }
 
-function normalizeTemplateId(value?: string): ReportTemplateId {
-  if (allowedTemplates.includes(value as ReportTemplateId)) {
-    return value as ReportTemplateId;
-  }
+function EditorialSection({
+  title,
+  content,
+}: {
+  title: string;
+  content: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-emerald-100 bg-white p-5">
+      <h4 className="text-base font-black text-emerald-950">{title}</h4>
 
-  return "official-long";
+      <p className="mt-3 whitespace-pre-wrap text-sm leading-8 text-slate-800">
+        {content}
+      </p>
+    </div>
+  );
 }
 
-function normalizeEvidenceLayout(value?: string): EvidenceLayout {
-  if (allowedEvidenceLayouts.includes(value as EvidenceLayout)) {
-    return value as EvidenceLayout;
-  }
-
-  return "grid-2x2";
+function ReportFooter() {
+  return (
+    <footer className="border-t border-slate-200 px-12 py-5">
+      <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-400">
+        <span>منصة التوجيه الطلابي</span>
+        <span>تقرير محفوظ</span>
+      </div>
+    </footer>
+  );
 }
 
-function buildPreviewUrl(
-  reportId: string,
-  templateId: ReportTemplateId,
-  evidenceLayout: EvidenceLayout,
-  showCover: boolean
-) {
-  const params = new URLSearchParams();
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+      <p className="text-xs font-black text-slate-500">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm font-black leading-7 text-slate-900">
+        {value || "—"}
+      </p>
+    </div>
+  );
+}
 
-  params.set("template", templateId);
-  params.set("evidenceLayout", evidenceLayout);
-  params.set("cover", String(showCover));
+function buildReportValues(
+  values: Array<{
+    id: string;
+    fieldKey?: string | null;
+    value?: string | null;
+    jsonValue?: unknown;
+    field?: {
+      key?: string | null;
+      label?: string | null;
+    } | null;
+  }>,
+  overrides: WorkflowValueOverride[]
+): ReportValueItem[] {
+  const overrideMap = new Map<string, WorkflowValueOverride>();
 
-  return `/dashboard/reports/${reportId}/preview?${params.toString()}`;
+  for (const override of overrides) {
+    if (override.fieldKey) {
+      overrideMap.set(override.fieldKey, override);
+    }
+
+    if (override.fieldLabel) {
+      overrideMap.set(override.fieldLabel, override);
+    }
+  }
+
+  return values.map((item, index) => {
+    const fieldKey = item.field?.key || item.fieldKey || item.id;
+    const fieldLabel =
+      item.field?.label || item.fieldKey || `قيمة رقم ${index + 1}`;
+
+    const originalValue = stringifyValue(item.value ?? item.jsonValue);
+
+    const override =
+      overrideMap.get(fieldKey) ||
+      overrideMap.get(fieldLabel) ||
+      overrideMap.get(item.fieldKey || "");
+
+    const displayValue = override?.editedValue ?? originalValue;
+
+    return {
+      fieldKey,
+      fieldLabel,
+      originalValue,
+      displayValue,
+      isChanged: Boolean(
+        override && override.editedValue.trim() !== originalValue.trim()
+      ),
+    };
+  });
+}
+
+function parseEditableContent(value?: string | null): EditableContentPayload {
+  const content = value?.trim();
+
+  if (!content) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(content) as EditableContentPayload;
+
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+function buildEditorialSections({
+  renderedContent,
+  editableContent,
+  parsedEditableContent,
+  workflowValueOverrides,
+}: {
+  renderedContent?: string | null;
+  editableContent?: string | null;
+  parsedEditableContent: EditableContentPayload;
+  workflowValueOverrides: WorkflowValueOverride[];
+}) {
+  const sections: Array<{ title: string; content: string }> = [];
+
+  const changedWorkflowValues = workflowValueOverrides.filter(
+    (item) => item.editedValue.trim() !== item.originalValue.trim()
+  );
+
+  if (changedWorkflowValues.length) {
+    sections.push({
+      title: "قيم التقرير المعدلة",
+      content: changedWorkflowValues
+        .map((item) => `${item.fieldLabel}\n${item.editedValue.trim()}`)
+        .join("\n\n"),
+    });
+  }
+
+  if (parsedEditableContent.blocks) {
+    for (const key of blockOrder) {
+      const content = parsedEditableContent.blocks[key]?.trim();
+
+      if (content) {
+        sections.push({
+          title: blockLabels[key] || key,
+          content,
+        });
+      }
+    }
+
+    return sections;
+  }
+
+  const rendered = renderedContent?.trim();
+
+  if (rendered && !looksLikeJson(rendered)) {
+    sections.push({
+      title: "المحتوى التحريري",
+      content: rendered,
+    });
+
+    return sections;
+  }
+
+  const editable = editableContent?.trim();
+
+  if (editable && !looksLikeJson(editable)) {
+    sections.push({
+      title: "المحتوى التحريري",
+      content: editable,
+    });
+  }
+
+  return sections;
+}
+
+function stringifyValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => stringifyValue(item)).filter(Boolean).join("، ");
+  }
+
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function looksLikeJson(value: string) {
+  const trimmed = value.trim();
+  return trimmed.startsWith("{") || trimmed.startsWith("[");
+}
+
+function getReportStatusName(status: string) {
+  if (status === "APPROVED") return "معتمد";
+  if (status === "GENERATED") return "مولّد";
+  if (status === "ARCHIVED") return "مؤرشف";
+  return "مسودة";
+}
+
+function getTemplateName(templateId?: string | null) {
+  if (templateId === "visual-activity") return "القالب البصري";
+  if (templateId === "executive-brief") return "القالب المختصر";
+  if (templateId === "official-long") return "القالب الرسمي";
+  return "غير محدد";
+}
+
+function formatDate(value: string) {
+  try {
+    return new Date(value).toLocaleDateString("ar-SA");
+  } catch {
+    return value;
+  }
 }

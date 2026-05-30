@@ -115,17 +115,17 @@ model SchoolAccount {
   isActive              Boolean                @default(true)
   studentImportSessions StudentImportSession[]
 
-  users           User[]
-  profile         SchoolProfile?
-  students        Student[]
-  guardians       Guardian[]
-  staff           StaffMember[]
-  services        ServiceAccess[]
-  cases           CaseEntry[]
-  subscription    Subscription?
-  resultsAnalyses ResultsAnalysis[]
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  users                 User[]
+  profile               SchoolProfile?
+  students              Student[]
+  guardians             Guardian[]
+  staff                 StaffMember[]
+  services              ServiceAccess[]
+  cases                 CaseEntry[]
+  subscription          Subscription?
+resultsAnalyses       ResultsAnalysis[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model User {
@@ -142,10 +142,9 @@ model User {
 
   cases CaseEntry[]
 
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
-  caseEvidences          CaseEvidence[]
-  createdReportTemplates ReportTemplate[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  caseEvidences CaseEvidence[]
 
   @@index([schoolAccountId])
 }
@@ -334,11 +333,11 @@ model CaseEntry {
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id])
 
-  workflowId      String?
-  workflow        Workflow?        @relation(fields: [workflowId], references: [id])
-  guidanceReports GuidanceReport[]
-  studentId       String?
-  student         Student?         @relation(fields: [studentId], references: [id])
+  workflowId String?
+  workflow   Workflow? @relation(fields: [workflowId], references: [id])
+guidanceReports GuidanceReport[]
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id])
 
   createdById String?
   createdBy   User?   @relation(fields: [createdById], references: [id])
@@ -350,10 +349,9 @@ model CaseEntry {
   values    CaseValue[]
   evidences Evidence[]
 
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
-  caseEvidences          CaseEvidence[]
-  createdReportTemplates ReportTemplate[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  caseEvidences CaseEvidence[]
 
   @@index([schoolAccountId])
   @@index([serviceId])
@@ -361,6 +359,84 @@ model CaseEntry {
   @@index([studentId])
   @@index([status])
 }
+
+
+enum ReportStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  PERSONAL
+}
+
+
+model GuidanceReport {
+  id                 String   @id @default(cuid())
+  title              String
+  serviceSlug        String
+  caseEntryId        String
+  genderMode         String
+  editableContent    String
+  renderedContent    String
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  caseEntry          CaseEntry @relation(fields: [caseEntryId], references: [id])
+  evidenceItems      ReportEvidence[]
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report GuidanceReport @relation(fields: [reportId], references: [id])
+
+  fileName String
+  fileUrl String
+
+  caption String?
+
+  sortOrder Int @default(0)
+
+  visible Boolean @default(true)
+
+  createdAt DateTime @default(now())
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name String
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+
+  genderAware Boolean @default(true)
+
+  usageCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  createdById String?
+  createdBy   User? @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 
 model CaseValue {
   id String @id @default(cuid())
@@ -642,18 +718,18 @@ model ExternalSyncLog {
 }
 
 model ResultsAnalysis {
-  id              String         @id @default(cuid())
+  id              String        @id @default(cuid())
   schoolAccountId String?
   schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
 
-  title      String
-  grade      String?
-  classroom  String?
-  sourceFile String?
-  status     String  @default("COMPLETED")
+  title       String
+  grade       String?
+  classroom   String?
+  sourceFile  String?
+  status      String @default("COMPLETED")
 
-  totalStudents Int    @default(0)
-  totalSubjects Int    @default(0)
+  totalStudents Int @default(0)
+  totalSubjects Int @default(0)
   averageScore  Float?
 
   summaryJson Json?
@@ -667,22 +743,22 @@ model ResultsAnalysis {
   @@index([classroom])
 }
 
+
 enum ReportStatus {
   DRAFT
-  GENERATED
   APPROVED
   ARCHIVED
 }
 
 enum ReportTemplateType {
   SYSTEM
-  SCHOOL
   PERSONAL
 }
 
 model GuidanceReport {
-  id          String @id @default(cuid())
-  title       String
+  id String @id @default(cuid())
+
+  title String
   serviceSlug String
 
   caseEntryId String
@@ -697,14 +773,7 @@ model GuidanceReport {
 
   evidenceEnabled Boolean @default(true)
 
-  templateId         String?
-  templateSnapshot   Json?
-  reportDataSnapshot Json?
-  generatedAt        DateTime?
-  generatedPdfUrl    String?
-
   approvedAt DateTime?
-  archivedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -714,8 +783,6 @@ model GuidanceReport {
   @@index([caseEntryId])
   @@index([serviceSlug])
   @@index([status])
-  @@index([templateId])
-  @@index([generatedAt])
 }
 
 model ReportEvidence {
@@ -727,53 +794,34 @@ model ReportEvidence {
   fileName String
   fileUrl  String
   caption  String?
-
-  mimeType String?
-  size     Int?
-
-  sortOrder Int     @default(0)
-  visible   Boolean @default(true)
+  sortOrder Int @default(0)
+  visible Boolean @default(true)
 
   createdAt DateTime @default(now())
 
   @@index([reportId])
-  @@index([visible])
 }
 
 model ReportTemplate {
   id String @id @default(cuid())
 
-  name        String
-  description String?
-
+  name String
   serviceSlug String?
 
   type ReportTemplateType @default(SYSTEM)
 
   content String
-
-  templateJson Json?
-  version      Int   @default(1)
-
   genderAware Boolean @default(true)
 
-  usageCount Int     @default(0)
-  isActive   Boolean @default(true)
+  usageCount Int @default(0)
+  isActive Boolean @default(true)
 
-  createdById String?
-  createdBy   User?   @relation(fields: [createdById], references: [id])
-
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
-  caseEntryId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([serviceSlug])
   @@index([type])
-  @@index([isActive])
-  @@index([createdById])
 }
-
 model StudentImportSession {
   id              String        @id @default(cuid())
   schoolAccountId String

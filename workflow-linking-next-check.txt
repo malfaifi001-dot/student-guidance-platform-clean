@@ -1,0 +1,773 @@
+
+
+==============================
+FILE: components/workflow/dynamic-field-renderer.tsx
+==============================
+
+"use client";
+
+import type { RuntimeField, RuntimeOption } from "@/engine/runtime/runtime-resolver";
+import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+
+type DynamicFieldRendererProps = {
+  field: RuntimeField;
+  value: unknown;
+  values: RuntimeValues;
+  onChange: (key: string, value: unknown) => void;
+};
+
+function FieldLabel({ field }: { field: RuntimeField }) {
+  return (
+    <label className="mb-3 block text-sm font-black text-slate-800">
+      {field.label}
+      {field.isRequired ? <span className="mr-1 text-rose-500">*</span> : null}
+    </label>
+  );
+}
+
+function HelpText({ text }: { text?: string | null }) {
+  if (!text) return null;
+  return <p className="mt-2 text-xs leading-6 text-slate-400">{text}</p>;
+}
+
+function getFilteredOptions(field: RuntimeField, values: RuntimeValues) {
+  if (!field.dependsOnFieldKey) return field.options;
+
+  const parentValue = values[field.dependsOnFieldKey];
+
+  return field.options.filter((option) => {
+    if (!option.linkedToValue) return true;
+
+    if (Array.isArray(parentValue)) {
+      return parentValue.includes(option.linkedToValue);
+    }
+
+    return String(parentValue ?? "") === String(option.linkedToValue);
+  });
+}
+
+function SelectOptions({
+  options,
+  allowOther,
+}: {
+  options: RuntimeOption[];
+  allowOther: boolean;
+}) {
+  return (
+    <>
+      <option value="">اختر...</option>
+      {options.map((option) => (
+        <option key={option.id} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+      {allowOther ? <option value="__OTHER__">أخرى</option> : null}
+    </>
+  );
+}
+
+export function DynamicFieldRenderer({
+  field,
+  value,
+  values,
+  onChange,
+}: DynamicFieldRendererProps) {
+  const baseInputClass =
+    "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100";
+
+  const filteredOptions = getFilteredOptions(field, values);
+
+  if (field.type === "TEXT" || field.type === "NUMBER" || field.type === "DATE") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <input
+          type={field.type === "NUMBER" ? "number" : field.type === "DATE" ? "date" : "text"}
+          value={String(value ?? "")}
+          placeholder={field.placeholder ?? ""}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          className={baseInputClass}
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "TEXTAREA" || field.type === "RICH_TEXT") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <textarea
+          value={String(value ?? "")}
+          placeholder={field.placeholder ?? ""}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          rows={5}
+          className={baseInputClass}
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "SELECT" || field.type === "RADIO") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <select
+          value={String(value ?? "")}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          className={baseInputClass}
+        >
+          <SelectOptions options={filteredOptions} allowOther={field.allowOther} />
+        </select>
+
+        {value === "__OTHER__" ? (
+          <input
+            value={String(values[`${field.key}__other`] ?? "")}
+            onChange={(event) => onChange(`${field.key}__other`, event.target.value)}
+            placeholder="اكتب خيار أخرى..."
+            className={baseInputClass}
+          />
+        ) : null}
+
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "MULTI_SELECT" || field.type === "CHECKBOX") {
+    const selectedValues = Array.isArray(value) ? value.map(String) : [];
+
+    const allOptions = [
+      ...filteredOptions,
+      ...(field.allowOther
+        ? [{ id: "__other__", label: "أخرى", value: "__OTHER__", order: 999, linkedToValue: null }]
+        : []),
+    ];
+
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+
+        <div className="grid gap-2 md:grid-cols-2">
+          {allOptions.map((option) => {
+            const checked = selectedValues.includes(option.value);
+
+            return (
+              <label
+                key={option.id}
+                className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(event) => {
+                    const next = event.target.checked
+                      ? [...selectedValues, option.value]
+                      : selectedValues.filter((item) => item !== option.value);
+
+                    onChange(field.key, next);
+                  }}
+                />
+                {option.label}
+              </label>
+            );
+          })}
+        </div>
+
+        {selectedValues.includes("__OTHER__") ? (
+          <input
+            value={String(values[`${field.key}__other`] ?? "")}
+            onChange={(event) => onChange(`${field.key}__other`, event.target.value)}
+            placeholder="اكتب خيار أخرى..."
+            className={baseInputClass}
+          />
+        ) : null}
+
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "FILE_UPLOAD" || field.type === "IMAGE_UPLOAD") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <input
+          type="file"
+          accept={field.type === "IMAGE_UPLOAD" ? "image/*" : undefined}
+          onChange={(event) => onChange(field.key, event.target.files?.[0] ?? null)}
+          className="w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm"
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+      نوع الحقل غير مدعوم حاليًا: {field.type}
+    </div>
+  );
+}
+
+
+==============================
+FILE: engine/runtime/field-dependency-engine.ts
+==============================
+
+export type RuntimeValues = Record<string, unknown>;
+
+type RuntimeField = {
+  id: string;
+  key: string;
+  type: string;
+  isRequired?: boolean;
+  dependsOnFieldKey?: string | null;
+  linkedToValue?: string | null;
+};
+
+function normalizeValue(value: unknown) {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  return value;
+}
+
+export function shouldShowField(
+  field: RuntimeField,
+  values: RuntimeValues
+) {
+  if (!field.dependsOnFieldKey) {
+    return true;
+  }
+
+  const parentValue = normalizeValue(
+    values[field.dependsOnFieldKey]
+  );
+
+  if (
+    parentValue === undefined ||
+    parentValue === null ||
+    parentValue === ""
+  ) {
+    return false;
+  }
+
+  if (!field.linkedToValue) {
+    return true;
+  }
+
+  if (Array.isArray(parentValue)) {
+    return parentValue.includes(field.linkedToValue);
+  }
+
+  return String(parentValue) === String(field.linkedToValue);
+}
+
+export function validateStepRequiredFields(params: {
+  fields: RuntimeField[];
+  values: RuntimeValues;
+}) {
+  const { fields, values } = params;
+
+  const missingFields: string[] = [];
+
+  fields.forEach((field) => {
+    const visible = shouldShowField(field, values);
+
+    if (!visible || !field.isRequired) {
+      return;
+    }
+
+    const value = values[field.key];
+
+    const isEmpty =
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0);
+
+    if (isEmpty) {
+      missingFields.push(field.key);
+    }
+  });
+
+  return {
+    valid: missingFields.length === 0,
+    missingFields,
+  };
+}
+
+
+==============================
+FILE: engine/runtime/runtime-resolver.ts
+==============================
+
+export type RuntimeOption = {
+  id: string;
+  label: string;
+  value: string;
+  order: number;
+  linkedToValue?: string | null;
+};
+
+export type RuntimeField = {
+  id: string;
+  key: string;
+  label: string;
+  type: string;
+  placeholder?: string | null;
+  helpText?: string | null;
+  isRequired: boolean;
+  order: number;
+  dependsOnFieldKey?: string | null;
+  linkedToValue?: string | null;
+  allowOther: boolean;
+  options: RuntimeOption[];
+};
+
+export type RuntimeStep = {
+  id: string;
+  title: string;
+  description?: string | null;
+  order: number;
+  fields: RuntimeField[];
+};
+
+export type RuntimeWorkflow = {
+  id: string;
+  name: string;
+  serviceSlug: string;
+  steps: RuntimeStep[];
+};
+
+export function sortRuntimeWorkflow(workflow: RuntimeWorkflow): RuntimeWorkflow {
+  return {
+    ...workflow,
+    steps: [...workflow.steps]
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        ...step,
+        fields: [...step.fields].sort((a, b) => a.order - b.order),
+      })),
+  };
+}
+import { prisma } from "@/lib/prisma";
+
+export async function getRuntimeWorkflowByServiceSlug(serviceSlug: string) {
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        where: {
+          isActive: true,
+          
+        },
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          version: "desc",
+        },
+        take: 1,
+      },
+    },
+  });
+
+  const workflow = service?.workflows[0];
+
+  if (!service || !workflow) {
+    return null;
+  }
+
+  return {
+    service,
+    workflow: sortRuntimeWorkflow({
+      id: workflow.id,
+      name: workflow.name,
+      serviceSlug: service.slug,
+      steps: workflow.steps.map((step) => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        order: step.order,
+        fields: step.fields.map((field) => ({
+          id: field.id,
+          key: field.key,
+          label: field.label,
+          type: field.type,
+          placeholder: field.placeholder,
+          helpText: field.helpText,
+          isRequired: field.isRequired,
+          order: field.order,
+          allowOther: field.allowOther,
+          dependsOnFieldKey: field.dependsOnFieldKey,
+          linkedToValue: field.linkedToValue,
+          options: field.options.map((option) => ({
+            id: option.id,
+            label: option.label,
+            value: option.value,
+            order: option.order,
+            linkedToValue: option.linkedToValue,
+          })),
+        })),
+      })),
+    }),
+  };
+}
+
+
+==============================
+FILE: components/committees/committee-chain-repeater.tsx
+==============================
+
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import type { RuntimeField } from "@/engine/runtime/runtime-resolver";
+
+export type CommitteeChainRow = {
+  id: string;
+  agenda: string;
+  agendaOther?: string;
+  discussion: string;
+  discussionOther?: string;
+  recommendation: string;
+  recommendationOther?: string;
+};
+
+type CommitteeChainRepeaterProps = {
+  fields: RuntimeField[];
+  value: CommitteeChainRow[] | undefined;
+  onChange: (rows: CommitteeChainRow[]) => void;
+};
+
+function createEmptyRow(): CommitteeChainRow {
+  return {
+    id: crypto.randomUUID(),
+    agenda: "",
+    agendaOther: "",
+    discussion: "",
+    discussionOther: "",
+    recommendation: "",
+    recommendationOther: "",
+  };
+}
+
+function fieldText(field: RuntimeField) {
+  return `${field.key} ${field.label}`.trim().toLowerCase();
+}
+
+function findAgendaField(fields: RuntimeField[]) {
+  return fields.find((field) => {
+    const text = fieldText(field);
+    return text.includes("agenda") || text.includes("committee_agenda") || text.includes("جدول");
+  });
+}
+
+function findDiscussionField(fields: RuntimeField[]) {
+  return fields.find((field) => {
+    const text = fieldText(field);
+    return text.includes("discussion") || text.includes("committee_discussion") || text.includes("محور") || text.includes("نقاش");
+  });
+}
+
+function findRecommendationField(fields: RuntimeField[]) {
+  return fields.find((field) => {
+    const text = fieldText(field);
+    return text.includes("recommendation") || text.includes("committee_recommendation") || text.includes("توصية");
+  });
+}
+
+function getOptions(field?: RuntimeField, linkedToValue?: string) {
+  if (!field) return [];
+
+  if (!linkedToValue || linkedToValue === "__OTHER__") {
+    return field.options;
+  }
+
+  const linkedOptions = field.options.filter(
+    (option) => String(option.linkedToValue ?? "") === String(linkedToValue)
+  );
+
+  return linkedOptions.length > 0 ? linkedOptions : field.options;
+}
+
+function hasValidValue(value?: string, other?: string) {
+  if (value === "__OTHER__") {
+    return Boolean(other?.trim());
+  }
+
+  return Boolean(value?.trim());
+}
+
+export function isCommitteeRowsValid(rows: unknown) {
+  if (!Array.isArray(rows)) {
+    return false;
+  }
+
+  return rows.some((item) => {
+    if (!item || typeof item !== "object") {
+      return false;
+    }
+
+    const row = item as CommitteeChainRow;
+
+    return (
+      hasValidValue(row.agenda, row.agendaOther) &&
+      hasValidValue(row.discussion, row.discussionOther) &&
+      hasValidValue(row.recommendation, row.recommendationOther)
+    );
+  });
+}
+
+export function CommitteeChainRepeater({
+  fields,
+  value,
+  onChange,
+}: CommitteeChainRepeaterProps) {
+  const agendaField = useMemo(() => findAgendaField(fields), [fields]);
+  const discussionField = useMemo(() => findDiscussionField(fields), [fields]);
+  const recommendationField = useMemo(() => findRecommendationField(fields), [fields]);
+
+  const [rows, setRows] = useState<CommitteeChainRow[]>(
+    value && value.length > 0 ? value : [createEmptyRow()]
+  );
+
+  useEffect(() => {
+    if (!value || value.length === 0) {
+      return;
+    }
+
+    if (JSON.stringify(value) !== JSON.stringify(rows)) {
+      setRows(value);
+    }
+  }, [value]);
+
+  function commit(nextRows: CommitteeChainRow[]) {
+    setRows(nextRows);
+    onChange(nextRows);
+  }
+
+  function updateRow(rowId: string, patch: Partial<CommitteeChainRow>) {
+    commit(
+      rows.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              ...patch,
+            }
+          : row
+      )
+    );
+  }
+
+  function addRow() {
+    commit([...rows, createEmptyRow()]);
+  }
+
+  function removeRow(rowId: string) {
+    const nextRows = rows.filter((row) => row.id !== rowId);
+    commit(nextRows.length > 0 ? nextRows : [createEmptyRow()]);
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:col-span-2">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-black text-sky-700">اللجان والاجتماعات</p>
+
+          <h3 className="mt-2 text-2xl font-black text-slate-900">
+            جدول الأعمال ومحور النقاش والتوصية
+          </h3>
+
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            أضف أكثر من صف. كل صف مستقل: جدول أعمال ← محور نقاش ← توصية.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={addRow}
+          className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white hover:bg-sky-700"
+        >
+          <Plus className="h-4 w-4" />
+          إضافة جدول أعمال
+        </button>
+      </div>
+
+      <div className="space-y-5">
+        {rows.map((row, index) => {
+          const agendaOptions = getOptions(agendaField);
+          const discussionOptions = getOptions(discussionField, row.agenda);
+          const recommendationOptions = getOptions(recommendationField, row.discussion);
+
+          return (
+            <div
+              key={row.id}
+              className="rounded-3xl border border-slate-100 bg-slate-50 p-5"
+            >
+              <div className="mb-5 flex items-center justify-between">
+                <p className="text-sm font-black text-slate-700">
+                  جدول {index + 1} - نقاش {index + 1} - توصية {index + 1}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => removeRow(row.id)}
+                  className="rounded-xl border border-rose-200 p-2 text-rose-600 hover:bg-rose-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-800">
+                    جدول الأعمال
+                  </label>
+
+                  <select
+                    value={row.agenda}
+                    onChange={(event) =>
+                      updateRow(row.id, {
+                        agenda: event.target.value,
+                        agendaOther: "",
+                        discussion: "",
+                        discussionOther: "",
+                        recommendation: "",
+                        recommendationOther: "",
+                      })
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                  >
+                    <option value="">اختر جدول الأعمال...</option>
+
+                    {agendaOptions.map((option) => (
+                      <option key={option.id} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+
+                    <option value="__OTHER__">أخرى</option>
+                  </select>
+
+                  {row.agenda === "__OTHER__" ? (
+                    <input
+                      value={row.agendaOther ?? ""}
+                      onChange={(event) =>
+                        updateRow(row.id, {
+                          agendaOther: event.target.value,
+                        })
+                      }
+                      placeholder="اكتب جدول الأعمال..."
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                    />
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-800">
+                    محور النقاش
+                  </label>
+
+                  <select
+                    value={row.discussion}
+                    disabled={!row.agenda}
+                    onChange={(event) =>
+                      updateRow(row.id, {
+                        discussion: event.target.value,
+                        discussionOther: "",
+                        recommendation: "",
+                        recommendationOther: "",
+                      })
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100"
+                  >
+                    <option value="">اختر محور النقاش...</option>
+
+                    {discussionOptions.map((option) => (
+                      <option key={option.id} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+
+                    <option value="__OTHER__">أخرى</option>
+                  </select>
+
+                  {row.discussion === "__OTHER__" ? (
+                    <input
+                      value={row.discussionOther ?? ""}
+                      onChange={(event) =>
+                        updateRow(row.id, {
+                          discussionOther: event.target.value,
+                        })
+                      }
+                      placeholder="اكتب محور النقاش..."
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                    />
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-800">
+                    التوصية
+                  </label>
+
+                  <select
+                    value={row.recommendation}
+                    disabled={!row.discussion}
+                    onChange={(event) =>
+                      updateRow(row.id, {
+                        recommendation: event.target.value,
+                        recommendationOther: "",
+                      })
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100"
+                  >
+                    <option value="">اختر التوصية...</option>
+
+                    {recommendationOptions.map((option) => (
+                      <option key={option.id} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+
+                    <option value="__OTHER__">أخرى</option>
+                  </select>
+
+                  {row.recommendation === "__OTHER__" ? (
+                    <input
+                      value={row.recommendationOther ?? ""}
+                      onChange={(event) =>
+                        updateRow(row.id, {
+                          recommendationOther: event.target.value,
+                        })
+                      }
+                      placeholder="اكتب التوصية..."
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                    />
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
