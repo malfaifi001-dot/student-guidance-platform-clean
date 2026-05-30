@@ -1,0 +1,3578 @@
+﻿==============================
+FILE: prisma/schema.prisma
+==============================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+
+  users                 User[]
+  profile               SchoolProfile?
+  students              Student[]
+  guardians             Guardian[]
+  staff                 StaffMember[]
+  services              ServiceAccess[]
+  cases                 CaseEntry[]
+  subscription          Subscription?
+resultsAnalyses       ResultsAnalysis[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  isActive     Boolean  @default(true)
+
+  cases CaseEntry[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  caseEvidences CaseEvidence[]
+
+  @@index([schoolAccountId])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName      String
+  principalName   String?
+  city            String?
+  district        String?
+  academicYear    String?
+  currentSemester String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows Workflow[]
+  cases     CaseEntry[]
+  access    ServiceAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name     String
+  version  Int            @default(1)
+  status   WorkflowStatus @default(DRAFT)
+  isActive Boolean        @default(false)
+
+  steps WorkflowStep[]
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId String?
+  workflow   Workflow? @relation(fields: [workflowId], references: [id])
+guidanceReports GuidanceReport[]
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values    CaseValue[]
+  evidences Evidence[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  caseEvidences CaseEvidence[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+
+enum ReportStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  PERSONAL
+}
+
+model GuidanceReport {
+  id String @id @default(cuid())
+
+  title String
+
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id])
+
+  createdById String?
+  createdBy   User? @relation(fields: [createdById], references: [id])
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String?
+
+  editableContent String
+  renderedContent String?
+
+  notes String?
+
+  templateId String?
+
+  evidenceEnabled Boolean @default(true)
+
+  approvedAt DateTime?
+  approvedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report GuidanceReport @relation(fields: [reportId], references: [id])
+
+  fileName String
+  fileUrl String
+
+  caption String?
+
+  sortOrder Int @default(0)
+
+  visible Boolean @default(true)
+
+  createdAt DateTime @default(now())
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name String
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+
+  genderAware Boolean @default(true)
+
+  usageCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  createdById String?
+  createdBy   User? @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String?
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model ResultsAnalysis {
+  id              String        @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title       String
+  grade       String?
+  classroom   String?
+  sourceFile  String?
+  status      String @default("COMPLETED")
+
+  totalStudents Int @default(0)
+  totalSubjects Int @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+
+enum ReportStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  PERSONAL
+}
+
+model GuidanceReport {
+  id String @id @default(cuid())
+
+  title String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String
+  renderedContent String?
+
+  evidenceEnabled Boolean @default(true)
+
+  approvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+  sortOrder Int @default(0)
+  visible Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name String
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+  genderAware Boolean @default(true)
+
+  usageCount Int @default(0)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+  @@index([type])
+}
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+==============================
+FILE: lib/prisma.ts
+==============================
+import { PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not defined");
+}
+
+const adapter = new PrismaBetterSqlite3({
+  url: databaseUrl,
+});
+
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
+
+==============================
+FILE: lib/report-engine/report-template-builder-types.ts
+==============================
+export type ReportTemplateScope = "GLOBAL" | "SERVICE";
+
+export type ReportTemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
+export type ReportPageKind =
+  | "cover"
+  | "summary"
+  | "narrative"
+  | "results"
+  | "evidence"
+  | "approval";
+
+export type ReportBlockKind =
+  | "identity-header"
+  | "cover-title"
+  | "case-meta"
+  | "student-summary"
+  | "service-summary"
+  | "paragraph"
+  | "field-list"
+  | "text-library"
+  | "custom-paragraph"
+  | "evidence-gallery"
+  | "approval-signature";
+
+export type ReportDataSource =
+  | "identity"
+  | "caseEntry"
+  | "caseValues"
+  | "student"
+  | "service"
+  | "evidence"
+  | "textLibrary"
+  | "custom"
+  | "computed";
+
+export type ReportBlockSource = {
+  source: ReportDataSource;
+  label: string;
+  description: string;
+  fieldKey?: string;
+};
+
+export type ReportBlockSettings = {
+  showTitle?: boolean;
+  style?: "plain" | "card" | "highlight";
+  columns?: 1 | 2;
+  evidenceLayout?: "grid-2x2" | "two-columns" | "stacked" | "one-per-page";
+  imageFit?: "contain" | "cover";
+  showCaptions?: boolean;
+  itemsPerPage?: 1 | 2 | 4;
+};
+
+export type ReportCoverSettings = {
+  showHeader?: boolean;
+  showFooter?: boolean;
+  titlePosition?: "center" | "top";
+  showDescription?: boolean;
+  showMetaChips?: boolean;
+  visualStyle?: "official" | "minimal" | "hero";
+};
+
+export type ReportTemplateBlock = {
+  id: string;
+  kind: ReportBlockKind;
+  title: string;
+  source: ReportBlockSource;
+  required: boolean;
+
+  customTitle?: string;
+  customContent?: string;
+
+  settings?: ReportBlockSettings;
+};
+
+export type ReportTemplatePage = {
+  id: string;
+  kind: ReportPageKind;
+  title: string;
+  description: string;
+  blocks: ReportTemplateBlock[];
+  coverSettings?: ReportCoverSettings;
+};
+
+export type ReportTemplateBuilderModel = {
+  id: string;
+  name: string;
+  description: string;
+  scope: ReportTemplateScope;
+  serviceSlug?: string;
+  status: ReportTemplateStatus;
+  pages: ReportTemplatePage[];
+  updatedAt: string;
+  previewCaseId?: string;
+};
+
+export type ReportTextSnippet = {
+  id: string;
+  title: string;
+  category:
+    | "Ù…Ù‚Ø¯Ù…Ø©"
+    | "Ù‡Ø¯Ù"
+    | "Ø¥Ø¬Ø±Ø§Ø¡"
+    | "Ù†ØªÙŠØ¬Ø©"
+    | "ØªÙˆØµÙŠØ©"
+    | "Ø®Ø§ØªÙ…Ø©";
+  serviceSlug?: string;
+  content: string;
+};
+
+export type ReportIdentitySettings = {
+  ministryName: string;
+  educationDepartment: string;
+  educationOffice: string;
+  schoolName: string;
+  schoolLeaderName: string;
+  counselorName: string;
+  academicYear: string;
+  semester: string;
+  ministryLogoUrl: string;
+  schoolLogoUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: "Tajawal" | "Cairo" | "Arial";
+};
+
+export type ReportTemplateValidationIssue = {
+  id: string;
+  severity: "success" | "warning" | "error";
+  title: string;
+  description: string;
+};
+
+export type ReportTemplateValidationResult = {
+  canPublish: boolean;
+  score: number;
+  issues: ReportTemplateValidationIssue[];
+};
+
+export const DEFAULT_REPORT_IDENTITY_SETTINGS: ReportIdentitySettings = {
+  ministryName: "ÙˆØ²Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
+  educationDepartment: "Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø¹Ø§Ù…Ø© Ù„Ù„ØªØ¹Ù„ÙŠÙ…",
+  educationOffice: "Ù…ÙƒØªØ¨ Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
+  schoolName: "Ø§Ø³Ù… Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+  schoolLeaderName: "Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+  counselorName: "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
+  academicYear: "1447Ù‡Ù€",
+  semester: "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ Ø§Ù„Ø£ÙˆÙ„",
+  ministryLogoUrl: "/sample/report-evidence/ministry-logo.png",
+  schoolLogoUrl: "/sample/report-evidence/square-evidence-1.png",
+  primaryColor: "#0f5132",
+  secondaryColor: "#d9e7df",
+  fontFamily: "Tajawal",
+};
+
+export const REPORT_WORKFLOW_FIELD_OPTIONS = [
+  {
+    key: "programTitle",
+    label: "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬",
+    source: "caseValues" as const,
+  },
+  {
+    key: "executionDate",
+    label: "ØªØ§Ø±ÙŠØ® Ø§Ù„ØªÙ†ÙÙŠØ°",
+    source: "caseValues" as const,
+  },
+  {
+    key: "intro",
+    label: "Ù…Ù‚Ø¯Ù…Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+    source: "caseValues" as const,
+  },
+  {
+    key: "goals",
+    label: "Ø£Ù‡Ø¯Ø§Ù Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬",
+    source: "caseValues" as const,
+  },
+  {
+    key: "procedures",
+    label: "Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„ØªÙ†ÙÙŠØ°",
+    source: "caseValues" as const,
+  },
+  {
+    key: "results",
+    label: "Ø§Ù„Ù†ØªØ§Ø¦Ø¬",
+    source: "caseValues" as const,
+  },
+  {
+    key: "recommendations",
+    label: "Ø§Ù„ØªÙˆØµÙŠØ§Øª",
+    source: "caseValues" as const,
+  },
+  {
+    key: "targetGroup",
+    label: "Ø§Ù„ÙØ¦Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©",
+    source: "caseValues" as const,
+  },
+];
+
+export const REPORT_SERVICE_OPTIONS = [
+  {
+    slug: "guidance-programs",
+    name: "Ø§Ù„Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©",
+  },
+  {
+    slug: "student-follow-up",
+    name: "Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø·Ù„Ø§Ø¨",
+  },
+  {
+    slug: "family-school-communication",
+    name: "Ø§Ù„ØªÙˆØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø£Ø³Ø±Ø© ÙˆØ§Ù„Ù…Ø¯Ø±Ø³Ø©",
+  },
+  {
+    slug: "committees-meetings",
+    name: "Ø§Ù„Ù„Ø¬Ø§Ù† ÙˆØ§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹Ø§Øª",
+  },
+  {
+    slug: "student-guidance-services",
+    name: "Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©",
+  },
+];
+
+export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
+  {
+    id: "block-identity-header",
+    kind: "identity-header",
+    title: "Ù‡ÙˆÙŠØ© Ø§Ù„Ù…Ø¯Ø±Ø³Ø© ÙˆØ§Ù„Ù‡ÙŠØ¯Ø±",
+    source: {
+      source: "identity",
+      label: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù‡ÙˆÙŠØ©",
+      description: "Ø´Ø¹Ø§Ø± Ø§Ù„ÙˆØ²Ø§Ø±Ø©ØŒ Ø´Ø¹Ø§Ø± Ø§Ù„Ù…Ø¯Ø±Ø³Ø©ØŒ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©ØŒ Ø§Ù„Ù…ÙƒØªØ¨ØŒ ÙˆØ§Ø³Ù… Ø§Ù„Ù…Ø¯Ø±Ø³Ø©.",
+    },
+    required: false,
+    settings: {
+      style: "plain",
+    },
+  },
+  {
+    id: "block-cover-title",
+    kind: "cover-title",
+    title: "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ØºÙ„Ø§Ù",
+    source: {
+      source: "caseEntry",
+      label: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©",
+      description: "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙˆØ§Ø³Ù… Ø§Ù„Ø®Ø¯Ù…Ø© ÙˆØªØ§Ø±ÙŠØ® Ø§Ù„ØªÙ†ÙÙŠØ° Ù…Ù† CaseEntry.",
+      fieldKey: "programTitle",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "highlight",
+    },
+  },
+  {
+    id: "block-case-meta",
+    kind: "case-meta",
+    title: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+    source: {
+      source: "caseEntry",
+      label: "Ù…Ù„Ø®Øµ Ø§Ù„Ø­Ø§Ù„Ø©",
+      description: "ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡ØŒ Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ Ø§Ù„Ø­Ø§Ù„Ø©ØŒ ÙˆØ§Ù„ÙØ¦Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©.",
+    },
+    required: false,
+    settings: {
+      columns: 2,
+      style: "card",
+    },
+  },
+  {
+    id: "block-student-summary",
+    kind: "student-summary",
+    title: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©",
+    source: {
+      source: "student",
+      label: "Ø¨ÙŠØ§Ù†Ø§Øª Ù†ÙˆØ±",
+      description:
+        "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©ØŒ Ø§Ù„ØµÙØŒ Ø§Ù„ÙØµÙ„ØŒ Ø§Ù„Ù…Ø±Ø­Ù„Ø©ØŒ ÙˆÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø± Ø¹Ù†Ø¯ ØªÙˆÙØ±Ù‡.",
+    },
+    required: false,
+    settings: {
+      columns: 2,
+      style: "card",
+    },
+  },
+  {
+    id: "block-service-summary",
+    kind: "service-summary",
+    title: "Ù…Ù„Ø®Øµ Ø§Ù„Ø®Ø¯Ù…Ø©",
+    source: {
+      source: "service",
+      label: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø®Ø¯Ù…Ø©",
+      description: "Ø§Ø³Ù… Ø§Ù„Ø®Ø¯Ù…Ø© ÙˆÙ†ÙˆØ¹Ù‡Ø§ ÙˆØ±Ø¨Ø·Ù‡Ø§ Ø¨Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+    },
+    required: false,
+    settings: {
+      style: "card",
+    },
+  },
+  {
+    id: "block-paragraph",
+    kind: "paragraph",
+    title: "ÙÙ‚Ø±Ø© Ù…Ù† Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©",
+    source: {
+      source: "caseValues",
+      label: "Ø­Ù‚ÙˆÙ„ Ø§Ù„Ø®Ø¯Ù…Ø©",
+      description:
+        "Ù…Ù‚Ø¯Ù…Ø©ØŒ ÙˆØµÙØŒ Ø¥Ø¬Ø±Ø§Ø¡Ø§ØªØŒ Ù†ØªØ§Ø¦Ø¬ØŒ Ø£Ùˆ ØªÙˆØµÙŠØ§Øª Ù…Ø­ÙÙˆØ¸Ø© Ø¯Ø§Ø®Ù„ CaseValue.",
+      fieldKey: "intro",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "card",
+    },
+  },
+  {
+    id: "block-field-list",
+    kind: "field-list",
+    title: "Ù‚Ø§Ø¦Ù…Ø© Ø­Ù‚ÙˆÙ„ Ù…Ø®ØªØµØ±Ø©",
+    source: {
+      source: "caseValues",
+      label: "Ø­Ù‚ÙˆÙ„ Ù…Ø®ØªØ§Ø±Ø©",
+      description: "Ø¹Ø±Ø¶ Ù…Ø¬Ù…ÙˆØ¹Ø© Ø­Ù‚ÙˆÙ„ Ù…Ù† Ø§Ù„Ø®Ø¯Ù…Ø© Ø¹Ù„Ù‰ Ø´ÙƒÙ„ Ù‚Ø§Ø¦Ù…Ø© Ù…Ù†Ø¸Ù…Ø©.",
+      fieldKey: "goals",
+    },
+    required: false,
+    settings: {
+      columns: 2,
+      style: "card",
+    },
+  },
+  {
+    id: "block-text-library",
+    kind: "text-library",
+    title: "Ù†Øµ Ø¬Ø§Ù‡Ø² Ù…Ù† Ø§Ù„Ù…ÙƒØªØ¨Ø©",
+    source: {
+      source: "textLibrary",
+      label: "Ù…ÙƒØªØ¨Ø© Ø§Ù„Ù†ØµÙˆØµ",
+      description: "Ù†Øµ Ù…Ø­ÙÙˆØ¸ Ù…Ø³Ø¨Ù‚Ù‹Ø§ Ù…Ø«Ù„ Ù…Ù‚Ø¯Ù…Ø©ØŒ Ù‡Ø¯ÙØŒ ØªÙˆØµÙŠØ©ØŒ Ø£Ùˆ Ø®Ø§ØªÙ…Ø©.",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "highlight",
+    },
+  },
+  {
+    id: "block-custom-paragraph",
+    kind: "custom-paragraph",
+    title: "ÙÙ‚Ø±Ø© Ù…Ø®ØµØµØ©",
+    customTitle: "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ÙÙ‚Ø±Ø©",
+    customContent: "Ø§ÙƒØªØ¨ Ù…Ø­ØªÙˆÙ‰ Ù‡Ø°Ù‡ Ø§Ù„ÙÙ‚Ø±Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„Ù‚Ø§Ù„Ø¨.",
+    source: {
+      source: "custom",
+      label: "Ù†Øµ ØºÙŠØ± Ù…Ø±ØªØ¨Ø·",
+      description:
+        "Ø¹Ù†ÙˆØ§Ù† ÙˆÙ…Ø­ØªÙˆÙ‰ ÙŠÙƒØªØ¨Ù‡ Ø§Ù„Ø£Ø¯Ù…Ù† Ø¯Ø§Ø®Ù„ Ø§Ù„Ù‚Ø§Ù„Ø¨ ÙˆÙ„Ø§ ÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ CaseValue.",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "card",
+    },
+  },
+  {
+    id: "block-evidence-gallery",
+    kind: "evidence-gallery",
+    title: "Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„Ù…Ø±ÙÙ‚Ø§Øª",
+    source: {
+      source: "evidence",
+      label: "Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ø­Ø§Ù„Ø©",
+      description: "Ø§Ù„ØµÙˆØ± ÙˆØ§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ø­Ø§Ù„Ø© Ø£Ùˆ Ø§Ù„Ø®Ø¯Ù…Ø©.",
+    },
+    required: false,
+    settings: {
+      evidenceLayout: "grid-2x2",
+      imageFit: "cover",
+      showCaptions: true,
+      itemsPerPage: 4,
+    },
+  },
+  {
+    id: "block-approval-signature",
+    kind: "approval-signature",
+    title: "Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ ÙˆØ§Ù„ØªÙˆÙ‚ÙŠØ¹",
+    source: {
+      source: "identity",
+      label: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯",
+      description: "Ø§Ø³Ù… Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø©ØŒ Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©ØŒ Ø§Ù„ØªØ§Ø±ÙŠØ®ØŒ ÙˆØ§Ù„ØªÙˆÙ‚ÙŠØ¹.",
+    },
+    required: false,
+    settings: {
+      style: "highlight",
+    },
+  },
+];
+export type GeneratedReportSnapshot = {
+  id: string;
+  templateId: string;
+  templateName: string;
+  templateStatus: ReportTemplateStatus;
+  templateSnapshot: ReportTemplateBuilderModel;
+  reportDataSnapshot: {
+    previewCaseId?: string;
+    generatedFrom: "sample" | "case";
+    note: string;
+  };
+  generatedAt: string;
+  generatedBy: string;
+};
+
+==============================
+FILE: components/report-engine/report-template-studio.tsx
+==============================
+"use client";
+import type { GeneratedReportSnapshot } from "@/lib/report-engine/report-template-builder-types";
+import { ReportTemplatePublishTools } from "@/components/report-engine/report-template-publish-tools";
+import {
+  DEFAULT_REPORT_IDENTITY_SETTINGS,
+  type ReportIdentitySettings,
+  type ReportTextSnippet,
+} from "@/lib/report-engine/report-template-builder-types";
+import { initialReportTextSnippets } from "@/lib/report-engine/report-template-builder-presets";
+import { ReportTemplateAdminTools } from "@/components/report-engine/report-template-admin-tools";
+
+import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  REPORT_BLOCK_LIBRARY,
+  REPORT_SERVICE_OPTIONS,
+  REPORT_WORKFLOW_FIELD_OPTIONS,
+  type ReportBlockKind,
+  type ReportPageKind,
+  type ReportTemplateBuilderModel,
+  type ReportTemplateBlock,
+  type ReportTemplatePage,
+  type ReportTemplateStatus,
+} from "@/lib/report-engine/report-template-builder-types";
+import { initialReportTemplateBuilderPresets } from "@/lib/report-engine/report-template-builder-presets";
+import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
+
+const statusLabels: Record<ReportTemplateStatus, string> = {
+  DRAFT: "Ù…Ø³ÙˆØ¯Ø©",
+  PUBLISHED: "Ù…Ù†Ø´ÙˆØ±",
+  ARCHIVED: "Ù…Ø¤Ø±Ø´Ù",
+};
+
+const pageKindLabels: Record<ReportPageKind, string> = {
+  cover: "ØºÙ„Ø§Ù",
+  summary: "Ù…Ù„Ø®Øµ",
+  narrative: "Ù…Ø­ØªÙˆÙ‰",
+  results: "Ù†ØªØ§Ø¦Ø¬",
+  evidence: "Ø´ÙˆØ§Ù‡Ø¯",
+  approval: "Ø§Ø¹ØªÙ…Ø§Ø¯",
+};
+
+const blockKindLabels: Record<ReportBlockKind, string> = {
+  "identity-header": "Ù‡ÙˆÙŠØ©",
+  "cover-title": "Ø¹Ù†ÙˆØ§Ù†",
+  "case-meta": "Ø¨ÙŠØ§Ù†Ø§Øª",
+  "student-summary": "Ø·Ø§Ù„Ø¨",
+  "service-summary": "Ø®Ø¯Ù…Ø©",
+  paragraph: "Ù†Øµ",
+  "field-list": "Ø­Ù‚ÙˆÙ„",
+  "text-library": "Ù…ÙƒØªØ¨Ø© Ù†ØµÙˆØµ",
+  "custom-paragraph": "ÙÙ‚Ø±Ø© Ù…Ø®ØµØµØ©",
+  "evidence-gallery": "Ø´ÙˆØ§Ù‡Ø¯",
+  "approval-signature": "Ø§Ø¹ØªÙ…Ø§Ø¯",
+};
+
+const pagePresets: {
+  kind: ReportPageKind;
+  title: string;
+  description: string;
+  defaultBlockKinds: ReportBlockKind[];
+}[] = [
+  {
+    kind: "cover",
+    title: "ØµÙØ­Ø© Ø§Ù„ØºÙ„Ø§Ù",
+    description: "ØºÙ„Ø§Ù Ø±Ø³Ù…ÙŠ ÙŠØ¹Ø±Ø¶ Ù‡ÙˆÙŠØ© Ø§Ù„Ù…Ø¯Ø±Ø³Ø© ÙˆØ¹Ù†ÙˆØ§Ù† Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¯ÙˆÙ† ØªÙØ§ØµÙŠÙ„ ÙƒØ«ÙŠØ±Ø©.",
+    defaultBlockKinds: ["identity-header", "cover-title"],
+  },
+  {
+    kind: "summary",
+    title: "Ù…Ù„Ø®Øµ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+    description: "ØµÙØ­Ø© Ù…Ø®ØªØµØ±Ø© ØªØ¹Ø±Ø¶ Ø£Ù‡Ù… Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙˆØ§Ù„Ø­Ø§Ù„Ø©.",
+    defaultBlockKinds: ["case-meta"],
+  },
+  {
+    kind: "narrative",
+    title: "ØªÙØ§ØµÙŠÙ„ Ø§Ù„ØªÙ†ÙÙŠØ°",
+    description: "ØµÙØ­Ø© Ù…Ø­ØªÙˆÙ‰ ØªØ¹Ø±Ø¶ Ø§Ù„Ù…Ù‚Ø¯Ù…Ø© Ø£Ùˆ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø£Ùˆ Ø§Ù„Ù†ØµÙˆØµ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©.",
+    defaultBlockKinds: ["paragraph"],
+  },
+  {
+    kind: "results",
+    title: "Ø§Ù„Ù†ØªØ§Ø¦Ø¬ ÙˆØ§Ù„ØªÙˆØµÙŠØ§Øª",
+    description: "ØµÙØ­Ø© Ù…Ø®ØµØµØ© Ù„Ù„Ù†ØªØ§Ø¦Ø¬ ÙˆØ§Ù„ØªÙˆØµÙŠØ§Øª Ø£Ùˆ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù…Ø®ØªØµØ±Ø©.",
+    defaultBlockKinds: ["field-list", "text-library"],
+  },
+  {
+    kind: "evidence",
+    title: "Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„Ù…Ø±ÙÙ‚Ø§Øª",
+    description: "ØµÙØ­Ø© Ù…Ø³ØªÙ‚Ù„Ø© Ù„Ø¹Ø±Ø¶ Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø­ØªÙ‰ ØªØ¨Ù‚Ù‰ Ø­Ø¯ÙˆØ¯ A4 ÙˆØ§Ø¶Ø­Ø©.",
+    defaultBlockKinds: ["evidence-gallery"],
+  },
+  {
+    kind: "approval",
+    title: "Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ ÙˆØ§Ù„ØªÙˆÙ‚ÙŠØ¹",
+    description: "ØµÙØ­Ø© Ø®ØªØ§Ù…ÙŠØ© Ù„Ù„ØªÙˆÙ‚ÙŠØ¹ ÙˆØ§Ù„Ø®ØªÙ… ÙˆØ§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+    defaultBlockKinds: ["approval-signature"],
+  },
+];
+
+export function ReportTemplateStudio() {
+  const [templates, setTemplates] = useState<ReportTemplateBuilderModel[]>(
+    initialReportTemplateBuilderPresets
+  );
+
+  const [activeTemplateId, setActiveTemplateId] = useState(
+    initialReportTemplateBuilderPresets[0]?.id || ""
+  );
+
+  const [templatePendingDelete, setTemplatePendingDelete] =
+    useState<ReportTemplateBuilderModel | null>(null);
+
+  const [pagePendingDelete, setPagePendingDelete] =
+    useState<ReportTemplatePage | null>(null);
+
+const [reportIdentity, setReportIdentity] =
+  useState<ReportIdentitySettings>(DEFAULT_REPORT_IDENTITY_SETTINGS);
+
+const [reportTextSnippets, setReportTextSnippets] =
+  useState<ReportTextSnippet[]>(initialReportTextSnippets);
+
+  const [generatedSnapshots, setGeneratedSnapshots] = useState<
+  GeneratedReportSnapshot[]
+>([]);
+
+  const activeTemplate = useMemo(() => {
+    return templates.find((template) => template.id === activeTemplateId);
+  }, [templates, activeTemplateId]);
+
+  function updateActiveTemplate(
+    updater: (template: ReportTemplateBuilderModel) => ReportTemplateBuilderModel
+  ) {
+    setTemplates((currentTemplates) =>
+      currentTemplates.map((template) =>
+        template.id === activeTemplateId ? updater(template) : template
+      )
+    );
+  }
+
+  function requestDeleteTemplate(template: ReportTemplateBuilderModel) {
+    if (templates.length <= 1) return;
+    setTemplatePendingDelete(template);
+  }
+
+  function confirmDeleteTemplate() {
+    if (!templatePendingDelete) return;
+
+    const remainingTemplates = templates.filter(
+      (template) => template.id !== templatePendingDelete.id
+    );
+
+    setTemplates(remainingTemplates);
+
+    if (activeTemplateId === templatePendingDelete.id) {
+      setActiveTemplateId(remainingTemplates[0]?.id || "");
+    }
+
+    setTemplatePendingDelete(null);
+  }
+
+  function requestDeletePage(page: ReportTemplatePage) {
+    if (!activeTemplate || activeTemplate.pages.length <= 1) return;
+    setPagePendingDelete(page);
+  }
+
+  function confirmDeletePage() {
+    if (!pagePendingDelete) return;
+
+    updateActiveTemplate((template) => ({
+      ...template,
+      pages: template.pages.filter((page) => page.id !== pagePendingDelete.id),
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }));
+
+    setPagePendingDelete(null);
+  }
+
+  function createNewTemplate() {
+    const newTemplate: ReportTemplateBuilderModel = {
+      id: `custom-template-${Date.now()}`,
+      name: "Ù‚Ø§Ù„Ø¨ Ø¬Ø¯ÙŠØ¯",
+      description: "Ù‚Ø§Ù„Ø¨ Ù…Ø®ØµØµ ÙŠØªÙ… Ø¨Ù†Ø§Ø¤Ù‡ Ù…Ù† Case ID ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©.",
+      scope: "GLOBAL",
+      status: "DRAFT",
+      updatedAt: new Date().toISOString().slice(0, 10),
+      previewCaseId: "sample-case-1",
+      pages: [
+        createPageFromPreset("cover"),
+        createPageFromPreset("summary"),
+        createPageFromPreset("evidence"),
+        createPageFromPreset("approval"),
+      ],
+    };
+
+    setTemplates((currentTemplates) => [newTemplate, ...currentTemplates]);
+    setActiveTemplateId(newTemplate.id);
+  }
+
+  function duplicateTemplate(template: ReportTemplateBuilderModel) {
+    const copiedTemplate: ReportTemplateBuilderModel = {
+      ...template,
+      id: `copy-${template.id}-${Date.now()}`,
+      name: `${template.name} - Ù†Ø³Ø®Ø©`,
+      status: "DRAFT",
+      updatedAt: new Date().toISOString().slice(0, 10),
+      pages: template.pages.map((page) => ({
+        ...page,
+        id: `${page.id}-copy-${Date.now()}`,
+        blocks: page.blocks.map((block) => ({
+          ...block,
+          id: `${block.id}-copy-${Date.now()}`,
+        })),
+      })),
+    };
+
+    setTemplates((currentTemplates) => [copiedTemplate, ...currentTemplates]);
+    setActiveTemplateId(copiedTemplate.id);
+  }
+
+  function movePage(pageId: string, direction: "up" | "down") {
+    updateActiveTemplate((template) => {
+      const index = template.pages.findIndex((page) => page.id === pageId);
+      if (index === -1) return template;
+
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= template.pages.length) {
+        return template;
+      }
+
+      const pages = [...template.pages];
+      const [page] = pages.splice(index, 1);
+      pages.splice(targetIndex, 0, page);
+
+      return {
+        ...template,
+        pages,
+        updatedAt: new Date().toISOString().slice(0, 10),
+      };
+    });
+  }
+
+  function addPage(kind: ReportPageKind) {
+    updateActiveTemplate((template) => ({
+      ...template,
+      pages: [...template.pages, createPageFromPreset(kind)],
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }));
+  }
+
+  function updatePage(
+    pageId: string,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage
+  ) {
+    updateActiveTemplate((template) => ({
+      ...template,
+      pages: template.pages.map((page) =>
+        page.id === pageId ? updater(page) : page
+      ),
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }));
+  }
+
+  function addBlockToPage(pageId: string, block: ReportTemplateBlock) {
+    updatePage(pageId, (page) => ({
+      ...page,
+      blocks: [
+        ...page.blocks,
+        {
+          ...block,
+          id: `${block.kind}-${Date.now()}`,
+        },
+      ],
+    }));
+  }
+
+  function removeBlock(pageId: string, blockId: string) {
+    updatePage(pageId, (page) => ({
+      ...page,
+      blocks: page.blocks.filter((block) => block.id !== blockId),
+    }));
+  }
+
+  function moveBlock(pageId: string, blockId: string, direction: "up" | "down") {
+    updatePage(pageId, (page) => {
+      const index = page.blocks.findIndex((block) => block.id === blockId);
+      if (index === -1) return page;
+
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= page.blocks.length) return page;
+
+      const blocks = [...page.blocks];
+      const [block] = blocks.splice(index, 1);
+      blocks.splice(targetIndex, 0, block);
+
+      return {
+        ...page,
+        blocks,
+      };
+    });
+  }
+
+  function moveBlockToPage(blockId: string, fromPageId: string, toPageId: string) {
+    if (fromPageId === toPageId) return;
+
+    updateActiveTemplate((template) => {
+      const fromPage = template.pages.find((page) => page.id === fromPageId);
+      const block = fromPage?.blocks.find((item) => item.id === blockId);
+
+      if (!fromPage || !block) return template;
+
+      return {
+        ...template,
+        pages: template.pages.map((page) => {
+          if (page.id === fromPageId) {
+            return {
+              ...page,
+              blocks: page.blocks.filter((item) => item.id !== blockId),
+            };
+          }
+
+          if (page.id === toPageId) {
+            return {
+              ...page,
+              blocks: [...page.blocks, block],
+            };
+          }
+
+          return page;
+        }),
+        updatedAt: new Date().toISOString().slice(0, 10),
+      };
+    });
+  }
+
+function changeActiveTemplateStatus(status: ReportTemplateStatus) {
+  updateActiveTemplate((template) => ({
+    ...template,
+    status,
+    updatedAt: new Date().toISOString().slice(0, 10),
+  }));
+}
+
+function addGeneratedSnapshot(snapshot: GeneratedReportSnapshot) {
+  setGeneratedSnapshots((currentSnapshots) => [
+    snapshot,
+    ...currentSnapshots,
+  ]);
+}
+
+  if (!activeTemplate) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-10" dir="rtl">
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <h1 className="text-xl font-black text-slate-900">
+            Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙˆØ§Ù„Ø¨ Ù…ØªØ§Ø­Ø©
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Ø£Ù†Ø´Ø¦ Ù‚Ø§Ù„Ø¨Ù‹Ø§ Ø¬Ø¯ÙŠØ¯Ù‹Ø§ Ù„Ù„Ø¨Ø¯Ø¡.
+          </p>
+
+          <button
+            type="button"
+            onClick={createNewTemplate}
+            className="mt-6 rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-900"
+          >
+            Ø¥Ù†Ø´Ø§Ø¡ Ù‚Ø§Ù„Ø¨ Ø¬Ø¯ÙŠØ¯
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50" dir="rtl">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <div>
+            <p className="text-sm font-bold text-emerald-700">
+              Ù…Ø­Ø±Ùƒ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±
+            </p>
+
+            <h1 className="mt-1 text-2xl font-black text-slate-900">
+              ØµØ§Ù†Ø¹ Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±
+            </h1>
+
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-500">
+              Ø§Ø¨Ù†Ù Ù‚Ø§Ù„Ø¨ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø©ØŒ ÙˆØ§Ø¬Ø¹Ù„Ù‡ ÙŠØ³Ø­Ø¨ Ø¨ÙŠØ§Ù†Ø§ØªÙ‡ ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ù…Ù†
+              Case ID Ø¨Ø¯ÙˆÙ† Ø£Ù† ÙŠØ¹ÙŠØ¯ Ø§Ù„Ù…ÙˆØ¬Ù‡ ØªØ¹Ø¨Ø¦Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ù…Ù† Ø§Ù„ØµÙØ±.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={createNewTemplate}
+            className="rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-900"
+          >
+            Ø¥Ù†Ø´Ø§Ø¡ Ù‚Ø§Ù„Ø¨ Ø¬Ø¯ÙŠØ¯
+          </button>
+        </div>
+      </header>
+
+      <main className="mx-auto grid max-w-7xl grid-cols-[320px_1fr] gap-6 px-6 py-6">
+        <aside className="space-y-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„Ù…ØªØ§Ø­Ø©
+            </h2>
+
+            <p className="mt-1 text-xs leading-6 text-slate-500">
+              Ø§Ø®ØªØ± Ù‚Ø§Ù„Ø¨Ù‹Ø§ Ù„ØªØ¹Ø¯ÙŠÙ„ ØµÙØ­Ø§ØªÙ‡ ÙˆØ¨Ù„ÙˆÙƒØ§ØªÙ‡.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              {templates.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => setActiveTemplateId(template.id)}
+                  className={[
+                    "w-full rounded-2xl border p-4 text-right transition",
+                    template.id === activeTemplateId
+                      ? "border-emerald-700 bg-emerald-50"
+                      : "border-slate-200 bg-white hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <strong className="text-sm text-slate-900">
+                      {template.name}
+                    </strong>
+
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                      {statusLabels[template.status]}
+                    </span>
+                  </div>
+
+                  <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-500">
+                    {template.description}
+                  </p>
+
+                  <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-400">
+                    <span>
+                      {template.scope === "GLOBAL" ? "Ø¹Ø§Ù…" : "Ø®Ø§Øµ Ø¨Ø®Ø¯Ù…Ø©"}
+                    </span>
+                    <span>â€¢</span>
+                    <span>{template.pages.length} ØµÙØ­Ø§Øª</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
+            <h3 className="text-sm font-black text-amber-900">
+              Ù‚Ø§Ø¹Ø¯Ø© Ù…Ù‡Ù…Ø©
+            </h3>
+
+            <p className="mt-2 text-xs leading-7 text-amber-800">
+              Ø§Ù„Ù‚Ø§Ù„Ø¨ Ù„Ø§ ÙŠÙ†Ø´Ø¦ Ø¨ÙŠØ§Ù†Ø§Øª Ø¬Ø¯ÙŠØ¯Ø©. Ø§Ù„Ù‚Ø§Ù„Ø¨ ÙÙ‚Ø· ÙŠØ±ØªØ¨ ØµÙØ­Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±ØŒ Ø£Ù…Ø§
+              Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª ÙØªØ£ØªÙŠ Ù…Ù† CaseEntry ÙˆCaseValue ÙˆØ§Ù„Ø·Ø§Ù„Ø¨ ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„Ù‡ÙˆÙŠØ©.
+            </p>
+          </div>
+        </aside>
+
+        <section className="space-y-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
+              <div>
+                <label className="text-xs font-black text-slate-500">
+                  Ø§Ø³Ù… Ø§Ù„Ù‚Ø§Ù„Ø¨
+                </label>
+
+                <input
+                  value={activeTemplate.name}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      name: event.target.value,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-lg font-black text-slate-900 outline-none focus:border-emerald-700"
+                />
+
+                <label className="mt-5 block text-xs font-black text-slate-500">
+                  ÙˆØµÙ Ø§Ù„Ù‚Ø§Ù„Ø¨
+                </label>
+
+                <textarea
+                  value={activeTemplate.description}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      description: event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-700"
+                />
+              </div>
+
+              <div className="rounded-3xl bg-slate-50 p-4">
+                <div className="text-xs font-black text-slate-500">
+                  Ø­Ø§Ù„Ø© Ø§Ù„Ù‚Ø§Ù„Ø¨
+                </div>
+
+                <select
+                  value={activeTemplate.status}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      status: event.target.value as ReportTemplateStatus,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                >
+                  <option value="DRAFT">Ù…Ø³ÙˆØ¯Ø©</option>
+                  <option value="PUBLISHED">Ù…Ù†Ø´ÙˆØ±</option>
+                  <option value="ARCHIVED">Ù…Ø¤Ø±Ø´Ù</option>
+                </select>
+
+                <div className="mt-4 text-xs font-black text-slate-500">
+                  Ù†Ø·Ø§Ù‚ Ø§Ù„Ù‚Ø§Ù„Ø¨
+                </div>
+
+                <select
+                  value={activeTemplate.scope}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      scope: event.target.value as "GLOBAL" | "SERVICE",
+                    }))
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                >
+                  <option value="GLOBAL">Ø¹Ø§Ù… Ù„ÙƒÙ„ Ø§Ù„Ø®Ø¯Ù…Ø§Øª</option>
+                  <option value="SERVICE">Ø®Ø§Øµ Ø¨Ø®Ø¯Ù…Ø©</option>
+                </select>
+
+                {activeTemplate.scope === "SERVICE" ? (
+                  <>
+                    <div className="mt-4 text-xs font-black text-slate-500">
+                      Ø§Ù„Ø®Ø¯Ù…Ø©
+                    </div>
+
+                    <select
+                      value={activeTemplate.serviceSlug || ""}
+                      onChange={(event) =>
+                        updateActiveTemplate((template) => ({
+                          ...template,
+                          serviceSlug: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                    >
+                      <option value="">Ø§Ø®ØªØ± Ø§Ù„Ø®Ø¯Ù…Ø©</option>
+                      {REPORT_SERVICE_OPTIONS.map((service) => (
+                        <option key={service.slug} value={service.slug}>
+                          {service.name}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : null}
+
+                <div className="mt-4 text-xs font-black text-slate-500">
+                  Ø­Ø§Ù„Ø© ØªØ¬Ø±ÙŠØ¨ÙŠØ© Ù„Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©
+                </div>
+
+                <input
+                  value={activeTemplate.previewCaseId || ""}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      previewCaseId: event.target.value,
+                    }))
+                  }
+                  placeholder="Case ID Ø§Ø®ØªÙŠØ§Ø±ÙŠ"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                />
+
+                <div className="mt-4 grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => duplicateTemplate(activeTemplate)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100"
+                  >
+                    Ù†Ø³Ø® Ø§Ù„Ù‚Ø§Ù„Ø¨
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => requestDeleteTemplate(activeTemplate)}
+                    disabled={templates.length <= 1}
+                    className="w-full rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Ø­Ø°Ù Ø§Ù„Ù‚Ø§Ù„Ø¨
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+<ReportTemplateAdminTools
+  template={activeTemplate}
+  identity={reportIdentity}
+  snippets={reportTextSnippets}
+  onIdentityChange={setReportIdentity}
+  onSnippetsChange={setReportTextSnippets}
+/>
+
+<ReportTemplatePublishTools
+  template={activeTemplate}
+  identity={reportIdentity}
+  snippets={reportTextSnippets}
+  snapshots={generatedSnapshots}
+  onTemplateStatusChange={changeActiveTemplateStatus}
+  onSnapshotCreate={addGeneratedSnapshot}
+/>
+
+<ReportTemplateLivePreview template={activeTemplate} />
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-black text-slate-900">
+              Ø¥Ø¶Ø§ÙØ© ØµÙØ­Ø© Ø¥Ù„Ù‰ Ø§Ù„Ù‚Ø§Ù„Ø¨
+            </h2>
+
+            <p className="mt-1 text-sm leading-7 text-slate-500">
+              Ø§Ø®ØªØ± Ù†ÙˆØ¹ Ø§Ù„ØµÙØ­Ø©. ÙƒÙ„ ØµÙØ­Ø© ØªÙ…Ø«Ù„ ØµÙØ­Ø© A4 Ù…Ø³ØªÙ‚Ù„Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.
+            </p>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              {pagePresets.map((preset) => (
+                <button
+                  key={preset.kind}
+                  type="button"
+                  onClick={() => addPage(preset.kind)}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-right transition hover:border-emerald-600 hover:bg-emerald-50"
+                >
+                  <strong className="text-sm font-black text-slate-900">
+                    Ø¥Ø¶Ø§ÙØ© {pageKindLabels[preset.kind]}
+                  </strong>
+
+                  <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-500">
+                    {preset.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-6">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">
+                ØµÙØ­Ø§Øª Ø§Ù„Ù‚Ø§Ù„Ø¨
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Ø¹Ø¯Ù‘Ù„ ØµÙØ­Ø§Øª Ø§Ù„Ù‚Ø§Ù„Ø¨ØŒ Ø£Ø¶Ù Ø¨Ù„ÙˆÙƒØ§ØªØŒ Ø£Ùˆ Ø§Ø­Ø°Ù Ø§Ù„ØµÙØ­Ø§Øª ØºÙŠØ± Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©.
+              </p>
+            </div>
+
+            {activeTemplate.pages.map((page, pageIndex) => (
+              <TemplatePageCard
+                key={page.id}
+                page={page}
+                pageIndex={pageIndex}
+                pages={activeTemplate.pages}
+                canMoveUp={pageIndex > 0}
+                canMoveDown={pageIndex < activeTemplate.pages.length - 1}
+                canDeletePage={activeTemplate.pages.length > 1}
+                onMovePage={movePage}
+                onRequestDeletePage={requestDeletePage}
+                onAddBlock={addBlockToPage}
+                onRemoveBlock={removeBlock}
+                onMoveBlock={moveBlock}
+                onMoveBlockToPage={moveBlockToPage}
+                onUpdatePage={updatePage}
+              />
+            ))}
+          </div>
+        </section>
+      </main>
+
+      {templatePendingDelete ? (
+        <ConfirmModal
+          title="Ø­Ø°Ù Ù‚Ø§Ù„Ø¨ Ø§Ù„ØªÙ‚Ø±ÙŠØ±ØŸ"
+          description={
+            <>
+              Ø³ÙŠØªÙ… Ø­Ø°Ù Ù‚Ø§Ù„Ø¨{" "}
+              <span className="font-black text-slate-900">
+                {templatePendingDelete.name}
+              </span>{" "}
+              Ù…Ù† Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„Ø­Ø§Ù„ÙŠØ©. Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ù„Ø§ ÙŠØ­Ø°Ù Ø£ÙŠ ØªÙ‚Ø§Ø±ÙŠØ± Ø£Ùˆ Ø­Ø§Ù„Ø§Øª
+              Ù…Ø­ÙÙˆØ¸Ø©.
+            </>
+          }
+          confirmLabel="Ù†Ø¹Ù…ØŒ Ø§Ø­Ø°Ù Ø§Ù„Ù‚Ø§Ù„Ø¨"
+          onCancel={() => setTemplatePendingDelete(null)}
+          onConfirm={confirmDeleteTemplate}
+        />
+      ) : null}
+
+      {pagePendingDelete ? (
+        <ConfirmModal
+          title="Ø­Ø°Ù ØµÙØ­Ø© Ù…Ù† Ø§Ù„Ù‚Ø§Ù„Ø¨ØŸ"
+          description={
+            <>
+              Ø³ÙŠØªÙ… Ø­Ø°Ù ØµÙØ­Ø©{" "}
+              <span className="font-black text-slate-900">
+                {pagePendingDelete.title}
+              </span>{" "}
+              Ù…Ù† Ø§Ù„Ù‚Ø§Ù„Ø¨ Ø§Ù„Ø­Ø§Ù„ÙŠ. Ù‡Ø°Ø§ Ù„Ø§ ÙŠØ­Ø°Ù Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø© ÙˆÙ„Ø§ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø³Ø§Ø¨Ù‚Ø©ØŒ
+              Ø¨Ù„ ÙŠØºÙŠÙ‘Ø± ØªØ±ØªÙŠØ¨ Ø§Ù„Ù‚Ø§Ù„Ø¨ ÙÙ‚Ø·.
+            </>
+          }
+          confirmLabel="Ù†Ø¹Ù…ØŒ Ø§Ø­Ø°Ù Ø§Ù„ØµÙØ­Ø©"
+          onCancel={() => setPagePendingDelete(null)}
+          onConfirm={confirmDeletePage}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function createPageFromPreset(kind: ReportPageKind): ReportTemplatePage {
+  const preset =
+    pagePresets.find((currentPreset) => currentPreset.kind === kind) ||
+    pagePresets[2];
+
+  return {
+    id: `page-${kind}-${Date.now()}`,
+    kind: preset.kind,
+    title: preset.title,
+    description: preset.description,
+    coverSettings:
+      kind === "cover"
+        ? {
+            showHeader: true,
+            showFooter: true,
+            titlePosition: "center",
+            showDescription: true,
+            showMetaChips: true,
+            visualStyle: "official",
+          }
+        : undefined,
+    blocks: preset.defaultBlockKinds
+      .map((blockKind) => {
+        const block = REPORT_BLOCK_LIBRARY.find(
+          (libraryBlock) => libraryBlock.kind === blockKind
+        );
+
+        if (!block) return null;
+
+        return {
+          ...block,
+          id: `${block.kind}-${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2, 7)}`,
+        };
+      })
+      .filter((block): block is ReportTemplateBlock => Boolean(block)),
+  };
+}
+
+function TemplatePageCard({
+  page,
+  pageIndex,
+  pages,
+  canMoveUp,
+  canMoveDown,
+  canDeletePage,
+  onMovePage,
+  onRequestDeletePage,
+  onAddBlock,
+  onRemoveBlock,
+  onMoveBlock,
+  onMoveBlockToPage,
+  onUpdatePage,
+}: {
+  page: ReportTemplatePage;
+  pageIndex: number;
+  pages: ReportTemplatePage[];
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  canDeletePage: boolean;
+  onMovePage: (pageId: string, direction: "up" | "down") => void;
+  onRequestDeletePage: (page: ReportTemplatePage) => void;
+  onAddBlock: (pageId: string, block: ReportTemplateBlock) => void;
+  onRemoveBlock: (pageId: string, blockId: string) => void;
+  onMoveBlock: (
+    pageId: string,
+    blockId: string,
+    direction: "up" | "down"
+  ) => void;
+  onMoveBlockToPage: (
+    blockId: string,
+    fromPageId: string,
+    toPageId: string
+  ) => void;
+  onUpdatePage: (
+    pageId: string,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage
+  ) => void;
+}) {
+  const [selectedBlockId, setSelectedBlockId] = useState(
+    REPORT_BLOCK_LIBRARY[0]?.id || ""
+  );
+
+  const selectedBlock = REPORT_BLOCK_LIBRARY.find(
+    (block) => block.id === selectedBlockId
+  );
+
+  return (
+    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex flex-1 items-start gap-3">
+          <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-sm font-black text-emerald-800">
+            {pageIndex + 1}
+          </span>
+
+          <div className="flex-1">
+            <div className="grid gap-3 md:grid-cols-[1fr_180px]">
+              <input
+                value={page.title}
+                onChange={(event) =>
+                  onUpdatePage(page.id, (currentPage) => ({
+                    ...currentPage,
+                    title: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-lg font-black text-slate-900 outline-none focus:border-emerald-700"
+              />
+
+              <select
+                value={page.kind}
+                onChange={(event) =>
+                  onUpdatePage(page.id, (currentPage) => ({
+                    ...currentPage,
+                    kind: event.target.value as ReportPageKind,
+                    coverSettings:
+                      event.target.value === "cover"
+                        ? currentPage.coverSettings || {
+                            showHeader: true,
+                            showFooter: true,
+                            titlePosition: "center",
+                            showDescription: true,
+                            showMetaChips: true,
+                            visualStyle: "official",
+                          }
+                        : undefined,
+                  }))
+                }
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none focus:border-emerald-700"
+              >
+                {Object.entries(pageKindLabels).map(([kind, label]) => (
+                  <option key={kind} value={kind}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <textarea
+              value={page.description}
+              onChange={(event) =>
+                onUpdatePage(page.id, (currentPage) => ({
+                  ...currentPage,
+                  description: event.target.value,
+                }))
+              }
+              rows={2}
+              className="mt-3 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 text-slate-600 outline-none focus:border-emerald-700"
+            />
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => onMovePage(page.id, "up")}
+            disabled={!canMoveUp}
+            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600 disabled:opacity-40"
+          >
+            Ø£Ø¹Ù„Ù‰
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onMovePage(page.id, "down")}
+            disabled={!canMoveDown}
+            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600 disabled:opacity-40"
+          >
+            Ø£Ø³ÙÙ„
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onRequestDeletePage(page)}
+            disabled={!canDeletePage}
+            className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-black text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Ø­Ø°Ù Ø§Ù„ØµÙØ­Ø©
+          </button>
+        </div>
+      </div>
+
+      {page.kind === "cover" ? (
+        <CoverSettingsEditor page={page} onUpdatePage={onUpdatePage} />
+      ) : null}
+
+      <div className="mt-5 grid gap-3">
+        {page.blocks.length ? (
+          page.blocks.map((block, blockIndex) => (
+            <BlockEditor
+              key={block.id}
+              page={page}
+              pages={pages}
+              block={block}
+              blockIndex={blockIndex}
+              canMoveUp={blockIndex > 0}
+              canMoveDown={blockIndex < page.blocks.length - 1}
+              onUpdatePage={onUpdatePage}
+              onRemoveBlock={onRemoveBlock}
+              onMoveBlock={onMoveBlock}
+              onMoveBlockToPage={onMoveBlockToPage}
+            />
+          ))
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+            Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨Ù„ÙˆÙƒØ§Øª ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø© Ø¨Ø¹Ø¯.
+          </div>
+        )}
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+        <label className="text-xs font-black text-slate-500">
+          Ø¥Ø¶Ø§ÙØ© Ø¨Ù„ÙˆÙƒ Ù„Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©
+        </label>
+
+        <div className="mt-2 grid grid-cols-[1fr_auto] gap-3">
+          <select
+            value={selectedBlockId}
+            onChange={(event) => setSelectedBlockId(event.target.value)}
+            className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
+          >
+            {REPORT_BLOCK_LIBRARY.map((block) => (
+              <option key={block.id} value={block.id}>
+                {block.title} - {block.source.label}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={() => selectedBlock && onAddBlock(page.id, selectedBlock)}
+            className="rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-900"
+          >
+            Ø¥Ø¶Ø§ÙØ©
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CoverSettingsEditor({
+  page,
+  onUpdatePage,
+}: {
+  page: ReportTemplatePage;
+  onUpdatePage: (
+    pageId: string,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage
+  ) => void;
+}) {
+  const settings = page.coverSettings || {};
+
+  return (
+    <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+      <h4 className="text-sm font-black text-emerald-900">Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„ØºÙ„Ø§Ù</h4>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.showHeader !== false}
+            onChange={(event) =>
+              onUpdatePage(page.id, (currentPage) => ({
+                ...currentPage,
+                coverSettings: {
+                  ...currentPage.coverSettings,
+                  showHeader: event.target.checked,
+                },
+              }))
+            }
+          />
+          Ø¥Ø¸Ù‡Ø§Ø± Ø§Ù„Ù‡ÙŠØ¯Ø±
+        </label>
+
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.showFooter !== false}
+            onChange={(event) =>
+              onUpdatePage(page.id, (currentPage) => ({
+                ...currentPage,
+                coverSettings: {
+                  ...currentPage.coverSettings,
+                  showFooter: event.target.checked,
+                },
+              }))
+            }
+          />
+          Ø¥Ø¸Ù‡Ø§Ø± Ø§Ù„ÙÙˆØªØ±
+        </label>
+
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.showDescription !== false}
+            onChange={(event) =>
+              onUpdatePage(page.id, (currentPage) => ({
+                ...currentPage,
+                coverSettings: {
+                  ...currentPage.coverSettings,
+                  showDescription: event.target.checked,
+                },
+              }))
+            }
+          />
+          Ø¥Ø¸Ù‡Ø§Ø± Ø§Ù„ÙˆØµÙ
+        </label>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <select
+          value={settings.titlePosition || "center"}
+          onChange={(event) =>
+            onUpdatePage(page.id, (currentPage) => ({
+              ...currentPage,
+              coverSettings: {
+                ...currentPage.coverSettings,
+                titlePosition: event.target.value as "center" | "top",
+              },
+            }))
+          }
+          className="rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-sm font-bold outline-none"
+        >
+          <option value="center">Ø§Ù„Ø¹Ù†ÙˆØ§Ù† ÙÙŠ Ø§Ù„Ù…Ù†ØªØµÙ</option>
+          <option value="top">Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ø£Ø¹Ù„Ù‰ Ø§Ù„ØµÙØ­Ø©</option>
+        </select>
+
+        <select
+          value={settings.visualStyle || "official"}
+          onChange={(event) =>
+            onUpdatePage(page.id, (currentPage) => ({
+              ...currentPage,
+              coverSettings: {
+                ...currentPage.coverSettings,
+                visualStyle: event.target.value as "official" | "minimal" | "hero",
+              },
+            }))
+          }
+          className="rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-sm font-bold outline-none"
+        >
+          <option value="official">Ø±Ø³Ù…ÙŠ</option>
+          <option value="minimal">Ø¨Ø³ÙŠØ·</option>
+          <option value="hero">Ø¨ØµØ±ÙŠ</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function BlockEditor({
+  page,
+  pages,
+  block,
+  blockIndex,
+  canMoveUp,
+  canMoveDown,
+  onUpdatePage,
+  onRemoveBlock,
+  onMoveBlock,
+  onMoveBlockToPage,
+}: {
+  page: ReportTemplatePage;
+  pages: ReportTemplatePage[];
+  block: ReportTemplateBlock;
+  blockIndex: number;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onUpdatePage: (
+    pageId: string,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage
+  ) => void;
+  onRemoveBlock: (pageId: string, blockId: string) => void;
+  onMoveBlock: (
+    pageId: string,
+    blockId: string,
+    direction: "up" | "down"
+  ) => void;
+  onMoveBlockToPage: (
+    blockId: string,
+    fromPageId: string,
+    toPageId: string
+  ) => void;
+}) {
+  function updateBlock(updater: (block: ReportTemplateBlock) => ReportTemplateBlock) {
+    onUpdatePage(page.id, (currentPage) => ({
+      ...currentPage,
+      blocks: currentPage.blocks.map((currentBlock) =>
+        currentBlock.id === block.id ? updater(currentBlock) : currentBlock
+      ),
+    }));
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={block.title}
+              onChange={(event) =>
+                updateBlock((currentBlock) => ({
+                  ...currentBlock,
+                  title: event.target.value,
+                }))
+              }
+              className="min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-emerald-700"
+            />
+
+            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+              {blockKindLabels[block.kind]}
+            </span>
+
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+              {block.source.label}
+            </span>
+          </div>
+
+          <p className="mt-2 text-xs leading-6 text-slate-500">
+            Ù…ØµØ¯Ø± Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª: {block.source.description}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onMoveBlock(page.id, block.id, "up")}
+            disabled={!canMoveUp}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
+          >
+            Ø£Ø¹Ù„Ù‰
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onMoveBlock(page.id, block.id, "down")}
+            disabled={!canMoveDown}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
+          >
+            Ø£Ø³ÙÙ„
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onRemoveBlock(page.id, block.id)}
+            className="rounded-xl border border-red-100 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50"
+          >
+            Ø­Ø°Ù
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <select
+          value={block.source.fieldKey || ""}
+          onChange={(event) =>
+            updateBlock((currentBlock) => ({
+              ...currentBlock,
+              source: {
+                ...currentBlock.source,
+                fieldKey: event.target.value || undefined,
+              },
+            }))
+          }
+          className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
+        >
+          <option value="">Ù…ØµØ¯Ø± Ø¹Ø§Ù…/ØºÙŠØ± Ù…Ø­Ø¯Ø¯</option>
+          {REPORT_WORKFLOW_FIELD_OPTIONS.map((field) => (
+            <option key={field.key} value={field.key}>
+              {field.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={page.id}
+          onChange={(event) => onMoveBlockToPage(block.id, page.id, event.target.value)}
+          className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
+        >
+          {pages.map((currentPage) => (
+            <option key={currentPage.id} value={currentPage.id}>
+              Ù†Ù‚Ù„ Ø¥Ù„Ù‰: {currentPage.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <BlockSettingsEditor block={block} onUpdateBlock={updateBlock} />
+
+      {block.kind === "custom-paragraph" ? (
+        <div className="mt-4 grid gap-3">
+          <input
+            value={block.customTitle || ""}
+            onChange={(event) =>
+              updateBlock((currentBlock) => ({
+                ...currentBlock,
+                customTitle: event.target.value,
+              }))
+            }
+            placeholder="Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ÙÙ‚Ø±Ø©"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-700"
+          />
+
+          <textarea
+            value={block.customContent || ""}
+            onChange={(event) =>
+              updateBlock((currentBlock) => ({
+                ...currentBlock,
+                customContent: event.target.value,
+              }))
+            }
+            placeholder="Ù…Ø­ØªÙˆÙ‰ Ø§Ù„ÙÙ‚Ø±Ø©"
+            rows={3}
+            className="resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-700"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function BlockSettingsEditor({
+  block,
+  onUpdateBlock,
+}: {
+  block: ReportTemplateBlock;
+  onUpdateBlock: (updater: (block: ReportTemplateBlock) => ReportTemplateBlock) => void;
+}) {
+  const settings = block.settings || {};
+
+  return (
+    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+      <h5 className="text-xs font-black text-slate-500">Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¨Ù„ÙˆÙƒ</h5>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.showTitle !== false}
+            onChange={(event) =>
+              onUpdateBlock((currentBlock) => ({
+                ...currentBlock,
+                settings: {
+                  ...currentBlock.settings,
+                  showTitle: event.target.checked,
+                },
+              }))
+            }
+          />
+          Ø¥Ø¸Ù‡Ø§Ø± Ø§Ù„Ø¹Ù†ÙˆØ§Ù†
+        </label>
+
+        <select
+          value={settings.style || "card"}
+          onChange={(event) =>
+            onUpdateBlock((currentBlock) => ({
+              ...currentBlock,
+              settings: {
+                ...currentBlock.settings,
+                style: event.target.value as "plain" | "card" | "highlight",
+              },
+            }))
+          }
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
+        >
+          <option value="card">Ø¨Ø·Ø§Ù‚Ø©</option>
+          <option value="plain">Ù†Øµ Ø¹Ø§Ø¯ÙŠ</option>
+          <option value="highlight">ØªÙ…ÙŠÙŠØ²</option>
+        </select>
+
+        <select
+          value={settings.columns || 2}
+          onChange={(event) =>
+            onUpdateBlock((currentBlock) => ({
+              ...currentBlock,
+              settings: {
+                ...currentBlock.settings,
+                columns: Number(event.target.value) as 1 | 2,
+              },
+            }))
+          }
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
+        >
+          <option value={1}>Ø¹Ù…ÙˆØ¯ ÙˆØ§Ø­Ø¯</option>
+          <option value={2}>Ø¹Ù…ÙˆØ¯ÙŠÙ†</option>
+        </select>
+      </div>
+
+      {block.kind === "evidence-gallery" ? (
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <select
+            value={settings.evidenceLayout || "grid-2x2"}
+            onChange={(event) =>
+              onUpdateBlock((currentBlock) => ({
+                ...currentBlock,
+                settings: {
+                  ...currentBlock.settings,
+                  evidenceLayout: event.target.value as
+                    | "grid-2x2"
+                    | "two-columns"
+                    | "stacked"
+                    | "one-per-page",
+                },
+              }))
+            }
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
+          >
+            <option value="grid-2x2">Ø´Ø¨ÙƒØ© 2Ã—2</option>
+            <option value="two-columns">ØµÙˆØ±ØªØ§Ù† Ø¨Ø¬Ø§Ù†Ø¨ Ø¨Ø¹Ø¶</option>
+            <option value="stacked">ØµÙˆØ± ØªØ­Øª Ø¨Ø¹Ø¶</option>
+            <option value="one-per-page">Ø´Ø§Ù‡Ø¯ Ù„ÙƒÙ„ ØµÙØ­Ø©</option>
+          </select>
+
+          <select
+            value={settings.imageFit || "cover"}
+            onChange={(event) =>
+              onUpdateBlock((currentBlock) => ({
+                ...currentBlock,
+                settings: {
+                  ...currentBlock.settings,
+                  imageFit: event.target.value as "cover" | "contain",
+                },
+              }))
+            }
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
+          >
+            <option value="cover">Ù…Ù„Ø¡ Ø§Ù„Ø¥Ø·Ø§Ø±</option>
+            <option value="contain">Ø§Ø­ØªÙˆØ§Ø¡ ÙƒØ§Ù…Ù„</option>
+          </select>
+
+          <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+            <input
+              type="checkbox"
+              checked={settings.showCaptions !== false}
+              onChange={(event) =>
+                onUpdateBlock((currentBlock) => ({
+                  ...currentBlock,
+                  settings: {
+                    ...currentBlock.settings,
+                    showCaptions: event.target.checked,
+                  },
+                }))
+              }
+            />
+            Ø¥Ø¸Ù‡Ø§Ø± Ø§Ù„ØªØ¹Ù„ÙŠÙ‚Ø§Øª
+          </label>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ConfirmModal({
+  title,
+  description,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  description: ReactNode;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-2xl font-black text-red-600">
+          !
+        </div>
+
+        <div className="mt-4 text-center">
+          <h2 className="text-xl font-black text-slate-900">{title}</h2>
+
+          <p className="mt-3 text-sm leading-7 text-slate-500">
+            {description}
+          </p>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            Ø¥Ù„ØºØ§Ø¡
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-700"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+==============================
+FILE: components/report-engine/report-template-live-preview.tsx
+==============================
+"use client";
+
+import type {
+  ReportTemplateBlock,
+  ReportTemplateBuilderModel,
+  ReportTemplatePage,
+} from "@/lib/report-engine/report-template-builder-types";
+import {
+  sampleOfficialReportData,
+  sampleReportIdentity,
+} from "@/lib/report-engine/sample-report-data";
+
+type ReportTemplateLivePreviewProps = {
+  template: ReportTemplateBuilderModel;
+};
+
+export function ReportTemplateLivePreview({
+  template,
+}: ReportTemplateLivePreviewProps) {
+  const missingRequirements = getTemplateMissingRequirements(template);
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ù‚Ø§Ù„Ø¨</h2>
+
+          <p className="mt-1 text-sm leading-7 text-slate-500">
+            Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© ØªÙ‚Ø±Ø£ ØµÙØ­Ø§Øª ÙˆØ¨Ù„ÙˆÙƒØ§Øª Ø§Ù„Ù‚Ø§Ù„Ø¨ Ù…Ø¨Ø§Ø´Ø±Ø©. Ø£ÙŠ Ø¥Ø¶Ø§ÙØ© Ø£Ùˆ Ø­Ø°Ù ÙŠØ¸Ù‡Ø±
+            Ù‡Ù†Ø§ ÙÙˆØ±Ù‹Ø§.
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
+          {template.name}
+        </div>
+      </div>
+
+      {missingRequirements.length ? (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-black text-amber-900">
+            ØªÙ‚Ø±ÙŠØ± Ù†Ù‚Øµ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª/Ø§Ù„Ø¨Ù†ÙŠØ©
+          </h3>
+
+          <ul className="mt-2 space-y-1 text-xs leading-6 text-amber-800">
+            {missingRequirements.map((item) => (
+              <li key={item}>â€¢ {item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800">
+          Ø§Ù„Ù‚Ø§Ù„Ø¨ Ù…ÙƒØªÙ…Ù„ Ù…Ù† Ù†Ø§Ø­ÙŠØ© Ø§Ù„Ø¨Ù†ÙŠØ© Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©.
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-[260px_1fr]">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <h3 className="text-sm font-black text-slate-900">Ø¨Ù†ÙŠØ© Ø§Ù„Ù‚Ø§Ù„Ø¨</h3>
+
+          <p className="mt-1 text-xs leading-6 text-slate-500">
+            Ø¹Ø¯Ø¯ Ø§Ù„ØµÙØ­Ø§Øª ÙˆØ§Ù„Ø¨Ù„ÙˆÙƒØ§Øª Ø§Ù„Ø­Ø§Ù„ÙŠØ©.
+          </p>
+
+          <div className="mt-4 space-y-3">
+            {template.pages.map((page, index) => (
+              <div
+                key={page.id}
+                className="rounded-2xl border border-slate-200 bg-white p-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <strong className="text-sm text-slate-900">
+                    {index + 1}. {page.title}
+                  </strong>
+
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
+                    {page.kind}
+                  </span>
+                </div>
+
+                <p className="mt-2 text-xs leading-6 text-slate-500">
+                  {page.blocks.length} Ø¨Ù„ÙˆÙƒ
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+            <p className="text-xs font-bold text-slate-500">
+              Ù…Ø¹Ø§ÙŠÙ†Ø© Ù…ØµØºØ±Ø© Ù„ØµÙØ­Ø§Øª A4 Ø­Ø³Ø¨ Ø§Ù„Ø¨Ù„ÙˆÙƒØ§Øª
+            </p>
+
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500">
+              {template.pages.length} ØµÙØ­Ø§Øª
+            </span>
+          </div>
+
+          <div className="preview-scale-area">
+            <div className="preview-scale-inner" dir="rtl">
+              {template.pages.map((page, pageIndex) => (
+                <PreviewA4Page
+                  key={page.id}
+                  page={page}
+                  pageIndex={pageIndex}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        .preview-scale-area {
+          height: 650px;
+          overflow: auto;
+          background:
+            linear-gradient(45deg, rgba(15, 81, 50, 0.04), transparent),
+            #f8fafc;
+          padding: 18px;
+        }
+
+        .preview-scale-inner {
+          width: max-content;
+          transform: scale(0.42);
+          transform-origin: top right;
+        }
+
+        .preview-a4-page {
+          width: 210mm;
+          height: 297mm;
+          min-height: 297mm;
+          max-height: 297mm;
+          box-sizing: border-box;
+          margin-bottom: 28px;
+          padding: 16mm 18mm 12mm;
+          background: white;
+          box-shadow: 0 12px 36px rgba(15, 23, 42, 0.14);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          gap: 10mm;
+          position: relative;
+          font-family: Tajawal, Cairo, Arial, sans-serif;
+        }
+
+        .preview-page-body {
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
+          display: grid;
+          align-content: start;
+          gap: 14px;
+        }
+
+        .preview-page-body.cover-body {
+          align-content: center;
+          justify-items: center;
+          text-align: center;
+          gap: 18px;
+        }
+
+        .preview-page-body.cover-body.top {
+          align-content: start;
+          padding-top: 28mm;
+        }
+
+        .preview-header {
+          border-radius: 24px;
+          border: 1px solid #d9e7df;
+          background:
+            linear-gradient(135deg, rgba(15, 81, 50, 0.08), #fff),
+            #fff;
+          padding: 16px 20px;
+          display: grid;
+          grid-template-columns: 96px 1fr 96px;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .preview-header-logo {
+          height: 62px;
+          border-radius: 18px;
+          border: 1px solid #d9e7df;
+          background: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        .preview-header-logo img {
+          width: 74px;
+          height: 52px;
+          object-fit: contain;
+        }
+
+        .preview-header-text {
+          text-align: center;
+          line-height: 1.6;
+        }
+
+        .preview-header-text strong {
+          display: block;
+          color: #0f5132;
+          font-size: 17px;
+        }
+
+        .preview-header-text span {
+          display: block;
+          color: #667085;
+          font-size: 12px;
+        }
+
+        .preview-footer {
+          border-top: 3px solid #0f5132;
+          padding-top: 8px;
+          display: flex;
+          justify-content: space-between;
+          color: #667085;
+          font-size: 11px;
+        }
+
+        .preview-section-title {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+
+        .preview-section-title span {
+          width: 8px;
+          height: 28px;
+          border-radius: 999px;
+          background: #0f5132;
+        }
+
+        .preview-section-title h4 {
+          margin: 0;
+          color: #0f5132;
+          font-size: 18px;
+        }
+
+        .preview-card {
+          border: 1px solid #d9e7df;
+          border-radius: 20px;
+          background: #fff;
+          padding: 16px;
+        }
+
+        .preview-card.highlight {
+          background: linear-gradient(135deg, #eef8f2, #fff);
+        }
+
+        .preview-card.plain {
+          border-color: transparent;
+          padding: 4px 0;
+        }
+
+        .preview-card h3 {
+          margin: 0 0 8px;
+          color: #0f5132;
+          font-size: 18px;
+        }
+
+        .preview-card p {
+          margin: 0;
+          color: #475467;
+          line-height: 2;
+          font-size: 14px;
+        }
+
+        .preview-cover-title {
+          max-width: 75%;
+          margin: auto;
+          text-align: center;
+        }
+
+        .preview-cover-title .badge {
+          display: inline-flex;
+          border-radius: 999px;
+          background: #eef8f2;
+          border: 1px solid #d9e7df;
+          color: #0f5132;
+          font-weight: 900;
+          padding: 8px 18px;
+          margin-bottom: 20px;
+          font-size: 14px;
+        }
+
+        .preview-cover-title h1 {
+          margin: 0;
+          color: #0f5132;
+          font-size: 34px;
+          line-height: 1.6;
+        }
+
+        .preview-cover-title h2 {
+          margin: 12px 0 0;
+          color: #18251f;
+          font-size: 22px;
+          line-height: 1.8;
+        }
+
+        .preview-cover-title p {
+          margin: 18px auto 0;
+          color: #667085;
+          line-height: 2;
+          font-size: 15px;
+        }
+
+        .preview-meta-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+
+        .preview-meta-grid.one-column {
+          grid-template-columns: 1fr;
+        }
+
+        .preview-meta-item {
+          border: 1px solid #d9e7df;
+          border-radius: 14px;
+          padding: 10px 12px;
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          background: #fff;
+        }
+
+        .preview-meta-item span {
+          color: #667085;
+          font-size: 12px;
+        }
+
+        .preview-meta-item strong {
+          color: #18251f;
+          font-size: 13px;
+        }
+
+        .preview-evidence-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+        }
+
+        .preview-evidence-grid.stacked {
+          grid-template-columns: 1fr;
+        }
+
+        .preview-evidence-card {
+          border: 1px solid #d9e7df;
+          border-radius: 20px;
+          padding: 10px;
+          background: #fff;
+        }
+
+        .preview-evidence-frame {
+          height: 55mm;
+          border-radius: 16px;
+          overflow: hidden;
+          background: #f8faf9;
+        }
+
+        .preview-evidence-frame img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .preview-evidence-frame.contain img {
+          object-fit: contain;
+        }
+
+        .preview-evidence-caption {
+          margin-top: 8px;
+          color: #0f5132;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .preview-approval-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr 0.8fr;
+          gap: 12px;
+        }
+
+        .preview-approval-box {
+          border: 1px solid #d9e7df;
+          border-radius: 18px;
+          background: #fff;
+          padding: 14px;
+          display: grid;
+          gap: 8px;
+        }
+
+        .preview-approval-box span {
+          color: #667085;
+          font-size: 12px;
+        }
+
+        .preview-approval-box strong {
+          color: #18251f;
+          font-size: 14px;
+        }
+
+        .preview-empty-block {
+          border: 1px dashed #cbd5e1;
+          border-radius: 18px;
+          background: #f8fafc;
+          padding: 18px;
+          text-align: center;
+          color: #64748b;
+          font-size: 13px;
+        }
+      `}</style>
+    </section>
+  );
+}
+
+function PreviewA4Page({
+  page,
+  pageIndex,
+}: {
+  page: ReportTemplatePage;
+  pageIndex: number;
+}) {
+  const hasIdentityHeader = page.blocks.some(
+    (block) => block.kind === "identity-header"
+  );
+
+  const hasApprovalSignature = page.blocks.some(
+    (block) => block.kind === "approval-signature"
+  );
+
+  const isCover = page.kind === "cover";
+
+  const coverSettings = page.coverSettings || {
+    showHeader: true,
+    showFooter: true,
+    titlePosition: "center",
+    showDescription: true,
+    showMetaChips: true,
+    visualStyle: "official",
+  };
+
+  const showHeader = isCover ? coverSettings.showHeader !== false : hasIdentityHeader;
+  const showFooter = isCover ? coverSettings.showFooter !== false : !hasApprovalSignature;
+
+  return (
+    <section className="preview-a4-page">
+      {showHeader && hasIdentityHeader ? <PreviewHeader /> : null}
+
+      <div
+        className={
+          isCover
+            ? `preview-page-body cover-body ${
+                coverSettings.titlePosition === "top" ? "top" : ""
+              }`
+            : "preview-page-body"
+        }
+      >
+        {!isCover ? (
+          <div className="preview-section-title">
+            <span />
+            <h4>
+              {pageIndex + 1}. {page.title}
+            </h4>
+          </div>
+        ) : null}
+
+        {page.blocks.length ? (
+          page.blocks.map((block) => (
+            <PreviewBlock
+              key={block.id}
+              block={block}
+              isCover={isCover}
+              coverSettings={coverSettings}
+            />
+          ))
+        ) : (
+          <div className="preview-empty-block">
+            Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø© Ù„Ø§ ØªØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ø¨Ù„ÙˆÙƒØ§Øª Ø¨Ø¹Ø¯.
+          </div>
+        )}
+      </div>
+
+      {showFooter ? <PreviewFooter /> : null}
+    </section>
+  );
+}
+
+function PreviewHeader() {
+  return (
+    <header className="preview-header">
+      <div className="preview-header-logo">
+        {sampleReportIdentity.schoolLogoUrl ? (
+          <img src={sampleReportIdentity.schoolLogoUrl} alt="Ø´Ø¹Ø§Ø± Ø§Ù„Ù…Ø¯Ø±Ø³Ø©" />
+        ) : null}
+      </div>
+
+      <div className="preview-header-text">
+        <strong>{sampleReportIdentity.ministryName}</strong>
+        <span>{sampleReportIdentity.educationDepartment}</span>
+        <span>{sampleReportIdentity.educationOffice}</span>
+        <strong>{sampleReportIdentity.schoolName}</strong>
+      </div>
+
+      <div className="preview-header-logo">
+        {sampleReportIdentity.ministryLogoUrl ? (
+          <img src={sampleReportIdentity.ministryLogoUrl} alt="Ø´Ø¹Ø§Ø± Ø§Ù„ÙˆØ²Ø§Ø±Ø©" />
+        ) : null}
+      </div>
+    </header>
+  );
+}
+
+function PreviewFooter() {
+  return (
+    <footer className="preview-footer">
+      <span>{sampleReportIdentity.schoolName}</span>
+      <span>
+        {sampleReportIdentity.academicYear} - {sampleReportIdentity.semester}
+      </span>
+      <span>ØµÙØ­Ø©</span>
+    </footer>
+  );
+}
+
+function PreviewBlock({
+  block,
+  isCover,
+  coverSettings,
+}: {
+  block: ReportTemplateBlock;
+  isCover: boolean;
+  coverSettings?: ReportTemplatePage["coverSettings"];
+}) {
+  const cardClass =
+    block.settings?.style === "highlight"
+      ? "preview-card highlight"
+      : block.settings?.style === "plain"
+        ? "preview-card plain"
+        : "preview-card";
+
+  switch (block.kind) {
+    case "identity-header":
+      return null;
+
+    case "cover-title":
+      if (isCover) {
+        return (
+          <div className="preview-cover-title">
+            <div className="badge">{sampleOfficialReportData.serviceName}</div>
+            <h1>{sampleOfficialReportData.title}</h1>
+            <h2>{sampleOfficialReportData.subtitle}</h2>
+
+            {coverSettings?.showDescription !== false ? (
+              <p>{sampleOfficialReportData.cover.shortDescription}</p>
+            ) : null}
+          </div>
+        );
+      }
+
+      return (
+        <div className={cardClass}>
+          <h3>{sampleOfficialReportData.title}</h3>
+          <p>{sampleOfficialReportData.subtitle}</p>
+        </div>
+      );
+
+    case "case-meta":
+      return (
+        <div
+          className={
+            block.settings?.columns === 1
+              ? "preview-meta-grid one-column"
+              : "preview-meta-grid"
+          }
+        >
+          <PreviewMetaItem label="Ø§Ù„Ø®Ø¯Ù…Ø©" value={sampleOfficialReportData.serviceName} />
+          <PreviewMetaItem label="ØªØ§Ø±ÙŠØ® Ø§Ù„ØªÙ‚Ø±ÙŠØ±" value={sampleOfficialReportData.reportDate} />
+          <PreviewMetaItem label="Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬" value={sampleOfficialReportData.cover.programTitle} />
+          <PreviewMetaItem label="Ø§Ù„ÙØ¦Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©" value={sampleOfficialReportData.targetGroup || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"} />
+        </div>
+      );
+
+    case "student-summary":
+      return (
+        <div className={cardClass}>
+          <h3>Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©</h3>
+          <p>
+            ÙŠØ¸Ù‡Ø± Ù‡Ø°Ø§ Ø§Ù„Ø¨Ù„ÙˆÙƒ Ø¹Ù†Ø¯ ÙˆØ¬ÙˆØ¯ Ø·Ø§Ù„Ø¨/Ø·Ø§Ù„Ø¨Ø© Ù…Ø±ØªØ¨Ø· Ø¨Ø§Ù„Ø­Ø§Ù„Ø© Ù…Ù† Ø¨ÙŠØ§Ù†Ø§Øª Ù†ÙˆØ±.
+          </p>
+        </div>
+      );
+
+    case "service-summary":
+      return (
+        <div className={cardClass}>
+          <h3>Ù…Ù„Ø®Øµ Ø§Ù„Ø®Ø¯Ù…Ø©</h3>
+          <p>
+            {sampleOfficialReportData.serviceName} â€”{" "}
+            {sampleOfficialReportData.cover.programTitle}
+          </p>
+        </div>
+      );
+
+    case "paragraph":
+      return (
+        <div className={cardClass}>
+          {block.settings?.showTitle !== false ? <h3>{block.title}</h3> : null}
+          <p>
+            {sampleOfficialReportData.cover.shortDescription ||
+              sampleOfficialReportData.sections[0]?.content}
+          </p>
+        </div>
+      );
+
+    case "custom-paragraph":
+      return (
+        <div className={cardClass}>
+          {block.settings?.showTitle !== false ? (
+            <h3>{block.customTitle || block.title || "ÙÙ‚Ø±Ø© Ù…Ø®ØµØµØ©"}</h3>
+          ) : null}
+
+          <p>
+            {block.customContent ||
+              "Ù‡Ø°Ø§ Ù†Øµ Ù…Ø®ØµØµ Ø¯Ø§Ø®Ù„ Ø§Ù„Ù‚Ø§Ù„Ø¨ØŒ ØºÙŠØ± Ù…Ø±ØªØ¨Ø· Ø¨Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©."}
+          </p>
+        </div>
+      );
+
+    case "field-list":
+      return (
+        <div className={cardClass}>
+          <h3>{block.title}</h3>
+          <div
+            className={
+              block.settings?.columns === 1
+                ? "preview-meta-grid one-column"
+                : "preview-meta-grid"
+            }
+          >
+            <PreviewMetaItem label="Ø§Ù„Ù‡Ø¯Ù Ø§Ù„Ø£ÙˆÙ„" value="ØªØ¹Ø²ÙŠØ² Ø§Ù„Ø³Ù„ÙˆÙƒ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø¨ÙŠ" />
+            <PreviewMetaItem label="Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡" value="Ù†Ø´Ø±Ø§Øª ÙˆÙ…ÙˆØ§Ø¯ ØªÙˆØ¹ÙˆÙŠØ©" />
+            <PreviewMetaItem label="Ø§Ù„Ù†ØªÙŠØ¬Ø©" value="Ø±ÙØ¹ Ø§Ù„ÙˆØ¹ÙŠ ÙˆØ§Ù„Ø§Ù†Ø¶Ø¨Ø§Ø·" />
+            <PreviewMetaItem label="Ø§Ù„Ø­Ø§Ù„Ø©" value="Ù…ÙƒØªÙ…Ù„" />
+          </div>
+        </div>
+      );
+
+    case "text-library":
+      return (
+        <div className={cardClass}>
+          <h3>Ù†Øµ Ø¬Ø§Ù‡Ø² Ù…Ù† Ø§Ù„Ù…ÙƒØªØ¨Ø©</h3>
+          <p>
+            ØªÙ… ØªÙ†ÙÙŠØ° Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬ ÙˆÙÙ‚ Ø®Ø·Ø© Ø¥Ø±Ø´Ø§Ø¯ÙŠØ© ØªÙ‡Ø¯Ù Ø¥Ù„Ù‰ ØªØ¹Ø²ÙŠØ² Ø§Ù„Ù‚ÙŠÙ… Ø§Ù„ØªØ±Ø¨ÙˆÙŠØ©
+            ÙˆØ§Ù„Ø³Ù„ÙˆÙƒÙŠØ© Ø¯Ø§Ø®Ù„ Ø§Ù„Ø¨ÙŠØ¦Ø© Ø§Ù„Ù…Ø¯Ø±Ø³ÙŠØ©.
+          </p>
+        </div>
+      );
+
+    case "evidence-gallery": {
+      const layout = block.settings?.evidenceLayout || "grid-2x2";
+      const imageFit = block.settings?.imageFit || "cover";
+      const showCaptions = block.settings?.showCaptions !== false;
+
+      return (
+        <div
+          className={
+            layout === "stacked" || layout === "one-per-page"
+              ? "preview-evidence-grid stacked"
+              : "preview-evidence-grid"
+          }
+        >
+          {sampleOfficialReportData.evidences.slice(0, 4).map((evidence) => (
+            <div key={evidence.id} className="preview-evidence-card">
+              <div
+                className={
+                  imageFit === "contain"
+                    ? "preview-evidence-frame contain"
+                    : "preview-evidence-frame"
+                }
+              >
+                {evidence.imageUrl ? (
+                  <img src={evidence.imageUrl} alt={evidence.title || "Ø´Ø§Ù‡Ø¯"} />
+                ) : null}
+              </div>
+
+              {showCaptions ? (
+                <div className="preview-evidence-caption">
+                  {evidence.title || "Ø´Ø§Ù‡Ø¯"}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    case "approval-signature":
+      return (
+        <div className={cardClass}>
+          <h3>Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ ÙˆØ§Ù„ØªÙˆÙ‚ÙŠØ¹</h3>
+          <div className="preview-approval-grid">
+            <div className="preview-approval-box">
+              <span>Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø©</span>
+              <strong>{sampleReportIdentity.counselorName}</strong>
+              <span>Ø§Ù„ØªÙˆÙ‚ÙŠØ¹: ....................</span>
+            </div>
+
+            <div className="preview-approval-box">
+              <span>Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©</span>
+              <strong>Ù‚Ø§Ø¦Ø¯ Ø§Ù„Ù…Ø¯Ø±Ø³Ø©</strong>
+              <span>Ø§Ù„Ø®ØªÙ…: ....................</span>
+            </div>
+
+            <div className="preview-approval-box">
+              <span>Ø§Ù„ØªØ§Ø±ÙŠØ®</span>
+              <strong>{sampleOfficialReportData.reportDate}</strong>
+            </div>
+          </div>
+        </div>
+      );
+
+    default:
+      return <div className="preview-empty-block">Ø¨Ù„ÙˆÙƒ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ: {block.title}</div>;
+  }
+}
+
+function PreviewMetaItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="preview-meta-item">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function getTemplateMissingRequirements(template: ReportTemplateBuilderModel) {
+  const messages: string[] = [];
+
+  if (!template.pages.length) {
+    messages.push("Ø§Ù„Ù‚Ø§Ù„Ø¨ Ù„Ø§ ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ ØµÙØ­Ø§Øª.");
+  }
+
+  const hasEvidence = template.pages.some((page) =>
+    page.blocks.some((block) => block.kind === "evidence-gallery")
+  );
+
+  const hasCover = template.pages.some((page) => page.kind === "cover");
+
+  if (!hasCover) {
+    messages.push("Ù„Ø§ ØªÙˆØ¬Ø¯ ØµÙØ­Ø© ØºÙ„Ø§Ù. Ù‡Ø°Ø§ Ø§Ø®ØªÙŠØ§Ø±ÙŠ Ù„ÙƒÙ†Ù‡ Ù…ÙÙŠØ¯ Ù„Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø±Ø³Ù…ÙŠØ©.");
+  }
+
+  if (!hasEvidence) {
+    messages.push("Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø¨Ù„ÙˆÙƒ Ù„Ù„Ø´ÙˆØ§Ù‡Ø¯. Ù‚Ø¯ Ù„Ø§ ÙŠÙ†Ø§Ø³Ø¨ Ø§Ù„Ù‚Ø§Ù„Ø¨ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„ØªÙŠ ØªØ­ØªØ§Ø¬ Ø¥Ø«Ø¨Ø§ØªØ§Øª.");
+  }
+
+  return messages;
+}

@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
+import { CaseStatus, EvidenceType } from "@prisma/client";
 import { ensureDefaultSchoolAccount } from "@/engine/students/student-import-engine";
 import {
   serializeCaseValues,
@@ -6,7 +7,7 @@ import {
 } from "@/lib/cases/case-values";
 
 type EvidenceItem = {
-  id: string;
+  id?: string;
   fileName: string;
   fileUrl: string;
   mimeType: string;
@@ -32,22 +33,83 @@ type UpdateRuntimeCaseParams = {
   status?: "DRAFT" | "SUBMITTED";
 };
 
-function getEvidenceType(mimeType: string) {
-  if (mimeType.startsWith("image")) return "IMAGE";
-  if (mimeType) return "FILE";
-  return "LINK";
+function toCaseStatus(status?: "DRAFT" | "SUBMITTED") {
+  return status === "SUBMITTED" ? CaseStatus.SUBMITTED : CaseStatus.DRAFT;
+}
+
+function getEvidenceType(mimeType: string, fileUrl?: string) {
+  if (mimeType.startsWith("image/")) {
+    return EvidenceType.IMAGE;
+  }
+
+  if (fileUrl?.startsWith("http") && !mimeType) {
+    return EvidenceType.LINK;
+  }
+
+  return EvidenceType.FILE;
 }
 
 function normalizeEvidenceItems(items: EvidenceItem[]) {
   return items
     .filter((item) => item.fileUrl && item.fileName)
-    .map((item) => ({
-      type: getEvidenceType(item.mimeType || ""),
-      fileName: item.fileName,
-      fileUrl: item.fileUrl,
-      mimeType: item.mimeType || "application/octet-stream",
-      size: item.size || 0,
-    }));
+    .map((item) => {
+      const mimeType = item.mimeType || "application/octet-stream";
+
+      return {
+        type: getEvidenceType(mimeType, item.fileUrl),
+        fileName: item.fileName,
+        fileUrl: item.fileUrl,
+        mimeType,
+        size: item.size || 0,
+      };
+    });
+}
+
+async function assertServiceExists(serviceId: string) {
+  const service = await prisma.service.findUnique({
+    where: {
+      id: serviceId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!service) {
+    throw new Error(`serviceId غير موجود في قاعدة البيانات: ${serviceId}`);
+  }
+
+  return service;
+}
+
+async function findWorkflowOrNull(workflowId?: string | null) {
+  if (!workflowId) {
+    return null;
+  }
+
+  return prisma.workflow.findUnique({
+    where: {
+      id: workflowId,
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
+async function findStudentOrNull(studentId?: string | null) {
+  if (!studentId) {
+    return null;
+  }
+
+  return prisma.student.findUnique({
+    where: {
+      id: studentId,
+    },
+    select: {
+      id: true,
+    },
+  });
 }
 
 export async function saveRuntimeCase({
@@ -60,18 +122,31 @@ export async function saveRuntimeCase({
   status,
 }: SaveRuntimeCaseParams) {
   const school = await ensureDefaultSchoolAccount();
+
+  const existingService = await assertServiceExists(serviceId);
+  const existingWorkflow = await findWorkflowOrNull(workflowId);
+  const existingStudent = await findStudentOrNull(studentId);
+
+  if (workflowId && !existingWorkflow) {
+    throw new Error(`workflowId غير موجود في قاعدة البيانات: ${workflowId}`);
+  }
+
+  if (studentId && !existingStudent) {
+    throw new Error(`studentId غير موجود في قاعدة البيانات: ${studentId}`);
+  }
+
   const serializedValues = serializeCaseValues(values);
   const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
 
   const caseEntry = await prisma.caseEntry.create({
     data: {
       schoolAccountId: school.id,
-      serviceId,
-      workflowId,
-      studentId,
-      title: title || "سجل جديد",
-      status,
-      submittedAt: status === "SUBMITTED" ? new Date() : null,
+      serviceId: existingService.id,
+      workflowId: existingWorkflow?.id,
+      studentId: existingStudent?.id,
+      title: title || undefined,
+      status: toCaseStatus(status),
+      submittedAt: status === "SUBMITTED" ? new Date() : undefined,
 
       values: {
         create: serializedValues,
@@ -82,6 +157,9 @@ export async function saveRuntimeCase({
       },
     },
     include: {
+      service: true,
+      workflow: true,
+      student: true,
       values: true,
       evidences: true,
     },
@@ -98,6 +176,25 @@ export async function updateRuntimeCase({
   evidenceItems = [],
   status,
 }: UpdateRuntimeCaseParams) {
+  const existingCase = await prisma.caseEntry.findUnique({
+    where: {
+      id: caseId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!existingCase) {
+    throw new Error(`caseId غير موجود في قاعدة البيانات: ${caseId}`);
+  }
+
+  const existingStudent = await findStudentOrNull(studentId);
+
+  if (studentId && !existingStudent) {
+    throw new Error(`studentId غير موجود في قاعدة البيانات: ${studentId}`);
+  }
+
   const serializedValues = serializeCaseValues(values);
   const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
 
@@ -119,8 +216,8 @@ export async function updateRuntimeCase({
     },
     data: {
       title: title || undefined,
-      studentId: studentId || undefined,
-      status,
+      studentId: studentId ? existingStudent?.id : null,
+      status: status ? toCaseStatus(status) : undefined,
       submittedAt: status === "SUBMITTED" ? new Date() : undefined,
 
       values: {
@@ -132,6 +229,9 @@ export async function updateRuntimeCase({
       },
     },
     include: {
+      service: true,
+      workflow: true,
+      student: true,
       values: true,
       evidences: true,
     },
@@ -218,7 +318,11 @@ export async function getCaseById(caseId: string) {
           },
         },
       },
-      values: true,
+      values: {
+        include: {
+          field: true,
+        },
+      },
       evidences: true,
     },
   });

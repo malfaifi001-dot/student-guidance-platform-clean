@@ -12,10 +12,19 @@ type SmartFeedbackModalProps = {
   type?: "success" | "error" | "warning" | "info";
   title: string;
   description?: string;
+
   primaryActionLabel?: string;
   secondaryActionLabel?: string;
+
   onPrimaryAction?: () => void;
   onSecondaryAction?: () => void;
+
+  /**
+   * دعم دائم للتوافق مع الصفحات المختلفة.
+   * بعض الصفحات تستخدم onClose وبعضها onOpenChange.
+   */
+  onClose?: () => void;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export function SmartFeedbackModal({
@@ -27,6 +36,8 @@ export function SmartFeedbackModal({
   secondaryActionLabel,
   onPrimaryAction,
   onSecondaryAction,
+  onClose,
+  onOpenChange,
 }: SmartFeedbackModalProps) {
   if (!open) {
     return null;
@@ -69,8 +80,22 @@ export function SmartFeedbackModal({
   const Icon = iconMap[type];
   const colors = colorMap[type];
 
+  function closeModal() {
+    onPrimaryAction?.();
+    onClose?.();
+    onOpenChange?.(false);
+  }
+
+  function handleSecondaryAction() {
+    onSecondaryAction?.();
+  }
+
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+    >
       <div
         className={`w-full max-w-md rounded-[2rem] border ${colors.border} ${colors.bg} p-8 shadow-2xl`}
       >
@@ -96,7 +121,7 @@ export function SmartFeedbackModal({
           {secondaryActionLabel ? (
             <button
               type="button"
-              onClick={onSecondaryAction}
+              onClick={handleSecondaryAction}
               className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
             >
               {secondaryActionLabel}
@@ -105,7 +130,7 @@ export function SmartFeedbackModal({
 
           <button
             type="button"
-            onClick={onPrimaryAction}
+            onClick={closeModal}
             className={`rounded-2xl px-6 py-3 text-sm font-black text-white transition ${colors.button}`}
           >
             {primaryActionLabel}

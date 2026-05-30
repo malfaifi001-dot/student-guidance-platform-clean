@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
+import { ReportPrintButton } from "@/components/report-engine/report-print-button";
 import { buildOfficialReportDataFromCase } from "@/lib/report-engine/report-data-mapper";
 import type {
   EvidenceLayout,
@@ -94,63 +95,120 @@ export default async function ReportRealPreviewPage({
           </p>
         </div>
 
-        <div className="action-group">
-          <Link
-            href={buildPreviewUrl(reportId, "official-long", evidenceLayout, showCover)}
-            className={templateId === "official-long" ? "active" : ""}
-          >
-            القالب الرسمي
-          </Link>
+        <section className="action-section">
+          <h2>قالب التقرير</h2>
 
-          <Link
-            href={buildPreviewUrl(reportId, "visual-activity", evidenceLayout, showCover)}
-            className={templateId === "visual-activity" ? "active" : ""}
-          >
-            القالب البصري
-          </Link>
+          <div className="action-group">
+            <Link
+              href={buildPreviewUrl(
+                reportId,
+                "official-long",
+                evidenceLayout,
+                showCover
+              )}
+              className={templateId === "official-long" ? "active" : ""}
+            >
+              القالب الرسمي
+            </Link>
 
-          <Link
-            href={buildPreviewUrl(reportId, "executive-brief", evidenceLayout, showCover)}
-            className={templateId === "executive-brief" ? "active" : ""}
-          >
-            القالب المختصر
-          </Link>
-        </div>
+            <Link
+              href={buildPreviewUrl(
+                reportId,
+                "visual-activity",
+                evidenceLayout,
+                showCover
+              )}
+              className={templateId === "visual-activity" ? "active" : ""}
+            >
+              القالب البصري
+            </Link>
 
-        <div className="action-group">
-          <Link
-            href={buildPreviewUrl(reportId, templateId, "grid-2x2", showCover)}
-            className={evidenceLayout === "grid-2x2" ? "active" : ""}
-          >
-            شواهد 2×2
-          </Link>
+            <Link
+              href={buildPreviewUrl(
+                reportId,
+                "executive-brief",
+                evidenceLayout,
+                showCover
+              )}
+              className={templateId === "executive-brief" ? "active" : ""}
+            >
+              القالب المختصر
+            </Link>
+          </div>
+        </section>
 
-          <Link
-            href={buildPreviewUrl(reportId, templateId, "stacked", showCover)}
-            className={evidenceLayout === "stacked" ? "active" : ""}
-          >
-            تحت بعض
-          </Link>
+        <section className="action-section">
+          <h2>تخطيط الشواهد</h2>
 
-          <Link
-            href={buildPreviewUrl(reportId, templateId, "one-per-page", showCover)}
-            className={evidenceLayout === "one-per-page" ? "active" : ""}
-          >
-            شاهد لكل صفحة
-          </Link>
-        </div>
+          <div className="action-group">
+            <Link
+              href={buildPreviewUrl(
+                reportId,
+                templateId,
+                "grid-2x2",
+                showCover
+              )}
+              className={evidenceLayout === "grid-2x2" ? "active" : ""}
+            >
+              شواهد 2×2
+            </Link>
 
-        <div className="action-group">
-          <Link
-            href={buildPreviewUrl(reportId, templateId, evidenceLayout, !showCover)}
-          >
-            {showCover ? "إخفاء الغلاف" : "إظهار الغلاف"}
-          </Link>
-        </div>
+            <Link
+              href={buildPreviewUrl(
+                reportId,
+                templateId,
+                "two-columns",
+                showCover
+              )}
+              className={evidenceLayout === "two-columns" ? "active" : ""}
+            >
+              صورتان بجانب بعض
+            </Link>
 
-        <button type="button" onClick={() => {}}>
-          استخدم زر الطباعة من المتصفح مؤقتًا
-        </button>
+            <Link
+              href={buildPreviewUrl(
+                reportId,
+                templateId,
+                "stacked",
+                showCover
+              )}
+              className={evidenceLayout === "stacked" ? "active" : ""}
+            >
+              صور تحت بعض
+            </Link>
+
+            <Link
+              href={buildPreviewUrl(
+                reportId,
+                templateId,
+                "one-per-page",
+                showCover
+              )}
+              className={evidenceLayout === "one-per-page" ? "active" : ""}
+            >
+              شاهد لكل صفحة
+            </Link>
+          </div>
+        </section>
+
+        <section className="action-section">
+          <h2>خيارات التقرير</h2>
+
+          <div className="action-group">
+            <Link
+              href={buildPreviewUrl(
+                reportId,
+                templateId,
+                evidenceLayout,
+                !showCover
+              )}
+            >
+              {showCover ? "إخفاء الغلاف" : "إظهار الغلاف"}
+            </Link>
+          </div>
+        </section>
+
+        <ReportPrintButton />
       </aside>
 
       <main className="report-canvas">
@@ -199,6 +257,18 @@ export default async function ReportRealPreviewPage({
           font-size: 13px;
         }
 
+        .action-section {
+          display: grid;
+          gap: 10px;
+        }
+
+        .action-section h2 {
+          margin: 0;
+          font-size: 13px;
+          color: #344054;
+          font-weight: 900;
+        }
+
         .action-group {
           display: grid;
           gap: 8px;
@@ -221,7 +291,7 @@ export default async function ReportRealPreviewPage({
           color: #0f5132;
         }
 
-        .report-actions button {
+        .report-print-button {
           border: 0;
           border-radius: 14px;
           padding: 12px 14px;
@@ -229,6 +299,7 @@ export default async function ReportRealPreviewPage({
           color: white;
           font-family: inherit;
           font-weight: 900;
+          cursor: pointer;
         }
 
         .report-canvas {

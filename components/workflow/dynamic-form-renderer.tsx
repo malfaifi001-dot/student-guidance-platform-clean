@@ -304,13 +304,8 @@ export function DynamicFormRenderer({
         open={feedback.open}
         type={feedback.type}
         title={feedback.title}
-        message={feedback.message}
-        onClose={() =>
-          setFeedback((current) => ({
-            ...current,
-            open: false,
-          }))
-        }
+        description={feedback.message}
+        onOpenChange={(open) => setFeedback((current) => ({ ...current, open }))}
       />
 
       <section className="rounded-[2rem] bg-gradient-to-br from-slate-900 via-sky-800 to-cyan-600 p-10 text-white shadow-2xl">
@@ -739,3 +734,4 @@ function InputBox({
     </div>
   );
 }
+
