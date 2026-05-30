@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
+import { buildSmartReportTextSections } from "@/lib/report-engine/report-smart-text-engine";
+
 import { ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
 import type {
   EvidenceLayout,
@@ -459,17 +461,21 @@ function buildOfficialReportData({
     "غير محدد";
 
   const editableSections = buildEditableSections(parsedEditableContent);
+const hasManualIntro =
+  Boolean(parsedEditableContent.blocks?.intro?.trim()) ||
+  Boolean(parsedEditableContent.blocks?.summaryIntro?.trim());
 
-  const smartNarrativeSections = buildSmartNarrativeSections({
-    serviceName: report.caseEntry.service.name,
-    reportTitle: report.title,
-    programTitle,
-    executionDate,
-    targetGroup,
-    reportValues,
-    parsedEditableContent,
-  });
-
+const smartNarrativeSections = hasManualIntro
+  ? []
+  : buildSmartReportTextSections({
+      serviceName: report.caseEntry.service.name,
+      reportTitle: report.title,
+      programTitle,
+      executionDate,
+      targetGroup,
+      reportValues,
+      evidenceCount: report.evidenceItems.length || report.caseEntry.evidences.length,
+    });
   const studentSection: ReportSection[] = student
     ? [
         {
