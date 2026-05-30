@@ -1,8 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
-import {
-  getCaseById,
-  updateRuntimeCase,
-} from "@/engine/cases/case-runtime-engine";
+import { NextResponse } from "next/server";
+import { updateRuntimeCase, getCaseById } from "@/engine/cases/case-runtime-engine";
 
 type RouteContext = {
   params: Promise<{
@@ -10,10 +7,9 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(_request: NextRequest, context: RouteContext) {
-  const { caseId } = await context.params;
-
+export async function GET(_request: Request, context: RouteContext) {
   try {
+    const { caseId } = await context.params;
     const caseEntry = await getCaseById(caseId);
 
     return NextResponse.json({
@@ -22,17 +18,19 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "الحالة غير موجودة.",
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء جلب الحالة.",
       },
-      { status: 404 }
+      { status: 400 }
     );
   }
 }
 
-export async function PATCH(request: NextRequest, context: RouteContext) {
-  const { caseId } = await context.params;
-
+export async function PATCH(request: Request, context: RouteContext) {
   try {
+    const { caseId } = await context.params;
     const body = await request.json();
 
     const result = await updateRuntimeCase({
@@ -40,14 +38,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       title: body.title,
       studentId: body.studentId,
       values: body.values || {},
-      status: body.status || "DRAFT",
+      evidenceItems: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems
+        : [],
+      status: body.status,
     });
 
     return NextResponse.json({
-      message:
-        body.status === "SUBMITTED"
-          ? "تم إرسال الحالة بنجاح."
-          : "تم تحديث المسودة بنجاح.",
+      message: "تم تحديث الحالة بنجاح.",
       caseId: result.id,
     });
   } catch (error) {

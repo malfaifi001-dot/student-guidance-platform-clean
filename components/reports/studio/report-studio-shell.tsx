@@ -7,6 +7,7 @@ import { DEFAULT_REPORT_TEMPLATES } from "@/lib/reports/default-report-templates
 import { ReportContextPanel } from "./report-context-panel";
 import { ReportSmartEditor } from "./report-smart-editor";
 import { ReportTemplateSidebar } from "./report-template-sidebar";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
 
 type Template = {
   id: string;
@@ -38,6 +39,16 @@ export function ReportStudioShell({
   const [gender, setGender] = useState<"MALE" | "FEMALE">(initialGender);
   const [content, setContent] = useState(initialContent);
   const [saving, setSaving] = useState(false);
+
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+
+  const [feedback, setFeedback] = useState({
+    open: false,
+    type: "success" as "success" | "error" | "warning" | "info",
+    title: "",
+    description: "",
+  });
 
   const [templates, setTemplates] = useState<Template[]>(
     DEFAULT_REPORT_TEMPLATES.map((item, index) => ({
@@ -76,36 +87,120 @@ export function ReportStudioShell({
     setSaving(false);
 
     if (!response.ok) {
-      alert(data.error || "فشل حفظ التقرير.");
+      setFeedback({
+        open: true,
+        type: "error",
+        title: "تعذر حفظ التقرير",
+        description: data.error || "حدث خطأ أثناء حفظ التقرير.",
+      });
       return;
     }
 
     router.push(`/dashboard/reports/${data.reportId}/preview`);
   }
 
-  function saveCurrentTextAsTemplate() {
-    const cleanContent = content.trim();
-
-    if (!cleanContent) {
-      alert("لا يوجد نص لحفظه كتامبلت.");
+  function openSaveTemplateModal() {
+    if (!content.trim()) {
+      setFeedback({
+        open: true,
+        type: "warning",
+        title: "لا يوجد نص",
+        description: "اكتب نصًا في محرر التقرير قبل حفظه كتامبلت.",
+      });
       return;
     }
 
-    const title = prompt("اكتب اسم التامبلت:");
-    if (!title?.trim()) return;
+    setTemplateName("");
+    setTemplateModalOpen(true);
+  }
 
-    const newTemplate = {
+  function confirmSaveTemplate() {
+    if (!templateName.trim()) {
+      setFeedback({
+        open: true,
+        type: "warning",
+        title: "اسم التامبلت مطلوب",
+        description: "اكتب اسمًا واضحًا للتامبلت حتى يسهل استخدامه لاحقًا.",
+      });
+      return;
+    }
+
+    const newTemplate: Template = {
       id: `personal-${Date.now()}`,
-      title: title.trim(),
-      content: cleanContent,
+      title: templateName.trim(),
+      content: content.trim(),
     };
 
     setTemplates((current) => [newTemplate, ...current]);
-    alert("تم حفظ النص كتامبلت وإضافته للقائمة.");
+    setTemplateModalOpen(false);
+
+    setFeedback({
+      open: true,
+      type: "success",
+      title: "تم حفظ التامبلت",
+      description: "تمت إضافة النص إلى قائمة النصوص المقترحة.",
+    });
   }
 
   return (
     <main className="min-h-screen bg-slate-100 p-6">
+      <SmartFeedbackModal
+        open={feedback.open}
+        type={feedback.type}
+        title={feedback.title}
+        description={feedback.description}
+        primaryActionLabel="إغلاق"
+        onPrimaryAction={() =>
+          setFeedback((current) => ({ ...current, open: false }))
+        }
+      />
+
+      {templateModalOpen ? (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-[2rem] border border-sky-100 bg-white p-8 shadow-2xl">
+            <h2 className="text-center text-3xl font-black text-slate-900">
+              حفظ النص كتامبلت
+            </h2>
+
+            <p className="mt-3 text-center text-sm leading-7 text-slate-500">
+              اكتب اسمًا واضحًا للنص، وسيظهر مباشرة ضمن النصوص المقترحة.
+            </p>
+
+            <div className="mt-7">
+              <label className="text-sm font-black text-slate-700">
+                اسم التامبلت
+              </label>
+
+              <input
+                value={templateName}
+                onChange={(event) => setTemplateName(event.target.value)}
+                autoFocus
+                className="mt-2 h-14 w-full rounded-2xl border border-slate-200 px-4 text-sm font-bold outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                placeholder="مثال: تقرير جلسة إرشادية فردية"
+              />
+            </div>
+
+            <div className="mt-8 flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setTemplateModalOpen(false)}
+                className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                إلغاء
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmSaveTemplate}
+                className="rounded-2xl bg-sky-600 px-7 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+              >
+                حفظ التامبلت
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section className="mb-6 flex items-center justify-between rounded-[2rem] bg-white p-6 shadow-sm">
         <div>
           <h1 className="text-3xl font-black text-slate-900">
@@ -170,7 +265,7 @@ export function ReportStudioShell({
 
           <button
             type="button"
-            onClick={saveCurrentTextAsTemplate}
+            onClick={openSaveTemplateModal}
             className="w-full rounded-2xl bg-white px-6 py-4 text-sm font-black text-slate-900 shadow-sm transition hover:bg-slate-50"
           >
             حفظ النص كتامبلت

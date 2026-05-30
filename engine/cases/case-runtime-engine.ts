@@ -28,6 +28,7 @@ type UpdateRuntimeCaseParams = {
   title?: string | null;
   studentId?: string | null;
   values: RuntimeCaseValues;
+  evidenceItems?: EvidenceItem[];
   status?: "DRAFT" | "SUBMITTED";
 };
 
@@ -35,6 +36,18 @@ function getEvidenceType(mimeType: string) {
   if (mimeType.startsWith("image")) return "IMAGE";
   if (mimeType) return "FILE";
   return "LINK";
+}
+
+function normalizeEvidenceItems(items: EvidenceItem[]) {
+  return items
+    .filter((item) => item.fileUrl && item.fileName)
+    .map((item) => ({
+      type: getEvidenceType(item.mimeType || ""),
+      fileName: item.fileName,
+      fileUrl: item.fileUrl,
+      mimeType: item.mimeType || "application/octet-stream",
+      size: item.size || 0,
+    }));
 }
 
 export async function saveRuntimeCase({
@@ -48,6 +61,7 @@ export async function saveRuntimeCase({
 }: SaveRuntimeCaseParams) {
   const school = await ensureDefaultSchoolAccount();
   const serializedValues = serializeCaseValues(values);
+  const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
 
   const caseEntry = await prisma.caseEntry.create({
     data: {
@@ -58,17 +72,13 @@ export async function saveRuntimeCase({
       title: title || "سجل جديد",
       status,
       submittedAt: status === "SUBMITTED" ? new Date() : null,
+
       values: {
         create: serializedValues,
       },
+
       evidences: {
-        create: evidenceItems.map((item) => ({
-          type: getEvidenceType(item.mimeType),
-          fileName: item.fileName,
-          fileUrl: item.fileUrl,
-          mimeType: item.mimeType,
-          size: item.size,
-        })),
+        create: normalizedEvidenceItems,
       },
     },
     include: {
@@ -85,11 +95,19 @@ export async function updateRuntimeCase({
   title,
   studentId,
   values,
+  evidenceItems = [],
   status,
 }: UpdateRuntimeCaseParams) {
   const serializedValues = serializeCaseValues(values);
+  const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
 
   await prisma.caseValue.deleteMany({
+    where: {
+      caseEntryId: caseId,
+    },
+  });
+
+  await prisma.evidence.deleteMany({
     where: {
       caseEntryId: caseId,
     },
@@ -104,8 +122,13 @@ export async function updateRuntimeCase({
       studentId: studentId || undefined,
       status,
       submittedAt: status === "SUBMITTED" ? new Date() : undefined,
+
       values: {
         create: serializedValues,
+      },
+
+      evidences: {
+        create: normalizedEvidenceItems,
       },
     },
     include: {
@@ -119,7 +142,9 @@ export async function updateRuntimeCase({
 
 export async function restoreCaseDraft(caseId: string) {
   const caseEntry = await prisma.caseEntry.findUnique({
-    where: { id: caseId },
+    where: {
+      id: caseId,
+    },
     include: {
       values: true,
       evidences: true,
@@ -128,19 +153,22 @@ export async function restoreCaseDraft(caseId: string) {
           guardian: true,
         },
       },
-     workflow: {
-  include: {
-    steps: {
-      include: {
-        fields: {
-          include: {
-            options: true,
+      workflow: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
           },
         },
       },
-    },
-  },
-},
       service: true,
     },
   });
@@ -164,7 +192,9 @@ export async function restoreCaseDraft(caseId: string) {
 
 export async function getCaseById(caseId: string) {
   const caseEntry = await prisma.caseEntry.findUnique({
-    where: { id: caseId },
+    where: {
+      id: caseId,
+    },
     include: {
       student: {
         include: {
@@ -181,6 +211,9 @@ export async function getCaseById(caseId: string) {
                   options: true,
                 },
               },
+            },
+            orderBy: {
+              order: "asc",
             },
           },
         },

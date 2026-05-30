@@ -11,6 +11,9 @@ export async function POST(request: Request) {
       title: body.title,
       studentId: body.studentId,
       values: body.values || {},
+      evidenceItems: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems
+        : [],
       status: "DRAFT",
     });
 

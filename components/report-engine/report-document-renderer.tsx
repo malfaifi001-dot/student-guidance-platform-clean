@@ -1,0 +1,1268 @@
+import type {
+  EvidenceLayout,
+  OfficialReportData,
+  ReportEvidence,
+  ReportIdentity,
+  ReportSection,
+  ReportTemplateId,
+} from "@/lib/report-engine/report-types";
+import { getReportTemplate } from "@/lib/report-engine/report-templates";
+
+type ReportDocumentRendererProps = {
+  identity: ReportIdentity;
+  report: OfficialReportData;
+  templateId: ReportTemplateId;
+  showCover?: boolean;
+  evidenceLayout?: EvidenceLayout;
+};
+
+export function ReportDocumentRenderer({
+  identity,
+  report,
+  templateId,
+  showCover = true,
+  evidenceLayout,
+}: ReportDocumentRendererProps) {
+  const template = getReportTemplate(templateId);
+
+  const finalEvidenceLayout =
+    evidenceLayout || report.evidenceLayout || template.defaultEvidenceLayout;
+
+  if (templateId === "visual-activity") {
+    return (
+      <VisualActivityReport
+        identity={identity}
+        report={report}
+        evidenceLayout={finalEvidenceLayout}
+      />
+    );
+  }
+
+  if (templateId === "executive-brief") {
+    return (
+      <ExecutiveBriefReport
+        identity={identity}
+        report={report}
+        showCover={showCover}
+        evidenceLayout={finalEvidenceLayout}
+      />
+    );
+  }
+
+  return (
+    <OfficialLongReport
+      identity={identity}
+      report={report}
+      showCover={showCover}
+      evidenceLayout={finalEvidenceLayout}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                     */
+/* -------------------------------------------------------------------------- */
+
+function chunkArray<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+function getEvidenceItemsPerPage(layout: EvidenceLayout) {
+  switch (layout) {
+    case "single-large":
+    case "one-per-page":
+      return 1;
+    case "stacked":
+      return 2;
+    case "two-columns":
+    case "grid-2x2":
+    case "auto":
+    default:
+      return 4;
+  }
+}
+
+function getNormalizedEvidenceLayout(layout: EvidenceLayout) {
+  return layout === "auto" ? "grid-2x2" : layout;
+}
+
+function splitSectionsForOfficialReport(sections: ReportSection[]) {
+  const firstPageSections = sections.slice(0, 2);
+  const secondPageSections = sections.slice(2);
+
+  return {
+    firstPageSections,
+    secondPageSections,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Official Long Report                                                        */
+/* -------------------------------------------------------------------------- */
+
+function OfficialLongReport({
+  identity,
+  report,
+  showCover,
+  evidenceLayout,
+}: {
+  identity: ReportIdentity;
+  report: OfficialReportData;
+  showCover: boolean;
+  evidenceLayout: EvidenceLayout;
+}) {
+  const normalizedEvidenceLayout = getNormalizedEvidenceLayout(evidenceLayout);
+  const evidencePages = chunkArray(
+    report.evidences,
+    getEvidenceItemsPerPage(normalizedEvidenceLayout)
+  );
+
+  const { firstPageSections, secondPageSections } =
+    splitSectionsForOfficialReport(report.sections);
+
+  return (
+    <main dir="rtl" className="report-root official-root">
+      <ReportStyles />
+
+      {showCover ? (
+        <A4Page variant="cover">
+          <OfficialHeader identity={identity} />
+
+          <div className="page-body cover-body">
+            <div className="report-kicker">{report.serviceName}</div>
+
+            <h1>{report.title}</h1>
+
+            {report.subtitle ? <h2>{report.subtitle}</h2> : null}
+
+            {report.cover.shortDescription ? (
+              <p className="cover-description">
+                {report.cover.shortDescription}
+              </p>
+            ) : null}
+
+            <div className="cover-meta-line">
+              <span>{identity.schoolName}</span>
+              <span>{report.cover.executionDate}</span>
+              <span>{identity.counselorName}</span>
+            </div>
+          </div>
+
+          <ReportFooter identity={identity} />
+        </A4Page>
+      ) : null}
+
+      <A4Page>
+        <OfficialHeader identity={identity} compact />
+
+        <div className="page-body">
+          <SectionTitle title="ملخص التقرير" />
+
+          <div className="meta-grid">
+            <InfoRow label="اسم المدرسة" value={identity.schoolName} />
+            <InfoRow label="مكتب التعليم" value={identity.educationOffice} />
+            <InfoRow label="إدارة التعليم" value={identity.educationDepartment} />
+            <InfoRow label="اسم الموجه/الموجهة" value={identity.counselorName} />
+            <InfoRow label="عنوان البرنامج" value={report.cover.programTitle} />
+            <InfoRow label="تاريخ التنفيذ" value={report.cover.executionDate} />
+          </div>
+
+          <div className="summary-highlight">
+            <span>الغرض من التقرير</span>
+            <p>
+              توثيق تنفيذ البرنامج/الخدمة مع حفظ البيانات والشواهد بطريقة
+              رسمية قابلة للطباعة والأرشفة.
+            </p>
+          </div>
+
+          {firstPageSections.map((section) => (
+            <ReportSectionBlock key={section.id} section={section} />
+          ))}
+        </div>
+
+        <ReportFooter identity={identity} />
+      </A4Page>
+
+      {secondPageSections.length ? (
+        <A4Page>
+          <OfficialHeader identity={identity} compact />
+
+          <div className="page-body">
+            <SectionTitle title="تفاصيل التنفيذ والنتائج" />
+
+            {secondPageSections.map((section) => (
+              <ReportSectionBlock key={section.id} section={section} />
+            ))}
+          </div>
+
+          <ReportFooter identity={identity} />
+        </A4Page>
+      ) : null}
+
+      {evidencePages.map((evidences, pageIndex) => (
+        <A4Page key={`official-evidence-${pageIndex}`}>
+          <OfficialHeader identity={identity} compact />
+
+          <div className="page-body">
+            <SectionTitle
+              title={
+                evidencePages.length > 1
+                  ? `الشواهد والمرفقات (${pageIndex + 1})`
+                  : "الشواهد والمرفقات"
+              }
+            />
+
+            <EvidenceGrid
+              evidences={evidences}
+              layout={normalizedEvidenceLayout}
+              showCaption
+              mode="official"
+            />
+          </div>
+
+          <ReportFooter identity={identity} />
+        </A4Page>
+      ))}
+
+      <A4Page variant="approval">
+        <OfficialHeader identity={identity} compact />
+
+        <div className="page-body approval-body">
+          <SectionTitle title="الاعتماد والتوقيع" />
+
+          <div className="approval-intro">
+            <h2>اعتماد التقرير</h2>
+            <p>
+              تم إعداد هذا التقرير بناءً على البيانات والشواهد الموثقة في
+              المنصة، ويعد مرجعًا رسميًا لتنفيذ البرنامج/الخدمة.
+            </p>
+          </div>
+
+          <ApprovalBlock report={report} />
+        </div>
+
+        <ReportFooter identity={identity} />
+      </A4Page>
+    </main>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Visual Activity Report                                                      */
+/* -------------------------------------------------------------------------- */
+
+function VisualActivityReport({
+  identity,
+  report,
+  evidenceLayout,
+}: {
+  identity: ReportIdentity;
+  report: OfficialReportData;
+  evidenceLayout: EvidenceLayout;
+}) {
+  const normalizedEvidenceLayout = getNormalizedEvidenceLayout(evidenceLayout);
+  const evidencePages = chunkArray(
+    report.evidences,
+    getEvidenceItemsPerPage(normalizedEvidenceLayout)
+  );
+
+  const firstEvidencePage = evidencePages[0] || [];
+  const remainingEvidencePages = evidencePages.slice(1);
+
+  return (
+    <main dir="rtl" className="report-root visual-root">
+      <ReportStyles />
+
+      <A4Page variant="visual">
+        <div className="visual-topbar">
+          <span>{report.category || report.serviceName}</span>
+          <b>//</b>
+          <span>{report.reportDate}</span>
+        </div>
+
+        <div className="visual-title-area">
+          <div className="visual-title-mark" />
+
+          <div>
+            <h1>{report.category || report.serviceName}</h1>
+            <h2>{report.cover.programTitle}</h2>
+          </div>
+        </div>
+
+        <p className="visual-description">
+          {report.cover.shortDescription ||
+            report.sections[0]?.content ||
+            report.subtitle}
+        </p>
+
+        <EvidenceGrid
+          evidences={firstEvidencePage}
+          layout={normalizedEvidenceLayout}
+          showCaption={false}
+          mode="visual"
+        />
+
+        <div className="visual-footer-shape" />
+
+        <div className="visual-footer-info">
+          <span>{identity.schoolName}</span>
+          <span>{identity.counselorName}</span>
+        </div>
+      </A4Page>
+
+      {remainingEvidencePages.map((evidences, pageIndex) => (
+        <A4Page key={`visual-evidence-${pageIndex}`} variant="visual">
+          <div className="visual-topbar">
+            <span>الشواهد والمرفقات</span>
+            <b>//</b>
+            <span>{pageIndex + 2}</span>
+          </div>
+
+          <div className="visual-title-area smaller">
+            <div className="visual-title-mark" />
+
+            <div>
+              <h1>الشواهد</h1>
+              <h2>{report.cover.programTitle}</h2>
+            </div>
+          </div>
+
+          <EvidenceGrid
+            evidences={evidences}
+            layout={normalizedEvidenceLayout}
+            showCaption={false}
+            mode="visual"
+          />
+
+          <div className="visual-footer-shape" />
+
+          <div className="visual-footer-info">
+            <span>{identity.schoolName}</span>
+            <span>{identity.counselorName}</span>
+          </div>
+        </A4Page>
+      ))}
+    </main>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Executive Brief Report                                                      */
+/* -------------------------------------------------------------------------- */
+
+function ExecutiveBriefReport({
+  identity,
+  report,
+  showCover,
+  evidenceLayout,
+}: {
+  identity: ReportIdentity;
+  report: OfficialReportData;
+  showCover: boolean;
+  evidenceLayout: EvidenceLayout;
+}) {
+  const normalizedEvidenceLayout = getNormalizedEvidenceLayout(evidenceLayout);
+  const selectedEvidence = report.evidences.slice(0, 2);
+
+  return (
+    <main dir="rtl" className="report-root executive-root">
+      <ReportStyles />
+
+      {showCover ? (
+        <A4Page variant="executive-cover">
+          <OfficialHeader identity={identity} compact />
+
+          <div className="page-body executive-cover-body">
+            <span>{report.serviceName}</span>
+            <h1>{report.title}</h1>
+
+            {report.subtitle ? <p>{report.subtitle}</p> : null}
+          </div>
+
+          <ReportFooter identity={identity} />
+        </A4Page>
+      ) : null}
+
+      <A4Page>
+        <OfficialHeader identity={identity} compact />
+
+        <div className="page-body">
+          <div className="executive-summary-card">
+            <h2>{report.cover.programTitle}</h2>
+            <p>
+              {report.cover.shortDescription ||
+                report.sections[0]?.content ||
+                "ملخص مختصر للتقرير."}
+            </p>
+          </div>
+
+          <div className="executive-grid">
+            <InfoRow label="التاريخ" value={report.reportDate} />
+            <InfoRow
+              label="الفئة المستهدفة"
+              value={report.targetGroup || "غير محدد"}
+            />
+            <InfoRow label="الموجه/الموجهة" value={identity.counselorName} />
+            <InfoRow label="المدرسة" value={identity.schoolName} />
+          </div>
+
+          {report.sections.slice(0, 2).map((section) => (
+            <ReportSectionBlock key={section.id} section={section} />
+          ))}
+
+          <SectionTitle title="شواهد مختارة" />
+
+          <EvidenceGrid
+            evidences={selectedEvidence}
+            layout={normalizedEvidenceLayout}
+            showCaption
+            mode="official"
+          />
+        </div>
+
+        <ReportFooter identity={identity} />
+      </A4Page>
+    </main>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Shared Components                                                           */
+/* -------------------------------------------------------------------------- */
+
+function A4Page({
+  children,
+  variant,
+}: {
+  children: React.ReactNode;
+  variant?: "cover" | "visual" | "approval" | "executive-cover";
+}) {
+  return (
+    <section
+      className={
+        variant ? `a4-page a4-page-${variant}` : "a4-page"
+      }
+    >
+      {children}
+    </section>
+  );
+}
+
+function OfficialHeader({
+  identity,
+  compact = false,
+}: {
+  identity: ReportIdentity;
+  compact?: boolean;
+}) {
+  return (
+    <header className={compact ? "official-header compact" : "official-header"}>
+      <div className="header-accent" />
+
+      <div className="header-main">
+        <LogoBox src={identity.schoolLogoUrl} label="شعار المدرسة" />
+
+        <div className="header-text">
+          <strong>{identity.ministryName}</strong>
+          <span>{identity.educationDepartment}</span>
+          <span>{identity.educationOffice}</span>
+          <b>{identity.schoolName}</b>
+        </div>
+
+        <LogoBox src={identity.ministryLogoUrl} label="شعار وزارة التعليم" />
+      </div>
+    </header>
+  );
+}
+
+function LogoBox({
+  src,
+  label,
+}: {
+  src?: string;
+  label: string;
+}) {
+  return (
+    <div className="logo-box">
+      {src ? <img src={src} alt={label} /> : <span>{label}</span>}
+    </div>
+  );
+}
+
+function ReportFooter({ identity }: { identity: ReportIdentity }) {
+  return (
+    <footer className="report-footer">
+      <div className="footer-line" />
+
+      <div className="footer-content">
+        <span>{identity.schoolName}</span>
+        <span>
+          {identity.academicYear} - {identity.semester}
+        </span>
+        <span>صفحة</span>
+      </div>
+    </footer>
+  );
+}
+
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <div className="section-title">
+      <span />
+      <h3>{title}</h3>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="info-row">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function ReportSectionBlock({ section }: { section: ReportSection }) {
+  return (
+    <section className="report-section">
+      <SectionTitle title={section.title} />
+
+      {section.content ? (
+        <p className="section-text">{section.content}</p>
+      ) : null}
+
+      {section.items?.length ? (
+        <div className="section-items">
+          {section.items.map((item, index) => (
+            <InfoRow
+              key={`${item.label}-${index}`}
+              label={item.label}
+              value={item.value}
+            />
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function EvidenceGrid({
+  evidences,
+  layout,
+  showCaption,
+  mode,
+}: {
+  evidences: ReportEvidence[];
+  layout: EvidenceLayout;
+  showCaption: boolean;
+  mode: "official" | "visual";
+}) {
+  if (!evidences.length) {
+    return null;
+  }
+
+  const normalizedLayout = getNormalizedEvidenceLayout(layout);
+
+  return (
+    <div
+      className={`evidence-grid evidence-${normalizedLayout} evidence-mode-${mode}`}
+    >
+      {evidences.map((evidence) => (
+        <article key={evidence.id} className="evidence-card">
+          <div className="evidence-frame">
+            {evidence.imageUrl ? (
+              <img src={evidence.imageUrl} alt={evidence.title || "شاهد"} />
+            ) : (
+              <div className="evidence-placeholder">
+                {evidence.fileName || "مرفق"}
+              </div>
+            )}
+          </div>
+
+          {showCaption && (evidence.title || evidence.description) ? (
+            <div className="evidence-caption">
+              {evidence.title ? <strong>{evidence.title}</strong> : null}
+              {evidence.description ? <p>{evidence.description}</p> : null}
+            </div>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ApprovalBlock({ report }: { report: OfficialReportData }) {
+  return (
+    <section className="approval-block">
+      <div>
+        <span>الموجه/الموجهة الطلابية</span>
+        <strong>{report.approval.counselorName}</strong>
+        <em>التوقيع: ....................</em>
+      </div>
+
+      <div>
+        <span>قائد/قائدة المدرسة</span>
+        <strong>{report.approval.principalName || "...................."}</strong>
+        <em>الختم: ....................</em>
+      </div>
+
+      <div>
+        <span>التاريخ</span>
+        <strong>{report.approval.date}</strong>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Styles                                                                      */
+/* -------------------------------------------------------------------------- */
+
+function ReportStyles() {
+  return (
+    <style>{`
+      .report-root {
+        --primary: #155f3b;
+        --primary-dark: #0f5132;
+        --secondary: #198754;
+        --accent: #d4af37;
+        --soft: #eef8f2;
+        --text: #18251f;
+        --muted: #667085;
+        --border: #d9e7df;
+        --page-bg: #ffffff;
+
+        font-family: Tajawal, Cairo, "IBM Plex Sans Arabic", Arial, sans-serif;
+        background: #eef1ef;
+        color: var(--text);
+        padding: 24px;
+      }
+
+      .a4-page {
+        width: 210mm;
+        height: 297mm;
+        min-height: 297mm;
+        max-height: 297mm;
+        box-sizing: border-box;
+        margin: 0 auto 24px;
+        padding: 16mm 18mm 12mm;
+        background: var(--page-bg);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+        page-break-after: always;
+
+        display: flex;
+        flex-direction: column;
+        gap: 10mm;
+      }
+
+      .a4-page-cover::before,
+      .a4-page-executive-cover::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: -110px;
+        top: -110px;
+        width: 300px;
+        height: 300px;
+        border-radius: 999px;
+        background: var(--soft);
+        z-index: 0;
+      }
+
+      .official-header,
+      .page-body,
+      .report-footer,
+      .visual-topbar,
+      .visual-title-area,
+      .visual-description,
+      .visual-footer-info {
+        position: relative;
+        z-index: 2;
+      }
+
+      .official-header {
+        flex: 0 0 auto;
+      }
+
+      .official-header.compact .header-main {
+        min-height: 74px;
+      }
+
+      .header-accent {
+        height: 7px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--primary-dark), var(--secondary), var(--accent));
+        margin-bottom: 8px;
+      }
+
+      .header-main {
+        min-height: 92px;
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background:
+          linear-gradient(135deg, rgba(15, 81, 50, 0.08), rgba(255,255,255,1)),
+          #fff;
+        display: grid;
+        grid-template-columns: 108px 1fr 108px;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 18px;
+      }
+
+      .logo-box {
+        width: 86px;
+        height: 64px;
+        border-radius: 18px;
+        background: #fff;
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        text-align: center;
+        font-size: 11px;
+        overflow: hidden;
+      }
+
+      .logo-box img {
+        width: 78px;
+        height: 56px;
+        object-fit: contain;
+      }
+
+      .header-text {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        line-height: 1.45;
+      }
+
+      .header-text strong {
+        color: var(--primary-dark);
+        font-size: 18px;
+      }
+
+      .header-text span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .header-text b {
+        color: var(--text);
+        font-size: 15px;
+      }
+
+      .page-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .cover-body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .report-kicker {
+        padding: 8px 20px;
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--primary-dark);
+        border: 1px solid var(--border);
+        font-weight: 800;
+        margin-bottom: 16px;
+      }
+
+      .cover-body h1,
+      .executive-cover-body h1 {
+        margin: 0;
+        font-size: 34px;
+        color: var(--primary-dark);
+        text-align: center;
+      }
+
+      .cover-body h2 {
+        margin: 12px 0 18px;
+        font-size: 22px;
+        color: var(--text);
+        text-align: center;
+      }
+
+      .cover-description {
+        width: 78%;
+        text-align: center;
+        line-height: 2;
+        color: var(--muted);
+        margin: 0 0 22px;
+      }
+
+      .cover-meta-line {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .cover-meta-line span {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .section-title span {
+        width: 8px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--primary-dark);
+      }
+
+      .section-title h3 {
+        margin: 0;
+        color: var(--primary-dark);
+        font-size: 19px;
+      }
+
+      .meta-grid,
+      .executive-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+
+      .info-row {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 14px;
+        padding: 10px 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        break-inside: avoid;
+      }
+
+      .info-row span {
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .info-row strong {
+        color: var(--text);
+        font-size: 13px;
+        text-align: left;
+      }
+
+      .summary-highlight {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: linear-gradient(135deg, var(--soft), #fff);
+        padding: 16px 18px;
+        margin-bottom: 18px;
+      }
+
+      .summary-highlight span {
+        display: block;
+        color: var(--primary-dark);
+        font-weight: 900;
+        margin-bottom: 6px;
+      }
+
+      .summary-highlight p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.9;
+      }
+
+      .report-section {
+        margin-top: 18px;
+        break-inside: avoid;
+      }
+
+      .section-text {
+        margin: 0;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 14px 16px;
+        line-height: 2;
+        font-size: 15px;
+        text-align: justify;
+        background: #fff;
+        break-inside: avoid;
+      }
+
+      .section-items {
+        display: grid;
+        gap: 10px;
+      }
+
+      .evidence-grid {
+        display: grid;
+        gap: 16px;
+        height: calc(100% - 42px);
+        align-content: start;
+      }
+
+      .evidence-grid.evidence-grid-2x2,
+      .evidence-grid.evidence-two-columns {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .evidence-grid.evidence-stacked,
+      .evidence-grid.evidence-single-large,
+      .evidence-grid.evidence-one-per-page {
+        grid-template-columns: 1fr;
+      }
+
+      .evidence-card {
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 10px;
+        background: #fff;
+        min-height: 0;
+        break-inside: avoid;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .evidence-frame {
+        border-radius: 18px;
+        background: #f8faf9;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .evidence-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+
+      .evidence-mode-visual .evidence-card {
+        border: 0;
+        padding: 0;
+        background: transparent;
+      }
+
+      .evidence-mode-visual .evidence-frame {
+        min-height: 72mm;
+        border-radius: 24px;
+        background: #f3f4f6;
+      }
+
+      .evidence-mode-visual .evidence-frame img {
+        object-fit: cover;
+      }
+
+      .evidence-mode-official.evidence-grid-2x2 .evidence-card,
+      .evidence-mode-official.evidence-two-columns .evidence-card {
+        height: 76mm;
+      }
+
+      .evidence-mode-official.evidence-stacked .evidence-card {
+        height: 88mm;
+      }
+
+      .evidence-mode-official.evidence-single-large .evidence-card,
+      .evidence-mode-official.evidence-one-per-page .evidence-card {
+        height: 172mm;
+      }
+
+      .evidence-placeholder {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .evidence-caption {
+        padding: 9px 4px 0;
+        flex: 0 0 auto;
+      }
+
+      .evidence-caption strong {
+        display: block;
+        color: var(--primary-dark);
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .evidence-caption p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .approval-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .approval-intro {
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 24px;
+        background: linear-gradient(135deg, var(--soft), #fff);
+        margin-bottom: 28px;
+        text-align: center;
+      }
+
+      .approval-intro h2 {
+        margin: 0 0 10px;
+        color: var(--primary-dark);
+        font-size: 26px;
+      }
+
+      .approval-intro p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 2;
+      }
+
+      .approval-block {
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 0.8fr;
+        gap: 14px;
+        background: var(--soft);
+        break-inside: avoid;
+      }
+
+      .approval-block div {
+        background: #fff;
+        border-radius: 16px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .approval-block span,
+      .approval-block em {
+        color: var(--muted);
+        font-size: 12px;
+        font-style: normal;
+      }
+
+      .approval-block strong {
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      .report-footer {
+        flex: 0 0 auto;
+        background: #fff;
+      }
+
+      .footer-line {
+        height: 3px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--accent), var(--primary-dark));
+        margin-bottom: 8px;
+      }
+
+      .footer-content {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .a4-page-visual {
+        padding: 18mm 16mm 16mm;
+        display: block;
+      }
+
+      .visual-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #8a8f98;
+        font-weight: 800;
+        font-size: 15px;
+        margin-bottom: 28mm;
+      }
+
+      .visual-topbar b {
+        color: #c7c9cc;
+        font-size: 22px;
+      }
+
+      .visual-title-area {
+        display: flex;
+        align-items: flex-start;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .visual-title-area.smaller {
+        margin-bottom: 24px;
+      }
+
+      .visual-title-mark {
+        width: 8px;
+        height: 64px;
+        border-radius: 999px;
+        background: #ffd6ad;
+        margin-top: 4px;
+      }
+
+      .visual-title-area h1 {
+        margin: 0;
+        color: #55585f;
+        font-size: 34px;
+      }
+
+      .visual-title-area h2 {
+        margin: 8px 0 0;
+        color: #f0a14a;
+        font-size: 22px;
+      }
+
+      .visual-description {
+        width: 82%;
+        margin: 0 auto 30px;
+        text-align: center;
+        color: #60666f;
+        line-height: 2.1;
+        font-size: 17px;
+      }
+
+      .visual-root .evidence-grid {
+        height: auto;
+      }
+
+      .visual-root .evidence-grid-2x2,
+      .visual-root .evidence-two-columns {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .visual-root .evidence-stacked,
+      .visual-root .evidence-single-large,
+      .visual-root .evidence-one-per-page {
+        grid-template-columns: 1fr;
+      }
+
+      .visual-footer-shape {
+        position: absolute;
+        left: -20mm;
+        bottom: -10mm;
+        width: 95mm;
+        height: 42mm;
+        background: #ffe4c7;
+        opacity: 0.85;
+        border-top-right-radius: 50px;
+        transform: skewX(-28deg);
+        z-index: 1;
+      }
+
+      .visual-footer-info {
+        position: absolute;
+        right: 16mm;
+        left: 16mm;
+        bottom: 12mm;
+        display: flex;
+        justify-content: space-between;
+        color: #8a8f98;
+        font-size: 12px;
+      }
+
+      .executive-cover-body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .executive-cover-body span {
+        display: inline-block;
+        margin-bottom: 12px;
+        color: var(--primary-dark);
+        font-weight: 800;
+      }
+
+      .executive-cover-body p {
+        color: var(--muted);
+        font-size: 17px;
+        text-align: center;
+      }
+
+      .executive-summary-card {
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 22px;
+        background: linear-gradient(135deg, var(--soft), #fff);
+        margin-bottom: 18px;
+      }
+
+      .executive-summary-card h2 {
+        margin: 0 0 10px;
+        color: var(--primary-dark);
+        font-size: 24px;
+      }
+
+      .executive-summary-card p {
+        margin: 0;
+        line-height: 2;
+        color: #53605a;
+      }
+
+      @media print {
+        body {
+          margin: 0;
+          background: #fff;
+        }
+
+        .report-root {
+          padding: 0;
+          background: #fff;
+        }
+
+        .a4-page {
+          margin: 0;
+          box-shadow: none;
+          width: 210mm;
+          height: 297mm;
+          min-height: 297mm;
+          max-height: 297mm;
+          break-after: page;
+          page-break-after: always;
+        }
+
+        @page {
+          size: A4;
+          margin: 0;
+        }
+      }
+    `}</style>
+  );
+}
