@@ -1,0 +1,2350 @@
+﻿===== 1) CURRENT CREATE REPORT API =====
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import {
+  mapCaseEntryToReportData,
+  type ReportMappedCase,
+} from "@/lib/report-engine/report-case-data-mapper";
+import {
+  createDefaultTemplateSnapshot,
+  createReportDataSnapshot,
+} from "@/lib/report-engine/report-snapshot";
+
+type CreateReportBody = {
+  caseEntryId?: string;
+  caseId?: string;
+  title?: string;
+  templateId?: string;
+};
+
+function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+function isPublishedBuilderTemplate(templateJson: Record<string, any> | null) {
+  return templateJson?.status === "PUBLISHED" && Array.isArray(templateJson?.pages);
+}
+
+async function createTemplateSnapshotFromDatabase(templateId: string) {
+  const builderTemplate = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  const templateJson =
+    parseBuilderTemplateJson(builderTemplate?.templateJson) ||
+    parseBuilderTemplateJson(builderTemplate?.content);
+
+  if (!builderTemplate || !isPublishedBuilderTemplate(templateJson)) {
+    return createDefaultTemplateSnapshot(templateId);
+  }
+
+  const safeTemplateJson = templateJson as Record<string, any>;
+
+  return {
+    templateId: builderTemplate.id,
+    templateName: builderTemplate.name,
+    version: 1,
+    capturedAt: new Date().toISOString(),
+    source: "TEMPLATE_BUILDER",
+    settings: {
+      showCover: true,
+      defaultTemplate: builderTemplate.id,
+      defaultEvidenceLayout: "grid-2x2",
+      pageSize: "A4",
+      direction: "rtl",
+    },
+    builderTemplate: {
+      ...safeTemplateJson,
+      id: builderTemplate.id,
+      name: builderTemplate.name || safeTemplateJson.name,
+      description:
+        builderTemplate.description ||
+        safeTemplateJson.description ||
+        "Ù‚Ø§Ù„Ø¨ ØªÙ‚Ø±ÙŠØ± Ù…Ø­ÙÙˆØ¸ Ù…Ù† ØµØ§Ù†Ø¹ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨.",
+      serviceSlug:
+        builderTemplate.serviceSlug || safeTemplateJson.serviceSlug || null,
+      status: "PUBLISHED",
+    },
+  };
+}
+
+function buildReportContent(reportData: ReportMappedCase) {
+  const studentLines = reportData.student
+    ? [
+        `Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©: ${reportData.student.fullName}`,
+        `Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©: ${reportData.student.nationalId || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø§Ù„Ù…Ø±Ø­Ù„Ø©: ${reportData.student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ØµÙ: ${reportData.student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ÙØµÙ„: ${reportData.student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianName || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianPhone || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+      ].join("\n")
+    : "Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø·Ø§Ù„Ø¨/Ø·Ø§Ù„Ø¨Ø© Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const valuesLines = reportData.values.length
+    ? reportData.values
+        .map((item, index) => {
+          return `${index + 1}. ${item.fieldLabel}: ${item.value || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ù…Ø­ÙÙˆØ¸Ø© ÙÙŠ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const evidencesLines = reportData.evidences.length
+    ? reportData.evidences
+        .map((item, index) => {
+          return `${index + 1}. ${item.title || item.fileName || "Ø´Ø§Ù‡Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´ÙˆØ§Ù‡Ø¯ Ù…Ø±ÙÙ‚Ø©.";
+
+  return `
+ØªÙ‚Ø±ÙŠØ±: ${reportData.title}
+
+Ø§Ù„Ø®Ø¯Ù…Ø©:
+${reportData.service.name}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©:
+${studentLines}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©:
+Ø±Ù‚Ù… Ø§Ù„Ø­Ø§Ù„Ø©: ${reportData.id}
+Ø­Ø§Ù„Ø© Ø§Ù„Ø³Ø¬Ù„: ${reportData.status}
+ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡: ${new Date(reportData.createdAt).toLocaleDateString("ar-SA")}
+
+Ø§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø³Ø¬Ù„Ø©:
+${valuesLines}
+
+Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯:
+${evidencesLines}
+
+Ù…Ù„Ø®Øµ Ø§Ù„ØªÙ‚Ø±ÙŠØ±:
+ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ù‡Ø°Ø§ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³Ø¬Ù„Ø© ÙÙŠ Ù…Ù†ØµØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØŒ ÙˆÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©ØŒ ÙˆØ§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø¯Ø®Ù„Ø©ØŒ ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…Ø±ÙÙ‚Ø©.
+`.trim();
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as CreateReportBody;
+
+    const caseEntryId = body.caseEntryId || body.caseId;
+
+    if (!caseEntryId) {
+      return NextResponse.json(
+        {
+          error: "caseEntryId Ù…Ø·Ù„ÙˆØ¨ Ù„Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const templateId = body.templateId || "official-long";
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: caseEntryId,
+      },
+      include: {
+        service: true,
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+        values: {
+          include: {
+            field: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        caseEvidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const reportData = mapCaseEntryToReportData(caseEntry);
+
+    const reportTitle =
+      body.title?.trim() ||
+      `ØªÙ‚Ø±ÙŠØ± - ${reportData.title || reportData.service.name}`;
+
+    const initialContent = buildReportContent(reportData);
+
+    const templateSnapshot = await createTemplateSnapshotFromDatabase(templateId);
+    const reportDataSnapshot = createReportDataSnapshot(reportData);
+
+    const report = await prisma.guidanceReport.create({
+      data: {
+        title: reportTitle,
+        serviceSlug: reportData.service.slug,
+        caseEntryId: reportData.id,
+        genderMode: caseEntry.student?.gender === "FEMALE" ? "FEMALE" : "MALE",
+
+        editableContent: initialContent,
+        renderedContent: initialContent,
+
+        templateId,
+        templateSnapshot,
+        reportDataSnapshot,
+        generatedAt: new Date(),
+
+        evidenceItems: {
+          create: reportData.evidences.map((item, index) => ({
+            fileName: item.fileName || `evidence-${index + 1}`,
+            fileUrl: item.fileUrl,
+            caption: item.note || item.title || item.fileName || null,
+            sortOrder: index,
+            visible: true,
+          })),
+        },
+      },
+      include: {
+        evidenceItems: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      reportId: report.id,
+      previewUrl: `/dashboard/reports/${report.id}/preview?template=${templateId}`,
+    });
+  } catch (error) {
+    console.error("create report error:", error);
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+===== 2) CURRENT PREVIEW PAGE =====
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+
+import {
+  ReportPreviewToolbar,
+  type ReportViewMode,
+} from "@/components/reports/report-preview-toolbar";
+
+import { ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
+import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
+
+import type {
+  EvidenceLayout,
+  OfficialReportData,
+  ReportEvidence,
+  ReportIdentity,
+  ReportSection,
+  ReportTemplateId,
+} from "@/lib/report-engine/report-types";
+
+import { buildSmartReportTextSections } from "@/lib/report-engine/report-smart-text-engine";
+
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldKey,
+  getWorkflowFieldLabel,
+  stringifyWorkflowRawValue,
+} from "@/lib/workflow-values/workflow-display-value";
+
+type PageProps = {
+  params: Promise<{
+    reportId: string;
+  }>;
+  searchParams?: Promise<{
+    template?: string;
+    evidenceLayout?: string;
+    cover?: string;
+    studio?: string;
+    view?: string;
+    v?: string;
+  }>;
+};
+
+type WorkflowValueOverride = {
+  fieldKey: string;
+  fieldLabel: string;
+  originalValue: string;
+  editedValue: string;
+};
+
+type EditableContentPayload = {
+  blocks?: Record<string, string>;
+  workflowValueOverrides?: WorkflowValueOverride[];
+};
+
+type ReportValueItem = {
+  fieldKey: string;
+  fieldLabel: string;
+  originalValue: string;
+  displayValue: string;
+  isChanged: boolean;
+};
+
+type ReportFieldLookupItem = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: Array<{
+    label?: string | null;
+    value?: string | null;
+  }> | null;
+};
+
+const blockLabels: Record<string, string> = {
+  summaryIntro: "Ù…Ù„Ø®Øµ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+  intro: "Ù…Ù‚Ø¯Ù…Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+  goals: "Ø£Ù‡Ø¯Ø§Ù Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬",
+  procedures: "Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª",
+  results: "Ø§Ù„Ù†ØªØ§Ø¦Ø¬",
+  recommendations: "Ø§Ù„ØªÙˆØµÙŠØ§Øª",
+  closingNotes: "Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø®ØªØ§Ù…ÙŠØ©",
+  evidenceNotes: "Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯",
+};
+
+const blockOrder = [
+  "summaryIntro",
+  "intro",
+  "goals",
+  "procedures",
+  "results",
+  "recommendations",
+  "closingNotes",
+  "evidenceNotes",
+];
+
+const allowedTemplates: ReportTemplateId[] = [
+  "official-long",
+  "executive-brief",
+  "visual-activity",
+];
+
+const allowedEvidenceLayouts: EvidenceLayout[] = [
+  "auto",
+  "grid-2x2",
+  "two-columns",
+  "stacked",
+  "single-large",
+  "one-per-page",
+];
+
+const allowedReportViewModes: ReportViewMode[] = ["text", "grid", "mixed"];
+
+function getBuilderTemplateFromSnapshot(snapshot: unknown) {
+  const data = snapshot as
+    | {
+        source?: string;
+        builderTemplate?: any;
+      }
+    | null
+    | undefined;
+
+  if (data?.source !== "TEMPLATE_BUILDER") {
+    return null;
+  }
+
+  if (!data.builderTemplate || !Array.isArray(data.builderTemplate.pages)) {
+    return null;
+  }
+
+  return data.builderTemplate;
+}
+
+function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+async function getBuilderTemplateFromDatabase(templateId?: string | null) {
+  if (!templateId) {
+    return null;
+  }
+
+  if (allowedTemplates.includes(templateId as ReportTemplateId)) {
+    return null;
+  }
+
+  const templateRecord = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  if (!templateRecord) {
+    return null;
+  }
+
+  const templateJson =
+    parseBuilderTemplateJson(templateRecord.templateJson) ||
+    parseBuilderTemplateJson(templateRecord.content);
+
+  if (!templateJson || !Array.isArray(templateJson.pages)) {
+    return null;
+  }
+
+  return {
+    ...templateJson,
+    id: templateRecord.id,
+    name: templateRecord.name || templateJson.name,
+    description:
+      templateRecord.description ||
+      templateJson.description ||
+      "Ù‚Ø§Ù„Ø¨ ØªÙ‚Ø±ÙŠØ± Ù…Ø­ÙÙˆØ¸ Ù…Ù† ØµØ§Ù†Ø¹ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨.",
+    serviceSlug: templateRecord.serviceSlug || templateJson.serviceSlug || null,
+    status: "PUBLISHED",
+  };
+}
+
+function buildBuilderPreviewCaseData(report: any, reportValues: ReportValueItem[]) {
+  const student = report.caseEntry.student;
+  const guardian = student?.guardian;
+
+  return {
+    id: report.caseEntry.id,
+    title: report.caseEntry.title || report.title,
+    status: report.caseEntry.status,
+    createdAt: report.caseEntry.createdAt?.toISOString?.() || "",
+    updatedAt: report.caseEntry.updatedAt?.toISOString?.() || "",
+    submittedAt: report.caseEntry.submittedAt?.toISOString?.() || null,
+    serviceName: report.caseEntry.service.name,
+    serviceSlug: report.caseEntry.service.slug,
+
+    service: {
+      id: report.caseEntry.service.id,
+      name: report.caseEntry.service.name,
+      slug: report.caseEntry.service.slug,
+    },
+
+    student: student
+      ? {
+          id: student.id,
+          fullName: student.fullName,
+          nationalId: student.nationalId,
+          stage: student.stage,
+          grade: student.grade,
+          classroom: student.classroom,
+          guardianName: guardian?.name || null,
+          guardianPhone: guardian?.phone || null,
+        }
+      : null,
+
+    values: reportValues.map((item) => ({
+      fieldKey: item.fieldKey,
+      fieldLabel: item.fieldLabel,
+      value: item.displayValue,
+    })),
+
+    evidences: buildReportEvidences(report).map((item) => {
+      const evidenceItem = item as ReportEvidence & {
+        fileUrl?: string;
+      };
+
+      return {
+        id: evidenceItem.id,
+        title: evidenceItem.title,
+        fileName: evidenceItem.fileName || evidenceItem.title,
+        fileUrl: evidenceItem.fileUrl || evidenceItem.imageUrl || "",
+        imageUrl: evidenceItem.imageUrl,
+        note: evidenceItem.description || "",
+      };
+    }),
+  };
+}
+
+export default async function ReportRealPreviewPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const { reportId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+
+  const studioMode = resolvedSearchParams.studio === "true";
+  const showCover = resolvedSearchParams.cover !== "false";
+
+  const report = await prisma.guidanceReport.findUnique({
+    where: {
+      id: reportId,
+    },
+    include: {
+      caseEntry: {
+        include: {
+          service: true,
+
+          schoolAccount: {
+            include: {
+              profile: true,
+            },
+          },
+
+          createdBy: true,
+
+          workflow: {
+            include: {
+              steps: {
+                include: {
+                  fields: {
+                    include: {
+                      options: {
+                        orderBy: {
+                          order: "asc",
+                        },
+                      },
+                    },
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+
+          student: {
+            include: {
+              guardian: true,
+            },
+          },
+
+          values: {
+            include: {
+              field: {
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+
+          evidences: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+      },
+
+      evidenceItems: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+    },
+  });
+
+  if (!report) {
+    notFound();
+  }
+
+  const selectedTemplate = resolveTemplateId(
+    resolvedSearchParams.template || report.templateId
+  );
+
+  const selectedEvidenceLayout = resolveEvidenceLayout(
+    resolvedSearchParams.evidenceLayout
+  );
+
+  const selectedViewMode = resolveReportViewMode(resolvedSearchParams.view);
+
+  const parsedEditableContent = parseEditableContent(report.editableContent);
+  const workflowValueOverrides =
+    parsedEditableContent.workflowValueOverrides || [];
+
+  const fieldMap = buildReportFieldMap(report.caseEntry);
+
+  const normalizedCaseValues = report.caseEntry.values.map((value) =>
+    normalizeReportCaseValue(value, fieldMap)
+  );
+
+  const reportValues = buildReportValues(
+    normalizedCaseValues,
+    workflowValueOverrides
+  );
+
+  const identity = buildReportIdentity(report);
+
+  const officialReport = buildOfficialReportData({
+    report,
+    reportValues,
+    parsedEditableContent,
+    evidenceLayout: selectedEvidenceLayout,
+    viewMode: selectedViewMode,
+  });
+
+  return (
+    <main
+      dir="rtl"
+      className={
+        studioMode
+          ? "min-h-screen bg-slate-100 py-5"
+          : "min-h-screen bg-[radial-gradient(circle_at_top,_#e0f2fe_0,_#f8fafc_34%,_#f1f5f9_100%)] px-6 py-6"
+      }
+    >
+      {!studioMode ? (
+        <ReportPreviewToolbar
+          reportId={report.id}
+          title={report.title}
+          serviceName={report.caseEntry.service.name}
+          selectedTemplate={selectedTemplate}
+          selectedEvidenceLayout={selectedEvidenceLayout}
+          selectedViewMode={selectedViewMode}
+          showCover={showCover}
+        />
+      ) : null}
+
+      <section className={studioMode ? "mx-auto" : "mx-auto max-w-[260mm]"}>
+        <ReportDocumentRenderer
+          identity={identity}
+          report={officialReport}
+          templateId={selectedTemplate}
+          showCover={showCover}
+          evidenceLayout={selectedEvidenceLayout}
+        />
+      </section>
+    </main>
+  );
+}
+
+function buildReportIdentity(report: any) {
+  const profile = report.caseEntry.schoolAccount.profile;
+  const schoolAccount = report.caseEntry.schoolAccount;
+
+  return {
+    ministryName: "ÙˆØ²Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
+
+    educationDepartment: profile?.district
+      ? `Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ… - ${profile.district}`
+      : "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
+
+    educationOffice: profile?.city
+      ? `Ù…ÙƒØªØ¨ Ø§Ù„ØªØ¹Ù„ÙŠÙ… - ${profile.city}`
+      : "Ù…ÙƒØªØ¨ Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
+
+    schoolName: profile?.schoolName || schoolAccount.name || "Ø§Ø³Ù… Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+
+    counselorName:
+      report.caseEntry.createdBy?.name || "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
+
+    counselorTitle: "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
+
+    academicYear: profile?.academicYear || "Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+
+    semester: profile?.currentSemester || "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+
+    schoolLogoUrl: undefined,
+
+    ministryLogoUrl: undefined,
+  } as ReportIdentity;
+}
+
+function buildReportFieldMap(caseEntry: any) {
+  const map = new Map<string, ReportFieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function normalizeReportCaseValue(
+  value: any,
+  fieldMap: Map<string, ReportFieldLookupItem>
+) {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function buildOfficialReportData({
+  report,
+  reportValues,
+  parsedEditableContent,
+  evidenceLayout,
+  viewMode,
+}: {
+  report: any;
+  reportValues: ReportValueItem[];
+  parsedEditableContent: EditableContentPayload;
+  evidenceLayout: EvidenceLayout;
+  viewMode: ReportViewMode;
+}) {
+  const student = report.caseEntry.student;
+  const guardian = student?.guardian;
+  const profile = report.caseEntry.schoolAccount.profile;
+
+  const reportDate = formatDate(report.generatedAt || report.createdAt);
+
+  const executionDate =
+    findValueByKeys(reportValues, [
+      "date",
+      "execution_date",
+      "program_date",
+      "gregorian_date",
+      "ØªØ§Ø±ÙŠØ®",
+      "Ø§Ù„ØªØ§Ø±ÙŠØ®",
+    ]) || reportDate;
+
+  const programTitle =
+    findValueByKeys(reportValues, [
+      "program",
+      "program_name",
+      "program_title",
+      "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬",
+      "Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬",
+    ]) || report.title;
+
+  const targetGroup =
+    findValueByKeys(reportValues, [
+      "target",
+      "beneficiaries",
+      "target_group",
+      "Ø§Ù„Ù…Ø³ØªÙÙŠØ¯ÙˆÙ†",
+      "Ø§Ù„ÙØ¦Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©",
+    ]) ||
+    [student?.stage, student?.grade, student?.classroom]
+      .filter(Boolean)
+      .join(" - ") ||
+    "ØºÙŠØ± Ù…Ø­Ø¯Ø¯";
+
+  const editableSections = buildEditableSections(parsedEditableContent);
+
+  const hasManualIntro =
+    Boolean(parsedEditableContent.blocks?.intro?.trim()) ||
+    Boolean(parsedEditableContent.blocks?.summaryIntro?.trim());
+
+  const smartNarrativeSections = hasManualIntro
+    ? []
+    : buildSmartReportTextSections({
+        serviceName: report.caseEntry.service.name,
+        reportTitle: report.title,
+        programTitle,
+        executionDate,
+        targetGroup,
+        reportValues,
+        evidenceCount:
+          report.evidenceItems.length || report.caseEntry.evidences.length,
+      });
+
+  const studentSection = buildStudentSection(student, guardian);
+  const workflowSections = buildWorkflowSections(reportValues);
+
+  const sections = buildSectionsByViewMode({
+    viewMode,
+    smartNarrativeSections,
+    editableSections,
+    studentSection,
+    workflowSections,
+  });
+
+  const evidences = buildReportEvidences(report);
+
+  return {
+    title: report.title,
+    subtitle: report.caseEntry.title || report.caseEntry.service.name,
+    serviceName: report.caseEntry.service.name,
+    category: report.caseEntry.service.name,
+    reportDate,
+    targetGroup,
+    evidenceLayout,
+
+    cover: {
+      programTitle,
+      executionDate,
+
+      schoolYear:
+        profile?.academicYear ||
+        findValueByKeys(reportValues, [
+          "academic_year",
+          "school_year",
+          "Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+          "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ©",
+        ]) ||
+        "Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+
+      semester:
+        findValueByKeys(reportValues, [
+          "semester",
+          "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+          "Ø§Ù„ÙØµÙ„",
+        ]) ||
+        profile?.currentSemester ||
+        "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+
+      shortDescription:
+        parsedEditableContent.blocks?.summaryIntro ||
+        parsedEditableContent.blocks?.intro ||
+        `ØªÙ‚Ø±ÙŠØ± ÙŠÙˆØ«Ù‚ ${report.caseEntry.service.name} Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø© ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ù‡Ø§.`,
+    },
+
+    sections,
+
+    evidences,
+
+    approval: {
+      counselorName:
+        report.caseEntry.createdBy?.name || "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
+      principalName: profile?.principalName || "Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+      date: reportDate,
+    },
+  } as OfficialReportData;
+}
+
+function buildStudentSection(student: any, guardian: any): ReportSection[] {
+  if (!student) {
+    return [];
+  }
+
+  return [
+    {
+      id: "student-info",
+      title: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©",
+      content: "",
+      items: [
+        {
+          label: "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©",
+          value: student.fullName,
+        },
+        {
+          label: "Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©",
+          value: student.nationalId || "ØºÙŠØ± Ù…ØªÙˆÙØ±",
+        },
+        {
+          label: "Ø§Ù„Ù…Ø±Ø­Ù„Ø©",
+          value: student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+        },
+        {
+          label: "Ø§Ù„ØµÙ",
+          value: student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+        },
+        {
+          label: "Ø§Ù„ÙØµÙ„",
+          value: student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+        },
+        {
+          label: "ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±",
+          value: guardian?.name || "ØºÙŠØ± Ù…ØªÙˆÙØ±",
+        },
+        {
+          label: "Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±",
+          value: guardian?.phone || "ØºÙŠØ± Ù…ØªÙˆÙØ±",
+        },
+      ],
+    },
+  ];
+}
+
+function buildSectionsByViewMode({
+  viewMode,
+  smartNarrativeSections,
+  editableSections,
+  studentSection,
+  workflowSections,
+}: {
+  viewMode: ReportViewMode;
+  smartNarrativeSections: ReportSection[];
+  editableSections: ReportSection[];
+  studentSection: ReportSection[];
+  workflowSections: ReportSection[];
+}): ReportSection[] {
+  if (viewMode === "text") {
+    return [...smartNarrativeSections, ...editableSections, ...studentSection];
+  }
+
+  if (viewMode === "grid") {
+    return [...studentSection, ...workflowSections];
+  }
+
+  return [
+    ...smartNarrativeSections,
+    ...editableSections,
+    ...studentSection,
+    ...workflowSections,
+  ];
+}
+
+function buildEditableSections(
+  parsedEditableContent: EditableContentPayload
+): ReportSection[] {
+  const blocks = parsedEditableContent.blocks || {};
+  const sections: ReportSection[] = [];
+
+  for (const key of blockOrder) {
+    const content = blocks[key]?.trim();
+
+    if (!content) continue;
+
+    sections.push({
+      id: `editorial-${key}`,
+      title: blockLabels[key] || key,
+      content,
+    });
+  }
+
+  return sections;
+}
+
+function buildWorkflowSections(reportValues: ReportValueItem[]): ReportSection[] {
+  const importantKeys = [
+    "program",
+    "program_name",
+    "semester",
+    "week",
+    "day",
+    "date",
+    "gregorian_date",
+    "hijri_date",
+    "beneficiaries",
+    "target_group",
+    "execution_action",
+    "execution_mechanism",
+    "performance_indicator",
+    "evidence_suggestion",
+    "operation",
+    "recommendations",
+    "notes",
+  ];
+
+  const primaryItems = reportValues
+    .filter((item) =>
+      importantKeys.some(
+        (key) =>
+          item.fieldKey.toLowerCase().includes(key.toLowerCase()) ||
+          normalizeSearchText(item.fieldLabel).includes(normalizeSearchText(key))
+      )
+    )
+    .map((item) => ({
+      label: item.fieldLabel,
+      value: item.displayValue || "â€”",
+    }));
+
+  const otherItems = reportValues
+    .filter(
+      (item) =>
+        !importantKeys.some(
+          (key) =>
+            item.fieldKey.toLowerCase().includes(key.toLowerCase()) ||
+            normalizeSearchText(item.fieldLabel).includes(
+              normalizeSearchText(key)
+            )
+        )
+    )
+    .map((item) => ({
+      label: item.fieldLabel,
+      value: item.displayValue || "â€”",
+    }));
+
+  const sections: ReportSection[] = [];
+
+  if (primaryItems.length) {
+    sections.push({
+      id: "workflow-primary",
+      title: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬ ÙˆØ§Ù„ØªÙ†ÙÙŠØ°",
+      content: "",
+      items: primaryItems,
+    });
+  }
+
+  if (otherItems.length) {
+    sections.push({
+      id: "workflow-extra",
+      title: "Ø¨ÙŠØ§Ù†Ø§Øª Ø¥Ø¶Ø§ÙÙŠØ© Ù…Ù† Ø§Ù„Ø­Ø§Ù„Ø©",
+      content: "",
+      items: otherItems,
+    });
+  }
+
+  return sections;
+}
+
+function buildReportEvidences(report: any): ReportEvidence[] {
+  const reportEvidenceItems = report.evidenceItems
+    .filter((item: any) => item.visible)
+    .map((item: any) => ({
+      id: item.id,
+      title: item.caption || item.fileName,
+      description: item.caption || "",
+      fileName: item.fileName,
+      imageUrl: isImageMime(item.mimeType) ? item.fileUrl : undefined,
+      fileUrl: item.fileUrl,
+    }));
+
+  if (reportEvidenceItems.length) {
+    return reportEvidenceItems;
+  }
+
+  return report.caseEntry.evidences.map((item: any) => ({
+    id: item.id,
+    title: item.note || item.fileName || "Ø´Ø§Ù‡Ø¯",
+    description: item.note || "",
+    fileName: item.fileName || "Ù…Ø±ÙÙ‚",
+    imageUrl: isImageMime(item.mimeType) ? item.fileUrl || undefined : undefined,
+    fileUrl: item.fileUrl || undefined,
+  }));
+}
+
+function buildReportValues(
+  values: Array<{
+    id: string;
+    fieldKey?: string | null;
+    value?: string | null;
+    jsonValue?: unknown;
+    field?: {
+      key?: string | null;
+      label?: string | null;
+      type?: string | null;
+      options?: Array<{
+        label?: string | null;
+        value?: string | null;
+      }> | null;
+    } | null;
+  }>,
+  overrides: WorkflowValueOverride[]
+): ReportValueItem[] {
+  const overrideMap = new Map<string, WorkflowValueOverride>();
+
+  for (const override of overrides) {
+    if (override.fieldKey) {
+      overrideMap.set(override.fieldKey, override);
+    }
+
+    if (override.fieldLabel) {
+      overrideMap.set(override.fieldLabel, override);
+    }
+  }
+
+  return values
+    .filter((item) => {
+      const key = getWorkflowFieldKey(item);
+
+      return (
+        key &&
+        key !== "selectedStudent" &&
+        !key.endsWith("__other") &&
+        !["student", "guardian", "metadata"].includes(key)
+      );
+    })
+    .map((item, index) => {
+      const fieldKey = getWorkflowFieldKey(item);
+      const fieldLabel = getWorkflowFieldLabel(item, index);
+
+      const originalValue = stringifyWorkflowRawValue(
+        item.value ?? item.jsonValue
+      );
+
+      const originalDisplayValue = formatWorkflowDisplayValue(item, values);
+
+      const override =
+        overrideMap.get(fieldKey) ||
+        overrideMap.get(fieldLabel) ||
+        overrideMap.get(item.fieldKey || "");
+
+      const displayValue = override?.editedValue ?? originalDisplayValue;
+
+      return {
+        fieldKey,
+        fieldLabel,
+        originalValue,
+        displayValue,
+        isChanged: Boolean(
+          override &&
+            override.editedValue.trim() !== originalDisplayValue.trim()
+        ),
+      };
+    });
+}
+
+function parseEditableContent(value?: unknown): EditableContentPayload {
+  if (!value) {
+    return {};
+  }
+
+  if (typeof value === "object") {
+    return value as EditableContentPayload;
+  }
+
+  if (typeof value !== "string") {
+    return {};
+  }
+
+  const content = value.trim();
+
+  if (!content) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(content) as EditableContentPayload;
+
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+function findValueByKeys(items: ReportValueItem[], keys: string[]) {
+  const normalizedKeys = keys.map(normalizeSearchText);
+
+  const found = items.find((item) => {
+    const key = normalizeSearchText(item.fieldKey);
+    const label = normalizeSearchText(item.fieldLabel);
+
+    return normalizedKeys.some(
+      (target) => key.includes(target) || label.includes(target)
+    );
+  });
+
+  return found?.displayValue?.trim() || "";
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[Ø£Ø¥Ø¢]/g, "Ø§")
+    .replace(/Ù‰/g, "ÙŠ")
+    .replace(/Ø©/g, "Ù‡")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveTemplateId(value?: string | null): ReportTemplateId {
+  if (value && allowedTemplates.includes(value as ReportTemplateId)) {
+    return value as ReportTemplateId;
+  }
+
+  return "official-long";
+}
+
+function resolveEvidenceLayout(value?: string | null): EvidenceLayout {
+  if (value && allowedEvidenceLayouts.includes(value as EvidenceLayout)) {
+    return value as EvidenceLayout;
+  }
+
+  return "grid-2x2";
+}
+
+function resolveReportViewMode(value?: string | null): ReportViewMode {
+  if (value && allowedReportViewModes.includes(value as ReportViewMode)) {
+    return value as ReportViewMode;
+  }
+
+  return "mixed";
+}
+
+function isImageMime(mimeType?: string | null) {
+  return Boolean(mimeType?.startsWith("image/"));
+}
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return new Date().toLocaleDateString("ar-SA");
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA");
+  } catch {
+    return String(value);
+  }
+}
+
+===== 3) CURRENT STUDIO PAGE =====
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { ReportStudioEditor } from "@/components/reports/report-studio-editor";
+import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
+
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldKey,
+  getWorkflowFieldLabel,
+  stringifyWorkflowRawValue,
+} from "@/lib/workflow-values/workflow-display-value";
+
+type PageProps = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+type WorkflowValueOverride = {
+  fieldKey: string;
+  fieldLabel: string;
+  originalValue: string;
+  editedValue: string;
+};
+
+type EditableContentPayload = {
+  blocks?: Record<string, string>;
+  workflowValueOverrides?: WorkflowValueOverride[];
+};
+
+type StudioReportValue = {
+  fieldKey: string;
+  fieldLabel: string;
+  value: string;
+};
+
+type ReportFieldLookupItem = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: Array<{
+    label?: string | null;
+    value?: string | null;
+  }> | null;
+};
+
+export default async function ReportStudioPage({ params }: PageProps) {
+  const { reportId } = await params;
+
+  const report = await prisma.guidanceReport.findUnique({
+    where: {
+      id: reportId,
+    },
+    include: {
+      evidenceItems: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+
+      caseEntry: {
+        include: {
+          service: true,
+
+          workflow: {
+            include: {
+              steps: {
+                include: {
+                  fields: {
+                    include: {
+                      options: {
+                        orderBy: {
+                          order: "asc",
+                        },
+                      },
+                    },
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+
+          student: {
+            include: {
+              guardian: true,
+            },
+          },
+
+          values: {
+            include: {
+              field: {
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!report) {
+    notFound();
+  }
+
+  const parsedEditableContent = parseEditableContent(report.editableContent);
+  const workflowValueOverrides =
+    parsedEditableContent.workflowValueOverrides || [];
+
+  const fieldMap = buildReportFieldMap(report.caseEntry);
+
+  const normalizedCaseValues = report.caseEntry.values.map((value) =>
+    normalizeReportCaseValue(value, fieldMap)
+  );
+
+  const liveCaseValues = buildStudioReportValues(
+    normalizedCaseValues,
+    workflowValueOverrides
+  );
+
+  const normalizedReport = {
+    id: report.id,
+    title: report.title,
+    serviceSlug: report.serviceSlug,
+    status: report.status,
+    genderMode: report.genderMode,
+    templateId: report.templateId,
+    hasTemplateSnapshot: Boolean(report.templateSnapshot),
+    hasReportDataSnapshot: Boolean(report.reportDataSnapshot),
+    editableContent: report.editableContent || "",
+    renderedContent: report.renderedContent || "",
+    generatedAt: report.generatedAt?.toISOString() || null,
+    approvedAt: report.approvedAt?.toISOString() || null,
+    archivedAt: report.archivedAt?.toISOString() || null,
+    createdAt: report.createdAt.toISOString(),
+    updatedAt: report.updatedAt.toISOString(),
+
+    /**
+     * Ù…Ù‡Ù…:
+     * Ù„Ø§ Ù†Ø³ØªØ®Ø¯Ù… reportDataSnapshot Ù‡Ù†Ø§ ÙƒÙ…ØµØ¯Ø± Ø£ÙˆÙ„Ø› Ù„Ø£Ù†Ù‡ ØºØ§Ù„Ø¨Ù‹Ø§ ÙŠØ­ØªÙˆÙŠ Ù‚ÙŠÙ… ØªÙ‚Ù†ÙŠØ© Ù‚Ø¯ÙŠÙ…Ø©.
+     * Ù†Ø³ØªØ®Ø¯Ù… Ù‚ÙŠÙ… Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ø­ÙŠØ© Ø¨Ø¹Ø¯ ØªØ­ÙˆÙŠÙ„Ù‡Ø§ Ù…Ù† option.value Ø¥Ù„Ù‰ option.label.
+     */
+    reportValues: liveCaseValues,
+
+    evidenceItems: report.evidenceItems.map((item) => ({
+      id: item.id,
+      fileName: item.fileName,
+      fileUrl: item.fileUrl,
+      caption: item.caption,
+      mimeType: item.mimeType,
+      size: item.size,
+      sortOrder: item.sortOrder,
+      visible: item.visible,
+      createdAt: item.createdAt.toISOString(),
+    })),
+
+    caseEntry: {
+      id: report.caseEntry.id,
+      title: report.caseEntry.title,
+      status: report.caseEntry.status,
+      createdAt: report.caseEntry.createdAt.toISOString(),
+
+      service: {
+        id: report.caseEntry.service.id,
+        name: report.caseEntry.service.name,
+        slug: report.caseEntry.service.slug,
+      },
+
+      student: report.caseEntry.student
+        ? {
+            id: report.caseEntry.student.id,
+            fullName: report.caseEntry.student.fullName,
+            nationalId: report.caseEntry.student.nationalId,
+            stage: report.caseEntry.student.stage,
+            grade: report.caseEntry.student.grade,
+            classroom: report.caseEntry.student.classroom,
+            guardianName: report.caseEntry.student.guardian?.name || null,
+            guardianPhone: report.caseEntry.student.guardian?.phone || null,
+          }
+        : null,
+    },
+  };
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-8 text-white shadow-2xl">
+        <div>
+          <p className="text-sm font-bold text-sky-100">Report Live Studio</p>
+
+          <h1 className="mt-3 text-4xl font-black">ØªØ­Ø±ÙŠØ± Ø§Ù„ØªÙ‚Ø±ÙŠØ±</h1>
+
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-50">
+            Ø¹Ø¯Ù‘Ù„ Ø§Ù„Ù†ØµÙˆØµ ÙˆÙ‚ÙŠÙ… Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ù‚Ø¨Ù„ Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯. Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ù‡Ù†Ø§ Ù„Ø§ ÙŠØºÙŠÙ‘Ø± Ø§Ù„Ø­Ø§Ù„Ø©
+            Ø§Ù„Ø£ØµÙ„ÙŠØ©ØŒ Ø¨Ù„ ÙŠØ­ÙØ¸ Ù†Ø³Ø®Ø© ØªØ­Ø±ÙŠØ±ÙŠØ© Ø¯Ø§Ø®Ù„ Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙÙ‚Ø·.
+          </p>
+        </div>
+      </section>
+
+      <ReportStudioEditor report={normalizedReport} />
+    </main>
+  );
+}
+
+function buildReportFieldMap(caseEntry: any) {
+  const map = new Map<string, ReportFieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function normalizeReportCaseValue(
+  value: any,
+  fieldMap: Map<string, ReportFieldLookupItem>
+) {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function buildStudioReportValues(
+  values: Array<{
+    id: string;
+    fieldKey?: string | null;
+    value?: string | null;
+    jsonValue?: unknown;
+    field?: {
+      key?: string | null;
+      label?: string | null;
+      type?: string | null;
+      options?: Array<{
+        label?: string | null;
+        value?: string | null;
+      }> | null;
+    } | null;
+  }>,
+  overrides: WorkflowValueOverride[]
+): StudioReportValue[] {
+  const overrideMap = new Map<string, WorkflowValueOverride>();
+
+  for (const override of overrides) {
+    if (override.fieldKey) {
+      overrideMap.set(override.fieldKey, override);
+    }
+
+    if (override.fieldLabel) {
+      overrideMap.set(override.fieldLabel, override);
+    }
+  }
+
+  return values
+    .filter((item) => {
+      const key = getWorkflowFieldKey(item);
+
+      return (
+        key &&
+        key !== "selectedStudent" &&
+        !key.endsWith("__other") &&
+        !["student", "guardian", "metadata"].includes(key)
+      );
+    })
+    .map((item, index) => {
+      const fieldKey = getWorkflowFieldKey(item);
+      const fieldLabel = getWorkflowFieldLabel(item, index);
+
+      const displayValue = formatWorkflowDisplayValue(item, values);
+      const originalRawValue = stringifyWorkflowRawValue(
+        item.value ?? item.jsonValue
+      );
+
+      const override =
+        overrideMap.get(fieldKey) ||
+        overrideMap.get(fieldLabel) ||
+        overrideMap.get(item.fieldKey || "");
+
+      return {
+        fieldKey,
+        fieldLabel,
+        value: override?.editedValue ?? displayValue ?? originalRawValue,
+      };
+    });
+}
+
+function parseEditableContent(value?: string | null): EditableContentPayload {
+  const content = value?.trim();
+
+  if (!content) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(content) as EditableContentPayload;
+
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+===== 4) CURRENT STUDIO EDITOR IMPORTANT PARTS =====
+
+  components\reports\report-studio-editor.tsx:9:  | "GENERATED"
+  components\reports\report-studio-editor.tsx:10:  | "APPROVED"
+  components\reports\report-studio-editor.tsx:11:  | "ARCHIVED"
+  components\reports\report-studio-editor.tsx:12:  | string;
+  components\reports\report-studio-editor.tsx:13:
+> components\reports\report-studio-editor.tsx:14:type ReportTemplateId = 
+"official-long" | "visual-activity" | "executive-brief";
+  components\reports\report-studio-editor.tsx:15:
+  components\reports\report-studio-editor.tsx:16:type EvidenceLayout =
+  components\reports\report-studio-editor.tsx:17:  | "auto"
+  components\reports\report-studio-editor.tsx:18:  | "single-large"
+  components\reports\report-studio-editor.tsx:19:  | "two-columns"
+  components\reports\report-studio-editor.tsx:20:  | "stacked"
+  components\reports\report-studio-editor.tsx:21:  | "grid-2x2"
+  components\reports\report-studio-editor.tsx:22:  | "one-per-page";
+  components\reports\report-studio-editor.tsx:23:
+  components\reports\report-studio-editor.tsx:24:type ReportValue = {
+  components\reports\report-studio-editor.tsx:25:  fieldKey: string;
+  components\reports\report-studio-editor.tsx:26:  fieldLabel: string;
+  components\reports\report-studio-editor.tsx:38:  id: string;
+  components\reports\report-studio-editor.tsx:39:  title: string;
+  components\reports\report-studio-editor.tsx:40:  serviceSlug: string;
+  components\reports\report-studio-editor.tsx:41:  status: StudioReportStatus;
+  components\reports\report-studio-editor.tsx:42:  genderMode: string;
+> components\reports\report-studio-editor.tsx:43:  templateId?: string | null;
+  components\reports\report-studio-editor.tsx:44:  hasTemplateSnapshot: boolean;
+  components\reports\report-studio-editor.tsx:45:  hasReportDataSnapshot: boolean;
+  components\reports\report-studio-editor.tsx:46:  editableContent: string;
+  components\reports\report-studio-editor.tsx:47:  renderedContent: string;
+  components\reports\report-studio-editor.tsx:48:  generatedAt?: string | null;
+  components\reports\report-studio-editor.tsx:49:  approvedAt?: string | null;
+  components\reports\report-studio-editor.tsx:50:  archivedAt?: string | null;
+  components\reports\report-studio-editor.tsx:51:  createdAt: string;
+  components\reports\report-studio-editor.tsx:52:  updatedAt: string;
+  components\reports\report-studio-editor.tsx:53:
+  components\reports\report-studio-editor.tsx:54:  reportValues: ReportValue[];
+  components\reports\report-studio-editor.tsx:55:
+  components\reports\report-studio-editor.tsx:88:      guardianPhone?: string | null;
+  components\reports\report-studio-editor.tsx:89:    } | null;
+  components\reports\report-studio-editor.tsx:90:  };
+  components\reports\report-studio-editor.tsx:91:};
+  components\reports\report-studio-editor.tsx:92:
+> components\reports\report-studio-editor.tsx:93:type ReportStudioEditorProps = {
+  components\reports\report-studio-editor.tsx:94:  report: StudioReport;
+  components\reports\report-studio-editor.tsx:95:};
+  components\reports\report-studio-editor.tsx:96:
+  components\reports\report-studio-editor.tsx:97:type EditablePageKey =
+  components\reports\report-studio-editor.tsx:98:  | "intro"
+  components\reports\report-studio-editor.tsx:99:  | "goals"
+  components\reports\report-studio-editor.tsx:100:  | "procedures"
+  components\reports\report-studio-editor.tsx:101:  | "results"
+  components\reports\report-studio-editor.tsx:102:  | "recommendations"
+  components\reports\report-studio-editor.tsx:103:  | "evidence"
+  components\reports\report-studio-editor.tsx:104:  | "allValues";
+  components\reports\report-studio-editor.tsx:105:
+  components\reports\report-studio-editor.tsx:253:    placeholder:
+  components\reports\report-studio-editor.tsx:254:      "اكتب ملاحظات الشواهد هنا، 
+مثل: تم إرفاق الشواهد الداعمة للتقرير لأغراض التوثيق...",
+  components\reports\report-studio-editor.tsx:255:  },
+  components\reports\report-studio-editor.tsx:256:};
+  components\reports\report-studio-editor.tsx:257:
+> components\reports\report-studio-editor.tsx:258:const TEMPLATE_OPTIONS: Array<{ 
+id: ReportTemplateId; label: string }> = [
+  components\reports\report-studio-editor.tsx:259:  { id: "official-long", label: 
+"القالب الرسمي" },
+  components\reports\report-studio-editor.tsx:260:  { id: "visual-activity", label: 
+"القالب البصري" },
+  components\reports\report-studio-editor.tsx:261:  { id: "executive-brief", label: 
+"القالب المختصر" },
+  components\reports\report-studio-editor.tsx:262:];
+  components\reports\report-studio-editor.tsx:263:
+  components\reports\report-studio-editor.tsx:264:const EVIDENCE_LAYOUT_OPTIONS: 
+Array<{ id: EvidenceLayout; label: string }> = [
+  components\reports\report-studio-editor.tsx:265:  { id: "grid-2x2", label: "شواهد 
+2×2" },
+  components\reports\report-studio-editor.tsx:266:  { id: "two-columns", label: 
+"صورتان بجانب بعض" },
+  components\reports\report-studio-editor.tsx:267:  { id: "stacked", label: "صور تحت 
+بعض" },
+  components\reports\report-studio-editor.tsx:268:  { id: "one-per-page", label: 
+"شاهد لكل صفحة" },
+  components\reports\report-studio-editor.tsx:269:];
+  components\reports\report-studio-editor.tsx:270:
+> components\reports\report-studio-editor.tsx:271:export function 
+ReportStudioEditor({ report }: ReportStudioEditorProps) {
+  components\reports\report-studio-editor.tsx:272:  const router = useRouter();
+  components\reports\report-studio-editor.tsx:273:  const [isPending, 
+startTransition] = useTransition();
+  components\reports\report-studio-editor.tsx:274:
+  components\reports\report-studio-editor.tsx:275:  const isLocked = report.status 
+=== "APPROVED" || report.status === "ARCHIVED";
+  components\reports\report-studio-editor.tsx:276:  const isApproved = report.status 
+=== "APPROVED";
+  components\reports\report-studio-editor.tsx:277:  const isArchived = report.status 
+=== "ARCHIVED";
+  components\reports\report-studio-editor.tsx:278:
+  components\reports\report-studio-editor.tsx:279:  const parsedInitialState = 
+useMemo(() => {
+  components\reports\report-studio-editor.tsx:280:    return 
+parseEditState(report.editableContent, report.renderedContent);
+  components\reports\report-studio-editor.tsx:281:  }, [report.editableContent, 
+report.renderedContent]);
+  components\reports\report-studio-editor.tsx:282:
+  components\reports\report-studio-editor.tsx:283:  const initialOverrideMap = 
+useMemo(() => {
+  components\reports\report-studio-editor.tsx:295:  const [workflowOverrideMap, 
+setWorkflowOverrideMap] =
+  components\reports\report-studio-editor.tsx:296:    useState<Record<string, 
+string>>(initialOverrideMap);
+  components\reports\report-studio-editor.tsx:297:
+  components\reports\report-studio-editor.tsx:298:  const [activePage, 
+setActivePage] = useState<EditablePageKey>("intro");
+  components\reports\report-studio-editor.tsx:299:
+> components\reports\report-studio-editor.tsx:300:  const [templateId, 
+setTemplateId] = useState<ReportTemplateId>(
+> components\reports\report-studio-editor.tsx:301:    
+normalizeTemplateId(report.templateId)
+  components\reports\report-studio-editor.tsx:302:  );
+  components\reports\report-studio-editor.tsx:303:
+  components\reports\report-studio-editor.tsx:304:  const [evidenceLayout, 
+setEvidenceLayout] =
+  components\reports\report-studio-editor.tsx:305:    
+useState<EvidenceLayout>("grid-2x2");
+  components\reports\report-studio-editor.tsx:306:  const [showCover, setShowCover] 
+= useState(true);
+  components\reports\report-studio-editor.tsx:307:  const [showEditorial, 
+setShowEditorial] = useState(true);
+  components\reports\report-studio-editor.tsx:308:
+  components\reports\report-studio-editor.tsx:309:  const [saving, setSaving] = 
+useState(false);
+  components\reports\report-studio-editor.tsx:310:  const [approving, setApproving] 
+= useState(false);
+  components\reports\report-studio-editor.tsx:311:  const [showApproveModal, 
+setShowApproveModal] = useState(false);
+  components\reports\report-studio-editor.tsx:312:  const [feedback, setFeedback] = 
+useState<FeedbackState>(null);
+  components\reports\report-studio-editor.tsx:313:  const [previewVersion, 
+setPreviewVersion] = useState(1);
+  components\reports\report-studio-editor.tsx:384:      .trim()
+  components\reports\report-studio-editor.tsx:385:      .split(/\s+/)
+  components\reports\report-studio-editor.tsx:386:      .filter(Boolean).length;
+  components\reports\report-studio-editor.tsx:387:  }, [renderedContent]);
+  components\reports\report-studio-editor.tsx:388:
+> components\reports\report-studio-editor.tsx:389:  const previewUrl = 
+buildPreviewUrl({
+  components\reports\report-studio-editor.tsx:390:    reportId: report.id,
+> components\reports\report-studio-editor.tsx:391:    templateId,
+  components\reports\report-studio-editor.tsx:392:    evidenceLayout,
+  components\reports\report-studio-editor.tsx:393:    showCover,
+  components\reports\report-studio-editor.tsx:394:    showEditorial,
+  components\reports\report-studio-editor.tsx:395:    previewVersion,
+  components\reports\report-studio-editor.tsx:396:  });
+  components\reports\report-studio-editor.tsx:397:
+  components\reports\report-studio-editor.tsx:398:  function updateBlock(key: 
+EditorialBlockKey, value: string) {
+  components\reports\report-studio-editor.tsx:399:    setBlocks((current) => ({
+  components\reports\report-studio-editor.tsx:400:      ...current,
+  components\reports\report-studio-editor.tsx:401:      [key]: value,
+  components\reports\report-studio-editor.tsx:402:    }));
+  components\reports\report-studio-editor.tsx:403:  }
+  components\reports\report-studio-editor.tsx:520:  }
+  components\reports\report-studio-editor.tsx:521:
+  components\reports\report-studio-editor.tsx:522:  return (
+  components\reports\report-studio-editor.tsx:523:    <section className="grid gap-6 
+xl:grid-cols-[minmax(0,1fr)_430px]">
+  components\reports\report-studio-editor.tsx:524:      <div 
+className="min-h-[calc(100vh-220px)] overflow-hidden rounded-[2rem] border 
+border-slate-200 bg-white shadow-sm">
+> components\reports\report-studio-editor.tsx:525:        <PreviewToolbar
+> components\reports\report-studio-editor.tsx:526:          templateId={templateId}
+  components\reports\report-studio-editor.tsx:527:          
+evidenceLayout={evidenceLayout}
+  components\reports\report-studio-editor.tsx:528:          showCover={showCover}
+  components\reports\report-studio-editor.tsx:529:          
+showEditorial={showEditorial}
+> components\reports\report-studio-editor.tsx:530:          
+onTemplateChange={setTemplateId}
+  components\reports\report-studio-editor.tsx:531:          
+onEvidenceLayoutChange={setEvidenceLayout}
+  components\reports\report-studio-editor.tsx:532:          onToggleCover={() => 
+setShowCover((current) => !current)}
+  components\reports\report-studio-editor.tsx:533:          onToggleEditorial={() => 
+setShowEditorial((current) => !current)}
+  components\reports\report-studio-editor.tsx:534:          onRefresh={() => 
+setPreviewVersion((current) => current + 1)}
+  components\reports\report-studio-editor.tsx:535:          reportId={report.id}
+  components\reports\report-studio-editor.tsx:536:        />
+  components\reports\report-studio-editor.tsx:537:
+  components\reports\report-studio-editor.tsx:538:        <iframe
+  components\reports\report-studio-editor.tsx:539:          key={previewUrl}
+  components\reports\report-studio-editor.tsx:540:          src={previewUrl}
+  components\reports\report-studio-editor.tsx:541:          
+className="h-[calc(100vh-320px)] min-h-[760px] w-full bg-slate-100"
+  components\reports\report-studio-editor.tsx:542:          title="معاينة التقرير"
+  components\reports\report-studio-editor.tsx:655:      ) : null}
+  components\reports\report-studio-editor.tsx:656:    </section>
+  components\reports\report-studio-editor.tsx:657:  );
+  components\reports\report-studio-editor.tsx:658:}
+  components\reports\report-studio-editor.tsx:659:
+> components\reports\report-studio-editor.tsx:660:function PreviewToolbar({
+> components\reports\report-studio-editor.tsx:661:  templateId,
+  components\reports\report-studio-editor.tsx:662:  evidenceLayout,
+  components\reports\report-studio-editor.tsx:663:  showCover,
+  components\reports\report-studio-editor.tsx:664:  showEditorial,
+  components\reports\report-studio-editor.tsx:665:  onTemplateChange,
+  components\reports\report-studio-editor.tsx:666:  onEvidenceLayoutChange,
+  components\reports\report-studio-editor.tsx:667:  onToggleCover,
+  components\reports\report-studio-editor.tsx:668:  onToggleEditorial,
+  components\reports\report-studio-editor.tsx:669:  onRefresh,
+  components\reports\report-studio-editor.tsx:670:  reportId,
+  components\reports\report-studio-editor.tsx:671:}: {
+> components\reports\report-studio-editor.tsx:672:  templateId: ReportTemplateId;
+  components\reports\report-studio-editor.tsx:673:  evidenceLayout: EvidenceLayout;
+  components\reports\report-studio-editor.tsx:674:  showCover: boolean;
+  components\reports\report-studio-editor.tsx:675:  showEditorial: boolean;
+> components\reports\report-studio-editor.tsx:676:  onTemplateChange: (value: 
+ReportTemplateId) => void;
+  components\reports\report-studio-editor.tsx:677:  onEvidenceLayoutChange: (value: 
+EvidenceLayout) => void;
+  components\reports\report-studio-editor.tsx:678:  onToggleCover: () => void;
+  components\reports\report-studio-editor.tsx:679:  onToggleEditorial: () => void;
+  components\reports\report-studio-editor.tsx:680:  onRefresh: () => void;
+  components\reports\report-studio-editor.tsx:681:  reportId: string;
+  components\reports\report-studio-editor.tsx:682:}) {
+  components\reports\report-studio-editor.tsx:683:  return (
+  components\reports\report-studio-editor.tsx:684:    <div className="border-b 
+border-slate-200 bg-white px-5 py-4">
+  components\reports\report-studio-editor.tsx:685:      <div className="grid gap-3 
+xl:grid-cols-[1fr_1fr_auto_auto_auto]">
+  components\reports\report-studio-editor.tsx:686:        <select
+> components\reports\report-studio-editor.tsx:687:          value={templateId}
+  components\reports\report-studio-editor.tsx:688:          onChange={(event) =>
+> components\reports\report-studio-editor.tsx:689:            
+onTemplateChange(event.target.value as ReportTemplateId)
+  components\reports\report-studio-editor.tsx:690:          }
+  components\reports\report-studio-editor.tsx:691:          className="h-11 
+rounded-2xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 
+outline-none"
+  components\reports\report-studio-editor.tsx:692:        >
+> components\reports\report-studio-editor.tsx:693:          
+{TEMPLATE_OPTIONS.map((template) => (
+  components\reports\report-studio-editor.tsx:694:            <option 
+key={template.id} value={template.id}>
+  components\reports\report-studio-editor.tsx:695:              {template.label}
+  components\reports\report-studio-editor.tsx:696:            </option>
+  components\reports\report-studio-editor.tsx:697:          ))}
+  components\reports\report-studio-editor.tsx:698:        </select>
+  components\reports\report-studio-editor.tsx:699:
+  components\reports\report-studio-editor.tsx:700:        <select
+  components\reports\report-studio-editor.tsx:701:          value={evidenceLayout}
+  components\reports\report-studio-editor.tsx:702:          onChange={(event) =>
+  components\reports\report-studio-editor.tsx:703:            
+onEvidenceLayoutChange(event.target.value as EvidenceLayout)
+  components\reports\report-studio-editor.tsx:704:          }
+  components\reports\report-studio-editor.tsx:705:          className="h-11 
+rounded-2xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 
+outline-none"
+  components\reports\report-studio-editor.tsx:745:          >
+  components\reports\report-studio-editor.tsx:746:            تحديث
+  components\reports\report-studio-editor.tsx:747:          </button>
+  components\reports\report-studio-editor.tsx:748:
+  components\reports\report-studio-editor.tsx:749:          <Link
+> components\reports\report-studio-editor.tsx:750:            href={`/dashboard/repor
+ts/${reportId}/preview?template=${templateId}&evidenceLayout=${evidenceLayout}&cover=
+${showCover}&editorial=${showEditorial}`}
+  components\reports\report-studio-editor.tsx:751:            className="rounded-2xl 
+bg-slate-900 px-4 py-2 text-xs font-black text-white transition hover:bg-slate-800"
+  components\reports\report-studio-editor.tsx:752:          >
+  components\reports\report-studio-editor.tsx:753:            فتح كامل
+  components\reports\report-studio-editor.tsx:754:          </Link>
+  components\reports\report-studio-editor.tsx:755:        </div>
+  components\reports\report-studio-editor.tsx:756:      </div>
+  components\reports\report-studio-editor.tsx:757:    </div>
+  components\reports\report-studio-editor.tsx:758:  );
+  components\reports\report-studio-editor.tsx:759:}
+  components\reports\report-studio-editor.tsx:760:
+  components\reports\report-studio-editor.tsx:761:function PageNavigator({
+  components\reports\report-studio-editor.tsx:762:  activePage,
+  components\reports\report-studio-editor.tsx:1285:  }
+  components\reports\report-studio-editor.tsx:1286:
+  components\reports\report-studio-editor.tsx:1287:  return pageText.join("\n\n");
+  components\reports\report-studio-editor.tsx:1288:}
+  components\reports\report-studio-editor.tsx:1289:
+> components\reports\report-studio-editor.tsx:1290:function buildPreviewUrl({
+  components\reports\report-studio-editor.tsx:1291:  reportId,
+> components\reports\report-studio-editor.tsx:1292:  templateId,
+  components\reports\report-studio-editor.tsx:1293:  evidenceLayout,
+  components\reports\report-studio-editor.tsx:1294:  showCover,
+  components\reports\report-studio-editor.tsx:1295:  showEditorial,
+  components\reports\report-studio-editor.tsx:1296:  previewVersion,
+  components\reports\report-studio-editor.tsx:1297:}: {
+  components\reports\report-studio-editor.tsx:1298:  reportId: string;
+> components\reports\report-studio-editor.tsx:1299:  templateId: ReportTemplateId;
+  components\reports\report-studio-editor.tsx:1300:  evidenceLayout: EvidenceLayout;
+  components\reports\report-studio-editor.tsx:1301:  showCover: boolean;
+  components\reports\report-studio-editor.tsx:1302:  showEditorial: boolean;
+  components\reports\report-studio-editor.tsx:1303:  previewVersion: number;
+  components\reports\report-studio-editor.tsx:1304:}) {
+  components\reports\report-studio-editor.tsx:1305:  const params = new 
+URLSearchParams();
+  components\reports\report-studio-editor.tsx:1306:
+> components\reports\report-studio-editor.tsx:1307:  params.set("template", 
+templateId);
+  components\reports\report-studio-editor.tsx:1308:  params.set("evidenceLayout", 
+evidenceLayout);
+  components\reports\report-studio-editor.tsx:1309:  params.set("cover", 
+String(showCover));
+  components\reports\report-studio-editor.tsx:1310:  params.set("editorial", 
+String(showEditorial));
+  components\reports\report-studio-editor.tsx:1311:  params.set("studio", "true");
+  components\reports\report-studio-editor.tsx:1312:  params.set("v", 
+String(previewVersion));
+  components\reports\report-studio-editor.tsx:1313:
+  components\reports\report-studio-editor.tsx:1314:  return 
+`/dashboard/reports/${reportId}/preview?${params.toString()}`;
+  components\reports\report-studio-editor.tsx:1315:}
+  components\reports\report-studio-editor.tsx:1316:
+> components\reports\report-studio-editor.tsx:1317:function 
+normalizeTemplateId(value?: string | null): ReportTemplateId {
+  components\reports\report-studio-editor.tsx:1318:  if (
+  components\reports\report-studio-editor.tsx:1319:    value === "official-long" ||
+  components\reports\report-studio-editor.tsx:1320:    value === "visual-activity" ||
+  components\reports\report-studio-editor.tsx:1321:    value === "executive-brief"
+  components\reports\report-studio-editor.tsx:1322:  ) {
+  components\reports\report-studio-editor.tsx:1323:    return value;
+  components\reports\report-studio-editor.tsx:1324:  }
+  components\reports\report-studio-editor.tsx:1325:
+  components\reports\report-studio-editor.tsx:1326:  return "official-long";
+  components\reports\report-studio-editor.tsx:1327:}
+  components\reports\report-studio-editor.tsx:1328:
+  components\reports\report-studio-editor.tsx:1329:function 
+getStatusArabicName(status: StudioReportStatus) {
+
+
+
+
+===== 5) CURRENT NEW REPORT PICKER IMPORTANT PARTS =====
+
+  components\reports\new-report-case-picker.tsx:143:];
+  components\reports\new-report-case-picker.tsx:144:
+  components\reports\new-report-case-picker.tsx:145:type NewReportCasePickerProps = {
+  components\reports\new-report-case-picker.tsx:146:  cases: ReportCaseListItem[];
+  components\reports\new-report-case-picker.tsx:147:  initialCaseId?: string;
+> components\reports\new-report-case-picker.tsx:148:  publishedTemplates?: 
+PublishedReportTemplateOption[];
+  components\reports\new-report-case-picker.tsx:149:};
+  components\reports\new-report-case-picker.tsx:150:
+  components\reports\new-report-case-picker.tsx:151:export function 
+NewReportCasePicker({
+  components\reports\new-report-case-picker.tsx:152:  cases,
+  components\reports\new-report-case-picker.tsx:153:  initialCaseId = "",
+> components\reports\new-report-case-picker.tsx:154:  publishedTemplates = [],
+  components\reports\new-report-case-picker.tsx:155:}: NewReportCasePickerProps) {
+  components\reports\new-report-case-picker.tsx:156:  const router = useRouter();
+  components\reports\new-report-case-picker.tsx:157:
+  components\reports\new-report-case-picker.tsx:158:  const [selectedCaseId, 
+setSelectedCaseId] = useState(initialCaseId);
+> components\reports\new-report-case-picker.tsx:159:  const [selectedTemplateId, 
+setSelectedTemplateId] = useState<string>(
+> components\reports\new-report-case-picker.tsx:160:    publishedTemplates[0]?.id || 
+"official-long"
+  components\reports\new-report-case-picker.tsx:161:  );
+  components\reports\new-report-case-picker.tsx:162:
+  components\reports\new-report-case-picker.tsx:163:  const [query, setQuery] = 
+useState("");
+  components\reports\new-report-case-picker.tsx:164:  const [preparedReportData, 
+setPreparedReportData] =
+  components\reports\new-report-case-picker.tsx:165:    useState<PreparedReportData 
+| null>(null);
+  components\reports\new-report-case-picker.tsx:166:
+  components\reports\new-report-case-picker.tsx:167:  const [loadingPrepare, 
+setLoadingPrepare] = useState(false);
+  components\reports\new-report-case-picker.tsx:168:  const [prepareError, 
+setPrepareError] = useState("");
+  components\reports\new-report-case-picker.tsx:169:
+  components\reports\new-report-case-picker.tsx:170:  const [creatingReport, 
+setCreatingReport] = useState(false);
+  components\reports\new-report-case-picker.tsx:171:  const [createReportError, 
+setCreateReportError] = useState("");
+  components\reports\new-report-case-picker.tsx:172:
+  components\reports\new-report-case-picker.tsx:200:
+  components\reports\new-report-case-picker.tsx:201:  const selectedCase = 
+useMemo(() => {
+  components\reports\new-report-case-picker.tsx:202:    return 
+cases.find((caseEntry) => caseEntry.id === selectedCaseId) || null;
+  components\reports\new-report-case-picker.tsx:203:  }, [cases, selectedCaseId]);
+  components\reports\new-report-case-picker.tsx:204:
+> components\reports\new-report-case-picker.tsx:205:  const templateChoices = 
+useMemo<ReportTemplateChoice[]>(() => {
+> components\reports\new-report-case-picker.tsx:206:    if 
+(publishedTemplates.length > 0) {
+> components\reports\new-report-case-picker.tsx:207:      return 
+publishedTemplates.map((template) => ({
+  components\reports\new-report-case-picker.tsx:208:        id: template.id,
+  components\reports\new-report-case-picker.tsx:209:        name: template.name,
+  components\reports\new-report-case-picker.tsx:210:        description:
+  components\reports\new-report-case-picker.tsx:211:          template.description 
+|| "قالب منشور من صانع قوالب التقارير.",
+  components\reports\new-report-case-picker.tsx:212:        bestFor:
+  components\reports\new-report-case-picker.tsx:213:          template.scope === 
+"SERVICE"
+  components\reports\new-report-case-picker.tsx:214:            ? "تقارير الخدمة 
+المرتبطة بهذا القالب"
+  components\reports\new-report-case-picker.tsx:215:            : "التقارير العامة 
+لكل الخدمات",
+  components\reports\new-report-case-picker.tsx:216:        badge: template.scope 
+=== "SERVICE" ? "قالب خدمة" : "قالب عام",
+  components\reports\new-report-case-picker.tsx:217:        serviceSlug: 
+template.serviceSlug,
+  components\reports\new-report-case-picker.tsx:218:        pagesCount: 
+template.pagesCount,
+  components\reports\new-report-case-picker.tsx:219:        isBuilderTemplate: true,
+  components\reports\new-report-case-picker.tsx:220:      }));
+  components\reports\new-report-case-picker.tsx:221:    }
+  components\reports\new-report-case-picker.tsx:222:
+  components\reports\new-report-case-picker.tsx:223:    return 
+REPORT_TEMPLATE_CHOICES;
+> components\reports\new-report-case-picker.tsx:224:  }, [publishedTemplates]);
+  components\reports\new-report-case-picker.tsx:225:
+  components\reports\new-report-case-picker.tsx:226:  const selectedTemplate = 
+useMemo(() => {
+  components\reports\new-report-case-picker.tsx:227:    return (
+> components\reports\new-report-case-picker.tsx:228:      
+templateChoices.find((template) => template.id === selectedTemplateId) ||
+> components\reports\new-report-case-picker.tsx:229:      templateChoices[0] ||
+  components\reports\new-report-case-picker.tsx:230:      REPORT_TEMPLATE_CHOICES[0]
+  components\reports\new-report-case-picker.tsx:231:    );
+> components\reports\new-report-case-picker.tsx:232:  }, [templateChoices, 
+selectedTemplateId]);
+  components\reports\new-report-case-picker.tsx:233:
+  components\reports\new-report-case-picker.tsx:234:  useEffect(() => {
+> components\reports\new-report-case-picker.tsx:235:    if (!templateChoices.length) 
+{
+  components\reports\new-report-case-picker.tsx:236:      return;
+  components\reports\new-report-case-picker.tsx:237:    }
+  components\reports\new-report-case-picker.tsx:238:
+> components\reports\new-report-case-picker.tsx:239:    if 
+(!templateChoices.some((template) => template.id === selectedTemplateId)) {
+> components\reports\new-report-case-picker.tsx:240:      
+setSelectedTemplateId(templateChoices[0].id);
+  components\reports\new-report-case-picker.tsx:241:    }
+> components\reports\new-report-case-picker.tsx:242:  }, [templateChoices, 
+selectedTemplateId]);
+  components\reports\new-report-case-picker.tsx:243:
+  components\reports\new-report-case-picker.tsx:244:  useEffect(() => {
+  components\reports\new-report-case-picker.tsx:245:    if (!selectedCaseId) {
+  components\reports\new-report-case-picker.tsx:246:      
+setPreparedReportData(null);
+  components\reports\new-report-case-picker.tsx:247:      setPrepareError("");
+  components\reports\new-report-case-picker.tsx:248:      setCreateReportError("");
+  components\reports\new-report-case-picker.tsx:249:      return;
+  components\reports\new-report-case-picker.tsx:250:    }
+  components\reports\new-report-case-picker.tsx:251:
+  components\reports\new-report-case-picker.tsx:252:    const controller = new 
+AbortController();
+  components\reports\new-report-case-picker.tsx:253:
+  components\reports\new-report-case-picker.tsx:254:    async function 
+prepareReportData() {
+  components\reports\new-report-case-picker.tsx:297:    return () => {
+  components\reports\new-report-case-picker.tsx:298:      controller.abort();
+  components\reports\new-report-case-picker.tsx:299:    };
+  components\reports\new-report-case-picker.tsx:300:  }, [selectedCaseId]);
+  components\reports\new-report-case-picker.tsx:301:
+> components\reports\new-report-case-picker.tsx:302:  async function 
+handleCreateReport() {
+  components\reports\new-report-case-picker.tsx:303:    if (!selectedCaseId) {
+  components\reports\new-report-case-picker.tsx:304:      setCreateReportError("اختر 
+حالة أولًا لإنشاء التقرير.");
+  components\reports\new-report-case-picker.tsx:305:      return;
+  components\reports\new-report-case-picker.tsx:306:    }
+  components\reports\new-report-case-picker.tsx:307:
+  components\reports\new-report-case-picker.tsx:308:    if (!preparedReportData) {
+  components\reports\new-report-case-picker.tsx:309:      
+setCreateReportError("بيانات التقرير غير جاهزة بعد.");
+  components\reports\new-report-case-picker.tsx:310:      return;
+  components\reports\new-report-case-picker.tsx:311:    }
+  components\reports\new-report-case-picker.tsx:312:
+  components\reports\new-report-case-picker.tsx:313:    try {
+  components\reports\new-report-case-picker.tsx:314:      setCreatingReport(true);
+  components\reports\new-report-case-picker.tsx:320:          "Content-Type": 
+"application/json",
+  components\reports\new-report-case-picker.tsx:321:        },
+  components\reports\new-report-case-picker.tsx:322:        body: JSON.stringify({
+  components\reports\new-report-case-picker.tsx:323:          caseEntryId: 
+selectedCaseId,
+  components\reports\new-report-case-picker.tsx:324:          title: `تقرير - 
+${preparedReportData.title}`,
+> components\reports\new-report-case-picker.tsx:325:          templateId: 
+selectedTemplateId,
+  components\reports\new-report-case-picker.tsx:326:        }),
+  components\reports\new-report-case-picker.tsx:327:      });
+  components\reports\new-report-case-picker.tsx:328:
+  components\reports\new-report-case-picker.tsx:329:      const data = (await 
+response.json()) as CreateReportApiResponse;
+  components\reports\new-report-case-picker.tsx:330:
+  components\reports\new-report-case-picker.tsx:331:      if (!response.ok || 
+!("success" in data) || !data.success) {
+  components\reports\new-report-case-picker.tsx:332:        throw new Error("error" 
+in data ? data.error : "تعذر إنشاء التقرير.");
+  components\reports\new-report-case-picker.tsx:333:      }
+  components\reports\new-report-case-picker.tsx:334:
+> components\reports\new-report-case-picker.tsx:335:      router.push(
+  components\reports\new-report-case-picker.tsx:336:        data.previewUrl ||
+> components\reports\new-report-case-picker.tsx:337:          
+`/dashboard/reports/${data.reportId}/preview?template=${selectedTemplateId}`
+  components\reports\new-report-case-picker.tsx:338:      );
+  components\reports\new-report-case-picker.tsx:339:      router.refresh();
+  components\reports\new-report-case-picker.tsx:340:    } catch (error) {
+  components\reports\new-report-case-picker.tsx:341:      setCreateReportError(
+  components\reports\new-report-case-picker.tsx:342:        error instanceof Error ? 
+error.message : "تعذر إنشاء التقرير."
+  components\reports\new-report-case-picker.tsx:343:      );
+  components\reports\new-report-case-picker.tsx:344:    } finally {
+  components\reports\new-report-case-picker.tsx:345:      setCreatingReport(false);
+  components\reports\new-report-case-picker.tsx:346:    }
+  components\reports\new-report-case-picker.tsx:347:  }
+  components\reports\new-report-case-picker.tsx:348:
+  components\reports\new-report-case-picker.tsx:349:  return (
+  components\reports\new-report-case-picker.tsx:428:                  
+loading={loadingPrepare}
+  components\reports\new-report-case-picker.tsx:429:                  
+error={prepareError}
+  components\reports\new-report-case-picker.tsx:430:                  
+reportData={preparedReportData}
+  components\reports\new-report-case-picker.tsx:431:                />
+  components\reports\new-report-case-picker.tsx:432:
+> components\reports\new-report-case-picker.tsx:433:                
+<ReportCreationCard
+  components\reports\new-report-case-picker.tsx:434:                  
+selectedTemplate={selectedTemplate}
+> components\reports\new-report-case-picker.tsx:435:                  
+selectedTemplateId={selectedTemplateId}
+> components\reports\new-report-case-picker.tsx:436:                  
+templates={templateChoices}
+> components\reports\new-report-case-picker.tsx:437:                  
+onTemplateChange={setSelectedTemplateId}
+  components\reports\new-report-case-picker.tsx:438:                  
+reportDataReady={Boolean(preparedReportData)}
+  components\reports\new-report-case-picker.tsx:439:                  
+creatingReport={creatingReport}
+  components\reports\new-report-case-picker.tsx:440:                  
+createReportError={createReportError}
+> components\reports\new-report-case-picker.tsx:441:                  
+onCreateReport={handleCreateReport}
+  components\reports\new-report-case-picker.tsx:442:                />
+  components\reports\new-report-case-picker.tsx:443:              </>
+  components\reports\new-report-case-picker.tsx:444:            )}
+  components\reports\new-report-case-picker.tsx:445:          </section>
+  components\reports\new-report-case-picker.tsx:446:        </div>
+  components\reports\new-report-case-picker.tsx:447:      </div>
+  components\reports\new-report-case-picker.tsx:448:    </div>
+  components\reports\new-report-case-picker.tsx:449:  );
+  components\reports\new-report-case-picker.tsx:450:}
+  components\reports\new-report-case-picker.tsx:451:
+  components\reports\new-report-case-picker.tsx:452:function CaseSelectionButton({
+  components\reports\new-report-case-picker.tsx:453:  caseEntry,
+  components\reports\new-report-case-picker.tsx:754:      </div>
+  components\reports\new-report-case-picker.tsx:755:    </div>
+  components\reports\new-report-case-picker.tsx:756:  );
+  components\reports\new-report-case-picker.tsx:757:}
+  components\reports\new-report-case-picker.tsx:758:
+> components\reports\new-report-case-picker.tsx:759:function ReportCreationCard({
+  components\reports\new-report-case-picker.tsx:760:  selectedTemplate,
+> components\reports\new-report-case-picker.tsx:761:  selectedTemplateId,
+  components\reports\new-report-case-picker.tsx:762:  templates,
+  components\reports\new-report-case-picker.tsx:763:  onTemplateChange,
+  components\reports\new-report-case-picker.tsx:764:  reportDataReady,
+  components\reports\new-report-case-picker.tsx:765:  creatingReport,
+  components\reports\new-report-case-picker.tsx:766:  createReportError,
+  components\reports\new-report-case-picker.tsx:767:  onCreateReport,
+  components\reports\new-report-case-picker.tsx:768:}: {
+  components\reports\new-report-case-picker.tsx:769:  selectedTemplate: 
+ReportTemplateChoice;
+> components\reports\new-report-case-picker.tsx:770:  selectedTemplateId: string;
+  components\reports\new-report-case-picker.tsx:771:  templates: 
+ReportTemplateChoice[];
+  components\reports\new-report-case-picker.tsx:772:  onTemplateChange: (templateId: 
+string) => void;
+  components\reports\new-report-case-picker.tsx:773:  reportDataReady: boolean;
+  components\reports\new-report-case-picker.tsx:774:  creatingReport: boolean;
+  components\reports\new-report-case-picker.tsx:775:  createReportError: string;
+  components\reports\new-report-case-picker.tsx:776:  onCreateReport: () => void;
+  components\reports\new-report-case-picker.tsx:777:}) {
+  components\reports\new-report-case-picker.tsx:778:  return (
+  components\reports\new-report-case-picker.tsx:779:    <section 
+className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-sm">
+  components\reports\new-report-case-picker.tsx:780:      <h2 className="text-lg 
+font-black text-amber-900">
+  components\reports\new-report-case-picker.tsx:781:        اختيار قالب التقرير
+  components\reports\new-report-case-picker.tsx:782:      </h2>
+  components\reports\new-report-case-picker.tsx:786:        والبيانات حتى يبقى 
+التقرير ثابتًا حتى لو تغيرت الحالة أو القالب لاحقًا.
+  components\reports\new-report-case-picker.tsx:787:      </p>
+  components\reports\new-report-case-picker.tsx:788:
+  components\reports\new-report-case-picker.tsx:789:      <div className="mt-5 grid 
+gap-3 md:grid-cols-3">
+  components\reports\new-report-case-picker.tsx:790:        
+{templates.map((template) => {
+> components\reports\new-report-case-picker.tsx:791:          const active = 
+template.id === selectedTemplateId;
+  components\reports\new-report-case-picker.tsx:792:
+  components\reports\new-report-case-picker.tsx:793:          return (
+  components\reports\new-report-case-picker.tsx:794:            <button
+  components\reports\new-report-case-picker.tsx:795:              key={template.id}
+  components\reports\new-report-case-picker.tsx:796:              type="button"
+  components\reports\new-report-case-picker.tsx:797:              onClick={() => 
+onTemplateChange(template.id)}
+  components\reports\new-report-case-picker.tsx:798:              className={[
+  components\reports\new-report-case-picker.tsx:799:                "rounded-3xl 
+border p-4 text-right transition",
+  components\reports\new-report-case-picker.tsx:800:                active
+  components\reports\new-report-case-picker.tsx:801:                  ? 
+"border-slate-900 bg-white shadow-sm"
+  components\reports\new-report-case-picker.tsx:802:                  : 
+"border-amber-200 bg-amber-50 hover:bg-white",
+  components\reports\new-report-case-picker.tsx:803:              ].join(" ")}
+
+
+
+
+===== 6) SNAPSHOT FUNCTIONS CHECK =====
+
+  app\api\dashboard\reports\route.ts:4:  mapCaseEntryToReportData,
+  app\api\dashboard\reports\route.ts:5:  type ReportMappedCase,
+  app\api\dashboard\reports\route.ts:6:} from 
+"@/lib/report-engine/report-case-data-mapper";
+  app\api\dashboard\reports\route.ts:7:import {
+> app\api\dashboard\reports\route.ts:8:  createDefaultTemplateSnapshot,
+  app\api\dashboard\reports\route.ts:9:  createReportDataSnapshot,
+  app\api\dashboard\reports\route.ts:10:} from "@/lib/report-engine/report-snapshot";
+  app\api\dashboard\reports\route.ts:11:
+  app\api\dashboard\reports\route.ts:12:type CreateReportBody = {
+  app\api\dashboard\reports\route.ts:13:  caseEntryId?: string;
+  app\api\dashboard\reports\route.ts:14:  caseId?: string;
+  app\api\dashboard\reports\route.ts:15:  title?: string;
+  app\api\dashboard\reports\route.ts:16:  templateId?: string;
+  app\api\dashboard\reports\route.ts:17:};
+  app\api\dashboard\reports\route.ts:18:
+> app\api\dashboard\reports\route.ts:19:function parseBuilderTemplateJson(value: 
+unknown) {
+  app\api\dashboard\reports\route.ts:20:  if (!value) {
+  app\api\dashboard\reports\route.ts:21:    return null;
+  app\api\dashboard\reports\route.ts:22:  }
+  app\api\dashboard\reports\route.ts:23:
+  app\api\dashboard\reports\route.ts:24:  if (typeof value === "string") {
+  app\api\dashboard\reports\route.ts:25:    try {
+  app\api\dashboard\reports\route.ts:26:      return JSON.parse(value) as 
+Record<string, any>;
+  app\api\dashboard\reports\route.ts:27:    } catch {
+  app\api\dashboard\reports\route.ts:35:
+  app\api\dashboard\reports\route.ts:36:  return null;
+  app\api\dashboard\reports\route.ts:37:}
+  app\api\dashboard\reports\route.ts:38:
+> app\api\dashboard\reports\route.ts:39:function 
+isPublishedBuilderTemplate(templateJson: Record<string, any> | null) {
+  app\api\dashboard\reports\route.ts:40:  return templateJson?.status === 
+"PUBLISHED" && Array.isArray(templateJson?.pages);
+  app\api\dashboard\reports\route.ts:41:}
+  app\api\dashboard\reports\route.ts:42:
+> app\api\dashboard\reports\route.ts:43:async function 
+createTemplateSnapshotFromDatabase(templateId: string) {
+> app\api\dashboard\reports\route.ts:44:  const builderTemplate = await 
+prisma.reportTemplate.findUnique({
+  app\api\dashboard\reports\route.ts:45:    where: {
+  app\api\dashboard\reports\route.ts:46:      id: templateId,
+  app\api\dashboard\reports\route.ts:47:    },
+  app\api\dashboard\reports\route.ts:48:  });
+  app\api\dashboard\reports\route.ts:49:
+  app\api\dashboard\reports\route.ts:50:  const templateJson =
+> app\api\dashboard\reports\route.ts:51:    
+parseBuilderTemplateJson(builderTemplate?.templateJson) ||
+> app\api\dashboard\reports\route.ts:52:    
+parseBuilderTemplateJson(builderTemplate?.content);
+  app\api\dashboard\reports\route.ts:53:
+> app\api\dashboard\reports\route.ts:54:  if (!builderTemplate || 
+!isPublishedBuilderTemplate(templateJson)) {
+> app\api\dashboard\reports\route.ts:55:    return 
+createDefaultTemplateSnapshot(templateId);
+  app\api\dashboard\reports\route.ts:56:  }
+  app\api\dashboard\reports\route.ts:57:
+  app\api\dashboard\reports\route.ts:58:  const safeTemplateJson = templateJson as 
+Record<string, any>;
+  app\api\dashboard\reports\route.ts:59:
+  app\api\dashboard\reports\route.ts:60:  return {
+> app\api\dashboard\reports\route.ts:61:    templateId: builderTemplate.id,
+> app\api\dashboard\reports\route.ts:62:    templateName: builderTemplate.name,
+  app\api\dashboard\reports\route.ts:63:    version: 1,
+  app\api\dashboard\reports\route.ts:64:    capturedAt: new Date().toISOString(),
+> app\api\dashboard\reports\route.ts:65:    source: "TEMPLATE_BUILDER",
+  app\api\dashboard\reports\route.ts:66:    settings: {
+  app\api\dashboard\reports\route.ts:67:      showCover: true,
+> app\api\dashboard\reports\route.ts:68:      defaultTemplate: builderTemplate.id,
+  app\api\dashboard\reports\route.ts:69:      defaultEvidenceLayout: "grid-2x2",
+  app\api\dashboard\reports\route.ts:70:      pageSize: "A4",
+  app\api\dashboard\reports\route.ts:71:      direction: "rtl",
+  app\api\dashboard\reports\route.ts:72:    },
+> app\api\dashboard\reports\route.ts:73:    builderTemplate: {
+  app\api\dashboard\reports\route.ts:74:      ...safeTemplateJson,
+> app\api\dashboard\reports\route.ts:75:      id: builderTemplate.id,
+> app\api\dashboard\reports\route.ts:76:      name: builderTemplate.name || 
+safeTemplateJson.name,
+  app\api\dashboard\reports\route.ts:77:      description:
+> app\api\dashboard\reports\route.ts:78:        builderTemplate.description ||
+  app\api\dashboard\reports\route.ts:79:        safeTemplateJson.description ||
+  app\api\dashboard\reports\route.ts:80:        "قالب تقرير محفوظ من صانع القوالب.",
+  app\api\dashboard\reports\route.ts:81:      serviceSlug:
+> app\api\dashboard\reports\route.ts:82:        builderTemplate.serviceSlug || 
+safeTemplateJson.serviceSlug || null,
+  app\api\dashboard\reports\route.ts:83:      status: "PUBLISHED",
+  app\api\dashboard\reports\route.ts:84:    },
+  app\api\dashboard\reports\route.ts:85:  };
+  app\api\dashboard\reports\route.ts:86:}
+  app\api\dashboard\reports\route.ts:87:
+  app\api\dashboard\reports\route.ts:88:function buildReportContent(reportData: 
+ReportMappedCase) {
+  app\api\dashboard\reports\route.ts:89:  const studentLines = reportData.student
+  app\api\dashboard\reports\route.ts:90:    ? [
+  app\api\dashboard\reports\route.ts:204:      `تقرير - ${reportData.title || 
+reportData.service.name}`;
+  app\api\dashboard\reports\route.ts:205:
+  app\api\dashboard\reports\route.ts:206:    const initialContent = 
+buildReportContent(reportData);
+  app\api\dashboard\reports\route.ts:207:
+> app\api\dashboard\reports\route.ts:208:    const templateSnapshot = await 
+createTemplateSnapshotFromDatabase(templateId);
+  app\api\dashboard\reports\route.ts:209:    const reportDataSnapshot = 
+createReportDataSnapshot(reportData);
+  app\api\dashboard\reports\route.ts:210:
+  app\api\dashboard\reports\route.ts:211:    const report = await 
+prisma.guidanceReport.create({
+  app\api\dashboard\reports\route.ts:212:      data: {
+  app\api\dashboard\reports\route.ts:213:        title: reportTitle,
+  app\api\dashboard\reports\route.ts:214:        serviceSlug: 
+reportData.service.slug,
+  app\api\dashboard\reports\route.ts:215:        caseEntryId: reportData.id,
+  app\api\dashboard\reports\route.ts:216:        genderMode: 
+caseEntry.student?.gender === "FEMALE" ? "FEMALE" : "MALE",
+  app\api\dashboard\reports\route.ts:218:        editableContent: initialContent,
+  app\api\dashboard\reports\route.ts:219:        renderedContent: initialContent,
+  app\api\dashboard\reports\route.ts:220:
+  app\api\dashboard\reports\route.ts:221:        templateId,
+> app\api\dashboard\reports\route.ts:222:        templateSnapshot,
+  app\api\dashboard\reports\route.ts:223:        reportDataSnapshot,
+  app\api\dashboard\reports\route.ts:224:        generatedAt: new Date(),
+  app\api\dashboard\reports\route.ts:225:
+  app\api\dashboard\reports\route.ts:226:        evidenceItems: {
+  app\api\dashboard\reports\route.ts:227:          create: 
+reportData.evidences.map((item, index) => ({
+  app\api\dashboard\reports\route.ts:228:            fileName: item.fileName || 
+`evidence-${index + 1}`,
+  app\api\dashboard\reports\route.ts:229:            fileUrl: item.fileUrl,
+  app\api\dashboard\reports\route.ts:230:            caption: item.note || 
+item.title || item.fileName || null,
+
+
+

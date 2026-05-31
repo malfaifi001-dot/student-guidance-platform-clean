@@ -1,0 +1,2915 @@
+﻿===== app\dashboard\reports =====
+
+
+    Directory: D:\student-guidance-platform-clean\app\dashboard\reports
+
+
+Mode                 LastWriteTime         Length Name                                      
+----                 -------------         ------ ----                                      
+d-----         5/29/2026   3:54 AM                new                                       
+d-----         5/29/2026   3:54 AM                [reportId]                                
+-a----         5/30/2026   7:57 AM           4136 page.tsx                                  
+
+
+    Directory: D:\student-guidance-platform-clean\app\dashboard\reports\new
+
+
+Mode                 LastWriteTime         Length Name                                      
+----                 -------------         ------ ----                                      
+-a----         5/30/2026   6:55 AM           2154 page.tsx                                  
+
+
+    Directory: D:\student-guidance-platform-clean\app\dashboard\reports\[reportId]
+
+
+Mode                 LastWriteTime         Length Name                                      
+----                 -------------         ------ ----                                      
+d-----         5/29/2026   3:54 AM                preview                                   
+d-----         5/29/2026   3:54 AM                studio                                    
+
+
+    Directory: D:\student-guidance-platform-clean\app\dashboard\reports\[reportId]\preview
+
+
+Mode                 LastWriteTime         Length Name                                      
+----                 -------------         ------ ----                                      
+-a----         5/31/2026   1:46 AM          21504 page.tsx                                  
+
+
+    Directory: D:\student-guidance-platform-clean\app\dashboard\reports\[reportId]\studio
+
+
+Mode                 LastWriteTime         Length Name                                      
+----                 -------------         ------ ----                                      
+-a----         5/31/2026   1:12 AM           9439 page.tsx                                  
+
+
+
+
+===== components\report-engine =====
+
+
+    Directory: D:\student-guidance-platform-clean\components\report-engine
+
+
+Mode                 LastWriteTime         Length Name                                      
+----                 -------------         ------ ----                                      
+-a----         5/30/2026   1:43 AM          16761 official-report-document.tsx              
+-a----         5/30/2026   3:17 AM          32977 report-document-renderer.tsx              
+-a----         5/30/2026   3:29 AM            347 report-print-button.tsx                   
+-a----         5/31/2026   2:45 AM          43457 report-template-admin-tools.tsx           
+-a----         5/31/2026   4:09 AM          26122 report-template-live-preview.tsx          
+-a----         5/31/2026   3:31 AM          22871 report-template-publish-tools.tsx         
+-a----         5/31/2026   6:51 AM          80738 report-template-studio.tsx                
+-a----         5/31/2026   3:02 AM          10902 text-library-block-settings-editor.tsx    
+
+
+
+
+===== Search in app\dashboard\reports =====
+
+  app\dashboard\reports\new\page.tsx:3:
+  app\dashboard\reports\new\page.tsx:4:type NewReportPageProps = {
+  app\dashboard\reports\new\page.tsx:5:  searchParams?: Promise<{
+> app\dashboard\reports\new\page.tsx:6:    caseId?: string;
+  app\dashboard\reports\new\page.tsx:7:  }>;
+  app\dashboard\reports\new\page.tsx:8:};
+  app\dashboard\reports\new\page.tsx:9:
+  app\dashboard\reports\new\page.tsx:11:  searchParams,
+  app\dashboard\reports\new\page.tsx:12:}: NewReportPageProps) {
+  app\dashboard\reports\new\page.tsx:13:  const params = searchParams ? await searchParams 
+: {};
+> app\dashboard\reports\new\page.tsx:14:  const selectedCaseId = params.caseId?.trim() || 
+"";
+  app\dashboard\reports\new\page.tsx:15:
+> app\dashboard\reports\new\page.tsx:16:  const cases = await prisma.caseEntry.findMany({
+  app\dashboard\reports\new\page.tsx:17:    orderBy: {
+  app\dashboard\reports\new\page.tsx:18:      createdAt: "desc",
+  app\dashboard\reports\new\page.tsx:19:    },
+  app\dashboard\reports\new\page.tsx:41:    },
+  app\dashboard\reports\new\page.tsx:42:  });
+  app\dashboard\reports\new\page.tsx:43:
+> app\dashboard\reports\new\page.tsx:44:  const normalizedCases = cases.map((caseEntry) => 
+({
+> app\dashboard\reports\new\page.tsx:45:    id: caseEntry.id,
+> app\dashboard\reports\new\page.tsx:46:    title: caseEntry.title || 
+caseEntry.service.name,
+> app\dashboard\reports\new\page.tsx:47:    status: caseEntry.status,
+> app\dashboard\reports\new\page.tsx:48:    createdAt: caseEntry.createdAt.toISOString(),
+> app\dashboard\reports\new\page.tsx:49:    updatedAt: caseEntry.updatedAt.toISOString(),
+> app\dashboard\reports\new\page.tsx:50:    submittedAt: 
+caseEntry.submittedAt?.toISOString() || null,
+  app\dashboard\reports\new\page.tsx:51:
+  app\dashboard\reports\new\page.tsx:52:    service: {
+> app\dashboard\reports\new\page.tsx:53:      id: caseEntry.service.id,
+> app\dashboard\reports\new\page.tsx:54:      name: caseEntry.service.name,
+> app\dashboard\reports\new\page.tsx:55:      slug: caseEntry.service.slug,
+  app\dashboard\reports\new\page.tsx:56:    },
+  app\dashboard\reports\new\page.tsx:57:
+> app\dashboard\reports\new\page.tsx:58:    student: caseEntry.student
+  app\dashboard\reports\new\page.tsx:59:      ? {
+> app\dashboard\reports\new\page.tsx:60:          id: caseEntry.student.id,
+> app\dashboard\reports\new\page.tsx:61:          fullName: caseEntry.student.fullName,
+> app\dashboard\reports\new\page.tsx:62:          nationalId: caseEntry.student.nationalId,
+> app\dashboard\reports\new\page.tsx:63:          stage: caseEntry.student.stage,
+> app\dashboard\reports\new\page.tsx:64:          grade: caseEntry.student.grade,
+> app\dashboard\reports\new\page.tsx:65:          classroom: caseEntry.student.classroom,
+> app\dashboard\reports\new\page.tsx:66:          guardianName: 
+caseEntry.student.guardian?.name || null,
+> app\dashboard\reports\new\page.tsx:67:          guardianPhone: 
+caseEntry.student.guardian?.phone || null,
+  app\dashboard\reports\new\page.tsx:68:        }
+  app\dashboard\reports\new\page.tsx:69:      : null,
+  app\dashboard\reports\new\page.tsx:70:
+> app\dashboard\reports\new\page.tsx:71:    valuesCount: caseEntry.values.length,
+> app\dashboard\reports\new\page.tsx:72:    evidencesCount: caseEntry.evidences.length,
+  app\dashboard\reports\new\page.tsx:73:  }));
+  app\dashboard\reports\new\page.tsx:74:
+  app\dashboard\reports\new\page.tsx:75:  return (
+  app\dashboard\reports\new\page.tsx:76:    <main className="space-y-6" dir="rtl">
+  app\dashboard\reports\new\page.tsx:77:      <NewReportCasePicker
+  app\dashboard\reports\new\page.tsx:78:        cases={normalizedCases}
+> app\dashboard\reports\new\page.tsx:79:        initialCaseId={selectedCaseId}
+  app\dashboard\reports\new\page.tsx:80:      />
+  app\dashboard\reports\new\page.tsx:81:    </main>
+  app\dashboard\reports\new\page.tsx:82:  );
+
+
+
+
+===== Search in components\report-engine =====
+
+  components\report-engine\official-report-document.tsx:308:          
+linear-gradient(135deg, rgba(15, 81, 50, 0.08), rgba(255,255,255,1)),
+  components\report-engine\official-report-document.tsx:309:          #fff;
+  components\report-engine\official-report-document.tsx:310:        display: grid;
+> components\report-engine\official-report-document.tsx:311:        grid-template-columns: 
+110px 1fr 110px;
+  components\report-engine\official-report-document.tsx:312:        align-items: center;
+  components\report-engine\official-report-document.tsx:313:        gap: 16px;
+  components\report-engine\official-report-document.tsx:314:        padding: 14px 18px;
+  components\report-engine\official-report-document.tsx:412:
+  components\report-engine\official-report-document.tsx:413:      .meta-grid {
+  components\report-engine\official-report-document.tsx:414:        display: grid;
+> components\report-engine\official-report-document.tsx:415:        grid-template-columns: 
+1fr 1fr;
+  components\report-engine\official-report-document.tsx:416:        gap: 10px;
+  components\report-engine\official-report-document.tsx:417:        margin-bottom: 26px;
+  components\report-engine\official-report-document.tsx:418:      }
+  components\report-engine\official-report-document.tsx:492:      }
+  components\report-engine\official-report-document.tsx:493:
+  components\report-engine\official-report-document.tsx:494:      
+.evidence-list.two-columns {
+> components\report-engine\official-report-document.tsx:495:        grid-template-columns: 
+1fr 1fr;
+  components\report-engine\official-report-document.tsx:496:      }
+  components\report-engine\official-report-document.tsx:497:
+  components\report-engine\official-report-document.tsx:498:      .evidence-list.grid-2x2 {
+> components\report-engine\official-report-document.tsx:499:        grid-template-columns: 
+1fr 1fr;
+  components\report-engine\official-report-document.tsx:500:      }
+  components\report-engine\official-report-document.tsx:501:
+  components\report-engine\official-report-document.tsx:502:      .evidence-list.stacked,
+  components\report-engine\official-report-document.tsx:503:      
+.evidence-list.single-large,
+  components\report-engine\official-report-document.tsx:504:      
+.evidence-list.one-per-page {
+> components\report-engine\official-report-document.tsx:505:        grid-template-columns: 
+1fr;
+  components\report-engine\official-report-document.tsx:506:      }
+  components\report-engine\official-report-document.tsx:507:
+  components\report-engine\official-report-document.tsx:508:      
+.evidence-list.one-per-page .evidence-card {
+  components\report-engine\official-report-document.tsx:573:        border-radius: 20px;
+  components\report-engine\official-report-document.tsx:574:        padding: 18px;
+  components\report-engine\official-report-document.tsx:575:        display: grid;
+> components\report-engine\official-report-document.tsx:576:        grid-template-columns: 
+1fr 1fr 0.8fr;
+  components\report-engine\official-report-document.tsx:577:        gap: 14px;
+  components\report-engine\official-report-document.tsx:578:        background: 
+${theme.colors.softGreen};
+  components\report-engine\official-report-document.tsx:579:        break-inside: avoid;
+  components\report-engine\report-document-renderer.tsx:4:  ReportEvidence,
+  components\report-engine\report-document-renderer.tsx:5:  ReportIdentity,
+  components\report-engine\report-document-renderer.tsx:6:  ReportSection,
+> components\report-engine\report-document-renderer.tsx:7:  ReportTemplateId,
+  components\report-engine\report-document-renderer.tsx:8:} from 
+"@/lib/report-engine/report-types";
+> components\report-engine\report-document-renderer.tsx:9:import { getReportTemplate } from 
+"@/lib/report-engine/report-templates";
+  components\report-engine\report-document-renderer.tsx:10:
+  components\report-engine\report-document-renderer.tsx:11:type ReportDocumentRendererProps 
+= {
+  components\report-engine\report-document-renderer.tsx:12:  identity: ReportIdentity;
+  components\report-engine\report-document-renderer.tsx:13:  report: OfficialReportData;
+> components\report-engine\report-document-renderer.tsx:14:  templateId: ReportTemplateId;
+  components\report-engine\report-document-renderer.tsx:15:  showCover?: boolean;
+  components\report-engine\report-document-renderer.tsx:16:  evidenceLayout?: 
+EvidenceLayout;
+  components\report-engine\report-document-renderer.tsx:17:};
+  components\report-engine\report-document-renderer.tsx:19:export function 
+ReportDocumentRenderer({
+  components\report-engine\report-document-renderer.tsx:20:  identity,
+  components\report-engine\report-document-renderer.tsx:21:  report,
+> components\report-engine\report-document-renderer.tsx:22:  templateId,
+  components\report-engine\report-document-renderer.tsx:23:  showCover = true,
+  components\report-engine\report-document-renderer.tsx:24:  evidenceLayout,
+  components\report-engine\report-document-renderer.tsx:25:}: ReportDocumentRendererProps) {
+> components\report-engine\report-document-renderer.tsx:26:  const template = 
+getReportTemplate(templateId);
+  components\report-engine\report-document-renderer.tsx:27:
+  components\report-engine\report-document-renderer.tsx:28:  const finalEvidenceLayout =
+> components\report-engine\report-document-renderer.tsx:29:    evidenceLayout || 
+report.evidenceLayout || template.defaultEvidenceLayout;
+  components\report-engine\report-document-renderer.tsx:30:
+> components\report-engine\report-document-renderer.tsx:31:  if (templateId === 
+"visual-activity") {
+  components\report-engine\report-document-renderer.tsx:32:    return (
+  components\report-engine\report-document-renderer.tsx:33:      <VisualActivityReport
+  components\report-engine\report-document-renderer.tsx:34:        identity={identity}
+  components\report-engine\report-document-renderer.tsx:38:    );
+  components\report-engine\report-document-renderer.tsx:39:  }
+  components\report-engine\report-document-renderer.tsx:40:
+> components\report-engine\report-document-renderer.tsx:41:  if (templateId === 
+"executive-brief") {
+  components\report-engine\report-document-renderer.tsx:42:    return (
+  components\report-engine\report-document-renderer.tsx:43:      <ExecutiveBriefReport
+  components\report-engine\report-document-renderer.tsx:44:        identity={identity}
+  components\report-engine\report-document-renderer.tsx:711:          
+linear-gradient(135deg, rgba(15, 81, 50, 0.08), rgba(255,255,255,1)),
+  components\report-engine\report-document-renderer.tsx:712:          #fff;
+  components\report-engine\report-document-renderer.tsx:713:        display: grid;
+> components\report-engine\report-document-renderer.tsx:714:        grid-template-columns: 
+108px 1fr 108px;
+  components\report-engine\report-document-renderer.tsx:715:        align-items: center;
+  components\report-engine\report-document-renderer.tsx:716:        gap: 16px;
+  components\report-engine\report-document-renderer.tsx:717:        padding: 12px 18px;
+  components\report-engine\report-document-renderer.tsx:845:      .meta-grid,
+  components\report-engine\report-document-renderer.tsx:846:      .executive-grid {
+  components\report-engine\report-document-renderer.tsx:847:        display: grid;
+> components\report-engine\report-document-renderer.tsx:848:        grid-template-columns: 
+1fr 1fr;
+  components\report-engine\report-document-renderer.tsx:849:        gap: 10px;
+  components\report-engine\report-document-renderer.tsx:850:        margin-bottom: 18px;
+  components\report-engine\report-document-renderer.tsx:851:      }
+  components\report-engine\report-document-renderer.tsx:926:
+  components\report-engine\report-document-renderer.tsx:927:      
+.evidence-grid.evidence-grid-2x2,
+  components\report-engine\report-document-renderer.tsx:928:      
+.evidence-grid.evidence-two-columns {
+> components\report-engine\report-document-renderer.tsx:929:        grid-template-columns: 
+1fr 1fr;
+  components\report-engine\report-document-renderer.tsx:930:      }
+  components\report-engine\report-document-renderer.tsx:931:
+  components\report-engine\report-document-renderer.tsx:932:      
+.evidence-grid.evidence-stacked,
+  components\report-engine\report-document-renderer.tsx:933:      
+.evidence-grid.evidence-single-large,
+  components\report-engine\report-document-renderer.tsx:934:      
+.evidence-grid.evidence-one-per-page {
+> components\report-engine\report-document-renderer.tsx:935:        grid-template-columns: 
+1fr;
+  components\report-engine\report-document-renderer.tsx:936:      }
+  components\report-engine\report-document-renderer.tsx:937:
+  components\report-engine\report-document-renderer.tsx:938:      .evidence-card {
+  components\report-engine\report-document-renderer.tsx:1050:        border-radius: 22px;
+  components\report-engine\report-document-renderer.tsx:1051:        padding: 18px;
+  components\report-engine\report-document-renderer.tsx:1052:        display: grid;
+> components\report-engine\report-document-renderer.tsx:1053:        grid-template-columns: 
+1fr 1fr 0.8fr;
+  components\report-engine\report-document-renderer.tsx:1054:        gap: 14px;
+  components\report-engine\report-document-renderer.tsx:1055:        background: 
+var(--soft);
+  components\report-engine\report-document-renderer.tsx:1056:        break-inside: avoid;
+  components\report-engine\report-document-renderer.tsx:1163:
+  components\report-engine\report-document-renderer.tsx:1164:      .visual-root 
+.evidence-grid-2x2,
+  components\report-engine\report-document-renderer.tsx:1165:      .visual-root 
+.evidence-two-columns {
+> components\report-engine\report-document-renderer.tsx:1166:        grid-template-columns: 
+1fr 1fr;
+  components\report-engine\report-document-renderer.tsx:1167:      }
+  components\report-engine\report-document-renderer.tsx:1168:
+  components\report-engine\report-document-renderer.tsx:1169:      .visual-root 
+.evidence-stacked,
+  components\report-engine\report-document-renderer.tsx:1170:      .visual-root 
+.evidence-single-large,
+  components\report-engine\report-document-renderer.tsx:1171:      .visual-root 
+.evidence-one-per-page {
+> components\report-engine\report-document-renderer.tsx:1172:        grid-template-columns: 
+1fr;
+  components\report-engine\report-document-renderer.tsx:1173:      }
+  components\report-engine\report-document-renderer.tsx:1174:
+  components\report-engine\report-document-renderer.tsx:1175:      .visual-footer-shape {
+  components\report-engine\report-template-admin-tools.tsx:3:import { useMemo, useState } 
+from "react";
+  components\report-engine\report-template-admin-tools.tsx:4:import type {
+  components\report-engine\report-template-admin-tools.tsx:5:  ReportIdentitySettings,
+> components\report-engine\report-template-admin-tools.tsx:6:  ReportTemplateBuilderModel,
+  components\report-engine\report-template-admin-tools.tsx:7:  ReportTextSnippet,
+> components\report-engine\report-template-admin-tools.tsx:8:} from 
+"@/lib/report-engine/report-template-builder-types";
+> components\report-engine\report-template-admin-tools.tsx:9:import { 
+REPORT_SERVICE_OPTIONS } from "@/lib/report-engine/report-template-builder-types";
+> components\report-engine\report-template-admin-tools.tsx:10:import { 
+validateReportTemplateForPublishing } from "@/lib/report-engine/report-template-validation";
+  components\report-engine\report-template-admin-tools.tsx:11:
+> components\report-engine\report-template-admin-tools.tsx:12:type 
+ReportTemplateAdminToolsProps = {
+> components\report-engine\report-template-admin-tools.tsx:13:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-admin-tools.tsx:14:  identity: 
+ReportIdentitySettings;
+  components\report-engine\report-template-admin-tools.tsx:15:  snippets: 
+ReportTextSnippet[];
+  components\report-engine\report-template-admin-tools.tsx:16:  onIdentityChange: 
+(identity: ReportIdentitySettings) => void;
+  components\report-engine\report-template-admin-tools.tsx:215:
+  components\report-engine\report-template-admin-tools.tsx:216:const knownVariableKeys = 
+new Set(smartVariables.map((variable) => variable.key));
+  components\report-engine\report-template-admin-tools.tsx:217:
+> components\report-engine\report-template-admin-tools.tsx:218:export function 
+ReportTemplateAdminTools({
+> components\report-engine\report-template-admin-tools.tsx:219:  template,
+  components\report-engine\report-template-admin-tools.tsx:220:  identity,
+  components\report-engine\report-template-admin-tools.tsx:221:  snippets,
+  components\report-engine\report-template-admin-tools.tsx:222:  onIdentityChange,
+  components\report-engine\report-template-admin-tools.tsx:223:  onSnippetsChange,
+> components\report-engine\report-template-admin-tools.tsx:224:}: 
+ReportTemplateAdminToolsProps) {
+  components\report-engine\report-template-admin-tools.tsx:225:  const [activePanel, 
+setActivePanel] = useState<
+  components\report-engine\report-template-admin-tools.tsx:226:    "identity" | "library" | 
+"test"
+  components\report-engine\report-template-admin-tools.tsx:227:  >("identity");
+  components\report-engine\report-template-admin-tools.tsx:234:  const [copiedVariableKey, 
+setCopiedVariableKey] = useState("");
+  components\report-engine\report-template-admin-tools.tsx:235:
+  components\report-engine\report-template-admin-tools.tsx:236:  const validation = 
+useMemo(() => {
+> components\report-engine\report-template-admin-tools.tsx:237:    return 
+validateReportTemplateForPublishing({
+> components\report-engine\report-template-admin-tools.tsx:238:      template,
+  components\report-engine\report-template-admin-tools.tsx:239:      identity,
+  components\report-engine\report-template-admin-tools.tsx:240:      snippets,
+  components\report-engine\report-template-admin-tools.tsx:241:    });
+> components\report-engine\report-template-admin-tools.tsx:242:  }, [template, identity, 
+snippets]);
+  components\report-engine\report-template-admin-tools.tsx:243:
+  components\report-engine\report-template-admin-tools.tsx:244:  const sampleVariables = 
+useMemo(() => {
+> components\report-engine\report-template-admin-tools.tsx:245:    return 
+buildSampleVariables(identity, template);
+> components\report-engine\report-template-admin-tools.tsx:246:  }, [identity, template]);
+  components\report-engine\report-template-admin-tools.tsx:247:
+  components\report-engine\report-template-admin-tools.tsx:248:  const filteredSnippets = 
+useMemo(() => {
+  components\report-engine\report-template-admin-tools.tsx:249:    const keyword = 
+librarySearchQuery.trim().toLowerCase();
+  components\report-engine\report-template-admin-tools.tsx:318:      category: "مقدمة",
+  components\report-engine\report-template-admin-tools.tsx:319:      serviceSlug:
+  components\report-engine\report-template-admin-tools.tsx:320:        serviceSlug ||
+> components\report-engine\report-template-admin-tools.tsx:321:        (template.scope === 
+"SERVICE" ? template.serviceSlug : undefined),
+  components\report-engine\report-template-admin-tools.tsx:322:      content:
+  components\report-engine\report-template-admin-tools.tsx:323:        'تم إعداد هذا النص 
+لاستخدامه داخل تقرير "{reportTitle}" ضمن خدمة {serviceName}.',
+  components\report-engine\report-template-admin-tools.tsx:324:    };
+  components\report-engine\report-template-admin-tools.tsx:1288:
+  components\report-engine\report-template-admin-tools.tsx:1289:function 
+buildSampleVariables(
+  components\report-engine\report-template-admin-tools.tsx:1290:  identity: 
+ReportIdentitySettings,
+> components\report-engine\report-template-admin-tools.tsx:1291:  template: 
+ReportTemplateBuilderModel
+  components\report-engine\report-template-admin-tools.tsx:1292:) {
+  components\report-engine\report-template-admin-tools.tsx:1293:  const serviceName =
+> components\report-engine\report-template-admin-tools.tsx:1294:    template.scope === 
+"SERVICE" && template.serviceSlug
+> components\report-engine\report-template-admin-tools.tsx:1295:      ? 
+getServiceName(template.serviceSlug)
+  components\report-engine\report-template-admin-tools.tsx:1296:      : "البرامج الإرشادية";
+  components\report-engine\report-template-admin-tools.tsx:1297:
+  components\report-engine\report-template-admin-tools.tsx:1298:  return {
+  components\report-engine\report-template-admin-tools.tsx:1305:    academicYear: 
+identity.academicYear || "العام الدراسي",
+  components\report-engine\report-template-admin-tools.tsx:1306:    semester: 
+identity.semester || "الفصل الدراسي",
+  components\report-engine\report-template-admin-tools.tsx:1307:    serviceName,
+> components\report-engine\report-template-admin-tools.tsx:1308:    reportTitle: 
+template.name || "عنوان التقرير",
+  components\report-engine\report-template-admin-tools.tsx:1309:    caseTitle: "حالة 
+إرشادية تجريبية",
+  components\report-engine\report-template-admin-tools.tsx:1310:    programTitle: "برنامج 
+تعزيز السلوك الإيجابي",
+  components\report-engine\report-template-admin-tools.tsx:1311:    executionDate: 
+"2026-05-26",
+  components\report-engine\report-template-live-preview.tsx:2:
+  components\report-engine\report-template-live-preview.tsx:3:import type { ReactNode } 
+from "react";
+  components\report-engine\report-template-live-preview.tsx:4:import type {
+> components\report-engine\report-template-live-preview.tsx:5:  ReportTemplateBlock,
+> components\report-engine\report-template-live-preview.tsx:6:  ReportTemplateBuilderModel,
+  components\report-engine\report-template-live-preview.tsx:7:  ReportTextSnippet,
+> components\report-engine\report-template-live-preview.tsx:8:} from 
+"@/lib/report-engine/report-template-builder-types";
+> components\report-engine\report-template-live-preview.tsx:9:import type { 
+RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+  components\report-engine\report-template-live-preview.tsx:10:import {
+  components\report-engine\report-template-live-preview.tsx:11:  resolveTextLibraryFallback,
+  components\report-engine\report-template-live-preview.tsx:12:  resolveTextLibrarySnippets,
+  components\report-engine\report-template-live-preview.tsx:13:  type RuntimeReportData,
+  components\report-engine\report-template-live-preview.tsx:14:} from 
+"@/lib/report-engine/report-text-library-runtime";
+  components\report-engine\report-template-live-preview.tsx:15:
+> components\report-engine\report-template-live-preview.tsx:16:type 
+ReportTemplateLivePreviewProps = {
+> components\report-engine\report-template-live-preview.tsx:17:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-live-preview.tsx:18:  snippets: 
+ReportTextSnippet[];
+> components\report-engine\report-template-live-preview.tsx:19:  previewCaseData: 
+RuntimePreviewCaseData | null;
+  components\report-engine\report-template-live-preview.tsx:20:};
+  components\report-engine\report-template-live-preview.tsx:21:
+  components\report-engine\report-template-live-preview.tsx:22:type RuntimeValueItem = {
+  components\report-engine\report-template-live-preview.tsx:36:  description?: string | 
+null;
+  components\report-engine\report-template-live-preview.tsx:37:};
+  components\report-engine\report-template-live-preview.tsx:38:
+> components\report-engine\report-template-live-preview.tsx:39:export function 
+ReportTemplateLivePreview({
+> components\report-engine\report-template-live-preview.tsx:40:  template,
+  components\report-engine\report-template-live-preview.tsx:41:  snippets,
+> components\report-engine\report-template-live-preview.tsx:42:  previewCaseData,
+> components\report-engine\report-template-live-preview.tsx:43:}: 
+ReportTemplateLivePreviewProps) {
+  components\report-engine\report-template-live-preview.tsx:44:  return (
+  components\report-engine\report-template-live-preview.tsx:45:    <section 
+className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+  components\report-engine\report-template-live-preview.tsx:46:      <div className="flex 
+flex-wrap items-start justify-between gap-4">
+  components\report-engine\report-template-live-preview.tsx:56:        </div>
+  components\report-engine\report-template-live-preview.tsx:57:
+  components\report-engine\report-template-live-preview.tsx:58:        <div 
+className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
+> components\report-engine\report-template-live-preview.tsx:59:          {previewCaseData ? 
+"معاينة من Case حقيقي" : "معاينة ببيانات تجريبية"}
+  components\report-engine\report-template-live-preview.tsx:60:        </div>
+  components\report-engine\report-template-live-preview.tsx:61:      </div>
+  components\report-engine\report-template-live-preview.tsx:62:
+  components\report-engine\report-template-live-preview.tsx:63:      <div className="mt-5 
+space-y-6">
+> components\report-engine\report-template-live-preview.tsx:64:        
+{template.pages.map((page, pageIndex) => (
+  components\report-engine\report-template-live-preview.tsx:65:          <article
+  components\report-engine\report-template-live-preview.tsx:66:            key={page.id}
+  components\report-engine\report-template-live-preview.tsx:67:            
+className="mx-auto min-h-[720px] max-w-[820px] overflow-hidden rounded-[2rem] border 
+border-slate-200 bg-slate-50 shadow-sm"
+  components\report-engine\report-template-live-preview.tsx:95:              ].join(" ")}
+  components\report-engine\report-template-live-preview.tsx:96:            >
+  components\report-engine\report-template-live-preview.tsx:97:              {page.kind === 
+"cover" ? (
+> components\report-engine\report-template-live-preview.tsx:98:                
+<CoverPreviewHeader template={template} pageTitle={page.title} />
+  components\report-engine\report-template-live-preview.tsx:99:              ) : null}
+  components\report-engine\report-template-live-preview.tsx:100:
+  components\report-engine\report-template-live-preview.tsx:101:              <div 
+className="space-y-5">
+  components\report-engine\report-template-live-preview.tsx:102:                
+{page.blocks.length ? (
+  components\report-engine\report-template-live-preview.tsx:103:                  
+page.blocks.map((block) => (
+> components\report-engine\report-template-live-preview.tsx:104:                    
+<PreviewBlock
+  components\report-engine\report-template-live-preview.tsx:105:                      
+key={block.id}
+  components\report-engine\report-template-live-preview.tsx:106:                      
+block={block}
+> components\report-engine\report-template-live-preview.tsx:107:                      
+template={template}
+  components\report-engine\report-template-live-preview.tsx:108:                      
+snippets={snippets}
+> components\report-engine\report-template-live-preview.tsx:109:                      
+previewCaseData={previewCaseData}
+  components\report-engine\report-template-live-preview.tsx:110:                    />
+  components\report-engine\report-template-live-preview.tsx:111:                  ))
+  components\report-engine\report-template-live-preview.tsx:112:                ) : (
+  components\report-engine\report-template-live-preview.tsx:119:              </div>
+  components\report-engine\report-template-live-preview.tsx:120:
+  components\report-engine\report-template-live-preview.tsx:121:              {page.kind 
+=== "cover" ? (
+> components\report-engine\report-template-live-preview.tsx:122:                
+<CoverPreviewFooter template={template} />
+  components\report-engine\report-template-live-preview.tsx:123:              ) : null}
+  components\report-engine\report-template-live-preview.tsx:124:            </div>
+  components\report-engine\report-template-live-preview.tsx:125:          </article>
+  components\report-engine\report-template-live-preview.tsx:129:  );
+  components\report-engine\report-template-live-preview.tsx:130:}
+  components\report-engine\report-template-live-preview.tsx:131:
+> components\report-engine\report-template-live-preview.tsx:132:function PreviewBlock({
+  components\report-engine\report-template-live-preview.tsx:133:  block,
+> components\report-engine\report-template-live-preview.tsx:134:  template,
+  components\report-engine\report-template-live-preview.tsx:135:  snippets,
+> components\report-engine\report-template-live-preview.tsx:136:  previewCaseData,
+  components\report-engine\report-template-live-preview.tsx:137:}: {
+> components\report-engine\report-template-live-preview.tsx:138:  block: 
+ReportTemplateBlock;
+> components\report-engine\report-template-live-preview.tsx:139:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-live-preview.tsx:140:  snippets: 
+ReportTextSnippet[];
+> components\report-engine\report-template-live-preview.tsx:141:  previewCaseData: 
+RuntimePreviewCaseData | null;
+  components\report-engine\report-template-live-preview.tsx:142:}) {
+  components\report-engine\report-template-live-preview.tsx:143:  if (block.kind === 
+"identity-header") {
+  components\report-engine\report-template-live-preview.tsx:144:    return (
+  components\report-engine\report-template-live-preview.tsx:145:      <BlockShell 
+block={block}>
+  components\report-engine\report-template-live-preview.tsx:146:        <div 
+className="grid gap-3 md:grid-cols-3">
+> components\report-engine\report-template-live-preview.tsx:147:          <InfoPreview 
+label="الجهة" value="وزارة التعليم" />
+> components\report-engine\report-template-live-preview.tsx:148:          <InfoPreview 
+label="المدرسة" value="اسم المدرسة" />
+> components\report-engine\report-template-live-preview.tsx:149:          <InfoPreview 
+label="العام الدراسي" value="1447هـ" />
+  components\report-engine\report-template-live-preview.tsx:150:        </div>
+  components\report-engine\report-template-live-preview.tsx:151:      </BlockShell>
+  components\report-engine\report-template-live-preview.tsx:152:    );
+  components\report-engine\report-template-live-preview.tsx:157:      <div 
+className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 
+to-white p-8 text-center">
+  components\report-engine\report-template-live-preview.tsx:158:        
+{shouldShowTitle(block) ? (
+  components\report-engine\report-template-live-preview.tsx:159:          <p 
+className="text-sm font-black text-emerald-700">
+> components\report-engine\report-template-live-preview.tsx:160:            
+{getServiceName(template, previewCaseData)}
+  components\report-engine\report-template-live-preview.tsx:161:          </p>
+  components\report-engine\report-template-live-preview.tsx:162:        ) : null}
+  components\report-engine\report-template-live-preview.tsx:163:
+  components\report-engine\report-template-live-preview.tsx:164:        <h1 className="mt-3 
+text-3xl font-black text-slate-900">
+> components\report-engine\report-template-live-preview.tsx:165:          {template.name}
+  components\report-engine\report-template-live-preview.tsx:166:        </h1>
+  components\report-engine\report-template-live-preview.tsx:167:
+  components\report-engine\report-template-live-preview.tsx:168:        <p 
+className="mx-auto mt-4 max-w-xl text-sm leading-8 text-slate-600">
+> components\report-engine\report-template-live-preview.tsx:169:          
+{template.description}
+  components\report-engine\report-template-live-preview.tsx:170:        </p>
+  components\report-engine\report-template-live-preview.tsx:171:      </div>
+  components\report-engine\report-template-live-preview.tsx:172:    );
+  components\report-engine\report-template-live-preview.tsx:176:    return (
+  components\report-engine\report-template-live-preview.tsx:177:      <BlockShell 
+block={block}>
+  components\report-engine\report-template-live-preview.tsx:178:        <div 
+className="grid gap-3 md:grid-cols-2">
+> components\report-engine\report-template-live-preview.tsx:179:          <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:180:            label="عنوان 
+الحالة"
+> components\report-engine\report-template-live-preview.tsx:181:            
+value={getCaseTitle(previewCaseData)}
+  components\report-engine\report-template-live-preview.tsx:182:          />
+> components\report-engine\report-template-live-preview.tsx:183:          <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:184:            label="الخدمة"
+> components\report-engine\report-template-live-preview.tsx:185:            
+value={getServiceName(template, previewCaseData)}
+  components\report-engine\report-template-live-preview.tsx:186:          />
+> components\report-engine\report-template-live-preview.tsx:187:          <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:188:            label="عدد 
+القيم"
+> components\report-engine\report-template-live-preview.tsx:189:            
+value={`${getRuntimeValues(previewCaseData).length}`}
+  components\report-engine\report-template-live-preview.tsx:190:          />
+> components\report-engine\report-template-live-preview.tsx:191:          <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:192:            label="عدد 
+الشواهد"
+> components\report-engine\report-template-live-preview.tsx:193:            
+value={`${getRuntimeEvidences(previewCaseData).length}`}
+  components\report-engine\report-template-live-preview.tsx:194:          />
+  components\report-engine\report-template-live-preview.tsx:195:        </div>
+  components\report-engine\report-template-live-preview.tsx:196:      </BlockShell>
+  components\report-engine\report-template-live-preview.tsx:198:  }
+  components\report-engine\report-template-live-preview.tsx:199:
+  components\report-engine\report-template-live-preview.tsx:200:  if (block.kind === 
+"student-summary") {
+> components\report-engine\report-template-live-preview.tsx:201:    const student = 
+getStudent(previewCaseData);
+  components\report-engine\report-template-live-preview.tsx:202:
+  components\report-engine\report-template-live-preview.tsx:203:    return (
+  components\report-engine\report-template-live-preview.tsx:204:      <BlockShell 
+block={block}>
+  components\report-engine\report-template-live-preview.tsx:205:        <div 
+className="grid gap-3 md:grid-cols-2">
+> components\report-engine\report-template-live-preview.tsx:206:          <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:207:            label="اسم 
+الطالب/الطالبة"
+  components\report-engine\report-template-live-preview.tsx:208:            
+value={student.fullName || "اسم الطالب/الطالبة"}
+  components\report-engine\report-template-live-preview.tsx:209:          />
+> components\report-engine\report-template-live-preview.tsx:210:          <InfoPreview 
+label="المرحلة" value={student.stage || "غير محدد"} />
+> components\report-engine\report-template-live-preview.tsx:211:          <InfoPreview 
+label="الصف" value={student.grade || "غير محدد"} />
+> components\report-engine\report-template-live-preview.tsx:212:          <InfoPreview 
+label="الفصل" value={student.classroom || "غير محدد"} />
+> components\report-engine\report-template-live-preview.tsx:213:          <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:214:            label="ولي 
+الأمر"
+  components\report-engine\report-template-live-preview.tsx:215:            
+value={student.guardianName || "غير متوفر"}
+  components\report-engine\report-template-live-preview.tsx:216:          />
+> components\report-engine\report-template-live-preview.tsx:217:          <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:218:            label="جوال ولي 
+الأمر"
+  components\report-engine\report-template-live-preview.tsx:219:            
+value={student.guardianPhone || "غير متوفر"}
+  components\report-engine\report-template-live-preview.tsx:220:          />
+  components\report-engine\report-template-live-preview.tsx:227:    return (
+  components\report-engine\report-template-live-preview.tsx:228:      <BlockShell 
+block={block}>
+  components\report-engine\report-template-live-preview.tsx:229:        <div 
+className="grid gap-3 md:grid-cols-2">
+> components\report-engine\report-template-live-preview.tsx:230:          <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:231:            label="اسم 
+الخدمة"
+> components\report-engine\report-template-live-preview.tsx:232:            
+value={getServiceName(template, previewCaseData)}
+  components\report-engine\report-template-live-preview.tsx:233:          />
+> components\report-engine\report-template-live-preview.tsx:234:          <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:235:            label="نطاق 
+القالب"
+> components\report-engine\report-template-live-preview.tsx:236:            
+value={template.scope === "GLOBAL" ? "عام" : "خاص بخدمة"}
+  components\report-engine\report-template-live-preview.tsx:237:          />
+> components\report-engine\report-template-live-preview.tsx:238:          <InfoPreview 
+label="حالة القالب" value={template.status} />
+> components\report-engine\report-template-live-preview.tsx:239:          <InfoPreview 
+label="عدد الصفحات" value={`${template.pages.length}`} />
+  components\report-engine\report-template-live-preview.tsx:240:        </div>
+  components\report-engine\report-template-live-preview.tsx:241:      </BlockShell>
+  components\report-engine\report-template-live-preview.tsx:242:    );
+  components\report-engine\report-template-live-preview.tsx:254:  }
+  components\report-engine\report-template-live-preview.tsx:255:
+  components\report-engine\report-template-live-preview.tsx:256:  if (block.kind === 
+"field-list") {
+> components\report-engine\report-template-live-preview.tsx:257:    const values = 
+getRuntimeValues(previewCaseData);
+  components\report-engine\report-template-live-preview.tsx:258:
+  components\report-engine\report-template-live-preview.tsx:259:    return (
+  components\report-engine\report-template-live-preview.tsx:260:      <BlockShell 
+block={block}>
+  components\report-engine\report-template-live-preview.tsx:261:        {values.length ? (
+  components\report-engine\report-template-live-preview.tsx:262:          <div 
+className="grid gap-3 md:grid-cols-2">
+  components\report-engine\report-template-live-preview.tsx:263:            
+{values.slice(0, 10).map((item, index) => (
+> components\report-engine\report-template-live-preview.tsx:264:              <InfoPreview
+  components\report-engine\report-template-live-preview.tsx:265:                
+key={`${item.fieldKey || item.fieldLabel || index}`}
+  components\report-engine\report-template-live-preview.tsx:266:                
+label={item.fieldLabel || item.fieldKey || `قيمة ${index + 1}`}
+  components\report-engine\report-template-live-preview.tsx:267:                
+value={item.value || "—"}
+  components\report-engine\report-template-live-preview.tsx:279:
+  components\report-engine\report-template-live-preview.tsx:280:  if (block.kind === 
+"text-library") {
+  components\report-engine\report-template-live-preview.tsx:281:    const runtimeData = 
+buildRuntimeReportDataForTextLibrary(
+> components\report-engine\report-template-live-preview.tsx:282:      template,
+> components\report-engine\report-template-live-preview.tsx:283:      previewCaseData,
+  components\report-engine\report-template-live-preview.tsx:284:    );
+  components\report-engine\report-template-live-preview.tsx:285:
+  components\report-engine\report-template-live-preview.tsx:286:    const resolvedSnippets 
+= resolveTextLibrarySnippets({
+  components\report-engine\report-template-live-preview.tsx:287:      block,
+> components\report-engine\report-template-live-preview.tsx:288:      template,
+  components\report-engine\report-template-live-preview.tsx:289:      snippets,
+  components\report-engine\report-template-live-preview.tsx:290:      data: runtimeData,
+  components\report-engine\report-template-live-preview.tsx:291:    });
+  components\report-engine\report-template-live-preview.tsx:351:  }
+  components\report-engine\report-template-live-preview.tsx:352:
+  components\report-engine\report-template-live-preview.tsx:353:  if (block.kind === 
+"evidence-gallery") {
+> components\report-engine\report-template-live-preview.tsx:354:    const evidences = 
+getRuntimeEvidences(previewCaseData);
+  components\report-engine\report-template-live-preview.tsx:355:    const settings = 
+block.settings || {};
+  components\report-engine\report-template-live-preview.tsx:356:    const layout = 
+settings.evidenceLayout || "grid-2x2";
+  components\report-engine\report-template-live-preview.tsx:357:
+  components\report-engine\report-template-live-preview.tsx:358:    return (
+  components\report-engine\report-template-live-preview.tsx:359:      <BlockShell 
+block={block}>
+  components\report-engine\report-template-live-preview.tsx:360:        {evidences.length ? 
+(
+> components\report-engine\report-template-live-preview.tsx:361:          
+<EvidencePreviewGrid
+  components\report-engine\report-template-live-preview.tsx:362:            
+evidences={evidences}
+  components\report-engine\report-template-live-preview.tsx:363:            layout={layout}
+  components\report-engine\report-template-live-preview.tsx:364:            
+showCaptions={settings.showCaptions !== false}
+  components\report-engine\report-template-live-preview.tsx:398:  tone = "slate",
+  components\report-engine\report-template-live-preview.tsx:399:  children,
+  components\report-engine\report-template-live-preview.tsx:400:}: {
+> components\report-engine\report-template-live-preview.tsx:401:  block: 
+ReportTemplateBlock;
+  components\report-engine\report-template-live-preview.tsx:402:  tone?: "slate" | 
+"emerald";
+  components\report-engine\report-template-live-preview.tsx:403:  children: ReactNode;
+  components\report-engine\report-template-live-preview.tsx:404:}) {
+  components\report-engine\report-template-live-preview.tsx:459:  );
+  components\report-engine\report-template-live-preview.tsx:460:}
+  components\report-engine\report-template-live-preview.tsx:461:
+> components\report-engine\report-template-live-preview.tsx:462:function InfoPreview({ 
+label, value }: { label: string; value: string }) {
+  components\report-engine\report-template-live-preview.tsx:463:  return (
+  components\report-engine\report-template-live-preview.tsx:464:    <div 
+className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+  components\report-engine\report-template-live-preview.tsx:465:      <p className="text-xs 
+font-black text-slate-500">{label}</p>
+  components\report-engine\report-template-live-preview.tsx:482:  );
+  components\report-engine\report-template-live-preview.tsx:483:}
+  components\report-engine\report-template-live-preview.tsx:484:
+> components\report-engine\report-template-live-preview.tsx:485:function 
+CoverPreviewHeader({
+> components\report-engine\report-template-live-preview.tsx:486:  template,
+  components\report-engine\report-template-live-preview.tsx:487:  pageTitle,
+  components\report-engine\report-template-live-preview.tsx:488:}: {
+> components\report-engine\report-template-live-preview.tsx:489:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-live-preview.tsx:490:  pageTitle: string;
+  components\report-engine\report-template-live-preview.tsx:491:}) {
+  components\report-engine\report-template-live-preview.tsx:492:  return (
+  components\report-engine\report-template-live-preview.tsx:496:      </div>
+  components\report-engine\report-template-live-preview.tsx:497:
+  components\report-engine\report-template-live-preview.tsx:498:      <p className="mt-4 
+text-sm font-black text-emerald-700">
+> components\report-engine\report-template-live-preview.tsx:499:        
+{getServiceName(template, null)}
+  components\report-engine\report-template-live-preview.tsx:500:      </p>
+  components\report-engine\report-template-live-preview.tsx:501:
+  components\report-engine\report-template-live-preview.tsx:502:      <h1 className="mt-3 
+text-3xl font-black text-slate-900">
+> components\report-engine\report-template-live-preview.tsx:503:        {template.name || 
+pageTitle}
+  components\report-engine\report-template-live-preview.tsx:504:      </h1>
+  components\report-engine\report-template-live-preview.tsx:505:
+  components\report-engine\report-template-live-preview.tsx:506:      <p className="mx-auto 
+mt-4 max-w-xl text-sm leading-8 text-slate-600">
+> components\report-engine\report-template-live-preview.tsx:507:        
+{template.description}
+  components\report-engine\report-template-live-preview.tsx:508:      </p>
+  components\report-engine\report-template-live-preview.tsx:509:    </header>
+  components\report-engine\report-template-live-preview.tsx:510:  );
+  components\report-engine\report-template-live-preview.tsx:511:}
+  components\report-engine\report-template-live-preview.tsx:512:
+> components\report-engine\report-template-live-preview.tsx:513:function 
+CoverPreviewFooter({
+> components\report-engine\report-template-live-preview.tsx:514:  template,
+  components\report-engine\report-template-live-preview.tsx:515:}: {
+> components\report-engine\report-template-live-preview.tsx:516:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-live-preview.tsx:517:}) {
+  components\report-engine\report-template-live-preview.tsx:518:  return (
+  components\report-engine\report-template-live-preview.tsx:519:    <footer 
+className="border-t border-slate-200 pt-5 text-center text-xs font-bold text-slate-500">
+> components\report-engine\report-template-live-preview.tsx:520:      <span>{template.scope 
+=== "GLOBAL" ? "قالب عام" : "قالب خاص بخدمة"}</span>
+  components\report-engine\report-template-live-preview.tsx:521:      <span 
+className="mx-2">•</span>
+> components\report-engine\report-template-live-preview.tsx:522:      
+<span>{template.status}</span>
+  components\report-engine\report-template-live-preview.tsx:523:    </footer>
+  components\report-engine\report-template-live-preview.tsx:524:  );
+  components\report-engine\report-template-live-preview.tsx:525:}
+  components\report-engine\report-template-live-preview.tsx:526:
+> components\report-engine\report-template-live-preview.tsx:527:function 
+EvidencePreviewGrid({
+  components\report-engine\report-template-live-preview.tsx:528:  evidences,
+  components\report-engine\report-template-live-preview.tsx:529:  layout,
+  components\report-engine\report-template-live-preview.tsx:530:  showCaptions,
+  components\report-engine\report-template-live-preview.tsx:597:}
+  components\report-engine\report-template-live-preview.tsx:598:
+  components\report-engine\report-template-live-preview.tsx:599:function 
+buildRuntimeReportDataForTextLibrary(
+> components\report-engine\report-template-live-preview.tsx:600:  template: 
+ReportTemplateBuilderModel,
+> components\report-engine\report-template-live-preview.tsx:601:  previewCaseData: 
+RuntimePreviewCaseData | null,
+  components\report-engine\report-template-live-preview.tsx:602:): RuntimeReportData {
+> components\report-engine\report-template-live-preview.tsx:603:  const values = 
+getRuntimeValues(previewCaseData);
+  components\report-engine\report-template-live-preview.tsx:604:  const valueMap: 
+Record<string, string> = {};
+  components\report-engine\report-template-live-preview.tsx:605:
+  components\report-engine\report-template-live-preview.tsx:606:  values.forEach((item) => {
+  components\report-engine\report-template-live-preview.tsx:615:    }
+  components\report-engine\report-template-live-preview.tsx:616:  });
+  components\report-engine\report-template-live-preview.tsx:617:
+> components\report-engine\report-template-live-preview.tsx:618:  const student = 
+getStudent(previewCaseData);
+> components\report-engine\report-template-live-preview.tsx:619:  const evidences = 
+getRuntimeEvidences(previewCaseData);
+  components\report-engine\report-template-live-preview.tsx:620:
+  components\report-engine\report-template-live-preview.tsx:621:  return {
+> components\report-engine\report-template-live-preview.tsx:622:    reportTitle: 
+template.name || "عنوان التقرير",
+  components\report-engine\report-template-live-preview.tsx:623:    createdAt: new 
+Date().toISOString(),
+  components\report-engine\report-template-live-preview.tsx:624:    values: {
+  components\report-engine\report-template-live-preview.tsx:625:      ...valueMap,
+  components\report-engine\report-template-live-preview.tsx:627:        
+valueMap.program_name ||
+  components\report-engine\report-template-live-preview.tsx:628:        valueMap["عنوان 
+البرنامج"] ||
+  components\report-engine\report-template-live-preview.tsx:629:        
+valueMap.programTitle ||
+> components\report-engine\report-template-live-preview.tsx:630:        
+getCaseTitle(previewCaseData) ||
+  components\report-engine\report-template-live-preview.tsx:631:        "برنامج إرشادي",
+  components\report-engine\report-template-live-preview.tsx:632:      executionDate:
+  components\report-engine\report-template-live-preview.tsx:633:        
+valueMap.gregorian_date ||
+  components\report-engine\report-template-live-preview.tsx:682:      guardianPhone: 
+student.guardianPhone || "",
+  components\report-engine\report-template-live-preview.tsx:683:    },
+  components\report-engine\report-template-live-preview.tsx:684:    service: {
+> components\report-engine\report-template-live-preview.tsx:685:      name: 
+getServiceName(template, previewCaseData),
+> components\report-engine\report-template-live-preview.tsx:686:      slug: 
+template.serviceSlug || "",
+  components\report-engine\report-template-live-preview.tsx:687:    },
+  components\report-engine\report-template-live-preview.tsx:688:    caseEntry: {
+> components\report-engine\report-template-live-preview.tsx:689:      title: 
+getCaseTitle(previewCaseData),
+  components\report-engine\report-template-live-preview.tsx:690:      student: {
+  components\report-engine\report-template-live-preview.tsx:691:        name: 
+student.fullName || "اسم الطالب/الطالبة",
+  components\report-engine\report-template-live-preview.tsx:692:        nationalId: 
+student.nationalId || "",
+  components\report-engine\report-template-live-preview.tsx:697:        guardianPhone: 
+student.guardianPhone || "",
+  components\report-engine\report-template-live-preview.tsx:698:      },
+  components\report-engine\report-template-live-preview.tsx:699:      service: {
+> components\report-engine\report-template-live-preview.tsx:700:        name: 
+getServiceName(template, previewCaseData),
+> components\report-engine\report-template-live-preview.tsx:701:        slug: 
+template.serviceSlug || "",
+  components\report-engine\report-template-live-preview.tsx:702:      },
+  components\report-engine\report-template-live-preview.tsx:703:    },
+  components\report-engine\report-template-live-preview.tsx:704:    school: {
+  components\report-engine\report-template-live-preview.tsx:714:}
+  components\report-engine\report-template-live-preview.tsx:715:
+  components\report-engine\report-template-live-preview.tsx:716:function getRuntimeValues(
+> components\report-engine\report-template-live-preview.tsx:717:  previewCaseData: 
+RuntimePreviewCaseData | null,
+  components\report-engine\report-template-live-preview.tsx:718:): RuntimeValueItem[] {
+> components\report-engine\report-template-live-preview.tsx:719:  const data = 
+previewCaseData as
+  components\report-engine\report-template-live-preview.tsx:720:    | {
+  components\report-engine\report-template-live-preview.tsx:721:        values?: 
+RuntimeValueItem[];
+  components\report-engine\report-template-live-preview.tsx:722:      }
+  components\report-engine\report-template-live-preview.tsx:726:}
+  components\report-engine\report-template-live-preview.tsx:727:
+  components\report-engine\report-template-live-preview.tsx:728:function 
+getRuntimeEvidences(
+> components\report-engine\report-template-live-preview.tsx:729:  previewCaseData: 
+RuntimePreviewCaseData | null,
+  components\report-engine\report-template-live-preview.tsx:730:): RuntimeEvidenceItem[] {
+> components\report-engine\report-template-live-preview.tsx:731:  const data = 
+previewCaseData as
+  components\report-engine\report-template-live-preview.tsx:732:    | {
+  components\report-engine\report-template-live-preview.tsx:733:        evidences?: 
+RuntimeEvidenceItem[];
+  components\report-engine\report-template-live-preview.tsx:734:      }
+  components\report-engine\report-template-live-preview.tsx:737:  return 
+Array.isArray(data?.evidences) ? data.evidences : [];
+  components\report-engine\report-template-live-preview.tsx:738:}
+  components\report-engine\report-template-live-preview.tsx:739:
+> components\report-engine\report-template-live-preview.tsx:740:function 
+getStudent(previewCaseData: RuntimePreviewCaseData | null) {
+> components\report-engine\report-template-live-preview.tsx:741:  const data = 
+previewCaseData as
+  components\report-engine\report-template-live-preview.tsx:742:    | {
+  components\report-engine\report-template-live-preview.tsx:743:        student?: {
+  components\report-engine\report-template-live-preview.tsx:744:          fullName?: string 
+| null;
+  components\report-engine\report-template-live-preview.tsx:763:  };
+  components\report-engine\report-template-live-preview.tsx:764:}
+  components\report-engine\report-template-live-preview.tsx:765:
+> components\report-engine\report-template-live-preview.tsx:766:function 
+getCaseTitle(previewCaseData: RuntimePreviewCaseData | null) {
+> components\report-engine\report-template-live-preview.tsx:767:  const data = 
+previewCaseData as
+  components\report-engine\report-template-live-preview.tsx:768:    | {
+  components\report-engine\report-template-live-preview.tsx:769:        title?: string | 
+null;
+  components\report-engine\report-template-live-preview.tsx:770:      }
+  components\report-engine\report-template-live-preview.tsx:774:}
+  components\report-engine\report-template-live-preview.tsx:775:
+  components\report-engine\report-template-live-preview.tsx:776:function getServiceName(
+> components\report-engine\report-template-live-preview.tsx:777:  template: 
+ReportTemplateBuilderModel,
+> components\report-engine\report-template-live-preview.tsx:778:  previewCaseData: 
+RuntimePreviewCaseData | null,
+  components\report-engine\report-template-live-preview.tsx:779:) {
+> components\report-engine\report-template-live-preview.tsx:780:  const data = 
+previewCaseData as
+  components\report-engine\report-template-live-preview.tsx:781:    | {
+  components\report-engine\report-template-live-preview.tsx:782:        serviceName?: 
+string | null;
+  components\report-engine\report-template-live-preview.tsx:783:      }
+  components\report-engine\report-template-live-preview.tsx:787:    return data.serviceName;
+  components\report-engine\report-template-live-preview.tsx:788:  }
+  components\report-engine\report-template-live-preview.tsx:789:
+> components\report-engine\report-template-live-preview.tsx:790:  if (template.scope === 
+"SERVICE" && template.serviceSlug) {
+> components\report-engine\report-template-live-preview.tsx:791:    return 
+template.serviceSlug;
+  components\report-engine\report-template-live-preview.tsx:792:  }
+  components\report-engine\report-template-live-preview.tsx:793:
+  components\report-engine\report-template-live-preview.tsx:794:  return "الخدمة الإرشادية";
+  components\report-engine\report-template-live-preview.tsx:795:}
+  components\report-engine\report-template-live-preview.tsx:796:
+> components\report-engine\report-template-live-preview.tsx:797:function 
+shouldShowTitle(block: ReportTemplateBlock) {
+  components\report-engine\report-template-live-preview.tsx:798:  return 
+block.settings?.showTitle !== false;
+  components\report-engine\report-template-live-preview.tsx:799:}
+  components\report-engine\report-template-live-preview.tsx:800:
+  components\report-engine\report-template-publish-tools.tsx:4:import type {
+  components\report-engine\report-template-publish-tools.tsx:5:  GeneratedReportSnapshot,
+  components\report-engine\report-template-publish-tools.tsx:6:  ReportIdentitySettings,
+> components\report-engine\report-template-publish-tools.tsx:7:  ReportTemplateBuilderModel,
+> components\report-engine\report-template-publish-tools.tsx:8:  ReportTemplateStatus,
+  components\report-engine\report-template-publish-tools.tsx:9:  ReportTextSnippet,
+> components\report-engine\report-template-publish-tools.tsx:10:} from 
+"@/lib/report-engine/report-template-builder-types";
+> components\report-engine\report-template-publish-tools.tsx:11:import { 
+validateReportTemplateForPublishing } from "@/lib/report-engine/report-template-validation";
+  components\report-engine\report-template-publish-tools.tsx:12:
+> components\report-engine\report-template-publish-tools.tsx:13:type 
+ReportTemplatePublishToolsProps = {
+> components\report-engine\report-template-publish-tools.tsx:14:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-publish-tools.tsx:15:  identity: 
+ReportIdentitySettings;
+  components\report-engine\report-template-publish-tools.tsx:16:  snippets: 
+ReportTextSnippet[];
+  components\report-engine\report-template-publish-tools.tsx:17:  snapshots: 
+GeneratedReportSnapshot[];
+> components\report-engine\report-template-publish-tools.tsx:18:  onTemplateStatusChange: 
+(status: ReportTemplateStatus) => void;
+  components\report-engine\report-template-publish-tools.tsx:19:  onSnapshotCreate: 
+(snapshot: GeneratedReportSnapshot) => void;
+  components\report-engine\report-template-publish-tools.tsx:20:};
+  components\report-engine\report-template-publish-tools.tsx:21:
+  components\report-engine\report-template-publish-tools.tsx:26:  message: string;
+  components\report-engine\report-template-publish-tools.tsx:27:};
+  components\report-engine\report-template-publish-tools.tsx:28:
+> components\report-engine\report-template-publish-tools.tsx:29:type 
+PortableTemplatePackage = {
+  components\report-engine\report-template-publish-tools.tsx:30:  version: 1;
+  components\report-engine\report-template-publish-tools.tsx:31:  exportedAt: string;
+> components\report-engine\report-template-publish-tools.tsx:32:  source: 
+"student-guidance-platform-report-template-builder";
+> components\report-engine\report-template-publish-tools.tsx:33:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-publish-tools.tsx:34:  identity: 
+ReportIdentitySettings;
+  components\report-engine\report-template-publish-tools.tsx:35:  snippets: 
+ReportTextSnippet[];
+  components\report-engine\report-template-publish-tools.tsx:36:};
+  components\report-engine\report-template-publish-tools.tsx:37:
+> components\report-engine\report-template-publish-tools.tsx:38:export function 
+ReportTemplatePublishTools({
+> components\report-engine\report-template-publish-tools.tsx:39:  template,
+  components\report-engine\report-template-publish-tools.tsx:40:  identity,
+  components\report-engine\report-template-publish-tools.tsx:41:  snippets,
+  components\report-engine\report-template-publish-tools.tsx:42:  snapshots,
+> components\report-engine\report-template-publish-tools.tsx:43:  onTemplateStatusChange,
+  components\report-engine\report-template-publish-tools.tsx:44:  onSnapshotCreate,
+> components\report-engine\report-template-publish-tools.tsx:45:}: 
+ReportTemplatePublishToolsProps) {
+  components\report-engine\report-template-publish-tools.tsx:46:  const importInputRef = 
+useRef<HTMLInputElement | null>(null);
+  components\report-engine\report-template-publish-tools.tsx:47:
+  components\report-engine\report-template-publish-tools.tsx:48:  const [feedback, 
+setFeedback] = useState<FeedbackState>({
+  components\report-engine\report-template-publish-tools.tsx:53:  });
+  components\report-engine\report-template-publish-tools.tsx:54:
+  components\report-engine\report-template-publish-tools.tsx:55:  const validation = 
+useMemo(() => {
+> components\report-engine\report-template-publish-tools.tsx:56:    return 
+validateReportTemplateForPublishing({
+> components\report-engine\report-template-publish-tools.tsx:57:      template,
+  components\report-engine\report-template-publish-tools.tsx:58:      identity,
+  components\report-engine\report-template-publish-tools.tsx:59:      snippets,
+  components\report-engine\report-template-publish-tools.tsx:60:    });
+> components\report-engine\report-template-publish-tools.tsx:61:  }, [template, identity, 
+snippets]);
+  components\report-engine\report-template-publish-tools.tsx:62:
+> components\report-engine\report-template-publish-tools.tsx:63:  const templateStats = 
+useMemo(() => {
+> components\report-engine\report-template-publish-tools.tsx:64:    const pagesCount = 
+template.pages.length;
+> components\report-engine\report-template-publish-tools.tsx:65:    const blocksCount = 
+template.pages.reduce(
+  components\report-engine\report-template-publish-tools.tsx:66:      (total, page) => 
+total + page.blocks.length,
+  components\report-engine\report-template-publish-tools.tsx:67:      0
+  components\report-engine\report-template-publish-tools.tsx:68:    );
+  components\report-engine\report-template-publish-tools.tsx:69:
+> components\report-engine\report-template-publish-tools.tsx:70:    const 
+textLibraryBlocksCount = template.pages.reduce(
+  components\report-engine\report-template-publish-tools.tsx:71:      (total, page) =>
+  components\report-engine\report-template-publish-tools.tsx:72:        total +
+  components\report-engine\report-template-publish-tools.tsx:73:        
+page.blocks.filter((block) => block.kind === "text-library").length,
+  components\report-engine\report-template-publish-tools.tsx:74:      0
+  components\report-engine\report-template-publish-tools.tsx:75:    );
+  components\report-engine\report-template-publish-tools.tsx:76:
+> components\report-engine\report-template-publish-tools.tsx:77:    const 
+evidenceBlocksCount = template.pages.reduce(
+  components\report-engine\report-template-publish-tools.tsx:78:      (total, page) =>
+  components\report-engine\report-template-publish-tools.tsx:79:        total +
+  components\report-engine\report-template-publish-tools.tsx:80:        
+page.blocks.filter((block) => block.kind === "evidence-gallery").length,
+  components\report-engine\report-template-publish-tools.tsx:82:    );
+  components\report-engine\report-template-publish-tools.tsx:83:
+  components\report-engine\report-template-publish-tools.tsx:84:    const 
+serviceSnippetsCount =
+> components\report-engine\report-template-publish-tools.tsx:85:      template.scope === 
+"SERVICE" && template.serviceSlug
+  components\report-engine\report-template-publish-tools.tsx:86:        ? snippets.filter(
+  components\report-engine\report-template-publish-tools.tsx:87:            (snippet) =>
+> components\report-engine\report-template-publish-tools.tsx:88:              
+!snippet.serviceSlug || snippet.serviceSlug === template.serviceSlug
+  components\report-engine\report-template-publish-tools.tsx:89:          ).length
+  components\report-engine\report-template-publish-tools.tsx:90:        : snippets.length;
+  components\report-engine\report-template-publish-tools.tsx:91:
+  components\report-engine\report-template-publish-tools.tsx:98:      snippetsCount: 
+snippets.length,
+  components\report-engine\report-template-publish-tools.tsx:99:      snapshotsCount: 
+snapshots.length,
+  components\report-engine\report-template-publish-tools.tsx:100:    };
+> components\report-engine\report-template-publish-tools.tsx:101:  }, [template, snippets, 
+snapshots]);
+  components\report-engine\report-template-publish-tools.tsx:102:
+  components\report-engine\report-template-publish-tools.tsx:103:  function openFeedback(
+  components\report-engine\report-template-publish-tools.tsx:104:    type: 
+FeedbackState["type"],
+  components\report-engine\report-template-publish-tools.tsx:120:    }));
+  components\report-engine\report-template-publish-tools.tsx:121:  }
+  components\report-engine\report-template-publish-tools.tsx:122:
+> components\report-engine\report-template-publish-tools.tsx:123:  function 
+publishTemplate() {
+  components\report-engine\report-template-publish-tools.tsx:124:    if 
+(!validation.canPublish) {
+  components\report-engine\report-template-publish-tools.tsx:125:      openFeedback(
+  components\report-engine\report-template-publish-tools.tsx:126:        "warning",
+  components\report-engine\report-template-publish-tools.tsx:130:      return;
+  components\report-engine\report-template-publish-tools.tsx:131:    }
+  components\report-engine\report-template-publish-tools.tsx:132:
+> components\report-engine\report-template-publish-tools.tsx:133:    
+onTemplateStatusChange("PUBLISHED");
+  components\report-engine\report-template-publish-tools.tsx:134:
+  components\report-engine\report-template-publish-tools.tsx:135:    openFeedback(
+  components\report-engine\report-template-publish-tools.tsx:136:      "success",
+  components\report-engine\report-template-publish-tools.tsx:140:  }
+  components\report-engine\report-template-publish-tools.tsx:141:
+  components\report-engine\report-template-publish-tools.tsx:142:  function moveToDraft() {
+> components\report-engine\report-template-publish-tools.tsx:143:    
+onTemplateStatusChange("DRAFT");
+  components\report-engine\report-template-publish-tools.tsx:144:
+  components\report-engine\report-template-publish-tools.tsx:145:    openFeedback(
+  components\report-engine\report-template-publish-tools.tsx:146:      "info",
+  components\report-engine\report-template-publish-tools.tsx:149:    );
+  components\report-engine\report-template-publish-tools.tsx:150:  }
+  components\report-engine\report-template-publish-tools.tsx:151:
+> components\report-engine\report-template-publish-tools.tsx:152:  function 
+archiveTemplate() {
+> components\report-engine\report-template-publish-tools.tsx:153:    
+onTemplateStatusChange("ARCHIVED");
+  components\report-engine\report-template-publish-tools.tsx:154:
+  components\report-engine\report-template-publish-tools.tsx:155:    openFeedback(
+  components\report-engine\report-template-publish-tools.tsx:156:      "warning",
+  components\report-engine\report-template-publish-tools.tsx:161:
+  components\report-engine\report-template-publish-tools.tsx:162:  function 
+createSnapshot() {
+  components\report-engine\report-template-publish-tools.tsx:163:    const snapshot = {
+> components\report-engine\report-template-publish-tools.tsx:164:      id: 
+`report-template-snapshot-${Date.now()}`,
+> components\report-engine\report-template-publish-tools.tsx:165:      templateId: 
+template.id,
+> components\report-engine\report-template-publish-tools.tsx:166:      templateName: 
+template.name,
+> components\report-engine\report-template-publish-tools.tsx:167:      status: 
+template.status,
+  components\report-engine\report-template-publish-tools.tsx:168:      createdAt: new 
+Date().toISOString(),
+> components\report-engine\report-template-publish-tools.tsx:169:      pagesCount: 
+template.pages.length,
+> components\report-engine\report-template-publish-tools.tsx:170:      blocksCount: 
+templateStats.blocksCount,
+  components\report-engine\report-template-publish-tools.tsx:171:      snippetsCount: 
+snippets.length,
+> components\report-engine\report-template-publish-tools.tsx:172:      template,
+  components\report-engine\report-template-publish-tools.tsx:173:      identity,
+  components\report-engine\report-template-publish-tools.tsx:174:      snippets,
+  components\report-engine\report-template-publish-tools.tsx:175:    } as unknown as 
+GeneratedReportSnapshot;
+  components\report-engine\report-template-publish-tools.tsx:183:    );
+  components\report-engine\report-template-publish-tools.tsx:184:  }
+  components\report-engine\report-template-publish-tools.tsx:185:
+> components\report-engine\report-template-publish-tools.tsx:186:  function 
+exportTemplatePackage() {
+> components\report-engine\report-template-publish-tools.tsx:187:    const packageData: 
+PortableTemplatePackage = {
+  components\report-engine\report-template-publish-tools.tsx:188:      version: 1,
+  components\report-engine\report-template-publish-tools.tsx:189:      exportedAt: new 
+Date().toISOString(),
+> components\report-engine\report-template-publish-tools.tsx:190:      source: 
+"student-guidance-platform-report-template-builder",
+> components\report-engine\report-template-publish-tools.tsx:191:      template,
+  components\report-engine\report-template-publish-tools.tsx:192:      identity,
+  components\report-engine\report-template-publish-tools.tsx:193:      snippets,
+  components\report-engine\report-template-publish-tools.tsx:194:    };
+  components\report-engine\report-template-publish-tools.tsx:200:
+  components\report-engine\report-template-publish-tools.tsx:201:    const url = 
+URL.createObjectURL(blob);
+  components\report-engine\report-template-publish-tools.tsx:202:    const anchor = 
+document.createElement("a");
+> components\report-engine\report-template-publish-tools.tsx:203:    const fileName = 
+buildSafeFileName(template.name);
+  components\report-engine\report-template-publish-tools.tsx:204:
+  components\report-engine\report-template-publish-tools.tsx:205:    anchor.href = url;
+  components\report-engine\report-template-publish-tools.tsx:206:    anchor.download = 
+`${fileName}-${Date.now()}.json`;
+  components\report-engine\report-template-publish-tools.tsx:217:    );
+  components\report-engine\report-template-publish-tools.tsx:218:  }
+  components\report-engine\report-template-publish-tools.tsx:219:
+> components\report-engine\report-template-publish-tools.tsx:220:  async function 
+importTemplatePackage(file: File | null) {
+  components\report-engine\report-template-publish-tools.tsx:221:    if (!file) {
+  components\report-engine\report-template-publish-tools.tsx:222:      return;
+  components\report-engine\report-template-publish-tools.tsx:223:    }
+  components\report-engine\report-template-publish-tools.tsx:225:    try {
+  components\report-engine\report-template-publish-tools.tsx:226:      const text = await 
+file.text();
+  components\report-engine\report-template-publish-tools.tsx:227:      const parsed = 
+JSON.parse(text) as unknown;
+> components\report-engine\report-template-publish-tools.tsx:228:      const packageData = 
+validatePortableTemplatePackage(parsed);
+  components\report-engine\report-template-publish-tools.tsx:229:
+  components\report-engine\report-template-publish-tools.tsx:230:      openFeedback(
+  components\report-engine\report-template-publish-tools.tsx:231:        "success",
+  components\report-engine\report-template-publish-tools.tsx:232:        "تم قراءة ملف 
+القالب",
+> components\report-engine\report-template-publish-tools.tsx:233:        `تم التحقق من 
+الملف بنجاح: ${packageData.template.name}. الاستيراد الحقيقي سيُربط لاحقًا بإنشاء Draft 
+جديد بدل استبدال القالب الحالي مباشرة.`
+  components\report-engine\report-template-publish-tools.tsx:234:      );
+  components\report-engine\report-template-publish-tools.tsx:235:    } catch (error) {
+  components\report-engine\report-template-publish-tools.tsx:236:      openFeedback(
+  components\report-engine\report-template-publish-tools.tsx:258:          <p 
+className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+  components\report-engine\report-template-publish-tools.tsx:259:            هنا يتم فحص 
+جاهزية القالب، نشره، أرشفته، إنشاء Snapshot، وتصديره أو
+  components\report-engine\report-template-publish-tools.tsx:260:            استيراده كملف 
+JSON. لاحقًا سيتم ربط هذه العمليات بقاعدة البيانات
+> components\report-engine\report-template-publish-tools.tsx:261:            ونظام Draft / 
+Published / Archived.
+  components\report-engine\report-template-publish-tools.tsx:262:          </p>
+  components\report-engine\report-template-publish-tools.tsx:263:        </div>
+  components\report-engine\report-template-publish-tools.tsx:264:
+> components\report-engine\report-template-publish-tools.tsx:265:        
+<TemplateStatusBadge status={template.status} />
+  components\report-engine\report-template-publish-tools.tsx:266:      </div>
+  components\report-engine\report-template-publish-tools.tsx:267:
+  components\report-engine\report-template-publish-tools.tsx:268:      <div className="mt-5 
+grid gap-3 md:grid-cols-4">
+> components\report-engine\report-template-publish-tools.tsx:269:        <MetricCard 
+label="الصفحات" value={templateStats.pagesCount} />
+> components\report-engine\report-template-publish-tools.tsx:270:        <MetricCard 
+label="البلوكات" value={templateStats.blocksCount} />
+  components\report-engine\report-template-publish-tools.tsx:271:        <MetricCard
+  components\report-engine\report-template-publish-tools.tsx:272:          label="بلوكات 
+مكتبة النصوص"
+> components\report-engine\report-template-publish-tools.tsx:273:          
+value={templateStats.textLibraryBlocksCount}
+  components\report-engine\report-template-publish-tools.tsx:274:        />
+> components\report-engine\report-template-publish-tools.tsx:275:        <MetricCard 
+label="النصوص المتاحة" value={templateStats.snippetsCount} />
+  components\report-engine\report-template-publish-tools.tsx:276:      </div>
+  components\report-engine\report-template-publish-tools.tsx:277:
+  components\report-engine\report-template-publish-tools.tsx:278:      <div className="mt-5 
+rounded-3xl border border-slate-200 bg-slate-50 p-4">
+  components\report-engine\report-template-publish-tools.tsx:309:
+  components\report-engine\report-template-publish-tools.tsx:310:          <ReadinessCard
+  components\report-engine\report-template-publish-tools.tsx:311:            title="نصوص 
+الخدمة"
+> components\report-engine\report-template-publish-tools.tsx:312:            
+value={`${templateStats.serviceSnippetsCount} نص متاح`}
+> components\report-engine\report-template-publish-tools.tsx:313:            
+tone={templateStats.serviceSnippetsCount > 0 ? "success" : "warning"}
+  components\report-engine\report-template-publish-tools.tsx:314:          />
+  components\report-engine\report-template-publish-tools.tsx:315:
+  components\report-engine\report-template-publish-tools.tsx:316:          <ReadinessCard
+  components\report-engine\report-template-publish-tools.tsx:317:            
+title="Snapshots"
+> components\report-engine\report-template-publish-tools.tsx:318:            
+value={`${templateStats.snapshotsCount} نسخة`}
+> components\report-engine\report-template-publish-tools.tsx:319:            
+tone={templateStats.snapshotsCount > 0 ? "success" : "neutral"}
+  components\report-engine\report-template-publish-tools.tsx:320:          />
+  components\report-engine\report-template-publish-tools.tsx:321:        </div>
+  components\report-engine\report-template-publish-tools.tsx:322:
+  components\report-engine\report-template-publish-tools.tsx:349:          title="نشر 
+القالب"
+  components\report-engine\report-template-publish-tools.tsx:350:          
+description="اعتماد القالب ليكون جاهزًا للموجهين."
+  components\report-engine\report-template-publish-tools.tsx:351:          tone="success"
+> components\report-engine\report-template-publish-tools.tsx:352:          
+onClick={publishTemplate}
+  components\report-engine\report-template-publish-tools.tsx:353:        />
+  components\report-engine\report-template-publish-tools.tsx:354:
+  components\report-engine\report-template-publish-tools.tsx:355:        <ActionButton
+  components\report-engine\report-template-publish-tools.tsx:363:          title="أرشفة 
+القالب"
+  components\report-engine\report-template-publish-tools.tsx:364:          
+description="إخفاء القالب من الاستخدام القادم."
+  components\report-engine\report-template-publish-tools.tsx:365:          tone="warning"
+> components\report-engine\report-template-publish-tools.tsx:366:          
+onClick={archiveTemplate}
+  components\report-engine\report-template-publish-tools.tsx:367:        />
+  components\report-engine\report-template-publish-tools.tsx:368:      </div>
+  components\report-engine\report-template-publish-tools.tsx:369:
+  components\report-engine\report-template-publish-tools.tsx:379:          title="تصدير 
+JSON"
+  components\report-engine\report-template-publish-tools.tsx:380:          
+description="تنزيل القالب والهوية والنصوص كنسخة احتياطية."
+  components\report-engine\report-template-publish-tools.tsx:381:          tone="neutral"
+> components\report-engine\report-template-publish-tools.tsx:382:          
+onClick={exportTemplatePackage}
+  components\report-engine\report-template-publish-tools.tsx:383:        />
+  components\report-engine\report-template-publish-tools.tsx:384:
+  components\report-engine\report-template-publish-tools.tsx:385:        <ActionButton
+  components\report-engine\report-template-publish-tools.tsx:396:          
+className="hidden"
+  components\report-engine\report-template-publish-tools.tsx:397:          
+onChange={(event) => {
+  components\report-engine\report-template-publish-tools.tsx:398:            const file = 
+event.currentTarget.files?.[0] || null;
+> components\report-engine\report-template-publish-tools.tsx:399:            
+importTemplatePackage(file);
+  components\report-engine\report-template-publish-tools.tsx:400:            
+event.currentTarget.value = "";
+  components\report-engine\report-template-publish-tools.tsx:401:          }}
+  components\report-engine\report-template-publish-tools.tsx:402:        />
+  components\report-engine\report-template-publish-tools.tsx:416:  );
+  components\report-engine\report-template-publish-tools.tsx:417:}
+  components\report-engine\report-template-publish-tools.tsx:418:
+> components\report-engine\report-template-publish-tools.tsx:419:function 
+TemplateStatusBadge({ status }: { status: ReportTemplateStatus }) {
+  components\report-engine\report-template-publish-tools.tsx:420:  const config =
+> components\report-engine\report-template-publish-tools.tsx:421:    status === "PUBLISHED"
+  components\report-engine\report-template-publish-tools.tsx:422:      ? {
+  components\report-engine\report-template-publish-tools.tsx:423:          label: "منشور",
+  components\report-engine\report-template-publish-tools.tsx:424:          className: 
+"bg-emerald-100 text-emerald-800",
+  components\report-engine\report-template-publish-tools.tsx:666:    .replace(/\s+/g, "-")
+  components\report-engine\report-template-publish-tools.tsx:667:    .slice(0, 80);
+  components\report-engine\report-template-publish-tools.tsx:668:
+> components\report-engine\report-template-publish-tools.tsx:669:  return cleaned || 
+"report-template";
+  components\report-engine\report-template-publish-tools.tsx:670:}
+  components\report-engine\report-template-publish-tools.tsx:671:
+> components\report-engine\report-template-publish-tools.tsx:672:function 
+validatePortableTemplatePackage(
+  components\report-engine\report-template-publish-tools.tsx:673:  value: unknown
+> components\report-engine\report-template-publish-tools.tsx:674:): PortableTemplatePackage 
+{
+  components\report-engine\report-template-publish-tools.tsx:675:  if (!value || typeof 
+value !== "object") {
+  components\report-engine\report-template-publish-tools.tsx:676:    throw new Error("ملف 
+القالب غير صالح.");
+  components\report-engine\report-template-publish-tools.tsx:677:  }
+  components\report-engine\report-template-publish-tools.tsx:678:
+> components\report-engine\report-template-publish-tools.tsx:679:  const packageData = 
+value as Partial<PortableTemplatePackage>;
+  components\report-engine\report-template-publish-tools.tsx:680:
+  components\report-engine\report-template-publish-tools.tsx:681:  if (packageData.version 
+!== 1) {
+  components\report-engine\report-template-publish-tools.tsx:682:    throw new Error("إصدار 
+ملف القالب غير مدعوم.");
+  components\report-engine\report-template-publish-tools.tsx:684:
+  components\report-engine\report-template-publish-tools.tsx:685:  if (
+  components\report-engine\report-template-publish-tools.tsx:686:    packageData.source !==
+> components\report-engine\report-template-publish-tools.tsx:687:    
+"student-guidance-platform-report-template-builder"
+  components\report-engine\report-template-publish-tools.tsx:688:  ) {
+  components\report-engine\report-template-publish-tools.tsx:689:    throw new Error("مصدر 
+ملف القالب غير معروف.");
+  components\report-engine\report-template-publish-tools.tsx:690:  }
+  components\report-engine\report-template-publish-tools.tsx:691:
+> components\report-engine\report-template-publish-tools.tsx:692:  if 
+(!packageData.template || typeof packageData.template !== "object") {
+  components\report-engine\report-template-publish-tools.tsx:693:    throw new Error("الملف 
+لا يحتوي على بيانات قالب صحيحة.");
+  components\report-engine\report-template-publish-tools.tsx:694:  }
+  components\report-engine\report-template-publish-tools.tsx:695:
+  components\report-engine\report-template-publish-tools.tsx:701:    throw new Error("الملف 
+لا يحتوي على مكتبة نصوص صحيحة.");
+  components\report-engine\report-template-publish-tools.tsx:702:  }
+  components\report-engine\report-template-publish-tools.tsx:703:
+> components\report-engine\report-template-publish-tools.tsx:704:  return packageData as 
+PortableTemplatePackage;
+  components\report-engine\report-template-publish-tools.tsx:705:}
+  components\report-engine\report-template-publish-tools.tsx:706:
+  components\report-engine\report-template-publish-tools.tsx:707:function 
+normalizeSnapshot(snapshot: GeneratedReportSnapshot, index: number) {
+  components\report-engine\report-template-publish-tools.tsx:708:  const value = snapshot 
+as unknown as {
+  components\report-engine\report-template-publish-tools.tsx:709:    id?: string;
+> components\report-engine\report-template-publish-tools.tsx:710:    templateName?: string;
+  components\report-engine\report-template-publish-tools.tsx:711:    name?: string;
+  components\report-engine\report-template-publish-tools.tsx:712:    title?: string;
+  components\report-engine\report-template-publish-tools.tsx:713:    createdAt?: string;
+  components\report-engine\report-template-publish-tools.tsx:718:
+  components\report-engine\report-template-publish-tools.tsx:719:  return {
+  components\report-engine\report-template-publish-tools.tsx:720:    id: value.id || 
+`snapshot-${index}`,
+> components\report-engine\report-template-publish-tools.tsx:721:    title: 
+value.templateName || value.name || value.title || `Snapshot ${index + 1}`,
+  components\report-engine\report-template-publish-tools.tsx:722:    createdAt: 
+value.createdAt
+  components\report-engine\report-template-publish-tools.tsx:723:      ? 
+formatDateTime(value.createdAt)
+  components\report-engine\report-template-publish-tools.tsx:724:      : "وقت غير محدد",
+  components\report-engine\report-template-studio.tsx:11:  type ReportBlockKind,
+  components\report-engine\report-template-studio.tsx:12:  type ReportIdentitySettings,
+  components\report-engine\report-template-studio.tsx:13:  type ReportPageKind,
+> components\report-engine\report-template-studio.tsx:14:  type ReportTemplateBlock,
+> components\report-engine\report-template-studio.tsx:15:  type ReportTemplateBuilderModel,
+> components\report-engine\report-template-studio.tsx:16:  type ReportTemplatePage,
+> components\report-engine\report-template-studio.tsx:17:  type ReportTemplateStatus,
+  components\report-engine\report-template-studio.tsx:18:  type ReportTextSnippet,
+> components\report-engine\report-template-studio.tsx:19:} from 
+"@/lib/report-engine/report-template-builder-types";
+  components\report-engine\report-template-studio.tsx:20:import type {
+> components\report-engine\report-template-studio.tsx:21:  RuntimePreviewCaseData,
+  components\report-engine\report-template-studio.tsx:22:  RuntimeWorkflowFieldOption,
+> components\report-engine\report-template-studio.tsx:23:} from 
+"@/lib/report-engine/report-template-runtime-types";
+  components\report-engine\report-template-studio.tsx:24:import {
+> components\report-engine\report-template-studio.tsx:25:  
+initialReportTemplateBuilderPresets,
+  components\report-engine\report-template-studio.tsx:26:  initialReportTextSnippets,
+> components\report-engine\report-template-studio.tsx:27:} from 
+"@/lib/report-engine/report-template-builder-presets";
+> components\report-engine\report-template-studio.tsx:28:import { ReportTemplateAdminTools 
+} from "@/components/report-engine/report-template-admin-tools";
+> components\report-engine\report-template-studio.tsx:29:import { 
+ReportTemplatePublishTools } from 
+"@/components/report-engine/report-template-publish-tools";
+> components\report-engine\report-template-studio.tsx:30:import { ReportTemplateLivePreview 
+} from "@/components/report-engine/report-template-live-preview";
+  components\report-engine\report-template-studio.tsx:31:import {
+  components\report-engine\report-template-studio.tsx:32:  getMatchingTextSnippets,
+  components\report-engine\report-template-studio.tsx:33:  getTextLibrarySettings,
+  components\report-engine\report-template-studio.tsx:38:  type TextLibrarySourceMode,
+  components\report-engine\report-template-studio.tsx:39:} from 
+"@/lib/report-engine/report-text-library-runtime";
+  components\report-engine\report-template-studio.tsx:40:
+> components\report-engine\report-template-studio.tsx:41:const statusLabels: 
+Record<ReportTemplateStatus, string> = {
+  components\report-engine\report-template-studio.tsx:42:  DRAFT: "مسودة",
+> components\report-engine\report-template-studio.tsx:43:  PUBLISHED: "منشور",
+  components\report-engine\report-template-studio.tsx:44:  ARCHIVED: "مؤرشف",
+  components\report-engine\report-template-studio.tsx:45:};
+  components\report-engine\report-template-studio.tsx:46:
+  components\report-engine\report-template-studio.tsx:121:  },
+  components\report-engine\report-template-studio.tsx:122:];
+  components\report-engine\report-template-studio.tsx:123:
+> components\report-engine\report-template-studio.tsx:124:export function 
+ReportTemplateStudio() {
+> components\report-engine\report-template-studio.tsx:125:  const [templates, setTemplates] 
+= useState<ReportTemplateBuilderModel[]>(
+> components\report-engine\report-template-studio.tsx:126:    
+initialReportTemplateBuilderPresets,
+  components\report-engine\report-template-studio.tsx:127:  );
+  components\report-engine\report-template-studio.tsx:128:
+> components\report-engine\report-template-studio.tsx:129:  const [activeTemplateId, 
+setActiveTemplateId] = useState(
+> components\report-engine\report-template-studio.tsx:130:    
+initialReportTemplateBuilderPresets[0]?.id || "",
+  components\report-engine\report-template-studio.tsx:131:  );
+  components\report-engine\report-template-studio.tsx:132:
+> components\report-engine\report-template-studio.tsx:133:  const [savedTemplateIds, 
+setSavedTemplateIds] = useState<Record<string, string>>({});
+  components\report-engine\report-template-studio.tsx:134:
+> components\report-engine\report-template-studio.tsx:135:  const [templatePendingDelete, 
+setTemplatePendingDelete] =
+> components\report-engine\report-template-studio.tsx:136:    
+useState<ReportTemplateBuilderModel | null>(null);
+  components\report-engine\report-template-studio.tsx:137:
+  components\report-engine\report-template-studio.tsx:138:  const [pagePendingDelete, 
+setPagePendingDelete] =
+> components\report-engine\report-template-studio.tsx:139:    useState<ReportTemplatePage | 
+null>(null);
+  components\report-engine\report-template-studio.tsx:140:
+  components\report-engine\report-template-studio.tsx:141:  const [reportIdentity, 
+setReportIdentity] =
+  components\report-engine\report-template-studio.tsx:142:    
+useState<ReportIdentitySettings>(DEFAULT_REPORT_IDENTITY_SETTINGS);
+  components\report-engine\report-template-studio.tsx:154:
+  components\report-engine\report-template-studio.tsx:155:  const [runtimeWorkflowMessage, 
+setRuntimeWorkflowMessage] = useState("");
+  components\report-engine\report-template-studio.tsx:156:
+> components\report-engine\report-template-studio.tsx:157:  const [runtimePreviewCase, 
+setRuntimePreviewCase] =
+> components\report-engine\report-template-studio.tsx:158:    
+useState<RuntimePreviewCaseData | null>(null);
+  components\report-engine\report-template-studio.tsx:159:
+> components\report-engine\report-template-studio.tsx:160:  const [runtimePreviewMessage, 
+setRuntimePreviewMessage] = useState("");
+  components\report-engine\report-template-studio.tsx:161:
+  components\report-engine\report-template-studio.tsx:162:  const [feedbackModal, 
+setFeedbackModal] = useState<{
+  components\report-engine\report-template-studio.tsx:163:    open: boolean;
+  components\report-engine\report-template-studio.tsx:171:    message: "",
+  components\report-engine\report-template-studio.tsx:172:  });
+  components\report-engine\report-template-studio.tsx:173:
+> components\report-engine\report-template-studio.tsx:174:  const activeTemplate = 
+useMemo(() => {
+> components\report-engine\report-template-studio.tsx:175:    return 
+templates.find((template) => template.id === activeTemplateId);
+> components\report-engine\report-template-studio.tsx:176:  }, [templates, 
+activeTemplateId]);
+  components\report-engine\report-template-studio.tsx:177:
+  components\report-engine\report-template-studio.tsx:178:  useEffect(() => {
+  components\report-engine\report-template-studio.tsx:179:    let isMounted = true;
+  components\report-engine\report-template-studio.tsx:180:
+> components\report-engine\report-template-studio.tsx:181:    async function 
+loadSavedReportTemplates() {
+  components\report-engine\report-template-studio.tsx:182:      try {
+  components\report-engine\report-template-studio.tsx:183:        const response = await 
+fetch(
+> components\report-engine\report-template-studio.tsx:184:          
+"/api/dashboard/report-templates",
+  components\report-engine\report-template-studio.tsx:185:          {
+  components\report-engine\report-template-studio.tsx:186:            cache: "no-store",
+  components\report-engine\report-template-studio.tsx:187:          },
+  components\report-engine\report-template-studio.tsx:193:          return;
+  components\report-engine\report-template-studio.tsx:194:        }
+  components\report-engine\report-template-studio.tsx:195:
+> components\report-engine\report-template-studio.tsx:196:        const savedTemplates = 
+Array.isArray(result?.templates)
+> components\report-engine\report-template-studio.tsx:197:          ? result.templates
+  components\report-engine\report-template-studio.tsx:198:          : 
+Array.isArray(result?.data)
+  components\report-engine\report-template-studio.tsx:199:            ? result.data
+  components\report-engine\report-template-studio.tsx:200:            : 
+Array.isArray(result)
+  components\report-engine\report-template-studio.tsx:201:              ? result
+  components\report-engine\report-template-studio.tsx:202:              : [];
+  components\report-engine\report-template-studio.tsx:203:
+> components\report-engine\report-template-studio.tsx:204:        const loadedTemplates = 
+savedTemplates
+  components\report-engine\report-template-studio.tsx:205:          .map((item: any) => {
+> components\report-engine\report-template-studio.tsx:206:            const rawTemplate = 
+item?.templateJson ?? item?.content;
+  components\report-engine\report-template-studio.tsx:207:
+> components\report-engine\report-template-studio.tsx:208:            let parsedTemplate = 
+rawTemplate;
+  components\report-engine\report-template-studio.tsx:209:
+> components\report-engine\report-template-studio.tsx:210:            if (typeof 
+rawTemplate === "string") {
+  components\report-engine\report-template-studio.tsx:211:              try {
+> components\report-engine\report-template-studio.tsx:212:                parsedTemplate = 
+JSON.parse(rawTemplate);
+  components\report-engine\report-template-studio.tsx:213:              } catch {
+> components\report-engine\report-template-studio.tsx:214:                parsedTemplate = 
+null;
+  components\report-engine\report-template-studio.tsx:215:              }
+  components\report-engine\report-template-studio.tsx:216:            }
+  components\report-engine\report-template-studio.tsx:217:
+> components\report-engine\report-template-studio.tsx:218:            if (!parsedTemplate 
+|| typeof parsedTemplate !== "object") {
+> components\report-engine\report-template-studio.tsx:219:              parsedTemplate = {
+> components\report-engine\report-template-studio.tsx:220:                id: 
+`saved-template-${item.id}`,
+  components\report-engine\report-template-studio.tsx:221:                name: item.name 
+|| "قالب محفوظ",
+  components\report-engine\report-template-studio.tsx:222:                description:
+  components\report-engine\report-template-studio.tsx:223:                  
+item.description || "قالب محفوظ من قاعدة البيانات.",
+  components\report-engine\report-template-studio.tsx:225:                serviceSlug: 
+item.serviceSlug || undefined,
+  components\report-engine\report-template-studio.tsx:226:                status: "DRAFT",
+  components\report-engine\report-template-studio.tsx:227:                updatedAt: new 
+Date().toISOString().slice(0, 10),
+> components\report-engine\report-template-studio.tsx:228:                previewCaseId: "",
+  components\report-engine\report-template-studio.tsx:229:                pages: [
+  components\report-engine\report-template-studio.tsx:230:                  
+createPageFromPreset("cover"),
+  components\report-engine\report-template-studio.tsx:231:                  
+createPageFromPreset("summary"),
+  components\report-engine\report-template-studio.tsx:236:            }
+  components\report-engine\report-template-studio.tsx:237:
+  components\report-engine\report-template-studio.tsx:238:            const status =
+> components\report-engine\report-template-studio.tsx:239:              
+parsedTemplate.status === "PUBLISHED" ||
+> components\report-engine\report-template-studio.tsx:240:              
+parsedTemplate.status === "ARCHIVED" ||
+> components\report-engine\report-template-studio.tsx:241:              
+parsedTemplate.status === "DRAFT"
+> components\report-engine\report-template-studio.tsx:242:                ? 
+parsedTemplate.status
+  components\report-engine\report-template-studio.tsx:243:                : "DRAFT";
+  components\report-engine\report-template-studio.tsx:244:
+  components\report-engine\report-template-studio.tsx:245:            return {
+> components\report-engine\report-template-studio.tsx:246:              ...parsedTemplate,
+> components\report-engine\report-template-studio.tsx:247:              id: 
+`saved-template-${item.id}`,
+> components\report-engine\report-template-studio.tsx:248:              name: item.name || 
+parsedTemplate.name || "قالب محفوظ",
+  components\report-engine\report-template-studio.tsx:249:              description:
+  components\report-engine\report-template-studio.tsx:250:                item.description 
+||
+> components\report-engine\report-template-studio.tsx:251:                
+parsedTemplate.description ||
+  components\report-engine\report-template-studio.tsx:252:                "قالب محفوظ من 
+قاعدة البيانات.",
+  components\report-engine\report-template-studio.tsx:253:              scope:
+> components\report-engine\report-template-studio.tsx:254:                
+parsedTemplate.scope ||
+  components\report-engine\report-template-studio.tsx:255:                (item.serviceSlug 
+? "SERVICE" : "GLOBAL"),
+> components\report-engine\report-template-studio.tsx:256:              serviceSlug: 
+item.serviceSlug || parsedTemplate.serviceSlug,
+  components\report-engine\report-template-studio.tsx:257:              status,
+  components\report-engine\report-template-studio.tsx:258:              updatedAt:
+  components\report-engine\report-template-studio.tsx:259:                item.updatedAt ||
+> components\report-engine\report-template-studio.tsx:260:                
+parsedTemplate.updatedAt ||
+  components\report-engine\report-template-studio.tsx:261:                new 
+Date().toISOString().slice(0, 10),
+  components\report-engine\report-template-studio.tsx:262:              pages:
+> components\report-engine\report-template-studio.tsx:263:                
+Array.isArray(parsedTemplate.pages) &&
+> components\report-engine\report-template-studio.tsx:264:                
+parsedTemplate.pages.length > 0
+> components\report-engine\report-template-studio.tsx:265:                  ? 
+parsedTemplate.pages
+  components\report-engine\report-template-studio.tsx:266:                  : [
+  components\report-engine\report-template-studio.tsx:267:                      
+createPageFromPreset("cover"),
+  components\report-engine\report-template-studio.tsx:268:                      
+createPageFromPreset("summary"),
+  components\report-engine\report-template-studio.tsx:271:                    ],
+  components\report-engine\report-template-studio.tsx:272:            };
+  components\report-engine\report-template-studio.tsx:273:          })
+> components\report-engine\report-template-studio.tsx:274:          .filter(Boolean) as 
+ReportTemplateBuilderModel[];
+  components\report-engine\report-template-studio.tsx:275:
+> components\report-engine\report-template-studio.tsx:276:        if (!isMounted || 
+loadedTemplates.length === 0) {
+  components\report-engine\report-template-studio.tsx:277:          return;
+  components\report-engine\report-template-studio.tsx:278:        }
+  components\report-engine\report-template-studio.tsx:279:
+> components\report-engine\report-template-studio.tsx:280:        
+setTemplates((currentTemplates) => {
+> components\report-engine\report-template-studio.tsx:281:          const presetsOnly = 
+currentTemplates.filter(
+> components\report-engine\report-template-studio.tsx:282:            (template) => 
+!template.id.startsWith("saved-template-"),
+  components\report-engine\report-template-studio.tsx:283:          );
+  components\report-engine\report-template-studio.tsx:284:
+> components\report-engine\report-template-studio.tsx:285:          return 
+[...loadedTemplates, ...presetsOnly];
+  components\report-engine\report-template-studio.tsx:286:        });
+  components\report-engine\report-template-studio.tsx:287:
+> components\report-engine\report-template-studio.tsx:288:        
+setSavedTemplateIds((current) => {
+  components\report-engine\report-template-studio.tsx:289:          const next = { 
+...current };
+  components\report-engine\report-template-studio.tsx:290:
+> components\report-engine\report-template-studio.tsx:291:          
+savedTemplates.forEach((item: any) => {
+  components\report-engine\report-template-studio.tsx:292:            if (item?.id) {
+> components\report-engine\report-template-studio.tsx:293:              
+next[`saved-template-${item.id}`] = item.id;
+  components\report-engine\report-template-studio.tsx:294:            }
+  components\report-engine\report-template-studio.tsx:295:          });
+  components\report-engine\report-template-studio.tsx:296:
+  components\report-engine\report-template-studio.tsx:297:          return next;
+  components\report-engine\report-template-studio.tsx:298:        });
+  components\report-engine\report-template-studio.tsx:299:
+> components\report-engine\report-template-studio.tsx:300:        
+setActiveTemplateId(loadedTemplates[0]?.id || "");
+  components\report-engine\report-template-studio.tsx:301:      } catch {
+  components\report-engine\report-template-studio.tsx:302:        // لا نوقف صانع القوالب 
+إذا فشل تحميل القوالب المحفوظة.
+  components\report-engine\report-template-studio.tsx:303:      }
+  components\report-engine\report-template-studio.tsx:304:    }
+  components\report-engine\report-template-studio.tsx:305:
+> components\report-engine\report-template-studio.tsx:306:    loadSavedReportTemplates();
+  components\report-engine\report-template-studio.tsx:307:
+  components\report-engine\report-template-studio.tsx:308:    return () => {
+  components\report-engine\report-template-studio.tsx:309:      isMounted = false;
+  components\report-engine\report-template-studio.tsx:311:  }, []);
+  components\report-engine\report-template-studio.tsx:312:
+  components\report-engine\report-template-studio.tsx:313:  useEffect(() => {
+> components\report-engine\report-template-studio.tsx:314:    if (!activeTemplate) {
+  components\report-engine\report-template-studio.tsx:315:      return;
+  components\report-engine\report-template-studio.tsx:316:    }
+  components\report-engine\report-template-studio.tsx:317:
+  components\report-engine\report-template-studio.tsx:318:    const serviceSlug =
+> components\report-engine\report-template-studio.tsx:319:      activeTemplate.scope === 
+"SERVICE" ? activeTemplate.serviceSlug : "";
+  components\report-engine\report-template-studio.tsx:320:
+  components\report-engine\report-template-studio.tsx:321:    async function 
+loadWorkflowFields() {
+  components\report-engine\report-template-studio.tsx:322:      try {
+  components\report-engine\report-template-studio.tsx:323:        const response = await 
+fetch(
+> components\report-engine\report-template-studio.tsx:324:          
+`/api/admin/report-templates/workflow-fields?serviceSlug=${encodeURIComponent(
+  components\report-engine\report-template-studio.tsx:325:            serviceSlug || "",
+  components\report-engine\report-template-studio.tsx:326:          )}`,
+  components\report-engine\report-template-studio.tsx:327:        );
+  components\report-engine\report-template-studio.tsx:339:    }
+  components\report-engine\report-template-studio.tsx:340:
+  components\report-engine\report-template-studio.tsx:341:    loadWorkflowFields();
+> components\report-engine\report-template-studio.tsx:342:  }, [activeTemplate?.scope, 
+activeTemplate?.serviceSlug, activeTemplate?.id]);
+  components\report-engine\report-template-studio.tsx:343:
+  components\report-engine\report-template-studio.tsx:344:  useEffect(() => {
+> components\report-engine\report-template-studio.tsx:345:    if (!activeTemplate) {
+  components\report-engine\report-template-studio.tsx:346:      return;
+  components\report-engine\report-template-studio.tsx:347:    }
+  components\report-engine\report-template-studio.tsx:348:
+> components\report-engine\report-template-studio.tsx:349:    async function 
+loadPreviewCase() {
+> components\report-engine\report-template-studio.tsx:350:      const caseId = 
+activeTemplate?.previewCaseId?.trim();
+  components\report-engine\report-template-studio.tsx:351:
+> components\report-engine\report-template-studio.tsx:352:      if (!caseId) {
+> components\report-engine\report-template-studio.tsx:353:        
+setRuntimePreviewCase(null);
+> components\report-engine\report-template-studio.tsx:354:        setRuntimePreviewMessage(
+  components\report-engine\report-template-studio.tsx:355:          "لم يتم إدخال Case ID، 
+سيتم استخدام بيانات تجريبية.",
+  components\report-engine\report-template-studio.tsx:356:        );
+  components\report-engine\report-template-studio.tsx:357:        return;
+  components\report-engine\report-template-studio.tsx:359:
+  components\report-engine\report-template-studio.tsx:360:      try {
+  components\report-engine\report-template-studio.tsx:361:        const response = await 
+fetch(
+> components\report-engine\report-template-studio.tsx:362:          
+`/api/admin/report-templates/preview-case?caseId=${encodeURIComponent(
+> components\report-engine\report-template-studio.tsx:363:            caseId,
+  components\report-engine\report-template-studio.tsx:364:          )}`,
+  components\report-engine\report-template-studio.tsx:365:        );
+  components\report-engine\report-template-studio.tsx:366:
+  components\report-engine\report-template-studio.tsx:367:        const result = await 
+response.json();
+  components\report-engine\report-template-studio.tsx:368:
+> components\report-engine\report-template-studio.tsx:369:        
+setRuntimePreviewCase(result.data || null);
+> components\report-engine\report-template-studio.tsx:370:        
+setRuntimePreviewMessage(result.message || "");
+  components\report-engine\report-template-studio.tsx:371:      } catch {
+> components\report-engine\report-template-studio.tsx:372:        
+setRuntimePreviewCase(null);
+> components\report-engine\report-template-studio.tsx:373:        setRuntimePreviewMessage(
+  components\report-engine\report-template-studio.tsx:374:          "تعذر جلب بيانات 
+الحالة، سيتم استخدام بيانات تجريبية.",
+  components\report-engine\report-template-studio.tsx:375:        );
+  components\report-engine\report-template-studio.tsx:376:      }
+  components\report-engine\report-template-studio.tsx:377:    }
+  components\report-engine\report-template-studio.tsx:378:
+> components\report-engine\report-template-studio.tsx:379:    loadPreviewCase();
+> components\report-engine\report-template-studio.tsx:380:  }, 
+[activeTemplate?.previewCaseId, activeTemplate?.id]);
+  components\report-engine\report-template-studio.tsx:381:
+> components\report-engine\report-template-studio.tsx:382:  function updateActiveTemplate(
+  components\report-engine\report-template-studio.tsx:383:    updater: (
+> components\report-engine\report-template-studio.tsx:384:      template: 
+ReportTemplateBuilderModel,
+> components\report-engine\report-template-studio.tsx:385:    ) => 
+ReportTemplateBuilderModel,
+  components\report-engine\report-template-studio.tsx:386:  ) {
+> components\report-engine\report-template-studio.tsx:387:    
+setTemplates((currentTemplates) =>
+> components\report-engine\report-template-studio.tsx:388:      
+currentTemplates.map((template) =>
+> components\report-engine\report-template-studio.tsx:389:        template.id === 
+activeTemplateId ? updater(template) : template,
+  components\report-engine\report-template-studio.tsx:390:      ),
+  components\report-engine\report-template-studio.tsx:391:    );
+  components\report-engine\report-template-studio.tsx:392:  }
+  components\report-engine\report-template-studio.tsx:393:
+> components\report-engine\report-template-studio.tsx:394:  function 
+requestDeleteTemplate(template: ReportTemplateBuilderModel) {
+> components\report-engine\report-template-studio.tsx:395:    if (templates.length <= 1) {
+  components\report-engine\report-template-studio.tsx:396:      return;
+  components\report-engine\report-template-studio.tsx:397:    }
+  components\report-engine\report-template-studio.tsx:398:
+> components\report-engine\report-template-studio.tsx:399:    
+setTemplatePendingDelete(template);
+  components\report-engine\report-template-studio.tsx:400:  }
+  components\report-engine\report-template-studio.tsx:401:
+> components\report-engine\report-template-studio.tsx:402:  async function 
+confirmDeleteTemplate() {
+> components\report-engine\report-template-studio.tsx:403:    if (!templatePendingDelete) {
+  components\report-engine\report-template-studio.tsx:404:      return;
+  components\report-engine\report-template-studio.tsx:405:    }
+  components\report-engine\report-template-studio.tsx:406:
+> components\report-engine\report-template-studio.tsx:407:    const dbTemplateId = 
+savedTemplateIds[templatePendingDelete.id];
+  components\report-engine\report-template-studio.tsx:408:
+  components\report-engine\report-template-studio.tsx:409:    try {
+> components\report-engine\report-template-studio.tsx:410:      if (dbTemplateId) {
+  components\report-engine\report-template-studio.tsx:411:        const response = await 
+fetch(
+> components\report-engine\report-template-studio.tsx:412:          
+`/api/dashboard/report-templates/${dbTemplateId}`,
+  components\report-engine\report-template-studio.tsx:413:          {
+  components\report-engine\report-template-studio.tsx:414:            method: "DELETE",
+  components\report-engine\report-template-studio.tsx:415:          },
+  components\report-engine\report-template-studio.tsx:424:        }
+  components\report-engine\report-template-studio.tsx:425:      }
+  components\report-engine\report-template-studio.tsx:426:
+> components\report-engine\report-template-studio.tsx:427:      const remainingTemplates = 
+templates.filter(
+> components\report-engine\report-template-studio.tsx:428:        (template) => template.id 
+!== templatePendingDelete.id,
+  components\report-engine\report-template-studio.tsx:429:      );
+  components\report-engine\report-template-studio.tsx:430:
+> components\report-engine\report-template-studio.tsx:431:      
+setTemplates(remainingTemplates);
+  components\report-engine\report-template-studio.tsx:432:
+> components\report-engine\report-template-studio.tsx:433:      
+setSavedTemplateIds((current) => {
+  components\report-engine\report-template-studio.tsx:434:        const next = { ...current 
+};
+> components\report-engine\report-template-studio.tsx:435:        delete 
+next[templatePendingDelete.id];
+  components\report-engine\report-template-studio.tsx:436:        return next;
+  components\report-engine\report-template-studio.tsx:437:      });
+  components\report-engine\report-template-studio.tsx:438:
+> components\report-engine\report-template-studio.tsx:439:      if (activeTemplateId === 
+templatePendingDelete.id) {
+> components\report-engine\report-template-studio.tsx:440:        
+setActiveTemplateId(remainingTemplates[0]?.id || "");
+  components\report-engine\report-template-studio.tsx:441:      }
+  components\report-engine\report-template-studio.tsx:442:
+> components\report-engine\report-template-studio.tsx:443:      
+setTemplatePendingDelete(null);
+  components\report-engine\report-template-studio.tsx:444:
+  components\report-engine\report-template-studio.tsx:445:      setFeedbackModal({
+  components\report-engine\report-template-studio.tsx:446:        open: true,
+  components\report-engine\report-template-studio.tsx:447:        type: "success",
+  components\report-engine\report-template-studio.tsx:448:        title: "تم حذف القالب",
+> components\report-engine\report-template-studio.tsx:449:        message: dbTemplateId
+  components\report-engine\report-template-studio.tsx:450:          ? "تم حذف القالب من 
+قاعدة البيانات وإزالته من القائمة."
+  components\report-engine\report-template-studio.tsx:451:          : "تم حذف القالب غير 
+المحفوظ من القائمة.",
+  components\report-engine\report-template-studio.tsx:452:      });
+  components\report-engine\report-template-studio.tsx:463:    }
+  components\report-engine\report-template-studio.tsx:464:  }
+  components\report-engine\report-template-studio.tsx:465:
+> components\report-engine\report-template-studio.tsx:466:  function 
+requestDeletePage(page: ReportTemplatePage) {
+> components\report-engine\report-template-studio.tsx:467:    if (!activeTemplate || 
+activeTemplate.pages.length <= 1) {
+  components\report-engine\report-template-studio.tsx:468:      return;
+  components\report-engine\report-template-studio.tsx:469:    }
+  components\report-engine\report-template-studio.tsx:470:
+  components\report-engine\report-template-studio.tsx:476:      return;
+  components\report-engine\report-template-studio.tsx:477:    }
+  components\report-engine\report-template-studio.tsx:478:
+> components\report-engine\report-template-studio.tsx:479:    
+updateActiveTemplate((template) => ({
+> components\report-engine\report-template-studio.tsx:480:      ...template,
+> components\report-engine\report-template-studio.tsx:481:      pages: 
+template.pages.filter((page) => page.id !== pagePendingDelete.id),
+  components\report-engine\report-template-studio.tsx:482:      updatedAt: new 
+Date().toISOString().slice(0, 10),
+  components\report-engine\report-template-studio.tsx:483:    }));
+  components\report-engine\report-template-studio.tsx:484:
+  components\report-engine\report-template-studio.tsx:485:    setPagePendingDelete(null);
+  components\report-engine\report-template-studio.tsx:486:  }
+  components\report-engine\report-template-studio.tsx:487:
+> components\report-engine\report-template-studio.tsx:488:  function createNewTemplate() {
+> components\report-engine\report-template-studio.tsx:489:    const newTemplate: 
+ReportTemplateBuilderModel = {
+> components\report-engine\report-template-studio.tsx:490:      id: 
+`custom-template-${Date.now()}`,
+  components\report-engine\report-template-studio.tsx:491:      name: "قالب جديد",
+  components\report-engine\report-template-studio.tsx:492:      description: "قالب مخصص يتم 
+بناؤه من Case ID وبيانات الحالة.",
+  components\report-engine\report-template-studio.tsx:493:      scope: "GLOBAL",
+  components\report-engine\report-template-studio.tsx:494:      status: "DRAFT",
+  components\report-engine\report-template-studio.tsx:495:      updatedAt: new 
+Date().toISOString().slice(0, 10),
+> components\report-engine\report-template-studio.tsx:496:      previewCaseId: "",
+  components\report-engine\report-template-studio.tsx:497:      pages: [
+  components\report-engine\report-template-studio.tsx:498:        
+createPageFromPreset("cover"),
+  components\report-engine\report-template-studio.tsx:499:        
+createPageFromPreset("summary"),
+  components\report-engine\report-template-studio.tsx:502:      ],
+  components\report-engine\report-template-studio.tsx:503:    };
+  components\report-engine\report-template-studio.tsx:504:
+> components\report-engine\report-template-studio.tsx:505:    
+setTemplates((currentTemplates) => [newTemplate, ...currentTemplates]);
+> components\report-engine\report-template-studio.tsx:506:    
+setActiveTemplateId(newTemplate.id);
+  components\report-engine\report-template-studio.tsx:507:  }
+  components\report-engine\report-template-studio.tsx:508:
+> components\report-engine\report-template-studio.tsx:509:  function 
+duplicateTemplate(template: ReportTemplateBuilderModel) {
+  components\report-engine\report-template-studio.tsx:510:    const timestamp = Date.now();
+  components\report-engine\report-template-studio.tsx:511:
+> components\report-engine\report-template-studio.tsx:512:    const copiedTemplate: 
+ReportTemplateBuilderModel = {
+> components\report-engine\report-template-studio.tsx:513:      ...template,
+> components\report-engine\report-template-studio.tsx:514:      id: 
+`copy-${template.id}-${timestamp}`,
+> components\report-engine\report-template-studio.tsx:515:      name: 
+`${template.name.replace(/ - نسخة( \d+)?$/u, "")} - نسخة`,
+  components\report-engine\report-template-studio.tsx:516:      status: "DRAFT",
+  components\report-engine\report-template-studio.tsx:517:      updatedAt: new 
+Date().toISOString().slice(0, 10),
+> components\report-engine\report-template-studio.tsx:518:      pages: 
+template.pages.map((page) => ({
+  components\report-engine\report-template-studio.tsx:519:        ...page,
+  components\report-engine\report-template-studio.tsx:520:        id: 
+`${page.id}-copy-${timestamp}`,
+  components\report-engine\report-template-studio.tsx:521:        blocks: 
+page.blocks.map((block) => ({
+  components\report-engine\report-template-studio.tsx:525:      })),
+  components\report-engine\report-template-studio.tsx:526:    };
+  components\report-engine\report-template-studio.tsx:527:
+> components\report-engine\report-template-studio.tsx:528:    
+setTemplates((currentTemplates) => [copiedTemplate, ...currentTemplates]);
+> components\report-engine\report-template-studio.tsx:529:    
+setActiveTemplateId(copiedTemplate.id);
+  components\report-engine\report-template-studio.tsx:530:  }
+  components\report-engine\report-template-studio.tsx:531:
+  components\report-engine\report-template-studio.tsx:532:  function movePage(pageId: 
+string, direction: "up" | "down") {
+> components\report-engine\report-template-studio.tsx:533:    
+updateActiveTemplate((template) => {
+> components\report-engine\report-template-studio.tsx:534:      const index = 
+template.pages.findIndex((page) => page.id === pageId);
+  components\report-engine\report-template-studio.tsx:535:
+  components\report-engine\report-template-studio.tsx:536:      if (index === -1) {
+> components\report-engine\report-template-studio.tsx:537:        return template;
+  components\report-engine\report-template-studio.tsx:538:      }
+  components\report-engine\report-template-studio.tsx:539:
+  components\report-engine\report-template-studio.tsx:540:      const targetIndex = 
+direction === "up" ? index - 1 : index + 1;
+  components\report-engine\report-template-studio.tsx:541:
+> components\report-engine\report-template-studio.tsx:542:      if (targetIndex < 0 || 
+targetIndex >= template.pages.length) {
+> components\report-engine\report-template-studio.tsx:543:        return template;
+  components\report-engine\report-template-studio.tsx:544:      }
+  components\report-engine\report-template-studio.tsx:545:
+> components\report-engine\report-template-studio.tsx:546:      const pages = 
+[...template.pages];
+  components\report-engine\report-template-studio.tsx:547:      const [page] = 
+pages.splice(index, 1);
+  components\report-engine\report-template-studio.tsx:548:      pages.splice(targetIndex, 
+0, page);
+  components\report-engine\report-template-studio.tsx:549:
+  components\report-engine\report-template-studio.tsx:550:      return {
+> components\report-engine\report-template-studio.tsx:551:        ...template,
+  components\report-engine\report-template-studio.tsx:552:        pages,
+  components\report-engine\report-template-studio.tsx:553:        updatedAt: new 
+Date().toISOString().slice(0, 10),
+  components\report-engine\report-template-studio.tsx:554:      };
+  components\report-engine\report-template-studio.tsx:556:  }
+  components\report-engine\report-template-studio.tsx:557:
+  components\report-engine\report-template-studio.tsx:558:  function addPage(kind: 
+ReportPageKind) {
+> components\report-engine\report-template-studio.tsx:559:    
+updateActiveTemplate((template) => ({
+> components\report-engine\report-template-studio.tsx:560:      ...template,
+> components\report-engine\report-template-studio.tsx:561:      pages: [...template.pages, 
+createPageFromPreset(kind)],
+  components\report-engine\report-template-studio.tsx:562:      updatedAt: new 
+Date().toISOString().slice(0, 10),
+  components\report-engine\report-template-studio.tsx:563:    }));
+  components\report-engine\report-template-studio.tsx:564:  }
+  components\report-engine\report-template-studio.tsx:565:
+  components\report-engine\report-template-studio.tsx:566:  function updatePage(
+  components\report-engine\report-template-studio.tsx:567:    pageId: string,
+> components\report-engine\report-template-studio.tsx:568:    updater: (page: 
+ReportTemplatePage) => ReportTemplatePage,
+  components\report-engine\report-template-studio.tsx:569:  ) {
+> components\report-engine\report-template-studio.tsx:570:    
+updateActiveTemplate((template) => ({
+> components\report-engine\report-template-studio.tsx:571:      ...template,
+> components\report-engine\report-template-studio.tsx:572:      pages: 
+template.pages.map((page) =>
+  components\report-engine\report-template-studio.tsx:573:        page.id === pageId ? 
+updater(page) : page,
+  components\report-engine\report-template-studio.tsx:574:      ),
+  components\report-engine\report-template-studio.tsx:575:      updatedAt: new 
+Date().toISOString().slice(0, 10),
+  components\report-engine\report-template-studio.tsx:576:    }));
+  components\report-engine\report-template-studio.tsx:577:  }
+  components\report-engine\report-template-studio.tsx:578:
+> components\report-engine\report-template-studio.tsx:579:  function addBlockToPage(pageId: 
+string, block: ReportTemplateBlock) {
+  components\report-engine\report-template-studio.tsx:580:    updatePage(pageId, (page) => 
+({
+  components\report-engine\report-template-studio.tsx:581:      ...page,
+  components\report-engine\report-template-studio.tsx:582:      blocks: [
+  components\report-engine\report-template-studio.tsx:630:      return;
+  components\report-engine\report-template-studio.tsx:631:    }
+  components\report-engine\report-template-studio.tsx:632:
+> components\report-engine\report-template-studio.tsx:633:    
+updateActiveTemplate((template) => {
+> components\report-engine\report-template-studio.tsx:634:      const fromPage = 
+template.pages.find((page) => page.id === fromPageId);
+  components\report-engine\report-template-studio.tsx:635:      const block = 
+fromPage?.blocks.find((item) => item.id === blockId);
+  components\report-engine\report-template-studio.tsx:636:
+  components\report-engine\report-template-studio.tsx:637:      if (!fromPage || !block) {
+> components\report-engine\report-template-studio.tsx:638:        return template;
+  components\report-engine\report-template-studio.tsx:639:      }
+  components\report-engine\report-template-studio.tsx:640:
+  components\report-engine\report-template-studio.tsx:641:      return {
+> components\report-engine\report-template-studio.tsx:642:        ...template,
+> components\report-engine\report-template-studio.tsx:643:        pages: 
+template.pages.map((page) => {
+  components\report-engine\report-template-studio.tsx:644:          if (page.id === 
+fromPageId) {
+  components\report-engine\report-template-studio.tsx:645:            return {
+  components\report-engine\report-template-studio.tsx:646:              ...page,
+  components\report-engine\report-template-studio.tsx:662:    });
+  components\report-engine\report-template-studio.tsx:663:  }
+  components\report-engine\report-template-studio.tsx:664:
+> components\report-engine\report-template-studio.tsx:665:  async function 
+changeActiveTemplateStatus(status: ReportTemplateStatus) {
+> components\report-engine\report-template-studio.tsx:666:    if (!activeTemplate) {
+  components\report-engine\report-template-studio.tsx:667:      setFeedbackModal({
+  components\report-engine\report-template-studio.tsx:668:        open: true,
+  components\report-engine\report-template-studio.tsx:669:        type: "error",
+  components\report-engine\report-template-studio.tsx:673:      return;
+  components\report-engine\report-template-studio.tsx:674:    }
+  components\report-engine\report-template-studio.tsx:675:
+> components\report-engine\report-template-studio.tsx:676:    const updatedTemplate: 
+ReportTemplateBuilderModel = {
+> components\report-engine\report-template-studio.tsx:677:      ...activeTemplate,
+  components\report-engine\report-template-studio.tsx:678:      status,
+  components\report-engine\report-template-studio.tsx:679:      updatedAt: new 
+Date().toISOString().slice(0, 10),
+  components\report-engine\report-template-studio.tsx:680:    };
+  components\report-engine\report-template-studio.tsx:681:
+> components\report-engine\report-template-studio.tsx:682:    updateActiveTemplate(() => 
+updatedTemplate);
+  components\report-engine\report-template-studio.tsx:683:
+> components\report-engine\report-template-studio.tsx:684:    const dbTemplateId = 
+savedTemplateIds[activeTemplate.id];
+  components\report-engine\report-template-studio.tsx:685:
+  components\report-engine\report-template-studio.tsx:686:    const payload = {
+> components\report-engine\report-template-studio.tsx:687:      name: updatedTemplate.name 
+|| "قالب تقرير جديد",
+  components\report-engine\report-template-studio.tsx:688:      description:
+> components\report-engine\report-template-studio.tsx:689:        
+updatedTemplate.description ||
+  components\report-engine\report-template-studio.tsx:690:        "قالب تقرير مخصص يتم 
+بناؤه من بيانات الحالة.",
+> components\report-engine\report-template-studio.tsx:691:      serviceSlug: 
+updatedTemplate.serviceSlug ?? null,
+  components\report-engine\report-template-studio.tsx:692:      type: "SCHOOL",
+> components\report-engine\report-template-studio.tsx:693:      content: 
+JSON.stringify(updatedTemplate),
+> components\report-engine\report-template-studio.tsx:694:      templateJson: 
+updatedTemplate,
+  components\report-engine\report-template-studio.tsx:695:      genderAware: true,
+  components\report-engine\report-template-studio.tsx:696:      isActive: status !== 
+"ARCHIVED",
+  components\report-engine\report-template-studio.tsx:697:    };
+  components\report-engine\report-template-studio.tsx:698:
+  components\report-engine\report-template-studio.tsx:699:    try {
+> components\report-engine\report-template-studio.tsx:700:      const response = 
+dbTemplateId
+> components\report-engine\report-template-studio.tsx:701:        ? await 
+fetch(`/api/dashboard/report-templates/${dbTemplateId}`, {
+  components\report-engine\report-template-studio.tsx:702:            method: "PATCH",
+  components\report-engine\report-template-studio.tsx:703:            headers: {
+  components\report-engine\report-template-studio.tsx:704:              "Content-Type": 
+"application/json",
+  components\report-engine\report-template-studio.tsx:705:            },
+  components\report-engine\report-template-studio.tsx:706:            body: 
+JSON.stringify(payload),
+  components\report-engine\report-template-studio.tsx:707:          })
+> components\report-engine\report-template-studio.tsx:708:        : await 
+fetch("/api/dashboard/report-templates", {
+  components\report-engine\report-template-studio.tsx:709:            method: "POST",
+  components\report-engine\report-template-studio.tsx:710:            headers: {
+  components\report-engine\report-template-studio.tsx:711:              "Content-Type": 
+"application/json",
+  components\report-engine\report-template-studio.tsx:722:      }
+  components\report-engine\report-template-studio.tsx:723:
+  components\report-engine\report-template-studio.tsx:724:      const savedId =
+> components\report-engine\report-template-studio.tsx:725:        result?.template?.id ||
+  components\report-engine\report-template-studio.tsx:726:        result?.data?.id ||
+  components\report-engine\report-template-studio.tsx:727:        result?.id ||
+> components\report-engine\report-template-studio.tsx:728:        dbTemplateId ||
+  components\report-engine\report-template-studio.tsx:729:        "";
+  components\report-engine\report-template-studio.tsx:730:
+  components\report-engine\report-template-studio.tsx:731:      if (savedId) {
+> components\report-engine\report-template-studio.tsx:732:        
+setSavedTemplateIds((current) => ({
+  components\report-engine\report-template-studio.tsx:733:          ...current,
+> components\report-engine\report-template-studio.tsx:734:          [activeTemplate.id]: 
+savedId,
+  components\report-engine\report-template-studio.tsx:735:        }));
+  components\report-engine\report-template-studio.tsx:736:      }
+  components\report-engine\report-template-studio.tsx:737:
+  components\report-engine\report-template-studio.tsx:739:        open: true,
+  components\report-engine\report-template-studio.tsx:740:        type: "success",
+  components\report-engine\report-template-studio.tsx:741:        title:
+> components\report-engine\report-template-studio.tsx:742:          status === "PUBLISHED"
+  components\report-engine\report-template-studio.tsx:743:            ? "تم نشر القالب"
+  components\report-engine\report-template-studio.tsx:744:            : status === 
+"ARCHIVED"
+  components\report-engine\report-template-studio.tsx:745:              ? "تمت أرشفة القالب"
+  components\report-engine\report-template-studio.tsx:746:              : "تم تحويل القالب 
+إلى مسودة",
+  components\report-engine\report-template-studio.tsx:747:        message:
+> components\report-engine\report-template-studio.tsx:748:          status === "PUBLISHED"
+  components\report-engine\report-template-studio.tsx:749:            ? "تم نشر القالب وحفظ 
+حالته في قاعدة البيانات بنجاح."
+  components\report-engine\report-template-studio.tsx:750:            : status === 
+"ARCHIVED"
+  components\report-engine\report-template-studio.tsx:751:              ? "تمت أرشفة القالب 
+وحفظ التغيير في قاعدة البيانات."
+  components\report-engine\report-template-studio.tsx:752:              : "تم تحويل القالب 
+إلى مسودة وحفظ التغيير في قاعدة البيانات.",
+  components\report-engine\report-template-studio.tsx:753:      });
+  components\report-engine\report-template-studio.tsx:754:    } catch (error) {
+> components\report-engine\report-template-studio.tsx:755:      updateActiveTemplate(() => 
+activeTemplate);
+  components\report-engine\report-template-studio.tsx:756:
+  components\report-engine\report-template-studio.tsx:757:      setFeedbackModal({
+  components\report-engine\report-template-studio.tsx:758:        open: true,
+  components\report-engine\report-template-studio.tsx:773:    ]);
+  components\report-engine\report-template-studio.tsx:774:  }
+  components\report-engine\report-template-studio.tsx:775:
+> components\report-engine\report-template-studio.tsx:776:  async function 
+handleSaveTemplate() {
+> components\report-engine\report-template-studio.tsx:777:    if (!activeTemplate) {
+  components\report-engine\report-template-studio.tsx:778:      setFeedbackModal({
+  components\report-engine\report-template-studio.tsx:779:        open: true,
+  components\report-engine\report-template-studio.tsx:780:        type: "error",
+  components\report-engine\report-template-studio.tsx:784:      return;
+  components\report-engine\report-template-studio.tsx:785:    }
+  components\report-engine\report-template-studio.tsx:786:
+> components\report-engine\report-template-studio.tsx:787:    const dbTemplateId = 
+savedTemplateIds[activeTemplate.id];
+  components\report-engine\report-template-studio.tsx:788:
+  components\report-engine\report-template-studio.tsx:789:    const payload = {
+> components\report-engine\report-template-studio.tsx:790:      name: activeTemplate.name 
+|| "قالب تقرير جديد",
+  components\report-engine\report-template-studio.tsx:791:      description:
+> components\report-engine\report-template-studio.tsx:792:        
+activeTemplate.description ||
+  components\report-engine\report-template-studio.tsx:793:        "قالب تقرير مخصص يتم 
+بناؤه من بيانات الحالة.",
+> components\report-engine\report-template-studio.tsx:794:      serviceSlug: 
+activeTemplate.serviceSlug ?? null,
+  components\report-engine\report-template-studio.tsx:795:      type: "SCHOOL",
+> components\report-engine\report-template-studio.tsx:796:      content: 
+JSON.stringify(activeTemplate),
+> components\report-engine\report-template-studio.tsx:797:      templateJson: 
+activeTemplate,
+  components\report-engine\report-template-studio.tsx:798:      genderAware: true,
+  components\report-engine\report-template-studio.tsx:799:      isActive: true,
+  components\report-engine\report-template-studio.tsx:800:    };
+  components\report-engine\report-template-studio.tsx:801:
+> components\report-engine\report-template-studio.tsx:802:    async function 
+createTemplate() {
+> components\report-engine\report-template-studio.tsx:803:      return 
+fetch("/api/dashboard/report-templates", {
+  components\report-engine\report-template-studio.tsx:804:        method: "POST",
+  components\report-engine\report-template-studio.tsx:805:        headers: {
+  components\report-engine\report-template-studio.tsx:806:          "Content-Type": 
+"application/json",
+  components\report-engine\report-template-studio.tsx:809:      });
+  components\report-engine\report-template-studio.tsx:810:    }
+  components\report-engine\report-template-studio.tsx:811:
+> components\report-engine\report-template-studio.tsx:812:    async function 
+updateTemplate(templateId: string) {
+> components\report-engine\report-template-studio.tsx:813:      return 
+fetch(`/api/dashboard/report-templates/${templateId}`, {
+  components\report-engine\report-template-studio.tsx:814:        method: "PATCH",
+  components\report-engine\report-template-studio.tsx:815:        headers: {
+  components\report-engine\report-template-studio.tsx:816:          "Content-Type": 
+"application/json",
+  components\report-engine\report-template-studio.tsx:820:    }
+  components\report-engine\report-template-studio.tsx:821:
+  components\report-engine\report-template-studio.tsx:822:    try {
+> components\report-engine\report-template-studio.tsx:823:      let response = dbTemplateId
+> components\report-engine\report-template-studio.tsx:824:        ? await 
+updateTemplate(dbTemplateId)
+> components\report-engine\report-template-studio.tsx:825:        : await createTemplate();
+  components\report-engine\report-template-studio.tsx:826:
+  components\report-engine\report-template-studio.tsx:827:      let result = await 
+response.json();
+  components\report-engine\report-template-studio.tsx:828:
+> components\report-engine\report-template-studio.tsx:829:      if (dbTemplateId && 
+response.status === 404) {
+> components\report-engine\report-template-studio.tsx:830:        response = await 
+createTemplate();
+  components\report-engine\report-template-studio.tsx:831:        result = await 
+response.json();
+  components\report-engine\report-template-studio.tsx:832:      }
+  components\report-engine\report-template-studio.tsx:833:
+  components\report-engine\report-template-studio.tsx:838:      }
+  components\report-engine\report-template-studio.tsx:839:
+  components\report-engine\report-template-studio.tsx:840:      const savedId =
+> components\report-engine\report-template-studio.tsx:841:        result?.template?.id ||
+  components\report-engine\report-template-studio.tsx:842:        result?.data?.id ||
+  components\report-engine\report-template-studio.tsx:843:        result?.id ||
+> components\report-engine\report-template-studio.tsx:844:        dbTemplateId ||
+  components\report-engine\report-template-studio.tsx:845:        "";
+  components\report-engine\report-template-studio.tsx:846:
+  components\report-engine\report-template-studio.tsx:847:      if (savedId) {
+> components\report-engine\report-template-studio.tsx:848:        
+setSavedTemplateIds((current) => ({
+  components\report-engine\report-template-studio.tsx:849:          ...current,
+> components\report-engine\report-template-studio.tsx:850:          [activeTemplate.id]: 
+savedId,
+  components\report-engine\report-template-studio.tsx:851:        }));
+  components\report-engine\report-template-studio.tsx:852:      }
+  components\report-engine\report-template-studio.tsx:853:
+  components\report-engine\report-template-studio.tsx:855:        open: true,
+  components\report-engine\report-template-studio.tsx:856:        type: "success",
+  components\report-engine\report-template-studio.tsx:857:        title: "تم حفظ القالب",
+> components\report-engine\report-template-studio.tsx:858:        message: dbTemplateId
+  components\report-engine\report-template-studio.tsx:859:          ? "تم تحديث القالب وحفظ 
+التعديلات بنجاح."
+  components\report-engine\report-template-studio.tsx:860:          : "تم إنشاء القالب 
+وحفظه في قاعدة البيانات بنجاح.",
+  components\report-engine\report-template-studio.tsx:861:      });
+  components\report-engine\report-template-studio.tsx:872:    }
+  components\report-engine\report-template-studio.tsx:873:  }
+  components\report-engine\report-template-studio.tsx:874:
+> components\report-engine\report-template-studio.tsx:875:  if (!activeTemplate) {
+  components\report-engine\report-template-studio.tsx:876:    return (
+  components\report-engine\report-template-studio.tsx:877:      <div 
+className="min-h-screen bg-slate-50 p-10" dir="rtl">
+  components\report-engine\report-template-studio.tsx:878:        <div 
+className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+  components\report-engine\report-template-studio.tsx:886:
+  components\report-engine\report-template-studio.tsx:887:          <button
+  components\report-engine\report-template-studio.tsx:888:            type="button"
+> components\report-engine\report-template-studio.tsx:889:            
+onClick={createNewTemplate}
+  components\report-engine\report-template-studio.tsx:890:            className="mt-6 
+rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white shadow-sm transition 
+hover:bg-emerald-900"
+  components\report-engine\report-template-studio.tsx:891:          >
+  components\report-engine\report-template-studio.tsx:892:            إنشاء قالب جديد
+  components\report-engine\report-template-studio.tsx:918:          <div className="flex 
+items-center gap-3">
+  components\report-engine\report-template-studio.tsx:919:            <button
+  components\report-engine\report-template-studio.tsx:920:              type="button"
+> components\report-engine\report-template-studio.tsx:921:              
+onClick={handleSaveTemplate}
+  components\report-engine\report-template-studio.tsx:922:              
+className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-2.5 
+text-sm font-black text-white shadow-sm ring-1 ring-emerald-600/20 transition 
+hover:bg-emerald-800"
+  components\report-engine\report-template-studio.tsx:923:            >
+  components\report-engine\report-template-studio.tsx:924:              حفظ القالب
+  components\report-engine\report-template-studio.tsx:926:
+  components\report-engine\report-template-studio.tsx:927:            <button
+  components\report-engine\report-template-studio.tsx:928:              type="button"
+> components\report-engine\report-template-studio.tsx:929:              
+onClick={createNewTemplate}
+  components\report-engine\report-template-studio.tsx:930:              
+className="rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white shadow-sm ring-1 
+ring-sky-600/20 transition hover:bg-sky-800"
+  components\report-engine\report-template-studio.tsx:931:            >
+  components\report-engine\report-template-studio.tsx:932:              إنشاء قالب جديد
+  components\report-engine\report-template-studio.tsx:947:            </p>
+  components\report-engine\report-template-studio.tsx:948:
+  components\report-engine\report-template-studio.tsx:949:            <div className="mt-4 
+space-y-3">
+> components\report-engine\report-template-studio.tsx:950:              
+{templates.map((template) => (
+  components\report-engine\report-template-studio.tsx:951:                <button
+> components\report-engine\report-template-studio.tsx:952:                  
+key={template.id}
+  components\report-engine\report-template-studio.tsx:953:                  type="button"
+> components\report-engine\report-template-studio.tsx:954:                  onClick={() => 
+setActiveTemplateId(template.id)}
+  components\report-engine\report-template-studio.tsx:955:                  className={[
+  components\report-engine\report-template-studio.tsx:956:                    "w-full 
+rounded-2xl border p-4 text-right transition",
+> components\report-engine\report-template-studio.tsx:957:                    template.id 
+=== activeTemplateId
+  components\report-engine\report-template-studio.tsx:958:                      ? 
+"border-emerald-700 bg-emerald-50"
+  components\report-engine\report-template-studio.tsx:959:                      : 
+"border-slate-200 bg-white hover:bg-slate-50",
+  components\report-engine\report-template-studio.tsx:960:                  ].join(" ")}
+  components\report-engine\report-template-studio.tsx:961:                >
+  components\report-engine\report-template-studio.tsx:962:                  <div 
+className="flex items-center justify-between gap-3">
+  components\report-engine\report-template-studio.tsx:963:                    <strong 
+className="text-sm text-slate-900">
+> components\report-engine\report-template-studio.tsx:964:                      
+{template.name}
+  components\report-engine\report-template-studio.tsx:965:                    </strong>
+  components\report-engine\report-template-studio.tsx:966:
+  components\report-engine\report-template-studio.tsx:967:                    <span 
+className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+> components\report-engine\report-template-studio.tsx:968:                      
+{statusLabels[template.status]}
+  components\report-engine\report-template-studio.tsx:969:                    </span>
+  components\report-engine\report-template-studio.tsx:970:                  </div>
+  components\report-engine\report-template-studio.tsx:971:
+  components\report-engine\report-template-studio.tsx:972:                  <p 
+className="mt-2 line-clamp-2 text-xs leading-6 text-slate-500">
+> components\report-engine\report-template-studio.tsx:973:                    
+{template.description}
+  components\report-engine\report-template-studio.tsx:974:                  </p>
+  components\report-engine\report-template-studio.tsx:975:
+  components\report-engine\report-template-studio.tsx:976:                  <div 
+className="mt-3 flex items-center gap-2 text-[11px] text-slate-400">
+  components\report-engine\report-template-studio.tsx:977:                    <span>
+> components\report-engine\report-template-studio.tsx:978:                      
+{template.scope === "GLOBAL" ? "عام" : "خاص بخدمة"}
+  components\report-engine\report-template-studio.tsx:979:                    </span>
+  components\report-engine\report-template-studio.tsx:980:                    <span>•</span>
+> components\report-engine\report-template-studio.tsx:981:                    
+<span>{template.pages.length} صفحات</span>
+  components\report-engine\report-template-studio.tsx:982:                  </div>
+  components\report-engine\report-template-studio.tsx:983:                </button>
+  components\report-engine\report-template-studio.tsx:984:              ))}
+  components\report-engine\report-template-studio.tsx:1006:                </label>
+  components\report-engine\report-template-studio.tsx:1007:
+  components\report-engine\report-template-studio.tsx:1008:                <input
+> components\report-engine\report-template-studio.tsx:1009:                  
+value={activeTemplate.name}
+  components\report-engine\report-template-studio.tsx:1010:                  
+onChange={(event) =>
+> components\report-engine\report-template-studio.tsx:1011:                    
+updateActiveTemplate((template) => ({
+> components\report-engine\report-template-studio.tsx:1012:                      
+...template,
+  components\report-engine\report-template-studio.tsx:1013:                      name: 
+event.target.value,
+  components\report-engine\report-template-studio.tsx:1014:                    }))
+  components\report-engine\report-template-studio.tsx:1015:                  }
+  components\report-engine\report-template-studio.tsx:1021:                </label>
+  components\report-engine\report-template-studio.tsx:1022:
+  components\report-engine\report-template-studio.tsx:1023:                <textarea
+> components\report-engine\report-template-studio.tsx:1024:                  
+value={activeTemplate.description}
+  components\report-engine\report-template-studio.tsx:1025:                  
+onChange={(event) =>
+> components\report-engine\report-template-studio.tsx:1026:                    
+updateActiveTemplate((template) => ({
+> components\report-engine\report-template-studio.tsx:1027:                      
+...template,
+  components\report-engine\report-template-studio.tsx:1028:                      
+description: event.target.value,
+  components\report-engine\report-template-studio.tsx:1029:                    }))
+  components\report-engine\report-template-studio.tsx:1030:                  }
+  components\report-engine\report-template-studio.tsx:1039:                </div>
+  components\report-engine\report-template-studio.tsx:1040:
+  components\report-engine\report-template-studio.tsx:1041:                <select
+> components\report-engine\report-template-studio.tsx:1042:                  
+value={activeTemplate.status}
+  components\report-engine\report-template-studio.tsx:1043:                  
+onChange={(event) =>
+> components\report-engine\report-template-studio.tsx:1044:                    
+updateActiveTemplate((template) => ({
+> components\report-engine\report-template-studio.tsx:1045:                      
+...template,
+> components\report-engine\report-template-studio.tsx:1046:                      status: 
+event.target.value as ReportTemplateStatus,
+  components\report-engine\report-template-studio.tsx:1047:                    }))
+  components\report-engine\report-template-studio.tsx:1048:                  }
+  components\report-engine\report-template-studio.tsx:1049:                  
+className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm 
+font-bold outline-none"
+  components\report-engine\report-template-studio.tsx:1050:                >
+  components\report-engine\report-template-studio.tsx:1051:                  <option 
+value="DRAFT">مسودة</option>
+> components\report-engine\report-template-studio.tsx:1052:                  <option 
+value="PUBLISHED">منشور</option>
+  components\report-engine\report-template-studio.tsx:1053:                  <option 
+value="ARCHIVED">مؤرشف</option>
+  components\report-engine\report-template-studio.tsx:1054:                </select>
+  components\report-engine\report-template-studio.tsx:1055:
+  components\report-engine\report-template-studio.tsx:1058:                </div>
+  components\report-engine\report-template-studio.tsx:1059:
+  components\report-engine\report-template-studio.tsx:1060:                <select
+> components\report-engine\report-template-studio.tsx:1061:                  
+value={activeTemplate.scope}
+  components\report-engine\report-template-studio.tsx:1062:                  
+onChange={(event) =>
+> components\report-engine\report-template-studio.tsx:1063:                    
+updateActiveTemplate((template) => ({
+> components\report-engine\report-template-studio.tsx:1064:                      
+...template,
+  components\report-engine\report-template-studio.tsx:1065:                      scope: 
+event.target.value as "GLOBAL" | "SERVICE",
+  components\report-engine\report-template-studio.tsx:1066:                      
+serviceSlug:
+  components\report-engine\report-template-studio.tsx:1067:                        
+event.target.value === "GLOBAL"
+  components\report-engine\report-template-studio.tsx:1068:                          ? 
+undefined
+> components\report-engine\report-template-studio.tsx:1069:                          : 
+template.serviceSlug,
+  components\report-engine\report-template-studio.tsx:1070:                    }))
+  components\report-engine\report-template-studio.tsx:1071:                  }
+  components\report-engine\report-template-studio.tsx:1072:                  
+className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm 
+font-bold outline-none"
+  components\report-engine\report-template-studio.tsx:1075:                  <option 
+value="SERVICE">خاص بخدمة</option>
+  components\report-engine\report-template-studio.tsx:1076:                </select>
+  components\report-engine\report-template-studio.tsx:1077:
+> components\report-engine\report-template-studio.tsx:1078:                
+{activeTemplate.scope === "SERVICE" ? (
+  components\report-engine\report-template-studio.tsx:1079:                  <>
+  components\report-engine\report-template-studio.tsx:1080:                    <div 
+className="mt-4 text-xs font-black text-slate-500">
+  components\report-engine\report-template-studio.tsx:1081:                      الخدمة
+  components\report-engine\report-template-studio.tsx:1082:                    </div>
+  components\report-engine\report-template-studio.tsx:1083:
+  components\report-engine\report-template-studio.tsx:1084:                    <select
+> components\report-engine\report-template-studio.tsx:1085:                      
+value={activeTemplate.serviceSlug || ""}
+  components\report-engine\report-template-studio.tsx:1086:                      
+onChange={(event) =>
+> components\report-engine\report-template-studio.tsx:1087:                        
+updateActiveTemplate((template) => ({
+> components\report-engine\report-template-studio.tsx:1088:                          
+...template,
+  components\report-engine\report-template-studio.tsx:1089:                          
+serviceSlug: event.target.value,
+  components\report-engine\report-template-studio.tsx:1090:                        }))
+  components\report-engine\report-template-studio.tsx:1091:                      }
+  components\report-engine\report-template-studio.tsx:1106:                </div>
+  components\report-engine\report-template-studio.tsx:1107:
+  components\report-engine\report-template-studio.tsx:1108:                <input
+> components\report-engine\report-template-studio.tsx:1109:                  
+value={activeTemplate.previewCaseId || ""}
+  components\report-engine\report-template-studio.tsx:1110:                  
+onChange={(event) =>
+> components\report-engine\report-template-studio.tsx:1111:                    
+updateActiveTemplate((template) => ({
+> components\report-engine\report-template-studio.tsx:1112:                      
+...template,
+> components\report-engine\report-template-studio.tsx:1113:                      
+previewCaseId: event.target.value,
+  components\report-engine\report-template-studio.tsx:1114:                    }))
+  components\report-engine\report-template-studio.tsx:1115:                  }
+  components\report-engine\report-template-studio.tsx:1116:                  
+placeholder="Case ID اختياري"
+  components\report-engine\report-template-studio.tsx:1120:                <div 
+className="mt-4 grid gap-2">
+  components\report-engine\report-template-studio.tsx:1121:                  <button
+  components\report-engine\report-template-studio.tsx:1122:                    type="button"
+> components\report-engine\report-template-studio.tsx:1123:                    onClick={() 
+=> duplicateTemplate(activeTemplate)}
+  components\report-engine\report-template-studio.tsx:1124:                    
+className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black 
+text-slate-700 transition hover:bg-slate-100"
+  components\report-engine\report-template-studio.tsx:1125:                  >
+  components\report-engine\report-template-studio.tsx:1126:                    نسخ القالب
+  components\report-engine\report-template-studio.tsx:1128:
+  components\report-engine\report-template-studio.tsx:1129:                  <button
+  components\report-engine\report-template-studio.tsx:1130:                    type="button"
+> components\report-engine\report-template-studio.tsx:1131:                    onClick={() 
+=> requestDeleteTemplate(activeTemplate)}
+> components\report-engine\report-template-studio.tsx:1132:                    
+disabled={templates.length <= 1}
+  components\report-engine\report-template-studio.tsx:1133:                    
+className="w-full rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black 
+text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+  components\report-engine\report-template-studio.tsx:1134:                  >
+  components\report-engine\report-template-studio.tsx:1135:                    حذف القالب
+  components\report-engine\report-template-studio.tsx:1139:            </div>
+  components\report-engine\report-template-studio.tsx:1140:          </div>
+  components\report-engine\report-template-studio.tsx:1141:
+> components\report-engine\report-template-studio.tsx:1142:          
+<ReportTemplateAdminTools
+> components\report-engine\report-template-studio.tsx:1143:            
+template={activeTemplate}
+  components\report-engine\report-template-studio.tsx:1144:            
+identity={reportIdentity}
+  components\report-engine\report-template-studio.tsx:1145:            
+snippets={reportTextSnippets}
+  components\report-engine\report-template-studio.tsx:1146:            
+onIdentityChange={setReportIdentity}
+  components\report-engine\report-template-studio.tsx:1147:            
+onSnippetsChange={setReportTextSnippets}
+  components\report-engine\report-template-studio.tsx:1148:          />
+  components\report-engine\report-template-studio.tsx:1149:
+> components\report-engine\report-template-studio.tsx:1150:          
+<ReportTemplatePublishTools
+> components\report-engine\report-template-studio.tsx:1151:            
+template={activeTemplate}
+  components\report-engine\report-template-studio.tsx:1152:            
+identity={reportIdentity}
+  components\report-engine\report-template-studio.tsx:1153:            
+snippets={reportTextSnippets}
+  components\report-engine\report-template-studio.tsx:1154:            
+snapshots={generatedSnapshots}
+> components\report-engine\report-template-studio.tsx:1155:            
+onTemplateStatusChange={changeActiveTemplateStatus}
+  components\report-engine\report-template-studio.tsx:1156:            
+onSnapshotCreate={addGeneratedSnapshot}
+  components\report-engine\report-template-studio.tsx:1157:          />
+  components\report-engine\report-template-studio.tsx:1158:
+  components\report-engine\report-template-studio.tsx:1159:          
+<RuntimeConnectionStatus
+  components\report-engine\report-template-studio.tsx:1160:            
+workflowFieldsCount={runtimeWorkflowFields.length}
+  components\report-engine\report-template-studio.tsx:1161:            
+workflowMessage={runtimeWorkflowMessage}
+> components\report-engine\report-template-studio.tsx:1162:            
+previewCase={runtimePreviewCase}
+> components\report-engine\report-template-studio.tsx:1163:            
+previewMessage={runtimePreviewMessage}
+  components\report-engine\report-template-studio.tsx:1164:          />
+  components\report-engine\report-template-studio.tsx:1165:
+> components\report-engine\report-template-studio.tsx:1166:          
+<ReportTemplateLivePreview
+> components\report-engine\report-template-studio.tsx:1167:            
+template={activeTemplate}
+  components\report-engine\report-template-studio.tsx:1168:            
+snippets={reportTextSnippets}
+> components\report-engine\report-template-studio.tsx:1169:            
+previewCaseData={runtimePreviewCase}
+  components\report-engine\report-template-studio.tsx:1170:          />
+  components\report-engine\report-template-studio.tsx:1171:
+  components\report-engine\report-template-studio.tsx:1172:          <div 
+className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+  components\report-engine\report-template-studio.tsx:1209:              </p>
+  components\report-engine\report-template-studio.tsx:1210:            </div>
+  components\report-engine\report-template-studio.tsx:1211:
+> components\report-engine\report-template-studio.tsx:1212:            
+{activeTemplate.pages.map((page, pageIndex) => (
+> components\report-engine\report-template-studio.tsx:1213:              <TemplatePageCard
+  components\report-engine\report-template-studio.tsx:1214:                key={page.id}
+> components\report-engine\report-template-studio.tsx:1215:                
+template={activeTemplate}
+  components\report-engine\report-template-studio.tsx:1216:                
+snippets={reportTextSnippets}
+  components\report-engine\report-template-studio.tsx:1217:                page={page}
+  components\report-engine\report-template-studio.tsx:1218:                
+pageIndex={pageIndex}
+> components\report-engine\report-template-studio.tsx:1219:                
+pages={activeTemplate.pages}
+  components\report-engine\report-template-studio.tsx:1220:                
+workflowFields={runtimeWorkflowFields}
+  components\report-engine\report-template-studio.tsx:1221:                
+canMoveUp={pageIndex > 0}
+> components\report-engine\report-template-studio.tsx:1222:                
+canMoveDown={pageIndex < activeTemplate.pages.length - 1}
+> components\report-engine\report-template-studio.tsx:1223:                
+canDeletePage={activeTemplate.pages.length > 1}
+  components\report-engine\report-template-studio.tsx:1224:                
+onMovePage={movePage}
+  components\report-engine\report-template-studio.tsx:1225:                
+onRequestDeletePage={requestDeletePage}
+  components\report-engine\report-template-studio.tsx:1226:                
+onAddBlock={addBlockToPage}
+  components\report-engine\report-template-studio.tsx:1271:          </div>
+  components\report-engine\report-template-studio.tsx:1272:        </div>
+  components\report-engine\report-template-studio.tsx:1273:      ) : null}
+> components\report-engine\report-template-studio.tsx:1274:      {templatePendingDelete ? (
+  components\report-engine\report-template-studio.tsx:1275:        <ConfirmModal
+  components\report-engine\report-template-studio.tsx:1276:          title="حذف قالب 
+التقرير؟"
+  components\report-engine\report-template-studio.tsx:1277:          description={
+  components\report-engine\report-template-studio.tsx:1278:            <>
+  components\report-engine\report-template-studio.tsx:1279:              سيتم حذف قالب{" "}
+  components\report-engine\report-template-studio.tsx:1280:              <span 
+className="font-black text-slate-900">
+> components\report-engine\report-template-studio.tsx:1281:                
+{templatePendingDelete.name}
+  components\report-engine\report-template-studio.tsx:1282:              </span>{" "}
+  components\report-engine\report-template-studio.tsx:1283:              من قائمة القوالب. 
+إذا كان محفوظًا فسيتم حذفه من قاعدة البيانات أيضًا.
+  components\report-engine\report-template-studio.tsx:1284:            </>
+  components\report-engine\report-template-studio.tsx:1285:          }
+  components\report-engine\report-template-studio.tsx:1286:          confirmLabel="نعم، 
+احذف القالب"
+> components\report-engine\report-template-studio.tsx:1287:          onCancel={() => 
+setTemplatePendingDelete(null)}
+> components\report-engine\report-template-studio.tsx:1288:          
+onConfirm={confirmDeleteTemplate}
+  components\report-engine\report-template-studio.tsx:1289:        />
+  components\report-engine\report-template-studio.tsx:1290:      ) : null}
+  components\report-engine\report-template-studio.tsx:1291:
+  components\report-engine\report-template-studio.tsx:1313:function 
+RuntimeConnectionStatus({
+  components\report-engine\report-template-studio.tsx:1314:  workflowFieldsCount,
+  components\report-engine\report-template-studio.tsx:1315:  workflowMessage,
+> components\report-engine\report-template-studio.tsx:1316:  previewCase,
+> components\report-engine\report-template-studio.tsx:1317:  previewMessage,
+  components\report-engine\report-template-studio.tsx:1318:}: {
+  components\report-engine\report-template-studio.tsx:1319:  workflowFieldsCount: number;
+  components\report-engine\report-template-studio.tsx:1320:  workflowMessage: string;
+> components\report-engine\report-template-studio.tsx:1321:  previewCase: 
+RuntimePreviewCaseData | null;
+> components\report-engine\report-template-studio.tsx:1322:  previewMessage: string;
+  components\report-engine\report-template-studio.tsx:1323:}) {
+  components\report-engine\report-template-studio.tsx:1324:  return (
+  components\report-engine\report-template-studio.tsx:1325:    <div className="rounded-3xl 
+border border-slate-200 bg-white p-5 shadow-sm">
+  components\report-engine\report-template-studio.tsx:1335:        </div>
+  components\report-engine\report-template-studio.tsx:1336:
+  components\report-engine\report-template-studio.tsx:1337:        <span 
+className="rounded-2xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600">
+> components\report-engine\report-template-studio.tsx:1338:          {previewCase ? "Case 
+حقيقي" : "Sample/Fallback"}
+  components\report-engine\report-template-studio.tsx:1339:        </span>
+  components\report-engine\report-template-studio.tsx:1340:      </div>
+  components\report-engine\report-template-studio.tsx:1341:
+  components\report-engine\report-template-studio.tsx:1360:          </h3>
+  components\report-engine\report-template-studio.tsx:1361:
+  components\report-engine\report-template-studio.tsx:1362:          <p className="mt-1 
+text-xs leading-6 text-slate-500">
+> components\report-engine\report-template-studio.tsx:1363:            {previewMessage || 
+"لم يتم الجلب بعد."}
+  components\report-engine\report-template-studio.tsx:1364:          </p>
+  components\report-engine\report-template-studio.tsx:1365:
+> components\report-engine\report-template-studio.tsx:1366:          {previewCase ? (
+  components\report-engine\report-template-studio.tsx:1367:            <div className="mt-3 
+grid gap-1 text-xs text-slate-600">
+  components\report-engine\report-template-studio.tsx:1368:              <div>
+  components\report-engine\report-template-studio.tsx:1369:                <span 
+className="font-black text-slate-900">الخدمة: </span>
+> components\report-engine\report-template-studio.tsx:1370:                
+{previewCase.serviceName || "غير محدد"}
+  components\report-engine\report-template-studio.tsx:1371:              </div>
+  components\report-engine\report-template-studio.tsx:1372:
+  components\report-engine\report-template-studio.tsx:1373:              <div>
+  components\report-engine\report-template-studio.tsx:1374:                <span 
+className="font-black text-slate-900">العنوان: </span>
+> components\report-engine\report-template-studio.tsx:1375:                
+{previewCase.title || "غير محدد"}
+  components\report-engine\report-template-studio.tsx:1376:              </div>
+  components\report-engine\report-template-studio.tsx:1377:
+  components\report-engine\report-template-studio.tsx:1378:              <div>
+  components\report-engine\report-template-studio.tsx:1379:                <span 
+className="font-black text-slate-900">عدد القيم: </span>
+> components\report-engine\report-template-studio.tsx:1380:                
+{previewCase.values.length}
+  components\report-engine\report-template-studio.tsx:1381:              </div>
+  components\report-engine\report-template-studio.tsx:1382:
+  components\report-engine\report-template-studio.tsx:1383:              <div>
+  components\report-engine\report-template-studio.tsx:1384:                <span 
+className="font-black text-slate-900">عدد الشواهد: </span>
+> components\report-engine\report-template-studio.tsx:1385:                
+{previewCase.evidences.length}
+  components\report-engine\report-template-studio.tsx:1386:              </div>
+  components\report-engine\report-template-studio.tsx:1387:            </div>
+  components\report-engine\report-template-studio.tsx:1388:          ) : null}
+  components\report-engine\report-template-studio.tsx:1392:  );
+  components\report-engine\report-template-studio.tsx:1393:}
+  components\report-engine\report-template-studio.tsx:1394:
+> components\report-engine\report-template-studio.tsx:1395:function 
+createPageFromPreset(kind: ReportPageKind): ReportTemplatePage {
+  components\report-engine\report-template-studio.tsx:1396:  const preset =
+  components\report-engine\report-template-studio.tsx:1397:    
+pagePresets.find((currentPreset) => currentPreset.kind === kind) ||
+  components\report-engine\report-template-studio.tsx:1398:    pagePresets[2];
+  components\report-engine\report-template-studio.tsx:1430:            .slice(2, 7)}`,
+  components\report-engine\report-template-studio.tsx:1431:        };
+  components\report-engine\report-template-studio.tsx:1432:      })
+> components\report-engine\report-template-studio.tsx:1433:      .filter((block): block is 
+ReportTemplateBlock => Boolean(block)),
+  components\report-engine\report-template-studio.tsx:1434:  };
+  components\report-engine\report-template-studio.tsx:1435:}
+  components\report-engine\report-template-studio.tsx:1436:
+> components\report-engine\report-template-studio.tsx:1437:function TemplatePageCard({
+> components\report-engine\report-template-studio.tsx:1438:  template,
+  components\report-engine\report-template-studio.tsx:1439:  snippets,
+  components\report-engine\report-template-studio.tsx:1440:  page,
+  components\report-engine\report-template-studio.tsx:1441:  pageIndex,
+  components\report-engine\report-template-studio.tsx:1452:  onMoveBlockToPage,
+  components\report-engine\report-template-studio.tsx:1453:  onUpdatePage,
+  components\report-engine\report-template-studio.tsx:1454:}: {
+> components\report-engine\report-template-studio.tsx:1455:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-studio.tsx:1456:  snippets: ReportTextSnippet[];
+> components\report-engine\report-template-studio.tsx:1457:  page: ReportTemplatePage;
+  components\report-engine\report-template-studio.tsx:1458:  pageIndex: number;
+> components\report-engine\report-template-studio.tsx:1459:  pages: ReportTemplatePage[];
+  components\report-engine\report-template-studio.tsx:1460:  workflowFields: 
+RuntimeWorkflowFieldOption[];
+  components\report-engine\report-template-studio.tsx:1461:  canMoveUp: boolean;
+  components\report-engine\report-template-studio.tsx:1462:  canMoveDown: boolean;
+  components\report-engine\report-template-studio.tsx:1463:  canDeletePage: boolean;
+  components\report-engine\report-template-studio.tsx:1464:  onMovePage: (pageId: string, 
+direction: "up" | "down") => void;
+> components\report-engine\report-template-studio.tsx:1465:  onRequestDeletePage: (page: 
+ReportTemplatePage) => void;
+> components\report-engine\report-template-studio.tsx:1466:  onAddBlock: (pageId: string, 
+block: ReportTemplateBlock) => void;
+  components\report-engine\report-template-studio.tsx:1467:  onRemoveBlock: (pageId: 
+string, blockId: string) => void;
+  components\report-engine\report-template-studio.tsx:1468:  onMoveBlock: (
+  components\report-engine\report-template-studio.tsx:1469:    pageId: string,
+  components\report-engine\report-template-studio.tsx:1477:  ) => void;
+  components\report-engine\report-template-studio.tsx:1478:  onUpdatePage: (
+  components\report-engine\report-template-studio.tsx:1479:    pageId: string,
+> components\report-engine\report-template-studio.tsx:1480:    updater: (page: 
+ReportTemplatePage) => ReportTemplatePage,
+  components\report-engine\report-template-studio.tsx:1481:  ) => void;
+  components\report-engine\report-template-studio.tsx:1482:}) {
+  components\report-engine\report-template-studio.tsx:1483:  const [selectedBlockId, 
+setSelectedBlockId] = useState(
+  components\report-engine\report-template-studio.tsx:1591:          
+page.blocks.map((block, blockIndex) => (
+  components\report-engine\report-template-studio.tsx:1592:            <BlockEditor
+  components\report-engine\report-template-studio.tsx:1593:              key={block.id}
+> components\report-engine\report-template-studio.tsx:1594:              template={template}
+  components\report-engine\report-template-studio.tsx:1595:              snippets={snippets}
+  components\report-engine\report-template-studio.tsx:1596:              page={page}
+  components\report-engine\report-template-studio.tsx:1597:              pages={pages}
+  components\report-engine\report-template-studio.tsx:1648:  page,
+  components\report-engine\report-template-studio.tsx:1649:  onUpdatePage,
+  components\report-engine\report-template-studio.tsx:1650:}: {
+> components\report-engine\report-template-studio.tsx:1651:  page: ReportTemplatePage;
+  components\report-engine\report-template-studio.tsx:1652:  onUpdatePage: (
+  components\report-engine\report-template-studio.tsx:1653:    pageId: string,
+> components\report-engine\report-template-studio.tsx:1654:    updater: (page: 
+ReportTemplatePage) => ReportTemplatePage,
+  components\report-engine\report-template-studio.tsx:1655:  ) => void;
+  components\report-engine\report-template-studio.tsx:1656:}) {
+  components\report-engine\report-template-studio.tsx:1657:  const settings = 
+page.coverSettings || {};
+  components\report-engine\report-template-studio.tsx:1757:}
+  components\report-engine\report-template-studio.tsx:1758:
+  components\report-engine\report-template-studio.tsx:1759:function BlockEditor({
+> components\report-engine\report-template-studio.tsx:1760:  template,
+  components\report-engine\report-template-studio.tsx:1761:  snippets,
+  components\report-engine\report-template-studio.tsx:1762:  page,
+  components\report-engine\report-template-studio.tsx:1763:  pages,
+  components\report-engine\report-template-studio.tsx:1771:  onMoveBlock,
+  components\report-engine\report-template-studio.tsx:1772:  onMoveBlockToPage,
+  components\report-engine\report-template-studio.tsx:1773:}: {
+> components\report-engine\report-template-studio.tsx:1774:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-studio.tsx:1775:  snippets: ReportTextSnippet[];
+> components\report-engine\report-template-studio.tsx:1776:  page: ReportTemplatePage;
+> components\report-engine\report-template-studio.tsx:1777:  pages: ReportTemplatePage[];
+  components\report-engine\report-template-studio.tsx:1778:  workflowFields: 
+RuntimeWorkflowFieldOption[];
+> components\report-engine\report-template-studio.tsx:1779:  block: ReportTemplateBlock;
+  components\report-engine\report-template-studio.tsx:1780:  blockIndex: number;
+  components\report-engine\report-template-studio.tsx:1781:  canMoveUp: boolean;
+  components\report-engine\report-template-studio.tsx:1782:  canMoveDown: boolean;
+  components\report-engine\report-template-studio.tsx:1783:  onUpdatePage: (
+  components\report-engine\report-template-studio.tsx:1784:    pageId: string,
+> components\report-engine\report-template-studio.tsx:1785:    updater: (page: 
+ReportTemplatePage) => ReportTemplatePage,
+  components\report-engine\report-template-studio.tsx:1786:  ) => void;
+  components\report-engine\report-template-studio.tsx:1787:  onRemoveBlock: (pageId: 
+string, blockId: string) => void;
+  components\report-engine\report-template-studio.tsx:1788:  onMoveBlock: (
+  components\report-engine\report-template-studio.tsx:1797:  ) => void;
+  components\report-engine\report-template-studio.tsx:1798:}) {
+  components\report-engine\report-template-studio.tsx:1799:  function updateBlock(
+> components\report-engine\report-template-studio.tsx:1800:    updater: (block: 
+ReportTemplateBlock) => ReportTemplateBlock,
+  components\report-engine\report-template-studio.tsx:1801:  ) {
+  components\report-engine\report-template-studio.tsx:1802:    onUpdatePage(page.id, 
+(currentPage) => ({
+  components\report-engine\report-template-studio.tsx:1803:      ...currentPage,
+  components\report-engine\report-template-studio.tsx:1916:      </div>
+  components\report-engine\report-template-studio.tsx:1917:
+  components\report-engine\report-template-studio.tsx:1918:      <BlockSettingsEditor
+> components\report-engine\report-template-studio.tsx:1919:        template={template}
+  components\report-engine\report-template-studio.tsx:1920:        snippets={snippets}
+  components\report-engine\report-template-studio.tsx:1921:        block={block}
+  components\report-engine\report-template-studio.tsx:1922:        
+onUpdateBlock={updateBlock}
+  components\report-engine\report-template-studio.tsx:1955:}
+  components\report-engine\report-template-studio.tsx:1956:
+  components\report-engine\report-template-studio.tsx:1957:function BlockSettingsEditor({
+> components\report-engine\report-template-studio.tsx:1958:  template,
+  components\report-engine\report-template-studio.tsx:1959:  snippets,
+  components\report-engine\report-template-studio.tsx:1960:  block,
+  components\report-engine\report-template-studio.tsx:1961:  onUpdateBlock,
+  components\report-engine\report-template-studio.tsx:1962:}: {
+> components\report-engine\report-template-studio.tsx:1963:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-studio.tsx:1964:  snippets: ReportTextSnippet[];
+> components\report-engine\report-template-studio.tsx:1965:  block: ReportTemplateBlock;
+  components\report-engine\report-template-studio.tsx:1966:  onUpdateBlock: (
+> components\report-engine\report-template-studio.tsx:1967:    updater: (block: 
+ReportTemplateBlock) => ReportTemplateBlock,
+  components\report-engine\report-template-studio.tsx:1968:  ) => void;
+  components\report-engine\report-template-studio.tsx:1969:}) {
+  components\report-engine\report-template-studio.tsx:1970:  const settings = 
+block.settings || {};
+  components\report-engine\report-template-studio.tsx:2090:
+  components\report-engine\report-template-studio.tsx:2091:      {block.kind === 
+"text-library" ? (
+  components\report-engine\report-template-studio.tsx:2092:        
+<TextLibraryBlockSettingsEditor
+> components\report-engine\report-template-studio.tsx:2093:          template={template}
+  components\report-engine\report-template-studio.tsx:2094:          snippets={snippets}
+  components\report-engine\report-template-studio.tsx:2095:          block={block}
+  components\report-engine\report-template-studio.tsx:2096:          
+onUpdateBlock={onUpdateBlock}
+  components\report-engine\report-template-studio.tsx:2101:}
+  components\report-engine\report-template-studio.tsx:2102:
+  components\report-engine\report-template-studio.tsx:2103:function 
+TextLibraryBlockSettingsEditor({
+> components\report-engine\report-template-studio.tsx:2104:  template,
+  components\report-engine\report-template-studio.tsx:2105:  snippets,
+  components\report-engine\report-template-studio.tsx:2106:  block,
+  components\report-engine\report-template-studio.tsx:2107:  onUpdateBlock,
+  components\report-engine\report-template-studio.tsx:2108:}: {
+> components\report-engine\report-template-studio.tsx:2109:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-template-studio.tsx:2110:  snippets: ReportTextSnippet[];
+> components\report-engine\report-template-studio.tsx:2111:  block: ReportTemplateBlock;
+  components\report-engine\report-template-studio.tsx:2112:  onUpdateBlock: (
+> components\report-engine\report-template-studio.tsx:2113:    updater: (block: 
+ReportTemplateBlock) => ReportTemplateBlock,
+  components\report-engine\report-template-studio.tsx:2114:  ) => void;
+  components\report-engine\report-template-studio.tsx:2115:}) {
+  components\report-engine\report-template-studio.tsx:2116:  const settings = 
+getTextLibrarySettings(block);
+  components\report-engine\report-template-studio.tsx:2117:
+  components\report-engine\report-template-studio.tsx:2118:  const matchingSnippets = 
+getMatchingTextSnippets({
+  components\report-engine\report-template-studio.tsx:2119:    block,
+> components\report-engine\report-template-studio.tsx:2120:    template,
+  components\report-engine\report-template-studio.tsx:2121:    snippets,
+  components\report-engine\report-template-studio.tsx:2122:  });
+  components\report-engine\report-template-studio.tsx:2123:
+  components\report-engine\report-template-studio.tsx:2163:            }
+  components\report-engine\report-template-studio.tsx:2164:            className="mt-2 
+w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold 
+outline-none"
+  components\report-engine\report-template-studio.tsx:2165:          >
+> components\report-engine\report-template-studio.tsx:2166:            <option 
+value="same-template-service">نفس خدمة القالب</option>
+  components\report-engine\report-template-studio.tsx:2167:            <option 
+value="global">النصوص العامة فقط</option>
+  components\report-engine\report-template-studio.tsx:2168:            <option 
+value="specific-service">خدمة محددة</option>
+  components\report-engine\report-template-studio.tsx:2169:            <option 
+value="all">كل النصوص</option>
+  components\report-engine\text-library-block-settings-editor.tsx:1:"use client";
+  components\report-engine\text-library-block-settings-editor.tsx:2:
+  components\report-engine\text-library-block-settings-editor.tsx:3:import type {
+> components\report-engine\text-library-block-settings-editor.tsx:4:  ReportTemplateBlock,
+> components\report-engine\text-library-block-settings-editor.tsx:5:  
+ReportTemplateBuilderModel,
+  components\report-engine\text-library-block-settings-editor.tsx:6:  ReportTextSnippet,
+> components\report-engine\text-library-block-settings-editor.tsx:7:} from 
+"@/lib/report-engine/report-template-builder-types";
+> components\report-engine\text-library-block-settings-editor.tsx:8:import { 
+REPORT_SERVICE_OPTIONS } from "@/lib/report-engine/report-template-builder-types";
+  components\report-engine\text-library-block-settings-editor.tsx:9:import {
+  components\report-engine\text-library-block-settings-editor.tsx:10:  
+DEFAULT_TEXT_LIBRARY_BLOCK_SETTINGS,
+  components\report-engine\text-library-block-settings-editor.tsx:11:  
+getTextLibrarySettings,
+  components\report-engine\text-library-block-settings-editor.tsx:23:];
+  components\report-engine\text-library-block-settings-editor.tsx:24:
+  components\report-engine\text-library-block-settings-editor.tsx:25:type 
+TextLibraryBlockSettingsEditorProps = {
+> components\report-engine\text-library-block-settings-editor.tsx:26:  block: 
+ReportTemplateBlock;
+> components\report-engine\text-library-block-settings-editor.tsx:27:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\text-library-block-settings-editor.tsx:28:  snippets: 
+ReportTextSnippet[];
+  components\report-engine\text-library-block-settings-editor.tsx:29:  onUpdateBlock: (
+> components\report-engine\text-library-block-settings-editor.tsx:30:    updater: (block: 
+ReportTemplateBlock) => ReportTemplateBlock
+  components\report-engine\text-library-block-settings-editor.tsx:31:  ) => void;
+  components\report-engine\text-library-block-settings-editor.tsx:32:};
+  components\report-engine\text-library-block-settings-editor.tsx:33:
+  components\report-engine\text-library-block-settings-editor.tsx:34:export function 
+TextLibraryBlockSettingsEditor({
+  components\report-engine\text-library-block-settings-editor.tsx:35:  block,
+> components\report-engine\text-library-block-settings-editor.tsx:36:  template,
+  components\report-engine\text-library-block-settings-editor.tsx:37:  snippets,
+  components\report-engine\text-library-block-settings-editor.tsx:38:  onUpdateBlock,
+  components\report-engine\text-library-block-settings-editor.tsx:39:}: 
+TextLibraryBlockSettingsEditorProps) {
+  components\report-engine\text-library-block-settings-editor.tsx:40:  const settings = 
+getTextLibrarySettings(block);
+  components\report-engine\text-library-block-settings-editor.tsx:41:
+  components\report-engine\text-library-block-settings-editor.tsx:42:  const 
+matchingSnippets = getMatchingSnippets({
+> components\report-engine\text-library-block-settings-editor.tsx:43:    template,
+  components\report-engine\text-library-block-settings-editor.tsx:44:    snippets,
+  components\report-engine\text-library-block-settings-editor.tsx:45:    settings,
+  components\report-engine\text-library-block-settings-editor.tsx:46:  });
+  components\report-engine\text-library-block-settings-editor.tsx:85:          </label>
+  components\report-engine\text-library-block-settings-editor.tsx:86:
+  components\report-engine\text-library-block-settings-editor.tsx:87:          <select
+> components\report-engine\text-library-block-settings-editor.tsx:88:            
+value={settings.textSourceMode || "same-template-service"}
+  components\report-engine\text-library-block-settings-editor.tsx:89:            
+onChange={(event) =>
+  components\report-engine\text-library-block-settings-editor.tsx:90:              
+updateTextLibrarySettings({
+  components\report-engine\text-library-block-settings-editor.tsx:91:                
+textSourceMode: event.target
+  components\report-engine\text-library-block-settings-editor.tsx:94:            }
+  components\report-engine\text-library-block-settings-editor.tsx:95:            
+className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs 
+font-bold outline-none"
+  components\report-engine\text-library-block-settings-editor.tsx:96:          >
+> components\report-engine\text-library-block-settings-editor.tsx:97:            <option 
+value="same-template-service">نفس خدمة القالب</option>
+  components\report-engine\text-library-block-settings-editor.tsx:98:            <option 
+value="global">النصوص العامة فقط</option>
+  components\report-engine\text-library-block-settings-editor.tsx:99:            <option 
+value="specific-service">خدمة محددة</option>
+  components\report-engine\text-library-block-settings-editor.tsx:100:            <option 
+value="all">كل النصوص</option>
+  components\report-engine\text-library-block-settings-editor.tsx:279:}
+  components\report-engine\text-library-block-settings-editor.tsx:280:
+  components\report-engine\text-library-block-settings-editor.tsx:281:function 
+getMatchingSnippets({
+> components\report-engine\text-library-block-settings-editor.tsx:282:  template,
+  components\report-engine\text-library-block-settings-editor.tsx:283:  snippets,
+  components\report-engine\text-library-block-settings-editor.tsx:284:  settings,
+  components\report-engine\text-library-block-settings-editor.tsx:285:}: {
+> components\report-engine\text-library-block-settings-editor.tsx:286:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\text-library-block-settings-editor.tsx:287:  snippets: 
+ReportTextSnippet[];
+  components\report-engine\text-library-block-settings-editor.tsx:288:  settings: 
+TextLibraryBlockSettings;
+  components\report-engine\text-library-block-settings-editor.tsx:289:}) {
+  components\report-engine\text-library-block-settings-editor.tsx:295:
+  components\report-engine\text-library-block-settings-editor.tsx:296:    const 
+matchesService = matchesServiceMode({
+  components\report-engine\text-library-block-settings-editor.tsx:297:      snippet,
+> components\report-engine\text-library-block-settings-editor.tsx:298:      template,
+  components\report-engine\text-library-block-settings-editor.tsx:299:      settings,
+  components\report-engine\text-library-block-settings-editor.tsx:300:    });
+  components\report-engine\text-library-block-settings-editor.tsx:301:
+  components\report-engine\text-library-block-settings-editor.tsx:305:
+  components\report-engine\text-library-block-settings-editor.tsx:306:function 
+matchesServiceMode({
+  components\report-engine\text-library-block-settings-editor.tsx:307:  snippet,
+> components\report-engine\text-library-block-settings-editor.tsx:308:  template,
+  components\report-engine\text-library-block-settings-editor.tsx:309:  settings,
+  components\report-engine\text-library-block-settings-editor.tsx:310:}: {
+  components\report-engine\text-library-block-settings-editor.tsx:311:  snippet: 
+ReportTextSnippet;
+> components\report-engine\text-library-block-settings-editor.tsx:312:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\text-library-block-settings-editor.tsx:313:  settings: 
+TextLibraryBlockSettings;
+  components\report-engine\text-library-block-settings-editor.tsx:314:}) {
+  components\report-engine\text-library-block-settings-editor.tsx:315:  if 
+(settings.textSourceMode === "all") {
+  components\report-engine\text-library-block-settings-editor.tsx:324:    return 
+snippet.serviceSlug === settings.serviceSlug;
+  components\report-engine\text-library-block-settings-editor.tsx:325:  }
+  components\report-engine\text-library-block-settings-editor.tsx:326:
+> components\report-engine\text-library-block-settings-editor.tsx:327:  if (template.scope 
+=== "SERVICE" && template.serviceSlug) {
+> components\report-engine\text-library-block-settings-editor.tsx:328:    return 
+snippet.serviceSlug === template.serviceSlug || !snippet.serviceSlug;
+  components\report-engine\text-library-block-settings-editor.tsx:329:  }
+  components\report-engine\text-library-block-settings-editor.tsx:330:
+  components\report-engine\text-library-block-settings-editor.tsx:331:  return 
+!snippet.serviceSlug;
+
+
+

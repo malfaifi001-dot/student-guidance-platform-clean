@@ -1,0 +1,557 @@
+﻿===== PREVIEW: builder / renderer lines =====
+
+  app\dashboard\reports\[reportId]\preview\page.tsx:5:  ReportPreviewToolbar,
+  app\dashboard\reports\[reportId]\preview\page.tsx:6:  type ReportViewMode,
+  app\dashboard\reports\[reportId]\preview\page.tsx:7:} from 
+"@/components/reports/report-preview-toolbar";
+  app\dashboard\reports\[reportId]\preview\page.tsx:8:
+> app\dashboard\reports\[reportId]\preview\page.tsx:9:import { 
+ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
+> app\dashboard\reports\[reportId]\preview\page.tsx:10:import { 
+ReportTemplateLivePreview } from 
+"@/components/report-engine/report-template-live-preview";
+  app\dashboard\reports\[reportId]\preview\page.tsx:11:
+  app\dashboard\reports\[reportId]\preview\page.tsx:12:import type {
+  app\dashboard\reports\[reportId]\preview\page.tsx:13:  EvidenceLayout,
+> app\dashboard\reports\[reportId]\preview\page.tsx:14:  OfficialReportData,
+  app\dashboard\reports\[reportId]\preview\page.tsx:15:  ReportEvidence,
+  app\dashboard\reports\[reportId]\preview\page.tsx:16:  ReportIdentity,
+  app\dashboard\reports\[reportId]\preview\page.tsx:17:  ReportSection,
+  app\dashboard\reports\[reportId]\preview\page.tsx:18:  ReportTemplateId,
+  app\dashboard\reports\[reportId]\preview\page.tsx:19:} from 
+"@/lib/report-engine/report-types";
+  app\dashboard\reports\[reportId]\preview\page.tsx:20:
+  app\dashboard\reports\[reportId]\preview\page.tsx:21:import { 
+buildSmartReportTextSections } from "@/lib/report-engine/report-smart-text-engine";
+  app\dashboard\reports\[reportId]\preview\page.tsx:22:
+  app\dashboard\reports\[reportId]\preview\page.tsx:189:    status: "PUBLISHED",
+  app\dashboard\reports\[reportId]\preview\page.tsx:190:  };
+  app\dashboard\reports\[reportId]\preview\page.tsx:191:}
+  app\dashboard\reports\[reportId]\preview\page.tsx:192:
+> app\dashboard\reports\[reportId]\preview\page.tsx:193:function 
+buildBuilderPreviewCaseData(report: any, reportValues: ReportValueItem[]) {
+  app\dashboard\reports\[reportId]\preview\page.tsx:194:  const student = 
+report.caseEntry.student;
+  app\dashboard\reports\[reportId]\preview\page.tsx:195:  const guardian = 
+student?.guardian;
+  app\dashboard\reports\[reportId]\preview\page.tsx:196:
+  app\dashboard\reports\[reportId]\preview\page.tsx:197:  return {
+  app\dashboard\reports\[reportId]\preview\page.tsx:198:    id: report.caseEntry.id,
+  app\dashboard\reports\[reportId]\preview\page.tsx:199:    title: 
+report.caseEntry.title || report.title,
+  app\dashboard\reports\[reportId]\preview\page.tsx:200:    status: 
+report.caseEntry.status,
+  app\dashboard\reports\[reportId]\preview\page.tsx:201:    createdAt: 
+report.caseEntry.createdAt?.toISOString?.() || "",
+  app\dashboard\reports\[reportId]\preview\page.tsx:366:  );
+  app\dashboard\reports\[reportId]\preview\page.tsx:367:
+  app\dashboard\reports\[reportId]\preview\page.tsx:368:  const identity = 
+buildReportIdentity(report);
+  app\dashboard\reports\[reportId]\preview\page.tsx:369:
+> app\dashboard\reports\[reportId]\preview\page.tsx:370:  const officialReport = 
+buildOfficialReportData({
+  app\dashboard\reports\[reportId]\preview\page.tsx:371:    report,
+  app\dashboard\reports\[reportId]\preview\page.tsx:372:    reportValues,
+  app\dashboard\reports\[reportId]\preview\page.tsx:373:    parsedEditableContent,
+  app\dashboard\reports\[reportId]\preview\page.tsx:374:    evidenceLayout: 
+selectedEvidenceLayout,
+  app\dashboard\reports\[reportId]\preview\page.tsx:375:    viewMode: 
+selectedViewMode,
+  app\dashboard\reports\[reportId]\preview\page.tsx:376:  });
+  app\dashboard\reports\[reportId]\preview\page.tsx:377:
+> app\dashboard\reports\[reportId]\preview\page.tsx:378:  return (
+  app\dashboard\reports\[reportId]\preview\page.tsx:379:    <main
+  app\dashboard\reports\[reportId]\preview\page.tsx:380:      dir="rtl"
+  app\dashboard\reports\[reportId]\preview\page.tsx:381:      className={
+  app\dashboard\reports\[reportId]\preview\page.tsx:382:        studioMode
+  app\dashboard\reports\[reportId]\preview\page.tsx:383:          ? "min-h-screen 
+bg-slate-100 py-5"
+  app\dashboard\reports\[reportId]\preview\page.tsx:384:          : "min-h-screen 
+bg-[radial-gradient(circle_at_top,_#e0f2fe_0,_#f8fafc_34%,_#f1f5f9_100%)] px-6 py-6"
+  app\dashboard\reports\[reportId]\preview\page.tsx:385:      }
+  app\dashboard\reports\[reportId]\preview\page.tsx:386:    >
+  app\dashboard\reports\[reportId]\preview\page.tsx:396:        />
+  app\dashboard\reports\[reportId]\preview\page.tsx:397:      ) : null}
+  app\dashboard\reports\[reportId]\preview\page.tsx:398:
+  app\dashboard\reports\[reportId]\preview\page.tsx:399:      <section 
+className={studioMode ? "mx-auto" : "mx-auto max-w-[260mm]"}>
+> app\dashboard\reports\[reportId]\preview\page.tsx:400:        
+<ReportDocumentRenderer
+  app\dashboard\reports\[reportId]\preview\page.tsx:401:          identity={identity}
+> app\dashboard\reports\[reportId]\preview\page.tsx:402:          
+report={officialReport}
+  app\dashboard\reports\[reportId]\preview\page.tsx:403:          
+templateId={selectedTemplate}
+  app\dashboard\reports\[reportId]\preview\page.tsx:404:          
+showCover={showCover}
+  app\dashboard\reports\[reportId]\preview\page.tsx:405:          
+evidenceLayout={selectedEvidenceLayout}
+  app\dashboard\reports\[reportId]\preview\page.tsx:406:        />
+  app\dashboard\reports\[reportId]\preview\page.tsx:407:      </section>
+  app\dashboard\reports\[reportId]\preview\page.tsx:408:    </main>
+  app\dashboard\reports\[reportId]\preview\page.tsx:409:  );
+  app\dashboard\reports\[reportId]\preview\page.tsx:410:}
+  app\dashboard\reports\[reportId]\preview\page.tsx:488:          },
+  app\dashboard\reports\[reportId]\preview\page.tsx:489:  };
+  app\dashboard\reports\[reportId]\preview\page.tsx:490:}
+  app\dashboard\reports\[reportId]\preview\page.tsx:491:
+> app\dashboard\reports\[reportId]\preview\page.tsx:492:function 
+buildOfficialReportData({
+  app\dashboard\reports\[reportId]\preview\page.tsx:493:  report,
+  app\dashboard\reports\[reportId]\preview\page.tsx:494:  reportValues,
+  app\dashboard\reports\[reportId]\preview\page.tsx:495:  parsedEditableContent,
+  app\dashboard\reports\[reportId]\preview\page.tsx:496:  evidenceLayout,
+  app\dashboard\reports\[reportId]\preview\page.tsx:497:  viewMode,
+  app\dashboard\reports\[reportId]\preview\page.tsx:498:}: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:499:  report: any;
+  app\dashboard\reports\[reportId]\preview\page.tsx:500:  reportValues: 
+ReportValueItem[];
+  app\dashboard\reports\[reportId]\preview\page.tsx:619:        
+report.caseEntry.createdBy?.name || "الموجه/الموجهة الطلابية",
+  app\dashboard\reports\[reportId]\preview\page.tsx:620:      principalName: 
+profile?.principalName || "قائد/قائدة المدرسة",
+  app\dashboard\reports\[reportId]\preview\page.tsx:621:      date: reportDate,
+  app\dashboard\reports\[reportId]\preview\page.tsx:622:    },
+> app\dashboard\reports\[reportId]\preview\page.tsx:623:  } as OfficialReportData;
+  app\dashboard\reports\[reportId]\preview\page.tsx:624:}
+  app\dashboard\reports\[reportId]\preview\page.tsx:625:
+  app\dashboard\reports\[reportId]\preview\page.tsx:626:function 
+buildStudentSection(student: any, guardian: any): ReportSection[] {
+  app\dashboard\reports\[reportId]\preview\page.tsx:627:  if (!student) {
+  app\dashboard\reports\[reportId]\preview\page.tsx:628:    return [];
+  app\dashboard\reports\[reportId]\preview\page.tsx:629:  }
+  app\dashboard\reports\[reportId]\preview\page.tsx:630:
+  app\dashboard\reports\[reportId]\preview\page.tsx:631:  return [
+  app\dashboard\reports\[reportId]\preview\page.tsx:849:  return values
+  app\dashboard\reports\[reportId]\preview\page.tsx:850:    .filter((item) => {
+  app\dashboard\reports\[reportId]\preview\page.tsx:851:      const key = 
+getWorkflowFieldKey(item);
+  app\dashboard\reports\[reportId]\preview\page.tsx:852:
+> app\dashboard\reports\[reportId]\preview\page.tsx:853:      return (
+  app\dashboard\reports\[reportId]\preview\page.tsx:854:        key &&
+  app\dashboard\reports\[reportId]\preview\page.tsx:855:        key !== 
+"selectedStudent" &&
+  app\dashboard\reports\[reportId]\preview\page.tsx:856:        
+!key.endsWith("__other") &&
+  app\dashboard\reports\[reportId]\preview\page.tsx:857:        !["student", 
+"guardian", "metadata"].includes(key)
+  app\dashboard\reports\[reportId]\preview\page.tsx:858:      );
+  app\dashboard\reports\[reportId]\preview\page.tsx:859:    })
+  app\dashboard\reports\[reportId]\preview\page.tsx:860:    .map((item, index) => {
+  app\dashboard\reports\[reportId]\preview\page.tsx:861:      const fieldKey = 
+getWorkflowFieldKey(item);
+
+
+
+
+===== PREVIEW: section render block exact =====
+8922
+9769
+caseEntry);
+
+  const normalizedCaseValues = report.caseEntry.values.map((value) =>
+    normalizeReportCaseValue(value, fieldMap)
+  );
+
+  const reportValues = buildReportValues(
+    normalizedCaseValues,
+    workflowValueOverrides
+  );
+
+  const identity = buildReportIdentity(report);
+
+  const officialReport = buildOfficialReportData({
+    report,
+    reportValues,
+    parsedEditableContent,
+    evidenceLayout: selectedEvidenceLayout,
+    viewMode: selectedViewMode,
+  });
+
+  return (
+    <main
+      dir="rtl"
+      className={
+        studioMode
+          ? "min-h-screen bg-slate-100 py-5"
+          : "min-h-screen bg-[radial-gradient(circle_at_top,_#e0f2fe_0,_#f8fafc_34%,_#f1f5f9_100%)] px-6 py-6"
+      }
+    >
+      {!studioMode ? (
+        <ReportPreviewToolbar
+          reportId={report.id}
+          title={report.title}
+          serviceName={report.caseEntry.service.name}
+          selectedTemplate={selectedTemplate}
+          selectedEvidenceLayout={selectedEvidenceLayout}
+          selectedViewMode={selectedViewMode}
+          showCover={showCover}
+        />
+      ) : null}
+
+      <section className={studioMode ? "mx-auto" : "mx-auto max-w-[260mm]"}>
+        <ReportDocumentRenderer
+          identity={identity}
+          report={officialReport}
+          templateId={selectedTemplate}
+          showCover={showCover}
+          evidenceLayout={selectedEvidenceLayout}
+        />
+      </section>
+    </main>
+  );
+}
+
+function buildReportIdentity(report: any) {
+  const profile = report.caseEntry.schoolAccount.profile;
+  const schoolAccount = report.caseEntry.schoolAccount;
+
+  return {
+    ministryName: "ÙˆØ²Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
+
+    educationDepartment: profile?.district
+      ? `Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ… - ${profile.district}`
+      : "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
+
+    educationOffice: profile?.city
+      ? `Ù…ÙƒØªØ¨ Ø§Ù„ØªØ¹Ù„ÙŠÙ… - ${profile.city}`
+      : "Ù…ÙƒØªØ¨ Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
+
+    schoolName: profile?.schoolName || schoolAccount.name || "Ø§Ø³Ù… Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+
+    counselorName:
+      report.caseEntry.createdBy?.name || "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
+
+    counselorTitle: "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
+
+    academicYear: profile?.academicYear || "Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+
+    semester: profile?.currentSemester || "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+
+    schoolLogoUrl: undefined,
+
+    ministryLogoUrl: undefined,
+  } as ReportIdentity;
+}
+
+function buildReportFieldMap(caseEntry: any) {
+  const map = new Map<string, ReportFieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function normalizeReportCaseValue(
+  value: any,
+  fieldMap: Map<string, ReportFieldLookupItem>
+) {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          
+
+===== STUDIO: builder / editor lines =====
+
+  app\dashboard\reports\[reportId]\studio\page.tsx:1:import { notFound } from 
+"next/navigation";
+  app\dashboard\reports\[reportId]\studio\page.tsx:2:import { prisma } from 
+"@/lib/prisma";
+> app\dashboard\reports\[reportId]\studio\page.tsx:3:import { ReportStudioEditor } 
+from "@/components/reports/report-studio-editor";
+> app\dashboard\reports\[reportId]\studio\page.tsx:4:import { 
+ReportTemplateLivePreview } from 
+"@/components/report-engine/report-template-live-preview";
+  app\dashboard\reports\[reportId]\studio\page.tsx:5:
+  app\dashboard\reports\[reportId]\studio\page.tsx:6:import {
+  app\dashboard\reports\[reportId]\studio\page.tsx:7:  formatWorkflowDisplayValue,
+  app\dashboard\reports\[reportId]\studio\page.tsx:8:  getWorkflowFieldKey,
+  app\dashboard\reports\[reportId]\studio\page.tsx:9:  getWorkflowFieldLabel,
+  app\dashboard\reports\[reportId]\studio\page.tsx:10:  stringifyWorkflowRawValue,
+  app\dashboard\reports\[reportId]\studio\page.tsx:11:} from 
+"@/lib/workflow-values/workflow-display-value";
+  app\dashboard\reports\[reportId]\studio\page.tsx:12:
+  app\dashboard\reports\[reportId]\studio\page.tsx:126:  const normalizedCaseValues 
+= report.caseEntry.values.map((value) =>
+  app\dashboard\reports\[reportId]\studio\page.tsx:127:    
+normalizeReportCaseValue(value, fieldMap)
+  app\dashboard\reports\[reportId]\studio\page.tsx:128:  );
+  app\dashboard\reports\[reportId]\studio\page.tsx:129:
+> app\dashboard\reports\[reportId]\studio\page.tsx:130:  const liveCaseValues = 
+buildStudioReportValues(
+  app\dashboard\reports\[reportId]\studio\page.tsx:131:    normalizedCaseValues,
+  app\dashboard\reports\[reportId]\studio\page.tsx:132:    workflowValueOverrides
+  app\dashboard\reports\[reportId]\studio\page.tsx:133:  );
+  app\dashboard\reports\[reportId]\studio\page.tsx:134:
+> app\dashboard\reports\[reportId]\studio\page.tsx:135:  const normalizedReport = {
+  app\dashboard\reports\[reportId]\studio\page.tsx:136:    id: report.id,
+  app\dashboard\reports\[reportId]\studio\page.tsx:137:    title: report.title,
+  app\dashboard\reports\[reportId]\studio\page.tsx:138:    serviceSlug: 
+report.serviceSlug,
+  app\dashboard\reports\[reportId]\studio\page.tsx:139:    status: report.status,
+  app\dashboard\reports\[reportId]\studio\page.tsx:140:    genderMode: 
+report.genderMode,
+  app\dashboard\reports\[reportId]\studio\page.tsx:141:    templateId: 
+report.templateId,
+  app\dashboard\reports\[reportId]\studio\page.tsx:142:    hasTemplateSnapshot: 
+Boolean(report.templateSnapshot),
+  app\dashboard\reports\[reportId]\studio\page.tsx:143:    hasReportDataSnapshot: 
+Boolean(report.reportDataSnapshot),
+  app\dashboard\reports\[reportId]\studio\page.tsx:153:     * مهم:
+  app\dashboard\reports\[reportId]\studio\page.tsx:154:     * لا نستخدم 
+reportDataSnapshot هنا كمصدر أول؛ لأنه غالبًا يحتوي قيم تقنية قديمة.
+  app\dashboard\reports\[reportId]\studio\page.tsx:155:     * نستخدم قيم الحالة 
+الحية بعد تحويلها من option.value إلى option.label.
+  app\dashboard\reports\[reportId]\studio\page.tsx:156:     */
+> app\dashboard\reports\[reportId]\studio\page.tsx:157:    reportValues: 
+liveCaseValues,
+  app\dashboard\reports\[reportId]\studio\page.tsx:158:
+  app\dashboard\reports\[reportId]\studio\page.tsx:159:    evidenceItems: 
+report.evidenceItems.map((item) => ({
+  app\dashboard\reports\[reportId]\studio\page.tsx:160:      id: item.id,
+  app\dashboard\reports\[reportId]\studio\page.tsx:161:      fileName: item.fileName,
+  app\dashboard\reports\[reportId]\studio\page.tsx:162:      fileUrl: item.fileUrl,
+  app\dashboard\reports\[reportId]\studio\page.tsx:163:      caption: item.caption,
+  app\dashboard\reports\[reportId]\studio\page.tsx:164:      mimeType: item.mimeType,
+  app\dashboard\reports\[reportId]\studio\page.tsx:165:      size: item.size,
+  app\dashboard\reports\[reportId]\studio\page.tsx:194:        : null,
+  app\dashboard\reports\[reportId]\studio\page.tsx:195:    },
+  app\dashboard\reports\[reportId]\studio\page.tsx:196:  };
+  app\dashboard\reports\[reportId]\studio\page.tsx:197:
+> app\dashboard\reports\[reportId]\studio\page.tsx:198:  return (
+  app\dashboard\reports\[reportId]\studio\page.tsx:199:    <main 
+className="space-y-6" dir="rtl">
+  app\dashboard\reports\[reportId]\studio\page.tsx:200:      <section 
+className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 
+p-8 text-white shadow-2xl">
+  app\dashboard\reports\[reportId]\studio\page.tsx:201:        <div>
+  app\dashboard\reports\[reportId]\studio\page.tsx:202:          <p 
+className="text-sm font-bold text-sky-100">Report Live Studio</p>
+  app\dashboard\reports\[reportId]\studio\page.tsx:203:
+  app\dashboard\reports\[reportId]\studio\page.tsx:204:          <h1 className="mt-3 
+text-4xl font-black">تحرير التقرير</h1>
+  app\dashboard\reports\[reportId]\studio\page.tsx:205:
+  app\dashboard\reports\[reportId]\studio\page.tsx:206:          <p className="mt-4 
+max-w-3xl text-sm leading-7 text-sky-50">
+  app\dashboard\reports\[reportId]\studio\page.tsx:209:          </p>
+  app\dashboard\reports\[reportId]\studio\page.tsx:210:        </div>
+  app\dashboard\reports\[reportId]\studio\page.tsx:211:      </section>
+  app\dashboard\reports\[reportId]\studio\page.tsx:212:
+> app\dashboard\reports\[reportId]\studio\page.tsx:213:      <ReportStudioEditor 
+report={normalizedReport} />
+  app\dashboard\reports\[reportId]\studio\page.tsx:214:    </main>
+  app\dashboard\reports\[reportId]\studio\page.tsx:215:  );
+  app\dashboard\reports\[reportId]\studio\page.tsx:216:}
+  app\dashboard\reports\[reportId]\studio\page.tsx:217:
+  app\dashboard\reports\[reportId]\studio\page.tsx:218:function 
+buildReportFieldMap(caseEntry: any) {
+  app\dashboard\reports\[reportId]\studio\page.tsx:219:  const map = new Map<string, 
+ReportFieldLookupItem>();
+  app\dashboard\reports\[reportId]\studio\page.tsx:220:
+  app\dashboard\reports\[reportId]\studio\page.tsx:221:  
+caseEntry.workflow?.steps?.forEach((step: any) => {
+  app\dashboard\reports\[reportId]\studio\page.tsx:296:  return values
+  app\dashboard\reports\[reportId]\studio\page.tsx:297:    .filter((item) => {
+  app\dashboard\reports\[reportId]\studio\page.tsx:298:      const key = 
+getWorkflowFieldKey(item);
+  app\dashboard\reports\[reportId]\studio\page.tsx:299:
+> app\dashboard\reports\[reportId]\studio\page.tsx:300:      return (
+  app\dashboard\reports\[reportId]\studio\page.tsx:301:        key &&
+  app\dashboard\reports\[reportId]\studio\page.tsx:302:        key !== 
+"selectedStudent" &&
+  app\dashboard\reports\[reportId]\studio\page.tsx:303:        
+!key.endsWith("__other") &&
+  app\dashboard\reports\[reportId]\studio\page.tsx:304:        !["student", 
+"guardian", "metadata"].includes(key)
+  app\dashboard\reports\[reportId]\studio\page.tsx:305:      );
+  app\dashboard\reports\[reportId]\studio\page.tsx:306:    })
+  app\dashboard\reports\[reportId]\studio\page.tsx:307:    .map((item, index) => {
+  app\dashboard\reports\[reportId]\studio\page.tsx:308:      const fieldKey = 
+getWorkflowFieldKey(item);
+
+
+
+
+===== STUDIO: liveCaseValues to return block exact =====
+3030
+3144
+ditableContent);
+  const workflowValueOverrides =
+    parsedEditableContent.workflowValueOverrides || [];
+
+  const fieldMap = buildReportFieldMap(report.caseEntry);
+
+  const normalizedCaseValues = report.caseEntry.values.map((value) =>
+    normalizeReportCaseValue(value, fieldMap)
+  );
+
+  const liveCaseValues = buildStudioReportValues(
+    normalizedCaseValues,
+    workflowValueOverrides
+  );
+
+  const normalizedReport = {
+    id: report.id,
+    title: report.title,
+    serviceSlug: report.serviceSlug,
+    status: report.status,
+    genderMode: report.genderMode,
+    templateId: report.templateId,
+    hasTemplateSnapshot: Boolean(report.templateSnapshot),
+    hasReportDataSnapshot: Boolean(report.reportDataSnapshot),
+    editableContent: report.editableContent || "",
+    renderedContent: report.renderedContent || "",
+    generatedAt: report.generatedAt?.toISOString() || null,
+    approvedAt: report.approvedAt?.toISOString() || null,
+    archivedAt: report.archivedAt?.toISOString() || null,
+    createdAt: report.createdAt.toISOString(),
+    updatedAt: report.updatedAt.toISOString(),
+
+    /**
+     * Ù…Ù‡Ù…:
+     * Ù„Ø§ Ù†Ø³ØªØ®Ø¯Ù… reportDataSnapshot Ù‡Ù†Ø§ ÙƒÙ…ØµØ¯Ø± Ø£ÙˆÙ„Ø› Ù„Ø£Ù†Ù‡ ØºØ§Ù„Ø¨Ù‹Ø§ ÙŠØ­ØªÙˆÙŠ Ù‚ÙŠÙ… ØªÙ‚Ù†ÙŠØ© Ù‚Ø¯ÙŠÙ…Ø©.
+     * Ù†Ø³ØªØ®Ø¯Ù… Ù‚ÙŠÙ… Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ø­ÙŠØ© Ø¨Ø¹Ø¯ ØªØ­ÙˆÙŠÙ„Ù‡Ø§ Ù…Ù† option.value Ø¥Ù„Ù‰ option.label.
+     */
+    reportValues: liveCaseValues,
+
+    evidenceItems: report.evidenceItems.map((item) => ({
+      id: item.id,
+      fileName: item.fileName,
+      fileUrl: item.fileUrl,
+      caption: item.caption,
+      mimeType: item.mimeType,
+      size: item.size,
+      sortOrder: item.sortOrder,
+      visible: item.visible,
+      createdAt: item.createdAt.toISOString(),
+    })),
+
+    caseEntry: {
+      id: report.caseEntry.id,
+      title: report.caseEntry.title,
+      status: report.caseEntry.status,
+      createdAt: report.caseEntry.createdAt.toISOString(),
+
+      service: {
+        id: report.caseEntry.service.id,
+        name: report.caseEntry.service.name,
+        slug: report.caseEntry.service.slug,
+      },
+
+      student: report.caseEntry.student
+        ? {
+            id: report.caseEntry.student.id,
+            fullName: report.caseEntry.student.fullName,
+            nationalId: report.caseEntry.student.nationalId,
+            stage: report.caseEntry.student.stage,
+            grade: report.caseEntry.student.grade,
+            classroom: report.caseEntry.student.classroom,
+            guardianName: report.caseEntry.student.guardian?.name || null,
+            guardianPhone: report.caseEntry.student.guardian?.phone || null,
+          }
+        : null,
+    },
+  };
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-8 text-white shadow-2xl">
+        <div>
+          <p className="text-sm font-bold text-sky-100">Report Live Studio</p>
+
+          <h1 className="mt-3 text-4xl font-black">ØªØ­Ø±ÙŠØ± Ø§Ù„ØªÙ‚Ø±ÙŠØ±</h1>
+
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-50">
+            Ø¹Ø¯Ù‘Ù„ Ø§Ù„Ù†ØµÙˆØµ ÙˆÙ‚ÙŠÙ… Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ù‚Ø¨Ù„ Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯. Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ù‡Ù†Ø§ Ù„Ø§ ÙŠØºÙŠÙ‘Ø± Ø§Ù„Ø­Ø§Ù„Ø©
+            Ø§Ù„Ø£ØµÙ„ÙŠØ©ØŒ Ø¨Ù„ ÙŠØ­ÙØ¸ Ù†Ø³Ø®Ø© ØªØ­Ø±ÙŠØ±ÙŠØ© Ø¯Ø§Ø®Ù„ Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙÙ‚Ø·.
+          </p>
+        </div>
+      </section>
+
+      <ReportStudioEditor report={normalizedReport} />
+    </main>
+  );
+}
+
+function buildReportFieldMap(caseEntry: any) {
+  const map = new Map<string, ReportFieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function normalizeReportCaseValue(
+  value: any,
+  fieldMap: Map<string, ReportFieldLookupItem>
+) {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fie
+
+===== LATEST REPORT SNAPSHOT CHECK =====
+{
+  reportId: 'cmpta9j6u0000u4noq1vxmrd8',
+  title: '╪¬┘é╪▒┘è╪▒ - ╪º┘ä╪«╪»┘à╪º╪¬ ╪º┘ä╪¬┘ê╪¼┘è┘ç┘è╪⌐ ╪º┘ä┘à┘é╪»┘à╪⌐ ┘ä┘ä╪╖┘ä╪º╪¿',
+  templateId: 'cmpt6d1op000068nocscjz2i9',
+  snapshotSource: 'TEMPLATE_BUILDER',
+  hasBuilderTemplate: true,
+  builderTemplateName: '╪┤╪┤╪┤╪┤╪┤┘ä╪┤╪½┘é┘é┘ä',
+  builderPagesCount: 4,
+  firstPageTitle: '╪╡┘ü╪¡╪⌐ ╪º┘ä╪║┘ä╪º┘ü',
+  firstPageBlocks: [
+    {
+      id: 'identity-header-1780195370439-c6udh',
+      kind: 'identity-header',
+      title: '┘ç┘ê┘è╪⌐ ╪º┘ä┘à╪»╪▒╪│╪⌐ ┘ê╪º┘ä┘ç┘è╪»╪▒'
+    },
+    {
+      id: 'cover-title-1780195370439-pgess',
+      kind: 'cover-title',
+      title: '╪╣┘å┘ê╪º┘å ╪º┘ä╪║┘ä╪º┘ü'
+    }
+  ],
+  createdAt: 2026-05-31T04:32:08.550Z
+}

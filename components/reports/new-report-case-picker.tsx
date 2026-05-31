@@ -97,14 +97,25 @@ type CreateReportApiResponse =
       error: string;
     };
 
-type ReportTemplateId = "official-long" | "visual-activity" | "executive-brief";
-
 type ReportTemplateChoice = {
-  id: ReportTemplateId;
+  id: string;
   name: string;
   description: string;
   bestFor: string;
   badge: string;
+  serviceSlug?: string | null;
+  pagesCount?: number;
+  isBuilderTemplate?: boolean;
+};
+
+type PublishedReportTemplateOption = {
+  id: string;
+  name: string;
+  description: string;
+  serviceSlug: string | null;
+  scope: "GLOBAL" | "SERVICE";
+  status: "PUBLISHED" | string;
+  pagesCount: number;
 };
 
 const REPORT_TEMPLATE_CHOICES: ReportTemplateChoice[] = [
@@ -134,17 +145,20 @@ const REPORT_TEMPLATE_CHOICES: ReportTemplateChoice[] = [
 type NewReportCasePickerProps = {
   cases: ReportCaseListItem[];
   initialCaseId?: string;
+  publishedTemplates?: PublishedReportTemplateOption[];
 };
 
 export function NewReportCasePicker({
   cases,
   initialCaseId = "",
+  publishedTemplates = [],
 }: NewReportCasePickerProps) {
   const router = useRouter();
 
   const [selectedCaseId, setSelectedCaseId] = useState(initialCaseId);
-  const [selectedTemplateId, setSelectedTemplateId] =
-    useState<ReportTemplateId>("official-long");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
+    publishedTemplates[0]?.id || "official-long"
+  );
 
   const [query, setQuery] = useState("");
   const [preparedReportData, setPreparedReportData] =
@@ -188,13 +202,44 @@ export function NewReportCasePicker({
     return cases.find((caseEntry) => caseEntry.id === selectedCaseId) || null;
   }, [cases, selectedCaseId]);
 
+  const templateChoices = useMemo<ReportTemplateChoice[]>(() => {
+    if (publishedTemplates.length > 0) {
+      return publishedTemplates.map((template) => ({
+        id: template.id,
+        name: template.name,
+        description:
+          template.description || "قالب منشور من صانع قوالب التقارير.",
+        bestFor:
+          template.scope === "SERVICE"
+            ? "تقارير الخدمة المرتبطة بهذا القالب"
+            : "التقارير العامة لكل الخدمات",
+        badge: template.scope === "SERVICE" ? "قالب خدمة" : "قالب عام",
+        serviceSlug: template.serviceSlug,
+        pagesCount: template.pagesCount,
+        isBuilderTemplate: true,
+      }));
+    }
+
+    return REPORT_TEMPLATE_CHOICES;
+  }, [publishedTemplates]);
+
   const selectedTemplate = useMemo(() => {
     return (
-      REPORT_TEMPLATE_CHOICES.find(
-        (template) => template.id === selectedTemplateId
-      ) || REPORT_TEMPLATE_CHOICES[0]
+      templateChoices.find((template) => template.id === selectedTemplateId) ||
+      templateChoices[0] ||
+      REPORT_TEMPLATE_CHOICES[0]
     );
-  }, [selectedTemplateId]);
+  }, [templateChoices, selectedTemplateId]);
+
+  useEffect(() => {
+    if (!templateChoices.length) {
+      return;
+    }
+
+    if (!templateChoices.some((template) => template.id === selectedTemplateId)) {
+      setSelectedTemplateId(templateChoices[0].id);
+    }
+  }, [templateChoices, selectedTemplateId]);
 
   useEffect(() => {
     if (!selectedCaseId) {
@@ -388,6 +433,7 @@ export function NewReportCasePicker({
                 <ReportCreationCard
                   selectedTemplate={selectedTemplate}
                   selectedTemplateId={selectedTemplateId}
+                  templates={templateChoices}
                   onTemplateChange={setSelectedTemplateId}
                   reportDataReady={Boolean(preparedReportData)}
                   creatingReport={creatingReport}
@@ -713,6 +759,7 @@ function ReportEvidenceSample({
 function ReportCreationCard({
   selectedTemplate,
   selectedTemplateId,
+  templates,
   onTemplateChange,
   reportDataReady,
   creatingReport,
@@ -720,8 +767,9 @@ function ReportCreationCard({
   onCreateReport,
 }: {
   selectedTemplate: ReportTemplateChoice;
-  selectedTemplateId: ReportTemplateId;
-  onTemplateChange: (templateId: ReportTemplateId) => void;
+  selectedTemplateId: string;
+  templates: ReportTemplateChoice[];
+  onTemplateChange: (templateId: string) => void;
   reportDataReady: boolean;
   creatingReport: boolean;
   createReportError: string;
@@ -739,7 +787,7 @@ function ReportCreationCard({
       </p>
 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
-        {REPORT_TEMPLATE_CHOICES.map((template) => {
+        {templates.map((template) => {
           const active = template.id === selectedTemplateId;
 
           return (

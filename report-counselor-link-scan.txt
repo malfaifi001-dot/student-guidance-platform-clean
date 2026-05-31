@@ -1,0 +1,630 @@
+﻿===== Find NewReportCasePicker =====
+
+  app\api\dashboard\reports\prepare\route.ts:123:      ok: true,
+  app\api\dashboard\reports\prepare\route.ts:124:      reportData,
+  app\api\dashboard\reports\prepare\route.ts:125:    });
+  app\api\dashboard\reports\prepare\route.ts:126:  } catch (error) {
+> app\api\dashboard\reports\prepare\route.ts:127:    console.error("prepare report error:", 
+error);
+  app\api\dashboard\reports\prepare\route.ts:128:
+  app\api\dashboard\reports\prepare\route.ts:129:    return NextResponse.json(
+  app\api\dashboard\reports\prepare\route.ts:130:      {
+  app\api\dashboard\reports\prepare\route.ts:131:        ok: false,
+  app\api\dashboard\reports\prepare\route.ts:132:        error: "تعذر تجهيز بيانات 
+التقرير.",
+  app\api\dashboard\reports\prepare\route.ts:133:      },
+  app\api\dashboard\reports\prepare\route.ts:134:      { status: 500 }
+  app\api\dashboard\reports\prepare\route.ts:135:    );
+  app\dashboard\reports\new\page.tsx:1:import { prisma } from "@/lib/prisma";
+> app\dashboard\reports\new\page.tsx:2:import { NewReportCasePicker } from 
+"@/components/reports/new-report-case-picker";
+  app\dashboard\reports\new\page.tsx:3:
+  app\dashboard\reports\new\page.tsx:4:type NewReportPageProps = {
+  app\dashboard\reports\new\page.tsx:5:  searchParams?: Promise<{
+  app\dashboard\reports\new\page.tsx:6:    caseId?: string;
+  app\dashboard\reports\new\page.tsx:7:  }>;
+  app\dashboard\reports\new\page.tsx:8:};
+  app\dashboard\reports\new\page.tsx:9:
+  app\dashboard\reports\new\page.tsx:10:export default async function NewReportPage({
+  app\dashboard\reports\new\page.tsx:73:  }));
+  app\dashboard\reports\new\page.tsx:74:
+  app\dashboard\reports\new\page.tsx:75:  return (
+  app\dashboard\reports\new\page.tsx:76:    <main className="space-y-6" dir="rtl">
+> app\dashboard\reports\new\page.tsx:77:      <NewReportCasePicker
+  app\dashboard\reports\new\page.tsx:78:        cases={normalizedCases}
+  app\dashboard\reports\new\page.tsx:79:        initialCaseId={selectedCaseId}
+  app\dashboard\reports\new\page.tsx:80:      />
+  app\dashboard\reports\new\page.tsx:81:    </main>
+  app\dashboard\reports\new\page.tsx:82:  );
+  app\dashboard\reports\new\page.tsx:83:}
+  components\reports\new-report-case-picker.tsx:32:  valuesCount: number;
+  components\reports\new-report-case-picker.tsx:33:  evidencesCount: number;
+  components\reports\new-report-case-picker.tsx:34:};
+  components\reports\new-report-case-picker.tsx:35:
+> components\reports\new-report-case-picker.tsx:36:type PreparedReportData = {
+  components\reports\new-report-case-picker.tsx:37:  id: string;
+  components\reports\new-report-case-picker.tsx:38:  title: string;
+  components\reports\new-report-case-picker.tsx:39:  status: string;
+  components\reports\new-report-case-picker.tsx:40:  createdAt: string;
+  components\reports\new-report-case-picker.tsx:41:  updatedAt: string;
+  components\reports\new-report-case-picker.tsx:42:  submittedAt?: string | null;
+  components\reports\new-report-case-picker.tsx:43:
+  components\reports\new-report-case-picker.tsx:44:  service: {
+  components\reports\new-report-case-picker.tsx:75:    imageUrl?: string;
+  components\reports\new-report-case-picker.tsx:76:  }>;
+  components\reports\new-report-case-picker.tsx:77:};
+  components\reports\new-report-case-picker.tsx:78:
+> components\reports\new-report-case-picker.tsx:79:type PrepareApiResponse =
+  components\reports\new-report-case-picker.tsx:80:  | {
+  components\reports\new-report-case-picker.tsx:81:      ok: true;
+> components\reports\new-report-case-picker.tsx:82:      reportData: PreparedReportData;
+  components\reports\new-report-case-picker.tsx:83:    }
+  components\reports\new-report-case-picker.tsx:84:  | {
+  components\reports\new-report-case-picker.tsx:85:      ok: false;
+  components\reports\new-report-case-picker.tsx:86:      error: string;
+  components\reports\new-report-case-picker.tsx:87:    };
+  components\reports\new-report-case-picker.tsx:88:
+  components\reports\new-report-case-picker.tsx:89:type CreateReportApiResponse =
+  components\reports\new-report-case-picker.tsx:90:  | {
+  components\reports\new-report-case-picker.tsx:130:    badge: "مختصر",
+  components\reports\new-report-case-picker.tsx:131:  },
+  components\reports\new-report-case-picker.tsx:132:];
+  components\reports\new-report-case-picker.tsx:133:
+> components\reports\new-report-case-picker.tsx:134:type NewReportCasePickerProps = {
+  components\reports\new-report-case-picker.tsx:135:  cases: ReportCaseListItem[];
+  components\reports\new-report-case-picker.tsx:136:  initialCaseId?: string;
+  components\reports\new-report-case-picker.tsx:137:};
+  components\reports\new-report-case-picker.tsx:138:
+> components\reports\new-report-case-picker.tsx:139:export function NewReportCasePicker({
+  components\reports\new-report-case-picker.tsx:140:  cases,
+  components\reports\new-report-case-picker.tsx:141:  initialCaseId = "",
+> components\reports\new-report-case-picker.tsx:142:}: NewReportCasePickerProps) {
+  components\reports\new-report-case-picker.tsx:143:  const router = useRouter();
+  components\reports\new-report-case-picker.tsx:144:
+  components\reports\new-report-case-picker.tsx:145:  const [selectedCaseId, 
+setSelectedCaseId] = useState(initialCaseId);
+  components\reports\new-report-case-picker.tsx:146:  const [selectedTemplateId, 
+setSelectedTemplateId] =
+  components\reports\new-report-case-picker.tsx:147:    
+useState<ReportTemplateId>("official-long");
+  components\reports\new-report-case-picker.tsx:148:
+  components\reports\new-report-case-picker.tsx:149:  const [query, setQuery] = 
+useState("");
+> components\reports\new-report-case-picker.tsx:150:  const [preparedReportData, 
+setPreparedReportData] =
+> components\reports\new-report-case-picker.tsx:151:    useState<PreparedReportData | 
+null>(null);
+  components\reports\new-report-case-picker.tsx:152:
+> components\reports\new-report-case-picker.tsx:153:  const [loadingPrepare, 
+setLoadingPrepare] = useState(false);
+> components\reports\new-report-case-picker.tsx:154:  const [prepareError, setPrepareError] 
+= useState("");
+  components\reports\new-report-case-picker.tsx:155:
+  components\reports\new-report-case-picker.tsx:156:  const [creatingReport, 
+setCreatingReport] = useState(false);
+  components\reports\new-report-case-picker.tsx:157:  const [createReportError, 
+setCreateReportError] = useState("");
+  components\reports\new-report-case-picker.tsx:158:
+  components\reports\new-report-case-picker.tsx:159:  const filteredCases = useMemo(() => {
+  components\reports\new-report-case-picker.tsx:160:    const keyword = 
+query.trim().toLowerCase();
+  components\reports\new-report-case-picker.tsx:161:
+  components\reports\new-report-case-picker.tsx:162:    if (!keyword) {
+  components\reports\new-report-case-picker.tsx:197:  }, [selectedTemplateId]);
+  components\reports\new-report-case-picker.tsx:198:
+  components\reports\new-report-case-picker.tsx:199:  useEffect(() => {
+  components\reports\new-report-case-picker.tsx:200:    if (!selectedCaseId) {
+> components\reports\new-report-case-picker.tsx:201:      setPreparedReportData(null);
+> components\reports\new-report-case-picker.tsx:202:      setPrepareError("");
+  components\reports\new-report-case-picker.tsx:203:      setCreateReportError("");
+  components\reports\new-report-case-picker.tsx:204:      return;
+  components\reports\new-report-case-picker.tsx:205:    }
+  components\reports\new-report-case-picker.tsx:206:
+  components\reports\new-report-case-picker.tsx:207:    const controller = new 
+AbortController();
+  components\reports\new-report-case-picker.tsx:208:
+> components\reports\new-report-case-picker.tsx:209:    async function prepareReportData() {
+  components\reports\new-report-case-picker.tsx:210:      try {
+> components\reports\new-report-case-picker.tsx:211:        setLoadingPrepare(true);
+> components\reports\new-report-case-picker.tsx:212:        setPrepareError("");
+  components\reports\new-report-case-picker.tsx:213:        setCreateReportError("");
+> components\reports\new-report-case-picker.tsx:214:        setPreparedReportData(null);
+  components\reports\new-report-case-picker.tsx:215:
+  components\reports\new-report-case-picker.tsx:216:        const response = await fetch(
+> components\reports\new-report-case-picker.tsx:217:          
+`/api/dashboard/reports/prepare?caseId=${encodeURIComponent(
+  components\reports\new-report-case-picker.tsx:218:            selectedCaseId
+  components\reports\new-report-case-picker.tsx:219:          )}`,
+  components\reports\new-report-case-picker.tsx:220:          {
+  components\reports\new-report-case-picker.tsx:221:            signal: controller.signal,
+  components\reports\new-report-case-picker.tsx:222:          }
+  components\reports\new-report-case-picker.tsx:223:        );
+  components\reports\new-report-case-picker.tsx:224:
+> components\reports\new-report-case-picker.tsx:225:        const data = (await 
+response.json()) as PrepareApiResponse;
+  components\reports\new-report-case-picker.tsx:226:
+  components\reports\new-report-case-picker.tsx:227:        if (!response.ok || !data.ok) {
+  components\reports\new-report-case-picker.tsx:228:          throw new Error(
+  components\reports\new-report-case-picker.tsx:229:            "error" in data ? 
+data.error : "تعذر تجهيز بيانات التقرير."
+  components\reports\new-report-case-picker.tsx:230:          );
+  components\reports\new-report-case-picker.tsx:231:        }
+  components\reports\new-report-case-picker.tsx:232:
+> components\reports\new-report-case-picker.tsx:233:        
+setPreparedReportData(data.reportData);
+  components\reports\new-report-case-picker.tsx:234:      } catch (error) {
+  components\reports\new-report-case-picker.tsx:235:        if (error instanceof Error && 
+error.name === "AbortError") {
+  components\reports\new-report-case-picker.tsx:236:          return;
+  components\reports\new-report-case-picker.tsx:237:        }
+  components\reports\new-report-case-picker.tsx:238:
+> components\reports\new-report-case-picker.tsx:239:        setPreparedReportData(null);
+> components\reports\new-report-case-picker.tsx:240:        setPrepareError(
+  components\reports\new-report-case-picker.tsx:241:          error instanceof Error
+  components\reports\new-report-case-picker.tsx:242:            ? error.message
+  components\reports\new-report-case-picker.tsx:243:            : "تعذر تجهيز بيانات 
+التقرير."
+  components\reports\new-report-case-picker.tsx:244:        );
+  components\reports\new-report-case-picker.tsx:245:      } finally {
+> components\reports\new-report-case-picker.tsx:246:        setLoadingPrepare(false);
+  components\reports\new-report-case-picker.tsx:247:      }
+  components\reports\new-report-case-picker.tsx:248:    }
+  components\reports\new-report-case-picker.tsx:249:
+> components\reports\new-report-case-picker.tsx:250:    prepareReportData();
+  components\reports\new-report-case-picker.tsx:251:
+  components\reports\new-report-case-picker.tsx:252:    return () => {
+  components\reports\new-report-case-picker.tsx:253:      controller.abort();
+  components\reports\new-report-case-picker.tsx:254:    };
+  components\reports\new-report-case-picker.tsx:255:  }, [selectedCaseId]);
+  components\reports\new-report-case-picker.tsx:256:
+  components\reports\new-report-case-picker.tsx:257:  async function handleCreateReport() {
+  components\reports\new-report-case-picker.tsx:258:    if (!selectedCaseId) {
+  components\reports\new-report-case-picker.tsx:259:      setCreateReportError("اختر حالة 
+أولًا لإنشاء التقرير.");
+  components\reports\new-report-case-picker.tsx:260:      return;
+  components\reports\new-report-case-picker.tsx:261:    }
+  components\reports\new-report-case-picker.tsx:262:
+> components\reports\new-report-case-picker.tsx:263:    if (!preparedReportData) {
+  components\reports\new-report-case-picker.tsx:264:      setCreateReportError("بيانات 
+التقرير غير جاهزة بعد.");
+  components\reports\new-report-case-picker.tsx:265:      return;
+  components\reports\new-report-case-picker.tsx:266:    }
+  components\reports\new-report-case-picker.tsx:267:
+  components\reports\new-report-case-picker.tsx:268:    try {
+  components\reports\new-report-case-picker.tsx:269:      setCreatingReport(true);
+  components\reports\new-report-case-picker.tsx:270:      setCreateReportError("");
+  components\reports\new-report-case-picker.tsx:271:
+  components\reports\new-report-case-picker.tsx:275:          "Content-Type": 
+"application/json",
+  components\reports\new-report-case-picker.tsx:276:        },
+  components\reports\new-report-case-picker.tsx:277:        body: JSON.stringify({
+  components\reports\new-report-case-picker.tsx:278:          caseEntryId: selectedCaseId,
+> components\reports\new-report-case-picker.tsx:279:          title: `تقرير - 
+${preparedReportData.title}`,
+  components\reports\new-report-case-picker.tsx:280:          templateId: 
+selectedTemplateId,
+  components\reports\new-report-case-picker.tsx:281:        }),
+  components\reports\new-report-case-picker.tsx:282:      });
+  components\reports\new-report-case-picker.tsx:283:
+  components\reports\new-report-case-picker.tsx:284:      const data = (await 
+response.json()) as CreateReportApiResponse;
+  components\reports\new-report-case-picker.tsx:285:
+  components\reports\new-report-case-picker.tsx:286:      if (!response.ok || !("success" 
+in data) || !data.success) {
+  components\reports\new-report-case-picker.tsx:287:        throw new Error("error" in data 
+? data.error : "تعذر إنشاء التقرير.");
+  components\reports\new-report-case-picker.tsx:378:            ) : (
+  components\reports\new-report-case-picker.tsx:379:              <>
+  components\reports\new-report-case-picker.tsx:380:                <CaseOverviewCard 
+caseEntry={selectedCase} />
+  components\reports\new-report-case-picker.tsx:381:
+> components\reports\new-report-case-picker.tsx:382:                <PreparedReportPreview
+> components\reports\new-report-case-picker.tsx:383:                  
+loading={loadingPrepare}
+> components\reports\new-report-case-picker.tsx:384:                  error={prepareError}
+> components\reports\new-report-case-picker.tsx:385:                  
+reportData={preparedReportData}
+  components\reports\new-report-case-picker.tsx:386:                />
+  components\reports\new-report-case-picker.tsx:387:
+  components\reports\new-report-case-picker.tsx:388:                <ReportCreationCard
+  components\reports\new-report-case-picker.tsx:389:                  
+selectedTemplate={selectedTemplate}
+  components\reports\new-report-case-picker.tsx:390:                  
+selectedTemplateId={selectedTemplateId}
+  components\reports\new-report-case-picker.tsx:391:                  
+onTemplateChange={setSelectedTemplateId}
+> components\reports\new-report-case-picker.tsx:392:                  
+reportDataReady={Boolean(preparedReportData)}
+  components\reports\new-report-case-picker.tsx:393:                  
+creatingReport={creatingReport}
+  components\reports\new-report-case-picker.tsx:394:                  
+createReportError={createReportError}
+  components\reports\new-report-case-picker.tsx:395:                  
+onCreateReport={handleCreateReport}
+  components\reports\new-report-case-picker.tsx:396:                />
+  components\reports\new-report-case-picker.tsx:397:              </>
+  components\reports\new-report-case-picker.tsx:398:            )}
+  components\reports\new-report-case-picker.tsx:399:          </section>
+  components\reports\new-report-case-picker.tsx:400:        </div>
+  components\reports\new-report-case-picker.tsx:561:    </section>
+  components\reports\new-report-case-picker.tsx:562:  );
+  components\reports\new-report-case-picker.tsx:563:}
+  components\reports\new-report-case-picker.tsx:564:
+> components\reports\new-report-case-picker.tsx:565:function PreparedReportPreview({
+  components\reports\new-report-case-picker.tsx:566:  loading,
+  components\reports\new-report-case-picker.tsx:567:  error,
+  components\reports\new-report-case-picker.tsx:568:  reportData,
+  components\reports\new-report-case-picker.tsx:569:}: {
+  components\reports\new-report-case-picker.tsx:570:  loading: boolean;
+  components\reports\new-report-case-picker.tsx:571:  error: string;
+> components\reports\new-report-case-picker.tsx:572:  reportData: PreparedReportData | null;
+  components\reports\new-report-case-picker.tsx:573:}) {
+  components\reports\new-report-case-picker.tsx:574:  if (loading) {
+  components\reports\new-report-case-picker.tsx:575:    return (
+  components\reports\new-report-case-picker.tsx:576:      <section 
+className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+  components\reports\new-report-case-picker.tsx:577:        <p className="text-sm 
+font-black text-slate-700">
+  components\reports\new-report-case-picker.tsx:578:          جارٍ تجهيز بيانات التقرير...
+  components\reports\new-report-case-picker.tsx:579:        </p>
+  components\reports\new-report-case-picker.tsx:580:      </section>
+  components\reports\new-report-case-picker.tsx:636:
+  components\reports\new-report-case-picker.tsx:637:function ReportValuesSample({
+  components\reports\new-report-case-picker.tsx:638:  values,
+  components\reports\new-report-case-picker.tsx:639:}: {
+> components\reports\new-report-case-picker.tsx:640:  values: PreparedReportData["values"];
+  components\reports\new-report-case-picker.tsx:641:}) {
+  components\reports\new-report-case-picker.tsx:642:  return (
+  components\reports\new-report-case-picker.tsx:643:    <div className="rounded-3xl border 
+border-slate-200 bg-slate-50 p-5">
+  components\reports\new-report-case-picker.tsx:644:      <h3 className="text-sm font-black 
+text-slate-900">عينة من القيم</h3>
+  components\reports\new-report-case-picker.tsx:645:
+  components\reports\new-report-case-picker.tsx:646:      <div className="mt-3 space-y-2">
+  components\reports\new-report-case-picker.tsx:647:        {values.slice(0, 6).map((item) 
+=> (
+  components\reports\new-report-case-picker.tsx:648:          <div
+  components\reports\new-report-case-picker.tsx:669:
+  components\reports\new-report-case-picker.tsx:670:function ReportEvidenceSample({
+  components\reports\new-report-case-picker.tsx:671:  evidences,
+  components\reports\new-report-case-picker.tsx:672:}: {
+> components\reports\new-report-case-picker.tsx:673:  evidences: 
+PreparedReportData["evidences"];
+  components\reports\new-report-case-picker.tsx:674:}) {
+  components\reports\new-report-case-picker.tsx:675:  return (
+  components\reports\new-report-case-picker.tsx:676:    <div className="rounded-3xl border 
+border-slate-200 bg-slate-50 p-5">
+  components\reports\new-report-case-picker.tsx:677:      <h3 className="text-sm font-black 
+text-slate-900">عينة من الشواهد</h3>
+  components\reports\new-report-case-picker.tsx:678:
+  components\reports\new-report-case-picker.tsx:679:      <div className="mt-3 grid gap-3 
+md:grid-cols-2">
+  components\reports\new-report-case-picker.tsx:680:        {evidences.slice(0, 
+4).map((evidence) => (
+  components\reports\new-report-case-picker.tsx:681:          <div
+  components\reports\new-report-case-picker.tsx.tsx:39:type Props = {
+  components\reports\new-report-case-picker.tsx.tsx:40:  cases: CaseItem[];
+  components\reports\new-report-case-picker.tsx.tsx:41:};
+  components\reports\new-report-case-picker.tsx.tsx:42:
+> components\reports\new-report-case-picker.tsx.tsx:43:export function 
+NewReportCasePicker({ cases }: Props) {
+  components\reports\new-report-case-picker.tsx.tsx:44:  const router = useRouter();
+  components\reports\new-report-case-picker.tsx.tsx:45:
+  components\reports\new-report-case-picker.tsx.tsx:46:  const [serviceSlug, 
+setServiceSlug] = useState("ALL");
+  components\reports\new-report-case-picker.tsx.tsx:47:  const [caseId, setCaseId] = 
+useState("");
+  components\reports\new-report-case-picker.tsx.tsx:48:  const [loading, setLoading] = 
+useState(false);
+  components\reports\new-report-case-picker.tsx.tsx:49:
+  components\reports\new-report-case-picker.tsx.tsx:50:  const services = useMemo(() => {
+  components\reports\new-report-case-picker.tsx.tsx:51:    const map = new Map<string, 
+string>();
+
+
+
+
+===== Report prepare API =====
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { mapCaseEntryToReportData } from "@/lib/report-engine/report-case-data-mapper";
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldKey,
+  getWorkflowFieldLabel,
+  type WorkflowValueLike,
+} from "@/lib/workflow-values/workflow-display-value";
+
+type FieldLookupItem = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: Array<{
+    label?: string | null;
+    value?: string | null;
+  }> | null;
+};
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const caseId = searchParams.get("caseId")?.trim();
+
+    if (!caseId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "caseId Ù…Ø·Ù„ÙˆØ¨ Ù„ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: caseId,
+      },
+      include: {
+        service: true,
+
+        workflow: {
+          include: {
+            steps: {
+              include: {
+                fields: {
+                  include: {
+                    options: {
+                      orderBy: {
+                        order: "asc",
+                      },
+                    },
+                  },
+                  orderBy: {
+                    order: "asc",
+                  },
+                },
+              },
+              orderBy: {
+                order: "asc",
+              },
+            },
+          },
+        },
+
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+
+        values: {
+          include: {
+            field: {
+              include: {
+                options: {
+                  orderBy: {
+                    order: "asc",
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+
+        caseEvidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const rawReportData = mapCaseEntryToReportData(caseEntry as any);
+    const localizedValues = buildLocalizedValues(caseEntry as any);
+
+    const reportData = {
+      ...rawReportData,
+      values: localizedValues,
+    };
+
+    return NextResponse.json({
+      ok: true,
+      reportData,
+    });
+  } catch (error) {
+    console.error("prepare report error:", error);
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "ØªØ¹Ø°Ø± ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+function buildFieldMap(caseEntry: any) {
+  const map = new Map<string, FieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function normalizeCaseValue(
+  value: any,
+  fieldMap: Map<string, FieldLookupItem>
+): WorkflowValueLike {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function shouldHideValue(item: WorkflowValueLike) {
+  const key = getWorkflowFieldKey(item);
+
+  return (
+    !key ||
+    key === "selectedStudent" ||
+    key.endsWith("__other") ||
+    ["student", "guardian", "metadata"].includes(key)
+  );
+}
+
+function buildLocalizedValues(caseEntry: any) {
+  const fieldMap = buildFieldMap(caseEntry);
+
+  const normalizedValues = caseEntry.values.map((value: any) =>
+    normalizeCaseValue(value, fieldMap)
+  );
+
+  return normalizedValues
+    .filter((item: WorkflowValueLike) => !shouldHideValue(item))
+    .map((item: WorkflowValueLike, index: number) => {
+      const fieldKey = getWorkflowFieldKey(item);
+      const fieldLabel = getWorkflowFieldLabel(item, index);
+      const displayValue = formatWorkflowDisplayValue(item, normalizedValues);
+
+      return {
+        fieldKey,
+        fieldLabel,
+        value: displayValue || "â€”",
+      };
+    });
+}
+
+===== New report page full =====
+import { prisma } from "@/lib/prisma";
+import { NewReportCasePicker } from "@/components/reports/new-report-case-picker";
+
+type NewReportPageProps = {
+  searchParams?: Promise<{
+    caseId?: string;
+  }>;
+};
+
+export default async function NewReportPage({
+  searchParams,
+}: NewReportPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const selectedCaseId = params.caseId?.trim() || "";
+
+  const cases = await prisma.caseEntry.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 100,
+    include: {
+      service: true,
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      values: {
+        include: {
+          field: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      evidences: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  const normalizedCases = cases.map((caseEntry) => ({
+    id: caseEntry.id,
+    title: caseEntry.title || caseEntry.service.name,
+    status: caseEntry.status,
+    createdAt: caseEntry.createdAt.toISOString(),
+    updatedAt: caseEntry.updatedAt.toISOString(),
+    submittedAt: caseEntry.submittedAt?.toISOString() || null,
+
+    service: {
+      id: caseEntry.service.id,
+      name: caseEntry.service.name,
+      slug: caseEntry.service.slug,
+    },
+
+    student: caseEntry.student
+      ? {
+          id: caseEntry.student.id,
+          fullName: caseEntry.student.fullName,
+          nationalId: caseEntry.student.nationalId,
+          stage: caseEntry.student.stage,
+          grade: caseEntry.student.grade,
+          classroom: caseEntry.student.classroom,
+          guardianName: caseEntry.student.guardian?.name || null,
+          guardianPhone: caseEntry.student.guardian?.phone || null,
+        }
+      : null,
+
+    valuesCount: caseEntry.values.length,
+    evidencesCount: caseEntry.evidences.length,
+  }));
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <NewReportCasePicker
+        cases={normalizedCases}
+        initialCaseId={selectedCaseId}
+      />
+    </main>
+  );
+}

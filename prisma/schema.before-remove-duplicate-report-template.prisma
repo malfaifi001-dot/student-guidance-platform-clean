@@ -864,3 +864,118 @@ model CaseEvidence {
 
   @@index([caseEntryId])
 }
+enum ReportTemplateDbStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ReportTemplateDbScope {
+  GLOBAL
+  SERVICE
+}
+
+enum ReportTemplateOwnerType {
+  SYSTEM
+  SCHOOL
+  COUNSELOR
+}
+
+model ReportTemplate {
+  id              String                 @id @default(cuid())
+  name            String
+  description     String?
+  scope           ReportTemplateDbScope  @default(GLOBAL)
+  serviceSlug     String?
+  status          ReportTemplateDbStatus @default(DRAFT)
+  ownerType       ReportTemplateOwnerType @default(SYSTEM)
+  ownerId         String?
+  previewCaseId   String?
+
+  currentVersionId String?
+  publishedAt      DateTime?
+  archivedAt       DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  versions        ReportTemplateVersion[]
+  snapshots       ReportTemplateSnapshot[]
+
+  @@index([status])
+  @@index([scope])
+  @@index([serviceSlug])
+  @@index([ownerType, ownerId])
+}
+
+model ReportTemplateVersion {
+  id          String   @id @default(cuid())
+  templateId  String
+  version     Int
+  status      ReportTemplateDbStatus @default(DRAFT)
+
+  /**
+   * JSON كامل للقالب:
+   * pages, blocks, settings, coverSettings, textLibrary settings
+   */
+  templateJson Json
+
+  /**
+   * هوية التقرير الرسمية وقت هذه النسخة.
+   */
+  identityJson Json?
+
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  template    ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@index([templateId])
+  @@index([status])
+}
+
+model ReportTextSnippet {
+  id          String   @id @default(cuid())
+  title       String
+  category    String
+  content     String
+
+  /**
+   * إذا كان null فهو نص عام.
+   * إذا كان له قيمة فهو خاص بخدمة معينة.
+   */
+  serviceSlug String?
+
+  isActive    Boolean @default(true)
+  isSystem    Boolean @default(false)
+
+  createdBy   String?
+  updatedBy   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([serviceSlug])
+  @@index([isActive])
+}
+
+model ReportTemplateSnapshot {
+  id          String   @id @default(cuid())
+  templateId  String
+  title       String
+  note        String?
+
+  templateJson Json
+  identityJson Json?
+  snippetsJson Json?
+
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  template    ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@index([createdAt])
+}

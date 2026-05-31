@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -130,6 +130,8 @@ export function ReportTemplateStudio() {
     initialReportTemplateBuilderPresets[0]?.id || "",
   );
 
+  const [savedTemplateIds, setSavedTemplateIds] = useState<Record<string, string>>({});
+
   const [templatePendingDelete, setTemplatePendingDelete] =
     useState<ReportTemplateBuilderModel | null>(null);
 
@@ -157,9 +159,156 @@ export function ReportTemplateStudio() {
 
   const [runtimePreviewMessage, setRuntimePreviewMessage] = useState("");
 
+  const [feedbackModal, setFeedbackModal] = useState<{
+    open: boolean;
+    type: "success" | "error";
+    title: string;
+    message: string;
+  }>({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
+
   const activeTemplate = useMemo(() => {
     return templates.find((template) => template.id === activeTemplateId);
   }, [templates, activeTemplateId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSavedReportTemplates() {
+      try {
+        const response = await fetch(
+          "/api/dashboard/report-templates",
+          {
+            cache: "no-store",
+          },
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          return;
+        }
+
+        const savedTemplates = Array.isArray(result?.templates)
+          ? result.templates
+          : Array.isArray(result?.data)
+            ? result.data
+            : Array.isArray(result)
+              ? result
+              : [];
+
+        const loadedTemplates = savedTemplates
+          .map((item: any) => {
+            const rawTemplate = item?.templateJson ?? item?.content;
+
+            let parsedTemplate = rawTemplate;
+
+            if (typeof rawTemplate === "string") {
+              try {
+                parsedTemplate = JSON.parse(rawTemplate);
+              } catch {
+                parsedTemplate = null;
+              }
+            }
+
+            if (!parsedTemplate || typeof parsedTemplate !== "object") {
+              parsedTemplate = {
+                id: `saved-template-${item.id}`,
+                name: item.name || "قالب محفوظ",
+                description:
+                  item.description || "قالب محفوظ من قاعدة البيانات.",
+                scope: item.serviceSlug ? "SERVICE" : "GLOBAL",
+                serviceSlug: item.serviceSlug || undefined,
+                status: "DRAFT",
+                updatedAt: new Date().toISOString().slice(0, 10),
+                previewCaseId: "",
+                pages: [
+                  createPageFromPreset("cover"),
+                  createPageFromPreset("summary"),
+                  createPageFromPreset("evidence"),
+                  createPageFromPreset("approval"),
+                ],
+              };
+            }
+
+            const status =
+              parsedTemplate.status === "PUBLISHED" ||
+              parsedTemplate.status === "ARCHIVED" ||
+              parsedTemplate.status === "DRAFT"
+                ? parsedTemplate.status
+                : "DRAFT";
+
+            return {
+              ...parsedTemplate,
+              id: `saved-template-${item.id}`,
+              name: item.name || parsedTemplate.name || "قالب محفوظ",
+              description:
+                item.description ||
+                parsedTemplate.description ||
+                "قالب محفوظ من قاعدة البيانات.",
+              scope:
+                parsedTemplate.scope ||
+                (item.serviceSlug ? "SERVICE" : "GLOBAL"),
+              serviceSlug: item.serviceSlug || parsedTemplate.serviceSlug,
+              status,
+              updatedAt:
+                item.updatedAt ||
+                parsedTemplate.updatedAt ||
+                new Date().toISOString().slice(0, 10),
+              pages:
+                Array.isArray(parsedTemplate.pages) &&
+                parsedTemplate.pages.length > 0
+                  ? parsedTemplate.pages
+                  : [
+                      createPageFromPreset("cover"),
+                      createPageFromPreset("summary"),
+                      createPageFromPreset("evidence"),
+                      createPageFromPreset("approval"),
+                    ],
+            };
+          })
+          .filter(Boolean) as ReportTemplateBuilderModel[];
+
+        if (!isMounted || loadedTemplates.length === 0) {
+          return;
+        }
+
+        setTemplates((currentTemplates) => {
+          const presetsOnly = currentTemplates.filter(
+            (template) => !template.id.startsWith("saved-template-"),
+          );
+
+          return [...loadedTemplates, ...presetsOnly];
+        });
+
+        setSavedTemplateIds((current) => {
+          const next = { ...current };
+
+          savedTemplates.forEach((item: any) => {
+            if (item?.id) {
+              next[`saved-template-${item.id}`] = item.id;
+            }
+          });
+
+          return next;
+        });
+
+        setActiveTemplateId(loadedTemplates[0]?.id || "");
+      } catch {
+        // لا نوقف صانع القوالب إذا فشل تحميل القوالب المحفوظة.
+      }
+    }
+
+    loadSavedReportTemplates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!activeTemplate) {
@@ -250,22 +399,68 @@ export function ReportTemplateStudio() {
     setTemplatePendingDelete(template);
   }
 
-  function confirmDeleteTemplate() {
+  async function confirmDeleteTemplate() {
     if (!templatePendingDelete) {
       return;
     }
 
-    const remainingTemplates = templates.filter(
-      (template) => template.id !== templatePendingDelete.id,
-    );
+    const dbTemplateId = savedTemplateIds[templatePendingDelete.id];
 
-    setTemplates(remainingTemplates);
+    try {
+      if (dbTemplateId) {
+        const response = await fetch(
+          `/api/dashboard/report-templates/${dbTemplateId}`,
+          {
+            method: "DELETE",
+          },
+        );
 
-    if (activeTemplateId === templatePendingDelete.id) {
-      setActiveTemplateId(remainingTemplates[0]?.id || "");
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result?.error || result?.message || "تعذر حذف القالب.",
+          );
+        }
+      }
+
+      const remainingTemplates = templates.filter(
+        (template) => template.id !== templatePendingDelete.id,
+      );
+
+      setTemplates(remainingTemplates);
+
+      setSavedTemplateIds((current) => {
+        const next = { ...current };
+        delete next[templatePendingDelete.id];
+        return next;
+      });
+
+      if (activeTemplateId === templatePendingDelete.id) {
+        setActiveTemplateId(remainingTemplates[0]?.id || "");
+      }
+
+      setTemplatePendingDelete(null);
+
+      setFeedbackModal({
+        open: true,
+        type: "success",
+        title: "تم حذف القالب",
+        message: dbTemplateId
+          ? "تم حذف القالب من قاعدة البيانات وإزالته من القائمة."
+          : "تم حذف القالب غير المحفوظ من القائمة.",
+      });
+    } catch (error) {
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر حذف القالب",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ غير متوقع أثناء حذف القالب.",
+      });
     }
-
-    setTemplatePendingDelete(null);
   }
 
   function requestDeletePage(page: ReportTemplatePage) {
@@ -317,7 +512,7 @@ export function ReportTemplateStudio() {
     const copiedTemplate: ReportTemplateBuilderModel = {
       ...template,
       id: `copy-${template.id}-${timestamp}`,
-      name: `${template.name} - نسخة`,
+      name: `${template.name.replace(/ - نسخة( \d+)?$/u, "")} - نسخة`,
       status: "DRAFT",
       updatedAt: new Date().toISOString().slice(0, 10),
       pages: template.pages.map((page) => ({
@@ -467,12 +662,108 @@ export function ReportTemplateStudio() {
     });
   }
 
-  function changeActiveTemplateStatus(status: ReportTemplateStatus) {
-    updateActiveTemplate((template) => ({
-      ...template,
+  async function changeActiveTemplateStatus(status: ReportTemplateStatus) {
+    if (!activeTemplate) {
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر تحديث حالة القالب",
+        message: "لا يوجد قالب نشط لتحديث حالته.",
+      });
+      return;
+    }
+
+    const updatedTemplate: ReportTemplateBuilderModel = {
+      ...activeTemplate,
       status,
       updatedAt: new Date().toISOString().slice(0, 10),
-    }));
+    };
+
+    updateActiveTemplate(() => updatedTemplate);
+
+    const dbTemplateId = savedTemplateIds[activeTemplate.id];
+
+    const payload = {
+      name: updatedTemplate.name || "قالب تقرير جديد",
+      description:
+        updatedTemplate.description ||
+        "قالب تقرير مخصص يتم بناؤه من بيانات الحالة.",
+      serviceSlug: updatedTemplate.serviceSlug ?? null,
+      type: "SCHOOL",
+      content: JSON.stringify(updatedTemplate),
+      templateJson: updatedTemplate,
+      genderAware: true,
+      isActive: status !== "ARCHIVED",
+    };
+
+    try {
+      const response = dbTemplateId
+        ? await fetch(`/api/dashboard/report-templates/${dbTemplateId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/dashboard/report-templates", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error || result?.message || "تعذر تحديث حالة القالب.",
+        );
+      }
+
+      const savedId =
+        result?.template?.id ||
+        result?.data?.id ||
+        result?.id ||
+        dbTemplateId ||
+        "";
+
+      if (savedId) {
+        setSavedTemplateIds((current) => ({
+          ...current,
+          [activeTemplate.id]: savedId,
+        }));
+      }
+
+      setFeedbackModal({
+        open: true,
+        type: "success",
+        title:
+          status === "PUBLISHED"
+            ? "تم نشر القالب"
+            : status === "ARCHIVED"
+              ? "تمت أرشفة القالب"
+              : "تم تحويل القالب إلى مسودة",
+        message:
+          status === "PUBLISHED"
+            ? "تم نشر القالب وحفظ حالته في قاعدة البيانات بنجاح."
+            : status === "ARCHIVED"
+              ? "تمت أرشفة القالب وحفظ التغيير في قاعدة البيانات."
+              : "تم تحويل القالب إلى مسودة وحفظ التغيير في قاعدة البيانات.",
+      });
+    } catch (error) {
+      updateActiveTemplate(() => activeTemplate);
+
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر تحديث حالة القالب",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ غير متوقع أثناء تحديث حالة القالب.",
+      });
+    }
   }
 
   function addGeneratedSnapshot(snapshot: GeneratedReportSnapshot) {
@@ -480,6 +771,105 @@ export function ReportTemplateStudio() {
       snapshot,
       ...currentSnapshots,
     ]);
+  }
+
+  async function handleSaveTemplate() {
+    if (!activeTemplate) {
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر حفظ القالب",
+        message: "لا يوجد قالب نشط لحفظه.",
+      });
+      return;
+    }
+
+    const dbTemplateId = savedTemplateIds[activeTemplate.id];
+
+    const payload = {
+      name: activeTemplate.name || "قالب تقرير جديد",
+      description:
+        activeTemplate.description ||
+        "قالب تقرير مخصص يتم بناؤه من بيانات الحالة.",
+      serviceSlug: activeTemplate.serviceSlug ?? null,
+      type: "SCHOOL",
+      content: JSON.stringify(activeTemplate),
+      templateJson: activeTemplate,
+      genderAware: true,
+      isActive: true,
+    };
+
+    async function createTemplate() {
+      return fetch("/api/dashboard/report-templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    async function updateTemplate(templateId: string) {
+      return fetch(`/api/dashboard/report-templates/${templateId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    try {
+      let response = dbTemplateId
+        ? await updateTemplate(dbTemplateId)
+        : await createTemplate();
+
+      let result = await response.json();
+
+      if (dbTemplateId && response.status === 404) {
+        response = await createTemplate();
+        result = await response.json();
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error || result?.message || "تعذر حفظ القالب.",
+        );
+      }
+
+      const savedId =
+        result?.template?.id ||
+        result?.data?.id ||
+        result?.id ||
+        dbTemplateId ||
+        "";
+
+      if (savedId) {
+        setSavedTemplateIds((current) => ({
+          ...current,
+          [activeTemplate.id]: savedId,
+        }));
+      }
+
+      setFeedbackModal({
+        open: true,
+        type: "success",
+        title: "تم حفظ القالب",
+        message: dbTemplateId
+          ? "تم تحديث القالب وحفظ التعديلات بنجاح."
+          : "تم إنشاء القالب وحفظه في قاعدة البيانات بنجاح.",
+      });
+    } catch (error) {
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر حفظ القالب",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ غير متوقع أثناء حفظ القالب.",
+      });
+    }
   }
 
   if (!activeTemplate) {
@@ -525,13 +915,23 @@ export function ReportTemplateStudio() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={createNewTemplate}
-            className="rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-900"
-          >
-            إنشاء قالب جديد
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveTemplate}
+              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-black text-white shadow-sm ring-1 ring-emerald-600/20 transition hover:bg-emerald-800"
+            >
+              حفظ القالب
+            </button>
+
+            <button
+              type="button"
+              onClick={createNewTemplate}
+              className="rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white shadow-sm ring-1 ring-sky-600/20 transition hover:bg-sky-800"
+            >
+              إنشاء قالب جديد
+            </button>
+          </div>
         </div>
       </header>
 
@@ -834,6 +1234,43 @@ export function ReportTemplateStudio() {
         </section>
       </main>
 
+      {feedbackModal.open ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
+            <div
+              className={[
+                "mx-auto inline-flex rounded-full px-4 py-1.5 text-xs font-black",
+                feedbackModal.type === "success"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-red-100 text-red-700",
+              ].join(" ")}
+            >
+              {feedbackModal.type === "success" ? "نجاح" : "خطأ"}
+            </div>
+
+            <h2 className="mt-4 text-2xl font-black text-slate-900">
+              {feedbackModal.title}
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-sm text-center text-sm leading-7 text-slate-600">
+              {feedbackModal.message}
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                setFeedbackModal((current) => ({
+                  ...current,
+                  open: false,
+                }))
+              }
+              className="mx-auto mt-6 inline-flex min-w-32 items-center justify-center rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      ) : null}
       {templatePendingDelete ? (
         <ConfirmModal
           title="حذف قالب التقرير؟"
@@ -843,8 +1280,7 @@ export function ReportTemplateStudio() {
               <span className="font-black text-slate-900">
                 {templatePendingDelete.name}
               </span>{" "}
-              من قائمة القوالب الحالية. هذا الإجراء لا يحذف أي تقارير أو حالات
-              محفوظة.
+              من قائمة القوالب. إذا كان محفوظًا فسيتم حذفه من قاعدة البيانات أيضًا.
             </>
           }
           confirmLabel="نعم، احذف القالب"
@@ -862,8 +1298,7 @@ export function ReportTemplateStudio() {
               <span className="font-black text-slate-900">
                 {pagePendingDelete.title}
               </span>{" "}
-              من القالب الحالي. هذا لا يحذف بيانات الحالة ولا التقارير السابقة،
-              بل يغيّر ترتيب القالب فقط.
+              من القالب الحالي.
             </>
           }
           confirmLabel="نعم، احذف الصفحة"
@@ -1925,7 +2360,7 @@ function ConfirmModal({
 }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-2xl font-black text-red-600">
           !
         </div>
@@ -1959,3 +2394,15 @@ function ConfirmModal({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+

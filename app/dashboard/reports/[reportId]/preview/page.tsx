@@ -7,6 +7,7 @@ import {
 } from "@/components/reports/report-preview-toolbar";
 
 import { ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
+import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
 
 import type {
   EvidenceLayout,
@@ -108,6 +109,142 @@ const allowedEvidenceLayouts: EvidenceLayout[] = [
 ];
 
 const allowedReportViewModes: ReportViewMode[] = ["text", "grid", "mixed"];
+
+function getBuilderTemplateFromSnapshot(snapshot: unknown) {
+  const data = snapshot as
+    | {
+        source?: string;
+        builderTemplate?: any;
+      }
+    | null
+    | undefined;
+
+  if (data?.source !== "TEMPLATE_BUILDER") {
+    return null;
+  }
+
+  if (!data.builderTemplate || !Array.isArray(data.builderTemplate.pages)) {
+    return null;
+  }
+
+  return data.builderTemplate;
+}
+
+function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+async function getBuilderTemplateFromDatabase(templateId?: string | null) {
+  if (!templateId) {
+    return null;
+  }
+
+  if (allowedTemplates.includes(templateId as ReportTemplateId)) {
+    return null;
+  }
+
+  const templateRecord = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  if (!templateRecord) {
+    return null;
+  }
+
+  const templateJson =
+    parseBuilderTemplateJson(templateRecord.templateJson) ||
+    parseBuilderTemplateJson(templateRecord.content);
+
+  if (!templateJson || !Array.isArray(templateJson.pages)) {
+    return null;
+  }
+
+  return {
+    ...templateJson,
+    id: templateRecord.id,
+    name: templateRecord.name || templateJson.name,
+    description:
+      templateRecord.description ||
+      templateJson.description ||
+      "قالب تقرير محفوظ من صانع القوالب.",
+    serviceSlug: templateRecord.serviceSlug || templateJson.serviceSlug || null,
+    status: "PUBLISHED",
+  };
+}
+
+function buildBuilderPreviewCaseData(report: any, reportValues: ReportValueItem[]) {
+  const student = report.caseEntry.student;
+  const guardian = student?.guardian;
+
+  return {
+    id: report.caseEntry.id,
+    title: report.caseEntry.title || report.title,
+    status: report.caseEntry.status,
+    createdAt: report.caseEntry.createdAt?.toISOString?.() || "",
+    updatedAt: report.caseEntry.updatedAt?.toISOString?.() || "",
+    submittedAt: report.caseEntry.submittedAt?.toISOString?.() || null,
+    serviceName: report.caseEntry.service.name,
+    serviceSlug: report.caseEntry.service.slug,
+
+    service: {
+      id: report.caseEntry.service.id,
+      name: report.caseEntry.service.name,
+      slug: report.caseEntry.service.slug,
+    },
+
+    student: student
+      ? {
+          id: student.id,
+          fullName: student.fullName,
+          nationalId: student.nationalId,
+          stage: student.stage,
+          grade: student.grade,
+          classroom: student.classroom,
+          guardianName: guardian?.name || null,
+          guardianPhone: guardian?.phone || null,
+        }
+      : null,
+
+    values: reportValues.map((item) => ({
+      fieldKey: item.fieldKey,
+      fieldLabel: item.fieldLabel,
+      value: item.displayValue,
+    })),
+
+    evidences: buildReportEvidences(report).map((item) => {
+      const evidenceItem = item as ReportEvidence & {
+        fileUrl?: string;
+      };
+
+      return {
+        id: evidenceItem.id,
+        title: evidenceItem.title,
+        fileName: evidenceItem.fileName || evidenceItem.title,
+        fileUrl: evidenceItem.fileUrl || evidenceItem.imageUrl || "",
+        imageUrl: evidenceItem.imageUrl,
+        note: evidenceItem.description || "",
+      };
+    }),
+  };
+}
 
 export default async function ReportRealPreviewPage({
   params,
@@ -238,6 +375,16 @@ export default async function ReportRealPreviewPage({
     viewMode: selectedViewMode,
   });
 
+  const builderTemplate =
+    getBuilderTemplateFromSnapshot(report.templateSnapshot) ||
+    (await getBuilderTemplateFromDatabase(
+      resolvedSearchParams.template || report.templateId
+    ));
+
+  const builderPreviewCaseData = builderTemplate
+    ? buildBuilderPreviewCaseData(report, reportValues)
+    : null;
+
   return (
     <main
       dir="rtl"
@@ -260,13 +407,21 @@ export default async function ReportRealPreviewPage({
       ) : null}
 
       <section className={studioMode ? "mx-auto" : "mx-auto max-w-[260mm]"}>
-        <ReportDocumentRenderer
-          identity={identity}
-          report={officialReport}
-          templateId={selectedTemplate}
-          showCover={showCover}
-          evidenceLayout={selectedEvidenceLayout}
-        />
+        {builderTemplate ? (
+          <ReportTemplateLivePreview
+            template={builderTemplate}
+            snippets={[]}
+            previewCaseData={builderPreviewCaseData as any}
+          />
+        ) : (
+          <ReportDocumentRenderer
+            identity={identity}
+            report={officialReport}
+            templateId={selectedTemplate}
+            showCover={showCover}
+            evidenceLayout={selectedEvidenceLayout}
+          />
+        )}
       </section>
     </main>
   );

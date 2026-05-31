@@ -1,8 +1,57 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-export async function GET() {
-  return NextResponse.json({
-    success: true,
-    message: "API route is ready.",
-  });
+type RouteContext = {
+  params: Promise<{
+    templateId: string;
+  }>;
+};
+
+export async function POST(_request: Request, context: RouteContext) {
+  try {
+    const { templateId } = await context.params;
+
+    const existingTemplate = await prisma.reportTemplate.findUnique({
+      where: {
+        id: templateId,
+      },
+    });
+
+    if (!existingTemplate || !existingTemplate.isActive) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "قالب التقرير غير موجود أو غير مفعّل.",
+        },
+        { status: 404 },
+      );
+    }
+
+    const template = await prisma.reportTemplate.update({
+      where: {
+        id: templateId,
+      },
+      data: {
+        usageCount: {
+          increment: 1,
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "تم تسجيل استخدام قالب التقرير.",
+      template,
+    });
+  } catch (error) {
+    console.error("POST /api/dashboard/report-templates/[templateId]/use failed:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "تعذر تسجيل استخدام قالب التقرير.",
+      },
+      { status: 500 },
+    );
+  }
 }

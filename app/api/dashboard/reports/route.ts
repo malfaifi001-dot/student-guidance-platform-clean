@@ -16,6 +16,75 @@ type CreateReportBody = {
   templateId?: string;
 };
 
+function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+function isPublishedBuilderTemplate(templateJson: Record<string, any> | null) {
+  return templateJson?.status === "PUBLISHED" && Array.isArray(templateJson?.pages);
+}
+
+async function createTemplateSnapshotFromDatabase(templateId: string) {
+  const builderTemplate = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  const templateJson =
+    parseBuilderTemplateJson(builderTemplate?.templateJson) ||
+    parseBuilderTemplateJson(builderTemplate?.content);
+
+  if (!builderTemplate || !isPublishedBuilderTemplate(templateJson)) {
+    return createDefaultTemplateSnapshot(templateId);
+  }
+
+  const safeTemplateJson = templateJson as Record<string, any>;
+
+  return {
+    templateId: builderTemplate.id,
+    templateName: builderTemplate.name,
+    version: 1,
+    capturedAt: new Date().toISOString(),
+    source: "TEMPLATE_BUILDER",
+    settings: {
+      showCover: true,
+      defaultTemplate: builderTemplate.id,
+      defaultEvidenceLayout: "grid-2x2",
+      pageSize: "A4",
+      direction: "rtl",
+    },
+    builderTemplate: {
+      ...safeTemplateJson,
+      id: builderTemplate.id,
+      name: builderTemplate.name || safeTemplateJson.name,
+      description:
+        builderTemplate.description ||
+        safeTemplateJson.description ||
+        "قالب تقرير محفوظ من صانع القوالب.",
+      serviceSlug:
+        builderTemplate.serviceSlug || safeTemplateJson.serviceSlug || null,
+      status: "PUBLISHED",
+    },
+  };
+}
+
 function buildReportContent(reportData: ReportMappedCase) {
   const studentLines = reportData.student
     ? [
@@ -136,7 +205,7 @@ export async function POST(request: Request) {
 
     const initialContent = buildReportContent(reportData);
 
-    const templateSnapshot = createDefaultTemplateSnapshot(templateId);
+    const templateSnapshot = await createTemplateSnapshotFromDatabase(templateId);
     const reportDataSnapshot = createReportDataSnapshot(reportData);
 
     const report = await prisma.guidanceReport.create({

@@ -1,0 +1,812 @@
+﻿
+===== Top 230 lines =====
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+
+type ReportCaseListItem = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt?: string | null;
+
+  service: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  student?: {
+    id: string;
+    fullName: string;
+    nationalId?: string | null;
+    stage?: string | null;
+    grade?: string | null;
+    classroom?: string | null;
+    guardianName?: string | null;
+    guardianPhone?: string | null;
+  } | null;
+
+  valuesCount: number;
+  evidencesCount: number;
+};
+
+type PreparedReportData = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt?: string | null;
+
+  service: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  student?: {
+    id?: string;
+    fullName: string;
+    nationalId?: string | null;
+    stage?: string | null;
+    grade?: string | null;
+    classroom?: string | null;
+    guardianName?: string | null;
+    guardianPhone?: string | null;
+  } | null;
+
+  values: Array<{
+    fieldKey: string;
+    fieldLabel: string;
+    value: string;
+  }>;
+
+  evidences: Array<{
+    id: string;
+    title: string;
+    fileName: string;
+    fileUrl: string;
+    mimeType?: string | null;
+    size?: number | null;
+    note?: string | null;
+    imageUrl?: string;
+  }>;
+};
+
+type PrepareApiResponse =
+  | {
+      ok: true;
+      reportData: PreparedReportData;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+type CreateReportApiResponse =
+  | {
+      success: true;
+      reportId: string;
+      previewUrl?: string;
+    }
+  | {
+      success?: false;
+      error: string;
+    };
+
+type ReportTemplateId = "official-long" | "visual-activity" | "executive-brief";
+
+type ReportTemplateChoice = {
+  id: ReportTemplateId;
+  name: string;
+  description: string;
+  bestFor: string;
+  badge: string;
+};
+
+const REPORT_TEMPLATE_CHOICES: ReportTemplateChoice[] = [
+  {
+    id: "official-long",
+    name: "Ø§Ù„Ù‚Ø§Ù„Ø¨ Ø§Ù„Ø±Ø³Ù…ÙŠ",
+    description: "Ù‚Ø§Ù„Ø¨ A4 Ø±Ø³Ù…ÙŠ Ù…Ù†Ø§Ø³Ø¨ Ù„Ù„Ø­ÙØ¸ ÙˆØ§Ù„Ø·Ø¨Ø§Ø¹Ø© ÙˆØ§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯.",
+    bestFor: "Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø±Ø³Ù…ÙŠØ© ÙˆØ§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…Ø¹ØªÙ…Ø¯Ø©",
+    badge: "Ø±Ø³Ù…ÙŠ",
+  },
+  {
+    id: "visual-activity",
+    name: "Ø§Ù„Ù‚Ø§Ù„Ø¨ Ø§Ù„Ø¨ØµØ±ÙŠ",
+    description: "Ù‚Ø§Ù„Ø¨ ÙŠØ¨Ø±Ø² Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„ØµÙˆØ± ÙˆØ§Ù„Ø£Ù†Ø´Ø·Ø© Ø¨Ø´ÙƒÙ„ Ø£ÙˆØ¶Ø­.",
+    bestFor: "Ø§Ù„Ø¨Ø±Ø§Ù…Ø¬ ÙˆØ§Ù„ÙØ¹Ø§Ù„ÙŠØ§Øª ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…ØµÙˆØ±Ø©",
+    badge: "Ø¨ØµØ±ÙŠ",
+  },
+  {
+    id: "executive-brief",
+    name: "Ø§Ù„Ù‚Ø§Ù„Ø¨ Ø§Ù„Ù…Ø®ØªØµØ±",
+    description: "Ù‚Ø§Ù„Ø¨ Ø³Ø±ÙŠØ¹ ÙŠØ±ÙƒØ² Ø¹Ù„Ù‰ Ø£Ù‡Ù… Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª ÙˆØ§Ù„Ù†ØªØ§Ø¦Ø¬.",
+    bestFor: "Ø§Ù„Ù…Ù„Ø®ØµØ§Øª ÙˆØ§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø³Ø±ÙŠØ¹Ø©",
+    badge: "Ù…Ø®ØªØµØ±",
+  },
+];
+
+type NewReportCasePickerProps = {
+  cases: ReportCaseListItem[];
+  initialCaseId?: string;
+};
+
+export function NewReportCasePicker({
+  cases,
+  initialCaseId = "",
+}: NewReportCasePickerProps) {
+  const router = useRouter();
+
+  const [selectedCaseId, setSelectedCaseId] = useState(initialCaseId);
+  const [selectedTemplateId, setSelectedTemplateId] =
+    useState<ReportTemplateId>("official-long");
+
+  const [query, setQuery] = useState("");
+  const [preparedReportData, setPreparedReportData] =
+    useState<PreparedReportData | null>(null);
+
+  const [loadingPrepare, setLoadingPrepare] = useState(false);
+  const [prepareError, setPrepareError] = useState("");
+
+  const [creatingReport, setCreatingReport] = useState(false);
+  const [createReportError, setCreateReportError] = useState("");
+
+  const filteredCases = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+
+    if (!keyword) {
+      return cases;
+    }
+
+    return cases.filter((caseEntry) => {
+      const searchableText = [
+        caseEntry.title,
+        caseEntry.status,
+        caseEntry.service.name,
+        caseEntry.service.slug,
+        caseEntry.student?.fullName,
+        caseEntry.student?.nationalId,
+        caseEntry.student?.grade,
+        caseEntry.student?.classroom,
+        caseEntry.student?.guardianName,
+        caseEntry.student?.guardianPhone,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(keyword);
+    });
+  }, [cases, query]);
+
+  const selectedCase = useMemo(() => {
+    return cases.find((caseEntry) => caseEntry.id === selectedCaseId) || null;
+  }, [cases, selectedCaseId]);
+
+  const selectedTemplate = useMemo(() => {
+    return (
+      REPORT_TEMPLATE_CHOICES.find(
+        (template) => template.id === selectedTemplateId
+      ) || REPORT_TEMPLATE_CHOICES[0]
+    );
+  }, [selectedTemplateId]);
+
+  useEffect(() => {
+    if (!selectedCaseId) {
+      setPreparedReportData(null);
+      setPrepareError("");
+      setCreateReportError("");
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function prepareReportData() {
+      try {
+        setLoadingPrepare(true);
+        setPrepareError("");
+        setCreateReportError("");
+        setPreparedReportData(null);
+
+        const response = await fetch(
+          `/api/dashboard/reports/prepare?caseId=${encodeURIComponent(
+            selectedCaseId
+          )}`,
+          {
+            signal: controller.signal,
+          }
+        );
+
+        const data = (await response.json()) as PrepareApiResponse;
+
+        if (!response.ok || !data.ok) {
+          throw new Error(
+            "error" in data ? data.error : "ØªØ¹Ø°Ø± ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±."
+          );
+
+
+===== ReportCreationCard section =====
+
+  components\reports\new-report-case-picker.tsx:141:  initialCaseId = "",
+  components\reports\new-report-case-picker.tsx:142:}: NewReportCasePickerProps) {
+  components\reports\new-report-case-picker.tsx:143:  const router = useRouter();
+  components\reports\new-report-case-picker.tsx:144:
+  components\reports\new-report-case-picker.tsx:145:  const [selectedCaseId, 
+setSelectedCaseId] = useState(initialCaseId);
+> components\reports\new-report-case-picker.tsx:146:  const [selectedTemplateId, 
+setSelectedTemplateId] =
+  components\reports\new-report-case-picker.tsx:147:    
+useState<ReportTemplateId>("official-long");
+  components\reports\new-report-case-picker.tsx:148:
+  components\reports\new-report-case-picker.tsx:149:  const [query, setQuery] = 
+useState("");
+  components\reports\new-report-case-picker.tsx:150:  const [preparedReportData, 
+setPreparedReportData] =
+  components\reports\new-report-case-picker.tsx:151:    useState<PreparedReportData | 
+null>(null);
+  components\reports\new-report-case-picker.tsx:152:
+  components\reports\new-report-case-picker.tsx:153:  const [loadingPrepare, 
+setLoadingPrepare] = useState(false);
+  components\reports\new-report-case-picker.tsx:154:  const [prepareError, setPrepareError] 
+= useState("");
+  components\reports\new-report-case-picker.tsx:155:
+  components\reports\new-report-case-picker.tsx:156:  const [creatingReport, 
+setCreatingReport] = useState(false);
+  components\reports\new-report-case-picker.tsx:157:  const [createReportError, 
+setCreateReportError] = useState("");
+  components\reports\new-report-case-picker.tsx:158:
+  components\reports\new-report-case-picker.tsx:159:  const filteredCases = useMemo(() => {
+  components\reports\new-report-case-picker.tsx:160:    const keyword = 
+query.trim().toLowerCase();
+  components\reports\new-report-case-picker.tsx:161:
+  components\reports\new-report-case-picker.tsx:162:    if (!keyword) {
+  components\reports\new-report-case-picker.tsx:163:      return cases;
+  components\reports\new-report-case-picker.tsx:164:    }
+  components\reports\new-report-case-picker.tsx:165:
+  components\reports\new-report-case-picker.tsx:166:    return cases.filter((caseEntry) => {
+  components\reports\new-report-case-picker.tsx:167:      const searchableText = [
+  components\reports\new-report-case-picker.tsx:168:        caseEntry.title,
+  components\reports\new-report-case-picker.tsx:169:        caseEntry.status,
+  components\reports\new-report-case-picker.tsx:170:        caseEntry.service.name,
+  components\reports\new-report-case-picker.tsx:171:        caseEntry.service.slug,
+  components\reports\new-report-case-picker.tsx:172:        caseEntry.student?.fullName,
+  components\reports\new-report-case-picker.tsx:173:        caseEntry.student?.nationalId,
+  components\reports\new-report-case-picker.tsx:174:        caseEntry.student?.grade,
+  components\reports\new-report-case-picker.tsx:175:        caseEntry.student?.classroom,
+  components\reports\new-report-case-picker.tsx:176:        caseEntry.student?.guardianName,
+  components\reports\new-report-case-picker.tsx:177:        
+caseEntry.student?.guardianPhone,
+  components\reports\new-report-case-picker.tsx:178:      ]
+  components\reports\new-report-case-picker.tsx:179:        .filter(Boolean)
+  components\reports\new-report-case-picker.tsx:180:        .join(" ")
+  components\reports\new-report-case-picker.tsx:181:        .toLowerCase();
+  components\reports\new-report-case-picker.tsx:182:
+  components\reports\new-report-case-picker.tsx:183:      return 
+searchableText.includes(keyword);
+  components\reports\new-report-case-picker.tsx:184:    });
+  components\reports\new-report-case-picker.tsx:185:  }, [cases, query]);
+  components\reports\new-report-case-picker.tsx:186:
+  components\reports\new-report-case-picker.tsx:187:  const selectedCase = useMemo(() => {
+  components\reports\new-report-case-picker.tsx:188:    return cases.find((caseEntry) => 
+caseEntry.id === selectedCaseId) || null;
+  components\reports\new-report-case-picker.tsx:189:  }, [cases, selectedCaseId]);
+  components\reports\new-report-case-picker.tsx:190:
+> components\reports\new-report-case-picker.tsx:191:  const selectedTemplate = useMemo(() 
+=> {
+  components\reports\new-report-case-picker.tsx:192:    return (
+  components\reports\new-report-case-picker.tsx:193:      REPORT_TEMPLATE_CHOICES.find(
+> components\reports\new-report-case-picker.tsx:194:        (template) => template.id === 
+selectedTemplateId
+  components\reports\new-report-case-picker.tsx:195:      ) || REPORT_TEMPLATE_CHOICES[0]
+  components\reports\new-report-case-picker.tsx:196:    );
+> components\reports\new-report-case-picker.tsx:197:  }, [selectedTemplateId]);
+  components\reports\new-report-case-picker.tsx:198:
+  components\reports\new-report-case-picker.tsx:199:  useEffect(() => {
+  components\reports\new-report-case-picker.tsx:200:    if (!selectedCaseId) {
+  components\reports\new-report-case-picker.tsx:201:      setPreparedReportData(null);
+  components\reports\new-report-case-picker.tsx:202:      setPrepareError("");
+  components\reports\new-report-case-picker.tsx:203:      setCreateReportError("");
+  components\reports\new-report-case-picker.tsx:204:      return;
+  components\reports\new-report-case-picker.tsx:205:    }
+  components\reports\new-report-case-picker.tsx:206:
+  components\reports\new-report-case-picker.tsx:207:    const controller = new 
+AbortController();
+  components\reports\new-report-case-picker.tsx:208:
+  components\reports\new-report-case-picker.tsx:209:    async function prepareReportData() {
+  components\reports\new-report-case-picker.tsx:210:      try {
+  components\reports\new-report-case-picker.tsx:211:        setLoadingPrepare(true);
+  components\reports\new-report-case-picker.tsx:212:        setPrepareError("");
+  components\reports\new-report-case-picker.tsx:213:        setCreateReportError("");
+  components\reports\new-report-case-picker.tsx:214:        setPreparedReportData(null);
+  components\reports\new-report-case-picker.tsx:215:
+  components\reports\new-report-case-picker.tsx:216:        const response = await fetch(
+  components\reports\new-report-case-picker.tsx:217:          
+`/api/dashboard/reports/prepare?caseId=${encodeURIComponent(
+  components\reports\new-report-case-picker.tsx:218:            selectedCaseId
+  components\reports\new-report-case-picker.tsx:219:          )}`,
+  components\reports\new-report-case-picker.tsx:220:          {
+  components\reports\new-report-case-picker.tsx:221:            signal: controller.signal,
+  components\reports\new-report-case-picker.tsx:222:          }
+  components\reports\new-report-case-picker.tsx:223:        );
+  components\reports\new-report-case-picker.tsx:224:
+  components\reports\new-report-case-picker.tsx:225:        const data = (await 
+response.json()) as PrepareApiResponse;
+  components\reports\new-report-case-picker.tsx:226:
+  components\reports\new-report-case-picker.tsx:227:        if (!response.ok || !data.ok) {
+  components\reports\new-report-case-picker.tsx:228:          throw new Error(
+  components\reports\new-report-case-picker.tsx:229:            "error" in data ? 
+data.error : "تعذر تجهيز بيانات التقرير."
+  components\reports\new-report-case-picker.tsx:230:          );
+  components\reports\new-report-case-picker.tsx:231:        }
+  components\reports\new-report-case-picker.tsx:232:
+  components\reports\new-report-case-picker.tsx:233:        
+setPreparedReportData(data.reportData);
+  components\reports\new-report-case-picker.tsx:234:      } catch (error) {
+  components\reports\new-report-case-picker.tsx:235:        if (error instanceof Error && 
+error.name === "AbortError") {
+  components\reports\new-report-case-picker.tsx:236:          return;
+  components\reports\new-report-case-picker.tsx:237:        }
+  components\reports\new-report-case-picker.tsx:238:
+  components\reports\new-report-case-picker.tsx:239:        setPreparedReportData(null);
+  components\reports\new-report-case-picker.tsx:240:        setPrepareError(
+  components\reports\new-report-case-picker.tsx:241:          error instanceof Error
+  components\reports\new-report-case-picker.tsx:242:            ? error.message
+  components\reports\new-report-case-picker.tsx:243:            : "تعذر تجهيز بيانات 
+التقرير."
+  components\reports\new-report-case-picker.tsx:244:        );
+  components\reports\new-report-case-picker.tsx:245:      } finally {
+  components\reports\new-report-case-picker.tsx:246:        setLoadingPrepare(false);
+  components\reports\new-report-case-picker.tsx:247:      }
+  components\reports\new-report-case-picker.tsx:248:    }
+  components\reports\new-report-case-picker.tsx:249:
+  components\reports\new-report-case-picker.tsx:250:    prepareReportData();
+  components\reports\new-report-case-picker.tsx:251:
+  components\reports\new-report-case-picker.tsx:252:    return () => {
+  components\reports\new-report-case-picker.tsx:253:      controller.abort();
+  components\reports\new-report-case-picker.tsx:254:    };
+  components\reports\new-report-case-picker.tsx:255:  }, [selectedCaseId]);
+  components\reports\new-report-case-picker.tsx:256:
+  components\reports\new-report-case-picker.tsx:257:  async function handleCreateReport() {
+  components\reports\new-report-case-picker.tsx:258:    if (!selectedCaseId) {
+  components\reports\new-report-case-picker.tsx:259:      setCreateReportError("اختر حالة 
+أولًا لإنشاء التقرير.");
+  components\reports\new-report-case-picker.tsx:260:      return;
+  components\reports\new-report-case-picker.tsx:261:    }
+  components\reports\new-report-case-picker.tsx:262:
+  components\reports\new-report-case-picker.tsx:263:    if (!preparedReportData) {
+  components\reports\new-report-case-picker.tsx:264:      setCreateReportError("بيانات 
+التقرير غير جاهزة بعد.");
+  components\reports\new-report-case-picker.tsx:265:      return;
+  components\reports\new-report-case-picker.tsx:266:    }
+  components\reports\new-report-case-picker.tsx:267:
+  components\reports\new-report-case-picker.tsx:268:    try {
+  components\reports\new-report-case-picker.tsx:269:      setCreatingReport(true);
+  components\reports\new-report-case-picker.tsx:270:      setCreateReportError("");
+  components\reports\new-report-case-picker.tsx:271:
+  components\reports\new-report-case-picker.tsx:272:      const response = await 
+fetch("/api/dashboard/reports", {
+  components\reports\new-report-case-picker.tsx:273:        method: "POST",
+  components\reports\new-report-case-picker.tsx:274:        headers: {
+  components\reports\new-report-case-picker.tsx:275:          "Content-Type": 
+"application/json",
+  components\reports\new-report-case-picker.tsx:276:        },
+  components\reports\new-report-case-picker.tsx:277:        body: JSON.stringify({
+  components\reports\new-report-case-picker.tsx:278:          caseEntryId: selectedCaseId,
+  components\reports\new-report-case-picker.tsx:279:          title: `تقرير - 
+${preparedReportData.title}`,
+> components\reports\new-report-case-picker.tsx:280:          templateId: 
+selectedTemplateId,
+  components\reports\new-report-case-picker.tsx:281:        }),
+  components\reports\new-report-case-picker.tsx:282:      });
+  components\reports\new-report-case-picker.tsx:283:
+  components\reports\new-report-case-picker.tsx:284:      const data = (await 
+response.json()) as CreateReportApiResponse;
+  components\reports\new-report-case-picker.tsx:285:
+  components\reports\new-report-case-picker.tsx:286:      if (!response.ok || !("success" 
+in data) || !data.success) {
+  components\reports\new-report-case-picker.tsx:287:        throw new Error("error" in data 
+? data.error : "تعذر إنشاء التقرير.");
+  components\reports\new-report-case-picker.tsx:288:      }
+  components\reports\new-report-case-picker.tsx:289:
+  components\reports\new-report-case-picker.tsx:290:      router.push(
+  components\reports\new-report-case-picker.tsx:291:        data.previewUrl ||
+> components\reports\new-report-case-picker.tsx:292:          
+`/dashboard/reports/${data.reportId}/preview?template=${selectedTemplateId}`
+  components\reports\new-report-case-picker.tsx:293:      );
+  components\reports\new-report-case-picker.tsx:294:      router.refresh();
+  components\reports\new-report-case-picker.tsx:295:    } catch (error) {
+  components\reports\new-report-case-picker.tsx:296:      setCreateReportError(
+  components\reports\new-report-case-picker.tsx:297:        error instanceof Error ? 
+error.message : "تعذر إنشاء التقرير."
+  components\reports\new-report-case-picker.tsx:298:      );
+  components\reports\new-report-case-picker.tsx:299:    } finally {
+  components\reports\new-report-case-picker.tsx:300:      setCreatingReport(false);
+  components\reports\new-report-case-picker.tsx:301:    }
+  components\reports\new-report-case-picker.tsx:302:  }
+  components\reports\new-report-case-picker.tsx:303:
+  components\reports\new-report-case-picker.tsx:304:  return (
+  components\reports\new-report-case-picker.tsx:305:    <div className="min-h-screen 
+bg-slate-50 px-6 py-6" dir="rtl">
+  components\reports\new-report-case-picker.tsx:306:      <div className="mx-auto max-w-7xl 
+space-y-6">
+  components\reports\new-report-case-picker.tsx:307:        <header 
+className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-8 
+text-white shadow-2xl">
+  components\reports\new-report-case-picker.tsx:308:          <div className="flex 
+flex-wrap items-start justify-between gap-4">
+  components\reports\new-report-case-picker.tsx:309:            <div>
+  components\reports\new-report-case-picker.tsx:310:              <p className="text-sm 
+font-bold text-sky-100">محرك التقارير</p>
+  components\reports\new-report-case-picker.tsx:311:
+  components\reports\new-report-case-picker.tsx:312:              <h1 className="mt-3 
+text-3xl font-black">
+  components\reports\new-report-case-picker.tsx:313:                إصدار تقرير من حالة 
+موجودة
+  components\reports\new-report-case-picker.tsx:314:              </h1>
+  components\reports\new-report-case-picker.tsx:315:
+  components\reports\new-report-case-picker.tsx:316:              <p className="mt-3 
+max-w-3xl text-sm leading-7 text-sky-50">
+  components\reports\new-report-case-picker.tsx:317:                اختر الحالة، راجع 
+البيانات، اختر القالب، ثم أنشئ التقرير. سيتم
+  components\reports\new-report-case-picker.tsx:318:                حفظ Snapshot للبيانات 
+والقالب حتى يبقى التقرير ثابتًا لاحقًا.
+  components\reports\new-report-case-picker.tsx:319:              </p>
+  components\reports\new-report-case-picker.tsx:320:            </div>
+  components\reports\new-report-case-picker.tsx:321:
+  components\reports\new-report-case-picker.tsx:322:            <Link
+  components\reports\new-report-case-picker.tsx:323:              href="/dashboard/reports"
+  components\reports\new-report-case-picker.tsx:324:              className="rounded-2xl 
+bg-white/15 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
+  components\reports\new-report-case-picker.tsx:325:            >
+  components\reports\new-report-case-picker.tsx:326:              الرجوع للتقارير
+  components\reports\new-report-case-picker.tsx:327:            </Link>
+  components\reports\new-report-case-picker.tsx:328:          </div>
+  components\reports\new-report-case-picker.tsx:329:        </header>
+  components\reports\new-report-case-picker.tsx:330:
+  components\reports\new-report-case-picker.tsx:331:        <div className="grid gap-6 
+lg:grid-cols-[420px_1fr]">
+  components\reports\new-report-case-picker.tsx:332:          <aside className="space-y-4">
+  components\reports\new-report-case-picker.tsx:333:            <section 
+className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+  components\reports\new-report-case-picker.tsx:334:              <div>
+  components\reports\new-report-case-picker.tsx:335:                <h2 className="text-lg 
+font-black text-slate-900">
+  components\reports\new-report-case-picker.tsx:336:                  اختيار الحالة
+  components\reports\new-report-case-picker.tsx:337:                </h2>
+  components\reports\new-report-case-picker.tsx:338:
+  components\reports\new-report-case-picker.tsx:339:                <p className="mt-1 
+text-sm leading-7 text-slate-500">
+  components\reports\new-report-case-picker.tsx:340:                  ابحث باسم 
+الطالب/الطالبة أو الخدمة أو عنوان الحالة.
+  components\reports\new-report-case-picker.tsx:341:                </p>
+  components\reports\new-report-case-picker.tsx:342:              </div>
+  components\reports\new-report-case-picker.tsx:343:
+  components\reports\new-report-case-picker.tsx:344:              <input
+  components\reports\new-report-case-picker.tsx:345:                value={query}
+  components\reports\new-report-case-picker.tsx:346:                onChange={(event) => 
+setQuery(event.target.value)}
+  components\reports\new-report-case-picker.tsx:347:                placeholder="بحث في 
+الحالات..."
+  components\reports\new-report-case-picker.tsx:348:                className="mt-4 h-12 
+w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition 
+focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+  components\reports\new-report-case-picker.tsx:349:              />
+  components\reports\new-report-case-picker.tsx:350:
+  components\reports\new-report-case-picker.tsx:351:              <div className="mt-4 flex 
+items-center justify-between text-xs font-bold text-slate-500">
+  components\reports\new-report-case-picker.tsx:352:                <span>عدد الحالات</span>
+  components\reports\new-report-case-picker.tsx:353:                
+<span>{filteredCases.length}</span>
+  components\reports\new-report-case-picker.tsx:354:              </div>
+  components\reports\new-report-case-picker.tsx:355:
+  components\reports\new-report-case-picker.tsx:356:              <div className="mt-4 
+max-h-[620px] space-y-3 overflow-auto pr-1">
+  components\reports\new-report-case-picker.tsx:357:                {filteredCases.length ? 
+(
+  components\reports\new-report-case-picker.tsx:358:                  
+filteredCases.map((caseEntry) => (
+  components\reports\new-report-case-picker.tsx:359:                    <CaseSelectionButton
+  components\reports\new-report-case-picker.tsx:360:                      key={caseEntry.id}
+  components\reports\new-report-case-picker.tsx:361:                      
+caseEntry={caseEntry}
+  components\reports\new-report-case-picker.tsx:362:                      
+active={caseEntry.id === selectedCaseId}
+  components\reports\new-report-case-picker.tsx:363:                      onSelect={() => 
+setSelectedCaseId(caseEntry.id)}
+  components\reports\new-report-case-picker.tsx:364:                    />
+  components\reports\new-report-case-picker.tsx:365:                  ))
+  components\reports\new-report-case-picker.tsx:366:                ) : (
+  components\reports\new-report-case-picker.tsx:367:                  <div 
+className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center 
+text-sm text-slate-500">
+  components\reports\new-report-case-picker.tsx:368:                    لا توجد حالات 
+مطابقة للبحث.
+  components\reports\new-report-case-picker.tsx:369:                  </div>
+  components\reports\new-report-case-picker.tsx:370:                )}
+  components\reports\new-report-case-picker.tsx:371:              </div>
+  components\reports\new-report-case-picker.tsx:372:            </section>
+  components\reports\new-report-case-picker.tsx:384:                  error={prepareError}
+  components\reports\new-report-case-picker.tsx:385:                  
+reportData={preparedReportData}
+  components\reports\new-report-case-picker.tsx:386:                />
+  components\reports\new-report-case-picker.tsx:387:
+  components\reports\new-report-case-picker.tsx:388:                <ReportCreationCard
+> components\reports\new-report-case-picker.tsx:389:                  
+selectedTemplate={selectedTemplate}
+> components\reports\new-report-case-picker.tsx:390:                  
+selectedTemplateId={selectedTemplateId}
+> components\reports\new-report-case-picker.tsx:391:                  
+onTemplateChange={setSelectedTemplateId}
+  components\reports\new-report-case-picker.tsx:392:                  
+reportDataReady={Boolean(preparedReportData)}
+  components\reports\new-report-case-picker.tsx:393:                  
+creatingReport={creatingReport}
+  components\reports\new-report-case-picker.tsx:394:                  
+createReportError={createReportError}
+  components\reports\new-report-case-picker.tsx:395:                  
+onCreateReport={handleCreateReport}
+  components\reports\new-report-case-picker.tsx:396:                />
+  components\reports\new-report-case-picker.tsx:397:              </>
+  components\reports\new-report-case-picker.tsx:398:            )}
+  components\reports\new-report-case-picker.tsx:399:          </section>
+  components\reports\new-report-case-picker.tsx:400:        </div>
+  components\reports\new-report-case-picker.tsx:401:      </div>
+  components\reports\new-report-case-picker.tsx:402:    </div>
+  components\reports\new-report-case-picker.tsx:403:  );
+  components\reports\new-report-case-picker.tsx:404:}
+  components\reports\new-report-case-picker.tsx:405:
+  components\reports\new-report-case-picker.tsx:406:function CaseSelectionButton({
+  components\reports\new-report-case-picker.tsx:407:  caseEntry,
+  components\reports\new-report-case-picker.tsx:408:  active,
+  components\reports\new-report-case-picker.tsx:409:  onSelect,
+  components\reports\new-report-case-picker.tsx:410:}: {
+  components\reports\new-report-case-picker.tsx:411:  caseEntry: ReportCaseListItem;
+  components\reports\new-report-case-picker.tsx:412:  active: boolean;
+  components\reports\new-report-case-picker.tsx:413:  onSelect: () => void;
+  components\reports\new-report-case-picker.tsx:414:}) {
+  components\reports\new-report-case-picker.tsx:415:  return (
+  components\reports\new-report-case-picker.tsx:416:    <button
+  components\reports\new-report-case-picker.tsx:417:      type="button"
+  components\reports\new-report-case-picker.tsx:418:      onClick={onSelect}
+  components\reports\new-report-case-picker.tsx:419:      className={[
+  components\reports\new-report-case-picker.tsx:420:        "w-full rounded-2xl border p-4 
+text-right transition",
+  components\reports\new-report-case-picker.tsx:421:        active
+  components\reports\new-report-case-picker.tsx:422:          ? "border-sky-400 bg-sky-50"
+  components\reports\new-report-case-picker.tsx:423:          : "border-slate-200 bg-white 
+hover:bg-slate-50",
+  components\reports\new-report-case-picker.tsx:424:      ].join(" ")}
+  components\reports\new-report-case-picker.tsx:425:    >
+  components\reports\new-report-case-picker.tsx:426:      <div className="flex items-start 
+justify-between gap-3">
+  components\reports\new-report-case-picker.tsx:427:        <div>
+  components\reports\new-report-case-picker.tsx:428:          <strong 
+className="line-clamp-1 text-sm text-slate-900">
+  components\reports\new-report-case-picker.tsx:429:            {caseEntry.title}
+  components\reports\new-report-case-picker.tsx:430:          </strong>
+  components\reports\new-report-case-picker.tsx:431:
+  components\reports\new-report-case-picker.tsx:432:          <p className="mt-1 text-xs 
+font-bold text-sky-700">
+  components\reports\new-report-case-picker.tsx:433:            {caseEntry.service.name}
+  components\reports\new-report-case-picker.tsx:434:          </p>
+  components\reports\new-report-case-picker.tsx:435:        </div>
+  components\reports\new-report-case-picker.tsx:436:
+  components\reports\new-report-case-picker.tsx:437:        <span className="rounded-full 
+bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+  components\reports\new-report-case-picker.tsx:438:          {caseEntry.status}
+  components\reports\new-report-case-picker.tsx:439:        </span>
+  components\reports\new-report-case-picker.tsx:440:      </div>
+  components\reports\new-report-case-picker.tsx:441:
+  components\reports\new-report-case-picker.tsx:442:      {caseEntry.student ? (
+  components\reports\new-report-case-picker.tsx:443:        <p className="mt-3 text-xs 
+leading-6 text-slate-500">
+  components\reports\new-report-case-picker.tsx:444:          {caseEntry.student.fullName}
+  components\reports\new-report-case-picker.tsx:445:          {caseEntry.student.grade ? ` 
+- ${caseEntry.student.grade}` : ""}
+  components\reports\new-report-case-picker.tsx:446:          {caseEntry.student.classroom
+  components\reports\new-report-case-picker.tsx:447:            ? ` - فصل 
+${caseEntry.student.classroom}`
+  components\reports\new-report-case-picker.tsx:448:            : ""}
+  components\reports\new-report-case-picker.tsx:449:        </p>
+  components\reports\new-report-case-picker.tsx:450:      ) : (
+  components\reports\new-report-case-picker.tsx:451:        <p className="mt-3 text-xs 
+text-amber-600">
+  components\reports\new-report-case-picker.tsx:452:          لا يوجد طالب مرتبط بهذه الحالة
+  components\reports\new-report-case-picker.tsx:453:        </p>
+  components\reports\new-report-case-picker.tsx:454:      )}
+  components\reports\new-report-case-picker.tsx:455:
+  components\reports\new-report-case-picker.tsx:456:      <div className="mt-3 flex 
+flex-wrap gap-2 text-[11px] font-bold text-slate-500">
+  components\reports\new-report-case-picker.tsx:457:        <span className="rounded-full 
+bg-slate-100 px-2 py-1">
+  components\reports\new-report-case-picker.tsx:458:          {caseEntry.valuesCount} قيمة
+  components\reports\new-report-case-picker.tsx:459:        </span>
+  components\reports\new-report-case-picker.tsx:460:
+  components\reports\new-report-case-picker.tsx:461:        <span className="rounded-full 
+bg-slate-100 px-2 py-1">
+  components\reports\new-report-case-picker.tsx:462:          {caseEntry.evidencesCount} 
+شاهد
+  components\reports\new-report-case-picker.tsx:463:        </span>
+  components\reports\new-report-case-picker.tsx:464:
+  components\reports\new-report-case-picker.tsx:465:        <span className="rounded-full 
+bg-slate-100 px-2 py-1">
+  components\reports\new-report-case-picker.tsx:466:          
+{formatDate(caseEntry.createdAt)}
+  components\reports\new-report-case-picker.tsx:467:        </span>
+  components\reports\new-report-case-picker.tsx:468:      </div>
+  components\reports\new-report-case-picker.tsx:469:    </button>
+  components\reports\new-report-case-picker.tsx:470:  );
+  components\reports\new-report-case-picker.tsx:471:}
+  components\reports\new-report-case-picker.tsx:708:      </div>
+  components\reports\new-report-case-picker.tsx:709:    </div>
+  components\reports\new-report-case-picker.tsx:710:  );
+  components\reports\new-report-case-picker.tsx:711:}
+  components\reports\new-report-case-picker.tsx:712:
+> components\reports\new-report-case-picker.tsx:713:function ReportCreationCard({
+> components\reports\new-report-case-picker.tsx:714:  selectedTemplate,
+> components\reports\new-report-case-picker.tsx:715:  selectedTemplateId,
+  components\reports\new-report-case-picker.tsx:716:  onTemplateChange,
+  components\reports\new-report-case-picker.tsx:717:  reportDataReady,
+  components\reports\new-report-case-picker.tsx:718:  creatingReport,
+  components\reports\new-report-case-picker.tsx:719:  createReportError,
+  components\reports\new-report-case-picker.tsx:720:  onCreateReport,
+  components\reports\new-report-case-picker.tsx:721:}: {
+> components\reports\new-report-case-picker.tsx:722:  selectedTemplate: 
+ReportTemplateChoice;
+> components\reports\new-report-case-picker.tsx:723:  selectedTemplateId: ReportTemplateId;
+  components\reports\new-report-case-picker.tsx:724:  onTemplateChange: (templateId: 
+ReportTemplateId) => void;
+  components\reports\new-report-case-picker.tsx:725:  reportDataReady: boolean;
+  components\reports\new-report-case-picker.tsx:726:  creatingReport: boolean;
+  components\reports\new-report-case-picker.tsx:727:  createReportError: string;
+  components\reports\new-report-case-picker.tsx:728:  onCreateReport: () => void;
+  components\reports\new-report-case-picker.tsx:729:}) {
+  components\reports\new-report-case-picker.tsx:730:  return (
+  components\reports\new-report-case-picker.tsx:731:    <section className="rounded-[2rem] 
+border border-amber-200 bg-amber-50 p-6 shadow-sm">
+  components\reports\new-report-case-picker.tsx:732:      <h2 className="text-lg font-black 
+text-amber-900">
+  components\reports\new-report-case-picker.tsx:733:        اختيار قالب التقرير
+  components\reports\new-report-case-picker.tsx:734:      </h2>
+  components\reports\new-report-case-picker.tsx:735:
+  components\reports\new-report-case-picker.tsx:736:      <p className="mt-2 text-sm 
+leading-7 text-amber-800">
+  components\reports\new-report-case-picker.tsx:737:        اختر القالب المناسب قبل إنشاء 
+التقرير. سيتم حفظ نسخة Snapshot من القالب
+  components\reports\new-report-case-picker.tsx:738:        والبيانات حتى يبقى التقرير 
+ثابتًا حتى لو تغيرت الحالة أو القالب لاحقًا.
+  components\reports\new-report-case-picker.tsx:739:      </p>
+  components\reports\new-report-case-picker.tsx:740:
+  components\reports\new-report-case-picker.tsx:741:      <div className="mt-5 grid gap-3 
+md:grid-cols-3">
+  components\reports\new-report-case-picker.tsx:742:        
+{REPORT_TEMPLATE_CHOICES.map((template) => {
+> components\reports\new-report-case-picker.tsx:743:          const active = template.id 
+=== selectedTemplateId;
+  components\reports\new-report-case-picker.tsx:744:
+  components\reports\new-report-case-picker.tsx:745:          return (
+  components\reports\new-report-case-picker.tsx:746:            <button
+  components\reports\new-report-case-picker.tsx:747:              key={template.id}
+  components\reports\new-report-case-picker.tsx:748:              type="button"
+  components\reports\new-report-case-picker.tsx:749:              onClick={() => 
+onTemplateChange(template.id)}
+  components\reports\new-report-case-picker.tsx:750:              className={[
+  components\reports\new-report-case-picker.tsx:751:                "rounded-3xl border p-4 
+text-right transition",
+  components\reports\new-report-case-picker.tsx:752:                active
+  components\reports\new-report-case-picker.tsx:753:                  ? "border-slate-900 
+bg-white shadow-sm"
+  components\reports\new-report-case-picker.tsx:754:                  : "border-amber-200 
+bg-amber-50 hover:bg-white",
+  components\reports\new-report-case-picker.tsx:755:              ].join(" ")}
+  components\reports\new-report-case-picker.tsx:756:            >
+  components\reports\new-report-case-picker.tsx:757:              <div className="flex 
+items-start justify-between gap-3">
+  components\reports\new-report-case-picker.tsx:758:                <strong 
+className="text-sm font-black text-slate-900">
+  components\reports\new-report-case-picker.tsx:759:                  {template.name}
+  components\reports\new-report-case-picker.tsx:760:                </strong>
+  components\reports\new-report-case-picker.tsx:761:
+  components\reports\new-report-case-picker.tsx:762:                <span
+  components\reports\new-report-case-picker.tsx:763:                  className={[
+  components\reports\new-report-case-picker.tsx:764:                    "rounded-full px-2 
+py-1 text-[11px] font-black",
+  components\reports\new-report-case-picker.tsx:765:                    active
+  components\reports\new-report-case-picker.tsx:766:                      ? "bg-slate-900 
+text-white"
+  components\reports\new-report-case-picker.tsx:767:                      : "bg-white 
+text-slate-500",
+  components\reports\new-report-case-picker.tsx:768:                  ].join(" ")}
+  components\reports\new-report-case-picker.tsx:769:                >
+  components\reports\new-report-case-picker.tsx:770:                  {active ? "مختار" : 
+template.badge}
+  components\reports\new-report-case-picker.tsx:771:                </span>
+  components\reports\new-report-case-picker.tsx:772:              </div>
+  components\reports\new-report-case-picker.tsx:773:
+  components\reports\new-report-case-picker.tsx:774:              <p className="mt-2 
+text-xs leading-6 text-slate-600">
+  components\reports\new-report-case-picker.tsx:775:                {template.description}
+  components\reports\new-report-case-picker.tsx:776:              </p>
+  components\reports\new-report-case-picker.tsx:777:
+  components\reports\new-report-case-picker.tsx:778:              <p className="mt-3 
+rounded-2xl bg-white/70 px-3 py-2 text-[11px] font-bold text-amber-800">
+  components\reports\new-report-case-picker.tsx:779:                الأنسب: 
+{template.bestFor}
+  components\reports\new-report-case-picker.tsx:780:              </p>
+  components\reports\new-report-case-picker.tsx:781:            </button>
+  components\reports\new-report-case-picker.tsx:782:          );
+  components\reports\new-report-case-picker.tsx:783:        })}
+  components\reports\new-report-case-picker.tsx:784:      </div>
+  components\reports\new-report-case-picker.tsx:785:
+  components\reports\new-report-case-picker.tsx:786:      <div className="mt-5 rounded-2xl 
+border border-amber-200 bg-white p-4">
+  components\reports\new-report-case-picker.tsx:787:        <p className="text-xs 
+font-black text-slate-500">
+  components\reports\new-report-case-picker.tsx:788:          القالب الذي سيتم حفظه في 
+التقرير
+  components\reports\new-report-case-picker.tsx:789:        </p>
+  components\reports\new-report-case-picker.tsx:790:
+  components\reports\new-report-case-picker.tsx:791:        <p className="mt-1 text-sm 
+font-black text-slate-900">
+> components\reports\new-report-case-picker.tsx:792:          {selectedTemplate.name}
+  components\reports\new-report-case-picker.tsx:793:        </p>
+  components\reports\new-report-case-picker.tsx:794:      </div>
+  components\reports\new-report-case-picker.tsx:795:
+  components\reports\new-report-case-picker.tsx:796:      {createReportError ? (
+  components\reports\new-report-case-picker.tsx:797:        <div className="mt-4 
+rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+  components\reports\new-report-case-picker.tsx:798:          {createReportError}
+  components\reports\new-report-case-picker.tsx:799:        </div>
+  components\reports\new-report-case-picker.tsx:800:      ) : null}
+  components\reports\new-report-case-picker.tsx:801:
+  components\reports\new-report-case-picker.tsx:802:      <button
+  components\reports\new-report-case-picker.tsx:803:        type="button"
+  components\reports\new-report-case-picker.tsx:804:        disabled={!reportDataReady || 
+creatingReport}
+  components\reports\new-report-case-picker.tsx:805:        onClick={onCreateReport}
+  components\reports\new-report-case-picker.tsx:806:        className="mt-5 rounded-2xl 
+bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 
+disabled:cursor-not-allowed disabled:opacity-50"
+  components\reports\new-report-case-picker.tsx:807:      >
+  components\reports\new-report-case-picker.tsx:808:        {creatingReport
+  components\reports\new-report-case-picker.tsx:809:          ? "جارٍ إنشاء التقرير..."
+  components\reports\new-report-case-picker.tsx:810:          : "إنشاء التقرير وفتح 
+المعاينة"}
+  components\reports\new-report-case-picker.tsx:811:      </button>
+  components\reports\new-report-case-picker.tsx:812:    </section>
+  components\reports\new-report-case-picker.tsx:813:  );
+  components\reports\new-report-case-picker.tsx:814:}
+  components\reports\new-report-case-picker.tsx:815:
+  components\reports\new-report-case-picker.tsx:816:function InfoBox({ label, value }: { 
+label: string; value: string }) {
+  components\reports\new-report-case-picker.tsx:817:  return (
+  components\reports\new-report-case-picker.tsx:818:    <div className="rounded-2xl border 
+border-slate-200 bg-white px-4 py-3">
+  components\reports\new-report-case-picker.tsx:819:      <p className="text-xs font-black 
+text-slate-500">{label}</p>
+  components\reports\new-report-case-picker.tsx:820:      <p className="mt-1 line-clamp-1 
+text-sm font-black text-slate-900">
+  components\reports\new-report-case-picker.tsx:821:        {value}
+  components\reports\new-report-case-picker.tsx:822:      </p>
+  components\reports\new-report-case-picker.tsx:823:    </div>
+  components\reports\new-report-case-picker.tsx:824:  );
+  components\reports\new-report-case-picker.tsx:825:}
+  components\reports\new-report-case-picker.tsx:826:
+  components\reports\new-report-case-picker.tsx:827:function formatDate(value: string) {
+  components\reports\new-report-case-picker.tsx:828:  try {
+  components\reports\new-report-case-picker.tsx:829:    return new 
+Date(value).toLocaleDateString("ar-SA");
+  components\reports\new-report-case-picker.tsx:830:  } catch {
+  components\reports\new-report-case-picker.tsx:831:    return value;
+  components\reports\new-report-case-picker.tsx:832:  }
+  components\reports\new-report-case-picker.tsx:833:}
+
+
+

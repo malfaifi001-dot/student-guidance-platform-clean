@@ -1,4 +1,9 @@
-import { prisma } from "@/lib/prisma";
+﻿const fs = require("fs");
+
+const path = "app/dashboard/reports/new/page.tsx";
+let content = fs.readFileSync(path, "utf8");
+
+const newContent = `import { prisma } from "@/lib/prisma";
 import { NewReportCasePicker } from "@/components/reports/new-report-case-picker";
 
 type NewReportPageProps = {
@@ -122,8 +127,8 @@ export default async function NewReportPage({
         serviceSlug: template.serviceSlug || templateJson?.serviceSlug || null,
         scope:
           templateJson?.scope === "SERVICE" || template.serviceSlug
-            ? ("SERVICE" as const)
-            : ("GLOBAL" as const),
+            ? "SERVICE"
+            : "GLOBAL",
         status,
         pagesCount: Array.isArray(templateJson?.pages)
           ? templateJson.pages.length
@@ -142,3 +147,8 @@ export default async function NewReportPage({
     </main>
   );
 }
+`;
+
+fs.writeFileSync(path, newContent, "utf8");
+
+console.log("تم تحديث صفحة إنشاء التقرير لجلب القوالب المنشورة وتمريرها للموجه.");
