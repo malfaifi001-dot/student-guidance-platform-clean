@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseResultsExcel } from "@/lib/results-analysis/results-analysis-parser";
 import { analyzeStudentResults } from "@/engine/results-analysis/results-analysis-engine";
+import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 
 type ResultRowWithSource = {
   id: string;
@@ -20,6 +21,10 @@ type ResultRowWithSource = {
 };
 
 export async function POST(request: Request) {
+  // subscription-api-guard:POST:requireServiceAccessApi("results-analysis")
+  const subscriptionGuard = await requireServiceAccessApi("results-analysis");
+  if (subscriptionGuard) return subscriptionGuard;
+
   try {
     const formData = await request.formData();
 

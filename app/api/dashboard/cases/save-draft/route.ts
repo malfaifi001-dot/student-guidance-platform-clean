@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { saveRuntimeCase } from "@/engine/cases/case-runtime-engine";
+import { logCaseSavedEvent } from "@/lib/admin/activity-events";
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +18,25 @@ export async function POST(request: Request) {
       status: "DRAFT",
     });
 
-    return NextResponse.json({
+    
+    // audit-log:case-draft-saved
+    await logCaseSavedEvent({
+      caseId: result.id,
+      status: "DRAFT",
+      title: body.title || null,
+      workflowId: body.workflowId || null,
+      serviceId: body.serviceId || null,
+      studentId: body.studentId || null,
+      valueCount:
+        body.values && typeof body.values === "object"
+          ? Object.keys(body.values).length
+          : 0,
+      evidenceCount: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
       message: "تم حفظ المسودة بنجاح.",
       caseId: result.id,
     });

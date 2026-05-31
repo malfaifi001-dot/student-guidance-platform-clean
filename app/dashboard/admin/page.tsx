@@ -1,6 +1,7 @@
 ﻿import { AdminCommandCenter } from "@/components/admin/admin-command-center";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
+import { AdminActivityMetricsPanel } from "@/components/admin/admin-activity-metrics-panel";
 
 export default async function AdminDashboardPage() {
   const current = await requireDashboardUser();
@@ -85,7 +86,9 @@ export default async function AdminDashboardPage() {
   const draftWorkflows = 0;
 
   return (
-    <AdminCommandCenter
+    <div className="space-y-5">
+      <AdminActivityMetricsPanel />
+      <AdminCommandCenter
       adminName={current.user.officialName || current.user.name || "الأدمن"}
       stats={{
         schools,
@@ -103,5 +106,6 @@ export default async function AdminDashboardPage() {
         incompleteSchoolProfiles,
       }}
     />
+    </div>
   );
 }

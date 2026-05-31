@@ -596,6 +596,11 @@ model BankTransferRequest {
   status          PaymentStatus @default(PENDING)
   adminNote       String?
 
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -899,4 +904,64 @@ model CaseEvidence {
   createdAt DateTime @default(now())
 
   @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  startsAt   DateTime?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
 }

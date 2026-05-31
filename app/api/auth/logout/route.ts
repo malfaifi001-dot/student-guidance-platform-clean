@@ -1,38 +1,66 @@
 ﻿import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { logAuthLogoutEvent } from "@/lib/admin/activity-events";
 
 export async function POST() {
-  const cookieStore = await cookies();
-  const session = verifySessionToken(
-    cookieStore.get(SESSION_COOKIE_NAME)?.value
-  );
+  const current = await getCurrentSessionUser();
+  const currentSession = current as
+    | {
+        tokenId?: string | null;
+        user?: {
+          id: string;
+          email?: string | null;
+          schoolAccountId?: string | null;
+        };
+      }
+    | null;
 
-  if (session?.tokenId) {
-    await prisma.userSession.updateMany({
-      where: {
-        tokenId: session.tokenId,
-      },
-      data: {
-        isActive: false,
-        revokedAt: new Date(),
-      },
+  if (currentSession?.user?.id) {
+    await logAuthLogoutEvent({
+      userId: currentSession.user.id,
+      schoolAccountId: currentSession.user.schoolAccountId || null,
+      email: currentSession.user.email || null,
     });
+
+    if (currentSession.tokenId) {
+      await prisma.userSession.updateMany({
+        where: {
+          tokenId: currentSession.tokenId,
+          isActive: true,
+        },
+        data: {
+          isActive: false,
+          revokedAt: new Date(),
+        },
+      });
+    } else {
+      await prisma.userSession.updateMany({
+        where: {
+          userId: currentSession.user.id,
+          isActive: true,
+        },
+        data: {
+          isActive: false,
+          revokedAt: new Date(),
+        },
+      });
+    }
   }
 
-  const response = NextResponse.json({
-    success: true,
-    redirectTo: "/login",
-  });
+  const cookieStore = await cookies();
 
-  response.cookies.set(SESSION_COOKIE_NAME, "", {
+  cookieStore.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 0,
+    expires: new Date(0),
   });
 
-  return response;
+  return NextResponse.json({
+    message: "تم تسجيل الخروج.",
+  });
 }

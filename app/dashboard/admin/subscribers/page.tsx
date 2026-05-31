@@ -1,0 +1,13 @@
+﻿import { AdminSubscribersCenter } from "@/components/subscription/admin-subscribers-center";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { redirect } from "next/navigation";
+
+export default async function AdminSubscribersPage() {
+  const current = await requireDashboardUser();
+
+  if (current.user.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
+
+  return <AdminSubscribersCenter />;
+}

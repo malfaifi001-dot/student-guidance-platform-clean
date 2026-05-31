@@ -1,5 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 
 type RouteContext = {
   params: Promise<{
@@ -15,6 +16,10 @@ type EvidencePayloadItem = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
+  // subscription-api-guard:PATCH:requireActiveSubscriptionApi()
+  const subscriptionGuard = await requireActiveSubscriptionApi();
+  if (subscriptionGuard) return subscriptionGuard;
+
   try {
     const { reportId } = await context.params;
     const body = await request.json();

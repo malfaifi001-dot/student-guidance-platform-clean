@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { logReportCreatedEvent } from "@/lib/admin/activity-events";
 import {
   mapCaseEntryToReportData,
   type ReportMappedCase,
@@ -140,6 +142,10 @@ ${evidencesLines}
 }
 
 export async function POST(request: Request) {
+  // subscription-api-guard:POST:requireActiveSubscriptionApi()
+  const subscriptionGuard = await requireActiveSubscriptionApi();
+  if (subscriptionGuard) return subscriptionGuard;
+
   try {
     const body = (await request.json()) as CreateReportBody;
 
@@ -238,7 +244,20 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({
+    
+    // audit-log:report-created
+    await logReportCreatedEvent({
+      reportId: report.id,
+      caseEntryId: reportData.id,
+      title: report.title,
+      templateId,
+      serviceSlug: reportData.service.slug,
+      evidenceCount: Array.isArray(report.evidenceItems)
+        ? report.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
       success: true,
       reportId: report.id,
       previewUrl: `/dashboard/reports/${report.id}/preview?template=${templateId}`,

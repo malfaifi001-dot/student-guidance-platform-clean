@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
+import { logEvidenceUploadedEvent } from "@/lib/admin/activity-events";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,20 @@ export async function POST(request: Request) {
       fileUrl: `/uploads/evidence/${storedName}`,
       mimeType: file.type || "application/octet-stream",
       size: file.size,
+    });
+  }
+
+  
+  // audit-log:evidence-uploaded
+  if (uploadedItems.length > 0) {
+    await logEvidenceUploadedEvent({
+      itemsCount: uploadedItems.length,
+      totalSizeBytes: uploadedItems.reduce(
+        (sum, item) => sum + (Number(item.size) || 0),
+        0
+      ),
+      fileNames: uploadedItems.map((item) => item.fileName),
+      source: "dashboard-evidence-upload",
     });
   }
 
