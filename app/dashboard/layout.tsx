@@ -17,7 +17,7 @@ export default async function DashboardLayout({
         <DashboardSidebar />
 
         <main className="min-w-0 flex-1">
-          <DashboardHeader />
+          <DashboardHeader user={current.user} />
 
           <DashboardOnboardingReminder
             onboardingCompleted={current.user.onboardingCompleted}

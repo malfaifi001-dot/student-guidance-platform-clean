@@ -9,6 +9,7 @@ import {
   Settings,
   ShieldCheck,
   Users,
+  UserRound,
 } from "lucide-react";
 import { dashboardServices } from "@/lib/constants/services";
 import { cn } from "@/lib/utils";
