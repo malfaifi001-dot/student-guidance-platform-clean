@@ -1,4 +1,9 @@
 import type { ReportSection } from "@/lib/report-engine/report-types";
+import {
+  renderSmartTemplate,
+  resolveSmartTextTemplateSet,
+  type SmartTextVariableMap,
+} from "@/lib/report-engine/report-smart-text-library";
 
 export type SmartReportValue = {
   fieldKey: string;
@@ -16,79 +21,30 @@ export type SmartReportTextInput = {
   evidenceCount?: number;
 };
 
-type TextTemplateContext = {
-  serviceName: string;
-  reportTitle: string;
-  programTitle: string;
-  executionDate: string;
-  targetGroup: string;
-  day: string;
-  week: string;
-  semester: string;
-  action: string;
-  mechanism: string;
-  indicator: string;
-  evidenceSuggestion: string;
-  operation: string;
-  evidenceCount: string;
-  dayText: string;
-  semesterWeekText: string;
-};
-
-const GUIDANCE_PROGRAM_TEXT_TEMPLATES = {
-  intro:
-    'تم إعداد هذا التقرير لتوثيق تنفيذ برنامج إرشادي بعنوان "{programTitle}" ضمن خدمة {serviceName}. وقد تم تنفيذ البرنامج بتاريخ {executionDate}{dayText}، مستهدفًا {targetGroup}. ويأتي هذا التنفيذ ضمن {semesterWeekText}.',
-
-  execution:
-    'تم تنفيذ البرنامج من خلال الإجراء التالي: "{action}". وتمت آلية التنفيذ عبر "{mechanism}". كما تم اعتماد مؤشر قياس الأداء التالي لمتابعة أثر التنفيذ: "{indicator}".',
-
-  evidence:
-    'تم توثيق تنفيذ البرنامج من خلال الشواهد والمرفقات المرتبطة بالحالة. وتشمل الشواهد المقترحة أو المستخدمة: "{evidenceSuggestion}". ويبلغ عدد الشواهد المرفقة في التقرير {evidenceCount}.',
-
-  recommendation:
-    "يوصى بالاستفادة من نتائج هذا البرنامج في متابعة أثره على الفئة المستهدفة، وتوثيق الملاحظات التطويرية، وربط الشواهد بنتائج التنفيذ بما يساعد على تحسين جودة البرامج الإرشادية القادمة.",
-};
-
 export function buildSmartReportTextSections(
   input: SmartReportTextInput
 ): ReportSection[] {
-  const context = buildTemplateContext(input);
+  const variables = buildSmartTextVariables(input);
+  const templateSet = resolveSmartTextTemplateSet(input.serviceName);
 
-  const sections: ReportSection[] = [
-    {
-      id: "smart-intro",
-      title: "وصف التقرير",
-      content: renderTemplate(GUIDANCE_PROGRAM_TEXT_TEMPLATES.intro, context),
-    },
-    {
-      id: "smart-execution",
-      title: "ملخص التنفيذ",
-      content: renderTemplate(
-        GUIDANCE_PROGRAM_TEXT_TEMPLATES.execution,
-        context
-      ),
-    },
-    {
-      id: "smart-evidence",
-      title: "توثيق الشواهد",
-      content: renderTemplate(GUIDANCE_PROGRAM_TEXT_TEMPLATES.evidence, context),
-    },
-    {
-      id: "smart-recommendation",
-      title: "توصية ختامية",
-      content: renderTemplate(
-        GUIDANCE_PROGRAM_TEXT_TEMPLATES.recommendation,
-        context
-      ),
-    },
-  ];
-
-  return sections.filter((section) => {
-    return typeof section.content === "string" && section.content.trim().length > 0;
-  });
+  return templateSet.sections
+    .filter((template) => {
+      if (!template.when) return true;
+      return template.when(variables);
+    })
+    .map((template) => ({
+      id: template.id,
+      title: template.title,
+      content: renderSmartTemplate(template.body, variables),
+    }))
+    .filter((section) => {
+      return typeof section.content === "string" && section.content.trim().length > 0;
+    });
 }
 
-function buildTemplateContext(input: SmartReportTextInput): TextTemplateContext {
+export function buildSmartTextVariables(
+  input: SmartReportTextInput
+): SmartTextVariableMap {
   const day = findValueByKeys(input.reportValues, ["day", "اليوم"]);
 
   const week = findValueByKeys(input.reportValues, [
@@ -103,21 +59,21 @@ function buildTemplateContext(input: SmartReportTextInput): TextTemplateContext 
     "الفصل الدراسي",
   ]);
 
-  const action = findValueByKeys(input.reportValues, [
+  const executionAction = findValueByKeys(input.reportValues, [
     "execution_action",
     "action",
     "الإجراء",
     "الاجراء",
   ]);
 
-  const mechanism = findValueByKeys(input.reportValues, [
+  const executionMechanism = findValueByKeys(input.reportValues, [
     "execution_mechanism",
     "mechanism",
     "آلية",
     "الية",
   ]);
 
-  const indicator = findValueByKeys(input.reportValues, [
+  const performanceIndicator = findValueByKeys(input.reportValues, [
     "performance_indicator",
     "indicator",
     "مؤشر",
@@ -137,47 +93,38 @@ function buildTemplateContext(input: SmartReportTextInput): TextTemplateContext 
     "العملية",
   ]);
 
-  const finalDay = day || "";
-  const finalWeek = week || "";
-  const finalSemester = semester || "";
-
-  const dayText = finalDay ? `، الموافق يوم ${finalDay}` : "";
-
   const semesterWeekText =
-    finalSemester && finalWeek
-      ? `${finalSemester}، ${finalWeek}`
-      : finalSemester || finalWeek || "الخطة الزمنية المعتمدة";
+    semester && week
+      ? `${semester}، ${week}`
+      : semester || week || "الخطة الزمنية المعتمدة";
+
+  const dayText = day ? `، الموافق يوم ${day}` : "";
 
   return {
-    serviceName: input.serviceName || "الخدمة الإرشادية",
-    reportTitle: input.reportTitle || "تقرير إرشادي",
-    programTitle: input.programTitle || input.reportTitle || "برنامج إرشادي",
-    executionDate: input.executionDate || "تاريخ غير محدد",
-    targetGroup: input.targetGroup || "الفئة المستهدفة",
-    day: finalDay,
-    week: finalWeek,
-    semester: finalSemester,
-    action: action || "إجراء تنفيذي موثق",
-    mechanism: mechanism || "آلية تنفيذ موثقة",
-    indicator: indicator || "مؤشر قياس أداء",
-    evidenceSuggestion: evidenceSuggestion || "الشواهد والمرفقات المرتبطة",
-    operation: operation || "حفظ وتوثيق",
-    evidenceCount:
-      typeof input.evidenceCount === "number"
-        ? `${input.evidenceCount} شاهد`
-        : "الشواهد المرفقة",
+    serviceName: cleanText(input.serviceName) || "الخدمة الإرشادية",
+    reportTitle: cleanText(input.reportTitle) || "تقرير إرشادي",
+    programTitle:
+      cleanText(input.programTitle) ||
+      cleanText(input.reportTitle) ||
+      "برنامج إرشادي",
+
+    executionDate: cleanText(input.executionDate) || "تاريخ غير محدد",
+    targetGroup: cleanText(input.targetGroup) || "الفئة المستهدفة",
+
+    day,
+    week,
+    semester,
     dayText,
     semesterWeekText,
-  };
-}
 
-function renderTemplate(
-  template: string,
-  context: Record<string, string>
-): string {
-  return template.replace(/\{([^}]+)\}/g, (_, key: string) => {
-    return context[key] || "";
-  });
+    executionAction: executionAction || "إجراء تنفيذي موثق",
+    executionMechanism: executionMechanism || "آلية تنفيذ موثقة",
+    performanceIndicator,
+    evidenceSuggestion: evidenceSuggestion || "الشواهد والمرفقات المرتبطة",
+    operation: operation || "حفظ وتوثيق",
+
+    evidenceCountText: formatEvidenceCount(input.evidenceCount),
+  };
 }
 
 function findValueByKeys(items: SmartReportValue[], keys: string[]) {
@@ -192,7 +139,37 @@ function findValueByKeys(items: SmartReportValue[], keys: string[]) {
     );
   });
 
-  return found?.displayValue?.trim() || "";
+  return cleanText(found?.displayValue || "");
+}
+
+function formatEvidenceCount(count?: number) {
+  if (typeof count !== "number") {
+    return "الشواهد المتاحة";
+  }
+
+  if (count <= 0) {
+    return "0 شاهد";
+  }
+
+  if (count === 1) {
+    return "شاهد واحد";
+  }
+
+  if (count === 2) {
+    return "شاهدان";
+  }
+
+  if (count >= 3 && count <= 10) {
+    return `${count} شواهد`;
+  }
+
+  return `${count} شاهد`;
+}
+
+function cleanText(value?: string | null) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeSearchText(value: string) {

@@ -1,902 +1,827 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type {
   ReportTemplateBlock,
   ReportTemplateBuilderModel,
-  ReportTemplatePage,
+  ReportTextSnippet,
 } from "@/lib/report-engine/report-template-builder-types";
 import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
 import {
-  sampleOfficialReportData,
-  sampleReportIdentity,
-} from "@/lib/report-engine/sample-report-data";
+  resolveTextLibraryFallback,
+  resolveTextLibrarySnippets,
+  type RuntimeReportData,
+} from "@/lib/report-engine/report-text-library-runtime";
 
 type ReportTemplateLivePreviewProps = {
   template: ReportTemplateBuilderModel;
-  previewCaseData?: RuntimePreviewCaseData | null;
+  snippets: ReportTextSnippet[];
+  previewCaseData: RuntimePreviewCaseData | null;
+};
+
+type RuntimeValueItem = {
+  fieldKey?: string | null;
+  fieldLabel?: string | null;
+  value?: string | null;
+};
+
+type RuntimeEvidenceItem = {
+  id?: string | null;
+  title?: string | null;
+  fileName?: string | null;
+  fileUrl?: string | null;
+  imageUrl?: string | null;
+  mimeType?: string | null;
+  caption?: string | null;
+  description?: string | null;
 };
 
 export function ReportTemplateLivePreview({
   template,
+  snippets,
   previewCaseData,
 }: ReportTemplateLivePreviewProps) {
-  const missingRequirements = getTemplateMissingRequirements(template);
-
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-black text-slate-900">
-            معاينة القالب
+          <h2 className="text-xl font-black text-slate-900">
+            المعاينة الحية للقالب
           </h2>
 
           <p className="mt-1 text-sm leading-7 text-slate-500">
-            المعاينة تقرأ صفحات وبلوكات القالب مباشرة. إذا أدخلت Case ID صحيح
-            ستستخدم بيانات الحالة الحقيقية، وإذا لم توجد بيانات ستعود للبيانات
-            التجريبية.
+            هذه المعاينة تقرأ صفحات القالب وبلوكاته، وتستخدم بيانات Case ID إن
+            وجدت، وتعرض نصوص مكتبة النصوص حسب إعدادات بلوك النصوص.
           </p>
         </div>
 
-        <div className="rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
-          {previewCaseData ? "معاينة حقيقية" : "معاينة تجريبية"}
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
+          {previewCaseData ? "معاينة من Case حقيقي" : "معاينة ببيانات تجريبية"}
         </div>
       </div>
 
-      {missingRequirements.length ? (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-black text-amber-900">
-            تقرير نقص البيانات/البنية
-          </h3>
+      <div className="mt-5 space-y-6">
+        {template.pages.map((page, pageIndex) => (
+          <article
+            key={page.id}
+            className="mx-auto min-h-[720px] max-w-[820px] overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 shadow-sm"
+          >
+            <div className="border-b border-slate-200 bg-white px-6 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black text-emerald-700">
+                    صفحة {pageIndex + 1}
+                  </p>
 
-          <ul className="mt-2 space-y-1 text-xs leading-6 text-amber-800">
-            {missingRequirements.map((item) => (
-              <li key={item}>• {item}</li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800">
-          القالب مكتمل من ناحية البنية الأساسية.
-        </div>
-      )}
+                  <h3 className="mt-1 text-lg font-black text-slate-900">
+                    {page.title}
+                  </h3>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[260px_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-sm font-black text-slate-900">
-            بنية القالب
-          </h3>
-
-          <p className="mt-1 text-xs leading-6 text-slate-500">
-            عدد الصفحات والبلوكات الحالية.
-          </p>
-
-          <div className="mt-4 space-y-3">
-            {template.pages.map((page, index) => (
-              <div
-                key={page.id}
-                className="rounded-2xl border border-slate-200 bg-white p-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <strong className="text-sm text-slate-900">
-                    {index + 1}. {page.title}
-                  </strong>
-
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
-                    {page.kind}
-                  </span>
+                  <p className="mt-1 text-xs leading-6 text-slate-500">
+                    {page.description}
+                  </p>
                 </div>
 
-                <p className="mt-2 text-xs leading-6 text-slate-500">
-                  {page.blocks.length} بلوك
-                </p>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">
+                  {getPageKindLabel(page.kind)}
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-          <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-            <p className="text-xs font-bold text-slate-500">
-              معاينة مصغرة لصفحات A4 حسب البلوكات
-            </p>
-
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500">
-              {template.pages.length} صفحات
-            </span>
-          </div>
-
-          <div className="preview-scale-area">
-            <div className="preview-scale-inner" dir="rtl">
-              {template.pages.map((page, pageIndex) => (
-                <PreviewA4Page
-                  key={page.id}
-                  page={page}
-                  pageIndex={pageIndex}
-                  previewCaseData={previewCaseData}
-                />
-              ))}
             </div>
-          </div>
-        </div>
+
+            <div
+              className={[
+                "min-h-[640px] bg-white p-8",
+                page.kind === "cover" ? "flex flex-col justify-between" : "",
+              ].join(" ")}
+            >
+              {page.kind === "cover" ? (
+                <CoverPreviewHeader template={template} pageTitle={page.title} />
+              ) : null}
+
+              <div className="space-y-5">
+                {page.blocks.length ? (
+                  page.blocks.map((block) => (
+                    <PreviewBlock
+                      key={block.id}
+                      block={block}
+                      template={template}
+                      snippets={snippets}
+                      previewCaseData={previewCaseData}
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <p className="text-sm font-bold text-slate-500">
+                      لا توجد بلوكات في هذه الصفحة.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {page.kind === "cover" ? (
+                <CoverPreviewFooter template={template} />
+              ) : null}
+            </div>
+          </article>
+        ))}
       </div>
-
-      <style>{`
-        .preview-scale-area {
-          height: 650px;
-          overflow: auto;
-          background:
-            linear-gradient(45deg, rgba(15, 81, 50, 0.04), transparent),
-            #f8fafc;
-          padding: 18px;
-        }
-
-        .preview-scale-inner {
-          width: max-content;
-          transform: scale(0.42);
-          transform-origin: top right;
-        }
-
-        .preview-a4-page {
-          width: 210mm;
-          height: 297mm;
-          min-height: 297mm;
-          max-height: 297mm;
-          box-sizing: border-box;
-          margin-bottom: 28px;
-          padding: 16mm 18mm 12mm;
-          background: white;
-          box-shadow: 0 12px 36px rgba(15, 23, 42, 0.14);
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          gap: 10mm;
-          position: relative;
-          font-family: Tajawal, Cairo, Arial, sans-serif;
-        }
-
-        .preview-page-body {
-          flex: 1;
-          min-height: 0;
-          overflow: hidden;
-          display: grid;
-          align-content: start;
-          gap: 14px;
-        }
-
-        .preview-page-body.cover-body {
-          align-content: center;
-          justify-items: center;
-          text-align: center;
-          gap: 18px;
-        }
-
-        .preview-page-body.cover-body.top {
-          align-content: start;
-          padding-top: 28mm;
-        }
-
-        .preview-header {
-          border-radius: 24px;
-          border: 1px solid #d9e7df;
-          background:
-            linear-gradient(135deg, rgba(15, 81, 50, 0.08), #fff),
-            #fff;
-          padding: 16px 20px;
-          display: grid;
-          grid-template-columns: 96px 1fr 96px;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .preview-header-logo {
-          height: 62px;
-          border-radius: 18px;
-          border: 1px solid #d9e7df;
-          background: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-        }
-
-        .preview-header-logo img {
-          width: 74px;
-          height: 52px;
-          object-fit: contain;
-        }
-
-        .preview-header-text {
-          text-align: center;
-          line-height: 1.6;
-        }
-
-        .preview-header-text strong {
-          display: block;
-          color: #0f5132;
-          font-size: 17px;
-        }
-
-        .preview-header-text span {
-          display: block;
-          color: #667085;
-          font-size: 12px;
-        }
-
-        .preview-footer {
-          border-top: 3px solid #0f5132;
-          padding-top: 8px;
-          display: flex;
-          justify-content: space-between;
-          color: #667085;
-          font-size: 11px;
-        }
-
-        .preview-section-title {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 10px;
-        }
-
-        .preview-section-title span {
-          width: 8px;
-          height: 28px;
-          border-radius: 999px;
-          background: #0f5132;
-        }
-
-        .preview-section-title h4 {
-          margin: 0;
-          color: #0f5132;
-          font-size: 18px;
-        }
-
-        .preview-card {
-          border: 1px solid #d9e7df;
-          border-radius: 20px;
-          background: #fff;
-          padding: 16px;
-        }
-
-        .preview-card.highlight {
-          background: linear-gradient(135deg, #eef8f2, #fff);
-        }
-
-        .preview-card.plain {
-          border-color: transparent;
-          padding: 4px 0;
-        }
-
-        .preview-card h3 {
-          margin: 0 0 8px;
-          color: #0f5132;
-          font-size: 18px;
-        }
-
-        .preview-card p {
-          margin: 0;
-          color: #475467;
-          line-height: 2;
-          font-size: 14px;
-        }
-
-        .preview-cover-title {
-          max-width: 75%;
-          margin: auto;
-          text-align: center;
-        }
-
-        .preview-cover-title .badge {
-          display: inline-flex;
-          border-radius: 999px;
-          background: #eef8f2;
-          border: 1px solid #d9e7df;
-          color: #0f5132;
-          font-weight: 900;
-          padding: 8px 18px;
-          margin-bottom: 20px;
-          font-size: 14px;
-        }
-
-        .preview-cover-title h1 {
-          margin: 0;
-          color: #0f5132;
-          font-size: 34px;
-          line-height: 1.6;
-        }
-
-        .preview-cover-title h2 {
-          margin: 12px 0 0;
-          color: #18251f;
-          font-size: 22px;
-          line-height: 1.8;
-        }
-
-        .preview-cover-title p {
-          margin: 18px auto 0;
-          color: #667085;
-          line-height: 2;
-          font-size: 15px;
-        }
-
-        .preview-meta-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-
-        .preview-meta-grid.one-column {
-          grid-template-columns: 1fr;
-        }
-
-        .preview-meta-item {
-          border: 1px solid #d9e7df;
-          border-radius: 14px;
-          padding: 10px 12px;
-          display: flex;
-          justify-content: space-between;
-          gap: 12px;
-          background: #fff;
-        }
-
-        .preview-meta-item span {
-          color: #667085;
-          font-size: 12px;
-        }
-
-        .preview-meta-item strong {
-          color: #18251f;
-          font-size: 13px;
-        }
-
-        .preview-evidence-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 14px;
-        }
-
-        .preview-evidence-grid.stacked {
-          grid-template-columns: 1fr;
-        }
-
-        .preview-evidence-card {
-          border: 1px solid #d9e7df;
-          border-radius: 20px;
-          padding: 10px;
-          background: #fff;
-        }
-
-        .preview-evidence-frame {
-          height: 55mm;
-          border-radius: 16px;
-          overflow: hidden;
-          background: #f8faf9;
-        }
-
-        .preview-evidence-frame img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-
-        .preview-evidence-frame.contain img {
-          object-fit: contain;
-        }
-
-        .preview-evidence-caption {
-          margin-top: 8px;
-          color: #0f5132;
-          font-size: 13px;
-          font-weight: 900;
-        }
-
-        .preview-approval-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr 0.8fr;
-          gap: 12px;
-        }
-
-        .preview-approval-box {
-          border: 1px solid #d9e7df;
-          border-radius: 18px;
-          background: #fff;
-          padding: 14px;
-          display: grid;
-          gap: 8px;
-        }
-
-        .preview-approval-box span {
-          color: #667085;
-          font-size: 12px;
-        }
-
-        .preview-approval-box strong {
-          color: #18251f;
-          font-size: 14px;
-        }
-
-        .preview-empty-block {
-          border: 1px dashed #cbd5e1;
-          border-radius: 18px;
-          background: #f8fafc;
-          padding: 18px;
-          text-align: center;
-          color: #64748b;
-          font-size: 13px;
-        }
-      `}</style>
     </section>
   );
-}
-
-function PreviewA4Page({
-  page,
-  pageIndex,
-  previewCaseData,
-}: {
-  page: ReportTemplatePage;
-  pageIndex: number;
-  previewCaseData?: RuntimePreviewCaseData | null;
-}) {
-  const hasIdentityHeader = page.blocks.some(
-    (block) => block.kind === "identity-header"
-  );
-
-  const hasApprovalSignature = page.blocks.some(
-    (block) => block.kind === "approval-signature"
-  );
-
-  const isCover = page.kind === "cover";
-
-  const coverSettings = page.coverSettings || {
-    showHeader: true,
-    showFooter: true,
-    titlePosition: "center",
-    showDescription: true,
-    showMetaChips: true,
-    visualStyle: "official",
-  };
-
-  const showHeader = isCover
-    ? coverSettings.showHeader !== false
-    : hasIdentityHeader;
-
-  const showFooter = isCover
-    ? coverSettings.showFooter !== false
-    : !hasApprovalSignature;
-
-  return (
-    <section className="preview-a4-page">
-      {showHeader && hasIdentityHeader ? <PreviewHeader /> : null}
-
-      <div
-        className={
-          isCover
-            ? `preview-page-body cover-body ${
-                coverSettings.titlePosition === "top" ? "top" : ""
-              }`
-            : "preview-page-body"
-        }
-      >
-        {!isCover ? (
-          <div className="preview-section-title">
-            <span />
-            <h4>
-              {pageIndex + 1}. {page.title}
-            </h4>
-          </div>
-        ) : null}
-
-        {page.blocks.length ? (
-          page.blocks.map((block) => (
-            <PreviewBlock
-              key={block.id}
-              block={block}
-              isCover={isCover}
-              coverSettings={coverSettings}
-              previewCaseData={previewCaseData}
-            />
-          ))
-        ) : (
-          <div className="preview-empty-block">
-            هذه الصفحة لا تحتوي على بلوكات بعد.
-          </div>
-        )}
-      </div>
-
-      {showFooter ? <PreviewFooter /> : null}
-    </section>
-  );
-}
-
-function PreviewHeader() {
-  return (
-    <header className="preview-header">
-      <div className="preview-header-logo">
-        {sampleReportIdentity.schoolLogoUrl ? (
-          <img src={sampleReportIdentity.schoolLogoUrl} alt="شعار المدرسة" />
-        ) : null}
-      </div>
-
-      <div className="preview-header-text">
-        <strong>{sampleReportIdentity.ministryName}</strong>
-        <span>{sampleReportIdentity.educationDepartment}</span>
-        <span>{sampleReportIdentity.educationOffice}</span>
-        <strong>{sampleReportIdentity.schoolName}</strong>
-      </div>
-
-      <div className="preview-header-logo">
-        {sampleReportIdentity.ministryLogoUrl ? (
-          <img src={sampleReportIdentity.ministryLogoUrl} alt="شعار الوزارة" />
-        ) : null}
-      </div>
-    </header>
-  );
-}
-
-function PreviewFooter() {
-  return (
-    <footer className="preview-footer">
-      <span>{sampleReportIdentity.schoolName}</span>
-      <span>
-        {sampleReportIdentity.academicYear} - {sampleReportIdentity.semester}
-      </span>
-      <span>صفحة</span>
-    </footer>
-  );
-}
-
-function getRuntimeValue(
-  previewCaseData: RuntimePreviewCaseData | null | undefined,
-  fieldKey: string | undefined,
-  fallback: string
-) {
-  if (!previewCaseData || !fieldKey) {
-    return fallback;
-  }
-
-  const exactValue = previewCaseData.values.find(
-    (item) => item.fieldKey === fieldKey
-  );
-
-  return exactValue?.value || fallback;
-}
-
-function getEvidenceImageSource(evidence: {
-  imageUrl?: string;
-  fileUrl?: string;
-}) {
-  return evidence.imageUrl || evidence.fileUrl || "";
 }
 
 function PreviewBlock({
   block,
-  isCover,
-  coverSettings,
+  template,
+  snippets,
   previewCaseData,
 }: {
   block: ReportTemplateBlock;
-  isCover: boolean;
-  coverSettings?: ReportTemplatePage["coverSettings"];
-  previewCaseData?: RuntimePreviewCaseData | null;
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  previewCaseData: RuntimePreviewCaseData | null;
 }) {
-  const cardClass =
-    block.settings?.style === "highlight"
-      ? "preview-card highlight"
-      : block.settings?.style === "plain"
-        ? "preview-card plain"
-        : "preview-card";
-
-  const runtimeTitle =
-    previewCaseData?.title || sampleOfficialReportData.title;
-
-  const runtimeServiceName =
-    previewCaseData?.serviceName || sampleOfficialReportData.serviceName;
-
-  const runtimeFieldValue = getRuntimeValue(
-    previewCaseData,
-    block.source.fieldKey,
-    sampleOfficialReportData.cover.shortDescription ||
-      sampleOfficialReportData.sections[0]?.content ||
-      "لا توجد بيانات."
-  );
-
-  switch (block.kind) {
-    case "identity-header":
-      return null;
-
-    case "cover-title":
-      if (isCover) {
-        return (
-          <div className="preview-cover-title">
-            <div className="badge">{runtimeServiceName}</div>
-            <h1>{runtimeTitle}</h1>
-            <h2>{sampleOfficialReportData.subtitle}</h2>
-
-            {coverSettings?.showDescription !== false ? (
-              <p>{sampleOfficialReportData.cover.shortDescription}</p>
-            ) : null}
-          </div>
-        );
-      }
-
-      return (
-        <div className={cardClass}>
-          <h3>{runtimeTitle}</h3>
-          <p>{runtimeServiceName}</p>
+  if (block.kind === "identity-header") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-3">
+          <InfoPreview label="الجهة" value="وزارة التعليم" />
+          <InfoPreview label="المدرسة" value="اسم المدرسة" />
+          <InfoPreview label="العام الدراسي" value="1447هـ" />
         </div>
-      );
+      </BlockShell>
+    );
+  }
 
-    case "case-meta":
-      return (
-        <div
-          className={
-            block.settings?.columns === 1
-              ? "preview-meta-grid one-column"
-              : "preview-meta-grid"
-          }
-        >
-          <PreviewMetaItem label="الخدمة" value={runtimeServiceName} />
-
-          <PreviewMetaItem
-            label="تاريخ التقرير"
-            value={
-              previewCaseData?.createdAt
-                ? new Date(previewCaseData.createdAt).toLocaleDateString(
-                    "ar-SA"
-                  )
-                : sampleOfficialReportData.reportDate
-            }
-          />
-
-          <PreviewMetaItem
-            label="عنوان التقرير"
-            value={runtimeTitle}
-          />
-
-          <PreviewMetaItem
-            label="الحالة"
-            value={previewCaseData?.status || "تجريبي"}
-          />
-        </div>
-      );
-
-    case "student-summary":
-      return (
-        <div className={cardClass}>
-          <h3>بيانات الطالب/الطالبة</h3>
-
-          {previewCaseData?.student ? (
-            <div className="preview-meta-grid">
-              <PreviewMetaItem
-                label="الاسم"
-                value={previewCaseData.student.name || "غير محدد"}
-              />
-              <PreviewMetaItem
-                label="الصف"
-                value={previewCaseData.student.grade || "غير محدد"}
-              />
-              <PreviewMetaItem
-                label="الفصل"
-                value={previewCaseData.student.classroom || "غير محدد"}
-              />
-              <PreviewMetaItem
-                label="ولي الأمر"
-                value={previewCaseData.student.guardianName || "غير محدد"}
-              />
-            </div>
-          ) : (
-            <p>
-              يظهر هذا البلوك عند وجود طالب/طالبة مرتبط بالحالة من بيانات نور.
-            </p>
-          )}
-        </div>
-      );
-
-    case "service-summary":
-      return (
-        <div className={cardClass}>
-          <h3>ملخص الخدمة</h3>
-          <p>
-            {runtimeServiceName} — {runtimeTitle}
+  if (block.kind === "cover-title") {
+    return (
+      <div className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-8 text-center">
+        {shouldShowTitle(block) ? (
+          <p className="text-sm font-black text-emerald-700">
+            {getServiceName(template, previewCaseData)}
           </p>
+        ) : null}
+
+        <h1 className="mt-3 text-3xl font-black text-slate-900">
+          {template.name}
+        </h1>
+
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-8 text-slate-600">
+          {template.description}
+        </p>
+      </div>
+    );
+  }
+
+  if (block.kind === "case-meta") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="عنوان الحالة"
+            value={getCaseTitle(previewCaseData)}
+          />
+          <InfoPreview
+            label="الخدمة"
+            value={getServiceName(template, previewCaseData)}
+          />
+          <InfoPreview
+            label="عدد القيم"
+            value={`${getRuntimeValues(previewCaseData).length}`}
+          />
+          <InfoPreview
+            label="عدد الشواهد"
+            value={`${getRuntimeEvidences(previewCaseData).length}`}
+          />
         </div>
-      );
+      </BlockShell>
+    );
+  }
 
-    case "paragraph":
-      return (
-        <div className={cardClass}>
-          {block.settings?.showTitle !== false ? <h3>{block.title}</h3> : null}
-          <p>{runtimeFieldValue}</p>
+  if (block.kind === "student-summary") {
+    const student = getStudent(previewCaseData);
+
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="اسم الطالب/الطالبة"
+            value={student.fullName || "اسم الطالب/الطالبة"}
+          />
+          <InfoPreview label="المرحلة" value={student.stage || "غير محدد"} />
+          <InfoPreview label="الصف" value={student.grade || "غير محدد"} />
+          <InfoPreview label="الفصل" value={student.classroom || "غير محدد"} />
+          <InfoPreview
+            label="ولي الأمر"
+            value={student.guardianName || "غير متوفر"}
+          />
+          <InfoPreview
+            label="جوال ولي الأمر"
+            value={student.guardianPhone || "غير متوفر"}
+          />
         </div>
-      );
+      </BlockShell>
+    );
+  }
 
-    case "custom-paragraph":
-      return (
-        <div className={cardClass}>
-          {block.settings?.showTitle !== false ? (
-            <h3>{block.customTitle || block.title || "فقرة مخصصة"}</h3>
-          ) : null}
-
-          <p>
-            {block.customContent ||
-              "هذا نص مخصص داخل القالب، غير مرتبط ببيانات الحالة."}
-          </p>
+  if (block.kind === "service-summary") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="اسم الخدمة"
+            value={getServiceName(template, previewCaseData)}
+          />
+          <InfoPreview
+            label="نطاق القالب"
+            value={template.scope === "GLOBAL" ? "عام" : "خاص بخدمة"}
+          />
+          <InfoPreview label="حالة القالب" value={template.status} />
+          <InfoPreview label="عدد الصفحات" value={`${template.pages.length}`} />
         </div>
-      );
+      </BlockShell>
+    );
+  }
 
-    case "field-list": {
-      const fallbackItems = [
-        { label: "الهدف الأول", value: "تعزيز السلوك الإيجابي" },
-        { label: "الإجراء", value: "نشرات ومواد توعوية" },
-        { label: "النتيجة", value: "رفع الوعي والانضباط" },
-        { label: "الحالة", value: "مكتمل" },
-      ];
+  if (block.kind === "paragraph") {
+    return (
+      <BlockShell block={block}>
+        <p className="text-sm leading-8 text-slate-700">
+          هذا بلوك نصي افتراضي يمكن استخدامه لعرض محتوى وصفي داخل التقرير. يمكن
+          لاحقًا ربطه ببيانات الحالة أو جعله فقرة ثابتة داخل القالب.
+        </p>
+      </BlockShell>
+    );
+  }
 
-      const runtimeItems = previewCaseData?.values?.length
-        ? previewCaseData.values.slice(0, 4).map((item) => ({
-            label: item.fieldLabel,
-            value: item.value || "غير محدد",
-          }))
-        : fallbackItems;
+  if (block.kind === "field-list") {
+    const values = getRuntimeValues(previewCaseData);
 
-      return (
-        <div className={cardClass}>
-          <h3>{block.title}</h3>
-
-          <div
-            className={
-              block.settings?.columns === 1
-                ? "preview-meta-grid one-column"
-                : "preview-meta-grid"
-            }
-          >
-            {runtimeItems.map((item) => (
-              <PreviewMetaItem
-                key={`${item.label}-${item.value}`}
-                label={item.label}
-                value={item.value}
+    return (
+      <BlockShell block={block}>
+        {values.length ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {values.slice(0, 10).map((item, index) => (
+              <InfoPreview
+                key={`${item.fieldKey || item.fieldLabel || index}`}
+                label={item.fieldLabel || item.fieldKey || `قيمة ${index + 1}`}
+                value={item.value || "—"}
               />
             ))}
           </div>
-        </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            لا توجد قيم حقيقية من Case ID، سيتم عرض القيم عند ربط حالة حقيقية.
+          </div>
+        )}
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "text-library") {
+    const runtimeData = buildRuntimeReportDataForTextLibrary(
+      template,
+      previewCaseData,
+    );
+
+    const resolvedSnippets = resolveTextLibrarySnippets({
+      block,
+      template,
+      snippets,
+      data: runtimeData,
+    });
+
+    if (!resolvedSnippets.length) {
+      const fallback = resolveTextLibraryFallback({ block });
+
+      if (!fallback) {
+        return null;
+      }
+
+      return (
+        <BlockShell block={block} tone="emerald">
+          <p className="whitespace-pre-line rounded-2xl border border-emerald-100 bg-white p-4 text-sm leading-8 text-slate-800">
+            {fallback}
+          </p>
+        </BlockShell>
       );
     }
 
-    case "text-library":
-      return (
-        <div className={cardClass}>
-          <h3>نص جاهز من المكتبة</h3>
-          <p>
-            تم تنفيذ البرنامج وفق خطة إرشادية تهدف إلى تعزيز القيم التربوية
-            والسلوكية داخل البيئة المدرسية.
-          </p>
-        </div>
-      );
+    return (
+      <BlockShell block={block} tone="emerald">
+        <div className="space-y-3">
+          {resolvedSnippets.map((snippet) => (
+            <article
+              key={snippet.id}
+              className="rounded-2xl border border-emerald-100 bg-white p-4"
+            >
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+                  {snippet.category}
+                </span>
 
-    case "evidence-gallery": {
-      const layout = block.settings?.evidenceLayout || "grid-2x2";
-      const imageFit = block.settings?.imageFit || "cover";
-      const showCaptions = block.settings?.showCaptions !== false;
-
-      const runtimeEvidences = previewCaseData?.evidences?.length
-        ? previewCaseData.evidences
-        : sampleOfficialReportData.evidences;
-
-      return (
-        <div
-          className={
-            layout === "stacked" || layout === "one-per-page"
-              ? "preview-evidence-grid stacked"
-              : "preview-evidence-grid"
-          }
-        >
-          {runtimeEvidences.slice(0, 4).map((evidence) => (
-            <div key={evidence.id} className="preview-evidence-card">
-              <div
-                className={
-                  imageFit === "contain"
-                    ? "preview-evidence-frame contain"
-                    : "preview-evidence-frame"
-                }
-              >{getEvidenceImageSource(evidence) ? (
-  <img
-    src={getEvidenceImageSource(evidence)}
-    alt={evidence.title || "شاهد"}
-  />
-) : null}
+                <strong className="text-xs text-slate-500">
+                  {snippet.title}
+                </strong>
               </div>
 
-              {showCaptions ? (
-                <div className="preview-evidence-caption">
-                  {evidence.title || "شاهد"}
-                </div>
-              ) : null}
-            </div>
+              <p className="whitespace-pre-line text-sm leading-8 text-slate-800">
+                {snippet.renderedText}
+              </p>
+            </article>
           ))}
         </div>
-      );
-    }
-
-    case "approval-signature":
-      return (
-        <div className={cardClass}>
-          <h3>الاعتماد والتوقيع</h3>
-
-          <div className="preview-approval-grid">
-            <div className="preview-approval-box">
-              <span>الموجه/الموجهة</span>
-              <strong>{sampleReportIdentity.counselorName}</strong>
-              <span>التوقيع: ....................</span>
-            </div>
-
-            <div className="preview-approval-box">
-              <span>قائد/قائدة المدرسة</span>
-              <strong>قائد المدرسة</strong>
-              <span>الختم: ....................</span>
-            </div>
-
-            <div className="preview-approval-box">
-              <span>التاريخ</span>
-              <strong>
-                {previewCaseData?.createdAt
-                  ? new Date(previewCaseData.createdAt).toLocaleDateString(
-                      "ar-SA"
-                    )
-                  : sampleOfficialReportData.reportDate}
-              </strong>
-            </div>
-          </div>
-        </div>
-      );
-
-    default:
-      return (
-        <div className="preview-empty-block">
-          بلوك غير معروف: {block.title}
-        </div>
-      );
+      </BlockShell>
+    );
   }
+
+  if (block.kind === "custom-paragraph") {
+    return (
+      <BlockShell block={block}>
+        {block.customTitle ? (
+          <h4 className="mb-3 text-base font-black text-slate-900">
+            {block.customTitle}
+          </h4>
+        ) : null}
+
+        <p className="whitespace-pre-line text-sm leading-8 text-slate-700">
+          {block.customContent || "لم يتم إدخال محتوى مخصص بعد."}
+        </p>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "evidence-gallery") {
+    const evidences = getRuntimeEvidences(previewCaseData);
+    const settings = block.settings || {};
+    const layout = settings.evidenceLayout || "grid-2x2";
+
+    return (
+      <BlockShell block={block}>
+        {evidences.length ? (
+          <EvidencePreviewGrid
+            evidences={evidences}
+            layout={layout}
+            showCaptions={settings.showCaptions !== false}
+            imageFit={settings.imageFit || "cover"}
+          />
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            لا توجد شواهد في المعاينة الحالية.
+          </div>
+        )}
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "approval-signature") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <SignatureBox title="الموجه/الموجهة الطلابية" name="أ. الموجه الطلابي" />
+          <SignatureBox title="قائد/قائدة المدرسة" name="قائد/قائدة المدرسة" />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  return (
+    <BlockShell block={block}>
+      <p className="text-sm text-slate-500">
+        نوع البلوك غير مدعوم في المعاينة الحالية.
+      </p>
+    </BlockShell>
+  );
 }
 
-function PreviewMetaItem({
-  label,
-  value,
+function BlockShell({
+  block,
+  tone = "slate",
+  children,
 }: {
-  label: string;
-  value: string;
+  block: ReportTemplateBlock;
+  tone?: "slate" | "emerald";
+  children: ReactNode;
 }) {
+  const settings = block.settings || {};
+  const showTitle = settings.showTitle !== false;
+  const style = settings.style || "card";
+
+  if (style === "plain") {
+    return (
+      <section>
+        {showTitle ? (
+          <h4 className="mb-3 text-base font-black text-slate-900">
+            {block.title}
+          </h4>
+        ) : null}
+
+        {children}
+      </section>
+    );
+  }
+
+  if (style === "highlight") {
+    return (
+      <section className="rounded-3xl border border-amber-100 bg-amber-50 p-5">
+        {showTitle ? (
+          <h4 className="mb-3 text-base font-black text-amber-950">
+            {block.title}
+          </h4>
+        ) : null}
+
+        {children}
+      </section>
+    );
+  }
+
   return (
-    <div className="preview-meta-item">
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <section
+      className={[
+        "rounded-3xl border p-5",
+        tone === "emerald"
+          ? "border-emerald-100 bg-emerald-50"
+          : "border-slate-200 bg-slate-50",
+      ].join(" ")}
+    >
+      {showTitle ? (
+        <h4
+          className={[
+            "mb-3 text-base font-black",
+            tone === "emerald" ? "text-emerald-950" : "text-slate-900",
+          ].join(" ")}
+        >
+          {block.title}
+        </h4>
+      ) : null}
+
+      {children}
+    </section>
+  );
+}
+
+function InfoPreview({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-black text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-black leading-7 text-slate-900">
+        {value || "—"}
+      </p>
     </div>
   );
 }
 
-function getTemplateMissingRequirements(template: ReportTemplateBuilderModel) {
-  const messages: string[] = [];
-
-  if (!template.pages.length) {
-    messages.push("القالب لا يحتوي على صفحات.");
-  }
-
-  const hasEvidence = template.pages.some((page) =>
-    page.blocks.some((block) => block.kind === "evidence-gallery")
+function SignatureBox({ title, name }: { title: string; name: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <p className="text-xs font-black text-slate-500">{title}</p>
+      <p className="mt-3 text-sm font-black text-slate-900">{name}</p>
+      <div className="mt-8 border-t border-dashed border-slate-300 pt-3 text-xs text-slate-400">
+        التوقيع والختم
+      </div>
+    </div>
   );
+}
 
-  const hasCover = template.pages.some((page) => page.kind === "cover");
+function CoverPreviewHeader({
+  template,
+  pageTitle,
+}: {
+  template: ReportTemplateBuilderModel;
+  pageTitle: string;
+}) {
+  return (
+    <header className="text-center">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-sm font-black text-emerald-800">
+        شعار
+      </div>
 
-  if (!hasCover) {
-    messages.push("لا توجد صفحة غلاف. هذا اختياري لكنه مفيد للتقارير الرسمية.");
+      <p className="mt-4 text-sm font-black text-emerald-700">
+        {getServiceName(template, null)}
+      </p>
+
+      <h1 className="mt-3 text-3xl font-black text-slate-900">
+        {template.name || pageTitle}
+      </h1>
+
+      <p className="mx-auto mt-4 max-w-xl text-sm leading-8 text-slate-600">
+        {template.description}
+      </p>
+    </header>
+  );
+}
+
+function CoverPreviewFooter({
+  template,
+}: {
+  template: ReportTemplateBuilderModel;
+}) {
+  return (
+    <footer className="border-t border-slate-200 pt-5 text-center text-xs font-bold text-slate-500">
+      <span>{template.scope === "GLOBAL" ? "قالب عام" : "قالب خاص بخدمة"}</span>
+      <span className="mx-2">•</span>
+      <span>{template.status}</span>
+    </footer>
+  );
+}
+
+function EvidencePreviewGrid({
+  evidences,
+  layout,
+  showCaptions,
+  imageFit,
+}: {
+  evidences: RuntimeEvidenceItem[];
+  layout: string;
+  showCaptions: boolean;
+  imageFit: string;
+}) {
+  const gridClass =
+    layout === "one-per-page"
+      ? "grid-cols-1"
+      : layout === "stacked"
+        ? "grid-cols-1"
+        : layout === "two-columns"
+          ? "grid-cols-2"
+          : "grid-cols-2";
+
+  return (
+    <div className={`grid gap-3 ${gridClass}`}>
+      {evidences
+        .slice(0, layout === "one-per-page" ? 1 : 4)
+        .map((evidence, index) => {
+          const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+
+          return (
+            <article
+              key={evidence.id || `${evidence.fileName}-${index}`}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            >
+              <div className="flex h-40 items-center justify-center bg-slate-100">
+                {isImageEvidence(evidence) && imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={evidence.title || evidence.fileName || "شاهد"}
+                    className={[
+                      "h-full w-full",
+                      imageFit === "contain" ? "object-contain" : "object-cover",
+                    ].join(" ")}
+                  />
+                ) : (
+                  <span className="px-4 text-center text-xs font-black text-slate-500">
+                    {evidence.fileName || "مرفق"}
+                  </span>
+                )}
+              </div>
+
+              {showCaptions ? (
+                <div className="p-3">
+                  <p className="text-xs font-black text-slate-800">
+                    {evidence.title ||
+                      evidence.caption ||
+                      evidence.fileName ||
+                      "شاهد"}
+                  </p>
+
+                  {evidence.description ? (
+                    <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                      {evidence.description}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+    </div>
+  );
+}
+
+function buildRuntimeReportDataForTextLibrary(
+  template: ReportTemplateBuilderModel,
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeReportData {
+  const values = getRuntimeValues(previewCaseData);
+  const valueMap: Record<string, string> = {};
+
+  values.forEach((item) => {
+    const value = item.value || "";
+
+    if (item.fieldKey) {
+      valueMap[item.fieldKey] = value;
+    }
+
+    if (item.fieldLabel) {
+      valueMap[item.fieldLabel] = value;
+    }
+  });
+
+  const student = getStudent(previewCaseData);
+  const evidences = getRuntimeEvidences(previewCaseData);
+
+  return {
+    reportTitle: template.name || "عنوان التقرير",
+    createdAt: new Date().toISOString(),
+    values: {
+      ...valueMap,
+      programTitle:
+        valueMap.program_name ||
+        valueMap["عنوان البرنامج"] ||
+        valueMap.programTitle ||
+        getCaseTitle(previewCaseData) ||
+        "برنامج إرشادي",
+      executionDate:
+        valueMap.gregorian_date ||
+        valueMap.executionDate ||
+        valueMap["تاريخ التنفيذ"] ||
+        "2026-05-26",
+      dayText: valueMap.day || valueMap["اليوم"] || "الأحد",
+      targetGroup:
+        valueMap.beneficiaries ||
+        valueMap.targetGroup ||
+        valueMap["الفئة المستهدفة"] ||
+        student.grade ||
+        "الفئة المستهدفة",
+      executionAction:
+        valueMap.execution_action ||
+        valueMap.executionAction ||
+        valueMap["الإجراء التنفيذي"] ||
+        "إجراء تنفيذي موثق",
+      executionMechanism:
+        valueMap.execution_mechanism ||
+        valueMap.executionMechanism ||
+        valueMap["آلية التنفيذ"] ||
+        "آلية تنفيذ موثقة",
+      performanceIndicator:
+        valueMap.performance_indicator ||
+        valueMap.performanceIndicator ||
+        valueMap["مؤشر الأداء"] ||
+        "مؤشر أداء",
+      evidenceSuggestion:
+        valueMap.evidence_suggestion ||
+        valueMap.evidenceSuggestion ||
+        valueMap["الشواهد"] ||
+        "الشواهد والمرفقات",
+      evidenceCountText: formatEvidenceCount(evidences.length),
+    },
+    evidences: evidences.map((evidence) => ({
+      id: evidence.id || undefined,
+      title: evidence.title || evidence.caption || evidence.fileName || undefined,
+      caption: evidence.caption || undefined,
+      description: evidence.description || undefined,
+      fileUrl: evidence.fileUrl || evidence.imageUrl || undefined,
+      url: evidence.imageUrl || evidence.fileUrl || undefined,
+      mimeType: evidence.mimeType || undefined,
+    })),
+    student: {
+      name: student.fullName || "اسم الطالب/الطالبة",
+      nationalId: student.nationalId || "",
+      grade: student.grade || "",
+      classroom: student.classroom || "",
+      gender: "",
+      guardianName: student.guardianName || "",
+      guardianPhone: student.guardianPhone || "",
+    },
+    service: {
+      name: getServiceName(template, previewCaseData),
+      slug: template.serviceSlug || "",
+    },
+    caseEntry: {
+      title: getCaseTitle(previewCaseData),
+      student: {
+        name: student.fullName || "اسم الطالب/الطالبة",
+        nationalId: student.nationalId || "",
+        grade: student.grade || "",
+        classroom: student.classroom || "",
+        gender: "",
+        guardianName: student.guardianName || "",
+        guardianPhone: student.guardianPhone || "",
+      },
+      service: {
+        name: getServiceName(template, previewCaseData),
+        slug: template.serviceSlug || "",
+      },
+    },
+    school: {
+      name: "اسم المدرسة",
+      schoolYear: "1447هـ",
+      semester: "الفصل الدراسي",
+      principalName: "قائد/قائدة المدرسة",
+    },
+    counselor: {
+      name: "الموجه/الموجهة الطلابية",
+    },
+  };
+}
+
+function getRuntimeValues(
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeValueItem[] {
+  const data = previewCaseData as
+    | {
+        values?: RuntimeValueItem[];
+      }
+    | null;
+
+  return Array.isArray(data?.values) ? data.values : [];
+}
+
+function getRuntimeEvidences(
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeEvidenceItem[] {
+  const data = previewCaseData as
+    | {
+        evidences?: RuntimeEvidenceItem[];
+      }
+    | null;
+
+  return Array.isArray(data?.evidences) ? data.evidences : [];
+}
+
+function getStudent(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as
+    | {
+        student?: {
+          fullName?: string | null;
+          nationalId?: string | null;
+          stage?: string | null;
+          grade?: string | null;
+          classroom?: string | null;
+          guardianName?: string | null;
+          guardianPhone?: string | null;
+        } | null;
+      }
+    | null;
+
+  return {
+    fullName: data?.student?.fullName || "",
+    nationalId: data?.student?.nationalId || "",
+    stage: data?.student?.stage || "",
+    grade: data?.student?.grade || "",
+    classroom: data?.student?.classroom || "",
+    guardianName: data?.student?.guardianName || "",
+    guardianPhone: data?.student?.guardianPhone || "",
+  };
+}
+
+function getCaseTitle(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as
+    | {
+        title?: string | null;
+      }
+    | null;
+
+  return data?.title || "حالة تجريبية";
+}
+
+function getServiceName(
+  template: ReportTemplateBuilderModel,
+  previewCaseData: RuntimePreviewCaseData | null,
+) {
+  const data = previewCaseData as
+    | {
+        serviceName?: string | null;
+      }
+    | null;
+
+  if (data?.serviceName) {
+    return data.serviceName;
   }
 
-  if (!hasEvidence) {
-    messages.push(
-      "لا يوجد بلوك للشواهد. قد لا يناسب القالب التقارير التي تحتاج إثباتات."
-    );
+  if (template.scope === "SERVICE" && template.serviceSlug) {
+    return template.serviceSlug;
   }
 
-  return messages;
+  return "الخدمة الإرشادية";
+}
+
+function shouldShowTitle(block: ReportTemplateBlock) {
+  return block.settings?.showTitle !== false;
+}
+
+function isImageEvidence(evidence: RuntimeEvidenceItem) {
+  if (evidence.mimeType?.startsWith("image/")) {
+    return true;
+  }
+
+  const fileName = evidence.fileName || evidence.fileUrl || evidence.imageUrl || "";
+
+  return /\.(png|jpg|jpeg|webp|gif)$/i.test(fileName);
+}
+
+function formatEvidenceCount(count: number) {
+  if (count <= 0) return "0 شاهد";
+  if (count === 1) return "شاهد واحد";
+  if (count === 2) return "شاهدان";
+  if (count >= 3 && count <= 10) return `${count} شواهد`;
+  return `${count} شاهد`;
+}
+
+function getPageKindLabel(kind: string) {
+  if (kind === "cover") return "غلاف";
+  if (kind === "summary") return "ملخص";
+  if (kind === "narrative") return "محتوى";
+  if (kind === "results") return "نتائج";
+  if (kind === "evidence") return "شواهد";
+  if (kind === "approval") return "اعتماد";
+  return kind;
 }

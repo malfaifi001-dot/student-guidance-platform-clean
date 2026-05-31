@@ -1,0 +1,462 @@
+import type {
+  ReportTextTemplatePreset,
+  ReportTextVariable,
+  ReportTextStudioValidationIssue,
+} from "@/lib/report-engine/report-text-studio-types";
+
+export const REPORT_TEXT_VARIABLES: ReportTextVariable[] = [
+  {
+    key: "schoolName",
+    label: "اسم المدرسة",
+    description: "اسم المدرسة من إعدادات الحساب.",
+    example: "مدرسة المستقبل المتوسطة",
+    group: "school",
+  },
+  {
+    key: "counselorName",
+    label: "اسم الموجه/الموجهة",
+    description: "اسم المستخدم الذي أنشأ الحالة أو التقرير.",
+    example: "أحمد محمد",
+    group: "school",
+  },
+  {
+    key: "academicYear",
+    label: "العام الدراسي",
+    description: "العام الدراسي الحالي.",
+    example: "1447هـ",
+    group: "school",
+  },
+  {
+    key: "semester",
+    label: "الفصل الدراسي",
+    description: "الفصل الدراسي المرتبط بالتقرير.",
+    example: "الفصل الدراسي الأول",
+    group: "school",
+  },
+  {
+    key: "serviceName",
+    label: "اسم الخدمة",
+    description: "الخدمة التي صدر منها التقرير.",
+    example: "البرامج الإرشادية",
+    group: "service",
+  },
+  {
+    key: "reportTitle",
+    label: "عنوان التقرير",
+    description: "العنوان المحفوظ للتقرير.",
+    example: "تقرير برنامج تعزيز السلوك الإيجابي",
+    group: "case",
+  },
+  {
+    key: "programTitle",
+    label: "عنوان البرنامج",
+    description: "اسم البرنامج أو النشاط من بيانات الحالة.",
+    example: "برنامج تعزيز السلوك الإيجابي",
+    group: "service",
+  },
+  {
+    key: "executionDate",
+    label: "تاريخ التنفيذ",
+    description: "تاريخ تنفيذ البرنامج أو الحالة.",
+    example: "2026-05-26",
+    group: "case",
+  },
+  {
+    key: "dayText",
+    label: "اليوم",
+    description: "اليوم بصيغة جاهزة داخل الجملة.",
+    example: "، الموافق يوم الأحد",
+    group: "case",
+  },
+  {
+    key: "targetGroup",
+    label: "الفئة المستهدفة",
+    description: "الفئة المستهدفة من البرنامج أو التقرير.",
+    example: "طلاب الصفوف الأولية",
+    group: "student",
+  },
+  {
+    key: "studentName",
+    label: "اسم الطالب/الطالبة",
+    description: "اسم الطالب/الطالبة المرتبط بالحالة.",
+    example: "محمد علي",
+    group: "student",
+  },
+  {
+    key: "studentGrade",
+    label: "الصف",
+    description: "صف الطالب/الطالبة.",
+    example: "الأول متوسط",
+    group: "student",
+  },
+  {
+    key: "studentClassroom",
+    label: "الفصل",
+    description: "الفصل الدراسي للطالب/الطالبة داخل المدرسة.",
+    example: "1 / أ",
+    group: "student",
+  },
+  {
+    key: "guardianName",
+    label: "ولي الأمر",
+    description: "اسم ولي الأمر عند توفره.",
+    example: "عبدالله علي",
+    group: "student",
+  },
+  {
+    key: "executionAction",
+    label: "الإجراء التنفيذي",
+    description: "الإجراء الذي تم تنفيذه داخل الخدمة.",
+    example: "حملة تعريفية بالسلوك الإيجابي",
+    group: "service",
+  },
+  {
+    key: "executionMechanism",
+    label: "آلية التنفيذ",
+    description: "طريقة تنفيذ الإجراء.",
+    example: "إذاعة مدرسية ولوحات إرشادية ونقاشات صفية",
+    group: "service",
+  },
+  {
+    key: "performanceIndicator",
+    label: "مؤشر الأداء",
+    description: "المؤشر المستخدم لقياس أثر التنفيذ.",
+    example: "تحسن مستوى الالتزام بالسلوك الإيجابي",
+    group: "service",
+  },
+  {
+    key: "evidenceSuggestion",
+    label: "الشواهد المقترحة",
+    description: "الشواهد المناسبة لهذا النوع من التقرير.",
+    example: "صور البرنامج، كشف الحضور، نموذج التقييم",
+    group: "evidence",
+  },
+  {
+    key: "evidenceCountText",
+    label: "عدد الشواهد",
+    description: "عدد الشواهد بصياغة عربية مناسبة.",
+    example: "4 شواهد",
+    group: "evidence",
+  },
+];
+
+export const SAMPLE_REPORT_TEXT_VARIABLES: Record<string, string> = {
+  schoolName: "مدرسة المستقبل المتوسطة",
+  counselorName: "الموجه الطلابي",
+  academicYear: "1447هـ",
+  semester: "الفصل الدراسي الأول",
+  serviceName: "البرامج الإرشادية",
+  reportTitle: "تقرير برنامج تعزيز السلوك الإيجابي",
+  programTitle: "برنامج تعزيز السلوك الإيجابي",
+  executionDate: "2026-05-26",
+  dayText: "، الموافق يوم الأحد",
+  targetGroup: "طلاب الصفوف الأولية",
+  studentName: "محمد علي",
+  studentGrade: "الأول متوسط",
+  studentClassroom: "1 / أ",
+  guardianName: "عبدالله علي",
+  executionAction: "حملة تعريفية بالسلوك الإيجابي",
+  executionMechanism: "إذاعة مدرسية ولوحات إرشادية ونقاشات صفية",
+  performanceIndicator: "تحسن مستوى الالتزام بالسلوك الإيجابي",
+  evidenceSuggestion: "صور البرنامج، كشف الحضور، نموذج التقييم",
+  evidenceCountText: "4 شواهد",
+};
+
+export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
+  {
+    id: "guidance-programs-official",
+    name: "تقرير برنامج إرشادي رسمي",
+    description:
+      "قالب رسمي لتوثيق البرامج الإرشادية مع النصوص الأساسية والشواهد.",
+    serviceSlug: "guidance-programs",
+    serviceName: "البرامج الإرشادية",
+    kind: "official",
+    status: "DRAFT",
+    version: 1,
+    updatedAt: "2026-05-31",
+    blocks: [
+      {
+        id: "intro",
+        title: "وصف التقرير",
+        type: "intro",
+        isRequired: true,
+        isLockedForCounselor: true,
+        order: 1,
+        body:
+          'تم إعداد هذا التقرير لتوثيق تنفيذ برنامج إرشادي بعنوان "{programTitle}" ضمن خدمة {serviceName}. وقد تم تنفيذ البرنامج بتاريخ {executionDate}{dayText}، مستهدفًا {targetGroup}.',
+      },
+      {
+        id: "purpose",
+        title: "هدف البرنامج",
+        type: "purpose",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 2,
+        body:
+          "يهدف البرنامج إلى دعم الجوانب النمائية والوقائية لدى الفئة المستهدفة، وتعزيز السلوكيات الإيجابية، ورفع مستوى الوعي بما يتوافق مع أهداف التوجيه الطلابي وخطة المدرسة.",
+      },
+      {
+        id: "execution",
+        title: "ملخص التنفيذ",
+        type: "execution",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 3,
+        body:
+          'تم تنفيذ البرنامج من خلال الإجراء التالي: "{executionAction}". وتمت آلية التنفيذ عبر "{executionMechanism}".',
+      },
+      {
+        id: "indicator",
+        title: "مؤشر قياس الأداء",
+        type: "indicator",
+        isRequired: false,
+        isLockedForCounselor: false,
+        showWhenVariableExists: "performanceIndicator",
+        order: 4,
+        body:
+          'تم اعتماد مؤشر قياس الأداء التالي لمتابعة أثر التنفيذ: "{performanceIndicator}". ويساعد هذا المؤشر في تقييم مدى تحقق الهدف الإرشادي ورصد جوانب التحسين.',
+      },
+      {
+        id: "evidence",
+        title: "توثيق الشواهد",
+        type: "evidence",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 5,
+        body:
+          'تم توثيق تنفيذ البرنامج من خلال الشواهد والمرفقات المرتبطة بالحالة. وتشمل الشواهد المقترحة أو المستخدمة: "{evidenceSuggestion}". ويبلغ عدد الشواهد المرفقة في التقرير {evidenceCountText}.',
+      },
+      {
+        id: "recommendations",
+        title: "توصية ختامية",
+        type: "recommendations",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 6,
+        body:
+          "يوصى بالاستفادة من نتائج هذا البرنامج في متابعة أثره على الفئة المستهدفة، وتوثيق الملاحظات التطويرية، وربط الشواهد بنتائج التنفيذ بما يساعد على تحسين جودة البرامج الإرشادية القادمة.",
+      },
+    ],
+  },
+  {
+    id: "family-communication-official",
+    name: "تقرير تواصل الأسرة والمدرسة",
+    description:
+      "قالب لتوثيق التواصل مع ولي الأمر وما تم مناقشته ونتيجة التواصل.",
+    serviceSlug: "family-school-communication",
+    serviceName: "التواصل بين الأسرة والمدرسة",
+    kind: "official",
+    status: "DRAFT",
+    version: 1,
+    updatedAt: "2026-05-31",
+    blocks: [
+      {
+        id: "intro",
+        title: "وصف التقرير",
+        type: "intro",
+        isRequired: true,
+        isLockedForCounselor: true,
+        order: 1,
+        body:
+          'تم إعداد هذا التقرير لتوثيق إجراء تواصل ضمن خدمة {serviceName} بخصوص الطالب/الطالبة "{studentName}" من الصف {studentGrade}، وذلك بتاريخ {executionDate}.',
+      },
+      {
+        id: "execution",
+        title: "ملخص التواصل",
+        type: "execution",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 2,
+        body:
+          "يوضح التقرير ملخص التواصل الذي تم بين المدرسة وولي الأمر، وما تم مناقشته من موضوعات مرتبطة بالحالة، مع توثيق نتيجة التواصل والإجراء اللاحق عند الحاجة.",
+      },
+      {
+        id: "recommendations",
+        title: "توصية ختامية",
+        type: "recommendations",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 3,
+        body:
+          "يوصى بمتابعة أثر التواصل خلال الفترة القادمة، وتوثيق أي مستجدات أو إجراءات داعمة بالتنسيق مع ولي الأمر والجهات المدرسية ذات العلاقة.",
+      },
+    ],
+  },
+  {
+    id: "committees-meetings-official",
+    name: "محضر لجنة أو اجتماع",
+    description:
+      "قالب مخصص لمحاضر اللجان والاجتماعات والتوصيات ومتابعة التنفيذ.",
+    serviceSlug: "committees-meetings",
+    serviceName: "اللجان والاجتماعات",
+    kind: "meeting",
+    status: "DRAFT",
+    version: 1,
+    updatedAt: "2026-05-31",
+    blocks: [
+      {
+        id: "intro",
+        title: "وصف المحضر",
+        type: "intro",
+        isRequired: true,
+        isLockedForCounselor: true,
+        order: 1,
+        body:
+          "تم إعداد هذا المحضر لتوثيق اجتماع/لجنة ضمن خدمة {serviceName}، وذلك بهدف حفظ مجريات الاجتماع والتوصيات الصادرة عنه ومتابعة تنفيذها.",
+      },
+      {
+        id: "execution",
+        title: "ملخص الاجتماع",
+        type: "execution",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 2,
+        body:
+          "يتضمن هذا المحضر أبرز محاور النقاش، والتوصيات المتفق عليها، والجهات أو الأشخاص المسؤولين عن المتابعة، بما يضمن وضوح الإجراءات القادمة.",
+      },
+      {
+        id: "recommendations",
+        title: "التوصيات",
+        type: "recommendations",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 3,
+        body:
+          "يوصى بمتابعة تنفيذ التوصيات وفق الإطار الزمني المحدد، وتوثيق ما يتم إنجازه في السجلات المرتبطة بالحالة أو اللجنة.",
+      },
+    ],
+  },
+  {
+    id: "general-official",
+    name: "قالب تقرير عام",
+    description:
+      "قالب عام لأي خدمة لا تمتلك قالبًا متخصصًا حتى الآن.",
+    serviceSlug: "general",
+    serviceName: "قالب عام",
+    kind: "official",
+    status: "DRAFT",
+    version: 1,
+    updatedAt: "2026-05-31",
+    blocks: [
+      {
+        id: "intro",
+        title: "وصف التقرير",
+        type: "intro",
+        isRequired: true,
+        isLockedForCounselor: true,
+        order: 1,
+        body:
+          'تم إعداد هذا التقرير لتوثيق حالة مرتبطة بخدمة {serviceName} بعنوان "{reportTitle}". وقد تم إعداد التقرير بتاريخ {executionDate}.',
+      },
+      {
+        id: "execution",
+        title: "ملخص الحالة",
+        type: "execution",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 2,
+        body:
+          "يعرض هذا التقرير البيانات الأساسية المرتبطة بالحالة، وما تم توثيقه من إجراءات وملاحظات وشواهد، بهدف دعم المتابعة واتخاذ القرار المناسب.",
+      },
+      {
+        id: "recommendations",
+        title: "توصية ختامية",
+        type: "recommendations",
+        isRequired: true,
+        isLockedForCounselor: false,
+        order: 3,
+        body:
+          "يوصى بمراجعة بيانات الحالة والشواهد المرتبطة بها، واستكمال أي إجراءات متابعة لازمة وفق ما تقتضيه طبيعة الخدمة.",
+      },
+    ],
+  },
+];
+
+export function renderReportTextTemplate(
+  template: string,
+  variables: Record<string, string>
+) {
+  return template.replace(/\{([^}]+)\}/g, (_, variableName: string) => {
+    return variables[variableName] ?? "";
+  });
+}
+
+export function extractVariablesFromText(text: string) {
+  const matches = text.match(/\{([^}]+)\}/g) || [];
+
+  return Array.from(
+    new Set(matches.map((match) => match.replace(/[{}]/g, "").trim()))
+  ).filter(Boolean);
+}
+
+export function validateReportTextTemplate(
+  template: ReportTextTemplatePreset
+): ReportTextStudioValidationIssue[] {
+  const knownVariables = new Set(REPORT_TEXT_VARIABLES.map((item) => item.key));
+  const issues: ReportTextStudioValidationIssue[] = [];
+
+  for (const block of template.blocks) {
+    const cleanBody = block.body.trim();
+
+    if (block.isRequired && !cleanBody) {
+      issues.push({
+        id: `${block.id}-empty-required`,
+        level: "error",
+        title: "قسم مطلوب فارغ",
+        description: `القسم "${block.title}" مطلوب ولا يحتوي على نص.`,
+        blockId: block.id,
+      });
+    }
+
+    if (cleanBody.length > 900) {
+      issues.push({
+        id: `${block.id}-too-long`,
+        level: "warning",
+        title: "النص طويل",
+        description: `القسم "${block.title}" طويل وقد يؤثر على تنسيق صفحة A4.`,
+        blockId: block.id,
+      });
+    }
+
+    const usedVariables = extractVariablesFromText(cleanBody);
+    const unknownVariables = usedVariables.filter(
+      (variable) => !knownVariables.has(variable)
+    );
+
+    for (const variable of unknownVariables) {
+      issues.push({
+        id: `${block.id}-unknown-${variable}`,
+        level: "error",
+        title: "متغير غير معروف",
+        description: `القسم "${block.title}" يستخدم المتغير {${variable}} وهو غير موجود في قائمة المتغيرات.`,
+        blockId: block.id,
+      });
+    }
+
+    if (block.showWhenVariableExists) {
+      const exists = knownVariables.has(block.showWhenVariableExists);
+
+      if (!exists) {
+        issues.push({
+          id: `${block.id}-bad-condition`,
+          level: "error",
+          title: "شرط ظهور غير صحيح",
+          description: `شرط ظهور القسم "${block.title}" يعتمد على متغير غير معروف.`,
+          blockId: block.id,
+        });
+      }
+    }
+  }
+
+  if (!issues.length) {
+    issues.push({
+      id: "template-ready",
+      level: "info",
+      title: "القالب جاهز للمعاينة",
+      description:
+        "لا توجد أخطاء واضحة في النصوص أو المتغيرات. يمكن اعتماد القالب بعد ربط الحفظ والنشر.",
+    });
+  }
+
+  return issues;
+}

@@ -28,15 +28,6 @@ import {
 import { ReportTemplateAdminTools } from "@/components/report-engine/report-template-admin-tools";
 import { ReportTemplatePublishTools } from "@/components/report-engine/report-template-publish-tools";
 import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
-import {
-  getMatchingTextSnippets,
-  getTextLibrarySettings,
-  setTextLibrarySettingsOnBlock,
-  type TextLibraryFallbackBehavior,
-  type TextLibraryRenderMode,
-  type TextLibrarySettings,
-  type TextLibrarySourceMode,
-} from "@/lib/report-engine/report-text-library-runtime";
 
 const statusLabels: Record<ReportTemplateStatus, string> = {
   DRAFT: "مسودة",
@@ -76,6 +67,38 @@ const snippetCategories: Array<ReportTextSnippet["category"] | "all"> = [
   "توصية",
   "خاتمة",
 ];
+
+type TextLibrarySourceMode =
+  | "same-template-service"
+  | "global"
+  | "specific-service"
+  | "all";
+
+type TextLibraryRenderMode = "first" | "all" | "selected";
+
+type TextLibraryFallbackBehavior = "hide" | "show-fallback";
+
+type TextLibrarySettings = {
+  textSourceMode: TextLibrarySourceMode;
+  serviceSlug: string;
+  category: ReportTextSnippet["category"] | "all";
+  renderMode: TextLibraryRenderMode;
+  snippetId: string;
+  fallbackBehavior: TextLibraryFallbackBehavior;
+  fallbackText: string;
+  editableByCounselor: boolean;
+};
+
+const defaultTextLibrarySettings: TextLibrarySettings = {
+  textSourceMode: "same-template-service",
+  serviceSlug: "",
+  category: "all",
+  renderMode: "first",
+  snippetId: "",
+  fallbackBehavior: "show-fallback",
+  fallbackText: "لا يوجد نص مناسب في مكتبة النصوص لهذا البلوك.",
+  editableByCounselor: false,
+};
 
 const pagePresets: {
   kind: ReportPageKind;
@@ -123,11 +146,11 @@ const pagePresets: {
 
 export function ReportTemplateStudio() {
   const [templates, setTemplates] = useState<ReportTemplateBuilderModel[]>(
-    initialReportTemplateBuilderPresets,
+    initialReportTemplateBuilderPresets
   );
 
   const [activeTemplateId, setActiveTemplateId] = useState(
-    initialReportTemplateBuilderPresets[0]?.id || "",
+    initialReportTemplateBuilderPresets[0]?.id || ""
   );
 
   const [templatePendingDelete, setTemplatePendingDelete] =
@@ -173,8 +196,8 @@ export function ReportTemplateStudio() {
       try {
         const response = await fetch(
           `/api/admin/report-templates/workflow-fields?serviceSlug=${encodeURIComponent(
-            serviceSlug || "",
-          )}`,
+            serviceSlug || ""
+          )}`
         );
 
         const result = await response.json();
@@ -184,7 +207,7 @@ export function ReportTemplateStudio() {
       } catch {
         setRuntimeWorkflowFields([]);
         setRuntimeWorkflowMessage(
-          "تعذر جلب حقول الـ Workflow، سيتم استخدام الحقول الافتراضية.",
+          "تعذر جلب حقول الـ Workflow، سيتم استخدام الحقول الافتراضية."
         );
       }
     }
@@ -203,7 +226,7 @@ export function ReportTemplateStudio() {
       if (!caseId) {
         setRuntimePreviewCase(null);
         setRuntimePreviewMessage(
-          "لم يتم إدخال Case ID، سيتم استخدام بيانات تجريبية.",
+          "لم يتم إدخال Case ID، سيتم استخدام بيانات تجريبية."
         );
         return;
       }
@@ -211,8 +234,8 @@ export function ReportTemplateStudio() {
       try {
         const response = await fetch(
           `/api/admin/report-templates/preview-case?caseId=${encodeURIComponent(
-            caseId,
-          )}`,
+            caseId
+          )}`
         );
 
         const result = await response.json();
@@ -222,7 +245,7 @@ export function ReportTemplateStudio() {
       } catch {
         setRuntimePreviewCase(null);
         setRuntimePreviewMessage(
-          "تعذر جلب بيانات الحالة، سيتم استخدام بيانات تجريبية.",
+          "تعذر جلب بيانات الحالة، سيتم استخدام بيانات تجريبية."
         );
       }
     }
@@ -232,13 +255,13 @@ export function ReportTemplateStudio() {
 
   function updateActiveTemplate(
     updater: (
-      template: ReportTemplateBuilderModel,
-    ) => ReportTemplateBuilderModel,
+      template: ReportTemplateBuilderModel
+    ) => ReportTemplateBuilderModel
   ) {
     setTemplates((currentTemplates) =>
       currentTemplates.map((template) =>
-        template.id === activeTemplateId ? updater(template) : template,
-      ),
+        template.id === activeTemplateId ? updater(template) : template
+      )
     );
   }
 
@@ -256,7 +279,7 @@ export function ReportTemplateStudio() {
     }
 
     const remainingTemplates = templates.filter(
-      (template) => template.id !== templatePendingDelete.id,
+      (template) => template.id !== templatePendingDelete.id
     );
 
     setTemplates(remainingTemplates);
@@ -370,12 +393,12 @@ export function ReportTemplateStudio() {
 
   function updatePage(
     pageId: string,
-    updater: (page: ReportTemplatePage) => ReportTemplatePage,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage
   ) {
     updateActiveTemplate((template) => ({
       ...template,
       pages: template.pages.map((page) =>
-        page.id === pageId ? updater(page) : page,
+        page.id === pageId ? updater(page) : page
       ),
       updatedAt: new Date().toISOString().slice(0, 10),
     }));
@@ -429,7 +452,7 @@ export function ReportTemplateStudio() {
   function moveBlockToPage(
     blockId: string,
     fromPageId: string,
-    toPageId: string,
+    toPageId: string
   ) {
     if (fromPageId === toPageId) {
       return;
@@ -586,9 +609,7 @@ export function ReportTemplateStudio() {
           </div>
 
           <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
-            <h3 className="text-sm font-black text-amber-900">
-              قاعدة مهمة
-            </h3>
+            <h3 className="text-sm font-black text-amber-900">قاعدة مهمة</h3>
 
             <p className="mt-2 text-xs leading-7 text-amber-800">
               القالب لا ينشئ بيانات جديدة. القالب فقط يرتب صفحات التقرير، أما
@@ -981,7 +1002,7 @@ function createPageFromPreset(kind: ReportPageKind): ReportTemplatePage {
     blocks: preset.defaultBlockKinds
       .map((blockKind) => {
         const block = REPORT_BLOCK_LIBRARY.find(
-          (libraryBlock) => libraryBlock.kind === blockKind,
+          (libraryBlock) => libraryBlock.kind === blockKind
         );
 
         if (!block) {
@@ -1033,24 +1054,24 @@ function TemplatePageCard({
   onMoveBlock: (
     pageId: string,
     blockId: string,
-    direction: "up" | "down",
+    direction: "up" | "down"
   ) => void;
   onMoveBlockToPage: (
     blockId: string,
     fromPageId: string,
-    toPageId: string,
+    toPageId: string
   ) => void;
   onUpdatePage: (
     pageId: string,
-    updater: (page: ReportTemplatePage) => ReportTemplatePage,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage
   ) => void;
 }) {
   const [selectedBlockId, setSelectedBlockId] = useState(
-    REPORT_BLOCK_LIBRARY[0]?.id || "",
+    REPORT_BLOCK_LIBRARY[0]?.id || ""
   );
 
   const selectedBlock = REPORT_BLOCK_LIBRARY.find(
-    (block) => block.id === selectedBlockId,
+    (block) => block.id === selectedBlockId
   );
 
   return (
@@ -1216,7 +1237,7 @@ function CoverSettingsEditor({
   page: ReportTemplatePage;
   onUpdatePage: (
     pageId: string,
-    updater: (page: ReportTemplatePage) => ReportTemplatePage,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage
   ) => void;
 }) {
   const settings = page.coverSettings || {};
@@ -1347,27 +1368,27 @@ function BlockEditor({
   canMoveDown: boolean;
   onUpdatePage: (
     pageId: string,
-    updater: (page: ReportTemplatePage) => ReportTemplatePage,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage
   ) => void;
   onRemoveBlock: (pageId: string, blockId: string) => void;
   onMoveBlock: (
     pageId: string,
     blockId: string,
-    direction: "up" | "down",
+    direction: "up" | "down"
   ) => void;
   onMoveBlockToPage: (
     blockId: string,
     fromPageId: string,
-    toPageId: string,
+    toPageId: string
   ) => void;
 }) {
   function updateBlock(
-    updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
+    updater: (block: ReportTemplateBlock) => ReportTemplateBlock
   ) {
     onUpdatePage(page.id, (currentPage) => ({
       ...currentPage,
       blocks: currentPage.blocks.map((currentBlock) =>
-        currentBlock.id === block.id ? updater(currentBlock) : currentBlock,
+        currentBlock.id === block.id ? updater(currentBlock) : currentBlock
       ),
     }));
   }
@@ -1529,7 +1550,7 @@ function BlockSettingsEditor({
   snippets: ReportTextSnippet[];
   block: ReportTemplateBlock;
   onUpdateBlock: (
-    updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
+    updater: (block: ReportTemplateBlock) => ReportTemplateBlock
   ) => void;
 }) {
   const settings = block.settings || {};
@@ -1675,23 +1696,29 @@ function TextLibraryBlockSettingsEditor({
   snippets: ReportTextSnippet[];
   block: ReportTemplateBlock;
   onUpdateBlock: (
-    updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
+    updater: (block: ReportTemplateBlock) => ReportTemplateBlock
   ) => void;
 }) {
   const settings = getTextLibrarySettings(block);
-
   const matchingSnippets = getMatchingTextSnippets({
-    block,
     template,
     snippets,
+    settings,
   });
+  
 
-  function updateTextLibrarySettings(
-    nextSettings: Partial<TextLibrarySettings>,
-  ) {
-    onUpdateBlock((currentBlock) =>
-      setTextLibrarySettingsOnBlock(currentBlock, nextSettings),
-    );
+  function updateTextLibrarySettings(nextSettings: Partial<TextLibrarySettings>) {
+    onUpdateBlock((currentBlock) => ({
+      ...currentBlock,
+      settings: {
+        ...currentBlock.settings,
+        textLibrary: {
+          ...defaultTextLibrarySettings,
+          ...getTextLibrarySettings(currentBlock),
+          ...nextSettings,
+        },
+      } as ReportTemplateBlock["settings"],
+    }));
   }
 
   return (
@@ -1703,7 +1730,8 @@ function TextLibraryBlockSettingsEditor({
           </h5>
 
           <p className="mt-1 text-xs leading-6 text-emerald-800">
-            اختر مصدر النص، التصنيف، وطريقة عرض النص داخل التقرير.
+            اختر من أين يسحب هذا البلوك النص، وما التصنيف المطلوب، وكيف يظهر
+            داخل التقرير.
           </p>
         </div>
 
@@ -1744,7 +1772,7 @@ function TextLibraryBlockSettingsEditor({
             value={settings.category}
             onChange={(event) =>
               updateTextLibrarySettings({
-                category: event.target.value,
+                category: event.target.value as TextLibrarySettings["category"],
                 snippetId: "",
               })
             }
@@ -1908,6 +1936,76 @@ function TextLibraryBlockSettingsEditor({
       </div>
     </div>
   );
+}
+
+function getTextLibrarySettings(block: ReportTemplateBlock): TextLibrarySettings {
+  const rawSettings = block.settings as
+    | (ReportTemplateBlock["settings"] & {
+        textLibrary?: Partial<TextLibrarySettings>;
+      })
+    | undefined;
+
+  return {
+    ...defaultTextLibrarySettings,
+    ...(rawSettings?.textLibrary || {}),
+  };
+}
+
+function getMatchingTextSnippets({
+  template,
+  snippets,
+  settings,
+}: {
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  settings: TextLibrarySettings;
+}) {
+  const candidates = snippets.filter((snippet) => {
+    const matchesCategory =
+      settings.category === "all" || snippet.category === settings.category;
+
+    const matchesService = matchesTextLibraryService({
+      snippet,
+      template,
+      settings,
+    });
+
+    return matchesCategory && matchesService;
+  });
+
+  if (settings.renderMode === "selected" && settings.snippetId) {
+    return candidates.filter((snippet) => snippet.id === settings.snippetId);
+  }
+
+  return candidates;
+}
+
+function matchesTextLibraryService({
+  snippet,
+  template,
+  settings,
+}: {
+  snippet: ReportTextSnippet;
+  template: ReportTemplateBuilderModel;
+  settings: TextLibrarySettings;
+}) {
+  if (settings.textSourceMode === "all") {
+    return true;
+  }
+
+  if (settings.textSourceMode === "global") {
+    return !snippet.serviceSlug;
+  }
+
+  if (settings.textSourceMode === "specific-service") {
+    return snippet.serviceSlug === settings.serviceSlug;
+  }
+
+  if (template.scope === "SERVICE" && template.serviceSlug) {
+    return snippet.serviceSlug === template.serviceSlug || !snippet.serviceSlug;
+  }
+
+  return !snippet.serviceSlug;
 }
 
 function ConfirmModal({
