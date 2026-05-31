@@ -12,6 +12,10 @@ type CaseRow = {
   serviceName: string;
   studentName: string;
 };
+    
+
+
+
 
 export function CasesSearchTable({ cases }: { cases: CaseRow[] }) {
   const [query, setQuery] = useState("");
