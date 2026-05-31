@@ -1,25 +1,24 @@
 ﻿import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   Activity,
   ArrowLeft,
   BarChart3,
   BookOpenCheck,
-  BriefcaseBusiness,
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
   ClipboardCheck,
   FileText,
   GraduationCap,
+  HeartHandshake,
   MessageCircle,
-  MoreHorizontal,
-  Plus,
   School,
-  Search,
+  ShieldCheck,
   Sparkles,
   UploadCloud,
   UserRound,
   Users,
+  WandSparkles,
 } from "lucide-react";
 
 type SoftBlueDashboardProps = {
@@ -28,6 +27,7 @@ type SoftBlueDashboardProps = {
     officialName?: string | null;
     gender?: string | null;
     jobTitle?: string | null;
+    onboardingCompleted?: boolean | null;
     schoolAccount?: {
       name?: string | null;
       profile?: {
@@ -47,85 +47,38 @@ type SoftBlueDashboardProps = {
   };
 };
 
-const serviceCards = [
+const services = [
   {
     title: "متابعة الطلاب",
-    description:
-      "متابعة الحالة الأكاديمية والسلوكية للطلاب وتقديم الدعم والإرشاد المناسب.",
-    image: "/uploads/VD/1.png",
+    description: "تابع الطالب من أول ملاحظة حتى الإجراء والتقرير.",
     href: "/dashboard/student-follow-up",
+    image: "/uploads/VD/1.png",
     icon: UserRound,
     tone: "bg-cyan-50 text-cyan-600",
   },
   {
     title: "التواصل بين الأسرة والمدرسة",
-    description:
-      "تعزيز التواصل مع أولياء الأمور وتوثيق ما تم مناقشته ونتائج التواصل.",
-    image: "/uploads/VD/2.png",
+    description: "وثّق التواصل مع الأسرة واربطه بالحالة والنتائج.",
     href: "/dashboard/family-school-communication",
+    image: "/uploads/VD/2.png",
     icon: MessageCircle,
     tone: "bg-violet-50 text-violet-600",
   },
   {
     title: "اللجان والاجتماعات",
-    description:
-      "تنظيم اللجان والاجتماعات الطلابية ومتابعة القرارات والتوصيات.",
-    image: "/uploads/VD/3.png",
+    description: "محاضر، توصيات، وشواهد مرتبة في مسار واحد.",
     href: "/dashboard/committees-meetings",
+    image: "/uploads/VD/3.png",
     icon: Users,
     tone: "bg-blue-50 text-blue-600",
   },
-];
-
-const activityItems = [
   {
-    title: "تم تحديث حالة طالب",
-    subtitle: "متابعة الطلاب",
-    time: "منذ 15 دقيقة",
-    icon: Users,
+    title: "البرامج الإرشادية",
+    description: "نفّذ برنامجًا إرشاديًا وحوّله لتقرير رسمي.",
+    href: "/dashboard/guidance-programs",
+    image: "/uploads/VD/8.png",
+    icon: HeartHandshake,
     tone: "bg-emerald-50 text-emerald-600",
-  },
-  {
-    title: "تمت إضافة تقرير جديد",
-    subtitle: "تقرير إرشادي رسمي",
-    time: "منذ ساعة",
-    icon: FileText,
-    tone: "bg-violet-50 text-violet-600",
-  },
-  {
-    title: "تم ترتيب شواهد تقرير",
-    subtitle: "الشواهد والمرفقات",
-    time: "منذ 3 ساعات",
-    icon: ClipboardCheck,
-    tone: "bg-sky-50 text-sky-600",
-  },
-  {
-    title: "تم رفع بيانات طلاب",
-    subtitle: "بيانات نور",
-    time: "منذ يوم",
-    icon: UploadCloud,
-    tone: "bg-cyan-50 text-cyan-600",
-  },
-];
-
-const reportItems = [
-  {
-    title: "تقرير متابعة طالب",
-    period: "جاهز للمراجعة",
-    date: "اليوم",
-    tone: "bg-emerald-50 text-emerald-600",
-  },
-  {
-    title: "تقرير التواصل مع الأسرة",
-    period: "مسودة",
-    date: "هذا الأسبوع",
-    tone: "bg-violet-50 text-violet-600",
-  },
-  {
-    title: "تقرير اللجان والاجتماعات",
-    period: "مكتمل",
-    date: "هذا الشهر",
-    tone: "bg-sky-50 text-sky-600",
   },
 ];
 
@@ -145,55 +98,38 @@ function getRiyadhGreeting() {
   return "أهلًا بك";
 }
 
-function getDashboardTheme(gender?: string | null) {
-  const isFemale = gender === "FEMALE";
-
-  if (isFemale) {
-    return {
-      heroGradient: "from-rose-50 via-white to-fuchsia-50",
-      heroBorder: "border-rose-100",
-      primaryText: "text-rose-700",
-      primaryButton: "bg-rose-500 hover:bg-rose-600 shadow-rose-100",
-      secondaryButton:
-        "border-rose-100 bg-white text-rose-700 hover:bg-rose-50",
-      badge: "bg-white/80 text-rose-600",
-      icon: "text-rose-500",
-      focus:
-        "focus:border-rose-200 focus:ring-4 focus:ring-rose-50",
-      serviceLink: "text-rose-600 hover:text-rose-700",
-      reminderGradient: "from-rose-50 via-white to-fuchsia-50",
-      reminderText: "text-rose-700",
-      reminderButton: "text-rose-700 hover:bg-rose-50",
-      marketingGradient: "from-rose-500 to-fuchsia-500",
-      quickIcon: "text-rose-600",
-      quickHover: "group-hover:text-rose-600",
-      progress: "from-rose-300 to-fuchsia-500",
-      avatarFallback: "/uploads/VD/girl.png",
-      label: "موجهة طلابية",
-    };
-  }
+function getTheme(gender?: string | null) {
+  const female = gender === "FEMALE";
 
   return {
-    heroGradient: "from-sky-50 via-white to-blue-50",
-    heroBorder: "border-sky-100",
-    primaryText: "${theme.reminderText}",
-    primaryButton: "bg-sky-600 hover:bg-sky-700 shadow-sky-100",
-    secondaryButton:
-      "border-sky-100 bg-white text-sky-700 hover:bg-sky-50",
-    badge: "bg-white/80 text-sky-600",
-    icon: "${theme.icon}",
-    focus:
-      "${theme.focus}",
-    serviceLink: "${theme.serviceLink}",
-    reminderGradient: "from-cyan-50 via-white to-blue-50",
-    reminderText: "text-sky-700",
-    reminderButton: "text-sky-700 hover:bg-sky-50",
-    marketingGradient: "from-sky-600 to-cyan-500",
-    quickIcon: "text-sky-600",
-    quickHover: "group-hover:text-sky-600",
-    progress: "from-cyan-300 to-blue-500",
-    avatarFallback: "/uploads/VD/boy.png",
-    label: "موجه طلابي",
+    female,
+    character: female ? "/uploads/VD/girl.png" : "/uploads/VD/boy.png",
+    assistantName: female ? "رَاشِدَة" : "رَاشِد",
+    roleLabel: female ? "موجهة طلابية" : "موجه طلابي",
+    mainText: female ? "text-rose-700" : "text-sky-700",
+    softText: female ? "text-rose-600" : "text-sky-600",
+    softBg: female ? "bg-rose-50" : "bg-sky-50",
+    softBorder: female ? "border-rose-100" : "border-sky-100",
+    button:
+      female
+        ? "bg-rose-500 hover:bg-rose-600 shadow-rose-100"
+        : "bg-sky-600 hover:bg-sky-700 shadow-sky-100",
+    outline:
+      female
+        ? "border-rose-100 text-rose-700 hover:bg-rose-50"
+        : "border-sky-100 text-sky-700 hover:bg-sky-50",
+    hero:
+      female
+        ? "from-rose-50 via-white to-fuchsia-50"
+        : "from-sky-50 via-white to-blue-50",
+    assistant:
+      female
+        ? "from-rose-500 to-fuchsia-500"
+        : "from-sky-600 to-cyan-500",
+    progress:
+      female
+        ? "from-rose-300 to-fuchsia-500"
+        : "from-cyan-300 to-blue-500",
   };
 }
 
@@ -218,187 +154,279 @@ function getIdentityScore(user: SoftBlueDashboardProps["user"]) {
 }
 
 export function SoftBlueDashboard({ user, stats }: SoftBlueDashboardProps) {
+  const theme = getTheme(user.gender);
   const profile = user.schoolAccount?.profile;
-  const theme = getDashboardTheme(user.gender);
+
   const displayName = user.officialName || user.name || "الموجه/الموجهة";
-  const jobTitle =
-    user.jobTitle || theme.label;
   const schoolName =
     profile?.schoolName || user.schoolAccount?.name || "منصة التوجيه الطلابي";
-  const greeting = getRiyadhGreeting();
+  const jobTitle = user.jobTitle || theme.roleLabel;
   const identityScore = getIdentityScore(user);
-  const counselorImage = theme.avatarFallback;
+  const greeting = getRiyadhGreeting();
+
+  const todayFocus = [
+    {
+      title: "حالات تحتاج متابعة",
+      value: stats.cases,
+      description:
+        stats.cases > 0
+          ? "ابدأ بالحالات التي لم تُحدّث مؤخرًا."
+          : "لا توجد حالات نشطة حاليًا.",
+      href: "/dashboard/cases",
+      icon: Activity,
+      tone: "bg-cyan-50 text-cyan-600",
+    },
+    {
+      title: "تقارير تحتاج مراجعة",
+      value: stats.reports,
+      description:
+        stats.reports > 0
+          ? "راجع المسودات قبل الاعتماد والتصدير."
+          : "لا توجد تقارير محفوظة بعد.",
+      href: "/dashboard/reports",
+      icon: FileText,
+      tone: "bg-violet-50 text-violet-600",
+    },
+    {
+      title: "جاهزية الهوية",
+      value: identityScore,
+      suffix: "%",
+      description:
+        identityScore >= 90
+          ? "هوية المدرسة جاهزة للتقارير الرسمية."
+          : "أكمل بيانات المدرسة والشعار لتحسين التقارير.",
+      href: "/dashboard/settings/school",
+      icon: School,
+      tone: "bg-amber-50 text-amber-700",
+    },
+  ];
 
   return (
-    <main className="space-y-6 text-slate-900">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
+    <main className="space-y-5 text-slate-900">
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_315px]">
         <div className="space-y-5">
-          <div className="relative max-w-xl">
-            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              placeholder="ابحث عن طالب، خدمة، حالة أو تقرير..."
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-12 text-sm font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
-            />
-          </div>
+          <section
+            className={[
+              "relative overflow-hidden rounded-[1.7rem] border bg-gradient-to-br px-5 py-4 shadow-sm",
+              theme.softBorder,
+              theme.hero,
+            ].join(" ")}
+          >
+            <div className="absolute -left-16 -top-16 h-48 w-48 rounded-full bg-white/60 blur-3xl" />
+            <div className="absolute bottom-2 left-28 h-20 w-20 rounded-full bg-cyan-100/60 blur-2xl" />
 
-          <section className="relative overflow-hidden rounded-[2rem] border ${theme.heroBorder} bg-gradient-to-br ${theme.heroGradient} px-6 py-7 shadow-sm md:px-10">
-            <div className="absolute inset-0 opacity-80">
-              <div className="absolute -right-20 top-12 h-64 w-64 rounded-full border border-sky-100" />
-              <div className="absolute -left-24 -top-20 h-72 w-72 rounded-full bg-sky-100/45 blur-3xl" />
-              <div className="absolute bottom-10 left-32 h-28 w-28 rounded-full bg-cyan-100/60 blur-2xl" />
-            </div>
-
-            <div className="relative grid items-center gap-6 lg:grid-cols-[1fr_280px]">
-              <div className="text-center lg:text-right">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${theme.badge} shadow-sm">
+            <div className="relative z-10 grid items-center gap-4 lg:grid-cols-[1fr_150px]">
+              <div>
+                <div
+                  className={[
+                    "inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-[12px] font-black shadow-sm",
+                    theme.softText,
+                  ].join(" ")}
+                >
                   <Sparkles className="h-4 w-4" />
-                  لوحة اليوم
+                  مركز قيادة اليوم
                 </div>
 
-                <h1 className="text-3xl font-black tracking-tight ${theme.primaryText} md:text-5xl">
-                  {greeting}
-                </h1>
+                <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
+                  <h1
+                    className={[
+                      "text-2xl font-black tracking-tight md:text-3xl",
+                      theme.mainText,
+                    ].join(" ")}
+                  >
+                    {greeting}
+                  </h1>
 
-                <p className="mt-3 text-2xl font-black text-slate-900 md:text-3xl">
-                  {displayName}
+                  <p className="text-xl font-black text-slate-950 md:text-2xl">
+                    {displayName}
+                  </p>
+                </div>
+
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-bold text-slate-600">
+                  <span>{jobTitle}</span>
+                  <span className="text-slate-300">•</span>
+                  <span>{schoolName}</span>
+                </div>
+
+                <p
+                  className={[
+                    "mt-3 inline-flex rounded-2xl border bg-white/75 px-3 py-2 text-[13px] font-bold leading-6 shadow-sm",
+                    theme.softBorder,
+                    theme.softText,
+                  ].join(" ")}
+                >
+                  {theme.female
+                    ? "رسالتك اليوم: كل متابعة صغيرة تصنع فرقًا كبيرًا في حياة طالبة."
+                    : "رسالتك اليوم: كل متابعة صغيرة تصنع فرقًا كبيرًا في حياة طالب."}
                 </p>
 
-                <div className="mt-5 grid gap-2 text-sm font-bold text-slate-600 sm:inline-grid">
-                  <div className="flex items-center justify-center gap-2 lg:justify-start">
-                    <BriefcaseBusiness className="h-4 w-4 ${theme.icon}" />
-                    <span>المسمى: {jobTitle}</span>
-                  </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href="/dashboard/cases"
+                    className={[
+                      "rounded-2xl px-4 py-2.5 text-[13px] font-black text-white shadow-lg transition",
+                      theme.button,
+                    ].join(" ")}
+                  >
+                    ابدأ المتابعة
+                  </Link>
 
-                  <div className="flex items-center justify-center gap-2 lg:justify-start">
-                    <School className="h-4 w-4 ${theme.icon}" />
-                    <span>المدرسة: {schoolName}</span>
-                  </div>
-                </div>
-
-                {user.gender === "FEMALE" ? (
-                  <div className="mt-5 inline-flex rounded-2xl border border-rose-100 bg-white/70 px-4 py-3 text-sm font-bold leading-7 text-rose-700 shadow-sm">
-                    رسالتك اليوم: كل متابعة صغيرة تصنع فرقًا كبيرًا في حياة طالبة.
-                  </div>
-                ) : (
-                  <div className="mt-5 inline-flex rounded-2xl border border-sky-100 bg-white/70 px-4 py-3 text-sm font-bold leading-7 text-sky-700 shadow-sm">
-                    رسالتك اليوم: كل متابعة صغيرة تصنع فرقًا كبيرًا في حياة طالب.
-                  </div>
-                )}
-
-                <div className="mt-6 flex flex-wrap justify-center gap-3 lg:justify-start">
                   <Link
                     href="/dashboard/reports"
-                    className="rounded-2xl px-5 py-3 text-sm font-black text-white shadow-lg transition ${theme.primaryButton}"
+                    className={[
+                      "rounded-2xl border bg-white px-4 py-2.5 text-[13px] font-black transition",
+                      theme.outline,
+                    ].join(" ")}
                   >
-                    إنشاء تقرير
+                    تقرير جديد
                   </Link>
 
                   <Link
                     href="/dashboard/student-import"
-                    className="rounded-2xl border px-5 py-3 text-sm font-black transition ${theme.secondaryButton}"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-black text-slate-700 transition hover:bg-slate-50"
                   >
                     رفع بيانات نور
                   </Link>
                 </div>
               </div>
 
-              <div className="relative mx-auto h-60 w-60 overflow-hidden rounded-[2rem] bg-white/55 lg:mx-0">
+              <div className="mx-auto h-28 w-28 overflow-hidden rounded-[1.5rem] bg-white/65 shadow-sm lg:mx-0">
                 <img
-                  src={counselorImage}
+                  src={theme.character}
                   alt={displayName}
-                  className="h-full w-full object-contain object-bottom p-2"
+                  className="h-full w-full object-contain object-bottom p-1"
                 />
               </div>
             </div>
           </section>
 
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
-            <StatCard
-              title="الطلاب المتابعون"
+          <section className="grid gap-3 md:grid-cols-3">
+            {todayFocus.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  className="group rounded-[1.4rem] border border-slate-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div
+                      className={[
+                        "grid h-11 w-11 place-items-center rounded-2xl",
+                        item.tone,
+                      ].join(" ")}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    <ArrowLeft className="h-5 w-5 text-slate-300 transition group-hover:-translate-x-1 group-hover:text-sky-600" />
+                  </div>
+
+                  <div className="mt-3 flex items-end gap-1">
+                    <p className="text-3xl font-black text-slate-950">
+                      {item.value}
+                    </p>
+                    {item.suffix ? (
+                      <span className="pb-1 text-sm font-black text-slate-400">
+                        {item.suffix}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <h2 className="mt-2 text-[15px] font-black text-slate-900">
+                    {item.title}
+                  </h2>
+
+                  <p className="mt-1 text-[13px] font-bold leading-6 text-slate-500">
+                    {item.description}
+                  </p>
+                </Link>
+              );
+            })}
+          </section>
+
+          <section className="grid gap-3 md:grid-cols-4">
+            <MetricCard
+              title="الطلاب"
               value={stats.students}
-              hint="طلاب جاهزون للخدمات"
-              icon={<Users className="h-6 w-6" />}
-              tone="bg-blue-50 text-blue-600"
+              icon={<GraduationCap className="h-5 w-5" />}
+              href="/dashboard/students"
             />
-            <StatCard
-              title="الحالات النشطة"
+            <MetricCard
+              title="الحالات"
               value={stats.cases}
-              hint="حالات موثقة ومتابعة"
-              icon={<Activity className="h-6 w-6" />}
-              tone="bg-cyan-50 text-cyan-600"
+              icon={<ClipboardCheck className="h-5 w-5" />}
+              href="/dashboard/cases"
             />
-            <StatCard
+            <MetricCard
               title="التقارير"
               value={stats.reports}
-              hint="تقارير رسمية ومسودات"
-              icon={<FileText className="h-6 w-6" />}
-              tone="bg-violet-50 text-violet-600"
+              icon={<BookOpenCheck className="h-5 w-5" />}
+              href="/dashboard/reports"
             />
-            <StatCard
+            <MetricCard
               title="الشواهد"
               value={stats.evidences}
-              hint="صور وملفات داعمة"
-              icon={<CalendarDays className="h-6 w-6" />}
-              tone="bg-emerald-50 text-emerald-600"
+              icon={<CalendarDays className="h-5 w-5" />}
+              href="/dashboard/cases"
             />
           </section>
 
-          <section className="rounded-[1.75rem] border border-slate-100 bg-white p-4 shadow-sm md:p-5">
-            <div className="mb-4 flex items-center justify-between gap-4">
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-black text-slate-900">الخدمات</h2>
-                <p className="mt-1 text-xs font-bold text-slate-400">
-                  أكثر المسارات استخدامًا للموجه/الموجهة
+                <h2 className="text-xl font-black text-slate-900">
+                  الخدمات اليومية
+                </h2>
+                <p className="mt-1 text-[12px] font-bold text-slate-400">
+                  المسارات الأكثر ارتباطًا بعمل الموجه/الموجهة
                 </p>
               </div>
-
-              <Link
-                href="/dashboard/services"
-                className="inline-flex items-center gap-1 text-sm font-black ${theme.serviceLink}"
-              >
-                عرض جميع الخدمات
-                <ChevronLeft className="h-4 w-4" />
-              </Link>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {serviceCards.map((service) => {
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {services.map((service) => {
                 const Icon = service.icon;
 
                 return (
                   <Link
                     key={service.href}
                     href={service.href}
-                    className="group overflow-hidden rounded-[1.5rem] border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    className="group overflow-hidden rounded-[1.35rem] border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                   >
-                    <div className="relative h-36 overflow-hidden bg-slate-50">
+                    <div className="relative h-24 overflow-hidden bg-slate-50">
                       <img
                         src={service.image}
                         alt={service.title}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/10 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent" />
                       <div
                         className={[
-                          "absolute bottom-3 left-3 grid h-12 w-12 place-items-center rounded-2xl border border-white/80 shadow-sm backdrop-blur",
+                          "absolute bottom-2 left-2 grid h-10 w-10 place-items-center rounded-2xl border border-white/80 shadow-sm backdrop-blur",
                           service.tone,
                         ].join(" ")}
                       >
-                        <Icon className="h-6 w-6" />
+                        <Icon className="h-5 w-5" />
                       </div>
                     </div>
 
-                    <div className="p-4">
-                      <h3 className="text-base font-black text-slate-900">
+                    <div className="p-3">
+                      <h3 className="text-[15px] font-black text-slate-900">
                         {service.title}
                       </h3>
-                      <p className="mt-2 min-h-[58px] text-sm leading-7 text-slate-500">
+                      <p className="mt-1.5 min-h-[40px] text-[13px] font-bold leading-6 text-slate-500">
                         {service.description}
                       </p>
-                      <span className="mt-3 inline-flex items-center gap-1 text-sm font-black text-sky-600 group-hover:text-sky-700">
-                        الدخول إلى الخدمة
-                        <ChevronLeft className="h-4 w-4" />
+                      <span
+                        className={[
+                          "mt-2 inline-flex items-center gap-1 text-[13px] font-black",
+                          theme.softText,
+                        ].join(" ")}
+                      >
+                        الدخول
+                        <ArrowLeft className="h-4 w-4" />
                       </span>
                     </div>
                   </Link>
@@ -406,182 +434,58 @@ export function SoftBlueDashboard({ user, stats }: SoftBlueDashboardProps) {
               })}
             </div>
           </section>
-
-          <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
-            <MarketingBook />
-
-            <section className="overflow-hidden rounded-[1.75rem] border border-slate-100 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                <div>
-                  <h2 className="text-lg font-black text-slate-900">
-                    مسارات سريعة
-                  </h2>
-                  <p className="mt-1 text-xs font-bold text-slate-400">
-                    ابدأ من المكان الأقرب لعملك
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-3 p-5 md:grid-cols-2">
-                <QuickPath
-                  title="ابدأ من الطالب"
-                  description="اختر الطالب ثم افتح الخدمة المناسبة."
-                  href="/dashboard/student-follow-up"
-                  icon={<GraduationCap className="h-5 w-5" />}
-                />
-                <QuickPath
-                  title="ابدأ من التقرير"
-                  description="راجع التقارير واعتمد النسخة الرسمية."
-                  href="/dashboard/reports"
-                  icon={<BookOpenCheck className="h-5 w-5" />}
-                />
-                <QuickPath
-                  title="ابدأ من الشواهد"
-                  description="رتّب الصور والمرفقات قبل التصدير."
-                  href="/dashboard/cases"
-                  icon={<ClipboardCheck className="h-5 w-5" />}
-                />
-                <QuickPath
-                  title="ابدأ من النتائج"
-                  description="حلّل نتائج الطلاب من ملفات Excel."
-                  href="/dashboard/results-analysis"
-                  icon={<BarChart3 className="h-5 w-5" />}
-                />
-              </div>
-            </section>
-          </section>
         </div>
 
-        <aside className="space-y-5">
-          <section className="rounded-[1.75rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black text-slate-900">
-                  آخر الأنشطة
-                </h2>
-                <p className="mt-1 text-xs font-bold text-slate-400">
-                  نبض العمل اليومي
-                </p>
-              </div>
+        <aside className="space-y-4">
+          <AssistantCard
+            theme={theme}
+            displayName={displayName}
+            identityScore={identityScore}
+          />
 
-              <button
-                type="button"
-                className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 text-slate-400"
-              >
-                <MoreHorizontal className="h-5 w-5" />
-              </button>
-            </div>
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-4 shadow-sm">
+            <SectionTitle title="اقتراحات الآن" subtitle="ما يستحق انتباهك أولًا" />
 
-            <div className="space-y-1">
-              {activityItems.map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <div
-                    key={`${item.title}-${item.subtitle}`}
-                    className="flex items-center gap-3 border-b border-slate-100 py-3 last:border-b-0"
-                  >
-                    <div
-                      className={[
-                        "grid h-12 w-12 shrink-0 place-items-center rounded-2xl",
-                        item.tone,
-                      ].join(" ")}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-500">
-                        {item.title}
-                      </p>
-                      <p className="mt-0.5 truncate text-sm font-black text-slate-900">
-                        {item.subtitle}
-                      </p>
-                      <p className="mt-1 text-xs font-bold text-slate-400">
-                        {item.time}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="mt-4 space-y-2">
+              <ActionLine
+                icon={<Activity className="h-5 w-5" />}
+                title="راجع الحالات المفتوحة"
+                subtitle="ابدأ بالحالات التي لم يتم تحديثها مؤخرًا."
+                href="/dashboard/cases"
+              />
+              <ActionLine
+                icon={<FileText className="h-5 w-5" />}
+                title="اعتمد تقريرًا جاهزًا"
+                subtitle="راجع التقرير قبل الطباعة أو PDF."
+                href="/dashboard/reports"
+              />
+              <ActionLine
+                icon={<UploadCloud className="h-5 w-5" />}
+                title="حدّث بيانات الطلاب"
+                subtitle="ارفع ملف نور إذا بدأت فترة جديدة."
+                href="/dashboard/student-import"
+              />
             </div>
           </section>
 
-          <section className="rounded-[1.75rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black text-slate-900">
-                  آخر التقارير
-                </h2>
-                <p className="mt-1 text-xs font-bold text-slate-400">
-                  تقارير تحتاج انتباهك
-                </p>
-              </div>
-              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-50 text-sky-600">
-                <BookOpenCheck className="h-5 w-5" />
-              </div>
-            </div>
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-4 shadow-sm">
+            <SectionTitle title="آخر التقارير" subtitle="مختصر سريع" />
 
-            <div className="space-y-1">
-              {reportItems.map((report) => (
-                <div
-                  key={report.title}
-                  className="flex items-center gap-3 border-b border-slate-100 py-3 last:border-b-0"
-                >
-                  <div
-                    className={[
-                      "grid h-12 w-12 shrink-0 place-items-center rounded-2xl",
-                      report.tone,
-                    ].join(" ")}
-                  >
-                    <FileText className="h-5 w-5" />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-slate-900">
-                      {report.title}
-                    </p>
-                    <p className="mt-0.5 text-xs font-bold text-slate-500">
-                      {report.period}
-                    </p>
-                    <p className="mt-1 text-xs font-bold text-slate-400">
-                      {report.date}
-                    </p>
-                  </div>
-
-                  <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                </div>
-              ))}
+            <div className="mt-4 space-y-2">
+              <ReportLine title="تقرير متابعة طالب" status="جاهز للمراجعة" />
+              <ReportLine title="تقرير التواصل مع الأسرة" status="مسودة" />
+              <ReportLine title="تقرير اللجان والاجتماعات" status="مكتمل" />
             </div>
 
             <Link
               href="/dashboard/reports"
-              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-sky-50 text-sm font-black text-sky-700 transition hover:bg-sky-100"
+              className={[
+                "mt-4 flex h-10 items-center justify-center rounded-2xl text-[13px] font-black transition",
+                theme.softBg,
+                theme.softText,
+              ].join(" ")}
             >
               عرض جميع التقارير
-              <ChevronLeft className="h-4 w-4" />
-            </Link>
-          </section>
-
-          <section className="rounded-[1.75rem] border border-slate-100 bg-gradient-to-br ${theme.reminderGradient} p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-cyan-600 shadow-sm">
-                <CalendarDays className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-black text-slate-900">
-                  تذكير لطيف
-                </p>
-                <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                  أكمل هوية المدرسة والشعار حتى تظهر تقاريرك الرسمية بأفضل شكل.
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/dashboard/settings/school"
-              className="mt-4 flex h-11 items-center justify-center rounded-2xl bg-white text-sm font-black text-sky-700 shadow-sm transition hover:bg-sky-50"
-            >
-              تحسين الهوية الرسمية · {identityScore}%
             </Link>
           </section>
         </aside>
@@ -590,97 +494,146 @@ export function SoftBlueDashboard({ user, stats }: SoftBlueDashboardProps) {
   );
 }
 
-function StatCard({
-  title,
-  value,
-  hint,
-  icon,
-  tone,
+function AssistantCard({
+  theme,
+  displayName,
+  identityScore,
 }: {
-  title: string;
-  value: number;
-  hint: string;
-  icon: React.ReactNode;
-  tone: string;
+  theme: ReturnType<typeof getTheme>;
+  displayName: string;
+  identityScore: number;
 }) {
   return (
-    <article className="rounded-[1.5rem] border border-slate-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex items-start justify-between gap-4">
-        <div className={["grid h-12 w-12 place-items-center rounded-2xl", tone].join(" ")}>
-          {icon}
-        </div>
-        <p className="text-3xl font-black text-slate-900">{value}</p>
-      </div>
-      <p className="mt-4 text-sm font-black text-slate-700">{title}</p>
-      <p className="mt-2 text-xs font-bold text-emerald-600">{hint}</p>
-    </article>
-  );
-}
-
-function MarketingBook() {
-  return (
-    <section className="relative overflow-hidden rounded-[1.75rem] border border-sky-100 bg-gradient-to-br ${theme.marketingGradient} p-6 text-white shadow-sm">
-      <div className="absolute -left-20 -top-20 h-52 w-52 rounded-full bg-white/20 blur-3xl" />
-      <div className="absolute -bottom-24 right-16 h-52 w-52 rounded-full bg-slate-950/20 blur-3xl" />
+    <section
+      className={[
+        "relative overflow-hidden rounded-[1.45rem] bg-gradient-to-br p-5 text-white shadow-sm",
+        theme.assistant,
+      ].join(" ")}
+    >
+      <div className="absolute -left-14 -top-14 h-36 w-36 rounded-full bg-white/20 blur-2xl" />
+      <div className="absolute -bottom-16 right-10 h-40 w-40 rounded-full bg-slate-950/20 blur-2xl" />
 
       <div className="relative z-10">
-        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/15 backdrop-blur">
-          <Sparkles className="h-7 w-7" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+          <WandSparkles className="h-6 w-6" />
         </div>
 
-        <h2 className="mt-6 text-3xl font-black leading-[1.5]">
-          منصة تجعل عمل الموجه واضحًا ومقنعًا
+        <h2 className="mt-4 text-2xl font-black">
+          {theme.assistantName} معك اليوم
         </h2>
 
-        <p className="mt-4 text-sm leading-8 text-sky-50">
-          من متابعة الطالب إلى إصدار التقرير، كل خطوة مصممة لتختصر الوقت وتظهر
-          جهدك بشكل رسمي جميل.
+        <p className="mt-3 text-[13px] font-bold leading-7 text-white/90">
+          {displayName}، لا تبدأ من الصفر. افتح الحالات، راجع التقارير، ورتّب
+          الشواهد قبل التصدير.
         </p>
 
-        <div className="mt-6 grid gap-3">
-          <MarketingLine text="توثيق أسرع بدون إعادة كتابة." />
-          <MarketingLine text="شواهد مرتبة داخل PDF احترافي." />
-          <MarketingLine text="هوية مدرسة تظهر تلقائيًا في كل تقرير." />
+        <div className="mt-4 rounded-2xl bg-white/15 p-3 backdrop-blur">
+          <div className="flex items-center justify-between text-[12px] font-black">
+            <span>جاهزية الهوية الرسمية</span>
+            <span>{identityScore}%</span>
+          </div>
+
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/20">
+            <div
+              className="h-full rounded-full bg-white"
+              style={{ width: `${identityScore}%` }}
+            />
+          </div>
         </div>
+
+        <Link
+          href="/dashboard/settings/school"
+          className="mt-4 inline-flex rounded-2xl bg-white px-4 py-2.5 text-[13px] font-black text-slate-950 transition hover:bg-slate-50"
+        >
+          تحسين الهوية
+        </Link>
       </div>
     </section>
   );
 }
 
-function MarketingLine({ text }: { text: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur">
-      <CheckCircle2 className="h-5 w-5 shrink-0 text-cyan-100" />
-      {text}
-    </div>
-  );
-}
-
-function QuickPath({
+function MetricCard({
   title,
-  description,
-  href,
+  value,
   icon,
+  href,
 }: {
   title: string;
-  description: string;
+  value: number;
+  icon: ReactNode;
   href: string;
-  icon: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
-      className="group rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+      className="flex items-center justify-between rounded-[1.3rem] border border-slate-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-sky-600 shadow-sm">
-          {icon}
-        </div>
-        <ArrowLeft className="h-5 w-5 text-slate-300 transition group-hover:-translate-x-1 group-hover:text-sky-600" />
+      <div>
+        <p className="text-[13px] font-black text-slate-500">{title}</p>
+        <p className="mt-1 text-3xl font-black text-slate-950">{value}</p>
       </div>
 
-      <h3 className="mt-4 text-base font-black text-slate-900">{title}</h3>
-      <p className="mt-2 text-sm leading-7 text-slate-500">{description}</p>
+      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+        {icon}
+      </div>
     </Link>
+  );
+}
+
+function SectionTitle({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div>
+      <h2 className="text-xl font-black text-slate-900">{title}</h2>
+      <p className="mt-1 text-[12px] font-bold text-slate-400">{subtitle}</p>
+    </div>
+  );
+}
+
+function ActionLine({
+  icon,
+  title,
+  subtitle,
+  href,
+}: {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex gap-3 rounded-2xl bg-slate-50 p-3 transition hover:bg-white hover:shadow-sm"
+    >
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-sky-600 shadow-sm">
+        {icon}
+      </div>
+
+      <div>
+        <p className="text-[14px] font-black text-slate-900">{title}</p>
+        <p className="mt-1 text-[12px] font-bold leading-5 text-slate-500">
+          {subtitle}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+function ReportLine({ title, status }: { title: string; status: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-sky-600 shadow-sm">
+        <FileText className="h-5 w-5" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[14px] font-black text-slate-900">
+          {title}
+        </p>
+        <p className="mt-1 text-[12px] font-bold text-slate-500">{status}</p>
+      </div>
+
+      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+    </div>
   );
 }

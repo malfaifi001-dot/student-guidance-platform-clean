@@ -23,29 +23,8 @@ type DashboardHeaderProps = {
   } | null;
 };
 
-function getRiyadhGreeting() {
-  const hour = Number(
-    new Intl.DateTimeFormat("en-US", {
-      hour: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Riyadh",
-    }).format(new Date())
-  );
-
-  if (hour >= 5 && hour < 12) return "صباح الخير";
-  if (hour >= 12 && hour < 17) return "مساء النشاط";
-  if (hour >= 17 && hour < 22) return "مساء الخير";
-
-  return "أهلًا بك";
-}
-
 export function DashboardHeader({ user }: DashboardHeaderProps) {
-  const displayName = user?.officialName || user?.name || "الموجه/الموجهة";
-
-  const schoolName =
-    user?.schoolAccount?.profile?.schoolName ||
-    user?.schoolAccount?.name ||
-    "منصة التوجيه الطلابي";
+  const displayName = user?.officialName || user?.name || "حسابي";
 
   const avatar =
     user?.schoolAccount?.profile?.logoUrl ||
@@ -53,60 +32,26 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       ? "/uploads/VD/girl.png"
       : "/uploads/VD/boy.png");
 
-  const greeting = getRiyadhGreeting();
   const roleText =
     user?.jobTitle ||
     (user?.gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي");
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f8fbff]/85 px-5 py-4 backdrop-blur-xl">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link
-            href="/dashboard/account"
-            className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-950 text-white shadow-sm"
-          >
-            {avatar ? (
-              <img
-                src={avatar}
-                alt={displayName}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <UserRound className="h-5 w-5" />
-            )}
-          </Link>
-
-          <div className="min-w-0">
-            <p className="text-sm font-black text-sky-700">
-              {greeting}، {displayName}
-            </p>
-
-            <div className="mt-0.5 flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-xl font-black text-slate-950">
-                لوحة {roleText}
-              </h2>
-
-              <span className="hidden rounded-full bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700 md:inline-flex">
-                {schoolName}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="hidden min-w-[320px] max-w-xl flex-1 lg:block">
+    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7faff]/85 px-4 py-2.5 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4">
+        <div className="hidden min-w-[360px] max-w-2xl flex-1 lg:block">
           <div className="relative">
             <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
               placeholder="ابحث عن طالب، خدمة، حالة أو تقرير..."
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-12 text-sm font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-12 text-[15px] font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-500 shadow-sm md:flex">
+        <div className="flex flex-1 items-center gap-2 lg:flex-none">
+          <div className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-[13px] font-black text-slate-500 shadow-sm md:flex">
             <Sparkles className="h-4 w-4 text-sky-500" />
             بيئة تطوير · SaaS-ready
           </div>
@@ -124,21 +69,25 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
           <Link
             href="/dashboard/account"
-            className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:bg-slate-50 md:flex"
+            className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:bg-slate-50"
           >
             <div className="h-8 w-8 overflow-hidden rounded-xl bg-sky-50">
-              <img
-                src={avatar}
-                alt={displayName}
-                className="h-full w-full object-cover"
-              />
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt={displayName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserRound className="h-5 w-5" />
+              )}
             </div>
 
-            <div className="max-w-[120px] text-right">
-              <p className="truncate text-xs font-black text-slate-900">
+            <div className="hidden max-w-[140px] text-right sm:block">
+              <p className="truncate text-[13px] font-black text-slate-900">
                 {displayName}
               </p>
-              <p className="truncate text-[11px] font-bold text-slate-400">
+              <p className="truncate text-[12px] font-bold text-slate-400">
                 {roleText}
               </p>
             </div>

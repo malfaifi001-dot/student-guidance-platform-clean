@@ -16,14 +16,14 @@ export default async function DashboardLayout({
       <div className="flex min-h-screen">
         <DashboardSidebar />
 
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0 flex-1 text-[15.5px] leading-relaxed">
           <DashboardHeader user={current.user} />
 
           <DashboardOnboardingReminder
             onboardingCompleted={current.user.onboardingCompleted}
           />
 
-          <div className="mx-auto w-full max-w-[1500px] px-4 py-5 md:px-5 xl:px-6">
+          <div className="mx-auto w-full max-w-[1680px] px-3 py-4 md:px-4 xl:px-5">
             {children}
           </div>
         </main>
