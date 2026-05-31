@@ -1,0 +1,541 @@
+﻿===== prisma/schema.prisma evidence models =====
+
+  prisma\schema.prisma:73:  SUBMITTED
+  prisma\schema.prisma:74:  ARCHIVED
+  prisma\schema.prisma:75:}
+  prisma\schema.prisma:76:
+> prisma\schema.prisma:77:enum EvidenceType {
+  prisma\schema.prisma:78:  IMAGE
+  prisma\schema.prisma:79:  FILE
+  prisma\schema.prisma:80:  LINK
+  prisma\schema.prisma:81:}
+  prisma\schema.prisma:82:
+  prisma\schema.prisma:83:enum SubscriptionStatus {
+  prisma\schema.prisma:84:  TRIAL
+  prisma\schema.prisma:85:  ACTIVE
+  prisma\schema.prisma:143:  cases CaseEntry[]
+  prisma\schema.prisma:144:
+  prisma\schema.prisma:145:  createdAt              DateTime         @default(now())
+  prisma\schema.prisma:146:  updatedAt              DateTime         @updatedAt
+> prisma\schema.prisma:147:  caseEvidences          CaseEvidence[]
+  prisma\schema.prisma:148:  createdReportTemplates ReportTemplate[]
+  prisma\schema.prisma:149:
+  prisma\schema.prisma:150:  @@index([schoolAccountId])
+  prisma\schema.prisma:151:}
+  prisma\schema.prisma:152:
+  prisma\schema.prisma:153:model SchoolProfile {
+  prisma\schema.prisma:154:  id              String        @id @default(cuid())
+  prisma\schema.prisma:155:  schoolAccountId String        @unique
+  prisma\schema.prisma:335:  service   Service @relation(fields: [serviceId], 
+references: [id])
+  prisma\schema.prisma:336:
+  prisma\schema.prisma:337:  workflowId      String?
+  prisma\schema.prisma:338:  workflow        Workflow?        @relation(fields: 
+[workflowId], references: [id])
+> prisma\schema.prisma:339:  guidanceReports GuidanceReport[]
+  prisma\schema.prisma:340:  studentId       String?
+  prisma\schema.prisma:341:  student         Student?         @relation(fields: 
+[studentId], references: [id])
+  prisma\schema.prisma:342:
+  prisma\schema.prisma:343:  createdById String?
+  prisma\schema.prisma:344:  createdBy   User?   @relation(fields: [createdById], 
+references: [id])
+  prisma\schema.prisma:345:
+  prisma\schema.prisma:346:  title       String?
+  prisma\schema.prisma:347:  status      CaseStatus @default(DRAFT)
+  prisma\schema.prisma:348:  submittedAt DateTime?
+  prisma\schema.prisma:349:
+  prisma\schema.prisma:350:  values    CaseValue[]
+> prisma\schema.prisma:351:  evidences Evidence[]
+  prisma\schema.prisma:352:
+  prisma\schema.prisma:353:  createdAt              DateTime         @default(now())
+  prisma\schema.prisma:354:  updatedAt              DateTime         @updatedAt
+> prisma\schema.prisma:355:  caseEvidences          CaseEvidence[]
+  prisma\schema.prisma:356:  createdReportTemplates ReportTemplate[]
+  prisma\schema.prisma:357:
+  prisma\schema.prisma:358:  @@index([schoolAccountId])
+  prisma\schema.prisma:359:  @@index([serviceId])
+  prisma\schema.prisma:360:  @@index([workflowId])
+  prisma\schema.prisma:361:  @@index([studentId])
+  prisma\schema.prisma:362:  @@index([status])
+  prisma\schema.prisma:363:}
+  prisma\schema.prisma:381:  @@index([caseEntryId])
+  prisma\schema.prisma:382:  @@index([fieldKey])
+  prisma\schema.prisma:383:}
+  prisma\schema.prisma:384:
+> prisma\schema.prisma:385:model Evidence {
+  prisma\schema.prisma:386:  id String @id @default(cuid())
+  prisma\schema.prisma:387:
+  prisma\schema.prisma:388:  caseEntryId String
+  prisma\schema.prisma:389:  caseEntry   CaseEntry @relation(fields: [caseEntryId], 
+references: [id], onDelete: Cascade)
+  prisma\schema.prisma:390:
+> prisma\schema.prisma:391:  type     EvidenceType
+  prisma\schema.prisma:392:  fileName String?
+> prisma\schema.prisma:393:  fileUrl  String?
+  prisma\schema.prisma:394:  mimeType String?
+  prisma\schema.prisma:395:  size     Int?
+  prisma\schema.prisma:396:  note     String?
+  prisma\schema.prisma:397:
+  prisma\schema.prisma:398:  createdAt DateTime @default(now())
+  prisma\schema.prisma:399:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:400:
+  prisma\schema.prisma:401:  @@index([caseEntryId])
+  prisma\schema.prisma:679:  SCHOOL
+  prisma\schema.prisma:680:  PERSONAL
+  prisma\schema.prisma:681:}
+  prisma\schema.prisma:682:
+> prisma\schema.prisma:683:model GuidanceReport {
+  prisma\schema.prisma:684:  id          String @id @default(cuid())
+  prisma\schema.prisma:685:  title       String
+  prisma\schema.prisma:686:  serviceSlug String
+  prisma\schema.prisma:687:
+  prisma\schema.prisma:688:  caseEntryId String
+  prisma\schema.prisma:689:  caseEntry   CaseEntry @relation(fields: [caseEntryId], 
+references: [id], onDelete: Cascade)
+  prisma\schema.prisma:690:
+  prisma\schema.prisma:691:  status ReportStatus @default(DRAFT)
+  prisma\schema.prisma:694:
+  prisma\schema.prisma:695:  editableContent String
+  prisma\schema.prisma:696:  renderedContent String?
+  prisma\schema.prisma:697:
+> prisma\schema.prisma:698:  evidenceEnabled Boolean @default(true)
+  prisma\schema.prisma:699:
+  prisma\schema.prisma:700:  templateId         String?
+  prisma\schema.prisma:701:  templateSnapshot   Json?
+  prisma\schema.prisma:702:  reportDataSnapshot Json?
+  prisma\schema.prisma:703:  generatedAt        DateTime?
+  prisma\schema.prisma:704:  generatedPdfUrl    String?
+  prisma\schema.prisma:705:
+  prisma\schema.prisma:706:  approvedAt DateTime?
+  prisma\schema.prisma:708:
+  prisma\schema.prisma:709:  createdAt DateTime @default(now())
+  prisma\schema.prisma:710:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:711:
+> prisma\schema.prisma:712:  evidenceItems ReportEvidence[]
+  prisma\schema.prisma:713:
+  prisma\schema.prisma:714:  @@index([caseEntryId])
+  prisma\schema.prisma:715:  @@index([serviceSlug])
+  prisma\schema.prisma:716:  @@index([status])
+  prisma\schema.prisma:717:  @@index([templateId])
+  prisma\schema.prisma:718:  @@index([generatedAt])
+  prisma\schema.prisma:719:}
+  prisma\schema.prisma:720:
+> prisma\schema.prisma:721:model ReportEvidence {
+  prisma\schema.prisma:722:  id String @id @default(cuid())
+  prisma\schema.prisma:723:
+  prisma\schema.prisma:724:  reportId String
+> prisma\schema.prisma:725:  report   GuidanceReport @relation(fields: [reportId], 
+references: [id], onDelete: Cascade)
+  prisma\schema.prisma:726:
+  prisma\schema.prisma:727:  fileName String
+> prisma\schema.prisma:728:  fileUrl  String
+> prisma\schema.prisma:729:  caption  String?
+  prisma\schema.prisma:730:
+  prisma\schema.prisma:731:  mimeType String?
+  prisma\schema.prisma:732:  size     Int?
+  prisma\schema.prisma:733:
+> prisma\schema.prisma:734:  sortOrder Int     @default(0)
+> prisma\schema.prisma:735:  visible   Boolean @default(true)
+  prisma\schema.prisma:736:
+  prisma\schema.prisma:737:  createdAt DateTime @default(now())
+  prisma\schema.prisma:738:
+  prisma\schema.prisma:739:  @@index([reportId])
+> prisma\schema.prisma:740:  @@index([visible])
+  prisma\schema.prisma:741:}
+  prisma\schema.prisma:742:
+  prisma\schema.prisma:743:model ReportTemplate {
+  prisma\schema.prisma:744:  id String @id @default(cuid())
+  prisma\schema.prisma:745:
+  prisma\schema.prisma:746:  name        String
+  prisma\schema.prisma:747:  description String?
+  prisma\schema.prisma:748:
+  prisma\schema.prisma:845:  @@index([nationalId])
+  prisma\schema.prisma:846:  @@index([status])
+  prisma\schema.prisma:847:}
+  prisma\schema.prisma:848:
+> prisma\schema.prisma:849:model CaseEvidence {
+  prisma\schema.prisma:850:  id String @id @default(cuid())
+  prisma\schema.prisma:851:
+  prisma\schema.prisma:852:  caseEntryId String?
+  prisma\schema.prisma:853:  caseEntry   CaseEntry? @relation(fields: [caseEntryId], 
+references: [id])
+  prisma\schema.prisma:854:
+  prisma\schema.prisma:855:  fileName String
+> prisma\schema.prisma:856:  fileUrl  String
+  prisma\schema.prisma:857:  mimeType String
+  prisma\schema.prisma:858:  size     Int
+  prisma\schema.prisma:859:
+  prisma\schema.prisma:860:  uploadedById String?
+  prisma\schema.prisma:861:  uploadedBy   User?   @relation(fields: [uploadedById], 
+references: [id])
+  prisma\schema.prisma:862:
+  prisma\schema.prisma:863:  createdAt DateTime @default(now())
+  prisma\schema.prisma:864:
+
+
+
+
+===== report API routes =====
+
+FullName                                                                             
+--------                                                                             
+D:\student-guidance-platform-clean\app\api\dashboard\reports\route.ts                
+D:\student-guidance-platform-clean\app\api\dashboard\reports\prepare\route.ts        
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\route.ts     
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\approve\ro...
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\delete\rou...
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\duplicate\...
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\export\pdf...
+
+
+
+
+===== report studio editor evidence section =====
+
+  components\reports\report-studio-editor.tsx:19:
+  components\reports\report-studio-editor.tsx:20:type EvidenceItem = {
+  components\reports\report-studio-editor.tsx:21:  id: string;
+  components\reports\report-studio-editor.tsx:22:  fileName: string;
+> components\reports\report-studio-editor.tsx:23:  fileUrl: string;
+> components\reports\report-studio-editor.tsx:24:  caption?: string | null;
+  components\reports\report-studio-editor.tsx:25:  mimeType?: string | null;
+  components\reports\report-studio-editor.tsx:26:  size?: number | null;
+  components\reports\report-studio-editor.tsx:27:  sortOrder: number;
+> components\reports\report-studio-editor.tsx:28:  visible: boolean;
+  components\reports\report-studio-editor.tsx:29:  createdAt: string;
+  components\reports\report-studio-editor.tsx:30:};
+  components\reports\report-studio-editor.tsx:31:
+  components\reports\report-studio-editor.tsx:32:type WorkflowValueOverride = {
+  components\reports\report-studio-editor.tsx:33:  fieldKey: string;
+  components\reports\report-studio-editor.tsx:34:  fieldLabel: string;
+  components\reports\report-studio-editor.tsx:35:  originalValue: string;
+  components\reports\report-studio-editor.tsx:36:  editedValue: string;
+  components\reports\report-studio-editor.tsx:37:};
+  components\reports\report-studio-editor.tsx:38:
+  components\reports\report-studio-editor.tsx:39:type EditorialBlocks = {
+  components\reports\report-studio-editor.tsx:40:  intro: string;
+  components\reports\report-studio-editor.tsx:41:  goals: string;
+  components\reports\report-studio-editor.tsx:42:  procedures: string;
+  components\reports\report-studio-editor.tsx:43:  results: string;
+  components\reports\report-studio-editor.tsx:44:  recommendations: string;
+  components\reports\report-studio-editor.tsx:61:  approvedAt?: string | null;
+  components\reports\report-studio-editor.tsx:62:  archivedAt?: string | null;
+  components\reports\report-studio-editor.tsx:63:
+  components\reports\report-studio-editor.tsx:64:  reportValues: ReportValue[];
+> components\reports\report-studio-editor.tsx:65:  evidenceItems: EvidenceItem[];
+  components\reports\report-studio-editor.tsx:66:
+  components\reports\report-studio-editor.tsx:67:  caseEntry: {
+  components\reports\report-studio-editor.tsx:68:    id: string;
+  components\reports\report-studio-editor.tsx:69:    title?: string | null;
+  components\reports\report-studio-editor.tsx:70:    status: string;
+  components\reports\report-studio-editor.tsx:71:    createdAt: string;
+  components\reports\report-studio-editor.tsx:72:    service: {
+  components\reports\report-studio-editor.tsx:73:      id: string;
+  components\reports\report-studio-editor.tsx:74:      name: string;
+  components\reports\report-studio-editor.tsx:75:      slug: string;
+  components\reports\report-studio-editor.tsx:76:    };
+  components\reports\report-studio-editor.tsx:77:    student?: {
+  components\reports\report-studio-editor.tsx:78:      id: string;
+  components\reports\report-studio-editor.tsx:79:      fullName: string;
+  components\reports\report-studio-editor.tsx:80:      nationalId?: string | null;
+  components\reports\report-studio-editor.tsx:81:      stage?: string | null;
+  components\reports\report-studio-editor.tsx:135:    key: "procedures",
+  components\reports\report-studio-editor.tsx:136:    title: "الإجراءات",
+  components\reports\report-studio-editor.tsx:137:    helper: "ما تم تنفيذه أو 
+متابعته داخل الحالة أو الخدمة.",
+  components\reports\report-studio-editor.tsx:138:    placeholder:
+> components\reports\report-studio-editor.tsx:139:      "مثال: تم تنفيذ لقاء إرشادي، 
+وتوثيق الشواهد، ومراجعة البيانات المرتبطة بالحالة...",
+  components\reports\report-studio-editor.tsx:140:  },
+  components\reports\report-studio-editor.tsx:141:  {
+  components\reports\report-studio-editor.tsx:142:    key: "results",
+  components\reports\report-studio-editor.tsx:143:    title: "النتائج",
+  components\reports\report-studio-editor.tsx:144:    helper: "أهم المخرجات التي 
+ترغب في إظهارها في التقرير.",
+  components\reports\report-studio-editor.tsx:145:    placeholder:
+  components\reports\report-studio-editor.tsx:146:      "مثال: أظهرت المتابعة تحسنًا 
+في المؤشرات المستهدفة مع الحاجة إلى استمرار المتابعة...",
+  components\reports\report-studio-editor.tsx:147:  },
+  components\reports\report-studio-editor.tsx:148:  {
+  components\reports\report-studio-editor.tsx:149:    key: "recommendations",
+  components\reports\report-studio-editor.tsx:150:    title: "التوصيات",
+  components\reports\report-studio-editor.tsx:151:    helper: "توصيات عملية مختصرة 
+قابلة للتنفيذ.",
+  components\reports\report-studio-editor.tsx:152:    placeholder:
+  components\reports\report-studio-editor.tsx:153:      "مثال: يوصى باستمرار 
+المتابعة، وتعزيز التواصل مع الأسرة، وتوثيق المستجدات في سجل الحالة...",
+  components\reports\report-studio-editor.tsx:154:  },
+  components\reports\report-studio-editor.tsx:155:  {
+  components\reports\report-studio-editor.tsx:159:    placeholder: "اكتب أي ملاحظات 
+ختامية مناسبة للتقرير...",
+  components\reports\report-studio-editor.tsx:160:  },
+  components\reports\report-studio-editor.tsx:161:  {
+  components\reports\report-studio-editor.tsx:162:    key: "evidenceNotes",
+> components\reports\report-studio-editor.tsx:163:    title: "ملاحظات الشواهد",
+  components\reports\report-studio-editor.tsx:164:    helper: "ملاحظات مرتبطة 
+بالمرفقات والصور.",
+  components\reports\report-studio-editor.tsx:165:    placeholder:
+> components\reports\report-studio-editor.tsx:166:      "مثال: تم إرفاق الشواهد 
+الداعمة للتقرير لأغراض التوثيق والمتابعة...",
+  components\reports\report-studio-editor.tsx:167:  },
+  components\reports\report-studio-editor.tsx:168:];
+  components\reports\report-studio-editor.tsx:169:
+  components\reports\report-studio-editor.tsx:170:export function 
+ReportStudioEditor({ report }: ReportStudioEditorProps) {
+  components\reports\report-studio-editor.tsx:171:  const router = useRouter();
+  components\reports\report-studio-editor.tsx:172:  const [isPending, 
+startTransition] = useTransition();
+  components\reports\report-studio-editor.tsx:173:
+  components\reports\report-studio-editor.tsx:174:  const locked = report.status === 
+"APPROVED" || report.status === "ARCHIVED";
+  components\reports\report-studio-editor.tsx:175:  const [activeTab, setActiveTab] 
+= useState<EditorTab>("overview");
+  components\reports\report-studio-editor.tsx:176:  const [title, setTitle] = 
+useState(report.title);
+  components\reports\report-studio-editor.tsx:177:  const [feedback, setFeedback] = 
+useState<FeedbackState>(null);
+  components\reports\report-studio-editor.tsx:178:  const [saving, setSaving] = 
+useState(false);
+  components\reports\report-studio-editor.tsx:179:  const [approving, setApproving] 
+= useState(false);
+  components\reports\report-studio-editor.tsx:180:  const [previewVersion, 
+setPreviewVersion] = useState(1);
+  components\reports\report-studio-editor.tsx:181:
+  components\reports\report-studio-editor.tsx:182:  const parsed = useMemo(
+  components\reports\report-studio-editor.tsx:220:  const filledTextsCount = 
+TEXT_BLOCKS.filter((item) =>
+  components\reports\report-studio-editor.tsx:221:    blocks[item.key].trim()
+  components\reports\report-studio-editor.tsx:222:  ).length;
+  components\reports\report-studio-editor.tsx:223:
+> components\reports\report-studio-editor.tsx:224:  const visibleEvidenceCount = 
+report.evidenceItems.filter(
+> components\reports\report-studio-editor.tsx:225:    (item) => item.visible
+  components\reports\report-studio-editor.tsx:226:  ).length;
+  components\reports\report-studio-editor.tsx:227:
+  components\reports\report-studio-editor.tsx:228:  const renderedContent = 
+useMemo(() => {
+  components\reports\report-studio-editor.tsx:229:    return 
+buildRenderedContent(blocks, workflowValueOverrides);
+  components\reports\report-studio-editor.tsx:230:  }, [blocks, 
+workflowValueOverrides]);
+  components\reports\report-studio-editor.tsx:231:
+  components\reports\report-studio-editor.tsx:232:  const editableContent = 
+useMemo(() => {
+  components\reports\report-studio-editor.tsx:233:    return JSON.stringify(
+  components\reports\report-studio-editor.tsx:234:      {
+  components\reports\report-studio-editor.tsx:235:        version: 10,
+  components\reports\report-studio-editor.tsx:236:        type: 
+"COUNSELOR_REPORT_STUDIO",
+  components\reports\report-studio-editor.tsx:237:        updatedAt: new 
+Date().toISOString(),
+  components\reports\report-studio-editor.tsx:238:        reportId: report.id,
+  components\reports\report-studio-editor.tsx:239:        caseEntryId: 
+report.caseEntry.id,
+  components\reports\report-studio-editor.tsx:240:        serviceSlug: 
+report.caseEntry.service.slug,
+  components\reports\report-studio-editor.tsx:241:        templateId: 
+report.templateId,
+  components\reports\report-studio-editor.tsx:402:                {report.title}
+  components\reports\report-studio-editor.tsx:403:              </h1>
+  components\reports\report-studio-editor.tsx:404:
+  components\reports\report-studio-editor.tsx:405:              <p className="mt-2 
+max-w-3xl text-sm leading-7 text-slate-500">
+> components\reports\report-studio-editor.tsx:406:                حرر النصوص والقيم 
+والشواهد الخاصة بالتقرير قبل معاينة PDF أو
+  components\reports\report-studio-editor.tsx:407:                تحميل النسخة 
+الرسمية. التقرير تابع لخدمة{" "}
+  components\reports\report-studio-editor.tsx:408:                <span 
+className="font-black text-slate-900">
+  components\reports\report-studio-editor.tsx:409:                  
+{report.caseEntry.service.name}
+  components\reports\report-studio-editor.tsx:410:                </span>
+  components\reports\report-studio-editor.tsx:411:                .
+  components\reports\report-studio-editor.tsx:412:              </p>
+  components\reports\report-studio-editor.tsx:413:            </div>
+  components\reports\report-studio-editor.tsx:414:
+  components\reports\report-studio-editor.tsx:415:            <div className="flex 
+flex-wrap gap-2">
+  components\reports\report-studio-editor.tsx:416:              <Link
+  components\reports\report-studio-editor.tsx:417:                
+href={`/dashboard/reports/${report.id}/preview`}
+  components\reports\report-studio-editor.tsx:418:                
+className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm 
+font-black text-slate-700 transition hover:bg-slate-50"
+  components\reports\report-studio-editor.tsx:419:              >
+  components\reports\report-studio-editor.tsx:420:                الرجوع للمعاينة
+  components\reports\report-studio-editor.tsx:421:              </Link>
+  components\reports\report-studio-editor.tsx:422:
+  components\reports\report-studio-editor.tsx:445:              
+status={report.status}
+  components\reports\report-studio-editor.tsx:446:              
+hasChanges={hasChanges}
+  components\reports\report-studio-editor.tsx:447:              
+changedValuesCount={changedValuesCount}
+  components\reports\report-studio-editor.tsx:448:              
+filledTextsCount={filledTextsCount}
+> components\reports\report-studio-editor.tsx:449:              
+visibleEvidenceCount={visibleEvidenceCount}
+  components\reports\report-studio-editor.tsx:450:            />
+  components\reports\report-studio-editor.tsx:451:
+  components\reports\report-studio-editor.tsx:452:            <Tabs 
+activeTab={activeTab} onChange={setActiveTab} />
+  components\reports\report-studio-editor.tsx:453:
+  components\reports\report-studio-editor.tsx:454:            <EditorPanel
+  components\reports\report-studio-editor.tsx:455:              activeTab={activeTab}
+  components\reports\report-studio-editor.tsx:456:              report={report}
+  components\reports\report-studio-editor.tsx:457:              title={title}
+  components\reports\report-studio-editor.tsx:458:              blocks={blocks}
+  components\reports\report-studio-editor.tsx:459:              valueMap={valueMap}
+  components\reports\report-studio-editor.tsx:460:              locked={locked}
+  components\reports\report-studio-editor.tsx:461:              
+onTitleChange={setTitle}
+  components\reports\report-studio-editor.tsx:462:              
+onBlockChange={updateBlock}
+  components\reports\report-studio-editor.tsx:463:              
+onValueChange={updateValue}
+  components\reports\report-studio-editor.tsx:464:            />
+  components\reports\report-studio-editor.tsx:465:
+  components\reports\report-studio-editor.tsx:535:  status,
+  components\reports\report-studio-editor.tsx:536:  hasChanges,
+  components\reports\report-studio-editor.tsx:537:  changedValuesCount,
+  components\reports\report-studio-editor.tsx:538:  filledTextsCount,
+> components\reports\report-studio-editor.tsx:539:  visibleEvidenceCount,
+  components\reports\report-studio-editor.tsx:540:}: {
+  components\reports\report-studio-editor.tsx:541:  locked: boolean;
+  components\reports\report-studio-editor.tsx:542:  status: string;
+  components\reports\report-studio-editor.tsx:543:  hasChanges: boolean;
+  components\reports\report-studio-editor.tsx:544:  changedValuesCount: number;
+  components\reports\report-studio-editor.tsx:545:  filledTextsCount: number;
+> components\reports\report-studio-editor.tsx:546:  visibleEvidenceCount: number;
+  components\reports\report-studio-editor.tsx:547:}) {
+  components\reports\report-studio-editor.tsx:548:  return (
+  components\reports\report-studio-editor.tsx:549:    <section 
+className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+  components\reports\report-studio-editor.tsx:550:      <div className="flex 
+items-center justify-between gap-3">
+  components\reports\report-studio-editor.tsx:551:        <div>
+  components\reports\report-studio-editor.tsx:552:          <p className="text-xs 
+font-black text-slate-500">حالة التقرير</p>
+  components\reports\report-studio-editor.tsx:553:          <h2 className="mt-1 
+text-lg font-black text-slate-950">
+  components\reports\report-studio-editor.tsx:554:            {getStatusName(status)}
+  components\reports\report-studio-editor.tsx:555:          </h2>
+  components\reports\report-studio-editor.tsx:556:        </div>
+  components\reports\report-studio-editor.tsx:557:
+  components\reports\report-studio-editor.tsx:558:        <span
+  components\reports\report-studio-editor.tsx:559:          className={[
+  components\reports\report-studio-editor.tsx:560:            "rounded-full px-3 
+py-1 text-xs font-black",
+  components\reports\report-studio-editor.tsx:561:            locked
+  components\reports\report-studio-editor.tsx:562:              ? "bg-slate-200 
+text-slate-700"
+  components\reports\report-studio-editor.tsx:571:
+  components\reports\report-studio-editor.tsx:572:      <div className="mt-4 grid 
+grid-cols-3 gap-2">
+  components\reports\report-studio-editor.tsx:573:        <MiniStat label="النصوص" 
+value={`${filledTextsCount}`} />
+  components\reports\report-studio-editor.tsx:574:        <MiniStat label="القيم" 
+value={`${changedValuesCount}`} />
+> components\reports\report-studio-editor.tsx:575:        <MiniStat label="الشواهد" 
+value={`${visibleEvidenceCount}`} />
+  components\reports\report-studio-editor.tsx:576:      </div>
+  components\reports\report-studio-editor.tsx:577:    </section>
+  components\reports\report-studio-editor.tsx:578:  );
+  components\reports\report-studio-editor.tsx:579:}
+  components\reports\report-studio-editor.tsx:580:
+  components\reports\report-studio-editor.tsx:581:function Tabs({
+  components\reports\report-studio-editor.tsx:582:  activeTab,
+  components\reports\report-studio-editor.tsx:583:  onChange,
+  components\reports\report-studio-editor.tsx:584:}: {
+  components\reports\report-studio-editor.tsx:585:  activeTab: EditorTab;
+  components\reports\report-studio-editor.tsx:586:  onChange: (tab: EditorTab) => 
+void;
+  components\reports\report-studio-editor.tsx:587:}) {
+  components\reports\report-studio-editor.tsx:588:  const tabs: Array<{ id: 
+EditorTab; label: string }> = [
+  components\reports\report-studio-editor.tsx:589:    { id: "overview", label: 
+"الأساسيات" },
+  components\reports\report-studio-editor.tsx:590:    { id: "texts", label: "النصوص" 
+},
+  components\reports\report-studio-editor.tsx:591:    { id: "values", label: "القيم" 
+},
+> components\reports\report-studio-editor.tsx:592:    { id: "evidence", label: 
+"الشواهد" },
+  components\reports\report-studio-editor.tsx:593:    { id: "final", label: 
+"الاعتماد" },
+  components\reports\report-studio-editor.tsx:594:  ];
+  components\reports\report-studio-editor.tsx:595:
+  components\reports\report-studio-editor.tsx:596:  return (
+  components\reports\report-studio-editor.tsx:597:    <div className="mt-4 grid 
+grid-cols-2 gap-2">
+  components\reports\report-studio-editor.tsx:598:      {tabs.map((tab) => (
+  components\reports\report-studio-editor.tsx:599:        <button
+  components\reports\report-studio-editor.tsx:600:          key={tab.id}
+  components\reports\report-studio-editor.tsx:601:          type="button"
+  components\reports\report-studio-editor.tsx:602:          onClick={() => 
+onChange(tab.id)}
+  components\reports\report-studio-editor.tsx:603:          className={[
+  components\reports\report-studio-editor.tsx:604:            "rounded-2xl border 
+px-4 py-3 text-sm font-black transition",
+  components\reports\report-studio-editor.tsx:605:            activeTab === tab.id
+  components\reports\report-studio-editor.tsx:606:              ? "border-slate-950 
+bg-slate-950 text-white"
+  components\reports\report-studio-editor.tsx:607:              : "border-slate-200 
+bg-white text-slate-700 hover:bg-slate-50",
+  components\reports\report-studio-editor.tsx:608:          ].join(" ")}
+  components\reports\report-studio-editor.tsx:723:      </div>
+  components\reports\report-studio-editor.tsx:724:    );
+  components\reports\report-studio-editor.tsx:725:  }
+  components\reports\report-studio-editor.tsx:726:
+> components\reports\report-studio-editor.tsx:727:  if (activeTab === "evidence") {
+  components\reports\report-studio-editor.tsx:728:    return (
+  components\reports\report-studio-editor.tsx:729:      <div className="mt-4 
+space-y-4">
+  components\reports\report-studio-editor.tsx:730:        <FieldCard
+> components\reports\report-studio-editor.tsx:731:          title="الشواهد والمرفقات"
+> components\reports\report-studio-editor.tsx:732:          helper="هذه النسخة تعرض 
+الشواهد المرتبطة بالتقرير. التحكم التفصيلي في الإخفاء والترتيب سيضاف كخطوة لاحقة."
+  components\reports\report-studio-editor.tsx:733:        >
+> components\reports\report-studio-editor.tsx:734:          
+{report.evidenceItems.length ? (
+  components\reports\report-studio-editor.tsx:735:            <div 
+className="space-y-2">
+> components\reports\report-studio-editor.tsx:736:              
+{report.evidenceItems.map((item) => (
+  components\reports\report-studio-editor.tsx:737:                <div
+  components\reports\report-studio-editor.tsx:738:                  key={item.id}
+  components\reports\report-studio-editor.tsx:739:                  
+className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+  components\reports\report-studio-editor.tsx:740:                >
+  components\reports\report-studio-editor.tsx:741:                  <p 
+className="text-sm font-black text-slate-900">
+> components\reports\report-studio-editor.tsx:742:                    {item.caption 
+|| item.fileName}
+  components\reports\report-studio-editor.tsx:743:                  </p>
+  components\reports\report-studio-editor.tsx:744:                  <p 
+className="mt-1 text-xs text-slate-500">
+> components\reports\report-studio-editor.tsx:745:                    {item.mimeType 
+|| "ملف"} · {item.visible ? "ظاهر" : "مخفي"}
+  components\reports\report-studio-editor.tsx:746:                  </p>
+  components\reports\report-studio-editor.tsx:747:                </div>
+  components\reports\report-studio-editor.tsx:748:              ))}
+  components\reports\report-studio-editor.tsx:749:            </div>
+  components\reports\report-studio-editor.tsx:750:          ) : (
+  components\reports\report-studio-editor.tsx:751:            <p 
+className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+  components\reports\report-studio-editor.tsx:752:              لا توجد شواهد مرتبطة 
+بهذا التقرير.
+  components\reports\report-studio-editor.tsx:753:            </p>
+  components\reports\report-studio-editor.tsx:754:          )}
+  components\reports\report-studio-editor.tsx:755:        </FieldCard>
+  components\reports\report-studio-editor.tsx:756:      </div>
+  components\reports\report-studio-editor.tsx:757:    );
+  components\reports\report-studio-editor.tsx:758:  }
+  components\reports\report-studio-editor.tsx:759:
+  components\reports\report-studio-editor.tsx:760:  return (
+  components\reports\report-studio-editor.tsx:761:    <div className="mt-4 
+space-y-4">
+
+
+
