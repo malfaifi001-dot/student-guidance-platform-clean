@@ -135,12 +135,20 @@ model User {
 
   name         String
   email        String   @unique
+  phone        String?
   passwordHash String?
   role         UserRole @default(COUNSELOR)
   gender       Gender   @default(UNKNOWN)
+  officialName String?
+  jobTitle     String?
   isActive     Boolean  @default(true)
 
-  cases CaseEntry[]
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases    CaseEntry[]
+  sessions UserSession[]
 
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -150,17 +158,45 @@ model User {
   @@index([schoolAccountId])
 }
 
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
 model SchoolProfile {
   id              String        @id @default(cuid())
   schoolAccountId String        @unique
   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
 
-  schoolName      String
-  principalName   String?
-  city            String?
-  district        String?
-  academicYear    String?
-  currentSemester String?
+  schoolName          String
+  principalName       String?
+  educationDepartment String?
+  educationOffice     String?
+  city                String?
+  district            String?
+  stage               String?
+  academicYear        String?
+  currentSemester     String?
+  logoUrl             String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

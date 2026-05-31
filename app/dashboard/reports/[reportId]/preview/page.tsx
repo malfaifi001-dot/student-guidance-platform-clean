@@ -1,3 +1,7 @@
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { OfficialFeatureRequiredPage } from "@/components/auth/official-feature-required-page";
+import { canUseOfficialFeatures, getMissingOfficialIdentityItems } from "@/lib/auth/official-feature-guard";
+import { buildReportIdentityFromCurrentUser } from "@/lib/report-engine/report-identity-runtime";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
@@ -40,6 +44,7 @@ type PageProps = {
     studio?: string;
     view?: string;
     pdf?: string;
+    inline?: string;
     v?: string;
   }>;
 };
@@ -119,12 +124,41 @@ export default async function ReportRealPreviewPage({
 }: PageProps) {
   const { reportId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  const currentSession = await getCurrentSessionUser();
+  const runtimeReportIdentity = buildReportIdentityFromCurrentUser(
+    currentSession?.user ?? null
+  );
+
+  const officialIdentityMissingItems = currentSession?.user
+    ? getMissingOfficialIdentityItems(currentSession.user)
+    : [];
+
+  const officialIdentityReady = currentSession?.user
+    ? canUseOfficialFeatures(currentSession.user)
+    : false;
+
+  const pdfMode =
+    resolvedSearchParams.pdf === "true" ||
+    resolvedSearchParams.studio === "true" ||
+    resolvedSearchParams.inline === "true";
+
+  if (!officialIdentityReady && !pdfMode) {
+    return (
+      <OfficialFeatureRequiredPage
+        title="أكمل هوية المدرسة قبل معاينة التقرير الرسمي"
+        description="معاينة التقرير الرسمي تعتمد على بيانات المدرسة والموجه/الموجهة حتى تظهر الترويسة والغلاف بشكل صحيح."
+        missingItems={officialIdentityMissingItems.map((item) => ({
+          label: item,
+          description: "هذا الحقل مطلوب حتى تظهر التقارير الرسمية بهوية مكتملة.",
+        }))}
+      />
+    );
+  }
   const evidenceLayoutMode = normalizeEvidenceLayoutMode(
     resolvedSearchParams.evidenceLayout
   );
 
   const studioMode = resolvedSearchParams.studio === "true";
-  const pdfMode = resolvedSearchParams.pdf === "true";
   const showCover = resolvedSearchParams.cover !== "false";
 
   const report = await prisma.guidanceReport.findUnique({
@@ -307,7 +341,7 @@ export default async function ReportRealPreviewPage({
           <ReportBuilderPdfRenderer
             template={builderTemplate}
             previewCaseData={builderPreviewCaseData as any}
-            identity={identity}
+            identity={runtimeReportIdentity}
             editorialBlocks={parsedEditableContent.blocks || {}}
             evidenceLayoutMode={evidenceLayoutMode}
           />

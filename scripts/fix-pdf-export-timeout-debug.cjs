@@ -1,4 +1,14 @@
-import { NextResponse } from "next/server";
+﻿const fs = require("fs");
+
+const path = "app/api/dashboard/reports/[reportId]/export/pdf/route.ts";
+let content = fs.readFileSync(path, "utf8");
+
+const start = content.indexOf("import");
+if (start === -1) {
+  throw new Error("ملف PDF export غير واضح.");
+}
+
+const newContent = `import { NextResponse } from "next/server";
 import { chromium } from "playwright";
 
 export const runtime = "nodejs";
@@ -16,7 +26,7 @@ function getBaseUrl(request: Request) {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.APP_URL ||
-    `${url.protocol}//${url.host}`
+    \`\${url.protocol}//\${url.host}\`
   );
 }
 
@@ -44,7 +54,7 @@ export async function GET(request: Request, context: RouteContext) {
     const baseUrl = getBaseUrl(request);
     const searchParams = copySearchParams(requestUrl.searchParams);
 
-    const previewUrl = `${baseUrl}/dashboard/reports/${reportId}/preview?${searchParams.toString()}`;
+    const previewUrl = \`\${baseUrl}/dashboard/reports/\${reportId}/preview?\${searchParams.toString()}\`;
     const cookieHeader = request.headers.get("cookie") || "";
 
     browser = await chromium.launch({
@@ -86,7 +96,7 @@ export async function GET(request: Request, context: RouteContext) {
       const status = response?.status() || 0;
 
       throw new Error(
-        `تعذر فتح صفحة المعاينة الداخلية. Status: ${status}. URL: ${previewUrl}`
+        \`تعذر فتح صفحة المعاينة الداخلية. Status: \${status}. URL: \${previewUrl}\`
       );
     }
 
@@ -122,10 +132,10 @@ export async function GET(request: Request, context: RouteContext) {
       throw new Error(
         [
           "لم يتم العثور على صفحة التقرير داخل المعاينة.",
-          `Current URL: ${currentUrl}`,
-          `Title: ${title || "بدون عنوان"}`,
-          `Body: ${bodyText.slice(0, 300)}`,
-        ].join("\n")
+          \`Current URL: \${currentUrl}\`,
+          \`Title: \${title || "بدون عنوان"}\`,
+          \`Body: \${bodyText.slice(0, 300)}\`,
+        ].join("\\n")
       );
     }
 
@@ -164,11 +174,11 @@ export async function GET(request: Request, context: RouteContext) {
 
     const inline = requestUrl.searchParams.get("inline") === "true";
 
-    return new NextResponse(new Uint8Array(pdfBuffer), {
+    return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="guidance-report-${reportId}.pdf"`,
+        "Content-Disposition": \`\${inline ? "inline" : "attachment"}; filename="guidance-report-\${reportId}.pdf"\`,
         "Cache-Control": "no-store",
       },
     });
@@ -191,3 +201,8 @@ export async function GET(request: Request, context: RouteContext) {
     }
   }
 }
+`;
+
+fs.writeFileSync(path, newContent, "utf8");
+
+console.log("تم استبدال PDF export route بنسخة أقوى مع تشخيص واضح.");

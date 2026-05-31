@@ -189,8 +189,16 @@ function OfficialCoverPage({
   return (
     <div className="flex h-full flex-col justify-between p-[18mm] text-center">
       <div>
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-slate-300 text-xs font-black text-slate-500">
-          شعار
+        <div className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-slate-300 bg-white text-xs font-black text-slate-500">
+          {identity.schoolLogoUrl ? (
+            <img
+              src={identity.schoolLogoUrl}
+              alt="شعار المدرسة"
+              className="h-full w-full object-contain p-2"
+            />
+          ) : (
+            "شعار"
+          )}
         </div>
 
         <div className="mt-6 space-y-1 text-sm font-bold text-slate-700">

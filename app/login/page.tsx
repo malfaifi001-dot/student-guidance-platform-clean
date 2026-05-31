@@ -1,15 +1,101 @@
-﻿import { AuthCard } from "@/components/auth/auth-card";
+﻿"use client";
+
+import { useState } from "react";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر تسجيل الدخول.");
+      }
+
+      window.location.href = data.redirectTo || "/dashboard";
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "حدث خطأ غير متوقع.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-      <AuthCard title="تسجيل الدخول" description="واجهة جاهزة للربط لاحقًا مع نظام المصادقة والصلاحيات.">
-        <form className="space-y-4">
-          <input className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="البريد الإلكتروني" />
-          <input className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="كلمة المرور" type="password" />
-          <button className="w-full rounded-2xl bg-sky-600 px-4 py-3 font-bold text-white">دخول</button>
-        </form>
-      </AuthCard>
+    <main dir="rtl" className="min-h-screen bg-slate-50 px-4 py-10">
+      <form
+        onSubmit={submit}
+        className="mx-auto max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <p className="text-sm font-black text-blue-700">منصة التوجيه الطلابي</p>
+        <h1 className="mt-3 text-3xl font-black text-slate-950">تسجيل الدخول</h1>
+        <p className="mt-2 text-sm leading-7 text-slate-500">
+          ادخل إلى حسابك لإكمال بيانات المدرسة أو متابعة التقارير.
+        </p>
+
+        {error ? (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="mt-5 space-y-4">
+          <label className="block">
+            <span className="text-sm font-black text-slate-700">البريد الإلكتروني</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-black text-slate-700">كلمة المرور</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              required
+            />
+          </label>
+
+          <button
+            disabled={loading}
+            className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50"
+          >
+            {loading ? "جاري الدخول..." : "دخول"}
+          </button>
+
+          <a
+            href="/register"
+            className="block text-center text-sm font-bold text-slate-500 hover:text-slate-900"
+          >
+            إنشاء حساب جديد
+          </a>
+        </div>
+      </form>
     </main>
   );
 }
