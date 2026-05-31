@@ -1,10 +1,9 @@
-﻿import { CreativeDashboard } from "@/components/dashboard/creative-dashboard";
+﻿import { SoftBlueDashboard } from "@/components/dashboard/soft-blue-dashboard";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
 
 export default async function DashboardPage() {
   const current = await requireDashboardUser();
-
   const schoolAccountId = current.user.schoolAccountId;
 
   const [students, cases, reports, evidences] = await Promise.all([
@@ -48,7 +47,7 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <CreativeDashboard
+    <SoftBlueDashboard
       user={current.user}
       stats={{
         students,

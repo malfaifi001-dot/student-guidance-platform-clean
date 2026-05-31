@@ -12,7 +12,7 @@ export default async function DashboardLayout({
   const current = await requireDashboardUser();
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900">
+    <div dir="rtl" className="min-h-screen bg-[#f5f8fc] text-slate-900">
       <div className="flex min-h-screen">
         <DashboardSidebar />
 
@@ -23,7 +23,9 @@ export default async function DashboardLayout({
             onboardingCompleted={current.user.onboardingCompleted}
           />
 
-          <div className="p-6">{children}</div>
+          <div className="mx-auto w-full max-w-[1500px] px-4 py-5 md:px-5 xl:px-6">
+            {children}
+          </div>
         </main>
       </div>
     </div>
