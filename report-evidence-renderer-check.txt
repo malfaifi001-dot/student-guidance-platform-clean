@@ -1,0 +1,656 @@
+﻿===== preview page evidenceLayout usage =====
+
+
+===== renderer evidence page =====
+
+  components\report-engine\report-builder-pdf-renderer.tsx:2:import type {
+  components\report-engine\report-builder-pdf-renderer.tsx:3:  ReportTemplateBlock,
+  components\report-engine\report-builder-pdf-renderer.tsx:4:  
+ReportTemplateBuilderModel,
+  components\report-engine\report-builder-pdf-renderer.tsx:5:} from 
+"@/lib/report-engine/report-template-builder-types";
+> components\report-engine\report-builder-pdf-renderer.tsx:6:import type { 
+RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+  components\report-engine\report-builder-pdf-renderer.tsx:7:import type { 
+ReportIdentity } from "@/lib/report-engine/report-types";
+  components\report-engine\report-builder-pdf-renderer.tsx:8:
+  components\report-engine\report-builder-pdf-renderer.tsx:9:type 
+ReportBuilderPdfRendererProps = {
+  components\report-engine\report-builder-pdf-renderer.tsx:10:  template: 
+ReportTemplateBuilderModel;
+> components\report-engine\report-builder-pdf-renderer.tsx:11:  previewCaseData: 
+RuntimePreviewCaseData | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:12:  identity: 
+ReportIdentity;
+  components\report-engine\report-builder-pdf-renderer.tsx:13:  editorialBlocks?: 
+Record<string, string>;
+  components\report-engine\report-builder-pdf-renderer.tsx:14:};
+  components\report-engine\report-builder-pdf-renderer.tsx:15:
+  components\report-engine\report-builder-pdf-renderer.tsx:16:type RuntimeValueItem 
+= {
+  components\report-engine\report-builder-pdf-renderer.tsx:17:  fieldKey?: string | 
+null;
+  components\report-engine\report-builder-pdf-renderer.tsx:18:  fieldLabel?: string 
+| null;
+  components\report-engine\report-builder-pdf-renderer.tsx:19:  value?: string | 
+null;
+  components\report-engine\report-builder-pdf-renderer.tsx:20:};
+  components\report-engine\report-builder-pdf-renderer.tsx:21:
+> components\report-engine\report-builder-pdf-renderer.tsx:22:type 
+RuntimeEvidenceItem = {
+  components\report-engine\report-builder-pdf-renderer.tsx:23:  id?: string | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:24:  title?: string | 
+null;
+  components\report-engine\report-builder-pdf-renderer.tsx:25:  fileName?: string | 
+null;
+  components\report-engine\report-builder-pdf-renderer.tsx:26:  fileUrl?: string | 
+null;
+  components\report-engine\report-builder-pdf-renderer.tsx:27:  imageUrl?: string | 
+null;
+  components\report-engine\report-builder-pdf-renderer.tsx:28:  mimeType?: string | 
+null;
+  components\report-engine\report-builder-pdf-renderer.tsx:29:  caption?: string | 
+null;
+  components\report-engine\report-builder-pdf-renderer.tsx:30:  description?: string 
+| null;
+  components\report-engine\report-builder-pdf-renderer.tsx:31:  note?: string | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:32:};
+  components\report-engine\report-builder-pdf-renderer.tsx:33:
+  components\report-engine\report-builder-pdf-renderer.tsx:34:export function 
+ReportBuilderPdfRenderer({
+  components\report-engine\report-builder-pdf-renderer.tsx:35:  template,
+> components\report-engine\report-builder-pdf-renderer.tsx:36:  previewCaseData,
+  components\report-engine\report-builder-pdf-renderer.tsx:37:  identity,
+  components\report-engine\report-builder-pdf-renderer.tsx:38:  editorialBlocks = {},
+  components\report-engine\report-builder-pdf-renderer.tsx:39:}: 
+ReportBuilderPdfRendererProps) {
+  components\report-engine\report-builder-pdf-renderer.tsx:40:  const pages = 
+template.pages.length
+  components\report-engine\report-builder-pdf-renderer.tsx:41:    ? template.pages
+  components\report-engine\report-builder-pdf-renderer.tsx:42:    : [
+  components\report-engine\report-builder-pdf-renderer.tsx:43:        {
+  components\report-engine\report-builder-pdf-renderer.tsx:44:          id: 
+"fallback-cover",
+  components\report-engine\report-builder-pdf-renderer.tsx:45:          title: "غلاف 
+التقرير",
+  components\report-engine\report-builder-pdf-renderer.tsx:46:          description: 
+"",
+  components\report-engine\report-builder-pdf-renderer.tsx:47:          kind: 
+"cover",
+  components\report-engine\report-builder-pdf-renderer.tsx:48:          blocks: [],
+  components\report-engine\report-builder-pdf-renderer.tsx:49:        },
+  components\report-engine\report-builder-pdf-renderer.tsx:50:      ];
+  components\report-engine\report-builder-pdf-renderer.tsx:51:
+  components\report-engine\report-builder-pdf-renderer.tsx:52:  return (
+  components\report-engine\report-builder-pdf-renderer.tsx:53:    <section 
+className="space-y-4 bg-transparent print:space-y-0" dir="rtl">
+  components\report-engine\report-builder-pdf-renderer.tsx:54:      
+{pages.map((page, index) => {
+  components\report-engine\report-builder-pdf-renderer.tsx:66:
+  components\report-engine\report-builder-pdf-renderer.tsx:67:        return (
+  components\report-engine\report-builder-pdf-renderer.tsx:68:          <article
+  components\report-engine\report-builder-pdf-renderer.tsx:69:            
+key={page.id}
+> components\report-engine\report-builder-pdf-renderer.tsx:70:            
+className="pdf-report-page mx-auto rounded-xl border border-slate-200 bg-white 
+text-slate-950 shadow-sm print:rounded-none print:border-0 print:shadow-none"
+  components\report-engine\report-builder-pdf-renderer.tsx:71:            
+style={pageStyle}
+  components\report-engine\report-builder-pdf-renderer.tsx:72:          >
+  components\report-engine\report-builder-pdf-renderer.tsx:73:            {page.kind 
+=== "cover" ? (
+  components\report-engine\report-builder-pdf-renderer.tsx:74:              
+<OfficialCoverPage
+  components\report-engine\report-builder-pdf-renderer.tsx:75:                
+template={template}
+  components\report-engine\report-builder-pdf-renderer.tsx:76:                
+identity={identity}
+> components\report-engine\report-builder-pdf-renderer.tsx:77:                
+previewCaseData={previewCaseData}
+  components\report-engine\report-builder-pdf-renderer.tsx:78:              />
+> components\report-engine\report-builder-pdf-renderer.tsx:79:            ) : 
+page.kind === "evidence" ? (
+> components\report-engine\report-builder-pdf-renderer.tsx:80:              
+<OfficialEvidencePage
+  components\report-engine\report-builder-pdf-renderer.tsx:81:                
+pageTitle={page.title}
+> components\report-engine\report-builder-pdf-renderer.tsx:82:                
+evidences={getRuntimeEvidences(previewCaseData)}
+  components\report-engine\report-builder-pdf-renderer.tsx:83:              />
+  components\report-engine\report-builder-pdf-renderer.tsx:84:            ) : 
+page.kind === "approval" ? (
+  components\report-engine\report-builder-pdf-renderer.tsx:85:              
+<OfficialApprovalPage identity={identity} />
+  components\report-engine\report-builder-pdf-renderer.tsx:86:            ) : (
+  components\report-engine\report-builder-pdf-renderer.tsx:87:              
+<OfficialContentPage
+  components\report-engine\report-builder-pdf-renderer.tsx:88:                
+pageTitle={page.title}
+  components\report-engine\report-builder-pdf-renderer.tsx:89:                
+blocks={page.blocks}
+  components\report-engine\report-builder-pdf-renderer.tsx:90:                
+template={template}
+> components\report-engine\report-builder-pdf-renderer.tsx:91:                
+previewCaseData={previewCaseData}
+  components\report-engine\report-builder-pdf-renderer.tsx:92:                
+editorialBlocks={editorialBlocks}
+  components\report-engine\report-builder-pdf-renderer.tsx:93:              />
+  components\report-engine\report-builder-pdf-renderer.tsx:94:            )}
+  components\report-engine\report-builder-pdf-renderer.tsx:95:          </article>
+  components\report-engine\report-builder-pdf-renderer.tsx:96:        );
+  components\report-engine\report-builder-pdf-renderer.tsx:97:      })}
+  components\report-engine\report-builder-pdf-renderer.tsx:98:    </section>
+  components\report-engine\report-builder-pdf-renderer.tsx:99:  );
+  components\report-engine\report-builder-pdf-renderer.tsx:100:}
+  components\report-engine\report-builder-pdf-renderer.tsx:101:
+  components\report-engine\report-builder-pdf-renderer.tsx:102:function 
+OfficialPageFrame({
+  components\report-engine\report-builder-pdf-renderer.tsx:103:  title,
+  components\report-engine\report-builder-pdf-renderer.tsx:104:  eyebrow,
+  components\report-engine\report-builder-pdf-renderer.tsx:105:  children,
+  components\report-engine\report-builder-pdf-renderer.tsx:106:}: {
+  components\report-engine\report-builder-pdf-renderer.tsx:107:  title: string;
+  components\report-engine\report-builder-pdf-renderer.tsx:108:  eyebrow?: string;
+  components\report-engine\report-builder-pdf-renderer.tsx:109:  children: ReactNode;
+  components\report-engine\report-builder-pdf-renderer.tsx:128:
+  components\report-engine\report-builder-pdf-renderer.tsx:129:function 
+OfficialCoverPage({
+  components\report-engine\report-builder-pdf-renderer.tsx:130:  template,
+  components\report-engine\report-builder-pdf-renderer.tsx:131:  identity,
+> components\report-engine\report-builder-pdf-renderer.tsx:132:  previewCaseData,
+  components\report-engine\report-builder-pdf-renderer.tsx:133:}: {
+  components\report-engine\report-builder-pdf-renderer.tsx:134:  template: 
+ReportTemplateBuilderModel;
+  components\report-engine\report-builder-pdf-renderer.tsx:135:  identity: 
+ReportIdentity;
+> components\report-engine\report-builder-pdf-renderer.tsx:136:  previewCaseData: 
+RuntimePreviewCaseData | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:137:}) {
+  components\report-engine\report-builder-pdf-renderer.tsx:138:  return (
+  components\report-engine\report-builder-pdf-renderer.tsx:139:    <div 
+className="flex h-full flex-col justify-between p-[18mm] text-center">
+  components\report-engine\report-builder-pdf-renderer.tsx:140:      <div>
+  components\report-engine\report-builder-pdf-renderer.tsx:141:        <div 
+className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border 
+border-slate-300 text-xs font-black text-slate-500">
+  components\report-engine\report-builder-pdf-renderer.tsx:142:          شعار
+  components\report-engine\report-builder-pdf-renderer.tsx:143:        </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:144:
+  components\report-engine\report-builder-pdf-renderer.tsx:145:        <div 
+className="mt-6 space-y-1 text-sm font-bold text-slate-700">
+  components\report-engine\report-builder-pdf-renderer.tsx:146:          
+<p>{identity.ministryName || "وزارة التعليم"}</p>
+  components\report-engine\report-builder-pdf-renderer.tsx:147:          
+<p>{identity.educationDepartment || "إدارة التعليم"}</p>
+  components\report-engine\report-builder-pdf-renderer.tsx:148:          
+<p>{identity.schoolName || "اسم المدرسة"}</p>
+  components\report-engine\report-builder-pdf-renderer.tsx:149:        </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:150:      </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:151:
+  components\report-engine\report-builder-pdf-renderer.tsx:152:      <div 
+className="mx-auto max-w-[150mm]">
+  components\report-engine\report-builder-pdf-renderer.tsx:153:        <p 
+className="text-sm font-black text-emerald-700">
+> components\report-engine\report-builder-pdf-renderer.tsx:154:          
+{getServiceName(template, previewCaseData)}
+  components\report-engine\report-builder-pdf-renderer.tsx:155:        </p>
+  components\report-engine\report-builder-pdf-renderer.tsx:156:
+  components\report-engine\report-builder-pdf-renderer.tsx:157:        <h1 
+className="mt-5 text-4xl font-black leading-[1.7] text-slate-950">
+> components\report-engine\report-builder-pdf-renderer.tsx:158:          
+{template.name || getCaseTitle(previewCaseData)}
+  components\report-engine\report-builder-pdf-renderer.tsx:159:        </h1>
+  components\report-engine\report-builder-pdf-renderer.tsx:160:
+  components\report-engine\report-builder-pdf-renderer.tsx:161:        <p 
+className="mx-auto mt-6 max-h-24 overflow-hidden text-base leading-8 text-slate-600">
+  components\report-engine\report-builder-pdf-renderer.tsx:162:          
+{template.description ||
+  components\report-engine\report-builder-pdf-renderer.tsx:163:            "تقرير 
+رسمي مبني على بيانات الحالة والشواهد المرتبطة بها."}
+  components\report-engine\report-builder-pdf-renderer.tsx:164:        </p>
+  components\report-engine\report-builder-pdf-renderer.tsx:165:      </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:166:
+  components\report-engine\report-builder-pdf-renderer.tsx:167:      <div 
+className="grid grid-cols-2 gap-4 border-t border-slate-300 pt-6 text-right text-sm">
+  components\report-engine\report-builder-pdf-renderer.tsx:168:        <InfoLine 
+label="العام الدراسي" value={identity.academicYear || "العام الدراسي"} />
+  components\report-engine\report-builder-pdf-renderer.tsx:169:        <InfoLine 
+label="الفصل الدراسي" value={identity.semester || "الفصل الدراسي"} />
+  components\report-engine\report-builder-pdf-renderer.tsx:170:        <InfoLine 
+label="الموجه/الموجهة" value={identity.counselorName || "الموجه/الموجهة الطلابية"} />
+  components\report-engine\report-builder-pdf-renderer.tsx:171:        <InfoLine 
+label="نوع التقرير" value="تقرير إرشادي رسمي" />
+  components\report-engine\report-builder-pdf-renderer.tsx:172:      </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:173:    </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:174:  );
+  components\report-engine\report-builder-pdf-renderer.tsx:175:}
+  components\report-engine\report-builder-pdf-renderer.tsx:176:
+  components\report-engine\report-builder-pdf-renderer.tsx:177:function 
+OfficialContentPage({
+  components\report-engine\report-builder-pdf-renderer.tsx:178:  pageTitle,
+  components\report-engine\report-builder-pdf-renderer.tsx:179:  blocks,
+  components\report-engine\report-builder-pdf-renderer.tsx:180:  template,
+> components\report-engine\report-builder-pdf-renderer.tsx:181:  previewCaseData,
+  components\report-engine\report-builder-pdf-renderer.tsx:182:  editorialBlocks = 
+{},
+  components\report-engine\report-builder-pdf-renderer.tsx:183:}: {
+  components\report-engine\report-builder-pdf-renderer.tsx:184:  pageTitle: string;
+  components\report-engine\report-builder-pdf-renderer.tsx:185:  blocks: 
+ReportTemplateBlock[];
+  components\report-engine\report-builder-pdf-renderer.tsx:186:  template: 
+ReportTemplateBuilderModel;
+> components\report-engine\report-builder-pdf-renderer.tsx:187:  previewCaseData: 
+RuntimePreviewCaseData | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:188:  editorialBlocks?: 
+Record<string, string>;
+  components\report-engine\report-builder-pdf-renderer.tsx:189:}) {
+  components\report-engine\report-builder-pdf-renderer.tsx:190:  const 
+printableBlocks = blocks.filter(
+  components\report-engine\report-builder-pdf-renderer.tsx:191:    (block) =>
+  components\report-engine\report-builder-pdf-renderer.tsx:192:      block.kind !== 
+"service-summary" &&
+  components\report-engine\report-builder-pdf-renderer.tsx:193:      block.kind !== 
+"cover-title" &&
+  components\report-engine\report-builder-pdf-renderer.tsx:194:      block.kind !== 
+"approval-signature" &&
+> components\report-engine\report-builder-pdf-renderer.tsx:195:      block.kind !== 
+"evidence-gallery"
+  components\report-engine\report-builder-pdf-renderer.tsx:196:  );
+  components\report-engine\report-builder-pdf-renderer.tsx:197:
+  components\report-engine\report-builder-pdf-renderer.tsx:198:  const 
+editorialSections = getEditorialSectionsForPage(pageTitle, editorialBlocks);
+  components\report-engine\report-builder-pdf-renderer.tsx:199:
+  components\report-engine\report-builder-pdf-renderer.tsx:200:  return (
+> components\report-engine\report-builder-pdf-renderer.tsx:201:    
+<OfficialPageFrame title={pageTitle} eyebrow={getServiceName(template, 
+previewCaseData)}>
+  components\report-engine\report-builder-pdf-renderer.tsx:202:      <div 
+className="space-y-5">
+  components\report-engine\report-builder-pdf-renderer.tsx:203:        
+{editorialSections.map((section) => (
+  components\report-engine\report-builder-pdf-renderer.tsx:204:          
+<OfficialSection key={section.key} title={section.title}>
+  components\report-engine\report-builder-pdf-renderer.tsx:205:            <p 
+className="whitespace-pre-line text-sm leading-8 text-slate-700">
+  components\report-engine\report-builder-pdf-renderer.tsx:206:              
+{section.content}
+  components\report-engine\report-builder-pdf-renderer.tsx:207:            </p>
+  components\report-engine\report-builder-pdf-renderer.tsx:208:          
+</OfficialSection>
+  components\report-engine\report-builder-pdf-renderer.tsx:209:        ))}
+  components\report-engine\report-builder-pdf-renderer.tsx:210:
+  components\report-engine\report-builder-pdf-renderer.tsx:211:        
+{printableBlocks.length ? (
+  components\report-engine\report-builder-pdf-renderer.tsx:212:          
+printableBlocks.map((block) => (
+  components\report-engine\report-builder-pdf-renderer.tsx:213:            
+<OfficialBlock
+  components\report-engine\report-builder-pdf-renderer.tsx:214:              
+key={block.id}
+  components\report-engine\report-builder-pdf-renderer.tsx:215:              
+block={block}
+  components\report-engine\report-builder-pdf-renderer.tsx:216:              
+template={template}
+> components\report-engine\report-builder-pdf-renderer.tsx:217:              
+previewCaseData={previewCaseData}
+  components\report-engine\report-builder-pdf-renderer.tsx:218:            />
+  components\report-engine\report-builder-pdf-renderer.tsx:219:          ))
+  components\report-engine\report-builder-pdf-renderer.tsx:220:        ) : (
+  components\report-engine\report-builder-pdf-renderer.tsx:221:          
+<OfficialBlock
+  components\report-engine\report-builder-pdf-renderer.tsx:222:            block={{
+  components\report-engine\report-builder-pdf-renderer.tsx:223:              id: 
+"case-meta-fallback",
+  components\report-engine\report-builder-pdf-renderer.tsx:224:              kind: 
+"case-meta",
+  components\report-engine\report-builder-pdf-renderer.tsx:225:              title: 
+"بيانات التقرير",
+  components\report-engine\report-builder-pdf-renderer.tsx:226:              
+settings: {},
+  components\report-engine\report-builder-pdf-renderer.tsx:227:            } as 
+ReportTemplateBlock}
+  components\report-engine\report-builder-pdf-renderer.tsx:228:            
+template={template}
+> components\report-engine\report-builder-pdf-renderer.tsx:229:            
+previewCaseData={previewCaseData}
+  components\report-engine\report-builder-pdf-renderer.tsx:230:          />
+  components\report-engine\report-builder-pdf-renderer.tsx:231:        )}
+  components\report-engine\report-builder-pdf-renderer.tsx:232:      </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:233:    
+</OfficialPageFrame>
+  components\report-engine\report-builder-pdf-renderer.tsx:234:  );
+  components\report-engine\report-builder-pdf-renderer.tsx:235:}
+  components\report-engine\report-builder-pdf-renderer.tsx:236:
+  components\report-engine\report-builder-pdf-renderer.tsx:237:function 
+getEditorialSectionsForPage(
+  components\report-engine\report-builder-pdf-renderer.tsx:238:  pageTitle: string,
+  components\report-engine\report-builder-pdf-renderer.tsx:239:  editorialBlocks: 
+Record<string, string>
+  components\report-engine\report-builder-pdf-renderer.tsx:240:) {
+  components\report-engine\report-builder-pdf-renderer.tsx:241:  const 
+normalizedTitle = pageTitle || "";
+  components\report-engine\report-builder-pdf-renderer.tsx:242:
+  components\report-engine\report-builder-pdf-renderer.tsx:243:  const sections: 
+Array<{
+  components\report-engine\report-builder-pdf-renderer.tsx:244:    key: string;
+  components\report-engine\report-builder-pdf-renderer.tsx:245:    title: string;
+  components\report-engine\report-builder-pdf-renderer.tsx:246:    content: string;
+  components\report-engine\report-builder-pdf-renderer.tsx:247:  }> = [];
+  components\report-engine\report-builder-pdf-renderer.tsx:283:
+  components\report-engine\report-builder-pdf-renderer.tsx:284:function 
+OfficialBlock({
+  components\report-engine\report-builder-pdf-renderer.tsx:285:  block,
+  components\report-engine\report-builder-pdf-renderer.tsx:286:  template,
+> components\report-engine\report-builder-pdf-renderer.tsx:287:  previewCaseData,
+  components\report-engine\report-builder-pdf-renderer.tsx:288:}: {
+  components\report-engine\report-builder-pdf-renderer.tsx:289:  block: 
+ReportTemplateBlock;
+  components\report-engine\report-builder-pdf-renderer.tsx:290:  template: 
+ReportTemplateBuilderModel;
+> components\report-engine\report-builder-pdf-renderer.tsx:291:  previewCaseData: 
+RuntimePreviewCaseData | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:292:}) {
+  components\report-engine\report-builder-pdf-renderer.tsx:293:  if (block.kind === 
+"identity-header") {
+  components\report-engine\report-builder-pdf-renderer.tsx:294:    return (
+  components\report-engine\report-builder-pdf-renderer.tsx:295:      
+<OfficialSection title={block.title || "هوية المدرسة"}>
+  components\report-engine\report-builder-pdf-renderer.tsx:296:        <div 
+className="grid grid-cols-3 gap-3">
+  components\report-engine\report-builder-pdf-renderer.tsx:297:          <InfoBox 
+label="الجهة" value="وزارة التعليم" />
+  components\report-engine\report-builder-pdf-renderer.tsx:298:          <InfoBox 
+label="المدرسة" value="اسم المدرسة" />
+  components\report-engine\report-builder-pdf-renderer.tsx:299:          <InfoBox 
+label="العام الدراسي" value="1447هـ" />
+  components\report-engine\report-builder-pdf-renderer.tsx:300:        </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:301:      
+</OfficialSection>
+  components\report-engine\report-builder-pdf-renderer.tsx:302:    );
+  components\report-engine\report-builder-pdf-renderer.tsx:303:  }
+  components\report-engine\report-builder-pdf-renderer.tsx:304:
+  components\report-engine\report-builder-pdf-renderer.tsx:305:  if (block.kind === 
+"case-meta") {
+  components\report-engine\report-builder-pdf-renderer.tsx:306:    return (
+  components\report-engine\report-builder-pdf-renderer.tsx:307:      
+<OfficialSection title={block.title || "بيانات التقرير"}>
+  components\report-engine\report-builder-pdf-renderer.tsx:308:        <div 
+className="grid grid-cols-2 gap-3">
+> components\report-engine\report-builder-pdf-renderer.tsx:309:          <InfoBox 
+label="عنوان الحالة" value={getCaseTitle(previewCaseData)} />
+> components\report-engine\report-builder-pdf-renderer.tsx:310:          <InfoBox 
+label="الخدمة" value={getServiceName(template, previewCaseData)} />
+> components\report-engine\report-builder-pdf-renderer.tsx:311:          <InfoBox 
+label="عدد القيم" value={`${getRuntimeValues(previewCaseData).length}`} />
+> components\report-engine\report-builder-pdf-renderer.tsx:312:          <InfoBox 
+label="عدد الشواهد" value={`${getRuntimeEvidences(previewCaseData).length}`} />
+  components\report-engine\report-builder-pdf-renderer.tsx:313:        </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:314:      
+</OfficialSection>
+  components\report-engine\report-builder-pdf-renderer.tsx:315:    );
+  components\report-engine\report-builder-pdf-renderer.tsx:316:  }
+  components\report-engine\report-builder-pdf-renderer.tsx:317:
+  components\report-engine\report-builder-pdf-renderer.tsx:318:  if (block.kind === 
+"student-summary") {
+> components\report-engine\report-builder-pdf-renderer.tsx:319:    const student = 
+getStudent(previewCaseData);
+  components\report-engine\report-builder-pdf-renderer.tsx:320:
+  components\report-engine\report-builder-pdf-renderer.tsx:321:    return (
+  components\report-engine\report-builder-pdf-renderer.tsx:322:      
+<OfficialSection title={block.title || "بيانات الطالب/الطالبة"}>
+  components\report-engine\report-builder-pdf-renderer.tsx:323:        <div 
+className="grid grid-cols-2 gap-3">
+  components\report-engine\report-builder-pdf-renderer.tsx:324:          <InfoBox 
+label="الاسم" value={student.fullName || "غير محدد"} />
+  components\report-engine\report-builder-pdf-renderer.tsx:325:          <InfoBox 
+label="رقم الهوية" value={student.nationalId || "غير متوفر"} />
+  components\report-engine\report-builder-pdf-renderer.tsx:326:          <InfoBox 
+label="المرحلة" value={student.stage || "غير محدد"} />
+  components\report-engine\report-builder-pdf-renderer.tsx:327:          <InfoBox 
+label="الصف والفصل" value={[student.grade, student.classroom].filter(Boolean).join(" 
+- ") || "غير محدد"} />
+  components\report-engine\report-builder-pdf-renderer.tsx:328:          <InfoBox 
+label="ولي الأمر" value={student.guardianName || "غير متوفر"} />
+  components\report-engine\report-builder-pdf-renderer.tsx:329:          <InfoBox 
+label="جوال ولي الأمر" value={student.guardianPhone || "غير متوفر"} />
+  components\report-engine\report-builder-pdf-renderer.tsx:330:        </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:331:      
+</OfficialSection>
+  components\report-engine\report-builder-pdf-renderer.tsx:332:    );
+  components\report-engine\report-builder-pdf-renderer.tsx:333:  }
+  components\report-engine\report-builder-pdf-renderer.tsx:334:
+  components\report-engine\report-builder-pdf-renderer.tsx:335:  if (block.kind === 
+"field-list") {
+> components\report-engine\report-builder-pdf-renderer.tsx:336:    const values = 
+getRuntimeValues(previewCaseData);
+  components\report-engine\report-builder-pdf-renderer.tsx:337:
+  components\report-engine\report-builder-pdf-renderer.tsx:338:    return (
+  components\report-engine\report-builder-pdf-renderer.tsx:339:      
+<OfficialSection title={block.title || "بيانات الحالة"}>
+  components\report-engine\report-builder-pdf-renderer.tsx:340:        <div 
+className="grid grid-cols-2 gap-3">
+  components\report-engine\report-builder-pdf-renderer.tsx:341:          
+{values.slice(0, 10).map((item, index) => (
+  components\report-engine\report-builder-pdf-renderer.tsx:342:            <InfoBox
+  components\report-engine\report-builder-pdf-renderer.tsx:343:              
+key={`${item.fieldKey || item.fieldLabel || index}`}
+  components\report-engine\report-builder-pdf-renderer.tsx:344:              
+label={item.fieldLabel || item.fieldKey || `قيمة ${index + 1}`}
+  components\report-engine\report-builder-pdf-renderer.tsx:345:              
+value={item.value || "—"}
+  components\report-engine\report-builder-pdf-renderer.tsx:346:            />
+  components\report-engine\report-builder-pdf-renderer.tsx:347:          ))}
+  components\report-engine\report-builder-pdf-renderer.tsx:348:        </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:349:      
+</OfficialSection>
+  components\report-engine\report-builder-pdf-renderer.tsx:350:    );
+  components\report-engine\report-builder-pdf-renderer.tsx:351:  }
+  components\report-engine\report-builder-pdf-renderer.tsx:352:
+  components\report-engine\report-builder-pdf-renderer.tsx:353:  if (block.kind === 
+"custom-paragraph") {
+  components\report-engine\report-builder-pdf-renderer.tsx:354:    return (
+  components\report-engine\report-builder-pdf-renderer.tsx:382:
+  components\report-engine\report-builder-pdf-renderer.tsx:383:  return null;
+  components\report-engine\report-builder-pdf-renderer.tsx:384:}
+  components\report-engine\report-builder-pdf-renderer.tsx:385:
+> components\report-engine\report-builder-pdf-renderer.tsx:386:function 
+OfficialEvidencePage({
+  components\report-engine\report-builder-pdf-renderer.tsx:387:  pageTitle,
+> components\report-engine\report-builder-pdf-renderer.tsx:388:  evidences,
+  components\report-engine\report-builder-pdf-renderer.tsx:389:}: {
+  components\report-engine\report-builder-pdf-renderer.tsx:390:  pageTitle: string;
+> components\report-engine\report-builder-pdf-renderer.tsx:391:  evidences: 
+RuntimeEvidenceItem[];
+  components\report-engine\report-builder-pdf-renderer.tsx:392:}) {
+  components\report-engine\report-builder-pdf-renderer.tsx:393:  return (
+  components\report-engine\report-builder-pdf-renderer.tsx:394:    
+<OfficialPageFrame title={pageTitle || "الشواهد والمرفقات"} eyebrow="الشواهد">
+> components\report-engine\report-builder-pdf-renderer.tsx:395:      
+{evidences.length ? (
+  components\report-engine\report-builder-pdf-renderer.tsx:396:        <div 
+className="grid grid-cols-2 gap-4">
+> components\report-engine\report-builder-pdf-renderer.tsx:397:          
+{evidences.slice(0, 4).map((evidence, index) => {
+> components\report-engine\report-builder-pdf-renderer.tsx:398:            const 
+imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+  components\report-engine\report-builder-pdf-renderer.tsx:399:
+  components\report-engine\report-builder-pdf-renderer.tsx:400:            return (
+  components\report-engine\report-builder-pdf-renderer.tsx:401:              <article
+> components\report-engine\report-builder-pdf-renderer.tsx:402:                
+key={evidence.id || `${evidence.fileName}-${index}`}
+  components\report-engine\report-builder-pdf-renderer.tsx:403:                
+className="overflow-hidden rounded-xl border border-slate-300 bg-white"
+  components\report-engine\report-builder-pdf-renderer.tsx:404:              >
+  components\report-engine\report-builder-pdf-renderer.tsx:405:                <div 
+className="flex h-48 items-center justify-center bg-slate-100">
+> components\report-engine\report-builder-pdf-renderer.tsx:406:                  
+{isImageEvidence(evidence) && imageUrl ? (
+  components\report-engine\report-builder-pdf-renderer.tsx:407:                    
+<img
+  components\report-engine\report-builder-pdf-renderer.tsx:408:                      
+src={imageUrl}
+> components\report-engine\report-builder-pdf-renderer.tsx:409:                      
+alt={evidence.title || evidence.fileName || "شاهد"}
+  components\report-engine\report-builder-pdf-renderer.tsx:410:                      
+className="h-full w-full object-contain"
+  components\report-engine\report-builder-pdf-renderer.tsx:411:                    />
+  components\report-engine\report-builder-pdf-renderer.tsx:412:                  ) : 
+(
+  components\report-engine\report-builder-pdf-renderer.tsx:413:                    
+<span className="px-4 text-center text-xs font-black text-slate-500">
+> components\report-engine\report-builder-pdf-renderer.tsx:414:                      
+{evidence.fileName || "مرفق"}
+  components\report-engine\report-builder-pdf-renderer.tsx:415:                    
+</span>
+  components\report-engine\report-builder-pdf-renderer.tsx:416:                  )}
+  components\report-engine\report-builder-pdf-renderer.tsx:417:                </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:418:
+  components\report-engine\report-builder-pdf-renderer.tsx:419:                <div 
+className="border-t border-slate-200 p-3">
+  components\report-engine\report-builder-pdf-renderer.tsx:420:                  <p 
+className="text-xs font-black text-slate-800">
+> components\report-engine\report-builder-pdf-renderer.tsx:421:                    
+{evidence.title ||
+> components\report-engine\report-builder-pdf-renderer.tsx:422:                      
+evidence.caption ||
+> components\report-engine\report-builder-pdf-renderer.tsx:423:                      
+evidence.fileName ||
+  components\report-engine\report-builder-pdf-renderer.tsx:424:                      
+`شاهد ${index + 1}`}
+  components\report-engine\report-builder-pdf-renderer.tsx:425:                  </p>
+  components\report-engine\report-builder-pdf-renderer.tsx:426:                </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:427:              
+</article>
+  components\report-engine\report-builder-pdf-renderer.tsx:428:            );
+  components\report-engine\report-builder-pdf-renderer.tsx:429:          })}
+  components\report-engine\report-builder-pdf-renderer.tsx:430:        </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:431:      ) : (
+  components\report-engine\report-builder-pdf-renderer.tsx:432:        <div 
+className="rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm 
+text-slate-500">
+  components\report-engine\report-builder-pdf-renderer.tsx:433:          لا توجد 
+شواهد مرتبطة بهذا التقرير.
+  components\report-engine\report-builder-pdf-renderer.tsx:434:        </div>
+  components\report-engine\report-builder-pdf-renderer.tsx:435:      )}
+  components\report-engine\report-builder-pdf-renderer.tsx:436:    
+</OfficialPageFrame>
+  components\report-engine\report-builder-pdf-renderer.tsx:437:  );
+  components\report-engine\report-builder-pdf-renderer.tsx:438:}
+  components\report-engine\report-builder-pdf-renderer.tsx:439:
+  components\report-engine\report-builder-pdf-renderer.tsx:440:function 
+OfficialApprovalPage({ identity }: { identity: ReportIdentity }) {
+  components\report-engine\report-builder-pdf-renderer.tsx:441:  return (
+  components\report-engine\report-builder-pdf-renderer.tsx:503:  );
+  components\report-engine\report-builder-pdf-renderer.tsx:504:}
+  components\report-engine\report-builder-pdf-renderer.tsx:505:
+  components\report-engine\report-builder-pdf-renderer.tsx:506:function 
+getRuntimeValues(
+> components\report-engine\report-builder-pdf-renderer.tsx:507:  previewCaseData: 
+RuntimePreviewCaseData | null
+  components\report-engine\report-builder-pdf-renderer.tsx:508:): RuntimeValueItem[] 
+{
+> components\report-engine\report-builder-pdf-renderer.tsx:509:  const data = 
+previewCaseData as { values?: RuntimeValueItem[] } | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:510:  return 
+Array.isArray(data?.values) ? data.values : [];
+  components\report-engine\report-builder-pdf-renderer.tsx:511:}
+  components\report-engine\report-builder-pdf-renderer.tsx:512:
+> components\report-engine\report-builder-pdf-renderer.tsx:513:function 
+getRuntimeEvidences(
+> components\report-engine\report-builder-pdf-renderer.tsx:514:  previewCaseData: 
+RuntimePreviewCaseData | null
+> components\report-engine\report-builder-pdf-renderer.tsx:515:): 
+RuntimeEvidenceItem[] {
+> components\report-engine\report-builder-pdf-renderer.tsx:516:  const data = 
+previewCaseData as { evidences?: RuntimeEvidenceItem[] } | null;
+> components\report-engine\report-builder-pdf-renderer.tsx:517:  return 
+Array.isArray(data?.evidences) ? data.evidences : [];
+  components\report-engine\report-builder-pdf-renderer.tsx:518:}
+  components\report-engine\report-builder-pdf-renderer.tsx:519:
+> components\report-engine\report-builder-pdf-renderer.tsx:520:function 
+getStudent(previewCaseData: RuntimePreviewCaseData | null) {
+> components\report-engine\report-builder-pdf-renderer.tsx:521:  const data = 
+previewCaseData as
+  components\report-engine\report-builder-pdf-renderer.tsx:522:    | {
+  components\report-engine\report-builder-pdf-renderer.tsx:523:        student?: {
+  components\report-engine\report-builder-pdf-renderer.tsx:524:          fullName?: 
+string | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:525:          
+nationalId?: string | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:526:          stage?: 
+string | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:527:          grade?: 
+string | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:528:          classroom?: 
+string | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:529:          
+guardianName?: string | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:530:          
+guardianPhone?: string | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:531:        } | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:532:      }
+  components\report-engine\report-builder-pdf-renderer.tsx:533:    | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:534:
+  components\report-engine\report-builder-pdf-renderer.tsx:535:  return {
+  components\report-engine\report-builder-pdf-renderer.tsx:536:    fullName: 
+data?.student?.fullName || "",
+  components\report-engine\report-builder-pdf-renderer.tsx:537:    nationalId: 
+data?.student?.nationalId || "",
+  components\report-engine\report-builder-pdf-renderer.tsx:538:    stage: 
+data?.student?.stage || "",
+  components\report-engine\report-builder-pdf-renderer.tsx:539:    grade: 
+data?.student?.grade || "",
+  components\report-engine\report-builder-pdf-renderer.tsx:542:    guardianPhone: 
+data?.student?.guardianPhone || "",
+  components\report-engine\report-builder-pdf-renderer.tsx:543:  };
+  components\report-engine\report-builder-pdf-renderer.tsx:544:}
+  components\report-engine\report-builder-pdf-renderer.tsx:545:
+> components\report-engine\report-builder-pdf-renderer.tsx:546:function 
+getCaseTitle(previewCaseData: RuntimePreviewCaseData | null) {
+> components\report-engine\report-builder-pdf-renderer.tsx:547:  const data = 
+previewCaseData as { title?: string | null } | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:548:  return data?.title 
+|| "تقرير إرشادي";
+  components\report-engine\report-builder-pdf-renderer.tsx:549:}
+  components\report-engine\report-builder-pdf-renderer.tsx:550:
+  components\report-engine\report-builder-pdf-renderer.tsx:551:function 
+getServiceName(
+  components\report-engine\report-builder-pdf-renderer.tsx:552:  template: 
+ReportTemplateBuilderModel,
+> components\report-engine\report-builder-pdf-renderer.tsx:553:  previewCaseData: 
+RuntimePreviewCaseData | null
+  components\report-engine\report-builder-pdf-renderer.tsx:554:) {
+> components\report-engine\report-builder-pdf-renderer.tsx:555:  const data = 
+previewCaseData as { serviceName?: string | null } | null;
+  components\report-engine\report-builder-pdf-renderer.tsx:556:
+  components\report-engine\report-builder-pdf-renderer.tsx:557:  if 
+(data?.serviceName) {
+  components\report-engine\report-builder-pdf-renderer.tsx:558:    return 
+data.serviceName;
+  components\report-engine\report-builder-pdf-renderer.tsx:559:  }
+  components\report-engine\report-builder-pdf-renderer.tsx:560:
+  components\report-engine\report-builder-pdf-renderer.tsx:561:  if (template.scope 
+=== "SERVICE" && template.serviceSlug) {
+  components\report-engine\report-builder-pdf-renderer.tsx:562:    return 
+template.serviceSlug;
+  components\report-engine\report-builder-pdf-renderer.tsx:563:  }
+  components\report-engine\report-builder-pdf-renderer.tsx:564:
+  components\report-engine\report-builder-pdf-renderer.tsx:565:  return "الخدمة 
+الإرشادية";
+  components\report-engine\report-builder-pdf-renderer.tsx:566:}
+  components\report-engine\report-builder-pdf-renderer.tsx:567:
+> components\report-engine\report-builder-pdf-renderer.tsx:568:function 
+isImageEvidence(evidence: RuntimeEvidenceItem) {
+> components\report-engine\report-builder-pdf-renderer.tsx:569:  if 
+(evidence.mimeType?.startsWith("image/")) {
+  components\report-engine\report-builder-pdf-renderer.tsx:570:    return true;
+  components\report-engine\report-builder-pdf-renderer.tsx:571:  }
+  components\report-engine\report-builder-pdf-renderer.tsx:572:
+> components\report-engine\report-builder-pdf-renderer.tsx:573:  const fileName = 
+evidence.fileName || evidence.fileUrl || evidence.imageUrl || "";
+  components\report-engine\report-builder-pdf-renderer.tsx:574:  return 
+/\.(png|jpg|jpeg|webp|gif)$/i.test(fileName);
+  components\report-engine\report-builder-pdf-renderer.tsx:575:}
+
+
+

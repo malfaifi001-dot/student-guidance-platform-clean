@@ -119,6 +119,9 @@ export default async function ReportRealPreviewPage({
 }: PageProps) {
   const { reportId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  const evidenceLayoutMode = normalizeEvidenceLayoutMode(
+    resolvedSearchParams.evidenceLayout
+  );
 
   const studioMode = resolvedSearchParams.studio === "true";
   const pdfMode = resolvedSearchParams.pdf === "true";
@@ -306,6 +309,7 @@ export default async function ReportRealPreviewPage({
             previewCaseData={builderPreviewCaseData as any}
             identity={identity}
             editorialBlocks={parsedEditableContent.blocks || {}}
+            evidenceLayoutMode={evidenceLayoutMode}
           />
         ) : (
           <ReportDocumentRenderer
@@ -892,4 +896,18 @@ function formatDate(value: Date | string | null | undefined) {
   } catch {
     return String(value);
   }
+}
+
+function normalizeEvidenceLayoutMode(value?: string | null) {
+  if (
+    value === "auto" ||
+    value === "one-per-page" ||
+    value === "two-per-page" ||
+    value === "grid-2x2" ||
+    value === "compact"
+  ) {
+    return value;
+  }
+
+  return "two-per-page";
 }
