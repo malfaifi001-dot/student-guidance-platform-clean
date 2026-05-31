@@ -12,7 +12,6 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
-  TrendingUp,
   UploadCloud,
   UserRound,
   Users,
@@ -74,6 +73,12 @@ type ActivityMetrics = {
     role: string;
   }>;
   daily: DailyMetric[];
+};
+
+type PieSegment = {
+  label: string;
+  value: number;
+  color: string;
 };
 
 function percentageChange(current: number, previous: number) {
@@ -192,6 +197,20 @@ export function AdminActivityMetricsPanel() {
     metrics.subscriptions.approvedTransfers +
     metrics.subscriptions.rejectedTransfers;
 
+  const totalDailyCases = latestDaily.reduce((sum, item) => sum + item.cases, 0);
+  const totalDailyReports = latestDaily.reduce(
+    (sum, item) => sum + item.reports,
+    0
+  );
+  const totalDailyEvidences = latestDaily.reduce(
+    (sum, item) => sum + item.evidences,
+    0
+  );
+  const totalDailySubscriptions = latestDaily.reduce(
+    (sum, item) => sum + item.subscriptions,
+    0
+  );
+
   return (
     <section className="space-y-4" dir="rtl">
       <div className="relative overflow-hidden rounded-[1.7rem] border border-sky-100 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 p-5 text-white shadow-sm">
@@ -268,48 +287,104 @@ export function AdminActivityMetricsPanel() {
       </div>
 
       <section className="grid gap-4 xl:grid-cols-4">
-        <MiniTrendCard
+        <PieMetricCard
           title="الحالات"
-          description="مسودات وإرسال"
+          description="توزيع المسودات والإرسال"
           icon={<ShieldCheck />}
-          value={metrics.cases.submitted}
-          subValue={`المسودات: ${metrics.cases.drafts}`}
-          daily={latestDaily}
-          metricKey="cases"
+          total={metrics.cases.drafts + metrics.cases.submitted}
+          mainValue={metrics.cases.submitted}
+          mainLabel="حالات مرسلة"
           footer={`${caseGrowth >= 0 ? "+" : ""}${caseGrowth}% عن الفترة السابقة`}
+          segments={[
+            {
+              label: "مرسلة",
+              value: metrics.cases.submitted,
+              color: "#0284c7",
+            },
+            {
+              label: "مسودات",
+              value: metrics.cases.drafts,
+              color: "#bae6fd",
+            },
+          ]}
         />
 
-        <MiniTrendCard
+        <PieMetricCard
           title="التقارير"
-          description="إنشاء وتصدير"
+          description="توزيع الإنشاء والتصدير"
           icon={<FileText />}
-          value={metrics.reports.created}
-          subValue={`التصدير: ${metrics.reports.exported}`}
-          daily={latestDaily}
-          metricKey="reports"
+          total={metrics.reports.created + metrics.reports.exported}
+          mainValue={metrics.reports.created}
+          mainLabel="تقارير منشأة"
           footer={`${reportGrowth >= 0 ? "+" : ""}${reportGrowth}% عن الفترة السابقة`}
+          segments={[
+            {
+              label: "منشأة",
+              value: metrics.reports.created,
+              color: "#4f46e5",
+            },
+            {
+              label: "مصدّرة",
+              value: metrics.reports.exported,
+              color: "#c7d2fe",
+            },
+          ]}
         />
 
-        <MiniTrendCard
+        <PieMetricCard
           title="الشواهد"
-          description="رفع ملفات وصور"
+          description="رفع الملفات والشواهد"
           icon={<UploadCloud />}
-          value={metrics.evidences.uploaded}
-          subValue="مرتبطة بالحالات والتقارير"
-          daily={latestDaily}
-          metricKey="evidences"
+          total={Math.max(metrics.evidences.uploaded, totalDailyEvidences)}
+          mainValue={metrics.evidences.uploaded}
+          mainLabel="شواهد مرفوعة"
           footer={`${evidenceGrowth >= 0 ? "+" : ""}${evidenceGrowth}% عن الفترة السابقة`}
+          segments={[
+            {
+              label: "آخر 14 يوم",
+              value: totalDailyEvidences,
+              color: "#059669",
+            },
+            {
+              label: "بقية الفترة",
+              value: Math.max(metrics.evidences.uploaded - totalDailyEvidences, 0),
+              color: "#bbf7d0",
+            },
+          ]}
         />
 
-        <MiniTrendCard
+        <PieMetricCard
           title="الاشتراكات"
           description="طلبات وتفعيل ودفع"
           icon={<WalletCards />}
-          value={subscriptionTotal}
-          subValue={`طلبات باقات: ${metrics.subscriptions.planOrders}`}
-          daily={latestDaily}
-          metricKey="subscriptions"
+          total={subscriptionTotal}
+          mainValue={subscriptionTotal}
+          mainLabel="عملية اشتراك"
           footer={`تحويلات: ${metrics.subscriptions.bankTransfers}`}
+          segments={[
+            {
+              label: "طلبات باقات",
+              value: metrics.subscriptions.planOrders,
+              color: "#7c3aed",
+            },
+            {
+              label: "تحويلات",
+              value: metrics.subscriptions.bankTransfers,
+              color: "#a78bfa",
+            },
+            {
+              label: "أكواد",
+              value: metrics.subscriptions.activationCodes,
+              color: "#ddd6fe",
+            },
+            {
+              label: "قبول/رفض",
+              value:
+                metrics.subscriptions.approvedTransfers +
+                metrics.subscriptions.rejectedTransfers,
+              color: "#f59e0b",
+            },
+          ]}
         />
       </section>
 
@@ -321,7 +396,7 @@ export function AdminActivityMetricsPanel() {
                 أكثر الخدمات والعمليات
               </h3>
               <p className="mt-1 text-xs font-bold text-slate-400">
-                عرض مختصر بدون تشارت كبير
+                ملخص سريع بدون تشارت كبير
               </p>
             </div>
 
@@ -454,30 +529,28 @@ function HeroMetric({
   );
 }
 
-function MiniTrendCard({
+function PieMetricCard({
   title,
   description,
   icon,
-  value,
-  subValue,
-  daily,
-  metricKey,
+  total,
+  mainValue,
+  mainLabel,
   footer,
+  segments,
 }: {
   title: string;
   description: string;
   icon: React.ReactElement;
-  value: number;
-  subValue: string;
-  daily: DailyMetric[];
-  metricKey: keyof Pick<
-    DailyMetric,
-    "cases" | "reports" | "evidences" | "subscriptions"
-  >;
+  total: number;
+  mainValue: number;
+  mainLabel: string;
   footer: string;
+  segments: PieSegment[];
 }) {
-  const values = daily.map((item) => item[metricKey]);
-  const maxValue = Math.max(...values, 1);
+  const safeTotal = Math.max(total, 0);
+  const activeSegments = segments.filter((segment) => segment.value > 0);
+  const chartBackground = buildPieGradient(activeSegments);
 
   return (
     <article className="rounded-[1.45rem] border border-slate-100 bg-white p-4 shadow-sm">
@@ -492,13 +565,53 @@ function MiniTrendCard({
         </div>
       </div>
 
-      <div className="mt-4 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-3xl font-black text-slate-950">{value}</p>
-          <p className="mt-1 text-[11px] font-bold text-slate-400">{subValue}</p>
+      <div className="mt-5 flex items-center gap-4">
+        <div
+          className="relative grid h-28 w-28 shrink-0 place-items-center rounded-full"
+          style={{
+            background:
+              safeTotal > 0
+                ? chartBackground
+                : "conic-gradient(#e2e8f0 0deg 360deg)",
+          }}
+        >
+          <div className="grid h-[72px] w-[72px] place-items-center rounded-full bg-white shadow-inner">
+            <div className="text-center">
+              <p className="text-xl font-black text-slate-950">{mainValue}</p>
+              <p className="text-[10px] font-black text-slate-400">
+                {mainLabel}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <TinyBars values={values} maxValue={maxValue} />
+        <div className="min-w-0 flex-1 space-y-2">
+          {segments.map((segment) => {
+            const percentage =
+              safeTotal > 0 ? Math.round((segment.value / safeTotal) * 100) : 0;
+
+            return (
+              <div
+                key={segment.label}
+                className="flex items-center justify-between gap-2"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: segment.color }}
+                  />
+                  <span className="truncate text-[11px] font-black text-slate-500">
+                    {segment.label}
+                  </span>
+                </div>
+
+                <span className="shrink-0 text-[11px] font-black text-slate-400">
+                  {segment.value} · {percentage}%
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-2 text-[11px] font-black text-slate-500">
@@ -508,33 +621,24 @@ function MiniTrendCard({
   );
 }
 
-function TinyBars({
-  values,
-  maxValue,
-}: {
-  values: number[];
-  maxValue: number;
-}) {
-  const visibleValues = values.length ? values : [0, 0, 0, 0, 0, 0, 0];
+function buildPieGradient(segments: PieSegment[]) {
+  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
 
-  return (
-    <div className="flex h-16 w-28 items-end gap-1 rounded-2xl bg-slate-50 px-2 py-2">
-      {visibleValues.slice(-10).map((value, index) => {
-        const height = Math.max(6, Math.round((value / maxValue) * 48));
+  if (total <= 0 || segments.length === 0) {
+    return "conic-gradient(#e2e8f0 0deg 360deg)";
+  }
 
-        return (
-          <div
-            key={`${value}-${index}`}
-            className="flex-1 rounded-t-full bg-sky-500/80"
-            style={{
-              height,
-            }}
-            title={`${value}`}
-          />
-        );
-      })}
-    </div>
-  );
+  let start = 0;
+
+  const parts = segments.map((segment) => {
+    const angle = (segment.value / total) * 360;
+    const end = start + angle;
+    const part = `${segment.color} ${start}deg ${end}deg`;
+    start = end;
+    return part;
+  });
+
+  return `conic-gradient(${parts.join(", ")})`;
 }
 
 function CompactInsightList({

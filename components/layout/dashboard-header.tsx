@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
 import {
   Bell,
   ChevronDown,
@@ -93,6 +94,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             )}
             {isAdmin ? "Admin Center" : "بيئة تطوير · SaaS-ready"}
           </div>
+
+          <ThemeToggleButton />
 
           <button
             type="button"
