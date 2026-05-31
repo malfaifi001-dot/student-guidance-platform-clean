@@ -169,7 +169,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="guidance-report-${reportId}.pdf"`,
+        "Content-Disposition": `${requestUrl.searchParams.get("inline") === "true" ? "inline" : "attachment"}; filename="guidance-report-${reportId}.pdf"`,
         "Cache-Control": "no-store",
       },
     });

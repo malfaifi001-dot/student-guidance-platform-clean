@@ -1,12 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ReportStudioEditor } from "@/components/reports/report-studio-editor";
-import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
 
-import {
-  buildBuilderPreviewCaseData,
-  resolveBuilderTemplateForReport,
-} from "@/lib/report-engine/report-builder-template-runtime";
 import {
   formatWorkflowDisplayValue,
   getWorkflowFieldKey,
@@ -136,43 +131,6 @@ export default async function ReportStudioPage({ params }: PageProps) {
     normalizedCaseValues,
     workflowValueOverrides
   );
-
-  const builderTemplate = await resolveBuilderTemplateForReport(report);
-
-  if (builderTemplate) {
-    const builderPreviewCaseData = buildBuilderPreviewCaseData(
-      report,
-      liveCaseValues
-    );
-
-    return (
-      <main className="space-y-6" dir="rtl">
-        <section className="rounded-[2rem] bg-gradient-to-br from-emerald-950 via-sky-900 to-cyan-700 p-8 text-white shadow-2xl">
-          <div>
-            <p className="text-sm font-bold text-emerald-100">
-              Report Builder Snapshot
-            </p>
-
-            <h1 className="mt-3 text-4xl font-black">
-              معاينة التقرير بقالب Builder
-            </h1>
-
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-emerald-50">
-              هذا التقرير يستخدم القالب المنشور المحفوظ من صانع القوالب، وليس القوالب الثلاثة القديمة.
-            </p>
-          </div>
-        </section>
-
-        <section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm">
-          <ReportTemplateLivePreview
-            template={builderTemplate}
-            snippets={[]}
-            previewCaseData={builderPreviewCaseData as any}
-          />
-        </section>
-      </main>
-    );
-  }
 
   const normalizedReport = {
     id: report.id,

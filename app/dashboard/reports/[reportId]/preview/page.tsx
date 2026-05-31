@@ -1,13 +1,11 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
-import {
-  ReportPreviewToolbar,
-  type ReportViewMode,
-} from "@/components/reports/report-preview-toolbar";
+import type { ReportViewMode } from "@/components/reports/report-preview-toolbar";
 
 import { ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
-import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
+import { ReportBuilderPdfRenderer } from "@/components/report-engine/report-builder-pdf-renderer";
+import { ReportPdfGuidanceCard } from "@/components/reports/report-pdf-guidance-card";
 
 import type {
   EvidenceLayout,
@@ -261,6 +259,12 @@ export default async function ReportRealPreviewPage({
     selectedViewMode
   )}`;
 
+  const pdfPreviewUrl = `${pdfExportUrl}&inline=true`;
+
+  const editReportUrl = `/dashboard/reports/${report.id}/studio`;
+
+  const backToReportsUrl = "/dashboard/reports";
+
   return (
     <main
       dir="rtl"
@@ -269,39 +273,39 @@ export default async function ReportRealPreviewPage({
           ? "min-h-screen bg-white p-0"
           : studioMode
             ? "min-h-screen bg-slate-100 py-5"
-            : "min-h-screen bg-[radial-gradient(circle_at_top,_#e0f2fe_0,_#f8fafc_34%,_#f1f5f9_100%)] px-6 py-6"
+            : "min-h-screen bg-slate-50 px-6 py-8"
       }
     >
-      {!studioMode ? (
-        <ReportPreviewToolbar
-          reportId={report.id}
-          title={report.title}
-          serviceName={report.caseEntry.service.name}
-          selectedTemplate={selectedTemplate}
-          selectedEvidenceLayout={selectedEvidenceLayout}
-          selectedViewMode={selectedViewMode}
-          showCover={showCover}
-        />
-      ) : null}
 
       {!studioMode ? (
-        <div className="no-print mx-auto mb-4 flex max-w-[260mm] justify-end">
+        <div className="no-print mx-auto mb-3 flex max-w-[210mm] justify-start">
           <a
-            href={pdfExportUrl}
-            className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:bg-slate-800"
+            href={backToReportsUrl}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
           >
-            تحميل PDF
+            <span aria-hidden="true">←</span>
+            الرجوع للتقارير
           </a>
         </div>
       ) : null}
 
-      <section className={pdfMode ? "mx-auto bg-white" : studioMode ? "mx-auto" : "mx-auto max-w-[260mm]"}>
+      {!studioMode ? (
+        <ReportPdfGuidanceCard
+          reportTitle={report.title}
+          serviceName={report.caseEntry.service.name}
+          editUrl={editReportUrl}
+          pdfPreviewUrl={pdfPreviewUrl}
+          pdfDownloadUrl={pdfExportUrl}
+        />
+      ) : null}
+
+      <section className={pdfMode ? "mx-auto bg-white" : studioMode ? "mx-auto" : "mx-auto mt-4 max-w-[210mm]"}>
         {builderTemplate ? (
-          <ReportTemplateLivePreview
+          <ReportBuilderPdfRenderer
             template={builderTemplate}
-            snippets={[]}
             previewCaseData={builderPreviewCaseData as any}
-            pdfMode={pdfMode}
+            identity={identity}
+            editorialBlocks={parsedEditableContent.blocks || {}}
           />
         ) : (
           <ReportDocumentRenderer

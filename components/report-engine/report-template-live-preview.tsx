@@ -141,7 +141,6 @@ export function ReportTemplateLivePreview({
                       template={template}
                       snippets={snippets}
                       previewCaseData={previewCaseData}
-                      pdfMode={pdfMode}
                     />
                   ))
                 ) : !pdfMode ? (
