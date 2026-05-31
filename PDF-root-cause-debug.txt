@@ -1,0 +1,3400 @@
+﻿===== 1) PDF API route =====
+
+===== 2) Preview page full code =====
+
+===== 3) Live preview full code =====
+"use client";
+
+import type { ReactNode } from "react";
+import type {
+  ReportTemplateBlock,
+  ReportTemplateBuilderModel,
+  ReportTextSnippet,
+} from "@/lib/report-engine/report-template-builder-types";
+import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+import {
+  resolveTextLibraryFallback,
+  resolveTextLibrarySnippets,
+  type RuntimeReportData,
+} from "@/lib/report-engine/report-text-library-runtime";
+
+type ReportTemplateLivePreviewProps = {
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  previewCaseData: RuntimePreviewCaseData | null;
+  pdfMode?: boolean;
+};
+
+type RuntimeValueItem = {
+  fieldKey?: string | null;
+  fieldLabel?: string | null;
+  value?: string | null;
+};
+
+type RuntimeEvidenceItem = {
+  id?: string | null;
+  title?: string | null;
+  fileName?: string | null;
+  fileUrl?: string | null;
+  imageUrl?: string | null;
+  mimeType?: string | null;
+  caption?: string | null;
+  description?: string | null;
+};
+
+export function ReportTemplateLivePreview({
+  template,
+  snippets,
+  previewCaseData,
+  pdfMode = false,
+}: ReportTemplateLivePreviewProps) {
+  return (
+    <section
+      className={
+        pdfMode
+          ? "bg-white p-0"
+          : "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+      }
+    >
+      {!pdfMode ? (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">
+              Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø­ÙŠØ© Ù„Ù„Ù‚Ø§Ù„Ø¨
+            </h2>
+
+            <p className="mt-1 text-sm leading-7 text-slate-500">
+              Ù‡Ø°Ù‡ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© ØªÙ‚Ø±Ø£ ØµÙØ­Ø§Øª Ø§Ù„Ù‚Ø§Ù„Ø¨ ÙˆØ¨Ù„ÙˆÙƒØ§ØªÙ‡ØŒ ÙˆØªØ³ØªØ®Ø¯Ù… Ø¨ÙŠØ§Ù†Ø§Øª Case ID Ø¥Ù† ÙˆØ¬Ø¯ØªØŒ
+              ÙˆØªØ¹Ø±Ø¶ Ù†ØµÙˆØµ Ù…ÙƒØªØ¨Ø© Ø§Ù„Ù†ØµÙˆØµ Ø­Ø³Ø¨ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø¨Ù„ÙˆÙƒ Ø§Ù„Ù†ØµÙˆØµ.
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
+            {previewCaseData ? "Ù…Ø¹Ø§ÙŠÙ†Ø© Ù…Ù† Case Ø­Ù‚ÙŠÙ‚ÙŠ" : "Ù…Ø¹Ø§ÙŠÙ†Ø© Ø¨Ø¨ÙŠØ§Ù†Ø§Øª ØªØ¬Ø±ÙŠØ¨ÙŠØ©"}
+          </div>
+        </div>
+      ) : null}
+
+      <div className={pdfMode ? "space-y-0" : "mt-5 space-y-6"}>
+        {template.pages.map((page, pageIndex) => (
+          <article
+            key={page.id}
+            style={
+              pdfMode
+                ? {
+                    width: "210mm",
+                    height: "297mm",
+                    maxHeight: "297mm",
+                    overflow: "hidden",
+                    breakAfter:
+                      pageIndex < template.pages.length - 1 ? "page" : "auto",
+                    pageBreakAfter:
+                      pageIndex < template.pages.length - 1 ? "always" : "auto",
+                    breakInside: "avoid",
+                    pageBreakInside: "avoid",
+                  }
+                : undefined
+            }
+            className={
+              pdfMode
+                ? "pdf-report-page mx-auto max-w-none overflow-hidden rounded-none border-0 bg-white shadow-none"
+                : "mx-auto min-h-[720px] max-w-[820px] overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 shadow-sm"
+            }
+          >
+            {!pdfMode ? (
+              <div className="border-b border-slate-200 bg-white px-6 py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-black text-emerald-700">
+                      ØµÙØ­Ø© {pageIndex + 1}
+                    </p>
+
+                    <h3 className="mt-1 text-lg font-black text-slate-900">
+                      {page.title}
+                    </h3>
+
+                    <p className="mt-1 text-xs leading-6 text-slate-500">
+                      {page.description}
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">
+                    {getPageKindLabel(page.kind)}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+
+            <div
+              className={[
+                pdfMode
+                  ? "h-full max-h-full overflow-hidden bg-white p-[10mm]"
+                  : "min-h-[640px] bg-white p-8",
+                page.kind === "cover" ? "flex flex-col justify-between" : "",
+              ].join(" ")}
+            >
+              {page.kind === "cover" ? (
+                <CoverPreviewHeader template={template} pageTitle={page.title} />
+              ) : null}
+
+              <div className={pdfMode ? "max-h-full space-y-3 overflow-hidden" : "space-y-5"}>
+                {page.blocks.length ? (
+                  page.blocks.map((block) => (
+                    <PreviewBlock
+                      key={block.id}
+                      block={block}
+                      template={template}
+                      snippets={snippets}
+                      previewCaseData={previewCaseData}
+                    />
+                  ))
+                ) : !pdfMode ? (
+                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <p className="text-sm font-bold text-slate-500">
+                      Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨Ù„ÙˆÙƒØ§Øª ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+
+              {page.kind === "cover" ? (
+                <CoverPreviewFooter template={template} />
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PreviewBlock({
+  block,
+  template,
+  snippets,
+  previewCaseData,
+}: {
+  block: ReportTemplateBlock;
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  previewCaseData: RuntimePreviewCaseData | null;
+}) {
+  if (block.kind === "identity-header") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-3">
+          <InfoPreview label="Ø§Ù„Ø¬Ù‡Ø©" value="ÙˆØ²Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…" />
+          <InfoPreview label="Ø§Ù„Ù…Ø¯Ø±Ø³Ø©" value="Ø§Ø³Ù… Ø§Ù„Ù…Ø¯Ø±Ø³Ø©" />
+          <InfoPreview label="Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ" value="1447Ù‡Ù€" />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "cover-title") {
+    return (
+      <div className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-8 text-center">
+        {shouldShowTitle(block) ? (
+          <p className="text-sm font-black text-emerald-700">
+            {getServiceName(template, previewCaseData)}
+          </p>
+        ) : null}
+
+        <h1 className="mt-3 text-3xl font-black text-slate-900">
+          {template.name}
+        </h1>
+
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-8 text-slate-600">
+          {template.description}
+        </p>
+      </div>
+    );
+  }
+
+  if (block.kind === "case-meta") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø­Ø§Ù„Ø©"
+            value={getCaseTitle(previewCaseData)}
+          />
+          <InfoPreview
+            label="Ø§Ù„Ø®Ø¯Ù…Ø©"
+            value={getServiceName(template, previewCaseData)}
+          />
+          <InfoPreview
+            label="Ø¹Ø¯Ø¯ Ø§Ù„Ù‚ÙŠÙ…"
+            value={`${getRuntimeValues(previewCaseData).length}`}
+          />
+          <InfoPreview
+            label="Ø¹Ø¯Ø¯ Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯"
+            value={`${getRuntimeEvidences(previewCaseData).length}`}
+          />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "student-summary") {
+    const student = getStudent(previewCaseData);
+
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©"
+            value={student.fullName || "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©"}
+          />
+          <InfoPreview label="Ø§Ù„Ù…Ø±Ø­Ù„Ø©" value={student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"} />
+          <InfoPreview label="Ø§Ù„ØµÙ" value={student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"} />
+          <InfoPreview label="Ø§Ù„ÙØµÙ„" value={student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"} />
+          <InfoPreview
+            label="ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±"
+            value={student.guardianName || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}
+          />
+          <InfoPreview
+            label="Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±"
+            value={student.guardianPhone || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}
+          />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "service-summary") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="Ø§Ø³Ù… Ø§Ù„Ø®Ø¯Ù…Ø©"
+            value={getServiceName(template, previewCaseData)}
+          />
+          <InfoPreview
+            label="Ù†Ø·Ø§Ù‚ Ø§Ù„Ù‚Ø§Ù„Ø¨"
+            value={template.scope === "GLOBAL" ? "Ø¹Ø§Ù…" : "Ø®Ø§Øµ Ø¨Ø®Ø¯Ù…Ø©"}
+          />
+          <InfoPreview label="Ø­Ø§Ù„Ø© Ø§Ù„Ù‚Ø§Ù„Ø¨" value={template.status} />
+          <InfoPreview label="Ø¹Ø¯Ø¯ Ø§Ù„ØµÙØ­Ø§Øª" value={`${template.pages.length}`} />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "paragraph") {
+    return (
+      <BlockShell block={block}>
+        <p className="text-sm leading-8 text-slate-700">
+          Ù‡Ø°Ø§ Ø¨Ù„ÙˆÙƒ Ù†ØµÙŠ Ø§ÙØªØ±Ø§Ø¶ÙŠ ÙŠÙ…ÙƒÙ† Ø§Ø³ØªØ®Ø¯Ø§Ù…Ù‡ Ù„Ø¹Ø±Ø¶ Ù…Ø­ØªÙˆÙ‰ ÙˆØµÙÙŠ Ø¯Ø§Ø®Ù„ Ø§Ù„ØªÙ‚Ø±ÙŠØ±. ÙŠÙ…ÙƒÙ†
+          Ù„Ø§Ø­Ù‚Ù‹Ø§ Ø±Ø¨Ø·Ù‡ Ø¨Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø© Ø£Ùˆ Ø¬Ø¹Ù„Ù‡ ÙÙ‚Ø±Ø© Ø«Ø§Ø¨ØªØ© Ø¯Ø§Ø®Ù„ Ø§Ù„Ù‚Ø§Ù„Ø¨.
+        </p>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "field-list") {
+    const values = getRuntimeValues(previewCaseData);
+
+    return (
+      <BlockShell block={block}>
+        {values.length ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {values.slice(0, 10).map((item, index) => (
+              <InfoPreview
+                key={`${item.fieldKey || item.fieldLabel || index}`}
+                label={item.fieldLabel || item.fieldKey || `Ù‚ÙŠÙ…Ø© ${index + 1}`}
+                value={item.value || "â€”"}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ø­Ù‚ÙŠÙ‚ÙŠØ© Ù…Ù† Case IDØŒ Ø³ÙŠØªÙ… Ø¹Ø±Ø¶ Ø§Ù„Ù‚ÙŠÙ… Ø¹Ù†Ø¯ Ø±Ø¨Ø· Ø­Ø§Ù„Ø© Ø­Ù‚ÙŠÙ‚ÙŠØ©.
+          </div>
+        )}
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "text-library") {
+    const runtimeData = buildRuntimeReportDataForTextLibrary(
+      template,
+      previewCaseData,
+    );
+
+    const resolvedSnippets = resolveTextLibrarySnippets({
+      block,
+      template,
+      snippets,
+      data: runtimeData,
+    });
+
+    if (!resolvedSnippets.length) {
+      const fallback = resolveTextLibraryFallback({ block });
+
+      if (!fallback) {
+        return null;
+      }
+
+      return (
+        <BlockShell block={block} tone="emerald">
+          <p className="whitespace-pre-line rounded-2xl border border-emerald-100 bg-white p-4 text-sm leading-8 text-slate-800">
+            {fallback}
+          </p>
+        </BlockShell>
+      );
+    }
+
+    return (
+      <BlockShell block={block} tone="emerald">
+        <div className="space-y-3">
+          {resolvedSnippets.map((snippet) => (
+            <article
+              key={snippet.id}
+              className="rounded-2xl border border-emerald-100 bg-white p-4"
+            >
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+                  {snippet.category}
+                </span>
+
+                <strong className="text-xs text-slate-500">
+                  {snippet.title}
+                </strong>
+              </div>
+
+              <p className="whitespace-pre-line text-sm leading-8 text-slate-800">
+                {snippet.renderedText}
+              </p>
+            </article>
+          ))}
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "custom-paragraph") {
+    return (
+      <BlockShell block={block}>
+        {block.customTitle ? (
+          <h4 className="mb-3 text-base font-black text-slate-900">
+            {block.customTitle}
+          </h4>
+        ) : null}
+
+        <p className="whitespace-pre-line text-sm leading-8 text-slate-700">
+          {block.customContent || "Ù„Ù… ÙŠØªÙ… Ø¥Ø¯Ø®Ø§Ù„ Ù…Ø­ØªÙˆÙ‰ Ù…Ø®ØµØµ Ø¨Ø¹Ø¯."}
+        </p>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "evidence-gallery") {
+    const evidences = getRuntimeEvidences(previewCaseData);
+    const settings = block.settings || {};
+    const layout = settings.evidenceLayout || "grid-2x2";
+
+    return (
+      <BlockShell block={block}>
+        {evidences.length ? (
+          <EvidencePreviewGrid
+            evidences={evidences}
+            layout={layout}
+            showCaptions={settings.showCaptions !== false}
+            imageFit={settings.imageFit || "cover"}
+          />
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´ÙˆØ§Ù‡Ø¯ ÙÙŠ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ©.
+          </div>
+        )}
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "approval-signature") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <SignatureBox title="Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©" name="Ø£. Ø§Ù„Ù…ÙˆØ¬Ù‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ" />
+          <SignatureBox title="Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©" name="Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©" />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  return (
+    <BlockShell block={block}>
+      <p className="text-sm text-slate-500">
+        Ù†ÙˆØ¹ Ø§Ù„Ø¨Ù„ÙˆÙƒ ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ… ÙÙŠ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ©.
+      </p>
+    </BlockShell>
+  );
+}
+
+function BlockShell({
+  block,
+  tone = "slate",
+  children,
+}: {
+  block: ReportTemplateBlock;
+  tone?: "slate" | "emerald";
+  children: ReactNode;
+}) {
+  const settings = block.settings || {};
+  const showTitle = settings.showTitle !== false;
+  const style = settings.style || "card";
+
+  if (style === "plain") {
+    return (
+      <section>
+        {showTitle ? (
+          <h4 className="mb-3 text-base font-black text-slate-900">
+            {block.title}
+          </h4>
+        ) : null}
+
+        {children}
+      </section>
+    );
+  }
+
+  if (style === "highlight") {
+    return (
+      <section className="rounded-3xl border border-amber-100 bg-amber-50 p-5">
+        {showTitle ? (
+          <h4 className="mb-3 text-base font-black text-amber-950">
+            {block.title}
+          </h4>
+        ) : null}
+
+        {children}
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className={[
+        "rounded-3xl border p-5",
+        tone === "emerald"
+          ? "border-emerald-100 bg-emerald-50"
+          : "border-slate-200 bg-slate-50",
+      ].join(" ")}
+    >
+      {showTitle ? (
+        <h4
+          className={[
+            "mb-3 text-base font-black",
+            tone === "emerald" ? "text-emerald-950" : "text-slate-900",
+          ].join(" ")}
+        >
+          {block.title}
+        </h4>
+      ) : null}
+
+      {children}
+    </section>
+  );
+}
+
+function InfoPreview({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-black text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-black leading-7 text-slate-900">
+        {value || "â€”"}
+      </p>
+    </div>
+  );
+}
+
+function SignatureBox({ title, name }: { title: string; name: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <p className="text-xs font-black text-slate-500">{title}</p>
+      <p className="mt-3 text-sm font-black text-slate-900">{name}</p>
+      <div className="mt-8 border-t border-dashed border-slate-300 pt-3 text-xs text-slate-400">
+        Ø§Ù„ØªÙˆÙ‚ÙŠØ¹ ÙˆØ§Ù„Ø®ØªÙ…
+      </div>
+    </div>
+  );
+}
+
+function CoverPreviewHeader({
+  template,
+  pageTitle,
+}: {
+  template: ReportTemplateBuilderModel;
+  pageTitle: string;
+}) {
+  return (
+    <header className="text-center">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-sm font-black text-emerald-800">
+        Ø´Ø¹Ø§Ø±
+      </div>
+
+      <p className="mt-4 text-sm font-black text-emerald-700">
+        {getServiceName(template, null)}
+      </p>
+
+      <h1 className="mt-3 text-3xl font-black text-slate-900">
+        {template.name || pageTitle}
+      </h1>
+
+      <p className="mx-auto mt-4 max-w-xl text-sm leading-8 text-slate-600">
+        {template.description}
+      </p>
+    </header>
+  );
+}
+
+function CoverPreviewFooter({
+  template,
+}: {
+  template: ReportTemplateBuilderModel;
+}) {
+  return (
+    <footer className="no-print border-t border-slate-200 pt-5 text-center text-xs font-bold text-slate-500">
+      <span>{template.scope === "GLOBAL" ? "Ù‚Ø§Ù„Ø¨ Ø¹Ø§Ù…" : "Ù‚Ø§Ù„Ø¨ Ø®Ø§Øµ Ø¨Ø®Ø¯Ù…Ø©"}</span>
+      <span className="mx-2">â€¢</span>
+      <span>{template.status}</span>
+    </footer>
+  );
+}
+
+function EvidencePreviewGrid({
+  evidences,
+  layout,
+  showCaptions,
+  imageFit,
+}: {
+  evidences: RuntimeEvidenceItem[];
+  layout: string;
+  showCaptions: boolean;
+  imageFit: string;
+}) {
+  const gridClass =
+    layout === "one-per-page"
+      ? "grid-cols-1"
+      : layout === "stacked"
+        ? "grid-cols-1"
+        : layout === "two-columns"
+          ? "grid-cols-2"
+          : "grid-cols-2";
+
+  return (
+    <div className={`grid gap-3 ${gridClass}`}>
+      {evidences
+        .slice(0, layout === "one-per-page" ? 1 : 4)
+        .map((evidence, index) => {
+          const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+
+          return (
+            <article
+              key={evidence.id || `${evidence.fileName}-${index}`}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            >
+              <div className="flex h-40 items-center justify-center bg-slate-100">
+                {isImageEvidence(evidence) && imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={evidence.title || evidence.fileName || "Ø´Ø§Ù‡Ø¯"}
+                    className={[
+                      "h-full w-full",
+                      imageFit === "contain" ? "object-contain" : "object-cover",
+                    ].join(" ")}
+                  />
+                ) : (
+                  <span className="px-4 text-center text-xs font-black text-slate-500">
+                    {evidence.fileName || "Ù…Ø±ÙÙ‚"}
+                  </span>
+                )}
+              </div>
+
+              {showCaptions ? (
+                <div className="p-3">
+                  <p className="text-xs font-black text-slate-800">
+                    {evidence.title ||
+                      evidence.caption ||
+                      evidence.fileName ||
+                      "Ø´Ø§Ù‡Ø¯"}
+                  </p>
+
+                  {evidence.description ? (
+                    <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                      {evidence.description}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+    </div>
+  );
+}
+
+function buildRuntimeReportDataForTextLibrary(
+  template: ReportTemplateBuilderModel,
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeReportData {
+  const values = getRuntimeValues(previewCaseData);
+  const valueMap: Record<string, string> = {};
+
+  values.forEach((item) => {
+    const value = item.value || "";
+
+    if (item.fieldKey) {
+      valueMap[item.fieldKey] = value;
+    }
+
+    if (item.fieldLabel) {
+      valueMap[item.fieldLabel] = value;
+    }
+  });
+
+  const student = getStudent(previewCaseData);
+  const evidences = getRuntimeEvidences(previewCaseData);
+
+  return {
+    reportTitle: template.name || "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+    createdAt: new Date().toISOString(),
+    values: {
+      ...valueMap,
+      programTitle:
+        valueMap.program_name ||
+        valueMap["Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬"] ||
+        valueMap.programTitle ||
+        getCaseTitle(previewCaseData) ||
+        "Ø¨Ø±Ù†Ø§Ù…Ø¬ Ø¥Ø±Ø´Ø§Ø¯ÙŠ",
+      executionDate:
+        valueMap.gregorian_date ||
+        valueMap.executionDate ||
+        valueMap["ØªØ§Ø±ÙŠØ® Ø§Ù„ØªÙ†ÙÙŠØ°"] ||
+        "2026-05-26",
+      dayText: valueMap.day || valueMap["Ø§Ù„ÙŠÙˆÙ…"] || "Ø§Ù„Ø£Ø­Ø¯",
+      targetGroup:
+        valueMap.beneficiaries ||
+        valueMap.targetGroup ||
+        valueMap["Ø§Ù„ÙØ¦Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©"] ||
+        student.grade ||
+        "Ø§Ù„ÙØ¦Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©",
+      executionAction:
+        valueMap.execution_action ||
+        valueMap.executionAction ||
+        valueMap["Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„ØªÙ†ÙÙŠØ°ÙŠ"] ||
+        "Ø¥Ø¬Ø±Ø§Ø¡ ØªÙ†ÙÙŠØ°ÙŠ Ù…ÙˆØ«Ù‚",
+      executionMechanism:
+        valueMap.execution_mechanism ||
+        valueMap.executionMechanism ||
+        valueMap["Ø¢Ù„ÙŠØ© Ø§Ù„ØªÙ†ÙÙŠØ°"] ||
+        "Ø¢Ù„ÙŠØ© ØªÙ†ÙÙŠØ° Ù…ÙˆØ«Ù‚Ø©",
+      performanceIndicator:
+        valueMap.performance_indicator ||
+        valueMap.performanceIndicator ||
+        valueMap["Ù…Ø¤Ø´Ø± Ø§Ù„Ø£Ø¯Ø§Ø¡"] ||
+        "Ù…Ø¤Ø´Ø± Ø£Ø¯Ø§Ø¡",
+      evidenceSuggestion:
+        valueMap.evidence_suggestion ||
+        valueMap.evidenceSuggestion ||
+        valueMap["Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯"] ||
+        "Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„Ù…Ø±ÙÙ‚Ø§Øª",
+      evidenceCountText: formatEvidenceCount(evidences.length),
+    },
+    evidences: evidences.map((evidence) => ({
+      id: evidence.id || undefined,
+      title: evidence.title || evidence.caption || evidence.fileName || undefined,
+      caption: evidence.caption || undefined,
+      description: evidence.description || undefined,
+      fileUrl: evidence.fileUrl || evidence.imageUrl || undefined,
+      url: evidence.imageUrl || evidence.fileUrl || undefined,
+      mimeType: evidence.mimeType || undefined,
+    })),
+    student: {
+      name: student.fullName || "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©",
+      nationalId: student.nationalId || "",
+      grade: student.grade || "",
+      classroom: student.classroom || "",
+      gender: "",
+      guardianName: student.guardianName || "",
+      guardianPhone: student.guardianPhone || "",
+    },
+    service: {
+      name: getServiceName(template, previewCaseData),
+      slug: template.serviceSlug || "",
+    },
+    caseEntry: {
+      title: getCaseTitle(previewCaseData),
+      student: {
+        name: student.fullName || "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©",
+        nationalId: student.nationalId || "",
+        grade: student.grade || "",
+        classroom: student.classroom || "",
+        gender: "",
+        guardianName: student.guardianName || "",
+        guardianPhone: student.guardianPhone || "",
+      },
+      service: {
+        name: getServiceName(template, previewCaseData),
+        slug: template.serviceSlug || "",
+      },
+    },
+    school: {
+      name: "Ø§Ø³Ù… Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+      schoolYear: "1447Ù‡Ù€",
+      semester: "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+      principalName: "Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+    },
+    counselor: {
+      name: "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
+    },
+  };
+}
+
+function getRuntimeValues(
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeValueItem[] {
+  const data = previewCaseData as
+    | {
+        values?: RuntimeValueItem[];
+      }
+    | null;
+
+  return Array.isArray(data?.values) ? data.values : [];
+}
+
+function getRuntimeEvidences(
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeEvidenceItem[] {
+  const data = previewCaseData as
+    | {
+        evidences?: RuntimeEvidenceItem[];
+      }
+    | null;
+
+  return Array.isArray(data?.evidences) ? data.evidences : [];
+}
+
+function getStudent(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as
+    | {
+        student?: {
+          fullName?: string | null;
+          nationalId?: string | null;
+          stage?: string | null;
+          grade?: string | null;
+          classroom?: string | null;
+          guardianName?: string | null;
+          guardianPhone?: string | null;
+        } | null;
+      }
+    | null;
+
+  return {
+    fullName: data?.student?.fullName || "",
+    nationalId: data?.student?.nationalId || "",
+    stage: data?.student?.stage || "",
+    grade: data?.student?.grade || "",
+    classroom: data?.student?.classroom || "",
+    guardianName: data?.student?.guardianName || "",
+    guardianPhone: data?.student?.guardianPhone || "",
+  };
+}
+
+function getCaseTitle(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as
+    | {
+        title?: string | null;
+      }
+    | null;
+
+  return data?.title || "Ø­Ø§Ù„Ø© ØªØ¬Ø±ÙŠØ¨ÙŠØ©";
+}
+
+function getServiceName(
+  template: ReportTemplateBuilderModel,
+  previewCaseData: RuntimePreviewCaseData | null,
+) {
+  const data = previewCaseData as
+    | {
+        serviceName?: string | null;
+      }
+    | null;
+
+  if (data?.serviceName) {
+    return data.serviceName;
+  }
+
+  if (template.scope === "SERVICE" && template.serviceSlug) {
+    return template.serviceSlug;
+  }
+
+  return "Ø§Ù„Ø®Ø¯Ù…Ø© Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©";
+}
+
+function shouldShowTitle(block: ReportTemplateBlock) {
+  return block.settings?.showTitle !== false;
+}
+
+function isImageEvidence(evidence: RuntimeEvidenceItem) {
+  if (evidence.mimeType?.startsWith("image/")) {
+    return true;
+  }
+
+  const fileName = evidence.fileName || evidence.fileUrl || evidence.imageUrl || "";
+
+  return /\.(png|jpg|jpeg|webp|gif)$/i.test(fileName);
+}
+
+function formatEvidenceCount(count: number) {
+  if (count <= 0) return "0 Ø´Ø§Ù‡Ø¯";
+  if (count === 1) return "Ø´Ø§Ù‡Ø¯ ÙˆØ§Ø­Ø¯";
+  if (count === 2) return "Ø´Ø§Ù‡Ø¯Ø§Ù†";
+  if (count >= 3 && count <= 10) return `${count} Ø´ÙˆØ§Ù‡Ø¯`;
+  return `${count} Ø´Ø§Ù‡Ø¯`;
+}
+
+function getPageKindLabel(kind: string) {
+  if (kind === "cover") return "ØºÙ„Ø§Ù";
+  if (kind === "summary") return "Ù…Ù„Ø®Øµ";
+  if (kind === "narrative") return "Ù…Ø­ØªÙˆÙ‰";
+  if (kind === "results") return "Ù†ØªØ§Ø¦Ø¬";
+  if (kind === "evidence") return "Ø´ÙˆØ§Ù‡Ø¯";
+  if (kind === "approval") return "Ø§Ø¹ØªÙ…Ø§Ø¯";
+  return kind;
+}
+
+===== 4) Builder runtime =====
+import { prisma } from "@/lib/prisma";
+
+type LegacyReportTemplateId =
+  | "official-long"
+  | "visual-activity"
+  | "executive-brief";
+
+const LEGACY_REPORT_TEMPLATE_IDS: LegacyReportTemplateId[] = [
+  "official-long",
+  "visual-activity",
+  "executive-brief",
+];
+
+export function isLegacyReportTemplateId(value?: string | null) {
+  return Boolean(
+    value &&
+      LEGACY_REPORT_TEMPLATE_IDS.includes(value as LegacyReportTemplateId)
+  );
+}
+
+export function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+export function getBuilderTemplateFromSnapshot(snapshot: unknown) {
+  const data = snapshot as
+    | {
+        source?: string;
+        builderTemplate?: any;
+      }
+    | null
+    | undefined;
+
+  if (data?.source !== "TEMPLATE_BUILDER") {
+    return null;
+  }
+
+  if (!data.builderTemplate || !Array.isArray(data.builderTemplate.pages)) {
+    return null;
+  }
+
+  return data.builderTemplate;
+}
+
+export async function getBuilderTemplateFromDatabase(templateId?: string | null) {
+  if (!templateId || isLegacyReportTemplateId(templateId)) {
+    return null;
+  }
+
+  const templateRecord = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  if (!templateRecord) {
+    return null;
+  }
+
+  const templateJson =
+    parseBuilderTemplateJson(templateRecord.templateJson) ||
+    parseBuilderTemplateJson(templateRecord.content);
+
+  if (!templateJson || !Array.isArray(templateJson.pages)) {
+    return null;
+  }
+
+  return {
+    ...templateJson,
+    id: templateRecord.id,
+    name: templateRecord.name || templateJson.name,
+    description:
+      templateRecord.description ||
+      templateJson.description ||
+      "قالب تقرير محفوظ من صانع القوالب.",
+    serviceSlug: templateRecord.serviceSlug || templateJson.serviceSlug || null,
+    status: templateJson.status || "PUBLISHED",
+  };
+}
+
+export async function resolveBuilderTemplateForReport(
+  report: {
+    templateId?: string | null;
+    templateSnapshot?: unknown;
+  },
+  options?: {
+    templateIdOverride?: string | null;
+  }
+) {
+  const snapshotTemplate = getBuilderTemplateFromSnapshot(report.templateSnapshot);
+
+  if (snapshotTemplate) {
+    return snapshotTemplate;
+  }
+
+  return getBuilderTemplateFromDatabase(
+    options?.templateIdOverride || report.templateId
+  );
+}
+
+export function buildBuilderPreviewCaseData(
+  report: any,
+  values: Array<{
+    fieldKey: string;
+    fieldLabel: string;
+    value?: string;
+    displayValue?: string;
+  }>
+) {
+  const student = report.caseEntry.student;
+  const guardian = student?.guardian;
+
+  const reportEvidenceItems = Array.isArray(report.evidenceItems)
+    ? report.evidenceItems
+    : [];
+
+  const caseEvidenceItems = Array.isArray(report.caseEntry?.evidences)
+    ? report.caseEntry.evidences
+    : [];
+
+  const evidences = reportEvidenceItems.length
+    ? reportEvidenceItems
+        .filter((item: any) => item.visible !== false)
+        .map((item: any) => ({
+          id: item.id,
+          title: item.caption || item.fileName,
+          fileName: item.fileName,
+          fileUrl: item.fileUrl || "",
+          imageUrl: item.mimeType?.startsWith("image/") ? item.fileUrl : undefined,
+          note: item.caption || "",
+        }))
+    : caseEvidenceItems.map((item: any) => ({
+        id: item.id,
+        title: item.note || item.fileName || "شاهد",
+        fileName: item.fileName || "مرفق",
+        fileUrl: item.fileUrl || "",
+        imageUrl: item.mimeType?.startsWith("image/") ? item.fileUrl : undefined,
+        note: item.note || "",
+      }));
+
+  return {
+    id: report.caseEntry.id,
+    title: report.caseEntry.title || report.title,
+    status: report.caseEntry.status,
+    createdAt: report.caseEntry.createdAt?.toISOString?.() || "",
+    updatedAt: report.caseEntry.updatedAt?.toISOString?.() || "",
+    submittedAt: report.caseEntry.submittedAt?.toISOString?.() || null,
+    serviceName: report.caseEntry.service.name,
+    serviceSlug: report.caseEntry.service.slug,
+
+    service: {
+      id: report.caseEntry.service.id,
+      name: report.caseEntry.service.name,
+      slug: report.caseEntry.service.slug,
+    },
+
+    student: student
+      ? {
+          id: student.id,
+          fullName: student.fullName,
+          nationalId: student.nationalId,
+          stage: student.stage,
+          grade: student.grade,
+          classroom: student.classroom,
+          guardianName: guardian?.name || student.guardianName || null,
+          guardianPhone: guardian?.phone || student.guardianPhone || null,
+        }
+      : null,
+
+    values: values.map((item) => ({
+      fieldKey: item.fieldKey,
+      fieldLabel: item.fieldLabel,
+      value: item.displayValue ?? item.value ?? "",
+    })),
+
+    evidences,
+  };
+}
+
+
+===== 5) Evidence related search =====
+
+  components\admin\workflow-upload-card.tsx:3:import { useState } from "react";
+  components\admin\workflow-upload-card.tsx:4:import { useRouter } from 
+"next/navigation";
+> components\admin\workflow-upload-card.tsx:5:import { UploadCloud } from 
+"lucide-react";
+  components\admin\workflow-upload-card.tsx:6:
+> components\admin\workflow-upload-card.tsx:7:type WorkflowUploadCardProps = {
+  components\admin\workflow-upload-card.tsx:8:  serviceSlug: string;
+  components\admin\workflow-upload-card.tsx:9:  serviceName: string;
+  components\admin\workflow-upload-card.tsx:10:};
+  components\admin\workflow-upload-card.tsx:11:
+> components\admin\workflow-upload-card.tsx:12:export function WorkflowUploadCard({
+  components\admin\workflow-upload-card.tsx:13:  serviceSlug,
+  components\admin\workflow-upload-card.tsx:14:  serviceName,
+> components\admin\workflow-upload-card.tsx:15:}: WorkflowUploadCardProps) {
+  components\admin\workflow-upload-card.tsx:16:  const router = useRouter();
+  components\admin\workflow-upload-card.tsx:17:  const [message, setMessage] = 
+useState<string | null>(null);
+> components\admin\workflow-upload-card.tsx:18:  const [isUploading, setIsUploading] 
+= useState(false);
+  components\admin\workflow-upload-card.tsx:19:
+> components\admin\workflow-upload-card.tsx:20:  async function 
+uploadWorkflow(formData: FormData) {
+> components\admin\workflow-upload-card.tsx:21:    setIsUploading(true);
+  components\admin\workflow-upload-card.tsx:22:    setMessage(null);
+  components\admin\workflow-upload-card.tsx:23:
+  components\admin\workflow-upload-card.tsx:24:    formData.set("serviceSlug", 
+serviceSlug);
+  components\admin\workflow-upload-card.tsx:25:
+  components\admin\workflow-upload-card.tsx:26:    try {
+> components\admin\workflow-upload-card.tsx:27:      const response = await 
+fetch("/api/dashboard/admin/workflows/upload", {
+  components\admin\workflow-upload-card.tsx:28:        method: "POST",
+  components\admin\workflow-upload-card.tsx:29:        body: formData,
+  components\admin\workflow-upload-card.tsx:30:      });
+  components\admin\workflow-upload-card.tsx:31:
+  components\admin\workflow-upload-card.tsx:44:      setMessage(error instanceof 
+Error ? error.message : "حدث خطأ غير معروف.");
+  components\admin\workflow-upload-card.tsx:45:    } finally {
+> components\admin\workflow-upload-card.tsx:46:      setIsUploading(false);
+  components\admin\workflow-upload-card.tsx:47:    }
+  components\admin\workflow-upload-card.tsx:48:  }
+  components\admin\workflow-upload-card.tsx:49:
+  components\admin\workflow-upload-card.tsx:50:  return (
+  components\admin\workflow-upload-card.tsx:52:      <div className="mb-6 flex 
+items-center gap-4">
+  components\admin\workflow-upload-card.tsx:53:        <div className="rounded-2xl 
+bg-sky-50 p-3 text-sky-700">
+> components\admin\workflow-upload-card.tsx:54:          <UploadCloud className="h-6 
+w-6" />
+  components\admin\workflow-upload-card.tsx:55:        </div>
+  components\admin\workflow-upload-card.tsx:56:
+  components\admin\workflow-upload-card.tsx:57:        <div>
+> components\admin\workflow-upload-card.tsx:58:          <p className="text-sm 
+font-bold text-sky-700">Service-bound Upload</p>
+  components\admin\workflow-upload-card.tsx:59:          <h2 className="mt-1 
+text-2xl font-black text-slate-900">
+  components\admin\workflow-upload-card.tsx:60:            رفع Workflow لخدمة: 
+{serviceName}
+  components\admin\workflow-upload-card.tsx:61:          </h2>
+  components\admin\workflow-upload-card.tsx:62:          <p className="mt-1 text-sm 
+text-slate-500">
+  components\admin\workflow-upload-card.tsx:66:      </div>
+  components\admin\workflow-upload-card.tsx:67:
+> components\admin\workflow-upload-card.tsx:68:      <form action={uploadWorkflow} 
+className="space-y-4">
+  components\admin\workflow-upload-card.tsx:69:        <input
+  components\admin\workflow-upload-card.tsx:70:          name="file"
+  components\admin\workflow-upload-card.tsx:71:          type="file"
+  components\admin\workflow-upload-card.tsx:72:          accept=".xlsx,.xls"
+  components\admin\workflow-upload-card.tsx:77:        <button
+  components\admin\workflow-upload-card.tsx:78:          type="submit"
+> components\admin\workflow-upload-card.tsx:79:          disabled={isUploading}
+  components\admin\workflow-upload-card.tsx:80:          className="rounded-2xl 
+bg-sky-600 px-6 py-3 text-sm font-black text-white transition hover:bg-sky-700 
+disabled:opacity-60"
+  components\admin\workflow-upload-card.tsx:81:        >
+> components\admin\workflow-upload-card.tsx:82:          {isUploading ? "جاري الرفع 
+والتحليل..." : "رفع وتفعيل Workflow"}
+  components\admin\workflow-upload-card.tsx:83:        </button>
+  components\admin\workflow-upload-card.tsx:84:      </form>
+  components\admin\workflow-upload-card.tsx:85:
+  components\admin\workflow-upload-card.tsx:86:      {message ? (
+  components\cases\case-details-view.tsx:105:    });
+  components\cases\case-details-view.tsx:106:
+> components\cases\case-details-view.tsx:107:  const evidenceItems =
+> components\cases\case-details-view.tsx:108:    caseEntry.evidences?.map((item: 
+any) => ({
+  components\cases\case-details-view.tsx:109:      id: item.id,
+  components\cases\case-details-view.tsx:110:      fileName: item.fileName || "ملف",
+> components\cases\case-details-view.tsx:111:      fileUrl: item.fileUrl || "#",
+> components\cases\case-details-view.tsx:112:      mimeType: item.mimeType || 
+"application/octet-stream",
+  components\cases\case-details-view.tsx:113:      size: item.size || 0,
+  components\cases\case-details-view.tsx:114:    })) || [];
+  components\cases\case-details-view.tsx:115:
+  components\cases\case-details-view.tsx:116:  return (
+  components\cases\case-details-view.tsx:211:      </section>
+  components\cases\case-details-view.tsx:212:
+> components\cases\case-details-view.tsx:213:      {evidenceItems.length > 0 ? (
+  components\cases\case-details-view.tsx:214:        <section 
+className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+  components\cases\case-details-view.tsx:215:          <h2 className="text-2xl 
+font-black text-slate-900">
+  components\cases\case-details-view.tsx:216:            الشواهد والمرفقات
+  components\cases\case-details-view.tsx:217:          </h2>
+  components\cases\case-details-view.tsx:218:
+  components\cases\case-details-view.tsx:219:          <div className="mt-6">
+> components\cases\case-details-view.tsx:220:            <EvidencePreviewGrid 
+items={evidenceItems} />
+  components\cases\case-details-view.tsx:221:          </div>
+  components\cases\case-details-view.tsx:222:        </section>
+  components\cases\case-details-view.tsx:223:      ) : null}
+  components\cases\case-details-view.tsx:224:    </div>
+  components\evidence\evidence-item-card.tsx:7:    id: string;
+  components\evidence\evidence-item-card.tsx:8:    fileName: string;
+> components\evidence\evidence-item-card.tsx:9:    fileUrl: string;
+> components\evidence\evidence-item-card.tsx:10:    mimeType: string;
+  components\evidence\evidence-item-card.tsx:11:    size: number;
+  components\evidence\evidence-item-card.tsx:12:  };
+  components\evidence\evidence-item-card.tsx:13:  onDelete?: (id: string) => void;
+  components\evidence\evidence-item-card.tsx:14:};
+  components\evidence\evidence-item-card.tsx:21:
+  components\evidence\evidence-item-card.tsx:22:export function EvidenceItemCard({ 
+item, onDelete }: EvidenceItemCardProps) {
+> components\evidence\evidence-item-card.tsx:23:  const isImage = 
+item.mimeType.startsWith("image");
+  components\evidence\evidence-item-card.tsx:24:
+  components\evidence\evidence-item-card.tsx:25:  return (
+  components\evidence\evidence-item-card.tsx:26:    <div className="overflow-hidden 
+rounded-3xl border border-slate-200 bg-white shadow-sm">
+  components\evidence\evidence-item-card.tsx:27:      <div className="aspect-video 
+overflow-hidden bg-slate-100">
+  components\evidence\evidence-item-card.tsx:28:        {isImage ? (
+> components\evidence\evidence-item-card.tsx:29:          <img src={item.fileUrl} 
+alt={item.fileName} className="h-full w-full object-cover" />
+  components\evidence\evidence-item-card.tsx:30:        ) : (
+  components\evidence\evidence-item-card.tsx:31:          <div className="flex 
+h-full items-center justify-center">
+  components\evidence\evidence-item-card.tsx:32:            <FileText 
+className="h-14 w-14 text-slate-400" />
+  components\evidence\evidence-item-card.tsx:33:          </div>
+  components\evidence\evidence-item-card.tsx:51:        <div className="mt-4 flex 
+gap-2">
+  components\evidence\evidence-item-card.tsx:52:          <a
+> components\evidence\evidence-item-card.tsx:53:            href={item.fileUrl}
+  components\evidence\evidence-item-card.tsx:54:            target="_blank"
+  components\evidence\evidence-item-card.tsx:55:            className="flex-1 
+rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-black 
+text-slate-700 hover:bg-slate-50"
+  components\evidence\evidence-item-card.tsx:56:          >
+  components\evidence\evidence-item-card.tsx:57:            معاينة
+  components\evidence\evidence-preview-grid.tsx:7:    id: string;
+  components\evidence\evidence-preview-grid.tsx:8:    fileName: string;
+> components\evidence\evidence-preview-grid.tsx:9:    fileUrl: string;
+> components\evidence\evidence-preview-grid.tsx:10:    mimeType: string;
+  components\evidence\evidence-preview-grid.tsx:11:    size: number;
+  components\evidence\evidence-preview-grid.tsx:12:  }>;
+  components\evidence\evidence-preview-grid.tsx:13:  onDelete?: (id: string) => void;
+  components\evidence\evidence-preview-grid.tsx:14:};
+  components\evidence\evidence-upload-card.tsx:2:
+  components\evidence\evidence-upload-card.tsx:3:import { useState } from "react";
+> components\evidence\evidence-upload-card.tsx:4:import { UploadCloud } from 
+"lucide-react";
+  components\evidence\evidence-upload-card.tsx:5:
+  components\evidence\evidence-upload-card.tsx:6:type EvidenceItem = {
+  components\evidence\evidence-upload-card.tsx:7:  id: string;
+  components\evidence\evidence-upload-card.tsx:8:  fileName: string;
+> components\evidence\evidence-upload-card.tsx:9:  fileUrl: string;
+> components\evidence\evidence-upload-card.tsx:10:  mimeType: string;
+  components\evidence\evidence-upload-card.tsx:11:  size: number;
+  components\evidence\evidence-upload-card.tsx:12:};
+  components\evidence\evidence-upload-card.tsx:13:
+> components\evidence\evidence-upload-card.tsx:14:type EvidenceUploadCardProps = {
+> components\evidence\evidence-upload-card.tsx:15:  onUploaded?: (items: 
+EvidenceItem[]) => void;
+  components\evidence\evidence-upload-card.tsx:16:  onFilesSelected?: (files: 
+FileList) => void;
+  components\evidence\evidence-upload-card.tsx:17:};
+  components\evidence\evidence-upload-card.tsx:18:
+> components\evidence\evidence-upload-card.tsx:19:export function 
+EvidenceUploadCard({
+> components\evidence\evidence-upload-card.tsx:20:  onUploaded,
+  components\evidence\evidence-upload-card.tsx:21:  onFilesSelected,
+> components\evidence\evidence-upload-card.tsx:22:}: EvidenceUploadCardProps) {
+> components\evidence\evidence-upload-card.tsx:23:  const [isUploading, 
+setIsUploading] = useState(false);
+  components\evidence\evidence-upload-card.tsx:24:
+> components\evidence\evidence-upload-card.tsx:25:  async function 
+uploadFiles(files: FileList) {
+  components\evidence\evidence-upload-card.tsx:26:    if (onFilesSelected) {
+  components\evidence\evidence-upload-card.tsx:27:      onFilesSelected(files);
+  components\evidence\evidence-upload-card.tsx:28:      return;
+  components\evidence\evidence-upload-card.tsx:29:    }
+  components\evidence\evidence-upload-card.tsx:30:
+> components\evidence\evidence-upload-card.tsx:31:    if (!onUploaded) {
+  components\evidence\evidence-upload-card.tsx:32:      return;
+  components\evidence\evidence-upload-card.tsx:33:    }
+  components\evidence\evidence-upload-card.tsx:34:
+> components\evidence\evidence-upload-card.tsx:35:    setIsUploading(true);
+  components\evidence\evidence-upload-card.tsx:36:
+  components\evidence\evidence-upload-card.tsx:37:    try {
+  components\evidence\evidence-upload-card.tsx:38:      const formData = new 
+FormData();
+  components\evidence\evidence-upload-card.tsx:39:
+  components\evidence\evidence-upload-card.tsx:53:      }
+  components\evidence\evidence-upload-card.tsx:54:
+> components\evidence\evidence-upload-card.tsx:55:      onUploaded(data.items || []);
+  components\evidence\evidence-upload-card.tsx:56:    } finally {
+> components\evidence\evidence-upload-card.tsx:57:      setIsUploading(false);
+  components\evidence\evidence-upload-card.tsx:58:    }
+  components\evidence\evidence-upload-card.tsx:59:  }
+  components\evidence\evidence-upload-card.tsx:60:
+  components\evidence\evidence-upload-card.tsx:61:  return (
+  components\evidence\evidence-upload-card.tsx:62:    <label className="flex 
+cursor-pointer flex-col items-center justify-center rounded-3xl border-2 
+border-dashed border-sky-200 bg-sky-50 p-8 text-center transition 
+hover:border-sky-400 hover:bg-sky-100">
+> components\evidence\evidence-upload-card.tsx:63:      <UploadCloud className="h-12 
+w-12 text-sky-600" />
+  components\evidence\evidence-upload-card.tsx:64:
+  components\evidence\evidence-upload-card.tsx:65:      <h3 className="mt-4 text-2xl 
+font-black text-slate-900">رفع الشواهد</h3>
+  components\evidence\evidence-upload-card.tsx:66:
+  components\evidence\evidence-upload-card.tsx:67:      <p className="mt-3 max-w-xl 
+text-sm leading-7 text-slate-500">
+  components\evidence\evidence-upload-card.tsx:70:
+  components\evidence\evidence-upload-card.tsx:71:      <div className="mt-5 
+rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white">
+> components\evidence\evidence-upload-card.tsx:72:        {isUploading ? "جاري 
+الرفع..." : "اختيار الملفات"}
+  components\evidence\evidence-upload-card.tsx:73:      </div>
+  components\evidence\evidence-upload-card.tsx:74:
+  components\evidence\evidence-upload-card.tsx:75:      <input
+  components\evidence\evidence-upload-card.tsx:76:        type="file"
+  components\evidence\evidence-upload-card.tsx:77:        multiple
+  components\evidence\evidence-upload-card.tsx:78:        
+accept="image/*,.pdf,.doc,.docx"
+> components\evidence\evidence-upload-card.tsx:79:        disabled={isUploading}
+  components\evidence\evidence-upload-card.tsx:80:        className="hidden"
+  components\evidence\evidence-upload-card.tsx:81:        onChange={(event) => {
+  components\evidence\evidence-upload-card.tsx:82:          if (event.target.files) {
+> components\evidence\evidence-upload-card.tsx:83:            
+uploadFiles(event.target.files);
+  components\evidence\evidence-upload-card.tsx:84:          }
+  components\evidence\evidence-upload-card.tsx:85:        }}
+  components\evidence\evidence-upload-card.tsx:86:      />
+  components\evidence\evidence-upload-card.tsx:87:    </label>
+  components\report-engine\official-report-document.tsx:83:          ))}
+  components\report-engine\official-report-document.tsx:84:
+> components\report-engine\official-report-document.tsx:85:          <EvidenceSection
+> components\report-engine\official-report-document.tsx:86:            
+evidences={report.evidences}
+  components\report-engine\official-report-document.tsx:87:            
+layout={report.evidenceLayout}
+  components\report-engine\official-report-document.tsx:88:          />
+  components\report-engine\official-report-document.tsx:89:
+  components\report-engine\official-report-document.tsx:90:          <ApprovalBlock
+  components\report-engine\official-report-document.tsx:162:}
+  components\report-engine\official-report-document.tsx:163:
+> components\report-engine\official-report-document.tsx:164:function 
+EvidenceSection({
+> components\report-engine\official-report-document.tsx:165:  evidences,
+  components\report-engine\official-report-document.tsx:166:  layout,
+  components\report-engine\official-report-document.tsx:167:}: {
+> components\report-engine\official-report-document.tsx:168:  evidences: 
+ReportEvidence[];
+  components\report-engine\official-report-document.tsx:169:  layout: EvidenceLayout;
+  components\report-engine\official-report-document.tsx:170:}) {
+> components\report-engine\official-report-document.tsx:171:  if (!evidences.length) 
+return null;
+  components\report-engine\official-report-document.tsx:172:
+  components\report-engine\official-report-document.tsx:173:  const className =
+  components\report-engine\official-report-document.tsx:174:    layout === 
+"single-large"
+  components\report-engine\official-report-document.tsx:175:      ? "evidence-list 
+single-large"
+  components\report-engine\official-report-document.tsx:187:
+  components\report-engine\official-report-document.tsx:188:      <div 
+className={className}>
+> components\report-engine\official-report-document.tsx:189:        
+{evidences.map((evidence) => (
+  components\report-engine\official-report-document.tsx:190:          <EvidenceCard 
+key={evidence.id} evidence={evidence} />
+  components\report-engine\official-report-document.tsx:191:        ))}
+  components\report-engine\official-report-document.tsx:192:      </div>
+  components\report-engine\official-report-document.tsx:193:    </section>
+  components\report-engine\official-report-document.tsx:199:    <article 
+className="evidence-card">
+  components\report-engine\official-report-document.tsx:200:      <div 
+className="evidence-frame">
+> components\report-engine\official-report-document.tsx:201:        
+{evidence.imageUrl ? (
+> components\report-engine\official-report-document.tsx:202:          <img 
+src={evidence.imageUrl} alt={evidence.title || "شاهد"} />
+  components\report-engine\official-report-document.tsx:203:        ) : (
+  components\report-engine\official-report-document.tsx:204:          <div 
+className="evidence-placeholder">
+  components\report-engine\official-report-document.tsx:205:            
+{evidence.fileName || "مرفق"}
+  components\report-engine\official-report-document.tsx:206:          </div>
+  components\report-engine\report-document-renderer.tsx:74:}
+  components\report-engine\report-document-renderer.tsx:75:
+> components\report-engine\report-document-renderer.tsx:76:function 
+getEvidenceItemsPerPage(layout: EvidenceLayout) {
+  components\report-engine\report-document-renderer.tsx:77:  switch (layout) {
+  components\report-engine\report-document-renderer.tsx:78:    case "single-large":
+  components\report-engine\report-document-renderer.tsx:79:    case "one-per-page":
+  components\report-engine\report-document-renderer.tsx:80:      return 1;
+  components\report-engine\report-document-renderer.tsx:120:  const 
+normalizedEvidenceLayout = getNormalizedEvidenceLayout(evidenceLayout);
+  components\report-engine\report-document-renderer.tsx:121:  const evidencePages = 
+chunkArray(
+> components\report-engine\report-document-renderer.tsx:122:    report.evidences,
+> components\report-engine\report-document-renderer.tsx:123:    
+getEvidenceItemsPerPage(normalizedEvidenceLayout)
+  components\report-engine\report-document-renderer.tsx:124:  );
+  components\report-engine\report-document-renderer.tsx:125:
+  components\report-engine\report-document-renderer.tsx:126:  const { 
+firstPageSections, secondPageSections } =
+  components\report-engine\report-document-renderer.tsx:127:    
+splitSectionsForOfficialReport(report.sections);
+  components\report-engine\report-document-renderer.tsx:206:      ) : null}
+  components\report-engine\report-document-renderer.tsx:207:
+> components\report-engine\report-document-renderer.tsx:208:      
+{evidencePages.map((evidences, pageIndex) => (
+  components\report-engine\report-document-renderer.tsx:209:        <A4Page 
+key={`official-evidence-${pageIndex}`}>
+  components\report-engine\report-document-renderer.tsx:210:          
+<OfficialHeader identity={identity} compact />
+  components\report-engine\report-document-renderer.tsx:211:
+  components\report-engine\report-document-renderer.tsx:212:          <div 
+className="page-body">
+  components\report-engine\report-document-renderer.tsx:220:
+  components\report-engine\report-document-renderer.tsx:221:            <EvidenceGrid
+> components\report-engine\report-document-renderer.tsx:222:              
+evidences={evidences}
+  components\report-engine\report-document-renderer.tsx:223:              
+layout={normalizedEvidenceLayout}
+  components\report-engine\report-document-renderer.tsx:224:              showCaption
+  components\report-engine\report-document-renderer.tsx:225:              
+mode="official"
+  components\report-engine\report-document-renderer.tsx:226:            />
+  components\report-engine\report-document-renderer.tsx:269:  const 
+normalizedEvidenceLayout = getNormalizedEvidenceLayout(evidenceLayout);
+  components\report-engine\report-document-renderer.tsx:270:  const evidencePages = 
+chunkArray(
+> components\report-engine\report-document-renderer.tsx:271:    report.evidences,
+> components\report-engine\report-document-renderer.tsx:272:    
+getEvidenceItemsPerPage(normalizedEvidenceLayout)
+  components\report-engine\report-document-renderer.tsx:273:  );
+  components\report-engine\report-document-renderer.tsx:274:
+  components\report-engine\report-document-renderer.tsx:275:  const 
+firstEvidencePage = evidencePages[0] || [];
+  components\report-engine\report-document-renderer.tsx:276:  const 
+remainingEvidencePages = evidencePages.slice(1);
+  components\report-engine\report-document-renderer.tsx:303:
+  components\report-engine\report-document-renderer.tsx:304:        <EvidenceGrid
+> components\report-engine\report-document-renderer.tsx:305:          
+evidences={firstEvidencePage}
+  components\report-engine\report-document-renderer.tsx:306:          
+layout={normalizedEvidenceLayout}
+  components\report-engine\report-document-renderer.tsx:307:          
+showCaption={false}
+  components\report-engine\report-document-renderer.tsx:308:          mode="visual"
+  components\report-engine\report-document-renderer.tsx:309:        />
+  components\report-engine\report-document-renderer.tsx:317:      </A4Page>
+  components\report-engine\report-document-renderer.tsx:318:
+> components\report-engine\report-document-renderer.tsx:319:      
+{remainingEvidencePages.map((evidences, pageIndex) => (
+  components\report-engine\report-document-renderer.tsx:320:        <A4Page 
+key={`visual-evidence-${pageIndex}`} variant="visual">
+  components\report-engine\report-document-renderer.tsx:321:          <div 
+className="visual-topbar">
+  components\report-engine\report-document-renderer.tsx:322:            
+<span>الشواهد والمرفقات</span>
+  components\report-engine\report-document-renderer.tsx:323:            <b>//</b>
+  components\report-engine\report-document-renderer.tsx:335:
+  components\report-engine\report-document-renderer.tsx:336:          <EvidenceGrid
+> components\report-engine\report-document-renderer.tsx:337:            
+evidences={evidences}
+  components\report-engine\report-document-renderer.tsx:338:            
+layout={normalizedEvidenceLayout}
+  components\report-engine\report-document-renderer.tsx:339:            
+showCaption={false}
+  components\report-engine\report-document-renderer.tsx:340:            mode="visual"
+  components\report-engine\report-document-renderer.tsx:341:          />
+  components\report-engine\report-document-renderer.tsx:369:}) {
+  components\report-engine\report-document-renderer.tsx:370:  const 
+normalizedEvidenceLayout = getNormalizedEvidenceLayout(evidenceLayout);
+> components\report-engine\report-document-renderer.tsx:371:  const selectedEvidence 
+= report.evidences.slice(0, 2);
+  components\report-engine\report-document-renderer.tsx:372:
+  components\report-engine\report-document-renderer.tsx:373:  return (
+  components\report-engine\report-document-renderer.tsx:374:    <main dir="rtl" 
+className="report-root executive-root">
+  components\report-engine\report-document-renderer.tsx:375:      <ReportStyles />
+  components\report-engine\report-document-renderer.tsx:420:
+  components\report-engine\report-document-renderer.tsx:421:          <EvidenceGrid
+> components\report-engine\report-document-renderer.tsx:422:            
+evidences={selectedEvidence}
+  components\report-engine\report-document-renderer.tsx:423:            
+layout={normalizedEvidenceLayout}
+  components\report-engine\report-document-renderer.tsx:424:            showCaption
+  components\report-engine\report-document-renderer.tsx:425:            
+mode="official"
+  components\report-engine\report-document-renderer.tsx:426:          />
+  components\report-engine\report-document-renderer.tsx:555:
+  components\report-engine\report-document-renderer.tsx:556:function EvidenceGrid({
+> components\report-engine\report-document-renderer.tsx:557:  evidences,
+  components\report-engine\report-document-renderer.tsx:558:  layout,
+  components\report-engine\report-document-renderer.tsx:559:  showCaption,
+  components\report-engine\report-document-renderer.tsx:560:  mode,
+  components\report-engine\report-document-renderer.tsx:561:}: {
+> components\report-engine\report-document-renderer.tsx:562:  evidences: 
+ReportEvidence[];
+  components\report-engine\report-document-renderer.tsx:563:  layout: EvidenceLayout;
+  components\report-engine\report-document-renderer.tsx:564:  showCaption: boolean;
+  components\report-engine\report-document-renderer.tsx:565:  mode: "official" | 
+"visual";
+  components\report-engine\report-document-renderer.tsx:566:}) {
+> components\report-engine\report-document-renderer.tsx:567:  if (!evidences.length) 
+{
+  components\report-engine\report-document-renderer.tsx:568:    return null;
+  components\report-engine\report-document-renderer.tsx:569:  }
+  components\report-engine\report-document-renderer.tsx:570:
+  components\report-engine\report-document-renderer.tsx:571:  const normalizedLayout 
+= getNormalizedEvidenceLayout(layout);
+  components\report-engine\report-document-renderer.tsx:575:      
+className={`evidence-grid evidence-${normalizedLayout} evidence-mode-${mode}`}
+  components\report-engine\report-document-renderer.tsx:576:    >
+> components\report-engine\report-document-renderer.tsx:577:      
+{evidences.map((evidence) => (
+  components\report-engine\report-document-renderer.tsx:578:        <article 
+key={evidence.id} className="evidence-card">
+  components\report-engine\report-document-renderer.tsx:579:          <div 
+className="evidence-frame">
+> components\report-engine\report-document-renderer.tsx:580:            
+{evidence.imageUrl ? (
+> components\report-engine\report-document-renderer.tsx:581:              <img 
+src={evidence.imageUrl} alt={evidence.title || "شاهد"} />
+  components\report-engine\report-document-renderer.tsx:582:            ) : (
+  components\report-engine\report-document-renderer.tsx:583:              <div 
+className="evidence-placeholder">
+  components\report-engine\report-document-renderer.tsx:584:                
+{evidence.fileName || "مرفق"}
+  components\report-engine\report-document-renderer.tsx:585:              </div>
+  components\report-engine\report-template-admin-tools.tsx:199:  },
+  components\report-engine\report-template-admin-tools.tsx:200:  {
+> components\report-engine\report-template-admin-tools.tsx:201:    key: 
+"evidenceSuggestion",
+  components\report-engine\report-template-admin-tools.tsx:202:    label: "الشواهد 
+المقترحة",
+  components\report-engine\report-template-admin-tools.tsx:203:    description: 
+"الشواهد المناسبة لهذا النوع من التقرير.",
+  components\report-engine\report-template-admin-tools.tsx:204:    example: "صور 
+البرنامج، كشف الحضور، نموذج التقييم",
+  components\report-engine\report-template-admin-tools.tsx:205:    group: "شواهد",
+  components\report-engine\report-template-admin-tools.tsx:1319:    
+executionMechanism: "إذاعة مدرسية ولوحات إرشادية ونقاشات صفية",
+  components\report-engine\report-template-admin-tools.tsx:1320:    
+performanceIndicator: "تحسن مستوى الالتزام بالسلوك الإيجابي",
+> components\report-engine\report-template-admin-tools.tsx:1321:    
+evidenceSuggestion: "صور البرنامج، كشف الحضور، نموذج التقييم",
+  components\report-engine\report-template-admin-tools.tsx:1322:    
+evidenceCountText: "4 شواهد",
+  components\report-engine\report-template-admin-tools.tsx:1323:  };
+  components\report-engine\report-template-admin-tools.tsx:1324:}
+  components\report-engine\report-template-admin-tools.tsx:1325:
+  components\report-engine\report-template-live-preview.tsx:31:  title?: string | 
+null;
+  components\report-engine\report-template-live-preview.tsx:32:  fileName?: string | 
+null;
+> components\report-engine\report-template-live-preview.tsx:33:  fileUrl?: string | 
+null;
+> components\report-engine\report-template-live-preview.tsx:34:  imageUrl?: string | 
+null;
+> components\report-engine\report-template-live-preview.tsx:35:  mimeType?: string | 
+null;
+  components\report-engine\report-template-live-preview.tsx:36:  caption?: string | 
+null;
+  components\report-engine\report-template-live-preview.tsx:37:  description?: 
+string | null;
+  components\report-engine\report-template-live-preview.tsx:38:};
+  components\report-engine\report-template-live-preview.tsx:39:
+  components\report-engine\report-template-live-preview.tsx:225:          
+<InfoPreview
+  components\report-engine\report-template-live-preview.tsx:226:            
+label="عدد الشواهد"
+> components\report-engine\report-template-live-preview.tsx:227:            
+value={`${getRuntimeEvidences(previewCaseData).length}`}
+  components\report-engine\report-template-live-preview.tsx:228:          />
+  components\report-engine\report-template-live-preview.tsx:229:        </div>
+  components\report-engine\report-template-live-preview.tsx:230:      </BlockShell>
+  components\report-engine\report-template-live-preview.tsx:231:    );
+  components\report-engine\report-template-live-preview.tsx:386:
+  components\report-engine\report-template-live-preview.tsx:387:  if (block.kind === 
+"evidence-gallery") {
+> components\report-engine\report-template-live-preview.tsx:388:    const evidences 
+= getRuntimeEvidences(previewCaseData);
+  components\report-engine\report-template-live-preview.tsx:389:    const settings = 
+block.settings || {};
+  components\report-engine\report-template-live-preview.tsx:390:    const layout = 
+settings.evidenceLayout || "grid-2x2";
+  components\report-engine\report-template-live-preview.tsx:391:
+  components\report-engine\report-template-live-preview.tsx:392:    return (
+  components\report-engine\report-template-live-preview.tsx:393:      <BlockShell 
+block={block}>
+> components\report-engine\report-template-live-preview.tsx:394:        
+{evidences.length ? (
+  components\report-engine\report-template-live-preview.tsx:395:          
+<EvidencePreviewGrid
+> components\report-engine\report-template-live-preview.tsx:396:            
+evidences={evidences}
+  components\report-engine\report-template-live-preview.tsx:397:            
+layout={layout}
+  components\report-engine\report-template-live-preview.tsx:398:            
+showCaptions={settings.showCaptions !== false}
+  components\report-engine\report-template-live-preview.tsx:399:            
+imageFit={settings.imageFit || "cover"}
+  components\report-engine\report-template-live-preview.tsx:400:          />
+  components\report-engine\report-template-live-preview.tsx:560:
+  components\report-engine\report-template-live-preview.tsx:561:function 
+EvidencePreviewGrid({
+> components\report-engine\report-template-live-preview.tsx:562:  evidences,
+  components\report-engine\report-template-live-preview.tsx:563:  layout,
+  components\report-engine\report-template-live-preview.tsx:564:  showCaptions,
+  components\report-engine\report-template-live-preview.tsx:565:  imageFit,
+  components\report-engine\report-template-live-preview.tsx:566:}: {
+> components\report-engine\report-template-live-preview.tsx:567:  evidences: 
+RuntimeEvidenceItem[];
+  components\report-engine\report-template-live-preview.tsx:568:  layout: string;
+  components\report-engine\report-template-live-preview.tsx:569:  showCaptions: 
+boolean;
+  components\report-engine\report-template-live-preview.tsx:570:  imageFit: string;
+  components\report-engine\report-template-live-preview.tsx:571:}) {
+  components\report-engine\report-template-live-preview.tsx:581:  return (
+  components\report-engine\report-template-live-preview.tsx:582:    <div 
+className={`grid gap-3 ${gridClass}`}>
+> components\report-engine\report-template-live-preview.tsx:583:      {evidences
+  components\report-engine\report-template-live-preview.tsx:584:        .slice(0, 
+layout === "one-per-page" ? 1 : 4)
+  components\report-engine\report-template-live-preview.tsx:585:        
+.map((evidence, index) => {
+> components\report-engine\report-template-live-preview.tsx:586:          const 
+imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+  components\report-engine\report-template-live-preview.tsx:587:
+  components\report-engine\report-template-live-preview.tsx:588:          return (
+  components\report-engine\report-template-live-preview.tsx:589:            <article
+  components\report-engine\report-template-live-preview.tsx:590:              
+key={evidence.id || `${evidence.fileName}-${index}`}
+  components\report-engine\report-template-live-preview.tsx:592:            >
+  components\report-engine\report-template-live-preview.tsx:593:              <div 
+className="flex h-40 items-center justify-center bg-slate-100">
+> components\report-engine\report-template-live-preview.tsx:594:                
+{isImageEvidence(evidence) && imageUrl ? (
+  components\report-engine\report-template-live-preview.tsx:595:                  
+<img
+> components\report-engine\report-template-live-preview.tsx:596:                    
+src={imageUrl}
+  components\report-engine\report-template-live-preview.tsx:597:                    
+alt={evidence.title || evidence.fileName || "شاهد"}
+  components\report-engine\report-template-live-preview.tsx:598:                    
+className={[
+  components\report-engine\report-template-live-preview.tsx:599:                     
+ "h-full w-full",
+  components\report-engine\report-template-live-preview.tsx:600:                     
+ imageFit === "contain" ? "object-contain" : "object-cover",
+  components\report-engine\report-template-live-preview.tsx:651:
+  components\report-engine\report-template-live-preview.tsx:652:  const student = 
+getStudent(previewCaseData);
+> components\report-engine\report-template-live-preview.tsx:653:  const evidences = 
+getRuntimeEvidences(previewCaseData);
+  components\report-engine\report-template-live-preview.tsx:654:
+  components\report-engine\report-template-live-preview.tsx:655:  return {
+  components\report-engine\report-template-live-preview.tsx:656:    reportTitle: 
+template.name || "عنوان التقرير",
+  components\report-engine\report-template-live-preview.tsx:657:    createdAt: new 
+Date().toISOString(),
+  components\report-engine\report-template-live-preview.tsx:691:        
+valueMap["مؤشر الأداء"] ||
+  components\report-engine\report-template-live-preview.tsx:692:        "مؤشر أداء",
+> components\report-engine\report-template-live-preview.tsx:693:      
+evidenceSuggestion:
+  components\report-engine\report-template-live-preview.tsx:694:        
+valueMap.evidence_suggestion ||
+> components\report-engine\report-template-live-preview.tsx:695:        
+valueMap.evidenceSuggestion ||
+  components\report-engine\report-template-live-preview.tsx:696:        
+valueMap["الشواهد"] ||
+  components\report-engine\report-template-live-preview.tsx:697:        "الشواهد 
+والمرفقات",
+> components\report-engine\report-template-live-preview.tsx:698:      
+evidenceCountText: formatEvidenceCount(evidences.length),
+  components\report-engine\report-template-live-preview.tsx:699:    },
+> components\report-engine\report-template-live-preview.tsx:700:    evidences: 
+evidences.map((evidence) => ({
+  components\report-engine\report-template-live-preview.tsx:701:      id: 
+evidence.id || undefined,
+  components\report-engine\report-template-live-preview.tsx:702:      title: 
+evidence.title || evidence.caption || evidence.fileName || undefined,
+  components\report-engine\report-template-live-preview.tsx:703:      caption: 
+evidence.caption || undefined,
+  components\report-engine\report-template-live-preview.tsx:704:      description: 
+evidence.description || undefined,
+> components\report-engine\report-template-live-preview.tsx:705:      fileUrl: 
+evidence.fileUrl || evidence.imageUrl || undefined,
+> components\report-engine\report-template-live-preview.tsx:706:      url: 
+evidence.imageUrl || evidence.fileUrl || undefined,
+> components\report-engine\report-template-live-preview.tsx:707:      mimeType: 
+evidence.mimeType || undefined,
+  components\report-engine\report-template-live-preview.tsx:708:    })),
+  components\report-engine\report-template-live-preview.tsx:709:    student: {
+  components\report-engine\report-template-live-preview.tsx:710:      name: 
+student.fullName || "اسم الطالب/الطالبة",
+  components\report-engine\report-template-live-preview.tsx:711:      nationalId: 
+student.nationalId || "",
+  components\report-engine\report-template-live-preview.tsx:760:}
+  components\report-engine\report-template-live-preview.tsx:761:
+> components\report-engine\report-template-live-preview.tsx:762:function 
+getRuntimeEvidences(
+  components\report-engine\report-template-live-preview.tsx:763:  previewCaseData: 
+RuntimePreviewCaseData | null,
+  components\report-engine\report-template-live-preview.tsx:764:): 
+RuntimeEvidenceItem[] {
+  components\report-engine\report-template-live-preview.tsx:765:  const data = 
+previewCaseData as
+  components\report-engine\report-template-live-preview.tsx:766:    | {
+> components\report-engine\report-template-live-preview.tsx:767:        evidences?: 
+RuntimeEvidenceItem[];
+  components\report-engine\report-template-live-preview.tsx:768:      }
+  components\report-engine\report-template-live-preview.tsx:769:    | null;
+  components\report-engine\report-template-live-preview.tsx:770:
+> components\report-engine\report-template-live-preview.tsx:771:  return 
+Array.isArray(data?.evidences) ? data.evidences : [];
+  components\report-engine\report-template-live-preview.tsx:772:}
+  components\report-engine\report-template-live-preview.tsx:773:
+  components\report-engine\report-template-live-preview.tsx:774:function 
+getStudent(previewCaseData: RuntimePreviewCaseData | null) {
+  components\report-engine\report-template-live-preview.tsx:775:  const data = 
+previewCaseData as
+  components\report-engine\report-template-live-preview.tsx:834:
+  components\report-engine\report-template-live-preview.tsx:835:function 
+isImageEvidence(evidence: RuntimeEvidenceItem) {
+> components\report-engine\report-template-live-preview.tsx:836:  if 
+(evidence.mimeType?.startsWith("image/")) {
+  components\report-engine\report-template-live-preview.tsx:837:    return true;
+  components\report-engine\report-template-live-preview.tsx:838:  }
+  components\report-engine\report-template-live-preview.tsx:839:
+> components\report-engine\report-template-live-preview.tsx:840:  const fileName = 
+evidence.fileName || evidence.fileUrl || evidence.imageUrl || "";
+  components\report-engine\report-template-live-preview.tsx:841:
+  components\report-engine\report-template-live-preview.tsx:842:  return 
+/\.(png|jpg|jpeg|webp|gif)$/i.test(fileName);
+  components\report-engine\report-template-live-preview.tsx:843:}
+  components\report-engine\report-template-live-preview.tsx:844:
+  components\report-engine\report-template-studio.tsx:1383:              <div>
+  components\report-engine\report-template-studio.tsx:1384:                <span 
+className="font-black text-slate-900">عدد الشواهد: </span>
+> components\report-engine\report-template-studio.tsx:1385:                
+{previewCase.evidences.length}
+  components\report-engine\report-template-studio.tsx:1386:              </div>
+  components\report-engine\report-template-studio.tsx:1387:            </div>
+  components\report-engine\report-template-studio.tsx:1388:          ) : null}
+  components\report-engine\report-template-studio.tsx:1389:        </div>
+  components\reports\new-report-case-picker.tsx:31:
+  components\reports\new-report-case-picker.tsx:32:  valuesCount: number;
+> components\reports\new-report-case-picker.tsx:33:  evidencesCount: number;
+  components\reports\new-report-case-picker.tsx:34:};
+  components\reports\new-report-case-picker.tsx:35:
+  components\reports\new-report-case-picker.tsx:36:type PreparedReportData = {
+  components\reports\new-report-case-picker.tsx:37:  id: string;
+  components\reports\new-report-case-picker.tsx:65:  }>;
+  components\reports\new-report-case-picker.tsx:66:
+> components\reports\new-report-case-picker.tsx:67:  evidences: Array<{
+  components\reports\new-report-case-picker.tsx:68:    id: string;
+  components\reports\new-report-case-picker.tsx:69:    title: string;
+  components\reports\new-report-case-picker.tsx:70:    fileName: string;
+> components\reports\new-report-case-picker.tsx:71:    fileUrl: string;
+> components\reports\new-report-case-picker.tsx:72:    mimeType?: string | null;
+  components\reports\new-report-case-picker.tsx:73:    size?: number | null;
+  components\reports\new-report-case-picker.tsx:74:    note?: string | null;
+> components\reports\new-report-case-picker.tsx:75:    imageUrl?: string;
+  components\reports\new-report-case-picker.tsx:76:  }>;
+  components\reports\new-report-case-picker.tsx:77:};
+  components\reports\new-report-case-picker.tsx:78:
+  components\reports\new-report-case-picker.tsx:79:type PrepareApiResponse =
+  components\reports\new-report-case-picker.tsx:506:
+  components\reports\new-report-case-picker.tsx:507:        <span 
+className="rounded-full bg-slate-100 px-2 py-1">
+> components\reports\new-report-case-picker.tsx:508:          
+{caseEntry.evidencesCount} شاهد
+  components\reports\new-report-case-picker.tsx:509:        </span>
+  components\reports\new-report-case-picker.tsx:510:
+  components\reports\new-report-case-picker.tsx:511:        <span 
+className="rounded-full bg-slate-100 px-2 py-1">
+  components\reports\new-report-case-picker.tsx:512:          
+{formatDate(caseEntry.createdAt)}
+  components\reports\new-report-case-picker.tsx:560:        <InfoBox label="تاريخ 
+الإنشاء" value={formatDate(caseEntry.createdAt)} />
+  components\reports\new-report-case-picker.tsx:561:        <InfoBox label="عدد 
+القيم" value={`${caseEntry.valuesCount}`} />
+> components\reports\new-report-case-picker.tsx:562:        <InfoBox label="عدد 
+الشواهد" value={`${caseEntry.evidencesCount}`} />
+  components\reports\new-report-case-picker.tsx:563:      </div>
+  components\reports\new-report-case-picker.tsx:564:
+  components\reports\new-report-case-picker.tsx:565:      {caseEntry.student ? (
+  components\reports\new-report-case-picker.tsx:566:        <div className="mt-5 
+rounded-3xl border border-sky-100 bg-sky-50 p-5">
+  components\reports\new-report-case-picker.tsx:670:        <InfoBox label="الخدمة" 
+value={reportData.service.name} />
+  components\reports\new-report-case-picker.tsx:671:        <InfoBox label="عدد 
+القيم" value={`${reportData.values.length}`} />
+> components\reports\new-report-case-picker.tsx:672:        <InfoBox label="عدد 
+الشواهد" value={`${reportData.evidences.length}`} />
+  components\reports\new-report-case-picker.tsx:673:      </div>
+  components\reports\new-report-case-picker.tsx:674:
+  components\reports\new-report-case-picker.tsx:675:      <div className="mt-5 grid 
+gap-4 lg:grid-cols-2">
+  components\reports\new-report-case-picker.tsx:676:        <ReportValuesSample 
+values={reportData.values} />
+> components\reports\new-report-case-picker.tsx:677:        <ReportEvidenceSample 
+evidences={reportData.evidences} />
+  components\reports\new-report-case-picker.tsx:678:      </div>
+  components\reports\new-report-case-picker.tsx:679:    </section>
+  components\reports\new-report-case-picker.tsx:680:  );
+  components\reports\new-report-case-picker.tsx:681:}
+  components\reports\new-report-case-picker.tsx:714:}
+  components\reports\new-report-case-picker.tsx:715:
+> components\reports\new-report-case-picker.tsx:716:function ReportEvidenceSample({
+> components\reports\new-report-case-picker.tsx:717:  evidences,
+  components\reports\new-report-case-picker.tsx:718:}: {
+> components\reports\new-report-case-picker.tsx:719:  evidences: 
+PreparedReportData["evidences"];
+  components\reports\new-report-case-picker.tsx:720:}) {
+  components\reports\new-report-case-picker.tsx:721:  return (
+  components\reports\new-report-case-picker.tsx:722:    <div className="rounded-3xl 
+border border-slate-200 bg-slate-50 p-5">
+  components\reports\new-report-case-picker.tsx:723:      <h3 className="text-sm 
+font-black text-slate-900">عينة من الشواهد</h3>
+  components\reports\new-report-case-picker.tsx:724:
+  components\reports\new-report-case-picker.tsx:725:      <div className="mt-3 grid 
+gap-3 md:grid-cols-2">
+> components\reports\new-report-case-picker.tsx:726:        {evidences.slice(0, 
+4).map((evidence) => (
+  components\reports\new-report-case-picker.tsx:727:          <div
+  components\reports\new-report-case-picker.tsx:728:            key={evidence.id}
+  components\reports\new-report-case-picker.tsx:729:            
+className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+  components\reports\new-report-case-picker.tsx:730:          >
+> components\reports\new-report-case-picker.tsx:731:            {evidence.imageUrl ? 
+(
+  components\reports\new-report-case-picker.tsx:732:              <img
+> components\reports\new-report-case-picker.tsx:733:                
+src={evidence.imageUrl}
+  components\reports\new-report-case-picker.tsx:734:                
+alt={evidence.title}
+  components\reports\new-report-case-picker.tsx:735:                className="h-32 
+w-full object-cover"
+  components\reports\new-report-case-picker.tsx:736:              />
+  components\reports\new-report-case-picker.tsx:737:            ) : (
+  components\reports\new-report-case-picker.tsx:749:        ))}
+  components\reports\new-report-case-picker.tsx:750:
+> components\reports\new-report-case-picker.tsx:751:        {!evidences.length ? (
+  components\reports\new-report-case-picker.tsx:752:          <p className="text-sm 
+text-slate-500">لا توجد شواهد.</p>
+  components\reports\new-report-case-picker.tsx:753:        ) : null}
+  components\reports\new-report-case-picker.tsx:754:      </div>
+  components\reports\new-report-case-picker.tsx:755:    </div>
+  components\reports\new-report-case-picker.tsx.tsx:29:    jsonValue: unknown;
+  components\reports\new-report-case-picker.tsx.tsx:30:  }>;
+> components\reports\new-report-case-picker.tsx.tsx:31:  evidences: Array<{
+  components\reports\new-report-case-picker.tsx.tsx:32:    id: string;
+  components\reports\new-report-case-picker.tsx.tsx:33:    fileName: string | null;
+> components\reports\new-report-case-picker.tsx.tsx:34:    fileUrl: string | null;
+> components\reports\new-report-case-picker.tsx.tsx:35:    mimeType: string | null;
+  components\reports\new-report-case-picker.tsx.tsx:36:  }>;
+  components\reports\new-report-case-picker.tsx.tsx:37:};
+  components\reports\new-report-case-picker.tsx.tsx:38:
+  components\reports\new-report-case-picker.tsx.tsx:39:type Props = {
+  components\reports\new-report-case-picker.tsx.tsx:205:              <Info
+  components\reports\new-report-case-picker.tsx.tsx:206:                label="عدد 
+الشواهد"
+> components\reports\new-report-case-picker.tsx.tsx:207:                
+value={String(selectedCase.evidences.length)}
+  components\reports\new-report-case-picker.tsx.tsx:208:              />
+  components\reports\new-report-case-picker.tsx.tsx:209:            </div>
+  components\reports\new-report-case-picker.tsx.tsx:210:          )}
+  components\reports\new-report-case-picker.tsx.tsx:211:        </aside>
+  components\reports\report-evidence-gallery.tsx:3:    id: string;
+  components\reports\report-evidence-gallery.tsx:4:    fileName: string;
+> components\reports\report-evidence-gallery.tsx:5:    fileUrl: string;
+  components\reports\report-evidence-gallery.tsx:6:    caption: string | null;
+  components\reports\report-evidence-gallery.tsx:7:    visible: boolean;
+  components\reports\report-evidence-gallery.tsx:8:  }>;
+  components\reports\report-evidence-gallery.tsx:9:};
+  components\reports\report-evidence-gallery.tsx:27:          >
+  components\reports\report-evidence-gallery.tsx:28:            <img
+> components\reports\report-evidence-gallery.tsx:29:              src={item.fileUrl}
+  components\reports\report-evidence-gallery.tsx:30:              alt={item.fileName}
+  components\reports\report-evidence-gallery.tsx:31:              className="h-56 
+w-full rounded-xl object-cover"
+  components\reports\report-evidence-gallery.tsx:32:            />
+  components\reports\report-evidence-gallery.tsx:33:
+  components\reports\report-preview-a4.tsx:12:    status: string;
+  components\reports\report-preview-a4.tsx:13:    evidenceEnabled: boolean;
+> components\reports\report-preview-a4.tsx:14:    evidenceItems: Array<{
+  components\reports\report-preview-a4.tsx:15:      id: string;
+  components\reports\report-preview-a4.tsx:16:      fileName: string;
+> components\reports\report-preview-a4.tsx:17:      fileUrl: string;
+  components\reports\report-preview-a4.tsx:18:      caption: string | null;
+  components\reports\report-preview-a4.tsx:19:      visible: boolean;
+  components\reports\report-preview-a4.tsx:20:    }>;
+  components\reports\report-preview-a4.tsx:21:    caseEntry: {
+  components\reports\report-preview-a4.tsx:70:
+  components\reports\report-preview-a4.tsx:71:        {report.evidenceEnabled ? (
+> components\reports\report-preview-a4.tsx:72:          <ReportEvidenceGallery 
+items={report.evidenceItems} />
+  components\reports\report-preview-a4.tsx:73:        ) : null}
+  components\reports\report-preview-a4.tsx:74:      </article>
+  components\reports\report-preview-a4.tsx:75:    </main>
+  components\reports\report-preview-a4.tsx:76:  );
+  components\reports\report-studio-editor.tsx:54:  reportValues: ReportValue[];
+  components\reports\report-studio-editor.tsx:55:
+> components\reports\report-studio-editor.tsx:56:  evidenceItems: Array<{
+  components\reports\report-studio-editor.tsx:57:    id: string;
+  components\reports\report-studio-editor.tsx:58:    fileName: string;
+> components\reports\report-studio-editor.tsx:59:    fileUrl: string;
+  components\reports\report-studio-editor.tsx:60:    caption?: string | null;
+> components\reports\report-studio-editor.tsx:61:    mimeType?: string | null;
+  components\reports\report-studio-editor.tsx:62:    size?: number | null;
+  components\reports\report-studio-editor.tsx:63:    sortOrder: number;
+  components\reports\report-studio-editor.tsx:64:    visible: boolean;
+  components\reports\report-studio-editor.tsx:65:    createdAt: string;
+  components\reports\report-studio-editor.tsx:612:            <MiniStat label="القيم 
+المعدلة" value={`${changedWorkflowValuesCount}`} />
+  components\reports\report-studio-editor.tsx:613:            <MiniStat 
+label="الكلمات" value={`${wordCount}`} />
+> components\reports\report-studio-editor.tsx:614:            <MiniStat 
+label="الشواهد" value={`${report.evidenceItems.length}`} />
+  components\reports\report-studio-editor.tsx:615:          </div>
+  components\reports\report-studio-editor.tsx:616:
+  components\reports\report-studio-editor.tsx:617:          <div className="mt-5 
+grid gap-2">
+  components\reports\report-studio-editor.tsx:618:            <button
+  components\reports\reports-dashboard.tsx:22:  createdAt: string;
+  components\reports\reports-dashboard.tsx:23:  updatedAt: string;
+> components\reports\reports-dashboard.tsx:24:  evidenceItemsCount: number;
+  components\reports\reports-dashboard.tsx:25:
+  components\reports\reports-dashboard.tsx:26:  caseEntry: {
+  components\reports\reports-dashboard.tsx:27:    id: string;
+  components\reports\reports-dashboard.tsx:28:    title?: string | null;
+  components\reports\reports-dashboard.tsx:447:              
+value={report.generatedAt ? formatDate(report.generatedAt) : "غير محدد"}
+  components\reports\reports-dashboard.tsx:448:            />
+> components\reports\reports-dashboard.tsx:449:            <InfoBox label="عدد 
+الشواهد" value={`${report.evidenceItemsCount}`} />
+  components\reports\reports-dashboard.tsx:450:            <InfoBox
+  components\reports\reports-dashboard.tsx:451:              label="الصف/الفصل"
+  components\reports\reports-dashboard.tsx:452:              value={
+  components\reports\reports-dashboard.tsx:453:                
+report.caseEntry.student
+  components\results-analysis\results-analysis-upload-card.tsx:4:import { useRouter 
+} from "next/navigation";
+  components\results-analysis\results-analysis-upload-card.tsx:5:
+> components\results-analysis\results-analysis-upload-card.tsx:6:export function 
+ResultsAnalysisUploadCard() {
+  components\results-analysis\results-analysis-upload-card.tsx:7:  const router = 
+useRouter();
+  components\results-analysis\results-analysis-upload-card.tsx:8:
+  components\results-analysis\results-analysis-upload-card.tsx:9:  const [files, 
+setFiles] = useState<File[]>([]);
+  components\results-analysis\results-analysis-upload-card.tsx:10:  const [title, 
+setTitle] = useState("");
+  components\results-analysis\results-analysis-upload-card.tsx:15:  const [loading, 
+setLoading] = useState(false);
+  components\results-analysis\results-analysis-upload-card.tsx:16:
+> components\results-analysis\results-analysis-upload-card.tsx:17:  async function 
+uploadFile() {
+  components\results-analysis\results-analysis-upload-card.tsx:18:    if 
+(files.length === 0) {
+  components\results-analysis\results-analysis-upload-card.tsx:19:      alert("اختر 
+ملف Excel واحدًا على الأقل.");
+  components\results-analysis\results-analysis-upload-card.tsx:20:      return;
+  components\results-analysis\results-analysis-upload-card.tsx:21:    }
+  components\results-analysis\results-analysis-upload-card.tsx:99:        <button
+  components\results-analysis\results-analysis-upload-card.tsx:100:          
+type="button"
+> components\results-analysis\results-analysis-upload-card.tsx:101:          
+onClick={uploadFile}
+  components\results-analysis\results-analysis-upload-card.tsx:102:          
+disabled={loading}
+  components\results-analysis\results-analysis-upload-card.tsx:103:          
+className="rounded-2xl bg-blue-600 px-8 py-3 text-sm font-black text-white 
+transition hover:bg-blue-700 disabled:opacity-50"
+  components\results-analysis\results-analysis-upload-card.tsx:104:        >
+  components\results-analysis\results-analysis-upload-card.tsx:105:          
+{loading ? "جارٍ التحليل..." : "حفظ وبدء التحليل"}
+  components\students\student-import-card.tsx:3:import { useState } from "react";
+  components\students\student-import-card.tsx:4:import { useRouter } from 
+"next/navigation";
+> components\students\student-import-card.tsx:5:import { UploadCloud } from 
+"lucide-react";
+  components\students\student-import-card.tsx:6:
+  components\students\student-import-card.tsx:7:export function StudentImportCard() {
+  components\students\student-import-card.tsx:8:  const router = useRouter();
+> components\students\student-import-card.tsx:9:  const [isUploading, 
+setIsUploading] = useState(false);
+  components\students\student-import-card.tsx:10:  const [message, setMessage] = 
+useState<string | null>(null);
+  components\students\student-import-card.tsx:11:
+> components\students\student-import-card.tsx:12:  async function 
+handleUpload(formData: FormData) {
+> components\students\student-import-card.tsx:13:    setIsUploading(true);
+  components\students\student-import-card.tsx:14:    setMessage(null);
+  components\students\student-import-card.tsx:15:
+  components\students\student-import-card.tsx:16:    try {
+  components\students\student-import-card.tsx:17:      const response = await 
+fetch("/api/dashboard/school-data/students", {
+  components\students\student-import-card.tsx:32:      setMessage(error instanceof 
+Error ? error.message : "حدث خطأ غير معروف.");
+  components\students\student-import-card.tsx:33:    } finally {
+> components\students\student-import-card.tsx:34:      setIsUploading(false);
+  components\students\student-import-card.tsx:35:    }
+  components\students\student-import-card.tsx:36:  }
+  components\students\student-import-card.tsx:37:
+  components\students\student-import-card.tsx:38:  return (
+  components\students\student-import-card.tsx:40:      <div className="mb-6 flex 
+items-center gap-4">
+  components\students\student-import-card.tsx:41:        <div className="rounded-2xl 
+bg-sky-50 p-3 text-sky-700">
+> components\students\student-import-card.tsx:42:          <UploadCloud 
+className="h-6 w-6" />
+  components\students\student-import-card.tsx:43:        </div>
+  components\students\student-import-card.tsx:44:
+  components\students\student-import-card.tsx:45:        <div>
+  components\students\student-import-card.tsx:46:          <h2 className="text-xl 
+font-black text-slate-900">
+  components\students\student-import-card.tsx:53:      </div>
+  components\students\student-import-card.tsx:54:
+> components\students\student-import-card.tsx:55:      <form action={handleUpload} 
+className="space-y-4">
+  components\students\student-import-card.tsx:56:        <input
+  components\students\student-import-card.tsx:57:          name="file"
+  components\students\student-import-card.tsx:58:          type="file"
+  components\students\student-import-card.tsx:59:          accept=".xlsx,.xls"
+  components\students\student-import-card.tsx:64:        <button
+  components\students\student-import-card.tsx:65:          type="submit"
+> components\students\student-import-card.tsx:66:          disabled={isUploading}
+  components\students\student-import-card.tsx:67:          className="rounded-2xl 
+bg-sky-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-sky-700 
+disabled:opacity-60"
+  components\students\student-import-card.tsx:68:        >
+> components\students\student-import-card.tsx:69:          {isUploading ? "جاري 
+تحليل الملف..." : "رفع وإنشاء دفعة مراجعة"}
+  components\students\student-import-card.tsx:70:        </button>
+  components\students\student-import-card.tsx:71:      </form>
+  components\students\student-import-card.tsx:72:
+  components\students\student-import-card.tsx:73:      {message ? (
+  components\workflow\dynamic-field-renderer.tsx:184:  }
+  components\workflow\dynamic-field-renderer.tsx:185:
+> components\workflow\dynamic-field-renderer.tsx:186:  if (field.type === 
+"FILE_UPLOAD" || field.type === "IMAGE_UPLOAD") {
+  components\workflow\dynamic-field-renderer.tsx:187:    return (
+  components\workflow\dynamic-field-renderer.tsx:188:      <div className="space-y-2 
+rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 
+hover:shadow-sm">
+  components\workflow\dynamic-field-renderer.tsx:189:        <FieldLabel 
+field={field} />
+  components\workflow\dynamic-field-renderer.tsx:190:        <input
+  components\workflow\dynamic-field-renderer.tsx:191:          type="file"
+> components\workflow\dynamic-field-renderer.tsx:192:          accept={field.type 
+=== "IMAGE_UPLOAD" ? "image/*" : undefined}
+  components\workflow\dynamic-field-renderer.tsx:193:          onChange={(event) => 
+onChange(field.key, event.target.files?.[0] ?? null)}
+  components\workflow\dynamic-field-renderer.tsx:194:          className="w-full 
+rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm"
+  components\workflow\dynamic-field-renderer.tsx:195:        />
+  components\workflow\dynamic-field-renderer.tsx:196:        <HelpText 
+text={field.helpText} />
+  components\workflow\dynamic-form-renderer.tsx:4:import { useRouter } from 
+"next/navigation";
+  components\workflow\dynamic-form-renderer.tsx:5:
+> components\workflow\dynamic-form-renderer.tsx:6:import { EvidenceUploadCard } from 
+"@/components/evidence/evidence-upload-card";
+  components\workflow\dynamic-form-renderer.tsx:7:import { EvidencePreviewGrid } 
+from "@/components/evidence/evidence-preview-grid";
+  components\workflow\dynamic-form-renderer.tsx:8:import { SmartFeedbackModal } from 
+"@/components/service-ui/smart-feedback-modal";
+  components\workflow\dynamic-form-renderer.tsx:9:import { WorkflowStepCard } from 
+"@/components/workflow/workflow-step-card";
+  components\workflow\dynamic-form-renderer.tsx:10:
+  components\workflow\dynamic-form-renderer.tsx:19:  id: string;
+  components\workflow\dynamic-form-renderer.tsx:20:  fileName: string;
+> components\workflow\dynamic-form-renderer.tsx:21:  fileUrl: string;
+> components\workflow\dynamic-form-renderer.tsx:22:  mimeType: string;
+  components\workflow\dynamic-form-renderer.tsx:23:  size: number;
+  components\workflow\dynamic-form-renderer.tsx:24:};
+  components\workflow\dynamic-form-renderer.tsx:25:
+  components\workflow\dynamic-form-renderer.tsx:26:type FeedbackState = {
+  components\workflow\dynamic-form-renderer.tsx:49:  caseId?: string;
+  components\workflow\dynamic-form-renderer.tsx:50:  initialValues?: RuntimeValues;
+> components\workflow\dynamic-form-renderer.tsx:51:  initialEvidenceItems?: 
+EvidenceItem[];
+  components\workflow\dynamic-form-renderer.tsx:52:};
+  components\workflow\dynamic-form-renderer.tsx:53:
+  components\workflow\dynamic-form-renderer.tsx:54:/**
+  components\workflow\dynamic-form-renderer.tsx:55: * خدمات تسمح بالشواهد على مستوى 
+النظام.
+  components\workflow\dynamic-form-renderer.tsx:116:
+  components\workflow\dynamic-form-renderer.tsx:117:  return (
+> components\workflow\dynamic-form-renderer.tsx:118:    field.type === "FILE_UPLOAD" 
+||
+> components\workflow\dynamic-form-renderer.tsx:119:    field.type === 
+"IMAGE_UPLOAD" ||
+  components\workflow\dynamic-form-renderer.tsx:120:    text.includes("evidence") ||
+  components\workflow\dynamic-form-renderer.tsx:121:    text.includes("attachment") 
+||
+  components\workflow\dynamic-form-renderer.tsx:122:    text.includes("attachments") 
+||
+> components\workflow\dynamic-form-renderer.tsx:123:    text.includes("file_upload") 
+||
+> components\workflow\dynamic-form-renderer.tsx:124:    
+text.includes("image_upload") ||
+  components\workflow\dynamic-form-renderer.tsx:125:    text.includes("شواهد") ||
+  components\workflow\dynamic-form-renderer.tsx:126:    text.includes("الشواهد") ||
+  components\workflow\dynamic-form-renderer.tsx:127:    text.includes("مرفقات") ||
+  components\workflow\dynamic-form-renderer.tsx:128:    text.includes("المرفقات") ||
+  components\workflow\dynamic-form-renderer.tsx:133:}
+  components\workflow\dynamic-form-renderer.tsx:134:
+> components\workflow\dynamic-form-renderer.tsx:135:function isEvidenceStep(step?: 
+RuntimeStep | null) {
+  components\workflow\dynamic-form-renderer.tsx:136:  if (!step) return false;
+  components\workflow\dynamic-form-renderer.tsx:137:
+  components\workflow\dynamic-form-renderer.tsx:138:  const text = 
+stepSearchText(step);
+  components\workflow\dynamic-form-renderer.tsx:139:
+  components\workflow\dynamic-form-renderer.tsx:183:}
+  components\workflow\dynamic-form-renderer.tsx:184:
+> components\workflow\dynamic-form-renderer.tsx:185:function 
+hasEvidenceStep(workflow: RuntimeWorkflow) {
+> components\workflow\dynamic-form-renderer.tsx:186:  return 
+workflow.steps.some(isEvidenceStep);
+  components\workflow\dynamic-form-renderer.tsx:187:}
+  components\workflow\dynamic-form-renderer.tsx:188:
+  components\workflow\dynamic-form-renderer.tsx:189:function 
+hasStudentPickerStep(workflow: RuntimeWorkflow) {
+  components\workflow\dynamic-form-renderer.tsx:190:  return 
+workflow.steps.some(isStudentPickerStep);
+  components\workflow\dynamic-form-renderer.tsx:207:  caseId,
+  components\workflow\dynamic-form-renderer.tsx:208:  initialValues,
+> components\workflow\dynamic-form-renderer.tsx:209:  initialEvidenceItems,
+  components\workflow\dynamic-form-renderer.tsx:210:}: Props) {
+  components\workflow\dynamic-form-renderer.tsx:211:  const router = useRouter();
+  components\workflow\dynamic-form-renderer.tsx:212:
+  components\workflow\dynamic-form-renderer.tsx:213:  const steps = useMemo(() => {
+  components\workflow\dynamic-form-renderer.tsx:233:  );
+  components\workflow\dynamic-form-renderer.tsx:234:
+> components\workflow\dynamic-form-renderer.tsx:235:  const workflowHasEvidenceStep 
+= useMemo(
+> components\workflow\dynamic-form-renderer.tsx:236:    () => 
+hasEvidenceStep(normalizedWorkflow),
+  components\workflow\dynamic-form-renderer.tsx:237:    [normalizedWorkflow]
+  components\workflow\dynamic-form-renderer.tsx:238:  );
+  components\workflow\dynamic-form-renderer.tsx:239:
+  components\workflow\dynamic-form-renderer.tsx:240:  const 
+workflowHasStudentPickerStep = useMemo(
+  components\workflow\dynamic-form-renderer.tsx:244:
+  components\workflow\dynamic-form-renderer.tsx:245:  const supportsEvidence =
+> components\workflow\dynamic-form-renderer.tsx:246:    
+SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || workflowHasEvidenceStep;
+  components\workflow\dynamic-form-renderer.tsx:247:
+  components\workflow\dynamic-form-renderer.tsx:248:  const needsStudent =
+  components\workflow\dynamic-form-renderer.tsx:249:    requiresStudent ?? 
+SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+  components\workflow\dynamic-form-renderer.tsx:250:
+  components\workflow\dynamic-form-renderer.tsx:255:  );
+  components\workflow\dynamic-form-renderer.tsx:256:
+> components\workflow\dynamic-form-renderer.tsx:257:  const [evidenceItems, 
+setEvidenceItems] = useState<EvidenceItem[]>(
+> components\workflow\dynamic-form-renderer.tsx:258:    initialEvidenceItems ?? []
+  components\workflow\dynamic-form-renderer.tsx:259:  );
+  components\workflow\dynamic-form-renderer.tsx:260:
+  components\workflow\dynamic-form-renderer.tsx:261:  const [loading, setLoading] = 
+useState(false);
+  components\workflow\dynamic-form-renderer.tsx:262:
+  components\workflow\dynamic-form-renderer.tsx:271:  const isLastStep = 
+currentStepIndex === steps.length - 1;
+  components\workflow\dynamic-form-renderer.tsx:272:
+> components\workflow\dynamic-form-renderer.tsx:273:  const showEvidenceCard = 
+supportsEvidence && isEvidenceStep(currentStep);
+  components\workflow\dynamic-form-renderer.tsx:274:
+  components\workflow\dynamic-form-renderer.tsx:275:  const showStudentPickerCard =
+  components\workflow\dynamic-form-renderer.tsx:276:    needsStudent &&
+  components\workflow\dynamic-form-renderer.tsx:277:    
+(isStudentPickerStep(currentStep) ||
+  components\workflow\dynamic-form-renderer.tsx:480:
+  components\workflow\dynamic-form-renderer.tsx:481:          status: type === 
+"submit" ? "SUBMITTED" : "DRAFT",
+> components\workflow\dynamic-form-renderer.tsx:482:          evidenceItems: 
+supportsEvidence ? evidenceItems : [],
+  components\workflow\dynamic-form-renderer.tsx:483:        }),
+  components\workflow\dynamic-form-renderer.tsx:484:      });
+  components\workflow\dynamic-form-renderer.tsx:485:
+  components\workflow\dynamic-form-renderer.tsx:486:      const data = await 
+response.json();
+  components\workflow\dynamic-form-renderer.tsx:521:  }
+  components\workflow\dynamic-form-renderer.tsx:522:
+> components\workflow\dynamic-form-renderer.tsx:523:  function 
+handleEvidenceUploaded(items: EvidenceItem[]) {
+> components\workflow\dynamic-form-renderer.tsx:524:    setEvidenceItems((current) 
+=> [...current, ...items]);
+  components\workflow\dynamic-form-renderer.tsx:525:
+  components\workflow\dynamic-form-renderer.tsx:526:    showFeedback(
+  components\workflow\dynamic-form-renderer.tsx:527:      "success",
+  components\workflow\dynamic-form-renderer.tsx:528:      "تم رفع الشواهد",
+  components\workflow\dynamic-form-renderer.tsx:532:
+  components\workflow\dynamic-form-renderer.tsx:533:  function 
+handleDeleteEvidence(id: string) {
+> components\workflow\dynamic-form-renderer.tsx:534:    setEvidenceItems((current) 
+=> current.filter((item) => item.id !== id));
+  components\workflow\dynamic-form-renderer.tsx:535:
+  components\workflow\dynamic-form-renderer.tsx:536:    showFeedback("info", "تم حذف 
+الشاهد", "تم حذف الشاهد من قائمة الشواهد.");
+  components\workflow\dynamic-form-renderer.tsx:537:  }
+  components\workflow\dynamic-form-renderer.tsx:538:
+  components\workflow\dynamic-form-renderer.tsx:632:          </div>
+  components\workflow\dynamic-form-renderer.tsx:633:
+> components\workflow\dynamic-form-renderer.tsx:634:          <EvidenceUploadCard 
+onUploaded={handleEvidenceUploaded} />
+  components\workflow\dynamic-form-renderer.tsx:635:
+  components\workflow\dynamic-form-renderer.tsx:636:          <div className="mt-6">
+  components\workflow\dynamic-form-renderer.tsx:637:            <EvidencePreviewGrid
+> components\workflow\dynamic-form-renderer.tsx:638:              
+items={evidenceItems}
+  components\workflow\dynamic-form-renderer.tsx:639:              
+onDelete={handleDeleteEvidence}
+  components\workflow\dynamic-form-renderer.tsx:640:            />
+  components\workflow\dynamic-form-renderer.tsx:641:          </div>
+  components\workflow\dynamic-form-renderer.tsx:642:        </section>
+  app\api\admin\report-templates\preview-case\route.ts:45:}
+  app\api\admin\report-templates\preview-case\route.ts:46:
+> app\api\admin\report-templates\preview-case\route.ts:47:function 
+normalizeEvidences(caseEntry: {
+> app\api\admin\report-templates\preview-case\route.ts:48:  evidences?: Array<{
+  app\api\admin\report-templates\preview-case\route.ts:49:    id: string;
+  app\api\admin\report-templates\preview-case\route.ts:50:    fileName?: string | 
+null;
+> app\api\admin\report-templates\preview-case\route.ts:51:    fileUrl?: string | 
+null;
+  app\api\admin\report-templates\preview-case\route.ts:52:    note?: string | null;
+  app\api\admin\report-templates\preview-case\route.ts:53:  }>;
+> app\api\admin\report-templates\preview-case\route.ts:54:  caseEvidences?: Array<{
+  app\api\admin\report-templates\preview-case\route.ts:55:    id: string;
+  app\api\admin\report-templates\preview-case\route.ts:56:    fileName: string;
+> app\api\admin\report-templates\preview-case\route.ts:57:    fileUrl: string;
+  app\api\admin\report-templates\preview-case\route.ts:58:  }>;
+  app\api\admin\report-templates\preview-case\route.ts:59:}): 
+RuntimePreviewEvidence[] {
+> app\api\admin\report-templates\preview-case\route.ts:60:  const normalEvidences: 
+RuntimePreviewEvidence[] = (caseEntry.evidences || [])
+> app\api\admin\report-templates\preview-case\route.ts:61:    .filter((item) => 
+Boolean(item.fileUrl))
+  app\api\admin\report-templates\preview-case\route.ts:62:    .map((item) => ({
+  app\api\admin\report-templates\preview-case\route.ts:63:      id: item.id,
+  app\api\admin\report-templates\preview-case\route.ts:64:      title: item.fileName 
+|| item.note || "شاهد",
+> app\api\admin\report-templates\preview-case\route.ts:65:      fileUrl: 
+item.fileUrl || undefined,
+> app\api\admin\report-templates\preview-case\route.ts:66:      imageUrl: 
+item.fileUrl || undefined,
+  app\api\admin\report-templates\preview-case\route.ts:67:      caption: item.note 
+|| undefined,
+  app\api\admin\report-templates\preview-case\route.ts:68:    }));
+  app\api\admin\report-templates\preview-case\route.ts:69:
+> app\api\admin\report-templates\preview-case\route.ts:70:  const caseEvidences: 
+RuntimePreviewEvidence[] = (
+> app\api\admin\report-templates\preview-case\route.ts:71:    
+caseEntry.caseEvidences || []
+  app\api\admin\report-templates\preview-case\route.ts:72:  )
+> app\api\admin\report-templates\preview-case\route.ts:73:    .filter((item) => 
+Boolean(item.fileUrl))
+  app\api\admin\report-templates\preview-case\route.ts:74:    .map((item) => ({
+  app\api\admin\report-templates\preview-case\route.ts:75:      id: item.id,
+  app\api\admin\report-templates\preview-case\route.ts:76:      title: item.fileName 
+|| "شاهد",
+> app\api\admin\report-templates\preview-case\route.ts:77:      fileUrl: 
+item.fileUrl,
+> app\api\admin\report-templates\preview-case\route.ts:78:      imageUrl: 
+item.fileUrl,
+  app\api\admin\report-templates\preview-case\route.ts:79:    }));
+  app\api\admin\report-templates\preview-case\route.ts:80:
+> app\api\admin\report-templates\preview-case\route.ts:81:  return 
+[...normalEvidences, ...caseEvidences];
+  app\api\admin\report-templates\preview-case\route.ts:82:}
+  app\api\admin\report-templates\preview-case\route.ts:83:
+  app\api\admin\report-templates\preview-case\route.ts:84:export async function 
+GET(request: Request) {
+  app\api\admin\report-templates\preview-case\route.ts:85:  try {
+  app\api\admin\report-templates\preview-case\route.ts:115:          },
+  app\api\admin\report-templates\preview-case\route.ts:116:        },
+> app\api\admin\report-templates\preview-case\route.ts:117:        evidences: {
+  app\api\admin\report-templates\preview-case\route.ts:118:          orderBy: {
+  app\api\admin\report-templates\preview-case\route.ts:119:            createdAt: 
+"asc",
+  app\api\admin\report-templates\preview-case\route.ts:120:          },
+  app\api\admin\report-templates\preview-case\route.ts:121:        },
+> app\api\admin\report-templates\preview-case\route.ts:122:        caseEvidences: {
+  app\api\admin\report-templates\preview-case\route.ts:123:          orderBy: {
+  app\api\admin\report-templates\preview-case\route.ts:124:            createdAt: 
+"asc",
+  app\api\admin\report-templates\preview-case\route.ts:125:          },
+  app\api\admin\report-templates\preview-case\route.ts:126:        },
+  app\api\admin\report-templates\preview-case\route.ts:160:
+  app\api\admin\report-templates\preview-case\route.ts:161:      values: 
+normalizeCaseValues(caseEntry),
+> app\api\admin\report-templates\preview-case\route.ts:162:      evidences: 
+normalizeEvidences(caseEntry),
+  app\api\admin\report-templates\preview-case\route.ts:163:    };
+  app\api\admin\report-templates\preview-case\route.ts:164:
+  app\api\admin\report-templates\preview-case\route.ts:165:    return 
+NextResponse.json({
+  app\api\admin\report-templates\preview-case\route.ts:166:      ok: true,
+  app\api\dashboard\admin\workflows\upload\route.ts:1:import { NextResponse } from 
+"next/server";
+> app\api\dashboard\admin\workflows\upload\route.ts:2:import { parseWorkflowExcel } 
+from "@/lib/workflow-upload/workflow-excel-parser";
+> app\api\dashboard\admin\workflows\upload\route.ts:3:import { 
+uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
+  app\api\dashboard\admin\workflows\upload\route.ts:4:import { dashboardServices } 
+from "@/lib/constants/services";
+  app\api\dashboard\admin\workflows\upload\route.ts:5:
+  app\api\dashboard\admin\workflows\upload\route.ts:6:export async function 
+POST(request: Request) {
+  app\api\dashboard\admin\workflows\upload\route.ts:7:  try {
+  app\api\dashboard\admin\workflows\upload\route.ts:46:    }
+  app\api\dashboard\admin\workflows\upload\route.ts:47:
+> app\api\dashboard\admin\workflows\upload\route.ts:48:    const result = await 
+uploadWorkflowForService({
+  app\api\dashboard\admin\workflows\upload\route.ts:49:      serviceSlug,
+  app\api\dashboard\admin\workflows\upload\route.ts:50:      serviceName: 
+serviceConfig.title,
+  app\api\dashboard\admin\workflows\upload\route.ts:51:      rows,
+  app\api\dashboard\admin\workflows\upload\route.ts:52:    });
+  app\api\dashboard\cases\save-draft\route.ts:12:      studentId: body.studentId,
+  app\api\dashboard\cases\save-draft\route.ts:13:      values: body.values || {},
+> app\api\dashboard\cases\save-draft\route.ts:14:      evidenceItems: 
+Array.isArray(body.evidenceItems)
+> app\api\dashboard\cases\save-draft\route.ts:15:        ? body.evidenceItems
+  app\api\dashboard\cases\save-draft\route.ts:16:        : [],
+  app\api\dashboard\cases\save-draft\route.ts:17:      status: "DRAFT",
+  app\api\dashboard\cases\save-draft\route.ts:18:    });
+  app\api\dashboard\cases\save-draft\route.ts:19:
+  app\api\dashboard\cases\submit\route.ts:12:      studentId: body.studentId,
+  app\api\dashboard\cases\submit\route.ts:13:      values: body.values || {},
+> app\api\dashboard\cases\submit\route.ts:14:      evidenceItems: 
+Array.isArray(body.evidenceItems)
+> app\api\dashboard\cases\submit\route.ts:15:        ? body.evidenceItems
+  app\api\dashboard\cases\submit\route.ts:16:        : [],
+  app\api\dashboard\cases\submit\route.ts:17:      status: "SUBMITTED",
+  app\api\dashboard\cases\submit\route.ts:18:    });
+  app\api\dashboard\cases\submit\route.ts:19:
+  app\api\dashboard\cases\[caseId]\route.ts:39:      studentId: body.studentId,
+  app\api\dashboard\cases\[caseId]\route.ts:40:      values: body.values || {},
+> app\api\dashboard\cases\[caseId]\route.ts:41:      evidenceItems: 
+Array.isArray(body.evidenceItems)
+> app\api\dashboard\cases\[caseId]\route.ts:42:        ? body.evidenceItems
+  app\api\dashboard\cases\[caseId]\route.ts:43:        : [],
+  app\api\dashboard\cases\[caseId]\route.ts:44:      status: body.status,
+  app\api\dashboard\cases\[caseId]\route.ts:45:    });
+  app\api\dashboard\cases\[caseId]\route.ts:46:
+  app\api\dashboard\evidence\route.ts:9:  const files = formData.getAll("files");
+  app\api\dashboard\evidence\route.ts:10:
+> app\api\dashboard\evidence\route.ts:11:  const uploadedItems = [];
+  app\api\dashboard\evidence\route.ts:12:
+> app\api\dashboard\evidence\route.ts:13:  const uploadDir = 
+path.join(process.cwd(), "public", "uploads", "evidence");
+> app\api\dashboard\evidence\route.ts:14:  await mkdir(uploadDir, { recursive: true 
+});
+  app\api\dashboard\evidence\route.ts:15:
+  app\api\dashboard\evidence\route.ts:16:  for (const file of files) {
+  app\api\dashboard\evidence\route.ts:17:    if (!(file instanceof File)) continue;
+  app\api\dashboard\evidence\route.ts:18:
+  app\api\dashboard\evidence\route.ts:22:    const safeName = 
+file.name.replace(/[^\w.\-\u0600-\u06FF]/g, "_");
+  app\api\dashboard\evidence\route.ts:23:    const storedName = 
+`${Date.now()}-${safeName}`;
+> app\api\dashboard\evidence\route.ts:24:    const storedPath = path.join(uploadDir, 
+storedName);
+  app\api\dashboard\evidence\route.ts:25:
+  app\api\dashboard\evidence\route.ts:26:    await writeFile(storedPath, buffer);
+  app\api\dashboard\evidence\route.ts:27:
+> app\api\dashboard\evidence\route.ts:28:    uploadedItems.push({
+  app\api\dashboard\evidence\route.ts:29:      id: crypto.randomUUID(),
+  app\api\dashboard\evidence\route.ts:30:      fileName: file.name,
+> app\api\dashboard\evidence\route.ts:31:      fileUrl: 
+`/uploads/evidence/${storedName}`,
+> app\api\dashboard\evidence\route.ts:32:      mimeType: file.type || 
+"application/octet-stream",
+  app\api\dashboard\evidence\route.ts:33:      size: file.size,
+  app\api\dashboard\evidence\route.ts:34:    });
+  app\api\dashboard\evidence\route.ts:35:  }
+  app\api\dashboard\evidence\route.ts:36:
+  app\api\dashboard\evidence\route.ts:37:  return NextResponse.json({
+> app\api\dashboard\evidence\route.ts:38:    items: uploadedItems,
+  app\api\dashboard\evidence\route.ts:39:  });
+  app\api\dashboard\evidence\route.ts:40:}
+  app\api\dashboard\reports\route.ts:107:    : "لا توجد قيم محفوظة في الحالة.";
+  app\api\dashboard\reports\route.ts:108:
+> app\api\dashboard\reports\route.ts:109:  const evidencesLines = 
+reportData.evidences.length
+> app\api\dashboard\reports\route.ts:110:    ? reportData.evidences
+  app\api\dashboard\reports\route.ts:111:        .map((item, index) => {
+  app\api\dashboard\reports\route.ts:112:          return `${index + 1}. 
+${item.title || item.fileName || "شاهد"}`;
+  app\api\dashboard\reports\route.ts:113:        })
+  app\api\dashboard\reports\route.ts:114:        .join("\n")
+  app\api\dashboard\reports\route.ts:133:
+  app\api\dashboard\reports\route.ts:134:الشواهد:
+> app\api\dashboard\reports\route.ts:135:${evidencesLines}
+  app\api\dashboard\reports\route.ts:136:
+  app\api\dashboard\reports\route.ts:137:ملخص التقرير:
+  app\api\dashboard\reports\route.ts:138:تم إنشاء هذا التقرير بناءً على البيانات 
+المسجلة في منصة التوجيه الطلابي، ويعتمد على الحالة المرتبطة بالخدمة، وبيانات 
+الطالب/الطالبة، والقيم المدخلة، والشواهد المرفقة.
+  app\api\dashboard\reports\route.ts:139:`.trim();
+  app\api\dashboard\reports\route.ts:176:          },
+  app\api\dashboard\reports\route.ts:177:        },
+> app\api\dashboard\reports\route.ts:178:        evidences: {
+  app\api\dashboard\reports\route.ts:179:          orderBy: {
+  app\api\dashboard\reports\route.ts:180:            createdAt: "asc",
+  app\api\dashboard\reports\route.ts:181:          },
+  app\api\dashboard\reports\route.ts:182:        },
+> app\api\dashboard\reports\route.ts:183:        caseEvidences: {
+  app\api\dashboard\reports\route.ts:184:          orderBy: {
+  app\api\dashboard\reports\route.ts:185:            createdAt: "asc",
+  app\api\dashboard\reports\route.ts:186:          },
+  app\api\dashboard\reports\route.ts:187:        },
+  app\api\dashboard\reports\route.ts:224:        generatedAt: new Date(),
+  app\api\dashboard\reports\route.ts:225:
+> app\api\dashboard\reports\route.ts:226:        evidenceItems: {
+> app\api\dashboard\reports\route.ts:227:          create: 
+reportData.evidences.map((item, index) => ({
+  app\api\dashboard\reports\route.ts:228:            fileName: item.fileName || 
+`evidence-${index + 1}`,
+> app\api\dashboard\reports\route.ts:229:            fileUrl: item.fileUrl,
+  app\api\dashboard\reports\route.ts:230:            caption: item.note || 
+item.title || item.fileName || null,
+  app\api\dashboard\reports\route.ts:231:            sortOrder: index,
+  app\api\dashboard\reports\route.ts:232:            visible: true,
+  app\api\dashboard\reports\route.ts:233:          })),
+  app\api\dashboard\reports\route.ts:235:      },
+  app\api\dashboard\reports\route.ts:236:      include: {
+> app\api\dashboard\reports\route.ts:237:        evidenceItems: true,
+  app\api\dashboard\reports\route.ts:238:      },
+  app\api\dashboard\reports\route.ts:239:    });
+  app\api\dashboard\reports\route.ts:240:
+  app\api\dashboard\reports\route.ts:241:    return NextResponse.json({
+  app\api\dashboard\reports\prepare\route.ts:88:        },
+  app\api\dashboard\reports\prepare\route.ts:89:
+> app\api\dashboard\reports\prepare\route.ts:90:        evidences: {
+  app\api\dashboard\reports\prepare\route.ts:91:          orderBy: {
+  app\api\dashboard\reports\prepare\route.ts:92:            createdAt: "asc",
+  app\api\dashboard\reports\prepare\route.ts:93:          },
+  app\api\dashboard\reports\prepare\route.ts:94:        },
+  app\api\dashboard\reports\prepare\route.ts:95:
+> app\api\dashboard\reports\prepare\route.ts:96:        caseEvidences: {
+  app\api\dashboard\reports\prepare\route.ts:97:          orderBy: {
+  app\api\dashboard\reports\prepare\route.ts:98:            createdAt: "asc",
+  app\api\dashboard\reports\prepare\route.ts:99:          },
+  app\api\dashboard\reports\prepare\route.ts:100:        },
+  app\api\dashboard\reports\[reportId]\route.ts:34:      },
+  app\api\dashboard\reports\[reportId]\route.ts:35:      include: {
+> app\api\dashboard\reports\[reportId]\route.ts:36:        evidenceItems: {
+  app\api\dashboard\reports\[reportId]\route.ts:37:          orderBy: {
+  app\api\dashboard\reports\[reportId]\route.ts:38:            sortOrder: "asc",
+  app\api\dashboard\reports\[reportId]\route.ts:39:          },
+  app\api\dashboard\reports\[reportId]\route.ts:40:        },
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:52:      },
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:53:      include: {
+> app\api\dashboard\reports\[reportId]\duplicate\route.ts:54:        evidenceItems: {
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:55:          orderBy: {
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:56:            sortOrder: 
+"asc",
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:57:          },
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:58:        },
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:93:        archivedAt: 
+null,
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:94:
+> app\api\dashboard\reports\[reportId]\duplicate\route.ts:95:        evidenceItems: {
+> app\api\dashboard\reports\[reportId]\duplicate\route.ts:96:          create: 
+sourceReport.evidenceItems.map((item) => ({
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:97:            fileName: 
+item.fileName,
+> app\api\dashboard\reports\[reportId]\duplicate\route.ts:98:            fileUrl: 
+item.fileUrl,
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:99:            caption: 
+item.caption,
+> app\api\dashboard\reports\[reportId]\duplicate\route.ts:100:            mimeType: 
+item.mimeType,
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:101:            size: 
+item.size,
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:102:            sortOrder: 
+item.sortOrder,
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:103:            visible: 
+item.visible,
+  app\api\dashboard\reports\[reportId]\duplicate\route.ts:104:          })),
+  app\api\dashboard\results-analysis\route.ts:24:    const formData = await 
+request.formData();
+  app\api\dashboard\results-analysis\route.ts:25:
+> app\api\dashboard\results-analysis\route.ts:26:    const uploadedFiles = 
+formData.getAll("files");
+  app\api\dashboard\results-analysis\route.ts:27:    const fallbackFile = 
+formData.get("file");
+  app\api\dashboard\results-analysis\route.ts:28:
+  app\api\dashboard\results-analysis\route.ts:29:    const files =
+> app\api\dashboard\results-analysis\route.ts:30:      uploadedFiles.length > 0
+> app\api\dashboard\results-analysis\route.ts:31:        ? uploadedFiles
+  app\api\dashboard\results-analysis\route.ts:32:        : fallbackFile
+  app\api\dashboard\results-analysis\route.ts:33:          ? [fallbackFile]
+  app\api\dashboard\results-analysis\route.ts:34:          : [];
+  app\api\dashboard\results-analysis\route.ts:35:
+  app\api\dashboard\school-data\students\route.ts:43:  const session = await 
+createStudentImportSession({
+  app\api\dashboard\school-data\students\route.ts:44:    fileName: file.name,
+> app\api\dashboard\school-data\students\route.ts:45:    mimeType: file.type,
+  app\api\dashboard\school-data\students\route.ts:46:    size: file.size,
+  app\api\dashboard\school-data\students\route.ts:47:    rows,
+  app\api\dashboard\school-data\students\route.ts:48:  });
+  app\api\dashboard\school-data\students\route.ts:49:
+  app\dashboard\admin\workflows\[serviceSlug]\page.tsx:90:        <div 
+className="mt-8">
+  app\dashboard\admin\workflows\[serviceSlug]\page.tsx:91:          <Link
+> app\dashboard\admin\workflows\[serviceSlug]\page.tsx:92:            
+href={`/dashboard/admin/workflows/${serviceSlug}/upload`}
+  app\dashboard\admin\workflows\[serviceSlug]\page.tsx:93:            
+className="rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-700 
+hover:bg-sky-50"
+  app\dashboard\admin\workflows\[serviceSlug]\page.tsx:94:          >
+  app\dashboard\admin\workflows\[serviceSlug]\page.tsx:95:            رفع Workflow 
+Excel
+  app\dashboard\admin\workflows\[serviceSlug]\page.tsx:96:          </Link>
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:1:import { notFound } 
+from "next/navigation";
+> app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:2:import { 
+WorkflowUploadCard } from "@/components/admin/workflow-upload-card";
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:3:import { 
+dashboardServices } from "@/lib/constants/services";
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:4:
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:5:type PageProps = {
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:6:  params: Promise<{
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:9:};
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:10:
+> app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:11:export default 
+async function WorkflowUploadPage({ params }: PageProps) {
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:12:  const { 
+serviceSlug } = await params;
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:13:
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:14:  const service = 
+dashboardServices.find((item) => item.slug === serviceSlug);
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:15:
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:21:    <div 
+className="space-y-8">
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:22:      <section 
+className="rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 
+text-white shadow-2xl">
+> app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:23:        <p 
+className="text-sm font-bold text-sky-300">Workflow Upload</p>
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:24:        <h1 
+className="mt-3 text-4xl font-black">رفع Workflow Excel</h1>
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:25:        <p 
+className="mt-4 max-w-3xl leading-8 text-slate-300">
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:26:          الخدمة 
+المستهدفة: {service.title}
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:27:        </p>
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:28:      </section>
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:29:
+> app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:30:      
+<WorkflowUploadCard serviceSlug={service.slug} serviceName={service.title} />
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:31:
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:32:      <section 
+className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:33:        <h2 
+className="text-2xl font-black text-slate-900">صيغة Excel المطلوبة</h2>
+  app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx:34:        <p 
+className="mt-3 text-sm leading-7 text-slate-500">
+  app\dashboard\cases\[caseId]\edit\page.tsx:20:    include: {
+  app\dashboard\cases\[caseId]\edit\page.tsx:21:      values: true,
+> app\dashboard\cases\[caseId]\edit\page.tsx:22:      evidences: true,
+  app\dashboard\cases\[caseId]\edit\page.tsx:23:      service: true,
+  app\dashboard\cases\[caseId]\edit\page.tsx:24:      workflow: {
+  app\dashboard\cases\[caseId]\edit\page.tsx:25:        include: {
+  app\dashboard\cases\[caseId]\edit\page.tsx:26:          steps: {
+  app\dashboard\cases\[caseId]\edit\page.tsx:84:  });
+  app\dashboard\cases\[caseId]\edit\page.tsx:85:
+> app\dashboard\cases\[caseId]\edit\page.tsx:86:  const evidenceItems = 
+caseEntry.evidences.map((item) => ({
+  app\dashboard\cases\[caseId]\edit\page.tsx:87:    id: item.id,
+  app\dashboard\cases\[caseId]\edit\page.tsx:88:    fileName: item.fileName || "ملف",
+> app\dashboard\cases\[caseId]\edit\page.tsx:89:    fileUrl: item.fileUrl || "#",
+> app\dashboard\cases\[caseId]\edit\page.tsx:90:    mimeType: item.mimeType || 
+"application/octet-stream",
+  app\dashboard\cases\[caseId]\edit\page.tsx:91:    size: item.size || 0,
+  app\dashboard\cases\[caseId]\edit\page.tsx:92:  }));
+  app\dashboard\cases\[caseId]\edit\page.tsx:93:
+  app\dashboard\cases\[caseId]\edit\page.tsx:94:  return (
+  app\dashboard\cases\[caseId]\edit\page.tsx:99:      title={caseEntry.title ?? 
+undefined}
+  app\dashboard\cases\[caseId]\edit\page.tsx:100:      initialValues={initialValues}
+> app\dashboard\cases\[caseId]\edit\page.tsx:101:      
+initialEvidenceItems={evidenceItems}
+  app\dashboard\cases\[caseId]\edit\page.tsx:102:    />
+  app\dashboard\cases\[caseId]\edit\page.tsx:103:  );
+  app\dashboard\cases\[caseId]\edit\page.tsx:104:}
+  app\dashboard\reports\page.tsx:19:        },
+  app\dashboard\reports\page.tsx:20:      },
+> app\dashboard\reports\page.tsx:21:      evidenceItems: true,
+  app\dashboard\reports\page.tsx:22:    },
+  app\dashboard\reports\page.tsx:23:  });
+  app\dashboard\reports\page.tsx:24:
+  app\dashboard\reports\page.tsx:25:  const normalizedReports = reports.map((report) 
+=> ({
+  app\dashboard\reports\page.tsx:38:    createdAt: report.createdAt.toISOString(),
+  app\dashboard\reports\page.tsx:39:    updatedAt: report.updatedAt.toISOString(),
+> app\dashboard\reports\page.tsx:40:    evidenceItemsCount: 
+report.evidenceItems.length,
+  app\dashboard\reports\page.tsx:41:
+  app\dashboard\reports\page.tsx:42:    caseEntry: {
+  app\dashboard\reports\page.tsx:43:      id: report.caseEntry.id,
+  app\dashboard\reports\page.tsx:44:      title: report.caseEntry.title,
+  app\dashboard\reports\new\page.tsx:55:          },
+  app\dashboard\reports\new\page.tsx:56:        },
+> app\dashboard\reports\new\page.tsx:57:        evidences: {
+  app\dashboard\reports\new\page.tsx:58:          orderBy: {
+  app\dashboard\reports\new\page.tsx:59:            createdAt: "asc",
+  app\dashboard\reports\new\page.tsx:60:          },
+  app\dashboard\reports\new\page.tsx:61:        },
+  app\dashboard\reports\new\page.tsx:101:
+  app\dashboard\reports\new\page.tsx:102:    valuesCount: caseEntry.values.length,
+> app\dashboard\reports\new\page.tsx:103:    evidencesCount: 
+caseEntry.evidences.length,
+  app\dashboard\reports\new\page.tsx:104:  }));
+  app\dashboard\reports\new\page.tsx:105:
+  app\dashboard\reports\new\page.tsx:106:  const publishedTemplates = reportTemplates
+  app\dashboard\reports\new\page.tsx:107:    .map((template) => {
+  app\dashboard\reports\[reportId]\preview\page.tsx:191:          },
+  app\dashboard\reports\[reportId]\preview\page.tsx:192:
+> app\dashboard\reports\[reportId]\preview\page.tsx:193:          evidences: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:194:            orderBy: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:195:              createdAt: 
+"asc",
+  app\dashboard\reports\[reportId]\preview\page.tsx:196:            },
+  app\dashboard\reports\[reportId]\preview\page.tsx:197:          },
+  app\dashboard\reports\[reportId]\preview\page.tsx:199:      },
+  app\dashboard\reports\[reportId]\preview\page.tsx:200:
+> app\dashboard\reports\[reportId]\preview\page.tsx:201:      evidenceItems: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:202:        orderBy: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:203:          sortOrder: "asc",
+  app\dashboard\reports\[reportId]\preview\page.tsx:204:        },
+  app\dashboard\reports\[reportId]\preview\page.tsx:205:      },
+  app\dashboard\reports\[reportId]\preview\page.tsx:465:        reportValues,
+  app\dashboard\reports\[reportId]\preview\page.tsx:466:        evidenceCount:
+> app\dashboard\reports\[reportId]\preview\page.tsx:467:          
+report.evidenceItems.length || report.caseEntry.evidences.length,
+  app\dashboard\reports\[reportId]\preview\page.tsx:468:      });
+  app\dashboard\reports\[reportId]\preview\page.tsx:469:
+  app\dashboard\reports\[reportId]\preview\page.tsx:470:  const studentSection = 
+buildStudentSection(student, guardian);
+  app\dashboard\reports\[reportId]\preview\page.tsx:471:  const workflowSections = 
+buildWorkflowSections(reportValues);
+  app\dashboard\reports\[reportId]\preview\page.tsx:479:  });
+  app\dashboard\reports\[reportId]\preview\page.tsx:480:
+> app\dashboard\reports\[reportId]\preview\page.tsx:481:  const evidences = 
+buildReportEvidences(report);
+  app\dashboard\reports\[reportId]\preview\page.tsx:482:
+  app\dashboard\reports\[reportId]\preview\page.tsx:483:  return {
+  app\dashboard\reports\[reportId]\preview\page.tsx:484:    title: report.title,
+  app\dashboard\reports\[reportId]\preview\page.tsx:485:    subtitle: 
+report.caseEntry.title || report.caseEntry.service.name,
+  app\dashboard\reports\[reportId]\preview\page.tsx:521:    sections,
+  app\dashboard\reports\[reportId]\preview\page.tsx:522:
+> app\dashboard\reports\[reportId]\preview\page.tsx:523:    evidences,
+  app\dashboard\reports\[reportId]\preview\page.tsx:524:
+  app\dashboard\reports\[reportId]\preview\page.tsx:525:    approval: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:526:      counselorName:
+  app\dashboard\reports\[reportId]\preview\page.tsx:527:        
+report.caseEntry.createdBy?.name || "الموجه/الموجهة الطلابية",
+  app\dashboard\reports\[reportId]\preview\page.tsx:699:}
+  app\dashboard\reports\[reportId]\preview\page.tsx:700:
+> app\dashboard\reports\[reportId]\preview\page.tsx:701:function 
+buildReportEvidences(report: any): ReportEvidence[] {
+> app\dashboard\reports\[reportId]\preview\page.tsx:702:  const reportEvidenceItems 
+= report.evidenceItems
+  app\dashboard\reports\[reportId]\preview\page.tsx:703:    .filter((item: any) => 
+item.visible)
+  app\dashboard\reports\[reportId]\preview\page.tsx:704:    .map((item: any) => ({
+  app\dashboard\reports\[reportId]\preview\page.tsx:705:      id: item.id,
+  app\dashboard\reports\[reportId]\preview\page.tsx:706:      title: item.caption || 
+item.fileName,
+  app\dashboard\reports\[reportId]\preview\page.tsx:707:      description: 
+item.caption || "",
+  app\dashboard\reports\[reportId]\preview\page.tsx:708:      fileName: 
+item.fileName,
+> app\dashboard\reports\[reportId]\preview\page.tsx:709:      imageUrl: 
+isImageMime(item.mimeType) ? item.fileUrl : undefined,
+> app\dashboard\reports\[reportId]\preview\page.tsx:710:      fileUrl: item.fileUrl,
+  app\dashboard\reports\[reportId]\preview\page.tsx:711:    }));
+  app\dashboard\reports\[reportId]\preview\page.tsx:712:
+> app\dashboard\reports\[reportId]\preview\page.tsx:713:  if 
+(reportEvidenceItems.length) {
+> app\dashboard\reports\[reportId]\preview\page.tsx:714:    return 
+reportEvidenceItems;
+  app\dashboard\reports\[reportId]\preview\page.tsx:715:  }
+  app\dashboard\reports\[reportId]\preview\page.tsx:716:
+> app\dashboard\reports\[reportId]\preview\page.tsx:717:  return 
+report.caseEntry.evidences.map((item: any) => ({
+  app\dashboard\reports\[reportId]\preview\page.tsx:718:    id: item.id,
+  app\dashboard\reports\[reportId]\preview\page.tsx:719:    title: item.note || 
+item.fileName || "شاهد",
+  app\dashboard\reports\[reportId]\preview\page.tsx:720:    description: item.note 
+|| "",
+  app\dashboard\reports\[reportId]\preview\page.tsx:721:    fileName: item.fileName 
+|| "مرفق",
+> app\dashboard\reports\[reportId]\preview\page.tsx:722:    imageUrl: 
+isImageMime(item.mimeType) ? item.fileUrl || undefined : undefined,
+> app\dashboard\reports\[reportId]\preview\page.tsx:723:    fileUrl: item.fileUrl || 
+undefined,
+  app\dashboard\reports\[reportId]\preview\page.tsx:724:  }));
+  app\dashboard\reports\[reportId]\preview\page.tsx:725:}
+  app\dashboard\reports\[reportId]\preview\page.tsx:726:
+  app\dashboard\reports\[reportId]\preview\page.tsx:727:function buildReportValues(
+  app\dashboard\reports\[reportId]\preview\page.tsx:877:}
+  app\dashboard\reports\[reportId]\preview\page.tsx:878:
+> app\dashboard\reports\[reportId]\preview\page.tsx:879:function 
+isImageMime(mimeType?: string | null) {
+> app\dashboard\reports\[reportId]\preview\page.tsx:880:  return 
+Boolean(mimeType?.startsWith("image/"));
+  app\dashboard\reports\[reportId]\preview\page.tsx:881:}
+  app\dashboard\reports\[reportId]\preview\page.tsx:882:
+  app\dashboard\reports\[reportId]\preview\page.tsx:883:function formatDate(value: 
+Date | string | null | undefined) {
+  app\dashboard\reports\[reportId]\preview\page.tsx:884:  if (!value) return new 
+Date().toLocaleDateString("ar-SA");
+  app\dashboard\reports\[reportId]\studio\page.tsx:58:    },
+  app\dashboard\reports\[reportId]\studio\page.tsx:59:    include: {
+> app\dashboard\reports\[reportId]\studio\page.tsx:60:      evidenceItems: {
+  app\dashboard\reports\[reportId]\studio\page.tsx:61:        orderBy: {
+  app\dashboard\reports\[reportId]\studio\page.tsx:62:          sortOrder: "asc",
+  app\dashboard\reports\[reportId]\studio\page.tsx:63:        },
+  app\dashboard\reports\[reportId]\studio\page.tsx:64:      },
+  app\dashboard\reports\[reportId]\studio\page.tsx:199:    reportValues: 
+liveCaseValues,
+  app\dashboard\reports\[reportId]\studio\page.tsx:200:
+> app\dashboard\reports\[reportId]\studio\page.tsx:201:    evidenceItems: 
+report.evidenceItems.map((item) => ({
+  app\dashboard\reports\[reportId]\studio\page.tsx:202:      id: item.id,
+  app\dashboard\reports\[reportId]\studio\page.tsx:203:      fileName: item.fileName,
+> app\dashboard\reports\[reportId]\studio\page.tsx:204:      fileUrl: item.fileUrl,
+  app\dashboard\reports\[reportId]\studio\page.tsx:205:      caption: item.caption,
+> app\dashboard\reports\[reportId]\studio\page.tsx:206:      mimeType: item.mimeType,
+  app\dashboard\reports\[reportId]\studio\page.tsx:207:      size: item.size,
+  app\dashboard\reports\[reportId]\studio\page.tsx:208:      sortOrder: 
+item.sortOrder,
+  app\dashboard\reports\[reportId]\studio\page.tsx:209:      visible: item.visible,
+  app\dashboard\reports\[reportId]\studio\page.tsx:210:      createdAt: 
+item.createdAt.toISOString(),
+> app\dashboard\results-analysis\new\page.tsx:1:import { ResultsAnalysisUploadCard } 
+from "@/components/results-analysis/results-analysis-upload-card";
+  app\dashboard\results-analysis\new\page.tsx:2:
+  app\dashboard\results-analysis\new\page.tsx:3:export default function 
+NewResultsAnalysisPage() {
+  app\dashboard\results-analysis\new\page.tsx:4:  return (
+  app\dashboard\results-analysis\new\page.tsx:5:    <main className="space-y-8">
+  app\dashboard\results-analysis\new\page.tsx:16:      </section>
+  app\dashboard\results-analysis\new\page.tsx:17:
+> app\dashboard\results-analysis\new\page.tsx:18:      <ResultsAnalysisUploadCard />
+  app\dashboard\results-analysis\new\page.tsx:19:    </main>
+  app\dashboard\results-analysis\new\page.tsx:20:  );
+  app\dashboard\results-analysis\new\page.tsx:21:}
+  app\features\page.tsx:3:
+  app\features\page.tsx:4:export default function FeaturesPage() {
+> app\features\page.tsx:5:  const features = ["Workflow Runtime", "Case Engine", 
+"Noor Import", "Evidence Upload", "Reports", "SaaS Billing Ready"];
+  app\features\page.tsx:6:
+  app\features\page.tsx:7:  return (
+  app\features\page.tsx:8:    <div className="min-h-screen bg-slate-50">
+  app\features\page.tsx:9:      <MarketingNavbar />
+  lib\report-engine\report-builder-template-runtime.ts:127:  const guardian = 
+student?.guardian;
+  lib\report-engine\report-builder-template-runtime.ts:128:
+> lib\report-engine\report-builder-template-runtime.ts:129:  const 
+reportEvidenceItems = Array.isArray(report.evidenceItems)
+> lib\report-engine\report-builder-template-runtime.ts:130:    ? report.evidenceItems
+  lib\report-engine\report-builder-template-runtime.ts:131:    : [];
+  lib\report-engine\report-builder-template-runtime.ts:132:
+> lib\report-engine\report-builder-template-runtime.ts:133:  const caseEvidenceItems 
+= Array.isArray(report.caseEntry?.evidences)
+> lib\report-engine\report-builder-template-runtime.ts:134:    ? 
+report.caseEntry.evidences
+  lib\report-engine\report-builder-template-runtime.ts:135:    : [];
+  lib\report-engine\report-builder-template-runtime.ts:136:
+> lib\report-engine\report-builder-template-runtime.ts:137:  const evidences = 
+reportEvidenceItems.length
+> lib\report-engine\report-builder-template-runtime.ts:138:    ? reportEvidenceItems
+  lib\report-engine\report-builder-template-runtime.ts:139:        .filter((item: 
+any) => item.visible !== false)
+  lib\report-engine\report-builder-template-runtime.ts:140:        .map((item: any) 
+=> ({
+  lib\report-engine\report-builder-template-runtime.ts:141:          id: item.id,
+  lib\report-engine\report-builder-template-runtime.ts:142:          title: 
+item.caption || item.fileName,
+  lib\report-engine\report-builder-template-runtime.ts:143:          fileName: 
+item.fileName,
+> lib\report-engine\report-builder-template-runtime.ts:144:          fileUrl: 
+item.fileUrl || "",
+> lib\report-engine\report-builder-template-runtime.ts:145:          imageUrl: 
+item.mimeType?.startsWith("image/") ? item.fileUrl : undefined,
+  lib\report-engine\report-builder-template-runtime.ts:146:          note: 
+item.caption || "",
+  lib\report-engine\report-builder-template-runtime.ts:147:        }))
+> lib\report-engine\report-builder-template-runtime.ts:148:    : 
+caseEvidenceItems.map((item: any) => ({
+  lib\report-engine\report-builder-template-runtime.ts:149:        id: item.id,
+  lib\report-engine\report-builder-template-runtime.ts:150:        title: item.note 
+|| item.fileName || "شاهد",
+  lib\report-engine\report-builder-template-runtime.ts:151:        fileName: 
+item.fileName || "مرفق",
+> lib\report-engine\report-builder-template-runtime.ts:152:        fileUrl: 
+item.fileUrl || "",
+> lib\report-engine\report-builder-template-runtime.ts:153:        imageUrl: 
+item.mimeType?.startsWith("image/") ? item.fileUrl : undefined,
+  lib\report-engine\report-builder-template-runtime.ts:154:        note: item.note 
+|| "",
+  lib\report-engine\report-builder-template-runtime.ts:155:      }));
+  lib\report-engine\report-builder-template-runtime.ts:156:
+  lib\report-engine\report-builder-template-runtime.ts:157:  return {
+  lib\report-engine\report-builder-template-runtime.ts:190:    })),
+  lib\report-engine\report-builder-template-runtime.ts:191:
+> lib\report-engine\report-builder-template-runtime.ts:192:    evidences,
+  lib\report-engine\report-builder-template-runtime.ts:193:  };
+  lib\report-engine\report-builder-template-runtime.ts:194:}
+  lib\report-engine\report-case-data-mapper.ts:26:  title: string;
+  lib\report-engine\report-case-data-mapper.ts:27:  fileName: string;
+> lib\report-engine\report-case-data-mapper.ts:28:  fileUrl: string;
+> lib\report-engine\report-case-data-mapper.ts:29:  mimeType?: string | null;
+  lib\report-engine\report-case-data-mapper.ts:30:  size?: number | null;
+  lib\report-engine\report-case-data-mapper.ts:31:  note?: string | null;
+> lib\report-engine\report-case-data-mapper.ts:32:  imageUrl?: string;
+  lib\report-engine\report-case-data-mapper.ts:33:};
+  lib\report-engine\report-case-data-mapper.ts:34:
+  lib\report-engine\report-case-data-mapper.ts:35:export type ReportMappedCase = {
+  lib\report-engine\report-case-data-mapper.ts:36:  id: string;
+  lib\report-engine\report-case-data-mapper.ts:43:  student?: ReportMappedStudent | 
+null;
+  lib\report-engine\report-case-data-mapper.ts:44:  values: ReportMappedValue[];
+> lib\report-engine\report-case-data-mapper.ts:45:  evidences: 
+ReportMappedEvidence[];
+  lib\report-engine\report-case-data-mapper.ts:46:};
+  lib\report-engine\report-case-data-mapper.ts:47:
+  lib\report-engine\report-case-data-mapper.ts:48:type CaseEntryForReport = {
+  lib\report-engine\report-case-data-mapper.ts:49:  id: string;
+  lib\report-engine\report-case-data-mapper.ts:83:  }>;
+  lib\report-engine\report-case-data-mapper.ts:84:
+> lib\report-engine\report-case-data-mapper.ts:85:  evidences?: Array<{
+  lib\report-engine\report-case-data-mapper.ts:86:    id: string;
+  lib\report-engine\report-case-data-mapper.ts:87:    fileName?: string | null;
+> lib\report-engine\report-case-data-mapper.ts:88:    fileUrl?: string | null;
+> lib\report-engine\report-case-data-mapper.ts:89:    mimeType?: string | null;
+  lib\report-engine\report-case-data-mapper.ts:90:    size?: number | null;
+  lib\report-engine\report-case-data-mapper.ts:91:    note?: string | null;
+  lib\report-engine\report-case-data-mapper.ts:92:  }>;
+  lib\report-engine\report-case-data-mapper.ts:93:
+> lib\report-engine\report-case-data-mapper.ts:94:  caseEvidences?: Array<{
+  lib\report-engine\report-case-data-mapper.ts:95:    id: string;
+  lib\report-engine\report-case-data-mapper.ts:96:    fileName: string;
+> lib\report-engine\report-case-data-mapper.ts:97:    fileUrl: string;
+> lib\report-engine\report-case-data-mapper.ts:98:    mimeType?: string | null;
+  lib\report-engine\report-case-data-mapper.ts:99:    size?: number | null;
+  lib\report-engine\report-case-data-mapper.ts:100:  }>;
+  lib\report-engine\report-case-data-mapper.ts:101:};
+  lib\report-engine\report-case-data-mapper.ts:102:
+  lib\report-engine\report-case-data-mapper.ts:127:  }
+  lib\report-engine\report-case-data-mapper.ts:128:}
+> lib\report-engine\report-case-data-mapper.ts:129:function 
+isImageEvidence(mimeType?: string | null, fileUrl?: string | null) {
+> lib\report-engine\report-case-data-mapper.ts:130:  if 
+(mimeType?.startsWith("image/")) {
+  lib\report-engine\report-case-data-mapper.ts:131:    return true;
+  lib\report-engine\report-case-data-mapper.ts:132:  }
+  lib\report-engine\report-case-data-mapper.ts:133:
+> lib\report-engine\report-case-data-mapper.ts:134:  if (!fileUrl) {
+  lib\report-engine\report-case-data-mapper.ts:135:    return false;
+  lib\report-engine\report-case-data-mapper.ts:136:  }
+  lib\report-engine\report-case-data-mapper.ts:137:
+> lib\report-engine\report-case-data-mapper.ts:138:  return 
+/\.(png|jpg|jpeg|webp|gif)$/i.test(fileUrl);
+  lib\report-engine\report-case-data-mapper.ts:139:}
+  lib\report-engine\report-case-data-mapper.ts:140:
+  lib\report-engine\report-case-data-mapper.ts:141:function normalizeReportValues(
+  lib\report-engine\report-case-data-mapper.ts:142:  values: 
+CaseEntryForReport["values"]
+  lib\report-engine\report-case-data-mapper.ts:149:}
+  lib\report-engine\report-case-data-mapper.ts:150:
+> lib\report-engine\report-case-data-mapper.ts:151:function normalizeReportEvidences(
+  lib\report-engine\report-case-data-mapper.ts:152:  caseEntry: CaseEntryForReport
+  lib\report-engine\report-case-data-mapper.ts:153:): ReportMappedEvidence[] {
+> lib\report-engine\report-case-data-mapper.ts:154:  const normalEvidences: 
+ReportMappedEvidence[] = (caseEntry.evidences || [])
+> lib\report-engine\report-case-data-mapper.ts:155:    .filter((item) => 
+Boolean(item.fileUrl))
+  lib\report-engine\report-case-data-mapper.ts:156:    .map((item) => {
+> lib\report-engine\report-case-data-mapper.ts:157:      const fileUrl = 
+item.fileUrl || "";
+  lib\report-engine\report-case-data-mapper.ts:158:
+  lib\report-engine\report-case-data-mapper.ts:159:      return {
+  lib\report-engine\report-case-data-mapper.ts:160:        id: item.id,
+  lib\report-engine\report-case-data-mapper.ts:161:        title: item.note || 
+item.fileName || "شاهد",
+  lib\report-engine\report-case-data-mapper.ts:162:        fileName: item.fileName 
+|| "شاهد",
+> lib\report-engine\report-case-data-mapper.ts:163:        fileUrl,
+> lib\report-engine\report-case-data-mapper.ts:164:        mimeType: item.mimeType,
+  lib\report-engine\report-case-data-mapper.ts:165:        size: item.size,
+  lib\report-engine\report-case-data-mapper.ts:166:        note: item.note,
+> lib\report-engine\report-case-data-mapper.ts:167:        imageUrl: 
+isImageEvidence(item.mimeType, fileUrl) ? fileUrl : undefined,
+  lib\report-engine\report-case-data-mapper.ts:168:      };
+  lib\report-engine\report-case-data-mapper.ts:169:    });
+  lib\report-engine\report-case-data-mapper.ts:170:
+> lib\report-engine\report-case-data-mapper.ts:171:  const legacyCaseEvidences: 
+ReportMappedEvidence[] = (
+> lib\report-engine\report-case-data-mapper.ts:172:    caseEntry.caseEvidences || []
+  lib\report-engine\report-case-data-mapper.ts:173:  )
+> lib\report-engine\report-case-data-mapper.ts:174:    .filter((item) => 
+Boolean(item.fileUrl))
+  lib\report-engine\report-case-data-mapper.ts:175:    .map((item) => {
+> lib\report-engine\report-case-data-mapper.ts:176:      const fileUrl = 
+item.fileUrl || "";
+  lib\report-engine\report-case-data-mapper.ts:177:
+  lib\report-engine\report-case-data-mapper.ts:178:      return {
+  lib\report-engine\report-case-data-mapper.ts:179:        id: item.id,
+  lib\report-engine\report-case-data-mapper.ts:180:        title: item.fileName || 
+"شاهد",
+  lib\report-engine\report-case-data-mapper.ts:181:        fileName: item.fileName 
+|| "شاهد",
+> lib\report-engine\report-case-data-mapper.ts:182:        fileUrl,
+> lib\report-engine\report-case-data-mapper.ts:183:        mimeType: item.mimeType,
+  lib\report-engine\report-case-data-mapper.ts:184:        size: item.size,
+> lib\report-engine\report-case-data-mapper.ts:185:        imageUrl: 
+isImageEvidence(item.mimeType, fileUrl) ? fileUrl : undefined,
+  lib\report-engine\report-case-data-mapper.ts:186:      };
+  lib\report-engine\report-case-data-mapper.ts:187:    });
+  lib\report-engine\report-case-data-mapper.ts:188:
+> lib\report-engine\report-case-data-mapper.ts:189:  return [...normalEvidences, 
+...legacyCaseEvidences];
+  lib\report-engine\report-case-data-mapper.ts:190:}
+  lib\report-engine\report-case-data-mapper.ts:191:
+  lib\report-engine\report-case-data-mapper.ts:192:export function 
+mapCaseEntryToReportData(
+  lib\report-engine\report-case-data-mapper.ts:193:  caseEntry: CaseEntryForReport
+  lib\report-engine\report-case-data-mapper.ts:221:
+  lib\report-engine\report-case-data-mapper.ts:222:    values: 
+normalizeReportValues(caseEntry.values),
+> lib\report-engine\report-case-data-mapper.ts:223:    evidences: 
+normalizeReportEvidences(caseEntry),
+  lib\report-engine\report-case-data-mapper.ts:224:  };
+  lib\report-engine\report-case-data-mapper.ts:225:}
+  lib\report-engine\report-case-data-mapper.ts:226:
+  lib\report-engine\report-case-data-mapper.ts:227:export function findReportValue(
+  lib\report-engine\report-data-mapper.ts:21:  description?: string | null;
+  lib\report-engine\report-data-mapper.ts:22:  fileName?: string | null;
+> lib\report-engine\report-data-mapper.ts:23:  fileUrl?: string | null;
+  lib\report-engine\report-data-mapper.ts:24:  url?: string | null;
+  lib\report-engine\report-data-mapper.ts:25:};
+  lib\report-engine\report-data-mapper.ts:26:
+  lib\report-engine\report-data-mapper.ts:27:type ServiceLike = {
+  lib\report-engine\report-data-mapper.ts:50:
+  lib\report-engine\report-data-mapper.ts:51:  values?: CaseValueLike[];
+> lib\report-engine\report-data-mapper.ts:52:  evidences?: EvidenceLike[];
+  lib\report-engine\report-data-mapper.ts:53:};
+  lib\report-engine\report-data-mapper.ts:54:
+  lib\report-engine\report-data-mapper.ts:55:type BuildReportInput = {
+  lib\report-engine\report-data-mapper.ts:56:  caseEntry: CaseEntryLike;
+  lib\report-engine\report-data-mapper.ts:136:  const sections = 
+buildReportSections(caseEntry.values);
+  lib\report-engine\report-data-mapper.ts:137:
+> lib\report-engine\report-data-mapper.ts:138:  const evidences = 
+buildReportEvidences(caseEntry.evidences);
+  lib\report-engine\report-data-mapper.ts:139:
+  lib\report-engine\report-data-mapper.ts:140:  const report: OfficialReportData = {
+  lib\report-engine\report-data-mapper.ts:141:    title: `تقرير ${serviceName}`,
+  lib\report-engine\report-data-mapper.ts:142:    subtitle: title,
+  lib\report-engine\report-data-mapper.ts:157:    sections,
+  lib\report-engine\report-data-mapper.ts:158:
+> lib\report-engine\report-data-mapper.ts:159:    evidences,
+  lib\report-engine\report-data-mapper.ts:160:    evidenceLayout,
+  lib\report-engine\report-data-mapper.ts:161:
+  lib\report-engine\report-data-mapper.ts:162:    approval: {
+  lib\report-engine\report-data-mapper.ts:163:      counselorName: 
+finalIdentity.counselorName,
+  lib\report-engine\report-data-mapper.ts:252:}
+  lib\report-engine\report-data-mapper.ts:253:
+> lib\report-engine\report-data-mapper.ts:254:function 
+buildReportEvidences(evidences?: EvidenceLike[]): ReportEvidence[] {
+> lib\report-engine\report-data-mapper.ts:255:  const safeEvidences = evidences || 
+[];
+  lib\report-engine\report-data-mapper.ts:256:
+> lib\report-engine\report-data-mapper.ts:257:  if (!safeEvidences.length) {
+  lib\report-engine\report-data-mapper.ts:258:    return [
+  lib\report-engine\report-data-mapper.ts:259:      {
+  lib\report-engine\report-data-mapper.ts:260:        id: "sample-1",
+  lib\report-engine\report-data-mapper.ts:261:        title: "شاهد تجريبي",
+  lib\report-engine\report-data-mapper.ts:262:        description: "لم يتم إرفاق 
+شواهد فعلية بعد.",
+> lib\report-engine\report-data-mapper.ts:263:        imageUrl: 
+"/sample/report-evidence/activity-wide-1.jpeg",
+  lib\report-engine\report-data-mapper.ts:264:      },
+  lib\report-engine\report-data-mapper.ts:265:    ];
+  lib\report-engine\report-data-mapper.ts:266:  }
+  lib\report-engine\report-data-mapper.ts:267:
+> lib\report-engine\report-data-mapper.ts:268:  return safeEvidences.map((evidence, 
+index) => ({
+  lib\report-engine\report-data-mapper.ts:269:    id: evidence.id || 
+`evidence-${index + 1}`,
+  lib\report-engine\report-data-mapper.ts:270:    title: evidence.title || `شاهد 
+${index + 1}`,
+  lib\report-engine\report-data-mapper.ts:271:    description: evidence.description 
+|| undefined,
+  lib\report-engine\report-data-mapper.ts:272:    fileName: evidence.fileName || 
+undefined,
+> lib\report-engine\report-data-mapper.ts:273:    imageUrl: evidence.fileUrl || 
+evidence.url || undefined,
+  lib\report-engine\report-data-mapper.ts:274:  }));
+  lib\report-engine\report-data-mapper.ts:275:}
+  lib\report-engine\report-data-mapper.ts:276:
+  lib\report-engine\report-data-mapper.ts:277:function getValueByPossibleLabels(
+  lib\report-engine\report-smart-text-engine.ts:81:  ]);
+  lib\report-engine\report-smart-text-engine.ts:82:
+> lib\report-engine\report-smart-text-engine.ts:83:  const evidenceSuggestion = 
+findValueByKeys(input.reportValues, [
+  lib\report-engine\report-smart-text-engine.ts:84:    "evidence_suggestion",
+  lib\report-engine\report-smart-text-engine.ts:85:    "evidence",
+  lib\report-engine\report-smart-text-engine.ts:86:    "الشاهد",
+  lib\report-engine\report-smart-text-engine.ts:87:    "الشواهد",
+  lib\report-engine\report-smart-text-engine.ts:121:    executionMechanism: 
+executionMechanism || "آلية تنفيذ موثقة",
+  lib\report-engine\report-smart-text-engine.ts:122:    performanceIndicator,
+> lib\report-engine\report-smart-text-engine.ts:123:    evidenceSuggestion: 
+evidenceSuggestion || "الشواهد والمرفقات المرتبطة",
+  lib\report-engine\report-smart-text-engine.ts:124:    operation: operation || "حفظ 
+وتوثيق",
+  lib\report-engine\report-smart-text-engine.ts:125:
+  lib\report-engine\report-smart-text-engine.ts:126:    evidenceCountText: 
+formatEvidenceCount(input.evidenceCount),
+  lib\report-engine\report-smart-text-engine.ts:127:  };
+  lib\report-engine\report-smart-text-library.ts:86:  },
+  lib\report-engine\report-smart-text-library.ts:87:  {
+> lib\report-engine\report-smart-text-library.ts:88:    key: "evidenceSuggestion",
+  lib\report-engine\report-smart-text-library.ts:89:    label: "الشواهد",
+  lib\report-engine\report-smart-text-library.ts:90:    description: "الشواهد 
+المقترحة أو المستخدمة في التقرير.",
+  lib\report-engine\report-smart-text-library.ts:91:    example: "صور البرنامج، كشف 
+الحضور، نموذج التقييم",
+  lib\report-engine\report-smart-text-library.ts:92:  },
+  lib\report-engine\report-smart-text-library.ts:135:      title: "توثيق الشواهد",
+  lib\report-engine\report-smart-text-library.ts:136:      body:
+> lib\report-engine\report-smart-text-library.ts:137:        'تم توثيق تنفيذ 
+البرنامج من خلال الشواهد والمرفقات المرتبطة بالحالة. وتشمل الشواهد المقترحة أو 
+المستخدمة: "{evidenceSuggestion}". ويبلغ عدد الشواهد المرفقة في التقرير 
+{evidenceCountText}.',
+  lib\report-engine\report-smart-text-library.ts:138:    },
+  lib\report-engine\report-smart-text-library.ts:139:    {
+  lib\report-engine\report-smart-text-library.ts:140:      id: 
+"smart-recommendation",
+  lib\report-engine\report-smart-text-library.ts:141:      title: "توصية ختامية",
+  lib\report-engine\report-smart-text-library.ts:221:    executionMechanism: "إذاعة 
+مدرسية ولوحات إرشادية ونقاشات صفية",
+  lib\report-engine\report-smart-text-library.ts:222:    performanceIndicator: "تحسن 
+مستوى الالتزام بالسلوك الإيجابي",
+> lib\report-engine\report-smart-text-library.ts:223:    evidenceSuggestion: "صور 
+البرنامج، كشف الحضور، نموذج التقييم",
+  lib\report-engine\report-smart-text-library.ts:224:    evidenceCountText: "4 
+شواهد",
+  lib\report-engine\report-smart-text-library.ts:225:  };
+  lib\report-engine\report-smart-text-library.ts:226:}
+  lib\report-engine\report-smart-text-library.ts:227:
+  lib\report-engine\report-snapshot.ts:24:  student: ReportMappedCase["student"];
+  lib\report-engine\report-snapshot.ts:25:  values: ReportMappedCase["values"];
+> lib\report-engine\report-snapshot.ts:26:  evidences: ReportMappedCase["evidences"];
+  lib\report-engine\report-snapshot.ts:27:  submittedAt?: string | null;
+  lib\report-engine\report-snapshot.ts:28:  createdAt: string;
+  lib\report-engine\report-snapshot.ts:29:  updatedAt: string;
+  lib\report-engine\report-snapshot.ts:30:};
+  lib\report-engine\report-snapshot.ts:65:    student: reportData.student,
+  lib\report-engine\report-snapshot.ts:66:    values: reportData.values,
+> lib\report-engine\report-snapshot.ts:67:    evidences: reportData.evidences,
+  lib\report-engine\report-snapshot.ts:68:    submittedAt: reportData.submittedAt,
+  lib\report-engine\report-snapshot.ts:69:    createdAt: reportData.createdAt,
+  lib\report-engine\report-snapshot.ts:70:    updatedAt: reportData.updatedAt,
+  lib\report-engine\report-snapshot.ts:71:  };
+  lib\report-engine\report-template-runtime-types.ts:16:  id: string;
+  lib\report-engine\report-template-runtime-types.ts:17:  title: string;
+> lib\report-engine\report-template-runtime-types.ts:18:  imageUrl?: string;
+> lib\report-engine\report-template-runtime-types.ts:19:  fileUrl?: string;
+  lib\report-engine\report-template-runtime-types.ts:20:  caption?: string;
+  lib\report-engine\report-template-runtime-types.ts:21:};
+  lib\report-engine\report-template-runtime-types.ts:22:
+  lib\report-engine\report-template-runtime-types.ts:23:export type 
+RuntimePreviewCaseData = {
+  lib\report-engine\report-template-runtime-types.ts:43:
+  lib\report-engine\report-template-runtime-types.ts:44:  values: 
+RuntimePreviewCaseValue[];
+> lib\report-engine\report-template-runtime-types.ts:45:  evidences: 
+RuntimePreviewEvidence[];
+  lib\report-engine\report-template-runtime-types.ts:46:};
+  lib\report-engine\report-template-runtime-types.ts:47:
+  lib\report-engine\report-template-runtime-types.ts:48:export type 
+RuntimePreviewResponse = {
+  lib\report-engine\report-template-runtime-types.ts:49:  ok: boolean;
+  lib\report-engine\report-templates.ts:29:      "subtitle",
+  lib\report-engine\report-templates.ts:30:      "targetGroup",
+> lib\report-engine\report-templates.ts:31:      "evidences",
+  lib\report-engine\report-templates.ts:32:      "approval",
+  lib\report-engine\report-templates.ts:33:    ],
+  lib\report-engine\report-templates.ts:34:    defaultEvidenceLayout: "grid-2x2",
+  lib\report-engine\report-templates.ts:35:    supportsCoverPage: true,
+  lib\report-engine\report-templates.ts:52:      "cover.programTitle",
+  lib\report-engine\report-templates.ts:53:      "cover.shortDescription",
+> lib\report-engine\report-templates.ts:54:      "evidences",
+  lib\report-engine\report-templates.ts:55:    ],
+  lib\report-engine\report-templates.ts:56:    optionalFields: [
+  lib\report-engine\report-templates.ts:57:      "serviceName",
+  lib\report-engine\report-templates.ts:58:      "targetGroup",
+  lib\report-engine\report-templates.ts:82:      "subtitle",
+  lib\report-engine\report-templates.ts:83:      "targetGroup",
+> lib\report-engine\report-templates.ts:84:      "evidences",
+  lib\report-engine\report-templates.ts:85:      "approval",
+  lib\report-engine\report-templates.ts:86:    ],
+  lib\report-engine\report-templates.ts:87:    defaultEvidenceLayout: "two-columns",
+  lib\report-engine\report-templates.ts:88:    supportsCoverPage: true,
+  lib\report-engine\report-templates.ts:122:    case "sections":
+  lib\report-engine\report-templates.ts:123:      return report.sections?.length ? 
+report.sections : null;
+> lib\report-engine\report-templates.ts:124:    case "evidences":
+> lib\report-engine\report-templates.ts:125:      return report.evidences?.length ? 
+report.evidences : null;
+  lib\report-engine\report-templates.ts:126:    case "approval":
+  lib\report-engine\report-templates.ts:127:      return report.approval;
+  lib\report-engine\report-templates.ts:128:    default:
+  lib\report-engine\report-templates.ts:129:      return null;
+  lib\report-engine\report-text-library-runtime.ts:10:  caption?: string;
+  lib\report-engine\report-text-library-runtime.ts:11:  description?: string;
+> lib\report-engine\report-text-library-runtime.ts:12:  fileUrl?: string;
+  lib\report-engine\report-text-library-runtime.ts:13:  url?: string;
+  lib\report-engine\report-text-library-runtime.ts:14:  type?: string;
+> lib\report-engine\report-text-library-runtime.ts:15:  mimeType?: string;
+  lib\report-engine\report-text-library-runtime.ts:16:  width?: number;
+  lib\report-engine\report-text-library-runtime.ts:17:  height?: number;
+  lib\report-engine\report-text-library-runtime.ts:18:  createdAt?: string | Date;
+  lib\report-engine\report-text-library-runtime.ts:19:  [key: string]: unknown;
+  lib\report-engine\report-text-library-runtime.ts:39:  createdAt?: string | Date;
+  lib\report-engine\report-text-library-runtime.ts:40:  values?: Record<string, 
+unknown>;
+> lib\report-engine\report-text-library-runtime.ts:41:  evidences?: 
+ReportEvidenceItem[];
+  lib\report-engine\report-text-library-runtime.ts:42:
+  lib\report-engine\report-text-library-runtime.ts:43:  student?: RuntimeStudentData 
+| null;
+  lib\report-engine\report-text-library-runtime.ts:44:  service?: RuntimeServiceData 
+| null;
+  lib\report-engine\report-text-library-runtime.ts:45:
+  lib\report-engine\report-text-library-runtime.ts:375:}
+  lib\report-engine\report-text-library-runtime.ts:376:
+> lib\report-engine\report-text-library-runtime.ts:377:export function 
+getRuntimeEvidences(
+  lib\report-engine\report-text-library-runtime.ts:378:  data: RuntimeReportData,
+  lib\report-engine\report-text-library-runtime.ts:379:): ReportEvidenceItem[] {
+> lib\report-engine\report-text-library-runtime.ts:380:  if 
+(!Array.isArray(data.evidences)) {
+  lib\report-engine\report-text-library-runtime.ts:381:    return [];
+  lib\report-engine\report-text-library-runtime.ts:382:  }
+  lib\report-engine\report-text-library-runtime.ts:383:
+> lib\report-engine\report-text-library-runtime.ts:384:  return data.evidences;
+  lib\report-engine\report-text-library-runtime.ts:385:}
+  lib\report-engine\report-text-library-runtime.ts:386:
+  lib\report-engine\report-text-library-runtime.ts:387:export function 
+getStudent(data: RuntimeReportData): RuntimeStudentData | null {
+  lib\report-engine\report-text-library-runtime.ts:388:  return data.student ?? 
+data.caseEntry?.student ?? null;
+  lib\report-engine\report-text-studio-presets.ts:126:  },
+  lib\report-engine\report-text-studio-presets.ts:127:  {
+> lib\report-engine\report-text-studio-presets.ts:128:    key: "evidenceSuggestion",
+  lib\report-engine\report-text-studio-presets.ts:129:    label: "الشواهد المقترحة",
+  lib\report-engine\report-text-studio-presets.ts:130:    description: "الشواهد 
+المناسبة لهذا النوع من التقرير.",
+  lib\report-engine\report-text-studio-presets.ts:131:    example: "صور البرنامج، 
+كشف الحضور، نموذج التقييم",
+  lib\report-engine\report-text-studio-presets.ts:132:    group: "evidence",
+  lib\report-engine\report-text-studio-presets.ts:159:  executionMechanism: "إذاعة 
+مدرسية ولوحات إرشادية ونقاشات صفية",
+  lib\report-engine\report-text-studio-presets.ts:160:  performanceIndicator: "تحسن 
+مستوى الالتزام بالسلوك الإيجابي",
+> lib\report-engine\report-text-studio-presets.ts:161:  evidenceSuggestion: "صور 
+البرنامج، كشف الحضور، نموذج التقييم",
+  lib\report-engine\report-text-studio-presets.ts:162:  evidenceCountText: "4 شواهد",
+  lib\report-engine\report-text-studio-presets.ts:163:};
+  lib\report-engine\report-text-studio-presets.ts:164:
+  lib\report-engine\report-text-studio-presets.ts:165:export const 
+REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
+  lib\report-engine\report-text-studio-presets.ts:225:        order: 5,
+  lib\report-engine\report-text-studio-presets.ts:226:        body:
+> lib\report-engine\report-text-studio-presets.ts:227:          'تم توثيق تنفيذ 
+البرنامج من خلال الشواهد والمرفقات المرتبطة بالحالة. وتشمل الشواهد المقترحة أو 
+المستخدمة: "{evidenceSuggestion}". ويبلغ عدد الشواهد المرفقة في التقرير 
+{evidenceCountText}.',
+  lib\report-engine\report-text-studio-presets.ts:228:      },
+  lib\report-engine\report-text-studio-presets.ts:229:      {
+  lib\report-engine\report-text-studio-presets.ts:230:        id: "recommendations",
+  lib\report-engine\report-text-studio-presets.ts:231:        title: "توصية ختامية",
+  lib\report-engine\report-types.ts:32:  title?: string;
+  lib\report-engine\report-types.ts:33:  description?: string;
+> lib\report-engine\report-types.ts:34:  imageUrl?: string;
+  lib\report-engine\report-types.ts:35:  fileName?: string;
+  lib\report-engine\report-types.ts:36:};
+  lib\report-engine\report-types.ts:37:
+  lib\report-engine\report-types.ts:38:export type ReportSection = {
+  lib\report-engine\report-types.ts:65:  sections: ReportSection[];
+  lib\report-engine\report-types.ts:66:
+> lib\report-engine\report-types.ts:67:  evidences: ReportEvidence[];
+  lib\report-engine\report-types.ts:68:  evidenceLayout: EvidenceLayout;
+  lib\report-engine\report-types.ts:69:
+  lib\report-engine\report-types.ts:70:  approval: {
+  lib\report-engine\report-types.ts:71:    counselorName: string;
+  lib\report-engine\report-types.ts:86:  | "cover.shortDescription"
+  lib\report-engine\report-types.ts:87:  | "sections"
+> lib\report-engine\report-types.ts:88:  | "evidences"
+  lib\report-engine\report-types.ts:89:  | "approval";
+  lib\report-engine\report-types.ts:90:
+  lib\report-engine\report-types.ts:91:export type ReportTemplateDefinition = {
+  lib\report-engine\report-types.ts:92:  id: ReportTemplateId;
+  lib\report-engine\sample-report-data.ts:77:  ],
+  lib\report-engine\sample-report-data.ts:78:
+> lib\report-engine\sample-report-data.ts:79:  evidences: [
+  lib\report-engine\sample-report-data.ts:80:    {
+  lib\report-engine\sample-report-data.ts:81:      id: "activity-wide-1",
+  lib\report-engine\sample-report-data.ts:82:      title: "شاهد عرضي 1",
+  lib\report-engine\sample-report-data.ts:83:      description: "صورة عرضية مناسبة 
+للأنشطة والبرامج.",
+> lib\report-engine\sample-report-data.ts:84:      imageUrl: 
+"/sample/report-evidence/activity-wide-1.jpeg",
+  lib\report-engine\sample-report-data.ts:85:    },
+  lib\report-engine\sample-report-data.ts:86:    {
+  lib\report-engine\sample-report-data.ts:87:      id: "activity-wide-2",
+  lib\report-engine\sample-report-data.ts:88:      title: "شاهد عرضي 2",
+  lib\report-engine\sample-report-data.ts:89:      description: "صورة عرضية لاختبار 
+شبكة الشواهد.",
+> lib\report-engine\sample-report-data.ts:90:      imageUrl: 
+"/sample/report-evidence/activity-wide-2.jpeg",
+  lib\report-engine\sample-report-data.ts:91:    },
+  lib\report-engine\sample-report-data.ts:92:    {
+  lib\report-engine\sample-report-data.ts:93:      id: "activity-wide-3",
+  lib\report-engine\sample-report-data.ts:94:      title: "شاهد عرضي 3",
+  lib\report-engine\sample-report-data.ts:95:      description: "صورة عرضية إضافية.",
+> lib\report-engine\sample-report-data.ts:96:      imageUrl: 
+"/sample/report-evidence/activity-wide-3.jpeg",
+  lib\report-engine\sample-report-data.ts:97:    },
+  lib\report-engine\sample-report-data.ts:98:    {
+  lib\report-engine\sample-report-data.ts:99:      id: "activity-wide-4",
+  lib\report-engine\sample-report-data.ts:100:      title: "شاهد عرضي 4",
+  lib\report-engine\sample-report-data.ts:101:      description: "صورة عرضية إضافية 
+لاختبار 2×2.",
+> lib\report-engine\sample-report-data.ts:102:      imageUrl: 
+"/sample/report-evidence/activity-wide-4.jpeg",
+  lib\report-engine\sample-report-data.ts:103:    },
+  lib\report-engine\sample-report-data.ts:104:    {
+  lib\report-engine\sample-report-data.ts:105:      id: "poster-vertical-1",
+  lib\report-engine\sample-report-data.ts:106:      title: "شاهد طولي 1",
+  lib\report-engine\sample-report-data.ts:107:      description: "صورة طولية لاختبار 
+النشرات والبوسترات.",
+> lib\report-engine\sample-report-data.ts:108:      imageUrl: 
+"/sample/report-evidence/poster-vertical-1.jpeg",
+  lib\report-engine\sample-report-data.ts:109:    },
+  lib\report-engine\sample-report-data.ts:110:    {
+  lib\report-engine\sample-report-data.ts:111:      id: "poster-vertical-2",
+  lib\report-engine\sample-report-data.ts:112:      title: "شاهد طولي 2",
+  lib\report-engine\sample-report-data.ts:113:      description: "صورة طولية لاختبار 
+التخطيط الرأسي.",
+> lib\report-engine\sample-report-data.ts:114:      imageUrl: 
+"/sample/report-evidence/poster-vertical-2.jpeg",
+  lib\report-engine\sample-report-data.ts:115:    },
+  lib\report-engine\sample-report-data.ts:116:    {
+  lib\report-engine\sample-report-data.ts:117:      id: "square-evidence-1",
+  lib\report-engine\sample-report-data.ts:118:      title: "شاهد مربع",
+  lib\report-engine\sample-report-data.ts:119:      description: "تصميم مربع لاختبار 
+المنشورات.",
+> lib\report-engine\sample-report-data.ts:120:      imageUrl: 
+"/sample/report-evidence/square-evidence-1.png",
+  lib\report-engine\sample-report-data.ts:121:    },
+  lib\report-engine\sample-report-data.ts:122:    {
+  lib\report-engine\sample-report-data.ts:123:      id: "document-a4-1",
+  lib\report-engine\sample-report-data.ts:124:      title: "شاهد وثيقة A4",
+  lib\report-engine\sample-report-data.ts:125:      description: "صورة طولية تشبه 
+الوثائق أو الخطابات.",
+> lib\report-engine\sample-report-data.ts:126:      imageUrl: 
+"/sample/report-evidence/document-a4-1.jpg",
+  lib\report-engine\sample-report-data.ts:127:    },
+  lib\report-engine\sample-report-data.ts:128:  ],
+  lib\report-engine\sample-report-data.ts:129:
+  lib\report-engine\sample-report-data.ts:130:  evidenceLayout: "grid-2x2",
+  lib\security\audit.ts:8:  | "UPDATE_CASE"
+  lib\security\audit.ts:9:  | "CLOSE_CASE"
+> lib\security\audit.ts:10:  | "UPLOAD_EVIDENCE"
+  lib\security\audit.ts:11:  | "EXPORT_REPORT"
+> lib\security\audit.ts:12:  | "UPLOAD_WORKFLOW";
+  lib\security\audit.ts:13:
+  lib\security\audit.ts:14:type AuditInput = {
+  lib\security\audit.ts:15:  userId?: string | null;
+  lib\security\audit.ts:16:  action: AuditAction;
+  lib\security\permissions.ts:12:  "cases:close",
+  lib\security\permissions.ts:13:  "evidence:read",
+> lib\security\permissions.ts:14:  "evidence:upload",
+  lib\security\permissions.ts:15:  "reports:read",
+  lib\security\permissions.ts:16:  "reports:export",
+  lib\security\permissions.ts:17:  "admin:manage",
+  lib\security\permissions.ts:18:] as const;
+  lib\security\permissions.ts:33:    "cases:close",
+  lib\security\permissions.ts:34:    "evidence:read",
+> lib\security\permissions.ts:35:    "evidence:upload",
+  lib\security\permissions.ts:36:    "reports:read",
+  lib\security\permissions.ts:37:    "reports:export",
+  lib\security\permissions.ts:38:  ],
+  lib\security\permissions.ts:39:  COUNSELOR: [
+  lib\security\permissions.ts:44:    "cases:update",
+  lib\security\permissions.ts:45:    "evidence:read",
+> lib\security\permissions.ts:46:    "evidence:upload",
+  lib\security\permissions.ts:47:    "reports:read",
+  lib\security\permissions.ts:48:    "reports:export",
+  lib\security\permissions.ts:49:  ],
+  lib\security\permissions.ts:50:  VIEWER: ["dashboard:read", "students:read", 
+"cases:read", "evidence:read", "reports:read"],
+  lib\security\validation.ts:8:  | "UPDATE_CASE"
+  lib\security\validation.ts:9:  | "CLOSE_CASE"
+> lib\security\validation.ts:10:  | "UPLOAD_EVIDENCE"
+  lib\security\validation.ts:11:  | "EXPORT_REPORT"
+> lib\security\validation.ts:12:  | "UPLOAD_WORKFLOW";
+  lib\security\validation.ts:13:
+  lib\security\validation.ts:14:type AuditInput = {
+  lib\security\validation.ts:15:  userId?: string | null;
+  lib\security\validation.ts:16:  action: AuditAction;
+  lib\workflow-builder\workflow-builder-types.ts:8:  "CHECKBOX",
+  lib\workflow-builder\workflow-builder-types.ts:9:  "RADIO",
+> lib\workflow-builder\workflow-builder-types.ts:10:  "FILE_UPLOAD",
+> lib\workflow-builder\workflow-builder-types.ts:11:  "IMAGE_UPLOAD",
+  lib\workflow-builder\workflow-builder-types.ts:12:  "RICH_TEXT",
+  lib\workflow-builder\workflow-builder-types.ts:13:] as const;
+  lib\workflow-builder\workflow-builder-types.ts:14:
+  lib\workflow-builder\workflow-builder-types.ts:15:export type WorkflowFieldType = 
+(typeof FIELD_TYPES)[number];
+
+
+
+
+===== 6) Route groups / dashboard layouts =====
+
+FullName                                                                             
+--------                                                                             
+D:\student-guidance-platform-clean\app\layout.tsx                                    
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts 
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]...
+D:\student-guidance-platform-clean\app\api\dashboard\cases\autosave\route.ts         
+D:\student-guidance-platform-clean\app\api\dashboard\cases\save-draft\route.ts       
+D:\student-guidance-platform-clean\app\api\dashboard\cases\submit\route.ts           
+D:\student-guidance-platform-clean\app\api\dashboard\cases\[caseId]\route.ts         
+D:\student-guidance-platform-clean\app\api\dashboard\evidence\route.ts               
+D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts       
+D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]...
+D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]...
+D:\student-guidance-platform-clean\app\api\dashboard\reports\route.ts                
+D:\student-guidance-platform-clean\app\api\dashboard\reports\prepare\route.ts        
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\route.ts     
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\approve\ro...
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\delete\rou...
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\duplicate\...
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\export\pdf...
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts       
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\[analysisId]...
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\[analysisId]...
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\student-import-se...
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\student-import-se...
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\student-import-se...
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\students\route.ts   
+D:\student-guidance-platform-clean\app\api\dashboard\students\search\route.ts        
+D:\student-guidance-platform-clean\app\api\dashboard\workflow-builder\create-field...
+D:\student-guidance-platform-clean\app\api\dashboard\workflow-builder\create-step\...
+D:\student-guidance-platform-clean\app\dashboard\layout.tsx                          
+D:\student-guidance-platform-clean\app\dashboard\page.tsx                            
+D:\student-guidance-platform-clean\app\dashboard\admin\page.tsx                      
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\page.tsx     
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\new\page.tsx 
+D:\student-guidance-platform-clean\app\dashboard\admin\report-texts\page.tsx         
+D:\student-guidance-platform-clean\app\dashboard\admin\workflow-builder\page.tsx     
+D:\student-guidance-platform-clean\app\dashboard\admin\workflow-builder\[workflowI...
+D:\student-guidance-platform-clean\app\dashboard\admin\workflows\page.tsx            
+D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\pag...
+D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\pre...
+D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\upl...
+D:\student-guidance-platform-clean\app\dashboard\cases\page.tsx                      
+D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\page.tsx             
+D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx        
+D:\student-guidance-platform-clean\app\dashboard\committees-meetings\page.tsx        
+D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx    
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\p...
+D:\student-guidance-platform-clean\app\dashboard\guidance-programs\page.tsx          
+D:\student-guidance-platform-clean\app\dashboard\guidance-programs\new\page.tsx      
+D:\student-guidance-platform-clean\app\dashboard\report-preview\page.tsx             
+D:\student-guidance-platform-clean\app\dashboard\reports\page.tsx                    
+D:\student-guidance-platform-clean\app\dashboard\reports\new\page.tsx                
+D:\student-guidance-platform-clean\app\dashboard\reports\[reportId]\preview\page.tsx 
+D:\student-guidance-platform-clean\app\dashboard\reports\[reportId]\studio\page.tsx  
+D:\student-guidance-platform-clean\app\dashboard\results-analysis\page.tsx           
+D:\student-guidance-platform-clean\app\dashboard\results-analysis\compare\page.tsx   
+D:\student-guidance-platform-clean\app\dashboard\results-analysis\new\page.tsx       
+D:\student-guidance-platform-clean\app\dashboard\results-analysis\[analysisId]\pag...
+D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx                
+D:\student-guidance-platform-clean\app\dashboard\student-follow-up\page.tsx          
+D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx      
+D:\student-guidance-platform-clean\app\dashboard\student-guidance-services\page.tsx  
+D:\student-guidance-platform-clean\app\dashboard\student-guidance-services\new\pag...
+D:\student-guidance-platform-clean\app\dashboard\student-import\page.tsx             
+D:\student-guidance-platform-clean\app\dashboard\student-import\sessions\[sessionI...
+
+
+

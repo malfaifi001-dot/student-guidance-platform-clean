@@ -1,0 +1,992 @@
+﻿===== report-template-live-preview.tsx =====
+"use client";
+
+import type { ReactNode } from "react";
+import type {
+  ReportTemplateBlock,
+  ReportTemplateBuilderModel,
+  ReportTextSnippet,
+} from "@/lib/report-engine/report-template-builder-types";
+import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+import {
+  resolveTextLibraryFallback,
+  resolveTextLibrarySnippets,
+  type RuntimeReportData,
+} from "@/lib/report-engine/report-text-library-runtime";
+
+type ReportTemplateLivePreviewProps = {
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  previewCaseData: RuntimePreviewCaseData | null;
+};
+
+type RuntimeValueItem = {
+  fieldKey?: string | null;
+  fieldLabel?: string | null;
+  value?: string | null;
+};
+
+type RuntimeEvidenceItem = {
+  id?: string | null;
+  title?: string | null;
+  fileName?: string | null;
+  fileUrl?: string | null;
+  imageUrl?: string | null;
+  mimeType?: string | null;
+  caption?: string | null;
+  description?: string | null;
+};
+
+export function ReportTemplateLivePreview({
+  template,
+  snippets,
+  previewCaseData,
+}: ReportTemplateLivePreviewProps) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-black text-slate-900">
+            Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø­ÙŠØ© Ù„Ù„Ù‚Ø§Ù„Ø¨
+          </h2>
+
+          <p className="mt-1 text-sm leading-7 text-slate-500">
+            Ù‡Ø°Ù‡ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© ØªÙ‚Ø±Ø£ ØµÙØ­Ø§Øª Ø§Ù„Ù‚Ø§Ù„Ø¨ ÙˆØ¨Ù„ÙˆÙƒØ§ØªÙ‡ØŒ ÙˆØªØ³ØªØ®Ø¯Ù… Ø¨ÙŠØ§Ù†Ø§Øª Case ID Ø¥Ù†
+            ÙˆØ¬Ø¯ØªØŒ ÙˆØªØ¹Ø±Ø¶ Ù†ØµÙˆØµ Ù…ÙƒØªØ¨Ø© Ø§Ù„Ù†ØµÙˆØµ Ø­Ø³Ø¨ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø¨Ù„ÙˆÙƒ Ø§Ù„Ù†ØµÙˆØµ.
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
+          {previewCaseData ? "Ù…Ø¹Ø§ÙŠÙ†Ø© Ù…Ù† Case Ø­Ù‚ÙŠÙ‚ÙŠ" : "Ù…Ø¹Ø§ÙŠÙ†Ø© Ø¨Ø¨ÙŠØ§Ù†Ø§Øª ØªØ¬Ø±ÙŠØ¨ÙŠØ©"}
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-6">
+        {template.pages.map((page, pageIndex) => (
+          <article
+            key={page.id}
+            className="mx-auto min-h-[720px] max-w-[820px] overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 shadow-sm"
+          >
+            <div className="border-b border-slate-200 bg-white px-6 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black text-emerald-700">
+                    ØµÙØ­Ø© {pageIndex + 1}
+                  </p>
+
+                  <h3 className="mt-1 text-lg font-black text-slate-900">
+                    {page.title}
+                  </h3>
+
+                  <p className="mt-1 text-xs leading-6 text-slate-500">
+                    {page.description}
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">
+                  {getPageKindLabel(page.kind)}
+                </span>
+              </div>
+            </div>
+
+            <div
+              className={[
+                "min-h-[640px] bg-white p-8",
+                page.kind === "cover" ? "flex flex-col justify-between" : "",
+              ].join(" ")}
+            >
+              {page.kind === "cover" ? (
+                <CoverPreviewHeader template={template} pageTitle={page.title} />
+              ) : null}
+
+              <div className="space-y-5">
+                {page.blocks.length ? (
+                  page.blocks.map((block) => (
+                    <PreviewBlock
+                      key={block.id}
+                      block={block}
+                      template={template}
+                      snippets={snippets}
+                      previewCaseData={previewCaseData}
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <p className="text-sm font-bold text-slate-500">
+                      Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨Ù„ÙˆÙƒØ§Øª ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {page.kind === "cover" ? (
+                <CoverPreviewFooter template={template} />
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PreviewBlock({
+  block,
+  template,
+  snippets,
+  previewCaseData,
+}: {
+  block: ReportTemplateBlock;
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  previewCaseData: RuntimePreviewCaseData | null;
+}) {
+  if (block.kind === "identity-header") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-3">
+          <InfoPreview label="Ø§Ù„Ø¬Ù‡Ø©" value="ÙˆØ²Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…" />
+          <InfoPreview label="Ø§Ù„Ù…Ø¯Ø±Ø³Ø©" value="Ø§Ø³Ù… Ø§Ù„Ù…Ø¯Ø±Ø³Ø©" />
+          <InfoPreview label="Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ" value="1447Ù‡Ù€" />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "cover-title") {
+    return (
+      <div className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-8 text-center">
+        {shouldShowTitle(block) ? (
+          <p className="text-sm font-black text-emerald-700">
+            {getServiceName(template, previewCaseData)}
+          </p>
+        ) : null}
+
+        <h1 className="mt-3 text-3xl font-black text-slate-900">
+          {template.name}
+        </h1>
+
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-8 text-slate-600">
+          {template.description}
+        </p>
+      </div>
+    );
+  }
+
+  if (block.kind === "case-meta") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø­Ø§Ù„Ø©"
+            value={getCaseTitle(previewCaseData)}
+          />
+          <InfoPreview
+            label="Ø§Ù„Ø®Ø¯Ù…Ø©"
+            value={getServiceName(template, previewCaseData)}
+          />
+          <InfoPreview
+            label="Ø¹Ø¯Ø¯ Ø§Ù„Ù‚ÙŠÙ…"
+            value={`${getRuntimeValues(previewCaseData).length}`}
+          />
+          <InfoPreview
+            label="Ø¹Ø¯Ø¯ Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯"
+            value={`${getRuntimeEvidences(previewCaseData).length}`}
+          />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "student-summary") {
+    const student = getStudent(previewCaseData);
+
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©"
+            value={student.fullName || "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©"}
+          />
+          <InfoPreview label="Ø§Ù„Ù…Ø±Ø­Ù„Ø©" value={student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"} />
+          <InfoPreview label="Ø§Ù„ØµÙ" value={student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"} />
+          <InfoPreview label="Ø§Ù„ÙØµÙ„" value={student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"} />
+          <InfoPreview
+            label="ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±"
+            value={student.guardianName || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}
+          />
+          <InfoPreview
+            label="Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±"
+            value={student.guardianPhone || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}
+          />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "service-summary") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="Ø§Ø³Ù… Ø§Ù„Ø®Ø¯Ù…Ø©"
+            value={getServiceName(template, previewCaseData)}
+          />
+          <InfoPreview
+            label="Ù†Ø·Ø§Ù‚ Ø§Ù„Ù‚Ø§Ù„Ø¨"
+            value={template.scope === "GLOBAL" ? "Ø¹Ø§Ù…" : "Ø®Ø§Øµ Ø¨Ø®Ø¯Ù…Ø©"}
+          />
+          <InfoPreview label="Ø­Ø§Ù„Ø© Ø§Ù„Ù‚Ø§Ù„Ø¨" value={template.status} />
+          <InfoPreview label="Ø¹Ø¯Ø¯ Ø§Ù„ØµÙØ­Ø§Øª" value={`${template.pages.length}`} />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "paragraph") {
+    return (
+      <BlockShell block={block}>
+        <p className="text-sm leading-8 text-slate-700">
+          Ù‡Ø°Ø§ Ø¨Ù„ÙˆÙƒ Ù†ØµÙŠ Ø§ÙØªØ±Ø§Ø¶ÙŠ ÙŠÙ…ÙƒÙ† Ø§Ø³ØªØ®Ø¯Ø§Ù…Ù‡ Ù„Ø¹Ø±Ø¶ Ù…Ø­ØªÙˆÙ‰ ÙˆØµÙÙŠ Ø¯Ø§Ø®Ù„ Ø§Ù„ØªÙ‚Ø±ÙŠØ±. ÙŠÙ…ÙƒÙ†
+          Ù„Ø§Ø­Ù‚Ù‹Ø§ Ø±Ø¨Ø·Ù‡ Ø¨Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø© Ø£Ùˆ Ø¬Ø¹Ù„Ù‡ ÙÙ‚Ø±Ø© Ø«Ø§Ø¨ØªØ© Ø¯Ø§Ø®Ù„ Ø§Ù„Ù‚Ø§Ù„Ø¨.
+        </p>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "field-list") {
+    const values = getRuntimeValues(previewCaseData);
+
+    return (
+      <BlockShell block={block}>
+        {values.length ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {values.slice(0, 10).map((item, index) => (
+              <InfoPreview
+                key={`${item.fieldKey || item.fieldLabel || index}`}
+                label={item.fieldLabel || item.fieldKey || `Ù‚ÙŠÙ…Ø© ${index + 1}`}
+                value={item.value || "â€”"}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ø­Ù‚ÙŠÙ‚ÙŠØ© Ù…Ù† Case IDØŒ Ø³ÙŠØªÙ… Ø¹Ø±Ø¶ Ø§Ù„Ù‚ÙŠÙ… Ø¹Ù†Ø¯ Ø±Ø¨Ø· Ø­Ø§Ù„Ø© Ø­Ù‚ÙŠÙ‚ÙŠØ©.
+          </div>
+        )}
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "text-library") {
+    const runtimeData = buildRuntimeReportDataForTextLibrary(
+      template,
+      previewCaseData,
+    );
+
+    const resolvedSnippets = resolveTextLibrarySnippets({
+      block,
+      template,
+      snippets,
+      data: runtimeData,
+    });
+
+    if (!resolvedSnippets.length) {
+      const fallback = resolveTextLibraryFallback({ block });
+
+      if (!fallback) {
+        return null;
+      }
+
+      return (
+        <BlockShell block={block} tone="emerald">
+          <p className="whitespace-pre-line rounded-2xl border border-emerald-100 bg-white p-4 text-sm leading-8 text-slate-800">
+            {fallback}
+          </p>
+        </BlockShell>
+      );
+    }
+
+    return (
+      <BlockShell block={block} tone="emerald">
+        <div className="space-y-3">
+          {resolvedSnippets.map((snippet) => (
+            <article
+              key={snippet.id}
+              className="rounded-2xl border border-emerald-100 bg-white p-4"
+            >
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+                  {snippet.category}
+                </span>
+
+                <strong className="text-xs text-slate-500">
+                  {snippet.title}
+                </strong>
+              </div>
+
+              <p className="whitespace-pre-line text-sm leading-8 text-slate-800">
+                {snippet.renderedText}
+              </p>
+            </article>
+          ))}
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "custom-paragraph") {
+    return (
+      <BlockShell block={block}>
+        {block.customTitle ? (
+          <h4 className="mb-3 text-base font-black text-slate-900">
+            {block.customTitle}
+          </h4>
+        ) : null}
+
+        <p className="whitespace-pre-line text-sm leading-8 text-slate-700">
+          {block.customContent || "Ù„Ù… ÙŠØªÙ… Ø¥Ø¯Ø®Ø§Ù„ Ù…Ø­ØªÙˆÙ‰ Ù…Ø®ØµØµ Ø¨Ø¹Ø¯."}
+        </p>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "evidence-gallery") {
+    const evidences = getRuntimeEvidences(previewCaseData);
+    const settings = block.settings || {};
+    const layout = settings.evidenceLayout || "grid-2x2";
+
+    return (
+      <BlockShell block={block}>
+        {evidences.length ? (
+          <EvidencePreviewGrid
+            evidences={evidences}
+            layout={layout}
+            showCaptions={settings.showCaptions !== false}
+            imageFit={settings.imageFit || "cover"}
+          />
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´ÙˆØ§Ù‡Ø¯ ÙÙŠ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ©.
+          </div>
+        )}
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "approval-signature") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <SignatureBox title="Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©" name="Ø£. Ø§Ù„Ù…ÙˆØ¬Ù‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠ" />
+          <SignatureBox title="Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©" name="Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©" />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  return (
+    <BlockShell block={block}>
+      <p className="text-sm text-slate-500">
+        Ù†ÙˆØ¹ Ø§Ù„Ø¨Ù„ÙˆÙƒ ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ… ÙÙŠ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ©.
+      </p>
+    </BlockShell>
+  );
+}
+
+function BlockShell({
+  block,
+  tone = "slate",
+  children,
+}: {
+  block: ReportTemplateBlock;
+  tone?: "slate" | "emerald";
+  children: ReactNode;
+}) {
+  const settings = block.settings || {};
+  const showTitle = settings.showTitle !== false;
+  const style = settings.style || "card";
+
+  if (style === "plain") {
+    return (
+      <section>
+        {showTitle ? (
+          <h4 className="mb-3 text-base font-black text-slate-900">
+            {block.title}
+          </h4>
+        ) : null}
+
+        {children}
+      </section>
+    );
+  }
+
+  if (style === "highlight") {
+    return (
+      <section className="rounded-3xl border border-amber-100 bg-amber-50 p-5">
+        {showTitle ? (
+          <h4 className="mb-3 text-base font-black text-amber-950">
+            {block.title}
+          </h4>
+        ) : null}
+
+        {children}
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className={[
+        "rounded-3xl border p-5",
+        tone === "emerald"
+          ? "border-emerald-100 bg-emerald-50"
+          : "border-slate-200 bg-slate-50",
+      ].join(" ")}
+    >
+      {showTitle ? (
+        <h4
+          className={[
+            "mb-3 text-base font-black",
+            tone === "emerald" ? "text-emerald-950" : "text-slate-900",
+          ].join(" ")}
+        >
+          {block.title}
+        </h4>
+      ) : null}
+
+      {children}
+    </section>
+  );
+}
+
+function InfoPreview({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-black text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-black leading-7 text-slate-900">
+        {value || "â€”"}
+      </p>
+    </div>
+  );
+}
+
+function SignatureBox({ title, name }: { title: string; name: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <p className="text-xs font-black text-slate-500">{title}</p>
+      <p className="mt-3 text-sm font-black text-slate-900">{name}</p>
+      <div className="mt-8 border-t border-dashed border-slate-300 pt-3 text-xs text-slate-400">
+        Ø§Ù„ØªÙˆÙ‚ÙŠØ¹ ÙˆØ§Ù„Ø®ØªÙ…
+      </div>
+    </div>
+  );
+}
+
+function CoverPreviewHeader({
+  template,
+  pageTitle,
+}: {
+  template: ReportTemplateBuilderModel;
+  pageTitle: string;
+}) {
+  return (
+    <header className="text-center">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-sm font-black text-emerald-800">
+        Ø´Ø¹Ø§Ø±
+      </div>
+
+      <p className="mt-4 text-sm font-black text-emerald-700">
+        {getServiceName(template, null)}
+      </p>
+
+      <h1 className="mt-3 text-3xl font-black text-slate-900">
+        {template.name || pageTitle}
+      </h1>
+
+      <p className="mx-auto mt-4 max-w-xl text-sm leading-8 text-slate-600">
+        {template.description}
+      </p>
+    </header>
+  );
+}
+
+function CoverPreviewFooter({
+  template,
+}: {
+  template: ReportTemplateBuilderModel;
+}) {
+  return (
+    <footer className="border-t border-slate-200 pt-5 text-center text-xs font-bold text-slate-500">
+      <span>{template.scope === "GLOBAL" ? "Ù‚Ø§Ù„Ø¨ Ø¹Ø§Ù…" : "Ù‚Ø§Ù„Ø¨ Ø®Ø§Øµ Ø¨Ø®Ø¯Ù…Ø©"}</span>
+      <span className="mx-2">â€¢</span>
+      <span>{template.status}</span>
+    </footer>
+  );
+}
+
+function EvidencePreviewGrid({
+  evidences,
+  layout,
+  showCaptions,
+  imageFit,
+}: {
+  evidences: RuntimeEvidenceItem[];
+  layout: string;
+  showCaptions: boolean;
+  imageFit: string;
+}) {
+  const gridClass =
+    layout === "one-per-page"
+      ? "grid-cols-1"
+      : layout === "stacked"
+        ? "grid-cols-1"
+        : layout === "two-columns"
+          ? "grid-cols-2"
+          : "grid-cols-2";
+
+  return (
+    <div className={`grid gap-3 ${gridClass}`}>
+      {evidences
+        .slice(0, layout === "one-per-page" ? 1 : 4)
+        .map((evidence, index) => {
+          const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+
+          return (
+            <article
+              key={evidence.id || `${evidence.fileName}-${index}`}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            >
+              <div className="flex h-40 items-center justify-center bg-slate-100">
+                {isImageEvidence(evidence) && imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={evidence.title || evidence.fileName || "Ø´Ø§Ù‡Ø¯"}
+                    className={[
+                      "h-full w-full",
+                      imageFit === "contain" ? "object-contain" : "object-cover",
+                    ].join(" ")}
+                  />
+                ) : (
+                  <span className="px-4 text-center text-xs font-black text-slate-500">
+                    {evidence.fileName || "Ù…Ø±ÙÙ‚"}
+                  </span>
+                )}
+              </div>
+
+              {showCaptions ? (
+                <div className="p-3">
+                  <p className="text-xs font-black text-slate-800">
+                    {evidence.title ||
+                      evidence.caption ||
+                      evidence.fileName ||
+                      "Ø´Ø§Ù‡Ø¯"}
+                  </p>
+
+                  {evidence.description ? (
+                    <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                      {evidence.description}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+    </div>
+  );
+}
+
+function buildRuntimeReportDataForTextLibrary(
+  template: ReportTemplateBuilderModel,
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeReportData {
+  const values = getRuntimeValues(previewCaseData);
+  const valueMap: Record<string, string> = {};
+
+  values.forEach((item) => {
+    const value = item.value || "";
+
+    if (item.fieldKey) {
+      valueMap[item.fieldKey] = value;
+    }
+
+    if (item.fieldLabel) {
+      valueMap[item.fieldLabel] = value;
+    }
+  });
+
+  const student = getStudent(previewCaseData);
+  const evidences = getRuntimeEvidences(previewCaseData);
+
+  return {
+    reportTitle: template.name || "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+    createdAt: new Date().toISOString(),
+    values: {
+      ...valueMap,
+      programTitle:
+        valueMap.program_name ||
+        valueMap["Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬"] ||
+        valueMap.programTitle ||
+        getCaseTitle(previewCaseData) ||
+        "Ø¨Ø±Ù†Ø§Ù…Ø¬ Ø¥Ø±Ø´Ø§Ø¯ÙŠ",
+      executionDate:
+        valueMap.gregorian_date ||
+        valueMap.executionDate ||
+        valueMap["ØªØ§Ø±ÙŠØ® Ø§Ù„ØªÙ†ÙÙŠØ°"] ||
+        "2026-05-26",
+      dayText: valueMap.day || valueMap["Ø§Ù„ÙŠÙˆÙ…"] || "Ø§Ù„Ø£Ø­Ø¯",
+      targetGroup:
+        valueMap.beneficiaries ||
+        valueMap.targetGroup ||
+        valueMap["Ø§Ù„ÙØ¦Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©"] ||
+        student.grade ||
+        "Ø§Ù„ÙØ¦Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©",
+      executionAction:
+        valueMap.execution_action ||
+        valueMap.executionAction ||
+        valueMap["Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„ØªÙ†ÙÙŠØ°ÙŠ"] ||
+        "Ø¥Ø¬Ø±Ø§Ø¡ ØªÙ†ÙÙŠØ°ÙŠ Ù…ÙˆØ«Ù‚",
+      executionMechanism:
+        valueMap.execution_mechanism ||
+        valueMap.executionMechanism ||
+        valueMap["Ø¢Ù„ÙŠØ© Ø§Ù„ØªÙ†ÙÙŠØ°"] ||
+        "Ø¢Ù„ÙŠØ© ØªÙ†ÙÙŠØ° Ù…ÙˆØ«Ù‚Ø©",
+      performanceIndicator:
+        valueMap.performance_indicator ||
+        valueMap.performanceIndicator ||
+        valueMap["Ù…Ø¤Ø´Ø± Ø§Ù„Ø£Ø¯Ø§Ø¡"] ||
+        "Ù…Ø¤Ø´Ø± Ø£Ø¯Ø§Ø¡",
+      evidenceSuggestion:
+        valueMap.evidence_suggestion ||
+        valueMap.evidenceSuggestion ||
+        valueMap["Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯"] ||
+        "Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„Ù…Ø±ÙÙ‚Ø§Øª",
+      evidenceCountText: formatEvidenceCount(evidences.length),
+    },
+    evidences: evidences.map((evidence) => ({
+      id: evidence.id || undefined,
+      title: evidence.title || evidence.caption || evidence.fileName || undefined,
+      caption: evidence.caption || undefined,
+      description: evidence.description || undefined,
+      fileUrl: evidence.fileUrl || evidence.imageUrl || undefined,
+      url: evidence.imageUrl || evidence.fileUrl || undefined,
+      mimeType: evidence.mimeType || undefined,
+    })),
+    student: {
+      name: student.fullName || "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©",
+      nationalId: student.nationalId || "",
+      grade: student.grade || "",
+      classroom: student.classroom || "",
+      gender: "",
+      guardianName: student.guardianName || "",
+      guardianPhone: student.guardianPhone || "",
+    },
+    service: {
+      name: getServiceName(template, previewCaseData),
+      slug: template.serviceSlug || "",
+    },
+    caseEntry: {
+      title: getCaseTitle(previewCaseData),
+      student: {
+        name: student.fullName || "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©",
+        nationalId: student.nationalId || "",
+        grade: student.grade || "",
+        classroom: student.classroom || "",
+        gender: "",
+        guardianName: student.guardianName || "",
+        guardianPhone: student.guardianPhone || "",
+      },
+      service: {
+        name: getServiceName(template, previewCaseData),
+        slug: template.serviceSlug || "",
+      },
+    },
+    school: {
+      name: "Ø§Ø³Ù… Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+      schoolYear: "1447Ù‡Ù€",
+      semester: "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+      principalName: "Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
+    },
+    counselor: {
+      name: "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
+    },
+  };
+}
+
+function getRuntimeValues(
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeValueItem[] {
+  const data = previewCaseData as
+    | {
+        values?: RuntimeValueItem[];
+      }
+    | null;
+
+  return Array.isArray(data?.values) ? data.values : [];
+}
+
+function getRuntimeEvidences(
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeEvidenceItem[] {
+  const data = previewCaseData as
+    | {
+        evidences?: RuntimeEvidenceItem[];
+      }
+    | null;
+
+  return Array.isArray(data?.evidences) ? data.evidences : [];
+}
+
+function getStudent(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as
+    | {
+        student?: {
+          fullName?: string | null;
+          nationalId?: string | null;
+          stage?: string | null;
+          grade?: string | null;
+          classroom?: string | null;
+          guardianName?: string | null;
+          guardianPhone?: string | null;
+        } | null;
+      }
+    | null;
+
+  return {
+    fullName: data?.student?.fullName || "",
+    nationalId: data?.student?.nationalId || "",
+    stage: data?.student?.stage || "",
+    grade: data?.student?.grade || "",
+    classroom: data?.student?.classroom || "",
+    guardianName: data?.student?.guardianName || "",
+    guardianPhone: data?.student?.guardianPhone || "",
+  };
+}
+
+function getCaseTitle(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as
+    | {
+        title?: string | null;
+      }
+    | null;
+
+  return data?.title || "Ø­Ø§Ù„Ø© ØªØ¬Ø±ÙŠØ¨ÙŠØ©";
+}
+
+function getServiceName(
+  template: ReportTemplateBuilderModel,
+  previewCaseData: RuntimePreviewCaseData | null,
+) {
+  const data = previewCaseData as
+    | {
+        serviceName?: string | null;
+      }
+    | null;
+
+  if (data?.serviceName) {
+    return data.serviceName;
+  }
+
+  if (template.scope === "SERVICE" && template.serviceSlug) {
+    return template.serviceSlug;
+  }
+
+  return "Ø§Ù„Ø®Ø¯Ù…Ø© Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©";
+}
+
+function shouldShowTitle(block: ReportTemplateBlock) {
+  return block.settings?.showTitle !== false;
+}
+
+function isImageEvidence(evidence: RuntimeEvidenceItem) {
+  if (evidence.mimeType?.startsWith("image/")) {
+    return true;
+  }
+
+  const fileName = evidence.fileName || evidence.fileUrl || evidence.imageUrl || "";
+
+  return /\.(png|jpg|jpeg|webp|gif)$/i.test(fileName);
+}
+
+function formatEvidenceCount(count: number) {
+  if (count <= 0) return "0 Ø´Ø§Ù‡Ø¯";
+  if (count === 1) return "Ø´Ø§Ù‡Ø¯ ÙˆØ§Ø­Ø¯";
+  if (count === 2) return "Ø´Ø§Ù‡Ø¯Ø§Ù†";
+  if (count >= 3 && count <= 10) return `${count} Ø´ÙˆØ§Ù‡Ø¯`;
+  return `${count} Ø´Ø§Ù‡Ø¯`;
+}
+
+function getPageKindLabel(kind: string) {
+  if (kind === "cover") return "ØºÙ„Ø§Ù";
+  if (kind === "summary") return "Ù…Ù„Ø®Øµ";
+  if (kind === "narrative") return "Ù…Ø­ØªÙˆÙ‰";
+  if (kind === "results") return "Ù†ØªØ§Ø¦Ø¬";
+  if (kind === "evidence") return "Ø´ÙˆØ§Ù‡Ø¯";
+  if (kind === "approval") return "Ø§Ø¹ØªÙ…Ø§Ø¯";
+  return kind;
+}
+
+===== preview/page.tsx PDF search params =====
+
+  app\dashboard\reports\[reportId]\preview\page.tsx:6:  type ReportViewMode,
+  app\dashboard\reports\[reportId]\preview\page.tsx:7:} from 
+"@/components/reports/report-preview-toolbar";
+  app\dashboard\reports\[reportId]\preview\page.tsx:8:
+  app\dashboard\reports\[reportId]\preview\page.tsx:9:import { 
+ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
+> app\dashboard\reports\[reportId]\preview\page.tsx:10:import { 
+ReportTemplateLivePreview } from 
+"@/components/report-engine/report-template-live-preview";
+  app\dashboard\reports\[reportId]\preview\page.tsx:11:
+  app\dashboard\reports\[reportId]\preview\page.tsx:12:import type {
+  app\dashboard\reports\[reportId]\preview\page.tsx:13:  EvidenceLayout,
+  app\dashboard\reports\[reportId]\preview\page.tsx:14:  OfficialReportData,
+  app\dashboard\reports\[reportId]\preview\page.tsx:15:  ReportEvidence,
+  app\dashboard\reports\[reportId]\preview\page.tsx:16:  ReportIdentity,
+  app\dashboard\reports\[reportId]\preview\page.tsx:17:  ReportSection,
+  app\dashboard\reports\[reportId]\preview\page.tsx:18:  ReportTemplateId,
+  app\dashboard\reports\[reportId]\preview\page.tsx:19:} from 
+"@/lib/report-engine/report-types";
+  app\dashboard\reports\[reportId]\preview\page.tsx:20:
+  app\dashboard\reports\[reportId]\preview\page.tsx:21:import { 
+buildSmartReportTextSections } from "@/lib/report-engine/report-smart-text-engine";
+  app\dashboard\reports\[reportId]\preview\page.tsx:22:
+  app\dashboard\reports\[reportId]\preview\page.tsx:23:import {
+  app\dashboard\reports\[reportId]\preview\page.tsx:24:  buildBuilderPreviewCaseData,
+> app\dashboard\reports\[reportId]\preview\page.tsx:25:  
+resolveBuilderTemplateForReport,
+  app\dashboard\reports\[reportId]\preview\page.tsx:26:} from 
+"@/lib/report-engine/report-builder-template-runtime";
+  app\dashboard\reports\[reportId]\preview\page.tsx:27:import {
+  app\dashboard\reports\[reportId]\preview\page.tsx:28:  formatWorkflowDisplayValue,
+  app\dashboard\reports\[reportId]\preview\page.tsx:29:  getWorkflowFieldKey,
+  app\dashboard\reports\[reportId]\preview\page.tsx:30:  getWorkflowFieldLabel,
+  app\dashboard\reports\[reportId]\preview\page.tsx:31:  stringifyWorkflowRawValue,
+  app\dashboard\reports\[reportId]\preview\page.tsx:32:} from 
+"@/lib/workflow-values/workflow-display-value";
+  app\dashboard\reports\[reportId]\preview\page.tsx:33:
+  app\dashboard\reports\[reportId]\preview\page.tsx:34:type PageProps = {
+  app\dashboard\reports\[reportId]\preview\page.tsx:35:  params: Promise<{
+  app\dashboard\reports\[reportId]\preview\page.tsx:120:}: PageProps) {
+  app\dashboard\reports\[reportId]\preview\page.tsx:121:  const { reportId } = await 
+params;
+  app\dashboard\reports\[reportId]\preview\page.tsx:122:  const resolvedSearchParams 
+= searchParams ? await searchParams : {};
+  app\dashboard\reports\[reportId]\preview\page.tsx:123:
+> app\dashboard\reports\[reportId]\preview\page.tsx:124:  const studioMode = 
+resolvedSearchParams.studio === "true";
+  app\dashboard\reports\[reportId]\preview\page.tsx:125:  const showCover = 
+resolvedSearchParams.cover !== "false";
+  app\dashboard\reports\[reportId]\preview\page.tsx:126:
+  app\dashboard\reports\[reportId]\preview\page.tsx:127:  const report = await 
+prisma.guidanceReport.findUnique({
+  app\dashboard\reports\[reportId]\preview\page.tsx:128:    where: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:129:      id: reportId,
+  app\dashboard\reports\[reportId]\preview\page.tsx:130:    },
+  app\dashboard\reports\[reportId]\preview\page.tsx:131:    include: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:132:      caseEntry: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:133:        include: {
+  app\dashboard\reports\[reportId]\preview\page.tsx:134:          service: true,
+  app\dashboard\reports\[reportId]\preview\page.tsx:242:    evidenceLayout: 
+selectedEvidenceLayout,
+  app\dashboard\reports\[reportId]\preview\page.tsx:243:    viewMode: 
+selectedViewMode,
+  app\dashboard\reports\[reportId]\preview\page.tsx:244:  });
+  app\dashboard\reports\[reportId]\preview\page.tsx:245:
+> app\dashboard\reports\[reportId]\preview\page.tsx:246:  const builderTemplate = 
+await resolveBuilderTemplateForReport(report, {
+  app\dashboard\reports\[reportId]\preview\page.tsx:247:    templateIdOverride: 
+resolvedSearchParams.template || report.templateId,
+  app\dashboard\reports\[reportId]\preview\page.tsx:248:  });
+  app\dashboard\reports\[reportId]\preview\page.tsx:249:
+> app\dashboard\reports\[reportId]\preview\page.tsx:250:  const 
+builderPreviewCaseData = builderTemplate
+  app\dashboard\reports\[reportId]\preview\page.tsx:251:    ? 
+buildBuilderPreviewCaseData(report, reportValues)
+  app\dashboard\reports\[reportId]\preview\page.tsx:252:    : null;
+  app\dashboard\reports\[reportId]\preview\page.tsx:253:
+> app\dashboard\reports\[reportId]\preview\page.tsx:254:  const pdfExportUrl = 
+`/api/dashboard/reports/${report.id}/export/pdf?template=${encodeURIComponent(
+  app\dashboard\reports\[reportId]\preview\page.tsx:255:    
+resolvedSearchParams.template || report.templateId || ""
+  app\dashboard\reports\[reportId]\preview\page.tsx:256:  
+)}&evidenceLayout=${encodeURIComponent(
+  app\dashboard\reports\[reportId]\preview\page.tsx:257:    selectedEvidenceLayout
+  app\dashboard\reports\[reportId]\preview\page.tsx:258:  
+)}&cover=${encodeURIComponent(String(showCover))}&view=${encodeURIComponent(
+  app\dashboard\reports\[reportId]\preview\page.tsx:259:    selectedViewMode
+  app\dashboard\reports\[reportId]\preview\page.tsx:260:  )}`;
+  app\dashboard\reports\[reportId]\preview\page.tsx:261:
+  app\dashboard\reports\[reportId]\preview\page.tsx:262:  return (
+  app\dashboard\reports\[reportId]\preview\page.tsx:263:    <main
+  app\dashboard\reports\[reportId]\preview\page.tsx:264:      dir="rtl"
+  app\dashboard\reports\[reportId]\preview\page.tsx:265:      className={
+> app\dashboard\reports\[reportId]\preview\page.tsx:266:        studioMode
+  app\dashboard\reports\[reportId]\preview\page.tsx:267:          ? "min-h-screen 
+bg-slate-100 py-5"
+  app\dashboard\reports\[reportId]\preview\page.tsx:268:          : "min-h-screen 
+bg-[radial-gradient(circle_at_top,_#e0f2fe_0,_#f8fafc_34%,_#f1f5f9_100%)] px-6 py-6"
+  app\dashboard\reports\[reportId]\preview\page.tsx:269:      }
+  app\dashboard\reports\[reportId]\preview\page.tsx:270:    >
+> app\dashboard\reports\[reportId]\preview\page.tsx:271:      {!studioMode ? (
+  app\dashboard\reports\[reportId]\preview\page.tsx:272:        <ReportPreviewToolbar
+  app\dashboard\reports\[reportId]\preview\page.tsx:273:          
+reportId={report.id}
+  app\dashboard\reports\[reportId]\preview\page.tsx:274:          
+title={report.title}
+  app\dashboard\reports\[reportId]\preview\page.tsx:275:          
+serviceName={report.caseEntry.service.name}
+  app\dashboard\reports\[reportId]\preview\page.tsx:276:          
+selectedTemplate={selectedTemplate}
+  app\dashboard\reports\[reportId]\preview\page.tsx:277:          
+selectedEvidenceLayout={selectedEvidenceLayout}
+  app\dashboard\reports\[reportId]\preview\page.tsx:278:          
+selectedViewMode={selectedViewMode}
+  app\dashboard\reports\[reportId]\preview\page.tsx:279:          
+showCover={showCover}
+  app\dashboard\reports\[reportId]\preview\page.tsx:280:        />
+  app\dashboard\reports\[reportId]\preview\page.tsx:281:      ) : null}
+  app\dashboard\reports\[reportId]\preview\page.tsx:282:
+> app\dashboard\reports\[reportId]\preview\page.tsx:283:      {!studioMode ? (
+  app\dashboard\reports\[reportId]\preview\page.tsx:284:        <div 
+className="no-print mx-auto mb-4 flex max-w-[260mm] justify-end">
+  app\dashboard\reports\[reportId]\preview\page.tsx:285:          <a
+> app\dashboard\reports\[reportId]\preview\page.tsx:286:            
+href={pdfExportUrl}
+  app\dashboard\reports\[reportId]\preview\page.tsx:287:            
+className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white 
+shadow-lg transition hover:bg-slate-800"
+  app\dashboard\reports\[reportId]\preview\page.tsx:288:          >
+> app\dashboard\reports\[reportId]\preview\page.tsx:289:            تحميل PDF
+  app\dashboard\reports\[reportId]\preview\page.tsx:290:          </a>
+  app\dashboard\reports\[reportId]\preview\page.tsx:291:        </div>
+  app\dashboard\reports\[reportId]\preview\page.tsx:292:      ) : null}
+  app\dashboard\reports\[reportId]\preview\page.tsx:293:
+> app\dashboard\reports\[reportId]\preview\page.tsx:294:      <section 
+className={studioMode ? "mx-auto" : "mx-auto max-w-[260mm]"}>
+> app\dashboard\reports\[reportId]\preview\page.tsx:295:        {builderTemplate ? (
+> app\dashboard\reports\[reportId]\preview\page.tsx:296:          
+<ReportTemplateLivePreview
+> app\dashboard\reports\[reportId]\preview\page.tsx:297:            
+template={builderTemplate}
+  app\dashboard\reports\[reportId]\preview\page.tsx:298:            snippets={[]}
+  app\dashboard\reports\[reportId]\preview\page.tsx:299:            
+previewCaseData={builderPreviewCaseData as any}
+  app\dashboard\reports\[reportId]\preview\page.tsx:300:          />
+  app\dashboard\reports\[reportId]\preview\page.tsx:301:        ) : (
+  app\dashboard\reports\[reportId]\preview\page.tsx:302:          
+<ReportDocumentRenderer
+  app\dashboard\reports\[reportId]\preview\page.tsx:303:            
+identity={identity}
+  app\dashboard\reports\[reportId]\preview\page.tsx:304:            
+report={officialReport}
+  app\dashboard\reports\[reportId]\preview\page.tsx:305:            
+templateId={selectedTemplate}
+  app\dashboard\reports\[reportId]\preview\page.tsx:306:            
+showCover={showCover}
+  app\dashboard\reports\[reportId]\preview\page.tsx:307:            
+evidenceLayout={selectedEvidenceLayout}
+
+
+

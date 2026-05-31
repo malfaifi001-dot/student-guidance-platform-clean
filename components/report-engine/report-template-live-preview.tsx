@@ -17,6 +17,7 @@ type ReportTemplateLivePreviewProps = {
   template: ReportTemplateBuilderModel;
   snippets: ReportTextSnippet[];
   previewCaseData: RuntimePreviewCaseData | null;
+  pdfMode?: boolean;
 };
 
 type RuntimeValueItem = {
@@ -40,57 +41,90 @@ export function ReportTemplateLivePreview({
   template,
   snippets,
   previewCaseData,
+  pdfMode = false,
 }: ReportTemplateLivePreviewProps) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-black text-slate-900">
-            المعاينة الحية للقالب
-          </h2>
+    <section
+      className={
+        pdfMode
+          ? "bg-white p-0"
+          : "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+      }
+    >
+      {!pdfMode ? (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">
+              المعاينة الحية للقالب
+            </h2>
 
-          <p className="mt-1 text-sm leading-7 text-slate-500">
-            هذه المعاينة تقرأ صفحات القالب وبلوكاته، وتستخدم بيانات Case ID إن
-            وجدت، وتعرض نصوص مكتبة النصوص حسب إعدادات بلوك النصوص.
-          </p>
+            <p className="mt-1 text-sm leading-7 text-slate-500">
+              هذه المعاينة تقرأ صفحات القالب وبلوكاته، وتستخدم بيانات Case ID إن وجدت،
+              وتعرض نصوص مكتبة النصوص حسب إعدادات بلوك النصوص.
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
+            {previewCaseData ? "معاينة من Case حقيقي" : "معاينة ببيانات تجريبية"}
+          </div>
         </div>
+      ) : null}
 
-        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
-          {previewCaseData ? "معاينة من Case حقيقي" : "معاينة ببيانات تجريبية"}
-        </div>
-      </div>
-
-      <div className="mt-5 space-y-6">
+      <div className={pdfMode ? "space-y-0" : "mt-5 space-y-6"}>
         {template.pages.map((page, pageIndex) => (
           <article
             key={page.id}
-            className="mx-auto min-h-[720px] max-w-[820px] overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 shadow-sm"
+            style={
+              pdfMode
+                ? {
+                    width: "210mm",
+                    height: "297mm",
+                    maxHeight: "297mm",
+                    overflow: "hidden",
+                    breakAfter:
+                      pageIndex < template.pages.length - 1 ? "page" : "auto",
+                    pageBreakAfter:
+                      pageIndex < template.pages.length - 1 ? "always" : "auto",
+                    breakInside: "avoid",
+                    pageBreakInside: "avoid",
+                  }
+                : undefined
+            }
+            className={
+              pdfMode
+                ? "pdf-report-page mx-auto max-w-none overflow-hidden rounded-none border-0 bg-white shadow-none"
+                : "mx-auto min-h-[720px] max-w-[820px] overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 shadow-sm"
+            }
           >
-            <div className="border-b border-slate-200 bg-white px-6 py-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-black text-emerald-700">
-                    صفحة {pageIndex + 1}
-                  </p>
+            {!pdfMode ? (
+              <div className="border-b border-slate-200 bg-white px-6 py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-black text-emerald-700">
+                      صفحة {pageIndex + 1}
+                    </p>
 
-                  <h3 className="mt-1 text-lg font-black text-slate-900">
-                    {page.title}
-                  </h3>
+                    <h3 className="mt-1 text-lg font-black text-slate-900">
+                      {page.title}
+                    </h3>
 
-                  <p className="mt-1 text-xs leading-6 text-slate-500">
-                    {page.description}
-                  </p>
+                    <p className="mt-1 text-xs leading-6 text-slate-500">
+                      {page.description}
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">
+                    {getPageKindLabel(page.kind)}
+                  </span>
                 </div>
-
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">
-                  {getPageKindLabel(page.kind)}
-                </span>
               </div>
-            </div>
+            ) : null}
 
             <div
               className={[
-                "min-h-[640px] bg-white p-8",
+                pdfMode
+                  ? "h-full max-h-full overflow-hidden bg-white p-[10mm]"
+                  : "min-h-[640px] bg-white p-8",
                 page.kind === "cover" ? "flex flex-col justify-between" : "",
               ].join(" ")}
             >
@@ -98,7 +132,7 @@ export function ReportTemplateLivePreview({
                 <CoverPreviewHeader template={template} pageTitle={page.title} />
               ) : null}
 
-              <div className="space-y-5">
+              <div className={pdfMode ? "max-h-full space-y-3 overflow-hidden" : "space-y-5"}>
                 {page.blocks.length ? (
                   page.blocks.map((block) => (
                     <PreviewBlock
@@ -107,15 +141,16 @@ export function ReportTemplateLivePreview({
                       template={template}
                       snippets={snippets}
                       previewCaseData={previewCaseData}
+                      pdfMode={pdfMode}
                     />
                   ))
-                ) : (
+                ) : !pdfMode ? (
                   <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                     <p className="text-sm font-bold text-slate-500">
                       لا توجد بلوكات في هذه الصفحة.
                     </p>
                   </div>
-                )}
+                ) : null}
               </div>
 
               {page.kind === "cover" ? (
@@ -516,7 +551,7 @@ function CoverPreviewFooter({
   template: ReportTemplateBuilderModel;
 }) {
   return (
-    <footer className="border-t border-slate-200 pt-5 text-center text-xs font-bold text-slate-500">
+    <footer className="no-print border-t border-slate-200 pt-5 text-center text-xs font-bold text-slate-500">
       <span>{template.scope === "GLOBAL" ? "قالب عام" : "قالب خاص بخدمة"}</span>
       <span className="mx-2">•</span>
       <span>{template.status}</span>
