@@ -1,20 +1,10 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import {
   getRemainingDays,
   isSubscriptionUsable,
 } from "@/lib/subscription/subscription-service";
-
-async function requireAdmin() {
-  const current = await getCurrentSessionUser();
-
-  if (!current?.user || current.user.role !== "ADMIN") {
-    return null;
-  }
-
-  return current;
-}
 
 function getComputedStatus(input: {
   subscriptionStatus?: string | null;
@@ -34,10 +24,10 @@ function getComputedStatus(input: {
 }
 
 export async function GET() {
-  const current = await requireAdmin();
+  const adminError = await requireAdminApi();
 
-  if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+  if (adminError) {
+    return adminError;
   }
 
   const [schoolAccounts, plans, pendingRequests] = await Promise.all([
