@@ -1,0 +1,1633 @@
+﻿=== Student Guidance Platform - Guardian Summons Review ===
+
+
+
+==============================
+FILE: lib/workflows/workflow-services.ts
+==============================
+
+[FILE NOT FOUND]
+
+
+==============================
+FILE: lib/workflows/workflow-upload-registry.ts
+==============================
+
+[FILE NOT FOUND]
+
+
+==============================
+FILE: app/api/admin/workflows/upload/route.ts
+==============================
+
+[FILE NOT FOUND]
+
+
+==============================
+FILE: app/dashboard/admin/workflows/page.tsx
+==============================
+
+import Link from "next/link";
+import { ArrowUpLeft } from "lucide-react";
+import { dashboardServices } from "@/lib/constants/services";
+import { prisma } from "@/lib/prisma";
+
+export default async function AdminWorkflowsPage() {
+  const workflows = await prisma.workflow.findMany({
+    where: {
+      isActive: true,
+    },
+    include: {
+      service: true,
+      steps: true,
+    },
+  });
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white shadow-2xl">
+        <p className="text-sm font-bold text-sky-300">Admin Workflows</p>
+        <h1 className="mt-3 text-4xl font-black">Ø¥Ø¯Ø§Ø±Ø© Workflows Ø§Ù„Ø®Ø¯Ù…Ø§Øª</h1>
+        <p className="mt-4 max-w-3xl leading-8 text-slate-300">
+          ÙƒÙ„ Workflow ÙŠØªÙ… Ø±ÙØ¹Ù‡ Ù…Ø±ØªØ¨Ø· Ø¨Ø®Ø¯Ù…Ø© Ù…Ø­Ø¯Ø¯Ø© ÙˆÙ…Ø³ØªÙ‚Ù„ Ø¹Ù† Ø¨Ø§Ù‚ÙŠ Ø§Ù„Ø®Ø¯Ù…Ø§Øª.
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {dashboardServices.map((service) => {
+          const activeWorkflow = workflows.find(
+            (workflow) => workflow.service.slug === service.slug
+          );
+
+          return (
+            <Link
+              key={service.slug}
+              href={`/dashboard/admin/workflows/${service.slug}`}
+              className="group rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow transition hover:-translate-y-1 hover:shadow-xl"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold text-sky-700">
+                    {service.kind === "workflow" ? "Workflow Service" : "Standalone"}
+                  </p>
+                  <h2 className="mt-2 text-xl font-black text-slate-900">
+                    {service.title}
+                  </h2>
+                  <p className="mt-2 text-sm leading-7 text-slate-500">
+                    {service.description}
+                  </p>
+                </div>
+
+                <ArrowUpLeft className="h-5 w-5 text-slate-400 group-hover:text-sky-600" />
+              </div>
+
+              <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm">
+                {activeWorkflow ? (
+                  <p className="font-bold text-emerald-700">
+                    Ù…ÙØ¹Ù„: {activeWorkflow.name} Â· {activeWorkflow.steps.length} Ø®Ø·ÙˆØ§Øª
+                  </p>
+                ) : (
+                  <p className="font-bold text-slate-400">Ù„Ø§ ÙŠÙˆØ¬Ø¯ Workflow Ù…ÙØ¹Ù„</p>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+      </section>
+    </div>
+  );
+}
+
+
+==============================
+FILE: app/dashboard/admin/workflows/[serviceSlug]/page.tsx
+==============================
+
+[FILE NOT FOUND]
+
+
+==============================
+FILE: components/workflow/dynamic-form-renderer.tsx
+==============================
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
+import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { WorkflowStepCard } from "@/components/workflow/workflow-step-card";
+
+import type {
+  RuntimeField,
+  RuntimeStep,
+  RuntimeWorkflow,
+} from "@/engine/runtime/runtime-resolver";
+import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+
+type EvidenceItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
+
+type FeedbackState = {
+  open: boolean;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message?: string;
+};
+
+type SmartStudent = {
+  id: string;
+  fullName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  stage?: string | null;
+  guardianName?: string | null;
+  guardianPhone?: string | null;
+};
+
+type Props = {
+  workflow: RuntimeWorkflow;
+  serviceId: string;
+  requiresStudent?: boolean;
+  title?: string | null;
+  caseId?: string;
+  initialValues?: RuntimeValues;
+  initialEvidenceItems?: EvidenceItem[];
+};
+
+/**
+ * خدمات تسمح بالشواهد على مستوى النظام.
+ * الظهور الفعلي للشواهد لا يكون هنا فقط؛ بل لازم تكون الخطوة الحالية خطوة شواهد.
+ */
+const SERVICES_WITH_EVIDENCE = new Set([
+  "guidance-programs",
+  "student-follow-up",
+  "family-school-communication",
+  "student-guidance-services",
+  "committees-meetings",
+]);
+
+/**
+ * خدمات تحتاج اختيار طالب/طالبة افتراضيًا.
+ * يمكن تجاوزها من الصفحة عبر requiresStudent={false}.
+ */
+const SERVICES_REQUIRING_STUDENT = new Set([
+  "student-follow-up",
+  "family-school-communication",
+  "student-guidance-services",
+]);
+
+function normalizeRuntimeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stepSearchText(step?: RuntimeStep | null) {
+  if (!step) return "";
+
+  return normalizeRuntimeText(
+    [
+      step.title,
+      step.description ?? "",
+      ...step.fields.map((field) =>
+        [
+          field.key,
+          field.label,
+          field.type,
+          field.placeholder ?? "",
+          field.helpText ?? "",
+        ].join(" ")
+      ),
+    ].join(" ")
+  );
+}
+
+function isEvidenceField(field: RuntimeField) {
+  const text = normalizeRuntimeText(
+    [
+      field.key,
+      field.label,
+      field.type,
+      field.placeholder ?? "",
+      field.helpText ?? "",
+    ].join(" ")
+  );
+
+  return (
+    field.type === "FILE_UPLOAD" ||
+    field.type === "IMAGE_UPLOAD" ||
+    text.includes("evidence") ||
+    text.includes("attachment") ||
+    text.includes("attachments") ||
+    text.includes("file_upload") ||
+    text.includes("image_upload") ||
+    text.includes("شواهد") ||
+    text.includes("الشواهد") ||
+    text.includes("مرفقات") ||
+    text.includes("المرفقات") ||
+    text.includes("ملف") ||
+    text.includes("صوره") ||
+    text.includes("صورة")
+  );
+}
+
+function isEvidenceStep(step?: RuntimeStep | null) {
+  if (!step) return false;
+
+  const text = stepSearchText(step);
+
+  return (
+    step.fields.some(isEvidenceField) ||
+    text.includes("evidence") ||
+    text.includes("attachment") ||
+    text.includes("attachments") ||
+    text.includes("شواهد") ||
+    text.includes("الشواهد") ||
+    text.includes("مرفقات") ||
+    text.includes("المرفقات")
+  );
+}
+
+function isStudentPickerField(field: RuntimeField) {
+  const text = normalizeRuntimeText(
+    [field.key, field.label, field.type, field.helpText ?? ""].join(" ")
+  );
+
+  return (
+    field.type === "STUDENT_PICKER" ||
+    text.includes("student_picker") ||
+    text.includes("student picker") ||
+    text.includes("اختيار طالب") ||
+    text.includes("اختيار الطالبه") ||
+    text.includes("اختيار الطالبة") ||
+    text.includes("الطالب المستهدف") ||
+    text.includes("الطالبه المستهدفه") ||
+    text.includes("الطالبة المستهدفة")
+  );
+}
+
+function isStudentPickerStep(step?: RuntimeStep | null) {
+  if (!step) return false;
+
+  const text = stepSearchText(step);
+
+  return (
+    step.fields.some(isStudentPickerField) ||
+    text.includes("student_picker") ||
+    text.includes("student picker") ||
+    text.includes("اختيار طالب") ||
+    text.includes("اختيار الطالبة") ||
+    text.includes("الطالب المستهدف")
+  );
+}
+
+function hasEvidenceStep(workflow: RuntimeWorkflow) {
+  return workflow.steps.some(isEvidenceStep);
+}
+
+function hasStudentPickerStep(workflow: RuntimeWorkflow) {
+  return workflow.steps.some(isStudentPickerStep);
+}
+
+function isEmptyValue(value: unknown) {
+  return (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+export function DynamicFormRenderer({
+  workflow,
+  serviceId,
+  requiresStudent,
+  title,
+  caseId,
+  initialValues,
+  initialEvidenceItems,
+}: Props) {
+  const router = useRouter();
+
+  const steps = useMemo(() => {
+    return [...workflow.steps]
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        ...step,
+        fields: [...step.fields]
+          .sort((a, b) => a.order - b.order)
+          .map((field) => ({
+            ...field,
+            options: [...field.options].sort((a, b) => a.order - b.order),
+          })),
+      }));
+  }, [workflow.steps]);
+
+  const normalizedWorkflow: RuntimeWorkflow = useMemo(
+    () => ({
+      ...workflow,
+      steps,
+    }),
+    [workflow, steps]
+  );
+
+  const workflowHasEvidenceStep = useMemo(
+    () => hasEvidenceStep(normalizedWorkflow),
+    [normalizedWorkflow]
+  );
+
+  const workflowHasStudentPickerStep = useMemo(
+    () => hasStudentPickerStep(normalizedWorkflow),
+    [normalizedWorkflow]
+  );
+
+  const supportsEvidence =
+    SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || workflowHasEvidenceStep;
+
+  const needsStudent =
+    requiresStudent ?? SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});
+  const [selectedStudent, setSelectedStudent] = useState<SmartStudent | null>(
+    () => extractInitialStudent(initialValues)
+  );
+
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>(
+    initialEvidenceItems ?? []
+  );
+
+  const [loading, setLoading] = useState(false);
+
+  const [feedback, setFeedback] = useState<FeedbackState>({
+    open: false,
+    type: "info",
+    title: "",
+  });
+
+  const currentStep = steps[currentStepIndex];
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === steps.length - 1;
+
+  const showEvidenceCard = supportsEvidence && isEvidenceStep(currentStep);
+
+  const showStudentPickerCard =
+    needsStudent &&
+    (isStudentPickerStep(currentStep) ||
+      (!workflowHasStudentPickerStep && isFirstStep));
+
+  const showStudentSummaryCard =
+    needsStudent && !showStudentPickerCard && Boolean(selectedStudent);
+
+  function showFeedback(
+    type: FeedbackState["type"],
+    titleText: string,
+    message?: string
+  ) {
+    setFeedback({
+      open: true,
+      type,
+      title: titleText,
+      message,
+    });
+  }
+
+  /**
+   * يمسح القيم التابعة عند تغيير القيمة الأب.
+   * مثال:
+   * البرنامج تغيّر → يمسح الإجراء التنفيذي والآلية والمؤشر المرتبط بها.
+   */
+  function updateValue(fieldKey: string, value: unknown) {
+    setValues((current) => {
+      const next: RuntimeValues = {
+        ...current,
+        [fieldKey]: value,
+      };
+
+      const dependentKeys = new Set<string>();
+      const changedKeys = new Set<string>([fieldKey]);
+
+      let keepSearching = true;
+
+      while (keepSearching) {
+        keepSearching = false;
+
+        for (const step of steps) {
+          for (const field of step.fields) {
+            if (!field.dependsOnFieldKey) continue;
+
+            if (
+              changedKeys.has(field.dependsOnFieldKey) &&
+              !dependentKeys.has(field.key)
+            ) {
+              dependentKeys.add(field.key);
+              changedKeys.add(field.key);
+              keepSearching = true;
+            }
+          }
+        }
+      }
+
+      for (const key of dependentKeys) {
+        delete next[key];
+        delete next[`${key}__other`];
+      }
+
+      return next;
+    });
+  }
+
+  function handleStudentSelected(student: SmartStudent | null) {
+    setSelectedStudent(student);
+
+    setValues((current) => ({
+      ...current,
+      selectedStudent: student
+        ? {
+            id: student.id,
+            fullName: student.fullName,
+            nationalId: student.nationalId,
+            grade: student.grade,
+            classroom: student.classroom,
+            stage: student.stage,
+            guardianName: student.guardianName,
+            guardianPhone: student.guardianPhone,
+          }
+        : null,
+    }));
+  }
+
+  function validateStudentSelection() {
+    if (!needsStudent) return true;
+
+    if (selectedStudent?.id) return true;
+
+    showFeedback(
+      "warning",
+      "اختيار الطالب/الطالبة مطلوب",
+      "اختر الطالب/الطالبة أولًا قبل حفظ أو إرسال الحالة."
+    );
+
+    return false;
+  }
+
+  function shouldShowFieldInCurrentValues(field: RuntimeField) {
+    if (!field.dependsOnFieldKey) return true;
+
+    const parentValue = values[field.dependsOnFieldKey];
+
+    if (isEmptyValue(parentValue)) return false;
+
+    if (!field.linkedToValue) return true;
+
+    if (Array.isArray(parentValue)) {
+      return parentValue.map(String).includes(String(field.linkedToValue));
+    }
+
+    return String(parentValue) === String(field.linkedToValue);
+  }
+
+  function validateCurrentStep() {
+    if (!validateStudentSelection()) return false;
+
+    if (!currentStep) return true;
+
+    const visibleFields = currentStep.fields.filter(shouldShowFieldInCurrentValues);
+
+    for (const field of visibleFields) {
+      if (!field.isRequired) continue;
+
+      const value = values[field.key];
+
+      if (isEmptyValue(value)) {
+        showFeedback(
+          "warning",
+          "حقل مطلوب",
+          `يرجى تعبئة الحقل: ${field.label}`
+        );
+
+        return false;
+      }
+
+      if (value === "__OTHER__" && isEmptyValue(values[`${field.key}__other`])) {
+        showFeedback(
+          "warning",
+          "تفصيل خيار أخرى مطلوب",
+          `يرجى كتابة قيمة خيار أخرى في الحقل: ${field.label}`
+        );
+
+        return false;
+      }
+
+      if (
+        Array.isArray(value) &&
+        value.includes("__OTHER__") &&
+        isEmptyValue(values[`${field.key}__other`])
+      ) {
+        showFeedback(
+          "warning",
+          "تفصيل خيار أخرى مطلوب",
+          `يرجى كتابة قيمة خيار أخرى في الحقل: ${field.label}`
+        );
+
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  async function handleSave(type: "draft" | "submit") {
+    if (!validateStudentSelection()) return;
+    if (type === "submit" && !validateCurrentStep()) return;
+
+    try {
+      setLoading(true);
+
+      const endpoint = caseId
+        ? `/api/dashboard/cases/${caseId}`
+        : type === "submit"
+          ? "/api/dashboard/cases/submit"
+          : "/api/dashboard/cases/save-draft";
+
+      const response = await fetch(endpoint, {
+        method: caseId ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          workflowId: workflow.id,
+          serviceId,
+          title: title || workflow.name,
+          studentId: selectedStudent?.id ?? null,
+
+          values: {
+            ...values,
+            selectedStudent: selectedStudent
+              ? {
+                  id: selectedStudent.id,
+                  fullName: selectedStudent.fullName,
+                  nationalId: selectedStudent.nationalId,
+                  grade: selectedStudent.grade,
+                  classroom: selectedStudent.classroom,
+                  stage: selectedStudent.stage,
+                  guardianName: selectedStudent.guardianName,
+                  guardianPhone: selectedStudent.guardianPhone,
+                }
+              : null,
+          },
+
+          status: type === "submit" ? "SUBMITTED" : "DRAFT",
+          evidenceItems: supportsEvidence ? evidenceItems : [],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "حدث خطأ أثناء حفظ الحالة.");
+      }
+
+      showFeedback(
+        "success",
+        type === "submit" ? "تم إرسال الحالة" : "تم حفظ المسودة",
+        "تم حفظ البيانات بنجاح."
+      );
+
+      setTimeout(() => {
+        router.push(`/dashboard/cases/${data.caseId}`);
+        router.refresh();
+      }, 700);
+    } catch (error) {
+      showFeedback(
+        "error",
+        "تعذر الحفظ",
+        error instanceof Error ? error.message : "حدث خطأ غير متوقع."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function goNext() {
+    if (!validateCurrentStep()) return;
+
+    setCurrentStepIndex((current) => Math.min(current + 1, steps.length - 1));
+  }
+
+  function goPrevious() {
+    setCurrentStepIndex((current) => Math.max(current - 1, 0));
+  }
+
+  function handleEvidenceUploaded(items: EvidenceItem[]) {
+    setEvidenceItems((current) => [...current, ...items]);
+
+    showFeedback(
+      "success",
+      "تم رفع الشواهد",
+      "تمت إضافة الشواهد إلى الحالة بنجاح."
+    );
+  }
+
+  function handleDeleteEvidence(id: string) {
+    setEvidenceItems((current) => current.filter((item) => item.id !== id));
+
+    showFeedback("info", "تم حذف الشاهد", "تم حذف الشاهد من قائمة الشواهد.");
+  }
+
+  if (!currentStep) {
+    return (
+      <main className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
+        <h1 className="text-2xl font-black text-amber-900">
+          لا توجد خطوات في هذا النموذج
+        </h1>
+
+        <p className="mt-2 text-sm leading-7 text-amber-800">
+          لم يتم العثور على خطوات Workflow لهذه الخدمة. راجع ملف Excel أو إعدادات
+          النشر من لوحة الأدمن.
+        </p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="space-y-8">
+      <SmartFeedbackModal
+        open={feedback.open}
+        type={feedback.type}
+        title={feedback.title}
+        description={feedback.message}
+        onOpenChange={(open) => setFeedback((current) => ({ ...current, open }))}
+      />
+
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-10 text-white shadow-2xl">
+        <p className="text-sm font-bold text-sky-100">Workflow Runtime</p>
+
+        <h1 className="mt-4 text-4xl font-black">{title || workflow.name}</h1>
+
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-50">
+          نموذج ديناميكي مبني على Workflow منشور. الحقول والخيارات والتبعيات
+          تظهر حسب إعدادات الخدمة والبيانات المرفوعة من لوحة الأدمن.
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+            الخطوة {currentStepIndex + 1} من {steps.length}
+          </span>
+
+          {needsStudent ? (
+            <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+              يتطلب اختيار طالب/طالبة
+            </span>
+          ) : null}
+
+          {supportsEvidence ? (
+            <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+              يدعم الشواهد
+            </span>
+          ) : null}
+        </div>
+      </section>
+
+      {showStudentPickerCard ? (
+        <SmartStudentPickerCard
+          selectedStudent={selectedStudent}
+          onStudentSelected={handleStudentSelected}
+        />
+      ) : null}
+
+      {showStudentSummaryCard && selectedStudent ? (
+        <StudentContextSummary
+          student={selectedStudent}
+          onEdit={() => {
+            const pickerIndex = steps.findIndex(isStudentPickerStep);
+            setCurrentStepIndex(pickerIndex >= 0 ? pickerIndex : 0);
+          }}
+        />
+      ) : null}
+
+      <StepProgress currentStepIndex={currentStepIndex} steps={steps} />
+
+      <WorkflowStepCard
+        step={currentStep}
+        values={values}
+        serviceSlug={workflow.serviceSlug}
+        onChange={updateValue}
+      />
+
+      {showEvidenceCard ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mb-6">
+            <p className="text-sm font-black text-sky-600">شواهد الحالة</p>
+
+            <h2 className="mt-2 text-3xl font-black text-slate-900">
+              الشواهد والمرفقات
+            </h2>
+
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              أضف الصور أو الملفات الداعمة لهذه الحالة. تظهر هذه البطاقة فقط في
+              خطوة الشواهد، ولا تظهر في باقي الخطوات.
+            </p>
+          </div>
+
+          <EvidenceUploadCard onUploaded={handleEvidenceUploaded} />
+
+          <div className="mt-6">
+            <EvidencePreviewGrid
+              items={evidenceItems}
+              onDelete={handleDeleteEvidence}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={goPrevious}
+            disabled={isFirstStep || loading}
+            className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            السابق
+          </button>
+
+          {!isLastStep ? (
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={loading}
+              className="rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              التالي
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => handleSave("draft")}
+            disabled={loading}
+            className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            حفظ مسودة
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSave("submit")}
+            disabled={loading}
+            className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "جاري الحفظ..." : caseId ? "تحديث الحالة" : "إرسال"}
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function extractInitialStudent(
+  initialValues: RuntimeValues | undefined
+): SmartStudent | null {
+  const value = initialValues?.selectedStudent;
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null;
+  }
+
+  return {
+    id: value.id,
+    fullName:
+      "fullName" in value && typeof value.fullName === "string"
+        ? value.fullName
+        : "طالب/طالبة",
+    nationalId:
+      "nationalId" in value && typeof value.nationalId === "string"
+        ? value.nationalId
+        : null,
+    grade:
+      "grade" in value && typeof value.grade === "string"
+        ? value.grade
+        : null,
+    classroom:
+      "classroom" in value && typeof value.classroom === "string"
+        ? value.classroom
+        : null,
+    stage:
+      "stage" in value && typeof value.stage === "string" ? value.stage : null,
+    guardianName:
+      "guardianName" in value && typeof value.guardianName === "string"
+        ? value.guardianName
+        : null,
+    guardianPhone:
+      "guardianPhone" in value && typeof value.guardianPhone === "string"
+        ? value.guardianPhone
+        : null,
+  };
+}
+
+function StepProgress({
+  currentStepIndex,
+  steps,
+}: {
+  currentStepIndex: number;
+  steps: RuntimeStep[];
+}) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap gap-2">
+        {steps.map((step, index) => {
+          const isActive = index === currentStepIndex;
+          const isDone = index < currentStepIndex;
+
+          return (
+            <div
+              key={step.id}
+              className={[
+                "flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-black",
+                isActive
+                  ? "border-sky-200 bg-sky-50 text-sky-700"
+                  : isDone
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-slate-50 text-slate-500",
+              ].join(" ")}
+            >
+              <span>{index + 1}</span>
+              <span>{step.title}</span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SmartStudentPickerCard({
+  selectedStudent,
+  onStudentSelected,
+}: {
+  selectedStudent: SmartStudent | null;
+  onStudentSelected: (student: SmartStudent | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [students, setStudents] = useState<SmartStudent[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery.length < 2) {
+      setStudents([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function searchStudents() {
+      try {
+        setLoading(true);
+
+        const response = await fetch(
+          `/api/dashboard/students/search?q=${encodeURIComponent(trimmedQuery)}`,
+          {
+            signal: controller.signal,
+          }
+        );
+
+        const data = await response.json();
+        const normalizedStudents = normalizeStudentsResponse(data);
+
+        setStudents(normalizedStudents);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const timer = window.setTimeout(searchStudents, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <section className="rounded-[2rem] border border-sky-200 bg-sky-50/70 p-6 shadow-sm">
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <div>
+          <p className="text-sm font-black text-sky-700">
+            اختيار الطالب/الطالبة
+          </p>
+
+          <h2 className="mt-2 text-2xl font-black text-slate-900">
+            اختر الطالب/الطالبة المرتبط بهذه الحالة
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-slate-600">
+            ابحث باسم الطالب/الطالبة أو رقم الهوية. بعد الاختيار سيتم ربط
+            الحالة بسجل الطالب/الطالبة وبيانات ولي الأمر.
+          </p>
+
+          <div className="relative mt-5">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="اكتب اسم الطالب/الطالبة أو رقم الهوية..."
+              className="h-14 w-full rounded-2xl border border-sky-200 bg-white px-5 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+            />
+
+            {query.trim().length >= 2 ? (
+              <div className="absolute z-30 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                {loading ? (
+                  <div className="p-4 text-sm font-bold text-slate-500">
+                    جاري البحث...
+                  </div>
+                ) : students.length ? (
+                  students.map((student) => (
+                    <button
+                      key={student.id}
+                      type="button"
+                      onClick={() => {
+                        onStudentSelected(student);
+                        setQuery("");
+                        setStudents([]);
+                      }}
+                      className="w-full rounded-xl p-3 text-right transition hover:bg-sky-50"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <strong className="text-sm text-slate-900">
+                          {student.fullName}
+                        </strong>
+
+                        <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500">
+                          {student.nationalId || "بدون هوية"}
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {[
+                          student.stage,
+                          student.grade,
+                          student.classroom
+                            ? `فصل ${student.classroom}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" - ") || "لا توجد بيانات صفية"}
+                      </p>
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-4 text-sm font-bold text-slate-500">
+                    لا توجد نتائج مطابقة.
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-sky-100 bg-white p-5">
+          {selectedStudent ? (
+            <StudentSelectedCard
+              student={selectedStudent}
+              onClear={() => onStudentSelected(null)}
+            />
+          ) : (
+            <div className="flex h-full min-h-44 flex-col justify-center rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-5 text-center">
+              <p className="text-sm font-black text-sky-700">
+                لم يتم اختيار طالب/طالبة
+              </p>
+
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                اختيار الطالب/الطالبة يساعد في التقارير والتصدير وتتبع الحالات.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StudentContextSummary({
+  student,
+  onEdit,
+}: {
+  student: SmartStudent;
+  onEdit: () => void;
+}) {
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div>
+        <p className="text-xs font-black text-slate-500">
+          الطالب/الطالبة المرتبط بالحالة
+        </p>
+
+        <h3 className="mt-1 text-lg font-black text-slate-900">
+          {student.fullName}
+        </h3>
+
+        <p className="mt-1 text-xs text-slate-500">
+          {[
+            student.stage,
+            student.grade,
+            student.classroom ? `فصل ${student.classroom}` : null,
+            student.guardianName ? `ولي الأمر: ${student.guardianName}` : null,
+          ]
+            .filter(Boolean)
+            .join(" - ")}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+      >
+        تعديل الاختيار
+      </button>
+    </section>
+  );
+}
+
+function StudentSelectedCard({
+  student,
+  onClear,
+}: {
+  student: SmartStudent;
+  onClear: () => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-emerald-700">
+            تم اختيار الطالب/الطالبة
+          </p>
+
+          <h3 className="mt-1 text-lg font-black text-slate-900">
+            {student.fullName}
+          </h3>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-100"
+        >
+          مسح
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-2 text-xs">
+        <InfoRow label="رقم الهوية" value={student.nationalId || "غير متاح"} />
+        <InfoRow label="المرحلة" value={student.stage || "غير متاح"} />
+        <InfoRow label="الصف" value={student.grade || "غير متاح"} />
+        <InfoRow label="الفصل" value={student.classroom || "غير متاح"} />
+        <InfoRow label="ولي الأمر" value={student.guardianName || "غير متاح"} />
+        <InfoRow
+          label="جوال ولي الأمر"
+          value={student.guardianPhone || "غير متاح"}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2">
+      <span className="font-bold text-slate-500">{label}</span>
+      <strong className="text-slate-800">{value}</strong>
+    </div>
+  );
+}
+
+function normalizeStudentsResponse(data: unknown): SmartStudent[] {
+  const source = Array.isArray(data)
+    ? data
+    : data &&
+        typeof data === "object" &&
+        "students" in data &&
+        Array.isArray(data.students)
+      ? data.students
+      : data &&
+          typeof data === "object" &&
+          "items" in data &&
+          Array.isArray(data.items)
+        ? data.items
+        : [];
+
+  return source
+    .map((item) => normalizeStudent(item))
+    .filter((student): student is SmartStudent => Boolean(student));
+}
+
+function normalizeStudent(item: unknown): SmartStudent | null {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const record = item as Record<string, unknown>;
+
+  const id = safeString(record.id);
+  const fullName =
+    safeString(record.fullName) ||
+    safeString(record.name) ||
+    safeString(record.studentName);
+
+  if (!id || !fullName) {
+    return null;
+  }
+
+  const guardian =
+    record.guardian && typeof record.guardian === "object"
+      ? (record.guardian as Record<string, unknown>)
+      : null;
+
+  return {
+    id,
+    fullName,
+    nationalId: safeString(record.nationalId),
+    grade: safeString(record.grade),
+    classroom: safeString(record.classroom),
+    stage: safeString(record.stage),
+    guardianName:
+      safeString(record.guardianName) ||
+      safeString(guardian?.name) ||
+      safeString(guardian?.fullName),
+    guardianPhone:
+      safeString(record.guardianPhone) ||
+      safeString(guardian?.phone) ||
+      safeString(guardian?.mobile),
+  };
+}
+
+function safeString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+
+==============================
+FILE: components/workflow/workflow-step-card.tsx
+==============================
+
+"use client";
+
+import {
+  CommitteeChainRepeater,
+  isCommitteeRowsValid,
+} from "@/components/committees/committee-chain-repeater";
+import { DynamicFieldRenderer } from "@/components/workflow/dynamic-field-renderer";
+import {
+  shouldShowField,
+  type RuntimeValues,
+} from "@/engine/runtime/field-dependency-engine";
+import type { RuntimeField, RuntimeStep } from "@/engine/runtime/runtime-resolver";
+
+type WorkflowStepCardProps = {
+  step: RuntimeStep;
+  values: RuntimeValues;
+  serviceSlug: string;
+  onChange: (key: string, value: unknown) => void;
+};
+
+function textOf(field: RuntimeField) {
+  return `${field.key} ${field.label}`.toLowerCase();
+}
+
+function isAgendaField(field: RuntimeField) {
+  const text = textOf(field);
+  return (
+    text.includes("agenda") ||
+    text.includes("committee_agenda") ||
+    text.includes("Ø¬Ø¯ÙˆÙ„") ||
+    text.includes("Ø§Ù„Ø£Ø¹Ù…Ø§Ù„") ||
+    text.includes("Ø§Ù„Ø§Ø¹Ù…Ø§Ù„")
+  );
+}
+
+function isDiscussionField(field: RuntimeField) {
+  const text = textOf(field);
+  return (
+    text.includes("discussion") ||
+    text.includes("committee_discussion") ||
+    text.includes("Ù…Ø­ÙˆØ±") ||
+    text.includes("Ù†Ù‚Ø§Ø´")
+  );
+}
+
+function isRecommendationField(field: RuntimeField) {
+  const text = textOf(field);
+  return (
+    text.includes("recommendation") ||
+    text.includes("committee_recommendation") ||
+    text.includes("ØªÙˆØµÙŠØ©") ||
+    text.includes("Ø§Ù„ØªÙˆØµÙŠØ©") ||
+    text.includes("Ø§Ù„ØªÙˆØµÙŠØ§Øª")
+  );
+}
+
+function isCommitteeChainField(field: RuntimeField) {
+  return isAgendaField(field) || isDiscussionField(field) || isRecommendationField(field);
+}
+
+export function isCommitteeChainStep(step?: RuntimeStep | null) {
+  if (!step) return false;
+
+  return (
+    step.fields.some(isAgendaField) &&
+    step.fields.some(isDiscussionField) &&
+    step.fields.some(isRecommendationField)
+  );
+}
+
+export function WorkflowStepCard({
+  step,
+  values,
+  serviceSlug,
+  onChange,
+}: WorkflowStepCardProps) {
+  const visibleFields = step.fields.filter((field) =>
+    shouldShowField(field, values)
+  );
+
+  const shouldRenderCommitteeChain =
+    serviceSlug === "committees-meetings" && isCommitteeChainStep(step);
+
+  const normalFields = shouldRenderCommitteeChain
+    ? visibleFields.filter((field) => !isCommitteeChainField(field))
+    : visibleFields;
+
+  const committeeValid = isCommitteeRowsValid(values.committee_items);
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-6 border-b border-slate-100 pb-5">
+        <p className="text-sm font-bold text-sky-700">Ø§Ù„Ø®Ø·ÙˆØ© {step.order}</p>
+
+        <h2 className="mt-2 text-2xl font-black text-slate-900">
+          {step.title}
+        </h2>
+
+        {step.description ? (
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            {step.description}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        {normalFields.map((field) => (
+          <div
+            key={field.id}
+            className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+          >
+            <DynamicFieldRenderer
+              field={field}
+              value={values[field.key]}
+              values={values}
+              onChange={(key, value) => onChange(key, value)}
+            />
+          </div>
+        ))}
+
+        {shouldRenderCommitteeChain ? (
+          <div className="md:col-span-2">
+            <CommitteeChainRepeater
+              fields={step.fields}
+              value={
+                Array.isArray(values.committee_items)
+                  ? (values.committee_items as any[])
+                  : undefined
+              }
+              onChange={(rows) => onChange("committee_items", rows)}
+            />
+
+            {!committeeValid ? (
+              <p className="mt-3 text-sm font-bold text-rose-500">
+                ÙŠØ¬Ø¨ Ø¥ÙƒÙ…Ø§Ù„ ØµÙ ÙˆØ§Ø­Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„: Ø¬Ø¯ÙˆÙ„ Ø£Ø¹Ù…Ø§Ù„ + Ù…Ø­ÙˆØ± Ù†Ù‚Ø§Ø´ + ØªÙˆØµÙŠØ©.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {normalFields.length === 0 && !shouldRenderCommitteeChain ? (
+          <div className="rounded-2xl bg-slate-50 p-6 text-sm font-semibold text-slate-400">
+            Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­Ù‚ÙˆÙ„ Ø¸Ø§Ù‡Ø±Ø© ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„Ø®Ø·ÙˆØ© Ø­Ø§Ù„ÙŠÙ‹Ø§.
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+
+==============================
+FILE: components/students/student-picker.tsx
+==============================
+
+[FILE NOT FOUND]
+
+
+==============================
+FILE: app/dashboard/family-school-communication/page.tsx
+==============================
+
+import { ServiceWorkspace } from "@/components/service-ui/service-workspace";
+import { getServiceWorkspace } from "@/engine/services/service-workspace-engine";
+
+export default async function FamilySchoolCommunicationPage() {
+  const workspace = await getServiceWorkspace({
+    slug: "family-school-communication",
+    name: "Ø§Ù„ØªÙˆØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø£Ø³Ø±Ø© ÙˆØ§Ù„Ù…Ø¯Ø±Ø³Ø©",
+    description:
+      "ØªÙˆØ«ÙŠÙ‚ Ø§Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ Ø§Ù„Ø£Ø³Ø±Ø©ØŒ Ø³Ø¨Ø¨ Ø§Ù„ØªÙˆØ§ØµÙ„ØŒ Ù…Ø§ ØªÙ… Ù…Ù†Ø§Ù‚Ø´ØªÙ‡ØŒ ÙˆØ§Ù„Ù†ØªÙŠØ¬Ø© Ø¶Ù…Ù† Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø®Ø¯Ù…Ø©.",
+  });
+
+  return <ServiceWorkspace {...workspace} />;
+}
+
+
+==============================
+FILE: app/dashboard/family-school-communication/new/page.tsx
+==============================
+
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { ensureServiceBySlug } from "@/engine/services/service-workspace-engine";
+import { prisma } from "@/lib/prisma";
+
+async function ensureFamilyCommunicationWorkflow() {
+  const service = await ensureServiceBySlug({
+    slug: "family-school-communication",
+    name: "Ø§Ù„ØªÙˆØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø£Ø³Ø±Ø© ÙˆØ§Ù„Ù…Ø¯Ø±Ø³Ø©",
+    description: "ØªÙˆØ«ÙŠÙ‚ Ø§Ù„ØªÙˆØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø£Ø³Ø±Ø© ÙˆØ§Ù„Ù…Ø¯Ø±Ø³Ø©.",
+  });
+
+  const existingWorkflow = await prisma.workflow.findFirst({
+    where: {
+      serviceId: service.id,
+      isActive: true,
+    },
+    include: {
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (existingWorkflow) return { service, workflow: existingWorkflow };
+
+  const workflow = await prisma.workflow.create({
+    data: {
+      serviceId: service.id,
+      name: "Ù†Ù…ÙˆØ°Ø¬ Ø§Ù„ØªÙˆØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø£Ø³Ø±Ø© ÙˆØ§Ù„Ù…Ø¯Ø±Ø³Ø©",
+      version: 1,
+      status: "ACTIVE",
+      isActive: true,
+      steps: {
+        create: [
+          {
+            title: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙˆØ§ØµÙ„",
+            description: "Ø­Ø¯Ø¯ Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„ØªÙˆØ§ØµÙ„ ÙˆØ³Ø¨Ø¨Ù‡.",
+            order: 1,
+            fields: {
+              create: [
+                {
+                  key: "communication_method",
+                  label: "Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„ØªÙˆØ§ØµÙ„",
+                  type: "SELECT",
+                  isRequired: true,
+                  order: 1,
+                  options: {
+                    create: [
+                      { label: "Ø§ØªØµØ§Ù„ Ù‡Ø§ØªÙÙŠ", value: "phone", order: 1 },
+                      { label: "Ø±Ø³Ø§Ù„Ø©", value: "message", order: 2 },
+                      { label: "Ø­Ø¶ÙˆØ± ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±", value: "visit", order: 3 },
+                    ],
+                  },
+                },
+                {
+                  key: "communication_reason",
+                  label: "Ø³Ø¨Ø¨ Ø§Ù„ØªÙˆØ§ØµÙ„",
+                  type: "SELECT",
+                  isRequired: true,
+                  order: 2,
+                  allowOther: true,
+                  options: {
+                    create: [
+                      { label: "ØºÙŠØ§Ø¨ Ø§Ù„Ø·Ø§Ù„Ø¨", value: "absence", order: 1 },
+                      { label: "Ø¶Ø¹Ù ØªØ­ØµÙŠÙ„ÙŠ", value: "low_achievement", order: 2 },
+                      { label: "Ø³Ù„ÙˆÙƒ Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ø¯Ø±Ø³Ø©", value: "behavior", order: 3 },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            title: "Ù…Ø­ØªÙˆÙ‰ Ø§Ù„ØªÙˆØ§ØµÙ„",
+            description: "ÙˆØ«Ù‘Ù‚ Ù…Ø§ ØªÙ… Ù…Ù†Ø§Ù‚Ø´ØªÙ‡ ÙˆØ§Ù„Ù†ØªÙŠØ¬Ø©.",
+            order: 2,
+            fields: {
+              create: [
+                {
+                  key: "discussion_summary",
+                  label: "Ù…Ø§ ØªÙ… Ù…Ù†Ø§Ù‚Ø´ØªÙ‡",
+                  type: "TEXTAREA",
+                  isRequired: true,
+                  order: 1,
+                },
+                {
+                  key: "communication_result",
+                  label: "Ù†ØªÙŠØ¬Ø© Ø§Ù„ØªÙˆØ§ØµÙ„",
+                  type: "SELECT",
+                  isRequired: true,
+                  order: 2,
+                  allowOther: true,
+                  options: {
+                    create: [
+                      { label: "ØªÙ… Ø§Ù„Ø§ØªÙØ§Ù‚ Ø¹Ù„Ù‰ Ù…ØªØ§Ø¨Ø¹Ø©", value: "followup", order: 1 },
+                      { label: "ØªÙ… Ø­Ù„ Ø§Ù„Ù…Ø´ÙƒÙ„Ø©", value: "resolved", order: 2 },
+                      { label: "Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø±Ø¯", value: "no_response", order: 3 },
+                    ],
+                  },
+                },
+                {
+                  key: "notes",
+                  label: "Ù…Ù„Ø§Ø­Ø¸Ø§Øª",
+                  type: "TEXTAREA",
+                  isRequired: false,
+                  order: 3,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+    include: {
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return { service, workflow };
+}
+
+export default async function NewFamilySchoolCommunicationPage() {
+  const { service, workflow } = await ensureFamilyCommunicationWorkflow();
+
+  const runtimeWorkflow = {
+    id: workflow.id,
+    name: workflow.name,
+    serviceSlug: service.slug,
+    steps: workflow.steps
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        order: step.order,
+        fields: step.fields
+          .sort((a, b) => a.order - b.order)
+          .map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            type: field.type,
+            placeholder: field.placeholder,
+            helpText: field.helpText,
+            isRequired: field.isRequired,
+            order: field.order,
+            dependsOnFieldKey: field.dependsOnFieldKey,
+            linkedToValue: field.linkedToValue,
+            allowOther: field.allowOther,
+            options: field.options
+              .sort((a, b) => a.order - b.order)
+              .map((option) => ({
+                id: option.id,
+                label: option.label,
+                value: option.value,
+                order: option.order,
+                linkedToValue: option.linkedToValue,
+              })),
+          })),
+      })),
+  };
+
+  return (
+    <DynamicFormRenderer
+      workflow={runtimeWorkflow}
+      serviceId={service.id}
+      requiresStudent
+      title="ØªÙˆØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø£Ø³Ø±Ø© ÙˆØ§Ù„Ù…Ø¯Ø±Ø³Ø©"
+    />
+  );
+}
+
+
+==============================
+FILE: app/dashboard/page.tsx
+==============================
+
+import { SoftBlueDashboard } from "@/components/dashboard/soft-blue-dashboard";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { prisma } from "@/lib/prisma";
+
+export default async function DashboardPage() {
+  const current = await requireDashboardUser();
+  const schoolAccountId = current.user.schoolAccountId;
+
+  const [students, cases, reports, evidences] = await Promise.all([
+    schoolAccountId
+      ? prisma.student.count({
+          where: {
+            schoolAccountId,
+          },
+        })
+      : 0,
+
+    schoolAccountId
+      ? prisma.caseEntry.count({
+          where: {
+            schoolAccountId,
+          },
+        })
+      : 0,
+
+    prisma.guidanceReport.count({
+      where: {
+        caseEntry: schoolAccountId
+          ? {
+              schoolAccountId,
+            }
+          : undefined,
+      },
+    }),
+
+    prisma.reportEvidence.count({
+      where: {
+        report: {
+          caseEntry: schoolAccountId
+            ? {
+                schoolAccountId,
+              }
+            : undefined,
+        },
+      },
+    }),
+  ]);
+
+  return (
+    <SoftBlueDashboard
+      user={current.user}
+      stats={{
+        students,
+        cases,
+        reports,
+        evidences,
+      }}
+    />
+  );
+}
+
