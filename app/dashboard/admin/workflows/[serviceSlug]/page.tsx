@@ -1,10 +1,12 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { WorkflowHealthReport } from "@/components/admin/workflow-health/workflow-health-report";
 import { validateWorkflow } from "@/engine/workflow-validation/workflow-validator";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 import { dashboardServices } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
 
 type PageProps = {
   params: Promise<{
@@ -13,6 +15,8 @@ type PageProps = {
 };
 
 export default async function ServiceWorkflowPage({ params }: PageProps) {
+  await requireAdminPage();
+
   const { serviceSlug } = await params;
 
   const serviceConfig = dashboardServices.find(
@@ -29,6 +33,9 @@ export default async function ServiceWorkflowPage({ params }: PageProps) {
     },
     include: {
       workflows: {
+        where: {
+          workflowType: WORKFLOW_TYPES.DEFAULT,
+        },
         include: {
           steps: {
             include: {

@@ -1,6 +1,8 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
 
 type PageProps = {
   params: Promise<{
@@ -18,11 +20,14 @@ type WorkflowBuilderStep = {
 };
 
 export default async function WorkflowBuilderDetailsPage({ params }: PageProps) {
+  await requireAdminPage();
+
   const { workflowId } = await params;
 
-  const workflow = await prisma.workflow.findUnique({
+  const workflow = await prisma.workflow.findFirst({
     where: {
       id: workflowId,
+      workflowType: WORKFLOW_TYPES.DEFAULT,
     },
     include: {
       service: true,

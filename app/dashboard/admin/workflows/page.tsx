@@ -1,11 +1,16 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { ArrowUpLeft } from "lucide-react";
 import { dashboardServices } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
 
 export default async function AdminWorkflowsPage() {
+  await requireAdminPage();
+
   const workflows = await prisma.workflow.findMany({
     where: {
+      workflowType: WORKFLOW_TYPES.DEFAULT,
       isActive: true,
     },
     include: {
