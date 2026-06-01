@@ -1,3 +1,5 @@
+﻿import { prisma } from "@/lib/prisma";
+
 export type RuntimeOption = {
   id: string;
   label: string;
@@ -33,6 +35,7 @@ export type RuntimeWorkflow = {
   id: string;
   name: string;
   serviceSlug: string;
+  workflowType?: string;
   steps: RuntimeStep[];
 };
 
@@ -43,13 +46,20 @@ export function sortRuntimeWorkflow(workflow: RuntimeWorkflow): RuntimeWorkflow 
       .sort((a, b) => a.order - b.order)
       .map((step) => ({
         ...step,
-        fields: [...step.fields].sort((a, b) => a.order - b.order),
+        fields: [...step.fields]
+          .sort((a, b) => a.order - b.order)
+          .map((field) => ({
+            ...field,
+            options: [...field.options].sort((a, b) => a.order - b.order),
+          })),
       })),
   };
 }
-import { prisma } from "@/lib/prisma";
 
-export async function getRuntimeWorkflowByServiceSlug(serviceSlug: string) {
+export async function getRuntimeWorkflowByServiceSlug(
+  serviceSlug: string,
+  workflowType = "default",
+) {
   const service = await prisma.service.findUnique({
     where: {
       slug: serviceSlug,
@@ -58,7 +68,8 @@ export async function getRuntimeWorkflowByServiceSlug(serviceSlug: string) {
       workflows: {
         where: {
           isActive: true,
-          
+          status: "ACTIVE",
+          workflowType,
         },
         include: {
           steps: {
@@ -91,6 +102,7 @@ export async function getRuntimeWorkflowByServiceSlug(serviceSlug: string) {
       id: workflow.id,
       name: workflow.name,
       serviceSlug: service.slug,
+      workflowType: workflow.workflowType,
       steps: workflow.steps.map((step) => ({
         id: step.id,
         title: step.title,
