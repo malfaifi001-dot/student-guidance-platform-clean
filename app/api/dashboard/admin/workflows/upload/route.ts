@@ -1,9 +1,16 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
 import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
 import { dashboardServices } from "@/lib/constants/services";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 
 export async function POST(request: Request) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
   try {
     const formData = await request.formData();
 
