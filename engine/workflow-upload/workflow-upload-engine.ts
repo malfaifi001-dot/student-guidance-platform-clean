@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
 import type { ParsedWorkflowRow } from "@/lib/workflow-upload/workflow-excel-parser";
 
 const allowedFieldTypes = new Set([
@@ -96,6 +97,7 @@ export async function uploadWorkflowForService(params: {
   await prisma.workflow.updateMany({
     where: {
       serviceId: service.id,
+      workflowType: WORKFLOW_TYPES.DEFAULT,
       isActive: true,
     },
     data: {
@@ -105,13 +107,17 @@ export async function uploadWorkflowForService(params: {
   });
 
   const latestWorkflow = await prisma.workflow.findFirst({
-    where: { serviceId: service.id },
+    where: {
+      serviceId: service.id,
+      workflowType: WORKFLOW_TYPES.DEFAULT,
+    },
     orderBy: { version: "desc" },
   });
 
   const workflow = await prisma.workflow.create({
     data: {
       serviceId: service.id,
+      workflowType: WORKFLOW_TYPES.DEFAULT,
       name: `${service.name} Workflow`,
       version: latestWorkflow ? latestWorkflow.version + 1 : 1,
       status: "ACTIVE",
