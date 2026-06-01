@@ -4,23 +4,14 @@ import {
   createReadableActivationCode,
   ensureSimpleActivationPlan,
 } from "@/lib/activation/activation-service";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 
-async function requireAdmin() {
-  const current = await getCurrentSessionUser();
-
-  if (!current?.user || current.user.role !== "ADMIN") {
-    return null;
-  }
-
-  return current;
-}
-
 export async function GET() {
-  const current = await requireAdmin();
+  const adminError = await requireAdminApi();
 
-  if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+  if (adminError) {
+    return adminError;
   }
 
   await ensureSimpleActivationPlan();
@@ -73,10 +64,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const current = await requireAdmin();
+  const adminError = await requireAdminApi();
 
-  if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
   }
 
   const payload = await request.json().catch(() => null);
