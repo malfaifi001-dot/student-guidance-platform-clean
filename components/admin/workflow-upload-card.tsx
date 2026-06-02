@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,29 @@ type WorkflowUploadCardProps = {
   serviceName: string;
 };
 
+const workflowPlacements = [
+  {
+    value: "service-main",
+    label: "Workflow أساسي للخدمة",
+  },
+  {
+    value: "guardian-summons",
+    label: "استدعاء ولي أمر",
+  },
+  {
+    value: "letter",
+    label: "خطاب عام",
+  },
+  {
+    value: "certificate",
+    label: "شهادة",
+  },
+  {
+    value: "form",
+    label: "نموذج",
+  },
+];
+
 export function WorkflowUploadCard({
   serviceSlug,
   serviceName,
@@ -16,12 +39,14 @@ export function WorkflowUploadCard({
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [workflowType, setWorkflowType] = useState("service-main");
 
   async function uploadWorkflow(formData: FormData) {
     setIsUploading(true);
     setMessage(null);
 
     formData.set("serviceSlug", serviceSlug);
+    formData.set("workflowType", workflowType);
 
     try {
       const response = await fetch("/api/dashboard/admin/workflows/upload", {
@@ -55,17 +80,35 @@ export function WorkflowUploadCard({
         </div>
 
         <div>
-          <p className="text-sm font-bold text-sky-700">Service-bound Upload</p>
+          <p className="text-sm font-bold text-sky-700">Workflow Upload</p>
           <h2 className="mt-1 text-2xl font-black text-slate-900">
             رفع Workflow لخدمة: {serviceName}
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            الملف المرفوع سيؤثر فقط على هذه الخدمة ولن يغيّر أي خدمة أخرى.
+            اختر مكان استخدام Workflow داخل الخدمة، ثم ارفع ملف Excel.
           </p>
         </div>
       </div>
 
       <form action={uploadWorkflow} className="space-y-4">
+        <label className="block">
+          <span className="text-xs font-black text-slate-500">
+            مكان استخدام Workflow
+          </span>
+
+          <select
+            value={workflowType}
+            onChange={(event) => setWorkflowType(event.target.value)}
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none"
+          >
+            {workflowPlacements.map((placement) => (
+              <option key={placement.value} value={placement.value}>
+                {placement.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <input
           name="file"
           type="file"

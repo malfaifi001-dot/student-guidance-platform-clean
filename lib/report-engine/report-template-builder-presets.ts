@@ -1,3 +1,4 @@
+﻿import { guardianSummonsTemplatePreset } from "@/components/report-engine/guardian-summons-letter-preview";
 import type {
   ReportTemplateBuilderModel,
   ReportTextSnippet,
@@ -36,8 +37,8 @@ export const initialReportTextSnippets: ReportTextSnippet[] = [
   },
 ];
 
-export const initialReportTemplateBuilderPresets: ReportTemplateBuilderModel[] =
-  [
+export const initialReportTemplateBuilderPresets: ReportTemplateBuilderModel[] = [
+    guardianSummonsTemplatePreset,
     {
       id: "tpl-official-school-report",
       name: "قالب رسمي مدرسي",
@@ -263,3 +264,4 @@ export const initialReportTemplateBuilderPresets: ReportTemplateBuilderModel[] =
       ],
     },
   ];
+

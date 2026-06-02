@@ -51,7 +51,10 @@ type AdminUserItem = {
     | "DISABLED"
     | "NO_SUBSCRIPTION"
     | "SUBSCRIPTION_ISSUE"
-    | "PENDING_PAYMENT";
+    | "PENDING_PAYMENT"
+  | "INACTIVE"
+  | "VERY_ACTIVE"
+  | "INCOMPLETE_ONBOARDING";
   subscription: null | {
     id: string;
     status: string;

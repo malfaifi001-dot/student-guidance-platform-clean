@@ -284,7 +284,8 @@ model Workflow {
   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   name         String
-  workflowType String         @default("default")
+  workflowType   String  @default("default")
+  subWorkflowKey String?
   version      Int            @default(1)
   status       WorkflowStatus @default(DRAFT)
   isActive     Boolean        @default(false)
@@ -297,6 +298,7 @@ model Workflow {
 
   @@index([serviceId])
   @@index([serviceId, workflowType, isActive])
+  @@index([serviceId, workflowType, subWorkflowKey, isActive])
 }
 
 model WorkflowStep {
@@ -967,3 +969,5 @@ model PlatformActivityLog {
   @@index([action])
   @@index([createdAt])
 }
+
+

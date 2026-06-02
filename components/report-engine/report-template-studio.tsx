@@ -51,6 +51,7 @@ const pageKindLabels: Record<ReportPageKind, string> = {
   results: "نتائج",
   evidence: "شواهد",
   approval: "اعتماد",
+  letter: "خطاب",
 };
 
 const blockKindLabels: Record<ReportBlockKind, string> = {
@@ -121,6 +122,45 @@ const pagePresets: {
   },
 ];
 
+
+function getPresetByDesignKey(designKey: string) {
+  const designToTemplateId: Record<string, string> = {
+    "guardian-summons-letter-v1": "tpl-guardian-summons-letter",
+    "official-school-report": "tpl-official-school-report",
+    "visual-program-report": "tpl-visual-program-report",
+  };
+
+  const templateId = designToTemplateId[designKey] || designKey;
+
+  return initialReportTemplateBuilderPresets.find(
+    (template) =>
+      template.id === templateId ||
+      template.designPreset === designKey
+  );
+}
+
+function createTemplateFromDesignPreset(
+  sourceTemplate: ReportTemplateBuilderModel,
+): ReportTemplateBuilderModel {
+  const timestamp = Date.now();
+
+  return {
+    ...sourceTemplate,
+    id: `design-copy-${sourceTemplate.id}-${timestamp}`,
+    name: `${sourceTemplate.name} - نسخة قابلة للتعديل`,
+    status: "DRAFT",
+    updatedAt: new Date().toISOString().slice(0, 10),
+    previewCaseId: sourceTemplate.previewCaseId || "",
+    pages: sourceTemplate.pages.map((page) => ({
+      ...page,
+      id: `${page.id}-design-copy-${timestamp}`,
+      blocks: page.blocks.map((block) => ({
+        ...block,
+        id: `${block.id}-design-copy-${timestamp}`,
+      })),
+    })),
+  };
+}
 export function ReportTemplateStudio() {
   const [templates, setTemplates] = useState<ReportTemplateBuilderModel[]>(
     initialReportTemplateBuilderPresets,
@@ -175,6 +215,37 @@ export function ReportTemplateStudio() {
     return templates.find((template) => template.id === activeTemplateId);
   }, [templates, activeTemplateId]);
 
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const designKey = params.get("design");
+
+    if (!designKey) {
+      return;
+    }
+
+    const sourceTemplate = getPresetByDesignKey(designKey);
+
+    if (!sourceTemplate) {
+      return;
+    }
+
+    const copiedTemplate = createTemplateFromDesignPreset(sourceTemplate);
+
+    setTemplates((currentTemplates) => [copiedTemplate, ...currentTemplates]);
+    setActiveTemplateId(copiedTemplate.id);
+
+    setFeedbackModal({
+      open: true,
+      type: "success",
+      title: "تم استخدام التصميم",
+      message:
+        "تم نسخ التصميم إلى مصمم القوالب كقالب جديد قابل للتعديل. يمكنك الآن تعديل الصفحات والبلوكات ثم حفظه ونشره.",
+    });
+
+    const nextUrl = window.location.pathname;
+    window.history.replaceState({}, "", nextUrl);
+  }, []);
   useEffect(() => {
     let isMounted = true;
 
@@ -1062,7 +1133,7 @@ export function ReportTemplateStudio() {
                   onChange={(event) =>
                     updateActiveTemplate((template) => ({
                       ...template,
-                      scope: event.target.value as "GLOBAL" | "SERVICE",
+                      scope: event.target.value as ReportTemplateBuilderModel["scope"],
                       serviceSlug:
                         event.target.value === "GLOBAL"
                           ? undefined
@@ -1073,9 +1144,11 @@ export function ReportTemplateStudio() {
                 >
                   <option value="GLOBAL">عام لكل الخدمات</option>
                   <option value="SERVICE">خاص بخدمة</option>
+                  <option value="WORKFLOW">خاص بـ Workflow</option>
+                  <option value="SUB_WORKFLOW">خاص بإجراء فرعي</option>
                 </select>
 
-                {activeTemplate.scope === "SERVICE" ? (
+                {activeTemplate.scope !== "GLOBAL" ? (
                   <>
                     <div className="mt-4 text-xs font-black text-slate-500">
                       الخدمة
@@ -1101,6 +1174,64 @@ export function ReportTemplateStudio() {
                   </>
                 ) : null}
 
+                                <div className="mt-4 text-xs font-black text-slate-500">
+                  نوع المستند
+                </div>
+
+                <select
+                  value={activeTemplate.documentType || "REPORT"}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      documentType: event.target.value as any,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                >
+                  <option value="REPORT">تقرير</option>
+                  <option value="LETTER">خطاب</option>
+                  <option value="CERTIFICATE">شهادة</option>
+                  <option value="MINUTES">محضر</option>
+                  <option value="FORM">نموذج</option>
+                  <option value="NOTICE">إشعار</option>
+                </select>
+
+                {activeTemplate.scope === "WORKFLOW" ||
+                activeTemplate.scope === "SUB_WORKFLOW" ? (
+                  <>
+                    <div className="mt-4 text-xs font-black text-slate-500">
+                      Workflow
+                    </div>
+
+                    <input
+                      value={activeTemplate.workflowSlug || ""}
+                      onChange={(event) =>
+                        updateActiveTemplate((template) => ({
+                          ...template,
+                          workflowSlug: event.target.value,
+                        }))
+                      }
+                      placeholder="مثال: guardian-summons"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                    />
+
+                    <div className="mt-4 text-xs font-black text-slate-500">
+                      الاستخدام / الإجراء الفرعي
+                    </div>
+
+                    <input
+                      value={activeTemplate.subWorkflowKey || ""}
+                      onChange={(event) =>
+                        updateActiveTemplate((template) => ({
+                          ...template,
+                          subWorkflowKey: event.target.value,
+                        }))
+                      }
+                      placeholder="مثال: issue-guardian-summons"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                    />
+                  </>
+                ) : null}
                 <div className="mt-4 text-xs font-black text-slate-500">
                   حالة تجريبية للمعاينة
                 </div>
@@ -1626,7 +1757,7 @@ function TemplatePageCard({
           >
             {REPORT_BLOCK_LIBRARY.map((block) => (
               <option key={block.id} value={block.id}>
-                {block.title} - {block.source.label}
+                {block.title} - {block.source?.label || "مصدر غير محدد"}
               </option>
             ))}
           </select>
@@ -1836,12 +1967,12 @@ function BlockEditor({
             </span>
 
             <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-              {block.source.label}
+              {block.source?.label || "مصدر غير محدد"}
             </span>
           </div>
 
           <p className="mt-2 text-xs leading-6 text-slate-500">
-            مصدر البيانات: {block.source.description}
+            مصدر البيانات: {block.source?.description}
           </p>
         </div>
 
@@ -1876,7 +2007,7 @@ function BlockEditor({
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <select
-          value={block.source.fieldKey || ""}
+          value={block.source?.fieldKey || ""}
           onChange={(event) =>
             updateBlock((currentBlock) => ({
               ...currentBlock,
@@ -2394,6 +2525,10 @@ function ConfirmModal({
     </div>
   );
 }
+
+
+
+
 
 
 

@@ -5,8 +5,8 @@ import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
 async function ensureStudentFollowUpWorkflow() {
   const service = await ensureServiceBySlug({
     slug: "student-follow-up",
-    name: "Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø·Ù„Ø§Ø¨",
-    description: "Ù…ØªØ§Ø¨Ø¹Ø© Ø­Ø§Ù„Ø§Øª Ø§Ù„Ø·Ù„Ø§Ø¨ ÙˆØ§Ù„Ø·Ø§Ù„Ø¨Ø§Øª.",
+    name: "متابعة الطلاب",
+    description: "متابعة حالات الطلاب Ùˆالطالبات.",
   });
 
   const existingWorkflow = await prisma.workflow.findFirst({
@@ -32,37 +32,37 @@ async function ensureStudentFollowUpWorkflow() {
   const workflow = await prisma.workflow.create({
     data: {
       serviceId: service.id,
-      name: "Ù†Ù…ÙˆØ°Ø¬ Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø·Ù„Ø§Ø¨",
+      name: "نم�ˆذج متابعة الطلاب",
       version: 1,
       status: "ACTIVE",
       isActive: true,
       steps: {
         create: [
           {
-            title: "ØªØµÙ†ÙŠÙ Ø§Ù„Ø­Ø§Ù„Ø©",
-            description: "Ø§Ø®ØªØ± Ù†ÙˆØ¹ Ø§Ù„Ù…Ø´ÙƒÙ„Ø© ÙˆØ§Ù„ØªØµÙ†ÙŠÙ Ø§Ù„Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø§.",
+            title: "تصني� الحالة",
+            description: "اختر ن�ˆع المش�ƒلة Ùˆالتصني� المرتبط بها.",
             order: 1,
             fields: {
               create: [
                 {
                   key: "problem_type",
-                  label: "Ù†ÙˆØ¹ Ø§Ù„Ù…Ø´ÙƒÙ„Ø©",
+                  label: "ن�ˆع المش�ƒلة",
                   type: "SELECT",
                   isRequired: true,
                   order: 1,
                   allowOther: true,
                   options: {
                     create: [
-                      { label: "Ø³Ù„ÙˆÙƒÙŠØ©", value: "behavioral", order: 1 },
-                      { label: "Ø£ÙƒØ§Ø¯ÙŠÙ…ÙŠØ©", value: "academic", order: 2 },
-                      { label: "Ù†ÙØ³ÙŠØ©", value: "psychological", order: 3 },
-                      { label: "Ø§Ø¬ØªÙ…Ø§Ø¹ÙŠØ©", value: "social", order: 4 },
+                      { label: "سل�ˆÙƒية", value: "behavioral", order: 1 },
+                      { label: "أ�ƒاديمية", value: "academic", order: 2 },
+                      { label: "ن�سية", value: "psychological", order: 3 },
+                      { label: "اجتماعية", value: "social", order: 4 },
                     ],
                   },
                 },
                 {
                   key: "academic_classification",
-                  label: "Ø§Ù„ØªØµÙ†ÙŠÙ Ø§Ù„Ø£ÙƒØ§Ø¯ÙŠÙ…ÙŠ",
+                  label: "التصني� الأ�ƒاديمي",
                   type: "SELECT",
                   isRequired: false,
                   order: 2,
@@ -71,61 +71,61 @@ async function ensureStudentFollowUpWorkflow() {
                   allowOther: true,
                   options: {
                     create: [
-                      { label: "Ø¶Ø¹Ù ØªØ­ØµÙŠÙ„ÙŠ", value: "low_achievement", order: 1 },
-                      { label: "ØªØ£Ø®Ø± Ø¯Ø±Ø§Ø³ÙŠ", value: "late_learning", order: 2 },
-                      { label: "ØºÙŠØ§Ø¨ Ù…ØªÙƒØ±Ø±", value: "absence", order: 3 },
+                      { label: "ضع� تحصيلي", value: "low_achievement", order: 1 },
+                      { label: "تأخر دراسي", value: "late_learning", order: 2 },
+                      { label: "غياب مت�ƒرر", value: "absence", order: 3 },
                     ],
                   },
                 },
                 {
                   key: "visible_traits",
-                  label: "Ø§Ù„ØµÙØ§Øª Ø§Ù„Ø¸Ø§Ù‡Ø±Ø©",
+                  label: "الص�ات الظاهرة",
                   type: "TEXTAREA",
                   isRequired: false,
                   order: 3,
-                  placeholder: "Ø§ÙƒØªØ¨ Ø§Ù„ØµÙØ§Øª Ø£Ùˆ Ø§Ù„Ù…Ø¤Ø´Ø±Ø§Øª Ø§Ù„Ø¸Ø§Ù‡Ø±Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©...",
+                  placeholder: "ا�ƒتب الص�ات أ�ˆ المؤشرات الظاهرة على الطالب/الطالبة...",
                 },
               ],
             },
           },
           {
-            title: "Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ ÙˆØ§Ù„Ù†ØªÙŠØ¬Ø©",
-            description: "ÙˆØ«Ù‘Ù‚ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„Ù…ØªØ®Ø° ÙˆØ§Ù„Ù†ØªÙŠØ¬Ø©.",
+            title: "الإجراء Ùˆالنتيجة",
+            description: "Ùˆث�‘ق الإجراء المتخذ Ùˆالنتيجة.",
             order: 2,
             fields: {
               create: [
                 {
                   key: "reasons",
-                  label: "Ø§Ù„Ø£Ø³Ø¨Ø§Ø¨",
+                  label: "الأسباب",
                   type: "TEXTAREA",
                   isRequired: false,
                   order: 1,
                 },
                 {
                   key: "action_taken",
-                  label: "Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„Ù…ØªØ®Ø°",
+                  label: "الإجراء المتخذ",
                   type: "TEXTAREA",
                   isRequired: true,
                   order: 2,
                 },
                 {
                   key: "result",
-                  label: "Ø§Ù„Ù†ØªÙŠØ¬Ø©",
+                  label: "النتيجة",
                   type: "SELECT",
                   isRequired: true,
                   order: 3,
                   allowOther: true,
                   options: {
                     create: [
-                      { label: "ØªØ­Ø³Ù†", value: "improved", order: 1 },
-                      { label: "ÙŠØ­ØªØ§Ø¬ Ù…ØªØ§Ø¨Ø¹Ø©", value: "needs_followup", order: 2 },
-                      { label: "Ø¥Ø­Ø§Ù„Ø©", value: "referral", order: 3 },
+                      { label: "تحسن", value: "improved", order: 1 },
+                      { label: "يحتاج متابعة", value: "needs_followup", order: 2 },
+                      { label: "إحالة", value: "referral", order: 3 },
                     ],
                   },
                 },
                 {
                   key: "notes",
-                  label: "Ù…Ù„Ø§Ø­Ø¸Ø§Øª",
+                  label: "ملاحظات",
                   type: "TEXTAREA",
                   isRequired: false,
                   order: 4,
@@ -199,7 +199,8 @@ export default async function NewStudentFollowUpPage() {
       workflow={runtimeWorkflow}
       serviceId={service.id}
       requiresStudent
-      title="Ù…ØªØ§Ø¨Ø¹Ø© Ø·Ø§Ù„Ø¨/Ø·Ø§Ù„Ø¨Ø©"
+      title="متابعة طالب/طالبة"
     />
   );
 }
+

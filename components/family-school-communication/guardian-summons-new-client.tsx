@@ -1,0 +1,798 @@
+﻿"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { SmartStudentPicker } from "@/components/students/smart-student-picker";
+import { GuardianSummonsReportEnginePdfButton } from "@/components/document-export/guardian-summons-report-engine-pdf-button";
+import {
+  GuardianSummonsLetterPreview,
+  guardianSummonsTemplatePreset,
+} from "@/components/report-engine/guardian-summons-letter-preview";
+import { initialReportTextSnippets } from "@/lib/report-engine/report-template-builder-presets";
+import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+import {
+  GUARDIAN_SUMMONS_STORAGE_KEY,
+  guardianSummonsReasonOptions,
+  type GuardianSummonsRecord,
+  type GuardianSummonsStudent,
+} from "@/components/family-school-communication/guardian-summons-types";
+
+type RuntimeWorkflow = {
+  id: string;
+  name: string;
+  serviceSlug: string;
+  steps: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    order: number;
+    fields: Array<{
+      id: string;
+      key: string;
+      label: string;
+      type: string;
+      placeholder: string | null;
+      helpText: string | null;
+      isRequired: boolean;
+      order: number;
+      dependsOnFieldKey: string | null;
+      linkedToValue: string | null;
+      allowOther: boolean;
+      options: Array<{
+        id: string;
+        label: string;
+        value: string;
+        order: number;
+        linkedToValue: string | null;
+      }>;
+    }>;
+  }>;
+} | null;
+
+type GuardianSummonsNewClientProps = {
+  workflow?: RuntimeWorkflow;
+};
+
+export function GuardianSummonsNewClient({
+  workflow = null,
+}: GuardianSummonsNewClientProps) {
+  const router = useRouter();
+
+  const [selectedStudent, setSelectedStudent] =
+    useState<GuardianSummonsStudent | null>(null);
+
+  const [workflowValues, setWorkflowValues] = useState<Record<string, string>>({
+    summonDay: "الأحد",
+    summonsDay: "الأحد",
+    summonTime: "09:00",
+    summonsTime: "09:00",
+    summonPeriod: "صباحًا",
+    summonsPeriod: "صباحًا",
+    summonReason: guardianSummonsReasonOptions[0],
+    summonsReason: guardianSummonsReasonOptions[0],
+  });
+
+  const normalizedValues = useMemo(() => {
+    return normalizeGuardianSummonsValues(workflowValues, selectedStudent);
+  }, [workflowValues, selectedStudent]);
+
+  const previewCaseData = useMemo(() => {
+    if (!selectedStudent) return null;
+
+    const tempRecord = buildRecord({
+      selectedStudent,
+      values: normalizedValues,
+      status: "DRAFT",
+    });
+
+    return buildPreviewCaseData(tempRecord, workflowValues);
+  }, [selectedStudent, normalizedValues, workflowValues]);
+
+  function updateWorkflowValue(key: string, value: string) {
+    setWorkflowValues((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  function saveRecord(status: "ISSUED" | "PRINTED") {
+    if (!selectedStudent) {
+      alert("اختر الطالب أولًا.");
+      return null;
+    }
+
+    const record = buildRecord({
+      selectedStudent,
+      values: normalizedValues,
+      status,
+    });
+
+    const current = readRecords();
+    const next = [record, ...current];
+
+    window.localStorage.setItem(
+      GUARDIAN_SUMMONS_STORAGE_KEY,
+      JSON.stringify(next)
+    );
+
+    return record;
+  }
+
+  function issueSummons() {
+    const record = saveRecord("ISSUED");
+
+    if (!record) return;
+
+    router.push("/dashboard/family-school-communication/guardian-summons");
+  }
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-black text-emerald-700">
+              التواصل بين الأسرة والمدرسة
+            </p>
+
+            <h1 className="mt-2 text-2xl font-black text-slate-900">
+              إنشاء استدعاء ولي أمر
+            </h1>
+
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+              اختر الطالب من Smart Picker، ثم تظهر حقول Workflow المنشور من مركز
+              الـ Workflows في الأدمن.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push("/dashboard/family-school-communication/guardian-summons")
+            }
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            رجوع للمصدرات
+          </button>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[430px_1fr]">
+        <aside className="space-y-6">
+          <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
+            <h2 className="text-lg font-black text-emerald-950">
+              اختيار الطالب
+            </h2>
+
+            <p className="mt-1 text-sm leading-7 text-emerald-800">
+              ابحث باسم الطالب أو رقم الهوية. اسم الطالب وولي الأمر والصف
+              والفصل ستملأ فراغات الخطاب تلقائيًا.
+            </p>
+
+            <div className="mt-4">
+              <SmartStudentPicker
+                onChange={(student) => {
+                  const pickedStudent = student as GuardianSummonsStudent | null;
+
+                  setSelectedStudent(pickedStudent);
+
+                  setWorkflowValues((current) => ({
+                    ...current,
+                    guardianName:
+                      pickedStudent?.guardian?.name ||
+                      current.guardianName ||
+                      "",
+                    guardianPhone:
+                      pickedStudent?.guardian?.phone ||
+                      current.guardianPhone ||
+                      "",
+                    studentName:
+                      pickedStudent?.fullName || current.studentName || "",
+                    studentClass: [
+                      pickedStudent?.grade,
+                      pickedStudent?.classroom,
+                    ]
+                      .filter(Boolean)
+                      .join(" / "),
+                  }));
+                }}
+              />
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-slate-900">
+                  بيانات Workflow الاستدعاء
+                </h2>
+
+                <p className="mt-1 text-sm leading-7 text-slate-500">
+                  {workflow
+                    ? `تم تحميل Workflow: ${workflow.name}`
+                    : "لم يتم العثور على Workflow منشور للاستدعاء. تظهر حقول افتراضية مؤقتة."}
+                </p>
+              </div>
+
+              <span
+                className={[
+                  "rounded-full px-3 py-1 text-[11px] font-black",
+                  workflow
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-amber-50 text-amber-700",
+                ].join(" ")}
+              >
+                {workflow ? "مرتبط" : "Fallback"}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-5">
+              {getRenderableSteps(workflow).map((step) => (
+                <section
+                  key={step.id}
+                  className="rounded-3xl border border-slate-100 bg-slate-50 p-4"
+                >
+                  <h3 className="text-sm font-black text-slate-900">
+                    {step.title}
+                  </h3>
+
+                  {step.description ? (
+                    <p className="mt-1 text-xs leading-6 text-slate-500">
+                      {step.description}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-4 grid gap-4">
+                    {step.fields.map((field) => (
+                      <WorkflowField
+                        key={field.id}
+                        field={field}
+                        value={workflowValues[field.key] || ""}
+                        values={workflowValues}
+                        onChange={(value) =>
+                          updateWorkflowValue(field.key, value)
+                        }
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={issueSummons}
+                  disabled={!selectedStudent}
+                  className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  إصدار الاستدعاء
+                </button>
+
+                <GuardianSummonsReportEnginePdfButton
+                  payload={buildPdfPayloadFromDraft(
+                    selectedStudent,
+                    normalizedValues
+                  )}
+                  fileName={buildPdfFileName(selectedStudent)}
+                  disabled={!selectedStudent}
+                  onBeforeDownload={() => {
+                    const record = saveRecord("PRINTED");
+                    return Boolean(record);
+                  }}
+                  onAfterDownload={() => {
+                    router.push("/dashboard/family-school-communication/guardian-summons");
+                  }}
+                >
+                  تحميل الخطاب PDF
+                </GuardianSummonsReportEnginePdfButton>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <section>
+          <div className="bg-white">
+            <GuardianSummonsLetterPreview
+              template={guardianSummonsTemplatePreset}
+              previewCaseData={previewCaseData}
+              snippets={initialReportTextSnippets}
+            />
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function WorkflowField({
+  field,
+  value,
+  values,
+  onChange,
+}: {
+  field: NonNullable<RuntimeWorkflow>["steps"][number]["fields"][number];
+  value: string;
+  values: Record<string, string>;
+  onChange: (value: string) => void;
+}) {
+  if (field.dependsOnFieldKey && field.linkedToValue) {
+    if (values[field.dependsOnFieldKey] !== field.linkedToValue) {
+      return null;
+    }
+  }
+
+  return (
+    <label className="block">
+      <span className="text-xs font-black text-slate-500">
+        {field.label}
+        {field.isRequired ? <span className="text-red-500"> *</span> : null}
+      </span>
+
+      <div className="mt-2">{renderWorkflowInput({ field, value, onChange })}</div>
+
+      {field.helpText ? (
+        <p className="mt-1 text-xs leading-6 text-slate-400">
+          {field.helpText}
+        </p>
+      ) : null}
+    </label>
+  );
+}
+
+function renderWorkflowInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: NonNullable<RuntimeWorkflow>["steps"][number]["fields"][number];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const baseClass =
+    "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-emerald-700";
+
+  if (field.type === "TEXTAREA" || field.type === "RICH_TEXT") {
+    return (
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={4}
+        placeholder={field.placeholder || ""}
+        className={`${baseClass} resize-none leading-7`}
+      />
+    );
+  }
+
+  if (field.type === "MULTI_SELECT") {
+    const selectedValues = value
+      ? value
+          .split("،")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [];
+
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3">
+        {field.options.map((option) => {
+          const optionValue = option.label || option.value;
+          const checked = selectedValues.includes(optionValue);
+
+          return (
+            <label
+              key={option.id}
+              className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(event) => {
+                  const nextValues = event.target.checked
+                    ? [...selectedValues, optionValue]
+                    : selectedValues.filter((item) => item !== optionValue);
+
+                  onChange(nextValues.join("، "));
+                }}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+
+              <span>{option.label}</span>
+            </label>
+          );
+        })}
+
+        {field.allowOther ? (
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
+            <input
+              type="checkbox"
+              checked={selectedValues.includes("أخرى")}
+              onChange={(event) => {
+                const nextValues = event.target.checked
+                  ? [...selectedValues, "أخرى"]
+                  : selectedValues.filter((item) => item !== "أخرى");
+
+                onChange(nextValues.join("، "));
+              }}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+
+            <span>أخرى</span>
+          </label>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (field.type === "SELECT" || field.type === "RADIO") {
+    return (
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={baseClass}
+      >
+        <option value="">اختر</option>
+        {field.options.map((option) => (
+          <option key={option.id} value={option.label || option.value}>
+            {option.label}
+          </option>
+        ))}
+        {field.allowOther ? <option value="أخرى">أخرى</option> : null}
+      </select>
+    );
+  }
+
+  if (field.type === "DATE") {
+    return (
+      <input
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={baseClass}
+      />
+    );
+  }
+
+  if (field.key.toLowerCase().includes("time")) {
+    return (
+      <input
+        type="time"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={baseClass}
+      />
+    );
+  }
+
+  return (
+    <input
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={field.placeholder || ""}
+      className={baseClass}
+    />
+  );
+}
+
+function getRenderableSteps(workflow: RuntimeWorkflow) {
+  if (workflow?.steps?.length) {
+    return workflow.steps;
+  }
+
+  return [
+    {
+      id: "fallback-step",
+      title: "بيانات الاستدعاء الافتراضية",
+      description:
+        "هذه حقول مؤقتة تظهر عند عدم وجود Workflow منشور من الأدمن.",
+      order: 1,
+      fields: [
+        {
+          id: "fallback-summon-day",
+          key: "summonDay",
+          label: "يوم الحضور",
+          type: "SELECT",
+          placeholder: null,
+          helpText: null,
+          isRequired: true,
+          order: 1,
+          dependsOnFieldKey: null,
+          linkedToValue: null,
+          allowOther: false,
+          options: ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"].map(
+            (day, index) => ({
+              id: `day-${index + 1}`,
+              label: day,
+              value: day,
+              order: index + 1,
+              linkedToValue: null,
+            })
+          ),
+        },
+        {
+          id: "fallback-summon-date",
+          key: "summonDate",
+          label: "تاريخ حضور ولي الأمر",
+          type: "DATE",
+          placeholder: null,
+          helpText: null,
+          isRequired: true,
+          order: 2,
+          dependsOnFieldKey: null,
+          linkedToValue: null,
+          allowOther: false,
+          options: [],
+        },
+        {
+          id: "fallback-summon-time",
+          key: "summonTime",
+          label: "وقت حضور ولي الأمر",
+          type: "TEXT",
+          placeholder: "09:00",
+          helpText: null,
+          isRequired: true,
+          order: 3,
+          dependsOnFieldKey: null,
+          linkedToValue: null,
+          allowOther: false,
+          options: [],
+        },
+        {
+          id: "fallback-summon-period",
+          key: "summonPeriod",
+          label: "الفترة",
+          type: "SELECT",
+          placeholder: null,
+          helpText: null,
+          isRequired: false,
+          order: 4,
+          dependsOnFieldKey: null,
+          linkedToValue: null,
+          allowOther: false,
+          options: [
+            {
+              id: "period-am",
+              label: "صباحًا",
+              value: "صباحًا",
+              order: 1,
+              linkedToValue: null,
+            },
+            {
+              id: "period-pm",
+              label: "مساءً",
+              value: "مساءً",
+              order: 2,
+              linkedToValue: null,
+            },
+          ],
+        },
+        {
+          id: "fallback-summon-reason",
+          key: "summonReason",
+          label: "سبب الاستدعاء",
+          type: "MULTI_SELECT",
+          placeholder: null,
+          helpText: null,
+          isRequired: true,
+          order: 5,
+          dependsOnFieldKey: null,
+          linkedToValue: null,
+          allowOther: true,
+          options: guardianSummonsReasonOptions.map((reason, index) => ({
+            id: `fallback-reason-${index + 1}`,
+            label: reason,
+            value: reason,
+            order: index + 1,
+            linkedToValue: null,
+          })),
+        },
+        {
+          id: "fallback-notes",
+          key: "notes",
+          label: "ملاحظات إضافية للطباعة",
+          type: "TEXTAREA",
+          placeholder: "اختياري...",
+          helpText: null,
+          isRequired: false,
+          order: 6,
+          dependsOnFieldKey: null,
+          linkedToValue: null,
+          allowOther: false,
+          options: [],
+        },
+      ],
+    },
+  ];
+}
+
+function normalizeGuardianSummonsValues(
+  values: Record<string, string>,
+  student: GuardianSummonsStudent | null
+) {
+  const pick = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = values[key];
+
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+
+    return "";
+  };
+
+  return {
+    guardianName:
+      pick("guardianName", "guardian_name", "parentName") ||
+      student?.guardian?.name ||
+      "",
+    guardianPhone:
+      pick("guardianPhone", "guardian_phone", "parentPhone") ||
+      student?.guardian?.phone ||
+      "",
+    summonDay:
+      pick("summonDay", "summonsDay", "attendanceDay", "day") || "الأحد",
+    summonDate: pick(
+      "summonDate",
+      "summonsDate",
+      "summonsHijriDate",
+      "attendanceDate",
+      "date"
+    ),
+    summonTime:
+      pick("summonTime", "summonsTime", "attendanceTime", "time") || "09:00",
+    summonPeriod:
+      pick("summonPeriod", "summonsPeriod", "period") || "صباحًا",
+    summonReason:
+      pick("summonReason", "summonsReason", "reason", "summon_reason") ||
+      guardianSummonsReasonOptions[0],
+    notes: pick("notes", "printNotes", "summonNotes"),
+  };
+}
+
+function buildRecord({
+  selectedStudent,
+  values,
+  status,
+}: {
+  selectedStudent: GuardianSummonsStudent;
+  values: {
+    guardianName: string;
+    guardianPhone: string;
+    summonDay: string;
+    summonDate: string;
+    summonTime: string;
+    summonPeriod: string;
+    summonReason: string;
+    notes: string;
+  };
+  status: "DRAFT" | "ISSUED" | "PRINTED";
+}): GuardianSummonsRecord {
+  const now = new Date().toISOString();
+
+  return {
+    id: `summons-${Date.now()}`,
+    student: selectedStudent,
+    guardianName: values.guardianName || selectedStudent.guardian?.name || "",
+    guardianPhone: values.guardianPhone || selectedStudent.guardian?.phone || "",
+    summonDay: values.summonDay || "الأحد",
+    summonDate: values.summonDate,
+    summonTime: values.summonTime,
+    summonPeriod: values.summonPeriod,
+    summonReason: values.summonReason,
+    notes: values.notes,
+    status,
+    attendanceStatus: "PENDING",
+    postNotes: "",
+    createdAt: now,
+    issuedAt: status === "ISSUED" || status === "PRINTED" ? now : undefined,
+    printedAt: status === "PRINTED" ? now : undefined,
+  };
+}
+
+function buildPdfPayloadFromDraft(
+  student: GuardianSummonsStudent | null,
+  values: {
+    guardianName: string;
+    guardianPhone: string;
+    summonDay: string;
+    summonDate: string;
+    summonTime: string;
+    summonPeriod: string;
+    summonReason: string;
+    notes: string;
+  }
+) {
+  return {
+    id: `summons-preview-${Date.now()}`,
+    status: "PRINTED",
+    createdAt: new Date().toISOString(),
+    printedAt: new Date().toISOString(),
+    student: {
+      id: student?.id || "",
+      fullName: student?.fullName || "",
+      nationalId: student?.nationalId || "",
+      grade: student?.grade || "",
+      classroom: student?.classroom || "",
+      stage: student?.stage || "",
+    },
+    guardianName: values.guardianName || student?.guardian?.name || "",
+    guardianPhone: values.guardianPhone || student?.guardian?.phone || "",
+    summonDay: values.summonDay,
+    summonDate: values.summonDate,
+    summonTime: values.summonTime,
+    summonPeriod: values.summonPeriod,
+    summonReason: values.summonReason,
+    notes: values.notes,
+  };
+}
+
+function buildPdfFileName(student: GuardianSummonsStudent | null) {
+  const studentName = student?.fullName || "طالب";
+  return `استدعاء-ولي-أمر-${studentName}.pdf`;
+}
+
+function readRecords(): GuardianSummonsRecord[] {
+  const raw = window.localStorage.getItem(GUARDIAN_SUMMONS_STORAGE_KEY);
+
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function buildPreviewCaseData(
+  record: GuardianSummonsRecord,
+  workflowValues: Record<string, string>
+): RuntimePreviewCaseData {
+  const allValues = {
+    ...workflowValues,
+    guardianName: record.guardianName,
+    guardianPhone: record.guardianPhone,
+    studentName: record.student.fullName,
+    studentNationalId: record.student.nationalId || "",
+    studentClass: [record.student.grade, record.student.classroom]
+      .filter(Boolean)
+      .join(" / "),
+    summonDay: record.summonDay,
+    summonsDay: record.summonDay,
+    summonDate: record.summonDate,
+    summonsHijriDate: record.summonDate,
+    summonTime: record.summonTime,
+    summonsTime: record.summonTime,
+    summonPeriod: record.summonPeriod,
+    summonsPeriod: record.summonPeriod,
+    summonReason: record.summonReason,
+    summonsReason: record.summonReason,
+    notes: record.notes,
+  };
+
+  return {
+    found: true,
+    caseId: record.id,
+    serviceSlug: "family-school-communication",
+    serviceName: "التواصل بين الأسرة والمدرسة",
+    title: "استدعاء ولي أمر طالب",
+    status: record.status,
+    createdAt: record.createdAt,
+    updatedAt: record.issuedAt || record.createdAt,
+    student: {
+      id: record.student.id,
+      name: record.student.fullName,
+      nationalId: record.student.nationalId || "",
+      grade: record.student.grade || "",
+      classroom: record.student.classroom || "",
+      stage: record.student.stage || "",
+      guardianName: record.guardianName,
+      guardianPhone: record.guardianPhone,
+    },
+    values: Object.entries(allValues).map(([fieldKey, value]) => ({
+      fieldKey,
+      fieldLabel: fieldKey,
+      value,
+    })),
+    evidences: [],
+  };
+}

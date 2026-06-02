@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReactNode } from "react";
 import type {
@@ -7,6 +7,7 @@ import type {
   ReportTextSnippet,
 } from "@/lib/report-engine/report-template-builder-types";
 import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+import { GuardianSummonsLetterPreview } from "@/components/report-engine/guardian-summons-letter-preview";
 import {
   resolveTextLibraryFallback,
   resolveTextLibrarySnippets,
@@ -43,6 +44,16 @@ export function ReportTemplateLivePreview({
   previewCaseData,
   pdfMode = false,
 }: ReportTemplateLivePreviewProps) {
+  if (template.designPreset === "guardian-summons-letter-v1") {
+    return (
+      <GuardianSummonsLetterPreview
+        template={template}
+        previewCaseData={previewCaseData}
+        pdfMode={pdfMode}
+        snippets={snippets}
+      />
+    );
+  }
   return (
     <section
       className={
@@ -859,3 +870,5 @@ function getPageKindLabel(kind: string) {
   if (kind === "approval") return "اعتماد";
   return kind;
 }
+
+

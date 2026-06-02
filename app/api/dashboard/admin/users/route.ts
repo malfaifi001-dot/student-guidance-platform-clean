@@ -1,18 +1,12 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
-import { getRemainingDays, isSubscriptionUsable } from "@/lib/subscription/subscription-service";
+import {
+  getRemainingDays,
+  isSubscriptionUsable,
+} from "@/lib/subscription/subscription-service";
 import { logAdminActivity } from "@/lib/admin/activity-log";
-
-async function requireAdmin() {
-  const current = await getCurrentSessionUser();
-
-  if (!current?.user || current.user.role !== "ADMIN") {
-    return null;
-  }
-
-  return current;
-}
 
 function getSubscriptionStatusLabel(status?: string | null, endsAt?: Date | null) {
   if (!status) return "NO_SUBSCRIPTION";
@@ -24,14 +18,36 @@ function getSubscriptionStatusLabel(status?: string | null, endsAt?: Date | null
   return status;
 }
 
-export async function GET() {
-  const current = await requireAdmin();
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
 
-  if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+export async function GET() {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
   }
 
-  const [users, logs, pendingTransfers] = await Promise.all([
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+  }
+
+  const now = new Date();
+  const last30Days = addDays(now, -30);
+  const inactiveSince = addDays(now, -14);
+
+  const [
+    users,
+    logs,
+    pendingTransfers,
+    casesLast30,
+    recentActivity,
+  ] = await Promise.all([
     prisma.user.findMany({
       orderBy: {
         createdAt: "desc",
@@ -71,7 +87,7 @@ export async function GET() {
       orderBy: {
         createdAt: "desc",
       },
-      take: 120,
+      take: 160,
     }),
 
     prisma.bankTransferRequest.findMany({
@@ -80,6 +96,43 @@ export async function GET() {
       },
       select: {
         schoolAccountId: true,
+      },
+    }),
+
+    prisma.caseEntry.groupBy({
+      by: ["createdById"],
+      where: {
+        createdAt: {
+          gte: last30Days,
+        },
+        createdById: {
+          not: null,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    }),
+
+    prisma.platformActivityLog.findMany({
+      where: {
+        createdAt: {
+          gte: last30Days,
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        actorUserId: true,
+        targetUserId: true,
+        schoolAccountId: true,
+        category: true,
+        action: true,
+        severity: true,
+        title: true,
+        createdAt: true,
       },
     }),
   ]);
@@ -91,6 +144,65 @@ export async function GET() {
       request.schoolAccountId,
       (pendingTransferCountBySchool.get(request.schoolAccountId) || 0) + 1
     );
+  }
+
+  const casesLast30ByUser = new Map<string, number>();
+
+  for (const item of casesLast30) {
+    if (item.createdById) {
+      casesLast30ByUser.set(item.createdById, item._count._all);
+    }
+  }
+
+  const activityStatsByUser = new Map<
+    string,
+    {
+      activityLast30Days: number;
+      reportsLast30Days: number;
+      evidencesLast30Days: number;
+      lastActivityAt: Date | null;
+    }
+  >();
+
+  function ensureActivityStats(userId: string) {
+    const existing = activityStatsByUser.get(userId);
+
+    if (existing) return existing;
+
+    const created = {
+      activityLast30Days: 0,
+      reportsLast30Days: 0,
+      evidencesLast30Days: 0,
+      lastActivityAt: null as Date | null,
+    };
+
+    activityStatsByUser.set(userId, created);
+
+    return created;
+  }
+
+  for (const log of recentActivity) {
+    const relatedUserIds = [log.actorUserId, log.targetUserId].filter(
+      Boolean
+    ) as string[];
+
+    for (const userId of new Set(relatedUserIds)) {
+      const stats = ensureActivityStats(userId);
+
+      stats.activityLast30Days += 1;
+
+      if (log.category === "REPORT" || log.action === "report-created") {
+        stats.reportsLast30Days += 1;
+      }
+
+      if (log.category === "EVIDENCE" || log.action === "evidence-uploaded") {
+        stats.evidencesLast30Days += 1;
+      }
+
+      if (!stats.lastActivityAt || log.createdAt.getTime() > stats.lastActivityAt.getTime()) {
+        stats.lastActivityAt = log.createdAt;
+      }
+    }
   }
 
   const mappedUsers = users.map((user) => {
@@ -105,6 +217,33 @@ export async function GET() {
       subscription?.endsAt
     );
 
+    const userActivityStats = activityStatsByUser.get(user.id) || {
+      activityLast30Days: 0,
+      reportsLast30Days: 0,
+      evidencesLast30Days: 0,
+      lastActivityAt: null,
+    };
+
+    const lastSeenAt = user.sessions[0]?.lastSeenAt || null;
+    const casesLast30Days = casesLast30ByUser.get(user.id) || 0;
+    const reportsLast30Days = userActivityStats.reportsLast30Days;
+    const evidencesLast30Days = userActivityStats.evidencesLast30Days;
+    const activityLast30Days = userActivityStats.activityLast30Days;
+
+    const isInactive =
+      user.role === "COUNSELOR" &&
+      user.isActive &&
+      (!lastSeenAt || lastSeenAt.getTime() < inactiveSince.getTime());
+
+    const isVeryActive =
+      user.role === "COUNSELOR" &&
+      (casesLast30Days >= 10 ||
+        reportsLast30Days >= 5 ||
+        evidencesLast30Days >= 10 ||
+        activityLast30Days >= 20);
+
+    const isIncompleteOnboarding = !user.onboardingCompleted;
+
     return {
       id: user.id,
       name: user.name,
@@ -117,7 +256,8 @@ export async function GET() {
       isActive: user.isActive,
       onboardingCompleted: user.onboardingCompleted,
       createdAt: user.createdAt,
-      lastSeenAt: user.sessions[0]?.lastSeenAt || null,
+      lastSeenAt,
+      lastActivityAt: userActivityStats.lastActivityAt,
       schoolAccountId: user.schoolAccountId,
       schoolName:
         user.schoolAccount?.profile?.schoolName ||
@@ -128,6 +268,15 @@ export async function GET() {
       schoolUsersCount: user.schoolAccount?._count.users || 0,
       studentsCount: user.schoolAccount?._count.students || 0,
       casesCount: user._count.cases,
+      casesLast30Days,
+      reportsLast30Days,
+      evidencesLast30Days,
+      activityLast30Days,
+      flags: {
+        inactive: isInactive,
+        veryActive: isVeryActive,
+        incompleteOnboarding: isIncompleteOnboarding,
+      },
       pendingTransfersCount: user.schoolAccountId
         ? pendingTransferCountBySchool.get(user.schoolAccountId) || 0
         : 0,
@@ -154,7 +303,11 @@ export async function GET() {
               ? "SUBSCRIPTION_ISSUE"
               : pendingTransferCountBySchool.get(user.schoolAccountId || "") || 0
                 ? "PENDING_PAYMENT"
-                : "OK",
+                : isInactive
+                  ? "INACTIVE"
+                  : isIncompleteOnboarding
+                    ? "INCOMPLETE_ONBOARDING"
+                    : "OK",
     };
   });
 
@@ -171,6 +324,12 @@ export async function GET() {
       (sum, user) => sum + user.pendingTransfersCount,
       0
     ),
+    inactiveCounselors: mappedUsers.filter((user) => user.flags.inactive).length,
+    veryActiveCounselors: mappedUsers.filter((user) => user.flags.veryActive).length,
+    incompleteOnboarding: mappedUsers.filter((user) => user.flags.incompleteOnboarding).length,
+    casesLast30Days: mappedUsers.reduce((sum, user) => sum + user.casesLast30Days, 0),
+    reportsLast30Days: mappedUsers.reduce((sum, user) => sum + user.reportsLast30Days, 0),
+    evidencesLast30Days: mappedUsers.reduce((sum, user) => sum + user.evidencesLast30Days, 0),
   };
 
   return NextResponse.json({
@@ -181,10 +340,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const current = await requireAdmin();
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
 
   if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
   const payload = await request.json().catch(() => null);
