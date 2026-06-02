@@ -1,0 +1,2793 @@
+﻿=== Guardian Summons Needed Code 2 ===
+
+
+
+==============================
+FILE: prisma/schema.prisma
+==============================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+
+  users           User[]
+  profile         SchoolProfile?
+  students        Student[]
+  guardians       Guardian[]
+  staff           StaffMember[]
+  services        ServiceAccess[]
+  cases           CaseEntry[]
+  subscription    Subscription?
+  resultsAnalyses ResultsAnalysis[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  officialName String?
+  jobTitle     String?
+  isActive     Boolean  @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases    CaseEntry[]
+  sessions UserSession[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName          String
+  principalName       String?
+  educationDepartment String?
+  educationOffice     String?
+  city                String?
+  district            String?
+  stage               String?
+  academicYear        String?
+  currentSemester     String?
+  logoUrl             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows Workflow[]
+  cases     CaseEntry[]
+  access    ServiceAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name     String
+  version  Int            @default(1)
+  status   WorkflowStatus @default(DRAFT)
+  isActive Boolean        @default(false)
+
+  steps WorkflowStep[]
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId      String?
+  workflow        Workflow?        @relation(fields: [workflowId], references: [id])
+  guidanceReports GuidanceReport[]
+  studentId       String?
+  student         Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values    CaseValue[]
+  evidences Evidence[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String?
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model ResultsAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title      String
+  grade      String?
+  classroom  String?
+  sourceFile String?
+  status     String  @default("COMPLETED")
+
+  totalStudents Int    @default(0)
+  totalSubjects Int    @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+model GuidanceReport {
+  id          String @id @default(cuid())
+  title       String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String
+  renderedContent String?
+
+  evidenceEnabled Boolean @default(true)
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  approvedAt DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([templateId])
+  @@index([generatedAt])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+
+  mimeType String?
+  size     Int?
+
+  sortOrder Int     @default(0)
+  visible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([visible])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  startsAt   DateTime?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
+
+
+==============================
+FILE: lib/constants/services.ts
+==============================
+
+export type AppService = {
+  slug: string;
+  title: string;
+  description: string;
+  href: string;
+  kind: "workflow" | "standalone" | "admin";
+};
+
+export const workflowServices: AppService[] = [
+  {
+    slug: "guidance-programs",
+    title: "Ø§Ù„Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©",
+    description: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ© ÙˆØ®Ø·Ø· Ø§Ù„ØªÙ†ÙÙŠØ°.",
+    href: "/dashboard/guidance-programs",
+    kind: "workflow",
+  },
+  {
+    slug: "student-follow-up",
+    title: "Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø·Ù„Ø§Ø¨",
+    description: "Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø­Ø§Ù„Ø§Øª Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ© Ø¹Ø¨Ø± Workflow Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠ.",
+    href: "/dashboard/student-follow-up",
+    kind: "workflow",
+  },
+  {
+    slug: "committees-meetings",
+    title: "Ø§Ù„Ù„Ø¬Ø§Ù† ÙˆØ§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹Ø§Øª",
+    description: "Ø¥Ø¯Ø§Ø±Ø© Ù…Ø­Ø§Ø¶Ø± Ø§Ù„Ù„Ø¬Ø§Ù† ÙˆØ§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹Ø§Øª ÙˆØ§Ù„ØªÙˆØµÙŠØ§Øª.",
+    href: "/dashboard/committees-meetings",
+    kind: "workflow",
+  },
+  {
+    slug: "family-school-communication",
+    title: "Ø§Ù„ØªÙˆØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø£Ø³Ø±Ø© ÙˆØ§Ù„Ù…Ø¯Ø±Ø³Ø©",
+    description: "ØªÙˆØ«ÙŠÙ‚ Ø§Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø± ÙˆÙ†ØªØ§Ø¦Ø¬ Ø§Ù„ØªÙˆØ§ØµÙ„.",
+    href: "/dashboard/family-school-communication",
+    kind: "workflow",
+  },
+  {
+    slug: "student-guidance-services",
+    title: "Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ÙŠØ© Ø§Ù„Ù…Ù‚Ø¯Ù…Ø© Ù„Ù„Ø·Ù„Ø§Ø¨",
+    description: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ÙŠØ© Ø¹Ø¨Ø± Workflow Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠ.",
+    href: "/dashboard/student-guidance-services",
+    kind: "workflow",
+  },
+];
+
+export const standaloneServices: AppService[] = [
+  {
+    slug: "comprehensive-reference",
+    title: "Ø§Ù„Ø³Ø¬Ù„ Ø§Ù„Ø´Ø§Ù…Ù„ Ù„Ù„Ø·Ø§Ù„Ø¨",
+    description: "Ø¹Ø±Ø¶ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨ ÙˆØ³Ø¬Ù„Ø§ØªÙ‡ Ø§Ù„ØªØ±Ø¨ÙˆÙŠØ©.",
+    href: "/dashboard/comprehensive-reference",
+    kind: "standalone",
+  },
+  {
+    slug: "results-analysis",
+    title: "ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù†ØªØ§Ø¦Ø¬",
+    description: "Ø±ÙØ¹ ÙˆØªØ­Ù„ÙŠÙ„ Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ø·Ù„Ø§Ø¨ Ù…Ù† Ù…Ù„ÙØ§Øª Excel.",
+    href: "/dashboard/results-analysis",
+    kind: "standalone",
+  },
+  {
+    slug: "reports",
+    title: "Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±",
+    description: "Ø¥Ù†Ø´Ø§Ø¡ ÙˆÙ…Ø¹Ø§ÙŠÙ†Ø© ÙˆØ§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©.",
+    href: "/dashboard/reports",
+    kind: "standalone",
+  },
+];
+
+export const dashboardServices = [
+  ...workflowServices,
+  ...standaloneServices,
+];
+
+
+==============================
+FILE: engine/services/service-workspace-engine.ts
+==============================
+
+import { prisma } from "@/lib/prisma";
+
+export async function ensureServiceBySlug(params: {
+  slug: string;
+  name: string;
+  description?: string;
+}) {
+  return prisma.service.upsert({
+    where: {
+      slug: params.slug,
+    },
+    update: {
+      name: params.name,
+      description: params.description,
+    },
+    create: {
+      slug: params.slug,
+      name: params.name,
+      description: params.description,
+      status: "ACTIVE",
+    },
+  });
+}
+
+export async function getServiceWorkspace(params: {
+  slug: string;
+  name: string;
+  description?: string;
+}) {
+  const service = await ensureServiceBySlug(params);
+
+  const [totalCases, draftCases, submittedCases, latestCases] =
+    await Promise.all([
+      prisma.caseEntry.count({
+        where: {
+          serviceId: service.id,
+        },
+      }),
+      prisma.caseEntry.count({
+        where: {
+          serviceId: service.id,
+          status: "DRAFT",
+        },
+      }),
+      prisma.caseEntry.count({
+        where: {
+          serviceId: service.id,
+          status: "SUBMITTED",
+        },
+      }),
+      prisma.caseEntry.findMany({
+        where: {
+          serviceId: service.id,
+        },
+        include: {
+          student: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 12,
+      }),
+    ]);
+
+  return {
+    service,
+    stats: {
+      totalCases,
+      draftCases,
+      submittedCases,
+    },
+    latestCases,
+  };
+}
+
+
+==============================
+FILE: engine/runtime/runtime-resolver.ts
+==============================
+
+export type RuntimeOption = {
+  id: string;
+  label: string;
+  value: string;
+  order: number;
+  linkedToValue?: string | null;
+};
+
+export type RuntimeField = {
+  id: string;
+  key: string;
+  label: string;
+  type: string;
+  placeholder?: string | null;
+  helpText?: string | null;
+  isRequired: boolean;
+  order: number;
+  dependsOnFieldKey?: string | null;
+  linkedToValue?: string | null;
+  allowOther: boolean;
+  options: RuntimeOption[];
+};
+
+export type RuntimeStep = {
+  id: string;
+  title: string;
+  description?: string | null;
+  order: number;
+  fields: RuntimeField[];
+};
+
+export type RuntimeWorkflow = {
+  id: string;
+  name: string;
+  serviceSlug: string;
+  steps: RuntimeStep[];
+};
+
+export function sortRuntimeWorkflow(workflow: RuntimeWorkflow): RuntimeWorkflow {
+  return {
+    ...workflow,
+    steps: [...workflow.steps]
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        ...step,
+        fields: [...step.fields].sort((a, b) => a.order - b.order),
+      })),
+  };
+}
+import { prisma } from "@/lib/prisma";
+
+export async function getRuntimeWorkflowByServiceSlug(serviceSlug: string) {
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        where: {
+          isActive: true,
+          
+        },
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          version: "desc",
+        },
+        take: 1,
+      },
+    },
+  });
+
+  const workflow = service?.workflows[0];
+
+  if (!service || !workflow) {
+    return null;
+  }
+
+  return {
+    service,
+    workflow: sortRuntimeWorkflow({
+      id: workflow.id,
+      name: workflow.name,
+      serviceSlug: service.slug,
+      steps: workflow.steps.map((step) => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        order: step.order,
+        fields: step.fields.map((field) => ({
+          id: field.id,
+          key: field.key,
+          label: field.label,
+          type: field.type,
+          placeholder: field.placeholder,
+          helpText: field.helpText,
+          isRequired: field.isRequired,
+          order: field.order,
+          allowOther: field.allowOther,
+          dependsOnFieldKey: field.dependsOnFieldKey,
+          linkedToValue: field.linkedToValue,
+          options: field.options.map((option) => ({
+            id: option.id,
+            label: option.label,
+            value: option.value,
+            order: option.order,
+            linkedToValue: option.linkedToValue,
+          })),
+        })),
+      })),
+    }),
+  };
+}
+
+
+==============================
+FILE: engine/runtime/field-dependency-engine.ts
+==============================
+
+export type RuntimeValues = Record<string, unknown>;
+
+type RuntimeField = {
+  id: string;
+  key: string;
+  type: string;
+  isRequired?: boolean;
+  dependsOnFieldKey?: string | null;
+  linkedToValue?: string | null;
+};
+
+function normalizeValue(value: unknown) {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  return value;
+}
+
+export function shouldShowField(
+  field: RuntimeField,
+  values: RuntimeValues
+) {
+  if (!field.dependsOnFieldKey) {
+    return true;
+  }
+
+  const parentValue = normalizeValue(
+    values[field.dependsOnFieldKey]
+  );
+
+  if (
+    parentValue === undefined ||
+    parentValue === null ||
+    parentValue === ""
+  ) {
+    return false;
+  }
+
+  if (!field.linkedToValue) {
+    return true;
+  }
+
+  if (Array.isArray(parentValue)) {
+    return parentValue.includes(field.linkedToValue);
+  }
+
+  return String(parentValue) === String(field.linkedToValue);
+}
+
+export function validateStepRequiredFields(params: {
+  fields: RuntimeField[];
+  values: RuntimeValues;
+}) {
+  const { fields, values } = params;
+
+  const missingFields: string[] = [];
+
+  fields.forEach((field) => {
+    const visible = shouldShowField(field, values);
+
+    if (!visible || !field.isRequired) {
+      return;
+    }
+
+    const value = values[field.key];
+
+    const isEmpty =
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0);
+
+    if (isEmpty) {
+      missingFields.push(field.key);
+    }
+  });
+
+  return {
+    valid: missingFields.length === 0,
+    missingFields,
+  };
+}
+
+
+==============================
+FILE: components/service-ui/service-workspace.tsx
+==============================
+
+import Link from "next/link";
+import {
+  ArrowUpLeft,
+  ClipboardList,
+  FilePlus2,
+  FileText,
+  Layers3,
+} from "lucide-react";
+
+type ServiceWorkspaceProps = {
+  service: {
+    id: string;
+    slug: string;
+    name: string;
+    description: string | null;
+  };
+  stats: {
+    totalCases: number;
+    draftCases: number;
+    submittedCases: number;
+  };
+  latestCases: Array<{
+    id: string;
+    title: string | null;
+    status: string;
+    createdAt: Date;
+    student: {
+      fullName: string;
+    } | null;
+  }>;
+};
+
+export function ServiceWorkspace({
+  service,
+  stats,
+  latestCases,
+}: ServiceWorkspaceProps) {
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
+        <p className="text-sm font-semibold text-sky-100">Service Workspace</p>
+
+        <h1 className="mt-3 text-4xl font-black">{service.name}</h1>
+
+        <p className="mt-4 max-w-3xl leading-8 text-sky-50">
+          {service.description ||
+            "Ù…Ø³Ø§Ø­Ø© Ø¹Ù…Ù„ Ù…ÙˆØ­Ø¯Ø© Ù„Ù„Ø®Ø¯Ù…Ø© ØªØ¹Ø±Ø¶ Ø§Ù„Ù†Ù…Ø§Ø°Ø¬ØŒ Ø§Ù„Ù…Ø³ÙˆØ¯Ø§ØªØŒ Ø§Ù„Ø³Ø¬Ù„Ø§ØªØŒ ÙˆØ§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª."}
+        </p>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href={`/dashboard/${service.slug}/new`}
+            className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-50"
+          >
+            <FilePlus2 className="h-4 w-4" />
+            Ø¥Ù†Ø´Ø§Ø¡ Ø³Ø¬Ù„ Ø¬Ø¯ÙŠØ¯
+          </Link>
+
+          <Link
+            href="/dashboard/cases"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/30 px-6 py-3 text-sm font-black text-white transition hover:bg-white/10"
+          >
+            <Layers3 className="h-4 w-4" />
+            Ù…Ø±ÙƒØ² Ø§Ù„Ø­Ø§Ù„Ø§Øª Ø§Ù„Ø¹Ø§Ù…
+          </Link>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 card-shadow">
+          <ClipboardList className="mb-4 h-6 w-6 text-sky-600" />
+          <p className="text-sm text-slate-500">Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø®Ø¯Ù…Ø©</p>
+          <p className="mt-2 text-3xl font-black text-slate-900">
+            {stats.totalCases}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 card-shadow">
+          <FileText className="mb-4 h-6 w-6 text-amber-600" />
+          <p className="text-sm text-slate-500">Ø§Ù„Ù…Ø³ÙˆØ¯Ø§Øª</p>
+          <p className="mt-2 text-3xl font-black text-slate-900">
+            {stats.draftCases}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 card-shadow">
+          <FileText className="mb-4 h-6 w-6 text-emerald-600" />
+          <p className="text-sm text-slate-500">Ø§Ù„Ù…Ø±Ø³Ù„Ø© Ù†Ù‡Ø§Ø¦ÙŠÙ‹Ø§</p>
+          <p className="mt-2 text-3xl font-black text-slate-900">
+            {stats.submittedCases}
+          </p>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white card-shadow">
+        <div className="border-b border-slate-200 p-6">
+          <h2 className="text-2xl font-black text-slate-900">
+            Ø³Ø¬Ù„Ø§Øª Ù‡Ø°Ù‡ Ø§Ù„Ø®Ø¯Ù…Ø©
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Ù‡Ø°Ù‡ Ø§Ù„Ø³Ø¬Ù„Ø§Øª ØªØ®Øµ Ù‡Ø°Ù‡ Ø§Ù„Ø®Ø¯Ù…Ø© ÙÙ‚Ø·ØŒ Ø¨ÙŠÙ†Ù…Ø§ Ù…Ø±ÙƒØ² Ø§Ù„Ø­Ø§Ù„Ø§Øª Ø§Ù„Ø¹Ø§Ù… ÙŠØ¬Ù…Ø¹ ÙƒÙ„ Ø§Ù„Ø®Ø¯Ù…Ø§Øª.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-right text-sm">
+            <thead className="bg-slate-50 text-slate-500">
+              <tr>
+                <th className="p-4">Ø§Ù„Ø¹Ù†ÙˆØ§Ù†</th>
+                <th className="p-4">Ø§Ù„Ø·Ø§Ù„Ø¨</th>
+                <th className="p-4">Ø§Ù„Ø­Ø§Ù„Ø©</th>
+                <th className="p-4">Ø§Ù„ØªØ§Ø±ÙŠØ®</th>
+                <th className="p-4">Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {latestCases.map((caseItem) => (
+                <tr key={caseItem.id} className="border-t border-slate-100">
+                  <td className="p-4 font-bold text-slate-900">
+                    {caseItem.title || "Ø¨Ø¯ÙˆÙ† Ø¹Ù†ÙˆØ§Ù†"}
+                  </td>
+
+                  <td className="p-4 text-slate-500">
+                    {caseItem.student?.fullName || "Ø¨Ø¯ÙˆÙ† Ø·Ø§Ù„Ø¨"}
+                  </td>
+
+                  <td className="p-4">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                      {caseItem.status}
+                    </span>
+                  </td>
+
+                  <td className="p-4 text-slate-500">
+                    {new Date(caseItem.createdAt).toLocaleDateString("ar-SA")}
+                  </td>
+
+                  <td className="p-4">
+                    <Link
+                      href={`/dashboard/cases/${caseItem.id}`}
+                      className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      Ø¹Ø±Ø¶
+                      <ArrowUpLeft className="h-3 w-3" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+
+              {latestCases.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-10 text-center text-slate-400">
+                    Ù„Ø§ ØªÙˆØ¬Ø¯ Ø³Ø¬Ù„Ø§Øª Ù„Ù‡Ø°Ù‡ Ø§Ù„Ø®Ø¯Ù…Ø© Ø¨Ø¹Ø¯.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
+==============================
+FILE: components/dashboard/soft-blue-dashboard.tsx
+==============================
+
+import Link from "next/link";
+import type { ReactNode } from "react";
+import {
+  Activity,
+  ArrowLeft,
+  BarChart3,
+  BookOpenCheck,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardCheck,
+  FileText,
+  GraduationCap,
+  HeartHandshake,
+  MessageCircle,
+  School,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  UserRound,
+  Users,
+  WandSparkles,
+} from "lucide-react";
+
+type SoftBlueDashboardProps = {
+  user: {
+    name?: string | null;
+    officialName?: string | null;
+    gender?: string | null;
+    jobTitle?: string | null;
+    onboardingCompleted?: boolean | null;
+    schoolAccount?: {
+      name?: string | null;
+      profile?: {
+        schoolName?: string | null;
+        educationDepartment?: string | null;
+        academicYear?: string | null;
+        currentSemester?: string | null;
+        logoUrl?: string | null;
+      } | null;
+    } | null;
+  };
+  stats: {
+    students: number;
+    cases: number;
+    reports: number;
+    evidences: number;
+  };
+};
+
+const services = [
+  {
+    title: "متابعة الطلاب",
+    description: "تابع الطالب من أول ملاحظة حتى الإجراء والتقرير.",
+    href: "/dashboard/student-follow-up",
+    image: "/uploads/VD/1.png",
+    icon: UserRound,
+    tone: "bg-cyan-50 text-cyan-600",
+  },
+  {
+    title: "التواصل بين الأسرة والمدرسة",
+    description: "وثّق التواصل مع الأسرة واربطه بالحالة والنتائج.",
+    href: "/dashboard/family-school-communication",
+    image: "/uploads/VD/2.png",
+    icon: MessageCircle,
+    tone: "bg-violet-50 text-violet-600",
+  },
+  {
+    title: "اللجان والاجتماعات",
+    description: "محاضر، توصيات، وشواهد مرتبة في مسار واحد.",
+    href: "/dashboard/committees-meetings",
+    image: "/uploads/VD/3.png",
+    icon: Users,
+    tone: "bg-blue-50 text-blue-600",
+  },
+  {
+    title: "البرامج الإرشادية",
+    description: "نفّذ برنامجًا إرشاديًا وحوّله لتقرير رسمي.",
+    href: "/dashboard/guidance-programs",
+    image: "/uploads/VD/8.png",
+    icon: HeartHandshake,
+    tone: "bg-emerald-50 text-emerald-600",
+  },
+];
+
+function getRiyadhGreeting() {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Riyadh",
+    }).format(new Date())
+  );
+
+  if (hour >= 5 && hour < 12) return "صباح الخير";
+  if (hour >= 12 && hour < 17) return "مساء النشاط";
+  if (hour >= 17 && hour < 22) return "مساء الخير";
+
+  return "أهلًا بك";
+}
+
+function getTheme(gender?: string | null) {
+  const female = gender === "FEMALE";
+
+  return {
+    female,
+    character: female ? "/uploads/VD/girl.png" : "/uploads/VD/boy.png",
+    assistantName: female ? "رَاشِدَة" : "رَاشِد",
+    roleLabel: female ? "موجهة طلابية" : "موجه طلابي",
+    mainText: female ? "text-rose-700" : "text-sky-700",
+    softText: female ? "text-rose-600" : "text-sky-600",
+    softBg: female ? "bg-rose-50" : "bg-sky-50",
+    softBorder: female ? "border-rose-100" : "border-sky-100",
+    button:
+      female
+        ? "bg-rose-500 hover:bg-rose-600 shadow-rose-100"
+        : "bg-sky-600 hover:bg-sky-700 shadow-sky-100",
+    outline:
+      female
+        ? "border-rose-100 text-rose-700 hover:bg-rose-50"
+        : "border-sky-100 text-sky-700 hover:bg-sky-50",
+    hero:
+      female
+        ? "from-rose-50 via-white to-fuchsia-50"
+        : "from-sky-50 via-white to-blue-50",
+    assistant:
+      female
+        ? "from-rose-500 to-fuchsia-500"
+        : "from-sky-600 to-cyan-500",
+    progress:
+      female
+        ? "from-rose-300 to-fuchsia-500"
+        : "from-cyan-300 to-blue-500",
+  };
+}
+
+function getIdentityScore(user: SoftBlueDashboardProps["user"]) {
+  const profile = user.schoolAccount?.profile;
+
+  const checks = [
+    user.officialName,
+    user.jobTitle,
+    profile?.schoolName,
+    profile?.educationDepartment,
+    profile?.academicYear,
+    profile?.currentSemester,
+    profile?.logoUrl,
+  ];
+
+  return Math.round(
+    (checks.filter((item) => Boolean(String(item || "").trim())).length /
+      checks.length) *
+      100
+  );
+}
+
+export function SoftBlueDashboard({ user, stats }: SoftBlueDashboardProps) {
+  const theme = getTheme(user.gender);
+  const profile = user.schoolAccount?.profile;
+
+  const displayName = user.officialName || user.name || "الموجه/الموجهة";
+  const schoolName =
+    profile?.schoolName || user.schoolAccount?.name || "منصة التوجيه الطلابي";
+  const jobTitle = user.jobTitle || theme.roleLabel;
+  const identityScore = getIdentityScore(user);
+  const greeting = getRiyadhGreeting();
+
+  const todayFocus = [
+    {
+      title: "حالات تحتاج متابعة",
+      value: stats.cases,
+      description:
+        stats.cases > 0
+          ? "ابدأ بالحالات التي لم تُحدّث مؤخرًا."
+          : "لا توجد حالات نشطة حاليًا.",
+      href: "/dashboard/cases",
+      icon: Activity,
+      tone: "bg-cyan-50 text-cyan-600",
+    },
+    {
+      title: "تقارير تحتاج مراجعة",
+      value: stats.reports,
+      description:
+        stats.reports > 0
+          ? "راجع المسودات قبل الاعتماد والتصدير."
+          : "لا توجد تقارير محفوظة بعد.",
+      href: "/dashboard/reports",
+      icon: FileText,
+      tone: "bg-violet-50 text-violet-600",
+    },
+    {
+      title: "جاهزية الهوية",
+      value: identityScore,
+      suffix: "%",
+      description:
+        identityScore >= 90
+          ? "هوية المدرسة جاهزة للتقارير الرسمية."
+          : "أكمل بيانات المدرسة والشعار لتحسين التقارير.",
+      href: "/dashboard/settings/school",
+      icon: School,
+      tone: "bg-amber-50 text-amber-700",
+    },
+  ];
+
+  return (
+    <main className="space-y-5 text-slate-900">
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_315px]">
+        <div className="space-y-5">
+          <section
+            className={[
+              "relative overflow-hidden rounded-[1.7rem] border bg-gradient-to-br px-5 py-4 shadow-sm",
+              theme.softBorder,
+              theme.hero,
+            ].join(" ")}
+          >
+            <div className="absolute -left-16 -top-16 h-48 w-48 rounded-full bg-white/60 blur-3xl" />
+            <div className="absolute bottom-2 left-28 h-20 w-20 rounded-full bg-cyan-100/60 blur-2xl" />
+
+            <div className="relative z-10 grid items-center gap-4 lg:grid-cols-[1fr_150px]">
+              <div>
+                <div
+                  className={[
+                    "inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-[12px] font-black shadow-sm",
+                    theme.softText,
+                  ].join(" ")}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  مركز قيادة اليوم
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
+                  <h1
+                    className={[
+                      "text-2xl font-black tracking-tight md:text-3xl",
+                      theme.mainText,
+                    ].join(" ")}
+                  >
+                    {greeting}
+                  </h1>
+
+                  <p className="text-xl font-black text-slate-950 md:text-2xl">
+                    {displayName}
+                  </p>
+                </div>
+
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-bold text-slate-600">
+                  <span>{jobTitle}</span>
+                  <span className="text-slate-300">•</span>
+                  <span>{schoolName}</span>
+                </div>
+
+                <p
+                  className={[
+                    "mt-3 inline-flex rounded-2xl border bg-white/75 px-3 py-2 text-[13px] font-bold leading-6 shadow-sm",
+                    theme.softBorder,
+                    theme.softText,
+                  ].join(" ")}
+                >
+                  {theme.female
+                    ? "رسالتك اليوم: كل متابعة صغيرة تصنع فرقًا كبيرًا في حياة طالبة."
+                    : "رسالتك اليوم: كل متابعة صغيرة تصنع فرقًا كبيرًا في حياة طالب."}
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href="/dashboard/cases"
+                    className={[
+                      "rounded-2xl px-4 py-2.5 text-[13px] font-black text-white shadow-lg transition",
+                      theme.button,
+                    ].join(" ")}
+                  >
+                    ابدأ المتابعة
+                  </Link>
+
+                  <Link
+                    href="/dashboard/reports"
+                    className={[
+                      "rounded-2xl border bg-white px-4 py-2.5 text-[13px] font-black transition",
+                      theme.outline,
+                    ].join(" ")}
+                  >
+                    تقرير جديد
+                  </Link>
+
+                  <Link
+                    href="/dashboard/student-import"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-black text-slate-700 transition hover:bg-slate-50"
+                  >
+                    رفع بيانات نور
+                  </Link>
+                </div>
+              </div>
+
+              <div className="mx-auto h-28 w-28 overflow-hidden rounded-[1.5rem] bg-white/65 shadow-sm lg:mx-0">
+                <img
+                  src={theme.character}
+                  alt={displayName}
+                  className="h-full w-full object-contain object-bottom p-1"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-3 md:grid-cols-3">
+            {todayFocus.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  className="group rounded-[1.4rem] border border-slate-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div
+                      className={[
+                        "grid h-11 w-11 place-items-center rounded-2xl",
+                        item.tone,
+                      ].join(" ")}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    <ArrowLeft className="h-5 w-5 text-slate-300 transition group-hover:-translate-x-1 group-hover:text-sky-600" />
+                  </div>
+
+                  <div className="mt-3 flex items-end gap-1">
+                    <p className="text-3xl font-black text-slate-950">
+                      {item.value}
+                    </p>
+                    {item.suffix ? (
+                      <span className="pb-1 text-sm font-black text-slate-400">
+                        {item.suffix}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <h2 className="mt-2 text-[15px] font-black text-slate-900">
+                    {item.title}
+                  </h2>
+
+                  <p className="mt-1 text-[13px] font-bold leading-6 text-slate-500">
+                    {item.description}
+                  </p>
+                </Link>
+              );
+            })}
+          </section>
+
+          <section className="grid gap-3 md:grid-cols-4">
+            <MetricCard
+              title="الطلاب"
+              value={stats.students}
+              icon={<GraduationCap className="h-5 w-5" />}
+              href="/dashboard/students"
+            />
+            <MetricCard
+              title="الحالات"
+              value={stats.cases}
+              icon={<ClipboardCheck className="h-5 w-5" />}
+              href="/dashboard/cases"
+            />
+            <MetricCard
+              title="التقارير"
+              value={stats.reports}
+              icon={<BookOpenCheck className="h-5 w-5" />}
+              href="/dashboard/reports"
+            />
+            <MetricCard
+              title="الشواهد"
+              value={stats.evidences}
+              icon={<CalendarDays className="h-5 w-5" />}
+              href="/dashboard/cases"
+            />
+          </section>
+
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">
+                  الخدمات اليومية
+                </h2>
+                <p className="mt-1 text-[12px] font-bold text-slate-400">
+                  المسارات الأكثر ارتباطًا بعمل الموجه/الموجهة
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {services.map((service) => {
+                const Icon = service.icon;
+
+                return (
+                  <Link
+                    key={service.href}
+                    href={service.href}
+                    className="group overflow-hidden rounded-[1.35rem] border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="relative h-24 overflow-hidden bg-slate-50">
+                      <img
+                        src={service.image}
+                        alt={service.title}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent" />
+                      <div
+                        className={[
+                          "absolute bottom-2 left-2 grid h-10 w-10 place-items-center rounded-2xl border border-white/80 shadow-sm backdrop-blur",
+                          service.tone,
+                        ].join(" ")}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <div className="p-3">
+                      <h3 className="text-[15px] font-black text-slate-900">
+                        {service.title}
+                      </h3>
+                      <p className="mt-1.5 min-h-[40px] text-[13px] font-bold leading-6 text-slate-500">
+                        {service.description}
+                      </p>
+                      <span
+                        className={[
+                          "mt-2 inline-flex items-center gap-1 text-[13px] font-black",
+                          theme.softText,
+                        ].join(" ")}
+                      >
+                        الدخول
+                        <ArrowLeft className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-4">
+          <AssistantCard
+            theme={theme}
+            displayName={displayName}
+            identityScore={identityScore}
+          />
+
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-4 shadow-sm">
+            <SectionTitle title="اقتراحات الآن" subtitle="ما يستحق انتباهك أولًا" />
+
+            <div className="mt-4 space-y-2">
+              <ActionLine
+                icon={<Activity className="h-5 w-5" />}
+                title="راجع الحالات المفتوحة"
+                subtitle="ابدأ بالحالات التي لم يتم تحديثها مؤخرًا."
+                href="/dashboard/cases"
+              />
+              <ActionLine
+                icon={<FileText className="h-5 w-5" />}
+                title="اعتمد تقريرًا جاهزًا"
+                subtitle="راجع التقرير قبل الطباعة أو PDF."
+                href="/dashboard/reports"
+              />
+              <ActionLine
+                icon={<UploadCloud className="h-5 w-5" />}
+                title="حدّث بيانات الطلاب"
+                subtitle="ارفع ملف نور إذا بدأت فترة جديدة."
+                href="/dashboard/student-import"
+              />
+            </div>
+          </section>
+
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-4 shadow-sm">
+            <SectionTitle title="آخر التقارير" subtitle="مختصر سريع" />
+
+            <div className="mt-4 space-y-2">
+              <ReportLine title="تقرير متابعة طالب" status="جاهز للمراجعة" />
+              <ReportLine title="تقرير التواصل مع الأسرة" status="مسودة" />
+              <ReportLine title="تقرير اللجان والاجتماعات" status="مكتمل" />
+            </div>
+
+            <Link
+              href="/dashboard/reports"
+              className={[
+                "mt-4 flex h-10 items-center justify-center rounded-2xl text-[13px] font-black transition",
+                theme.softBg,
+                theme.softText,
+              ].join(" ")}
+            >
+              عرض جميع التقارير
+            </Link>
+          </section>
+        </aside>
+      </section>
+    </main>
+  );
+}
+
+function AssistantCard({
+  theme,
+  displayName,
+  identityScore,
+}: {
+  theme: ReturnType<typeof getTheme>;
+  displayName: string;
+  identityScore: number;
+}) {
+  return (
+    <section
+      className={[
+        "relative overflow-hidden rounded-[1.45rem] bg-gradient-to-br p-5 text-white shadow-sm",
+        theme.assistant,
+      ].join(" ")}
+    >
+      <div className="absolute -left-14 -top-14 h-36 w-36 rounded-full bg-white/20 blur-2xl" />
+      <div className="absolute -bottom-16 right-10 h-40 w-40 rounded-full bg-slate-950/20 blur-2xl" />
+
+      <div className="relative z-10">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+          <WandSparkles className="h-6 w-6" />
+        </div>
+
+        <h2 className="mt-4 text-2xl font-black">
+          {theme.assistantName} معك اليوم
+        </h2>
+
+        <p className="mt-3 text-[13px] font-bold leading-7 text-white/90">
+          {displayName}، لا تبدأ من الصفر. افتح الحالات، راجع التقارير، ورتّب
+          الشواهد قبل التصدير.
+        </p>
+
+        <div className="mt-4 rounded-2xl bg-white/15 p-3 backdrop-blur">
+          <div className="flex items-center justify-between text-[12px] font-black">
+            <span>جاهزية الهوية الرسمية</span>
+            <span>{identityScore}%</span>
+          </div>
+
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/20">
+            <div
+              className="h-full rounded-full bg-white"
+              style={{ width: `${identityScore}%` }}
+            />
+          </div>
+        </div>
+
+        <Link
+          href="/dashboard/settings/school"
+          className="mt-4 inline-flex rounded-2xl bg-white px-4 py-2.5 text-[13px] font-black text-slate-950 transition hover:bg-slate-50"
+        >
+          تحسين الهوية
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  icon,
+  href,
+}: {
+  title: string;
+  value: number;
+  icon: ReactNode;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between rounded-[1.3rem] border border-slate-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div>
+        <p className="text-[13px] font-black text-slate-500">{title}</p>
+        <p className="mt-1 text-3xl font-black text-slate-950">{value}</p>
+      </div>
+
+      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+        {icon}
+      </div>
+    </Link>
+  );
+}
+
+function SectionTitle({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div>
+      <h2 className="text-xl font-black text-slate-900">{title}</h2>
+      <p className="mt-1 text-[12px] font-bold text-slate-400">{subtitle}</p>
+    </div>
+  );
+}
+
+function ActionLine({
+  icon,
+  title,
+  subtitle,
+  href,
+}: {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex gap-3 rounded-2xl bg-slate-50 p-3 transition hover:bg-white hover:shadow-sm"
+    >
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-sky-600 shadow-sm">
+        {icon}
+      </div>
+
+      <div>
+        <p className="text-[14px] font-black text-slate-900">{title}</p>
+        <p className="mt-1 text-[12px] font-bold leading-5 text-slate-500">
+          {subtitle}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+function ReportLine({ title, status }: { title: string; status: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-sky-600 shadow-sm">
+        <FileText className="h-5 w-5" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[14px] font-black text-slate-900">
+          {title}
+        </p>
+        <p className="mt-1 text-[12px] font-bold text-slate-500">{status}</p>
+      </div>
+
+      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+    </div>
+  );
+}
+
+
+
+==============================
+FILE: components/workflow/dynamic-field-renderer.tsx
+==============================
+
+"use client";
+
+import type { RuntimeField, RuntimeOption } from "@/engine/runtime/runtime-resolver";
+import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+
+type DynamicFieldRendererProps = {
+  field: RuntimeField;
+  value: unknown;
+  values: RuntimeValues;
+  onChange: (key: string, value: unknown) => void;
+};
+
+function FieldLabel({ field }: { field: RuntimeField }) {
+  return (
+    <label className="mb-3 block text-sm font-black text-slate-800">
+      {field.label}
+      {field.isRequired ? <span className="mr-1 text-rose-500">*</span> : null}
+    </label>
+  );
+}
+
+function HelpText({ text }: { text?: string | null }) {
+  if (!text) return null;
+  return <p className="mt-2 text-xs leading-6 text-slate-400">{text}</p>;
+}
+
+function getFilteredOptions(field: RuntimeField, values: RuntimeValues) {
+  if (!field.dependsOnFieldKey) return field.options;
+
+  const parentValue = values[field.dependsOnFieldKey];
+
+  return field.options.filter((option) => {
+    if (!option.linkedToValue) return true;
+
+    if (Array.isArray(parentValue)) {
+      return parentValue.includes(option.linkedToValue);
+    }
+
+    return String(parentValue ?? "") === String(option.linkedToValue);
+  });
+}
+
+function SelectOptions({
+  options,
+  allowOther,
+}: {
+  options: RuntimeOption[];
+  allowOther: boolean;
+}) {
+  return (
+    <>
+      <option value="">Ø§Ø®ØªØ±...</option>
+      {options.map((option) => (
+        <option key={option.id} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+      {allowOther ? <option value="__OTHER__">Ø£Ø®Ø±Ù‰</option> : null}
+    </>
+  );
+}
+
+export function DynamicFieldRenderer({
+  field,
+  value,
+  values,
+  onChange,
+}: DynamicFieldRendererProps) {
+  const baseInputClass =
+    "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100";
+
+  const filteredOptions = getFilteredOptions(field, values);
+
+  if (field.type === "TEXT" || field.type === "NUMBER" || field.type === "DATE") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <input
+          type={field.type === "NUMBER" ? "number" : field.type === "DATE" ? "date" : "text"}
+          value={String(value ?? "")}
+          placeholder={field.placeholder ?? ""}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          className={baseInputClass}
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "TEXTAREA" || field.type === "RICH_TEXT") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <textarea
+          value={String(value ?? "")}
+          placeholder={field.placeholder ?? ""}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          rows={5}
+          className={baseInputClass}
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "SELECT" || field.type === "RADIO") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <select
+          value={String(value ?? "")}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          className={baseInputClass}
+        >
+          <SelectOptions options={filteredOptions} allowOther={field.allowOther} />
+        </select>
+
+        {value === "__OTHER__" ? (
+          <input
+            value={String(values[`${field.key}__other`] ?? "")}
+            onChange={(event) => onChange(`${field.key}__other`, event.target.value)}
+            placeholder="Ø§ÙƒØªØ¨ Ø®ÙŠØ§Ø± Ø£Ø®Ø±Ù‰..."
+            className={baseInputClass}
+          />
+        ) : null}
+
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "MULTI_SELECT" || field.type === "CHECKBOX") {
+    const selectedValues = Array.isArray(value) ? value.map(String) : [];
+
+    const allOptions = [
+      ...filteredOptions,
+      ...(field.allowOther
+        ? [{ id: "__other__", label: "Ø£Ø®Ø±Ù‰", value: "__OTHER__", order: 999, linkedToValue: null }]
+        : []),
+    ];
+
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+
+        <div className="grid gap-2 md:grid-cols-2">
+          {allOptions.map((option) => {
+            const checked = selectedValues.includes(option.value);
+
+            return (
+              <label
+                key={option.id}
+                className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(event) => {
+                    const next = event.target.checked
+                      ? [...selectedValues, option.value]
+                      : selectedValues.filter((item) => item !== option.value);
+
+                    onChange(field.key, next);
+                  }}
+                />
+                {option.label}
+              </label>
+            );
+          })}
+        </div>
+
+        {selectedValues.includes("__OTHER__") ? (
+          <input
+            value={String(values[`${field.key}__other`] ?? "")}
+            onChange={(event) => onChange(`${field.key}__other`, event.target.value)}
+            placeholder="Ø§ÙƒØªØ¨ Ø®ÙŠØ§Ø± Ø£Ø®Ø±Ù‰..."
+            className={baseInputClass}
+          />
+        ) : null}
+
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "FILE_UPLOAD" || field.type === "IMAGE_UPLOAD") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <input
+          type="file"
+          accept={field.type === "IMAGE_UPLOAD" ? "image/*" : undefined}
+          onChange={(event) => onChange(field.key, event.target.files?.[0] ?? null)}
+          className="w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm"
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+      Ù†ÙˆØ¹ Ø§Ù„Ø­Ù‚Ù„ ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ… Ø­Ø§Ù„ÙŠÙ‹Ø§: {field.type}
+    </div>
+  );
+}
+
+
+==============================
+FILE: app/api/dashboard/cases/submit/route.ts
+==============================
+
+import { NextResponse } from "next/server";
+import { saveRuntimeCase } from "@/engine/cases/case-runtime-engine";
+import { logCaseSavedEvent } from "@/lib/admin/activity-events";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    const result = await saveRuntimeCase({
+      workflowId: body.workflowId,
+      serviceId: body.serviceId,
+      title: body.title,
+      studentId: body.studentId,
+      values: body.values || {},
+      evidenceItems: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems
+        : [],
+      status: "SUBMITTED",
+    });
+
+    
+    // audit-log:case-submitted
+    await logCaseSavedEvent({
+      caseId: result.id,
+      status: "SUBMITTED",
+      title: body.title || null,
+      workflowId: body.workflowId || null,
+      serviceId: body.serviceId || null,
+      studentId: body.studentId || null,
+      valueCount:
+        body.values && typeof body.values === "object"
+          ? Object.keys(body.values).length
+          : 0,
+      evidenceCount: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
+      message: "ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø­Ø§Ù„Ø© Ø¨Ù†Ø¬Ø§Ø­.",
+      caseId: result.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø­Ø§Ù„Ø©.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+==============================
+FILE: app/api/dashboard/cases/save-draft/route.ts
+==============================
+
+import { NextResponse } from "next/server";
+import { saveRuntimeCase } from "@/engine/cases/case-runtime-engine";
+import { logCaseSavedEvent } from "@/lib/admin/activity-events";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    const result = await saveRuntimeCase({
+      workflowId: body.workflowId,
+      serviceId: body.serviceId,
+      title: body.title,
+      studentId: body.studentId,
+      values: body.values || {},
+      evidenceItems: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems
+        : [],
+      status: "DRAFT",
+    });
+
+    
+    // audit-log:case-draft-saved
+    await logCaseSavedEvent({
+      caseId: result.id,
+      status: "DRAFT",
+      title: body.title || null,
+      workflowId: body.workflowId || null,
+      serviceId: body.serviceId || null,
+      studentId: body.studentId || null,
+      valueCount:
+        body.values && typeof body.values === "object"
+          ? Object.keys(body.values).length
+          : 0,
+      evidenceCount: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
+      message: "ØªÙ… Ø­ÙØ¸ Ø§Ù„Ù…Ø³ÙˆØ¯Ø© Ø¨Ù†Ø¬Ø§Ø­.",
+      caseId: result.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø­ÙØ¸ Ø§Ù„Ù…Ø³ÙˆØ¯Ø©.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+==============================
+FILE: app/dashboard/cases/[caseId]/page.tsx
+==============================
+
+import { notFound } from "next/navigation";
+
+import { CaseDetailsView } from "@/components/cases/case-details-view";
+import { getCaseById } from "@/engine/cases/case-runtime-engine";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export default async function CaseDetailsPage({ params }: PageProps) {
+  const { caseId } = await params;
+
+  try {
+    const caseEntry = await getCaseById(caseId);
+
+    return <CaseDetailsView caseEntry={caseEntry} />;
+  } catch {
+    notFound();
+  }
+}
+
+
+==============================
+FILE: components/cases/case-details-view.tsx
+==============================
+
+import { CaseValueRenderer } from "@/components/cases/case-value-renderer";
+import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldLabel,
+  type WorkflowFieldLike,
+  type WorkflowValueLike,
+} from "@/lib/workflow-values/workflow-display-value";
+
+type CaseDetailsViewProps = {
+  caseEntry: any;
+};
+
+type FieldLookupItem = WorkflowFieldLike & {
+  key?: string | null;
+  label?: string | null;
+};
+
+function buildFieldMap(caseEntry: any) {
+  const map = new Map<string, FieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function shouldHideCaseValue(fieldKey: string) {
+  return [
+    "student",
+    "guardian",
+    "metadata",
+    "selectedStudent",
+  ].includes(fieldKey) || fieldKey.endsWith("__other");
+}
+
+function normalizeCaseValue(
+  value: any,
+  fieldMap: Map<string, FieldLookupItem>
+): WorkflowValueLike {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function formatCommitteeRows(value: unknown) {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((row) => {
+    if (!row || typeof row !== "object") return row;
+
+    const item = row as Record<string, unknown>;
+
+    return {
+      "Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„": item.agendaOther || item.agenda || "â€”",
+      "Ù…Ø­ÙˆØ± Ø§Ù„Ù†Ù‚Ø§Ø´": item.discussionOther || item.discussion || "â€”",
+      "Ø§Ù„ØªÙˆØµÙŠØ©": item.recommendationOther || item.recommendation || "â€”",
+    };
+  });
+}
+
+export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
+  const fieldMap = buildFieldMap(caseEntry);
+
+  const workflowValues: WorkflowValueLike[] = caseEntry.values.map((value: any) =>
+    normalizeCaseValue(value, fieldMap)
+  );
+
+  const displayValues = caseEntry.values
+    .map((value: any) => normalizeCaseValue(value, fieldMap))
+    .filter((value: WorkflowValueLike) => {
+      const key = value.field?.key || value.fieldKey || "";
+      return !shouldHideCaseValue(key);
+    });
+
+  const evidenceItems =
+    caseEntry.evidences?.map((item: any) => ({
+      id: item.id,
+      fileName: item.fileName || "Ù…Ù„Ù",
+      fileUrl: item.fileUrl || "#",
+      mimeType: item.mimeType || "application/octet-stream",
+      size: item.size || 0,
+    })) || [];
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
+        <p className="text-sm font-semibold text-sky-100">Case Viewer</p>
+
+        <h1 className="mt-3 text-4xl font-black">
+          {caseEntry.title || "ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø­Ø§Ù„Ø©"}
+        </h1>
+
+        <p className="mt-4 max-w-3xl leading-8 text-sky-50">
+          Ø¹Ø±Ø¶ Ù…ÙˆØ­Ø¯ ÙˆÙ…Ù†Ø¸Ù… Ù„Ù„Ø­Ø§Ù„Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø© Ù…Ù† Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø®Ø¯Ù…Ø§Øª.
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Ø§Ù„Ø®Ø¯Ù…Ø©</p>
+          <p className="mt-2 text-lg font-black text-slate-900">
+            {caseEntry.service?.name || "â€”"}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©</p>
+          <p className="mt-2 text-lg font-black text-slate-900">
+            {caseEntry.student?.fullName || "ØºÙŠØ± Ù…Ø±ØªØ¨Ø· Ø¨Ø·Ø§Ù„Ø¨"}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Ø§Ù„Ø­Ø§Ù„Ø©</p>
+          <p className="mt-2 text-lg font-black text-slate-900">
+            {caseEntry.status}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Ø§Ù„ØªØ§Ø±ÙŠØ®</p>
+          <p className="mt-2 text-lg font-black text-slate-900">
+            {new Date(caseEntry.createdAt).toLocaleDateString("ar-SA")}
+          </p>
+        </div>
+      </section>
+
+      {caseEntry.student ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-900">
+            Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©
+          </h2>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <CaseValueRenderer label="Ø§Ù„Ø§Ø³Ù…" value={caseEntry.student.fullName} />
+            <CaseValueRenderer label="Ø§Ù„Ù…Ø±Ø­Ù„Ø©" value={caseEntry.student.stage} />
+            <CaseValueRenderer label="Ø§Ù„ØµÙ" value={caseEntry.student.grade} />
+            <CaseValueRenderer label="Ø§Ù„ÙØµÙ„" value={caseEntry.student.classroom} />
+            <CaseValueRenderer
+              label="ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±"
+              value={caseEntry.student.guardian?.name}
+            />
+            <CaseValueRenderer
+              label="Ø±Ù‚Ù… Ø§Ù„Ø¬ÙˆØ§Ù„"
+              value={caseEntry.student.guardian?.phone}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-2xl font-black text-slate-900">Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©</h2>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {displayValues.map((value: WorkflowValueLike, index: number) => {
+            const key = value.field?.key || value.fieldKey || "";
+            const label = getWorkflowFieldLabel(value, index);
+
+            const displayValue =
+              key === "committee_items"
+                ? formatCommitteeRows(value.jsonValue ?? value.value)
+                : formatWorkflowDisplayValue(value, workflowValues);
+
+            return (
+              <CaseValueRenderer
+                key={value.id || key}
+                label={label}
+                value={displayValue}
+              />
+            );
+          })}
+
+          {displayValues.length === 0 ? (
+            <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-400 md:col-span-2">
+              Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ù…Ø­ÙÙˆØ¸Ø© Ù„Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {evidenceItems.length > 0 ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-900">
+            Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„Ù…Ø±ÙÙ‚Ø§Øª
+          </h2>
+
+          <div className="mt-6">
+            <EvidencePreviewGrid items={evidenceItems} />
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+
+==============================
+FILE: lib/prisma.ts
+==============================
+
+import { PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not defined");
+}
+
+const adapter = new PrismaBetterSqlite3({
+  url: databaseUrl,
+});
+
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}

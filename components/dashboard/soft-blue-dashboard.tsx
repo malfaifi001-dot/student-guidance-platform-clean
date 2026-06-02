@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   FileText,
+  FileSignature,
   GraduationCap,
   HeartHandshake,
   MessageCircle,
@@ -185,6 +186,7 @@ export function SoftBlueDashboard({ user, stats }: SoftBlueDashboardProps) {
           : "لا توجد تقارير محفوظة بعد.",
       href: "/dashboard/reports",
       icon: FileText,
+  FileSignature,
       tone: "bg-violet-50 text-violet-600",
     },
     {
@@ -637,3 +639,4 @@ function ReportLine({ title, status }: { title: string; status: string }) {
     </div>
   );
 }
+

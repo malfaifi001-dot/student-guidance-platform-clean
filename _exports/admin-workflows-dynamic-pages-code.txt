@@ -1,0 +1,554 @@
+﻿===== ADMIN WORKFLOWS DYNAMIC PAGES CODE EXPORT =====
+Generated: 06/02/2026 03:38:20
+
+================================================================================
+FILE: app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+================================================================================
+
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { WorkflowHealthReport } from "@/components/admin/workflow-health/workflow-health-report";
+import { validateWorkflow } from "@/engine/workflow-validation/workflow-validator";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+import { dashboardServices } from "@/lib/constants/services";
+import { prisma } from "@/lib/prisma";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+
+type PageProps = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+export default async function ServiceWorkflowPage({ params }: PageProps) {
+  await requireAdminPage();
+
+  const { serviceSlug } = await params;
+
+  const serviceConfig = dashboardServices.find(
+    (service) => service.slug === serviceSlug
+  );
+
+  if (!serviceConfig) {
+    notFound();
+  }
+
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        where: {
+          workflowType: WORKFLOW_TYPES.DEFAULT,
+        },
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          version: "desc",
+        },
+      },
+    },
+  });
+
+  const activeWorkflow = service?.workflows.find((workflow) => workflow.isActive);
+
+  const healthReport = activeWorkflow
+    ? validateWorkflow({
+        id: activeWorkflow.id,
+        name: activeWorkflow.name,
+        steps: activeWorkflow.steps.map((step) => ({
+          id: step.id,
+          title: step.title,
+          fields: step.fields.map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            type: field.type,
+            isRequired: field.isRequired,
+            dependsOnFieldKey: field.dependsOnFieldKey,
+            linkedToValue: field.linkedToValue,
+            allowOther: field.allowOther,
+            options: field.options.map((option) => ({
+              id: option.id,
+              label: option.label,
+              value: option.value,
+              linkedToValue: option.linkedToValue,
+            })),
+          })),
+        })),
+      })
+    : null;
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
+        <p className="text-sm font-bold text-sky-100">Service Workflow</p>
+
+        <h1 className="mt-3 text-4xl font-black">{serviceConfig.title}</h1>
+
+        <p className="mt-4 max-w-3xl leading-8 text-sky-50">
+          إدارة Workflow الخاص بهذه الخدمة فقط.
+        </p>
+
+        <div className="mt-8">
+          <Link
+            href={`/dashboard/admin/workflows/${serviceSlug}/upload`}
+            className="rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-700 hover:bg-sky-50"
+          >
+            رفع Workflow Excel
+          </Link>
+        </div>
+      </section>
+
+      {healthReport ? <WorkflowHealthReport report={healthReport} /> : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+        <h2 className="text-2xl font-black text-slate-900">Workflow المفعل</h2>
+
+        {activeWorkflow ? (
+          <div className="mt-6 space-y-4">
+            <div className="rounded-2xl bg-slate-50 p-5">
+              <p className="text-sm text-slate-500">الاسم</p>
+              <p className="mt-1 text-xl font-black text-slate-900">
+                {activeWorkflow.name}
+              </p>
+              <p className="mt-2 text-sm text-slate-500">
+                Version {activeWorkflow.version} · {activeWorkflow.steps.length} خطوات
+              </p>
+            </div>
+
+            {activeWorkflow.steps
+              .sort((a, b) => a.order - b.order)
+              .map((step) => (
+                <div
+                  key={step.id}
+                  className="rounded-2xl border border-slate-100 bg-slate-50 p-5"
+                >
+                  <h3 className="font-black text-slate-900">
+                    {step.order}. {step.title}
+                  </h3>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    {step.fields.length} حقول
+                  </p>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl bg-amber-50 p-6 text-sm font-bold text-amber-700">
+            لا يوجد Workflow مفعل لهذه الخدمة.
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+
+================================================================================
+FILE: app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx
+================================================================================
+
+import { notFound } from "next/navigation";
+import { WorkflowUploadCard } from "@/components/admin/workflow-upload-card";
+import { dashboardServices } from "@/lib/constants/services";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+
+type PageProps = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+export default async function WorkflowUploadPage({ params }: PageProps) {
+  await requireAdminPage();
+
+  const { serviceSlug } = await params;
+
+  const service = dashboardServices.find((item) => item.slug === serviceSlug);
+
+  if (!service) {
+    notFound();
+  }
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white shadow-2xl">
+        <p className="text-sm font-bold text-sky-300">Workflow Upload</p>
+        <h1 className="mt-3 text-4xl font-black">رفع Workflow Excel</h1>
+        <p className="mt-4 max-w-3xl leading-8 text-slate-300">
+          الخدمة المستهدفة: {service.title}
+        </p>
+      </section>
+
+      <WorkflowUploadCard serviceSlug={service.slug} serviceName={service.title} />
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+        <h2 className="text-2xl font-black text-slate-900">صيغة Excel المطلوبة</h2>
+        <p className="mt-3 text-sm leading-7 text-slate-500">
+          الأعمدة المدعومة:
+          stepTitle, stepDescription, fieldKey, fieldLabel, fieldType,
+          fieldRequired, fieldOrder, allowOther, dependsOnFieldKey,
+          linkedToValue, optionLabel, optionValue, optionOrder
+        </p>
+      </section>
+    </div>
+  );
+}
+
+
+================================================================================
+FILE: app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+================================================================================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+
+type RouteContext = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+export async function POST(_request: Request, context: RouteContext) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  try {
+    const { serviceSlug } = await context.params;
+
+    const service = await prisma.service.findUnique({
+      where: {
+        slug: serviceSlug,
+      },
+    });
+
+    if (!service) {
+      return NextResponse.json(
+        { error: "الخدمة غير موجودة." },
+        { status: 404 }
+      );
+    }
+
+    const draftWorkflow = await prisma.workflow.findFirst({
+      where: {
+        serviceId: service.id,
+        workflowType: WORKFLOW_TYPES.DEFAULT,
+        status: "DRAFT",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    if (!draftWorkflow) {
+      return NextResponse.json(
+        { error: "لا يوجد Workflow مسودة لاعتماده." },
+        { status: 404 }
+      );
+    }
+
+    await prisma.workflow.updateMany({
+      where: {
+        serviceId: draftWorkflow.serviceId,
+        workflowType: WORKFLOW_TYPES.DEFAULT,
+        status: "ACTIVE",
+      },
+      data: {
+        status: "ARCHIVED",
+        isActive: false,
+      },
+    });
+
+    const publishedWorkflow = await prisma.workflow.update({
+      where: {
+        id: draftWorkflow.id,
+      },
+      data: {
+        status: "ACTIVE",
+        isActive: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      workflowId: publishedWorkflow.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء اعتماد Workflow.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+================================================================================
+FILE: engine\workflow-upload\workflow-upload-engine.ts
+================================================================================
+
+import { prisma } from "@/lib/prisma";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+import type { ParsedWorkflowRow } from "@/lib/workflow-upload/workflow-excel-parser";
+
+const allowedFieldTypes = new Set([
+  "TEXT",
+  "TEXTAREA",
+  "NUMBER",
+  "DATE",
+  "SELECT",
+  "MULTI_SELECT",
+  "CHECKBOX",
+  "RADIO",
+  "FILE_UPLOAD",
+  "IMAGE_UPLOAD",
+  "STUDENT_PICKER",
+  "PARENT_PICKER",
+  "STAFF_PICKER",
+  "REPEATER",
+  "SIGNATURE",
+  "RICH_TEXT",
+]);
+
+function normalizeText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function normalizeFieldType(type: string) {
+  const normalized = normalizeText(type).toUpperCase();
+  return allowedFieldTypes.has(normalized) ? normalized : "TEXT";
+}
+
+function normalizeOptionValue(label: string) {
+  return label
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^\u0600-\u06FFa-zA-Z0-9_]/g, "")
+    .toLowerCase();
+}
+
+function getFieldLinkedToValue(fieldRows: ParsedWorkflowRow[]) {
+  const first = fieldRows[0];
+
+  if (!first) return null;
+
+  if (first.fieldLinkedToValue) {
+    return first.fieldLinkedToValue;
+  }
+
+  /**
+   * توافق مع الملفات القديمة:
+   * إذا كان linkedToValue مكررًا بنفس القيمة لكل صفوف الحقل، نعتبره ربط حقل كامل.
+   * إذا كان مختلفًا بين الخيارات، فهذا غالبًا ربط خيارات وليس ربط حقل، فلا نحفظه للحقل.
+   */
+  const legacyValues = Array.from(
+    new Set(
+      fieldRows
+        .map((row) => normalizeText(row.linkedToValue))
+        .filter(Boolean)
+    )
+  );
+
+  if (legacyValues.length === 1 && !fieldRows.some((row) => row.optionLinkedToValue)) {
+    return legacyValues[0];
+  }
+
+  return null;
+}
+
+function getOptionLinkedToValue(row: ParsedWorkflowRow) {
+  /**
+   * الربط الصحيح للخيار.
+   * الأولوية للعمود الجديد optionLinkedToValue.
+   * ولو ملف قديم يستخدم linkedToValue في صف الخيار، نستفيد منه كـ fallback.
+   */
+  return row.optionLinkedToValue || row.linkedToValue || null;
+}
+
+export async function uploadWorkflowForService(params: {
+  serviceSlug: string;
+  serviceName: string;
+  rows: ParsedWorkflowRow[];
+}) {
+  const service = await prisma.service.upsert({
+    where: { slug: params.serviceSlug },
+    update: {
+      name: params.serviceName,
+      status: "ACTIVE",
+    },
+    create: {
+      slug: params.serviceSlug,
+      name: params.serviceName,
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.workflow.updateMany({
+    where: {
+      serviceId: service.id,
+      workflowType: WORKFLOW_TYPES.DEFAULT,
+      isActive: true,
+    },
+    data: {
+      isActive: false,
+      status: "ARCHIVED",
+    },
+  });
+
+  const latestWorkflow = await prisma.workflow.findFirst({
+    where: {
+      serviceId: service.id,
+      workflowType: WORKFLOW_TYPES.DEFAULT,
+    },
+    orderBy: { version: "desc" },
+  });
+
+  const workflow = await prisma.workflow.create({
+    data: {
+      serviceId: service.id,
+      workflowType: WORKFLOW_TYPES.DEFAULT,
+      name: `${service.name} Workflow`,
+      version: latestWorkflow ? latestWorkflow.version + 1 : 1,
+      status: "ACTIVE",
+      isActive: true,
+    },
+  });
+
+  const stepGroups = new Map<string, ParsedWorkflowRow[]>();
+
+  params.rows.forEach((row) => {
+    const existing = stepGroups.get(row.stepTitle) ?? [];
+    existing.push(row);
+    stepGroups.set(row.stepTitle, existing);
+  });
+
+  let stepOrderFallback = 1;
+  let fieldsCount = 0;
+  let optionsCount = 0;
+
+  for (const [stepTitle, rows] of stepGroups.entries()) {
+    const firstStepRow = rows[0];
+
+    const step = await prisma.workflowStep.create({
+      data: {
+        workflowId: workflow.id,
+        title: stepTitle,
+        description: firstStepRow?.stepDescription ?? null,
+        order: firstStepRow?.stepOrder ?? stepOrderFallback,
+      },
+    });
+
+    stepOrderFallback++;
+
+    const fieldGroups = new Map<string, ParsedWorkflowRow[]>();
+
+    rows.forEach((row) => {
+      const existing = fieldGroups.get(row.fieldKey) ?? [];
+      existing.push(row);
+      fieldGroups.set(row.fieldKey, existing);
+    });
+
+    for (const [fieldKey, fieldRows] of fieldGroups.entries()) {
+      const first = fieldRows[0];
+
+      if (!first) continue;
+
+      const fieldLinkedToValue = getFieldLinkedToValue(fieldRows);
+
+      const field = await prisma.dynamicField.create({
+        data: {
+          stepId: step.id,
+          key: fieldKey,
+          label: first.fieldLabel,
+          type: normalizeFieldType(first.fieldType) as never,
+          isRequired: first.fieldRequired,
+          order: first.fieldOrder ?? fieldsCount + 1,
+          allowOther: first.allowOther,
+          dependsOnFieldKey: first.dependsOnFieldKey ?? null,
+          linkedToValue: fieldLinkedToValue,
+        },
+      });
+
+      fieldsCount++;
+
+      const seenOptionValues = new Set<string>();
+
+      for (const optionRow of fieldRows) {
+        if (!optionRow.optionLabel) continue;
+
+        const optionValue =
+          optionRow.optionValue || normalizeOptionValue(optionRow.optionLabel);
+
+        if (!optionValue || seenOptionValues.has(optionValue)) {
+          continue;
+        }
+
+        seenOptionValues.add(optionValue);
+
+        await prisma.dynamicFieldOption.create({
+          data: {
+            fieldId: field.id,
+            label: optionRow.optionLabel,
+            value: optionValue,
+            order: optionRow.optionOrder ?? optionsCount + 1,
+            linkedToValue: getOptionLinkedToValue(optionRow),
+          },
+        });
+
+        optionsCount++;
+      }
+    }
+  }
+
+  return {
+    service,
+    workflow,
+    stepsCount: stepGroups.size,
+    fieldsCount,
+    optionsCount,
+  };
+}
+
+================================================================================
+FILE: lib\workflows\workflow-types.ts
+================================================================================
+
+export const WORKFLOW_TYPES = {
+  DEFAULT: "default",
+} as const;
+
+export type WorkflowType = (typeof WORKFLOW_TYPES)[keyof typeof WORKFLOW_TYPES];
+
+export function normalizeWorkflowType(value?: string | null): WorkflowType {
+  if (!value) {
+    return WORKFLOW_TYPES.DEFAULT;
+  }
+
+  if (value === WORKFLOW_TYPES.DEFAULT) {
+    return WORKFLOW_TYPES.DEFAULT;
+  }
+
+  return WORKFLOW_TYPES.DEFAULT;
+}
+

@@ -1,0 +1,4692 @@
+﻿===== GUARDIAN SUMMONS TEMPLATE FILES =====
+Generated: 06/02/2026 02:38:06
+Project: D:\student-guidance-platform-clean
+
+
+================================================================================
+FILE: components\report-engine\report-template-live-preview.tsx
+================================================================================
+
+"use client";
+
+import type { ReactNode } from "react";
+import type {
+  ReportTemplateBlock,
+  ReportTemplateBuilderModel,
+  ReportTextSnippet,
+} from "@/lib/report-engine/report-template-builder-types";
+import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+import {
+  resolveTextLibraryFallback,
+  resolveTextLibrarySnippets,
+  type RuntimeReportData,
+} from "@/lib/report-engine/report-text-library-runtime";
+
+type ReportTemplateLivePreviewProps = {
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  previewCaseData: RuntimePreviewCaseData | null;
+  pdfMode?: boolean;
+};
+
+type RuntimeValueItem = {
+  fieldKey?: string | null;
+  fieldLabel?: string | null;
+  value?: string | null;
+};
+
+type RuntimeEvidenceItem = {
+  id?: string | null;
+  title?: string | null;
+  fileName?: string | null;
+  fileUrl?: string | null;
+  imageUrl?: string | null;
+  mimeType?: string | null;
+  caption?: string | null;
+  description?: string | null;
+};
+
+export function ReportTemplateLivePreview({
+  template,
+  snippets,
+  previewCaseData,
+  pdfMode = false,
+}: ReportTemplateLivePreviewProps) {
+  return (
+    <section
+      className={
+        pdfMode
+          ? "bg-white p-0"
+          : "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+      }
+    >
+      {!pdfMode ? (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">
+              المعاينة الحية للقالب
+            </h2>
+
+            <p className="mt-1 text-sm leading-7 text-slate-500">
+              هذه المعاينة تقرأ صفحات القالب وبلوكاته، وتستخدم بيانات Case ID إن وجدت،
+              وتعرض نصوص مكتبة النصوص حسب إعدادات بلوك النصوص.
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
+            {previewCaseData ? "معاينة من Case حقيقي" : "معاينة ببيانات تجريبية"}
+          </div>
+        </div>
+      ) : null}
+
+      <div className={pdfMode ? "space-y-0" : "mt-5 space-y-6"}>
+        {template.pages.map((page, pageIndex) => (
+          <article
+            key={page.id}
+            style={
+              pdfMode
+                ? {
+                    width: "210mm",
+                    height: "297mm",
+                    maxHeight: "297mm",
+                    overflow: "hidden",
+                    breakAfter:
+                      pageIndex < template.pages.length - 1 ? "page" : "auto",
+                    pageBreakAfter:
+                      pageIndex < template.pages.length - 1 ? "always" : "auto",
+                    breakInside: "avoid",
+                    pageBreakInside: "avoid",
+                  }
+                : undefined
+            }
+            className={
+              pdfMode
+                ? "pdf-report-page mx-auto max-w-none overflow-hidden rounded-none border-0 bg-white shadow-none"
+                : "mx-auto min-h-[720px] max-w-[820px] overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 shadow-sm"
+            }
+          >
+            {!pdfMode ? (
+              <div className="border-b border-slate-200 bg-white px-6 py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-black text-emerald-700">
+                      صفحة {pageIndex + 1}
+                    </p>
+
+                    <h3 className="mt-1 text-lg font-black text-slate-900">
+                      {page.title}
+                    </h3>
+
+                    <p className="mt-1 text-xs leading-6 text-slate-500">
+                      {page.description}
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">
+                    {getPageKindLabel(page.kind)}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+
+            <div
+              className={[
+                pdfMode
+                  ? "h-full max-h-full overflow-hidden bg-white p-[10mm]"
+                  : "min-h-[640px] bg-white p-8",
+                page.kind === "cover" ? "flex flex-col justify-between" : "",
+              ].join(" ")}
+            >
+              {page.kind === "cover" ? (
+                <CoverPreviewHeader template={template} pageTitle={page.title} />
+              ) : null}
+
+              <div className={pdfMode ? "max-h-full space-y-3 overflow-hidden" : "space-y-5"}>
+                {page.blocks.length ? (
+                  page.blocks.map((block) => (
+                    <PreviewBlock
+                      key={block.id}
+                      block={block}
+                      template={template}
+                      snippets={snippets}
+                      previewCaseData={previewCaseData}
+                    />
+                  ))
+                ) : !pdfMode ? (
+                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <p className="text-sm font-bold text-slate-500">
+                      لا توجد بلوكات في هذه الصفحة.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+
+              {page.kind === "cover" ? (
+                <CoverPreviewFooter template={template} />
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PreviewBlock({
+  block,
+  template,
+  snippets,
+  previewCaseData,
+}: {
+  block: ReportTemplateBlock;
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  previewCaseData: RuntimePreviewCaseData | null;
+}) {
+  if (block.kind === "identity-header") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-3">
+          <InfoPreview label="الجهة" value="وزارة التعليم" />
+          <InfoPreview label="المدرسة" value="اسم المدرسة" />
+          <InfoPreview label="العام الدراسي" value="1447هـ" />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "cover-title") {
+    return (
+      <div className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-8 text-center">
+        {shouldShowTitle(block) ? (
+          <p className="text-sm font-black text-emerald-700">
+            {getServiceName(template, previewCaseData)}
+          </p>
+        ) : null}
+
+        <h1 className="mt-3 text-3xl font-black text-slate-900">
+          {template.name}
+        </h1>
+
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-8 text-slate-600">
+          {template.description}
+        </p>
+      </div>
+    );
+  }
+
+  if (block.kind === "case-meta") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="عنوان الحالة"
+            value={getCaseTitle(previewCaseData)}
+          />
+          <InfoPreview
+            label="الخدمة"
+            value={getServiceName(template, previewCaseData)}
+          />
+          <InfoPreview
+            label="عدد القيم"
+            value={`${getRuntimeValues(previewCaseData).length}`}
+          />
+          <InfoPreview
+            label="عدد الشواهد"
+            value={`${getRuntimeEvidences(previewCaseData).length}`}
+          />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "student-summary") {
+    const student = getStudent(previewCaseData);
+
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="اسم الطالب/الطالبة"
+            value={student.fullName || "اسم الطالب/الطالبة"}
+          />
+          <InfoPreview label="المرحلة" value={student.stage || "غير محدد"} />
+          <InfoPreview label="الصف" value={student.grade || "غير محدد"} />
+          <InfoPreview label="الفصل" value={student.classroom || "غير محدد"} />
+          <InfoPreview
+            label="ولي الأمر"
+            value={student.guardianName || "غير متوفر"}
+          />
+          <InfoPreview
+            label="جوال ولي الأمر"
+            value={student.guardianPhone || "غير متوفر"}
+          />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "service-summary") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <InfoPreview
+            label="اسم الخدمة"
+            value={getServiceName(template, previewCaseData)}
+          />
+          <InfoPreview
+            label="نطاق القالب"
+            value={template.scope === "GLOBAL" ? "عام" : "خاص بخدمة"}
+          />
+          <InfoPreview label="حالة القالب" value={template.status} />
+          <InfoPreview label="عدد الصفحات" value={`${template.pages.length}`} />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "paragraph") {
+    return (
+      <BlockShell block={block}>
+        <p className="text-sm leading-8 text-slate-700">
+          هذا بلوك نصي افتراضي يمكن استخدامه لعرض محتوى وصفي داخل التقرير. يمكن
+          لاحقًا ربطه ببيانات الحالة أو جعله فقرة ثابتة داخل القالب.
+        </p>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "field-list") {
+    const values = getRuntimeValues(previewCaseData);
+
+    return (
+      <BlockShell block={block}>
+        {values.length ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {values.slice(0, 10).map((item, index) => (
+              <InfoPreview
+                key={`${item.fieldKey || item.fieldLabel || index}`}
+                label={item.fieldLabel || item.fieldKey || `قيمة ${index + 1}`}
+                value={item.value || "—"}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            لا توجد قيم حقيقية من Case ID، سيتم عرض القيم عند ربط حالة حقيقية.
+          </div>
+        )}
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "text-library") {
+    const runtimeData = buildRuntimeReportDataForTextLibrary(
+      template,
+      previewCaseData,
+    );
+
+    const resolvedSnippets = resolveTextLibrarySnippets({
+      block,
+      template,
+      snippets,
+      data: runtimeData,
+    });
+
+    if (!resolvedSnippets.length) {
+      const fallback = resolveTextLibraryFallback({ block });
+
+      if (!fallback) {
+        return null;
+      }
+
+      return (
+        <BlockShell block={block} tone="emerald">
+          <p className="whitespace-pre-line rounded-2xl border border-emerald-100 bg-white p-4 text-sm leading-8 text-slate-800">
+            {fallback}
+          </p>
+        </BlockShell>
+      );
+    }
+
+    return (
+      <BlockShell block={block} tone="emerald">
+        <div className="space-y-3">
+          {resolvedSnippets.map((snippet) => (
+            <article
+              key={snippet.id}
+              className="rounded-2xl border border-emerald-100 bg-white p-4"
+            >
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+                  {snippet.category}
+                </span>
+
+                <strong className="text-xs text-slate-500">
+                  {snippet.title}
+                </strong>
+              </div>
+
+              <p className="whitespace-pre-line text-sm leading-8 text-slate-800">
+                {snippet.renderedText}
+              </p>
+            </article>
+          ))}
+        </div>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "custom-paragraph") {
+    return (
+      <BlockShell block={block}>
+        {block.customTitle ? (
+          <h4 className="mb-3 text-base font-black text-slate-900">
+            {block.customTitle}
+          </h4>
+        ) : null}
+
+        <p className="whitespace-pre-line text-sm leading-8 text-slate-700">
+          {block.customContent || "لم يتم إدخال محتوى مخصص بعد."}
+        </p>
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "evidence-gallery") {
+    const evidences = getRuntimeEvidences(previewCaseData);
+    const settings = block.settings || {};
+    const layout = settings.evidenceLayout || "grid-2x2";
+
+    return (
+      <BlockShell block={block}>
+        {evidences.length ? (
+          <EvidencePreviewGrid
+            evidences={evidences}
+            layout={layout}
+            showCaptions={settings.showCaptions !== false}
+            imageFit={settings.imageFit || "cover"}
+          />
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            لا توجد شواهد في المعاينة الحالية.
+          </div>
+        )}
+      </BlockShell>
+    );
+  }
+
+  if (block.kind === "approval-signature") {
+    return (
+      <BlockShell block={block}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <SignatureBox title="الموجه/الموجهة الطلابية" name="أ. الموجه الطلابي" />
+          <SignatureBox title="قائد/قائدة المدرسة" name="قائد/قائدة المدرسة" />
+        </div>
+      </BlockShell>
+    );
+  }
+
+  return (
+    <BlockShell block={block}>
+      <p className="text-sm text-slate-500">
+        نوع البلوك غير مدعوم في المعاينة الحالية.
+      </p>
+    </BlockShell>
+  );
+}
+
+function BlockShell({
+  block,
+  tone = "slate",
+  children,
+}: {
+  block: ReportTemplateBlock;
+  tone?: "slate" | "emerald";
+  children: ReactNode;
+}) {
+  const settings = block.settings || {};
+  const showTitle = settings.showTitle !== false;
+  const style = settings.style || "card";
+
+  if (style === "plain") {
+    return (
+      <section>
+        {showTitle ? (
+          <h4 className="mb-3 text-base font-black text-slate-900">
+            {block.title}
+          </h4>
+        ) : null}
+
+        {children}
+      </section>
+    );
+  }
+
+  if (style === "highlight") {
+    return (
+      <section className="rounded-3xl border border-amber-100 bg-amber-50 p-5">
+        {showTitle ? (
+          <h4 className="mb-3 text-base font-black text-amber-950">
+            {block.title}
+          </h4>
+        ) : null}
+
+        {children}
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className={[
+        "rounded-3xl border p-5",
+        tone === "emerald"
+          ? "border-emerald-100 bg-emerald-50"
+          : "border-slate-200 bg-slate-50",
+      ].join(" ")}
+    >
+      {showTitle ? (
+        <h4
+          className={[
+            "mb-3 text-base font-black",
+            tone === "emerald" ? "text-emerald-950" : "text-slate-900",
+          ].join(" ")}
+        >
+          {block.title}
+        </h4>
+      ) : null}
+
+      {children}
+    </section>
+  );
+}
+
+function InfoPreview({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-black text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-black leading-7 text-slate-900">
+        {value || "—"}
+      </p>
+    </div>
+  );
+}
+
+function SignatureBox({ title, name }: { title: string; name: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <p className="text-xs font-black text-slate-500">{title}</p>
+      <p className="mt-3 text-sm font-black text-slate-900">{name}</p>
+      <div className="mt-8 border-t border-dashed border-slate-300 pt-3 text-xs text-slate-400">
+        التوقيع والختم
+      </div>
+    </div>
+  );
+}
+
+function CoverPreviewHeader({
+  template,
+  pageTitle,
+}: {
+  template: ReportTemplateBuilderModel;
+  pageTitle: string;
+}) {
+  return (
+    <header className="text-center">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-sm font-black text-emerald-800">
+        شعار
+      </div>
+
+      <p className="mt-4 text-sm font-black text-emerald-700">
+        {getServiceName(template, null)}
+      </p>
+
+      <h1 className="mt-3 text-3xl font-black text-slate-900">
+        {template.name || pageTitle}
+      </h1>
+
+      <p className="mx-auto mt-4 max-w-xl text-sm leading-8 text-slate-600">
+        {template.description}
+      </p>
+    </header>
+  );
+}
+
+function CoverPreviewFooter({
+  template,
+}: {
+  template: ReportTemplateBuilderModel;
+}) {
+  return (
+    <footer className="no-print border-t border-slate-200 pt-5 text-center text-xs font-bold text-slate-500">
+      <span>{template.scope === "GLOBAL" ? "قالب عام" : "قالب خاص بخدمة"}</span>
+      <span className="mx-2">•</span>
+      <span>{template.status}</span>
+    </footer>
+  );
+}
+
+function EvidencePreviewGrid({
+  evidences,
+  layout,
+  showCaptions,
+  imageFit,
+}: {
+  evidences: RuntimeEvidenceItem[];
+  layout: string;
+  showCaptions: boolean;
+  imageFit: string;
+}) {
+  const gridClass =
+    layout === "one-per-page"
+      ? "grid-cols-1"
+      : layout === "stacked"
+        ? "grid-cols-1"
+        : layout === "two-columns"
+          ? "grid-cols-2"
+          : "grid-cols-2";
+
+  return (
+    <div className={`grid gap-3 ${gridClass}`}>
+      {evidences
+        .slice(0, layout === "one-per-page" ? 1 : 4)
+        .map((evidence, index) => {
+          const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+
+          return (
+            <article
+              key={evidence.id || `${evidence.fileName}-${index}`}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            >
+              <div className="flex h-40 items-center justify-center bg-slate-100">
+                {isImageEvidence(evidence) && imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={evidence.title || evidence.fileName || "شاهد"}
+                    className={[
+                      "h-full w-full",
+                      imageFit === "contain" ? "object-contain" : "object-cover",
+                    ].join(" ")}
+                  />
+                ) : (
+                  <span className="px-4 text-center text-xs font-black text-slate-500">
+                    {evidence.fileName || "مرفق"}
+                  </span>
+                )}
+              </div>
+
+              {showCaptions ? (
+                <div className="p-3">
+                  <p className="text-xs font-black text-slate-800">
+                    {evidence.title ||
+                      evidence.caption ||
+                      evidence.fileName ||
+                      "شاهد"}
+                  </p>
+
+                  {evidence.description ? (
+                    <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                      {evidence.description}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+    </div>
+  );
+}
+
+function buildRuntimeReportDataForTextLibrary(
+  template: ReportTemplateBuilderModel,
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeReportData {
+  const values = getRuntimeValues(previewCaseData);
+  const valueMap: Record<string, string> = {};
+
+  values.forEach((item) => {
+    const value = item.value || "";
+
+    if (item.fieldKey) {
+      valueMap[item.fieldKey] = value;
+    }
+
+    if (item.fieldLabel) {
+      valueMap[item.fieldLabel] = value;
+    }
+  });
+
+  const student = getStudent(previewCaseData);
+  const evidences = getRuntimeEvidences(previewCaseData);
+
+  return {
+    reportTitle: template.name || "عنوان التقرير",
+    createdAt: new Date().toISOString(),
+    values: {
+      ...valueMap,
+      programTitle:
+        valueMap.program_name ||
+        valueMap["عنوان البرنامج"] ||
+        valueMap.programTitle ||
+        getCaseTitle(previewCaseData) ||
+        "برنامج إرشادي",
+      executionDate:
+        valueMap.gregorian_date ||
+        valueMap.executionDate ||
+        valueMap["تاريخ التنفيذ"] ||
+        "2026-05-26",
+      dayText: valueMap.day || valueMap["اليوم"] || "الأحد",
+      targetGroup:
+        valueMap.beneficiaries ||
+        valueMap.targetGroup ||
+        valueMap["الفئة المستهدفة"] ||
+        student.grade ||
+        "الفئة المستهدفة",
+      executionAction:
+        valueMap.execution_action ||
+        valueMap.executionAction ||
+        valueMap["الإجراء التنفيذي"] ||
+        "إجراء تنفيذي موثق",
+      executionMechanism:
+        valueMap.execution_mechanism ||
+        valueMap.executionMechanism ||
+        valueMap["آلية التنفيذ"] ||
+        "آلية تنفيذ موثقة",
+      performanceIndicator:
+        valueMap.performance_indicator ||
+        valueMap.performanceIndicator ||
+        valueMap["مؤشر الأداء"] ||
+        "مؤشر أداء",
+      evidenceSuggestion:
+        valueMap.evidence_suggestion ||
+        valueMap.evidenceSuggestion ||
+        valueMap["الشواهد"] ||
+        "الشواهد والمرفقات",
+      evidenceCountText: formatEvidenceCount(evidences.length),
+    },
+    evidences: evidences.map((evidence) => ({
+      id: evidence.id || undefined,
+      title: evidence.title || evidence.caption || evidence.fileName || undefined,
+      caption: evidence.caption || undefined,
+      description: evidence.description || undefined,
+      fileUrl: evidence.fileUrl || evidence.imageUrl || undefined,
+      url: evidence.imageUrl || evidence.fileUrl || undefined,
+      mimeType: evidence.mimeType || undefined,
+    })),
+    student: {
+      name: student.fullName || "اسم الطالب/الطالبة",
+      nationalId: student.nationalId || "",
+      grade: student.grade || "",
+      classroom: student.classroom || "",
+      gender: "",
+      guardianName: student.guardianName || "",
+      guardianPhone: student.guardianPhone || "",
+    },
+    service: {
+      name: getServiceName(template, previewCaseData),
+      slug: template.serviceSlug || "",
+    },
+    caseEntry: {
+      title: getCaseTitle(previewCaseData),
+      student: {
+        name: student.fullName || "اسم الطالب/الطالبة",
+        nationalId: student.nationalId || "",
+        grade: student.grade || "",
+        classroom: student.classroom || "",
+        gender: "",
+        guardianName: student.guardianName || "",
+        guardianPhone: student.guardianPhone || "",
+      },
+      service: {
+        name: getServiceName(template, previewCaseData),
+        slug: template.serviceSlug || "",
+      },
+    },
+    school: {
+      name: "اسم المدرسة",
+      schoolYear: "1447هـ",
+      semester: "الفصل الدراسي",
+      principalName: "قائد/قائدة المدرسة",
+    },
+    counselor: {
+      name: "الموجه/الموجهة الطلابية",
+    },
+  };
+}
+
+function getRuntimeValues(
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeValueItem[] {
+  const data = previewCaseData as
+    | {
+        values?: RuntimeValueItem[];
+      }
+    | null;
+
+  return Array.isArray(data?.values) ? data.values : [];
+}
+
+function getRuntimeEvidences(
+  previewCaseData: RuntimePreviewCaseData | null,
+): RuntimeEvidenceItem[] {
+  const data = previewCaseData as
+    | {
+        evidences?: RuntimeEvidenceItem[];
+      }
+    | null;
+
+  return Array.isArray(data?.evidences) ? data.evidences : [];
+}
+
+function getStudent(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as
+    | {
+        student?: {
+          fullName?: string | null;
+          nationalId?: string | null;
+          stage?: string | null;
+          grade?: string | null;
+          classroom?: string | null;
+          guardianName?: string | null;
+          guardianPhone?: string | null;
+        } | null;
+      }
+    | null;
+
+  return {
+    fullName: data?.student?.fullName || "",
+    nationalId: data?.student?.nationalId || "",
+    stage: data?.student?.stage || "",
+    grade: data?.student?.grade || "",
+    classroom: data?.student?.classroom || "",
+    guardianName: data?.student?.guardianName || "",
+    guardianPhone: data?.student?.guardianPhone || "",
+  };
+}
+
+function getCaseTitle(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as
+    | {
+        title?: string | null;
+      }
+    | null;
+
+  return data?.title || "حالة تجريبية";
+}
+
+function getServiceName(
+  template: ReportTemplateBuilderModel,
+  previewCaseData: RuntimePreviewCaseData | null,
+) {
+  const data = previewCaseData as
+    | {
+        serviceName?: string | null;
+      }
+    | null;
+
+  if (data?.serviceName) {
+    return data.serviceName;
+  }
+
+  if (template.scope === "SERVICE" && template.serviceSlug) {
+    return template.serviceSlug;
+  }
+
+  return "الخدمة الإرشادية";
+}
+
+function shouldShowTitle(block: ReportTemplateBlock) {
+  return block.settings?.showTitle !== false;
+}
+
+function isImageEvidence(evidence: RuntimeEvidenceItem) {
+  if (evidence.mimeType?.startsWith("image/")) {
+    return true;
+  }
+
+  const fileName = evidence.fileName || evidence.fileUrl || evidence.imageUrl || "";
+
+  return /\.(png|jpg|jpeg|webp|gif)$/i.test(fileName);
+}
+
+function formatEvidenceCount(count: number) {
+  if (count <= 0) return "0 شاهد";
+  if (count === 1) return "شاهد واحد";
+  if (count === 2) return "شاهدان";
+  if (count >= 3 && count <= 10) return `${count} شواهد`;
+  return `${count} شاهد`;
+}
+
+function getPageKindLabel(kind: string) {
+  if (kind === "cover") return "غلاف";
+  if (kind === "summary") return "ملخص";
+  if (kind === "narrative") return "محتوى";
+  if (kind === "results") return "نتائج";
+  if (kind === "evidence") return "شواهد";
+  if (kind === "approval") return "اعتماد";
+  return kind;
+}
+
+
+================================================================================
+FILE: components\report-engine\report-builder-pdf-renderer.tsx
+================================================================================
+
+import type { CSSProperties, ReactNode } from "react";
+import type {
+  ReportTemplateBlock,
+  ReportTemplateBuilderModel,
+} from "@/lib/report-engine/report-template-builder-types";
+import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+import type { ReportIdentity } from "@/lib/report-engine/report-types";
+
+type EvidenceLayoutMode =
+  | "auto"
+  | "one-per-page"
+  | "two-per-page"
+  | "grid-2x2"
+  | "compact";
+
+type RenderReportPage = ReportTemplateBuilderModel["pages"][number] & {
+  evidenceChunk?: RuntimeEvidenceItem[];
+  evidencePageNumber?: number;
+  evidenceTotalPages?: number;
+};
+
+type ReportBuilderPdfRendererProps = {
+  template: ReportTemplateBuilderModel;
+  previewCaseData: RuntimePreviewCaseData | null;
+  identity: ReportIdentity;
+  editorialBlocks?: Record<string, string>;
+  evidenceLayoutMode?: EvidenceLayoutMode;
+};
+
+type RuntimeValueItem = {
+  fieldKey?: string | null;
+  fieldLabel?: string | null;
+  value?: string | null;
+};
+
+type RuntimeEvidenceItem = {
+  id?: string | null;
+  title?: string | null;
+  fileName?: string | null;
+  fileUrl?: string | null;
+  imageUrl?: string | null;
+  mimeType?: string | null;
+  caption?: string | null;
+  description?: string | null;
+  note?: string | null;
+};
+
+export function ReportBuilderPdfRenderer({
+  template,
+  previewCaseData,
+  identity,
+  editorialBlocks = {},
+  evidenceLayoutMode = "two-per-page",
+}: ReportBuilderPdfRendererProps) {
+  const basePages: RenderReportPage[] = template.pages.length
+    ? (template.pages as RenderReportPage[])
+    : [
+        {
+          id: "fallback-cover",
+          title: "غلاف التقرير",
+          description: "",
+          kind: "cover",
+          blocks: [],
+        } as RenderReportPage,
+      ];
+
+  const allEvidences = getRuntimeEvidences(previewCaseData);
+
+  const pages: RenderReportPage[] = basePages.flatMap((page) => {
+    if (page.kind !== "evidence") {
+      return [page];
+    }
+
+    const chunks = chunkEvidencesForLayout(allEvidences, evidenceLayoutMode);
+
+    if (!chunks.length) {
+      return [
+        {
+          ...page,
+          evidenceChunk: [],
+          evidencePageNumber: 1,
+          evidenceTotalPages: 1,
+        },
+      ];
+    }
+
+    return chunks.map((chunk, index) => ({
+      ...page,
+      id: `${page.id}-evidence-${index + 1}`,
+      title:
+        chunks.length > 1
+          ? `${page.title || "الشواهد والمرفقات"} - صفحة ${index + 1}`
+          : page.title,
+      evidenceChunk: chunk,
+      evidencePageNumber: index + 1,
+      evidenceTotalPages: chunks.length,
+    }));
+  });
+
+  return (
+    <section className="space-y-4 bg-transparent print:space-y-0" dir="rtl">
+      {pages.map((page, index) => {
+        const pageStyle: CSSProperties = {
+          width: "210mm",
+          height: "297mm",
+          minHeight: "297mm",
+          maxHeight: "297mm",
+          overflow: "hidden",
+          breakAfter: index < pages.length - 1 ? "page" : "auto",
+          pageBreakAfter: index < pages.length - 1 ? "always" : "auto",
+          breakInside: "avoid",
+          pageBreakInside: "avoid",
+        };
+
+        return (
+          <article
+            key={page.id}
+            className="pdf-report-page mx-auto rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm print:rounded-none print:border-0 print:shadow-none"
+            style={pageStyle}
+          >
+            {page.kind === "cover" ? (
+              <OfficialCoverPage
+                template={template}
+                identity={identity}
+                previewCaseData={previewCaseData}
+              />
+            ) : page.kind === "evidence" ? (
+              <OfficialEvidencePage
+                pageTitle={page.title}
+                evidences={page.evidenceChunk || []}
+                evidenceLayoutMode={evidenceLayoutMode}
+                pageNumber={page.evidencePageNumber || 1}
+                totalPages={page.evidenceTotalPages || 1}
+              />
+            ) : page.kind === "approval" ? (
+              <OfficialApprovalPage identity={identity} />
+            ) : (
+              <OfficialContentPage
+                pageTitle={page.title}
+                blocks={page.blocks}
+                template={template}
+                previewCaseData={previewCaseData}
+                editorialBlocks={editorialBlocks}
+              />
+            )}
+          </article>
+        );
+      })}
+    </section>
+  );
+}
+
+function OfficialPageFrame({
+  title,
+  eyebrow,
+  children,
+}: {
+  title: string;
+  eyebrow?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex h-full flex-col p-[16mm]">
+      <header className="border-b border-slate-300 pb-4">
+        <p className="text-xs font-bold text-slate-500">
+          {eyebrow || "تقرير إرشادي"}
+        </p>
+        <h1 className="mt-2 text-2xl font-black text-slate-950">{title}</h1>
+      </header>
+
+      <main className="min-h-0 flex-1 overflow-hidden pt-6">{children}</main>
+
+      <footer className="mt-6 border-t border-slate-200 pt-3 text-center text-[11px] text-slate-500">
+        تم إنشاء التقرير من منصة التوجيه الطلابي
+      </footer>
+    </div>
+  );
+}
+
+function OfficialCoverPage({
+  template,
+  identity,
+  previewCaseData,
+}: {
+  template: ReportTemplateBuilderModel;
+  identity: ReportIdentity;
+  previewCaseData: RuntimePreviewCaseData | null;
+}) {
+  return (
+    <div className="flex h-full flex-col justify-between p-[18mm] text-center">
+      <div>
+        <div className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-slate-300 bg-white text-xs font-black text-slate-500">
+          {identity.schoolLogoUrl ? (
+            <img
+              src={identity.schoolLogoUrl}
+              alt="شعار المدرسة"
+              className="h-full w-full object-contain p-2"
+            />
+          ) : (
+            "شعار"
+          )}
+        </div>
+
+        <div className="mt-6 space-y-1 text-sm font-bold text-slate-700">
+          <p>{identity.ministryName || "وزارة التعليم"}</p>
+          <p>{identity.educationDepartment || "إدارة التعليم"}</p>
+          <p>{identity.schoolName || "اسم المدرسة"}</p>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-[150mm]">
+        <p className="text-sm font-black text-emerald-700">
+          {getServiceName(template, previewCaseData)}
+        </p>
+
+        <h1 className="mt-5 text-4xl font-black leading-[1.7] text-slate-950">
+          {template.name || getCaseTitle(previewCaseData)}
+        </h1>
+
+        <p className="mx-auto mt-6 max-h-24 overflow-hidden text-base leading-8 text-slate-600">
+          {template.description ||
+            "تقرير رسمي مبني على بيانات الحالة والشواهد المرتبطة بها."}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 border-t border-slate-300 pt-6 text-right text-sm">
+        <InfoLine label="العام الدراسي" value={identity.academicYear || "العام الدراسي"} />
+        <InfoLine label="الفصل الدراسي" value={identity.semester || "الفصل الدراسي"} />
+        <InfoLine label="الموجه/الموجهة" value={identity.counselorName || "الموجه/الموجهة الطلابية"} />
+        <InfoLine label="نوع التقرير" value="تقرير إرشادي رسمي" />
+      </div>
+    </div>
+  );
+}
+
+function OfficialContentPage({
+  pageTitle,
+  blocks,
+  template,
+  previewCaseData,
+  editorialBlocks = {},
+}: {
+  pageTitle: string;
+  blocks: ReportTemplateBlock[];
+  template: ReportTemplateBuilderModel;
+  previewCaseData: RuntimePreviewCaseData | null;
+  editorialBlocks?: Record<string, string>;
+}) {
+  const printableBlocks = blocks.filter(
+    (block) =>
+      block.kind !== "service-summary" &&
+      block.kind !== "cover-title" &&
+      block.kind !== "approval-signature" &&
+      block.kind !== "evidence-gallery"
+  );
+
+  const editorialSections = getEditorialSectionsForPage(pageTitle, editorialBlocks);
+
+  return (
+    <OfficialPageFrame title={pageTitle} eyebrow={getServiceName(template, previewCaseData)}>
+      <div className="space-y-5">
+        {editorialSections.map((section) => (
+          <OfficialSection key={section.key} title={section.title}>
+            <p className="whitespace-pre-line text-sm leading-8 text-slate-700">
+              {section.content}
+            </p>
+          </OfficialSection>
+        ))}
+
+        {printableBlocks.length ? (
+          printableBlocks.map((block) => (
+            <OfficialBlock
+              key={block.id}
+              block={block}
+              template={template}
+              previewCaseData={previewCaseData}
+            />
+          ))
+        ) : (
+          <OfficialBlock
+            block={{
+              id: "case-meta-fallback",
+              kind: "case-meta",
+              title: "بيانات التقرير",
+              settings: {},
+            } as ReportTemplateBlock}
+            template={template}
+            previewCaseData={previewCaseData}
+          />
+        )}
+      </div>
+    </OfficialPageFrame>
+  );
+}
+
+function getEditorialSectionsForPage(
+  pageTitle: string,
+  editorialBlocks: Record<string, string>
+) {
+  const normalizedTitle = pageTitle || "";
+
+  const sections: Array<{
+    key: string;
+    title: string;
+    content: string;
+  }> = [];
+
+  function add(key: string, title: string) {
+    const content = editorialBlocks[key]?.trim();
+
+    if (content) {
+      sections.push({
+        key,
+        title,
+        content,
+      });
+    }
+  }
+
+  if (
+    normalizedTitle.includes("ملخص") ||
+    normalizedTitle.includes("محتوى") ||
+    normalizedTitle.includes("تقرير")
+  ) {
+    add("intro", "مقدمة التقرير");
+    add("goals", "الأهداف");
+    add("procedures", "الإجراءات");
+  }
+
+  if (
+    normalizedTitle.includes("نتائج") ||
+    normalizedTitle.includes("ملخص") ||
+    normalizedTitle.includes("محتوى")
+  ) {
+    add("results", "النتائج");
+    add("recommendations", "التوصيات");
+    add("closingNotes", "ملاحظات ختامية");
+  }
+
+  return sections;
+}
+
+function OfficialBlock({
+  block,
+  template,
+  previewCaseData,
+}: {
+  block: ReportTemplateBlock;
+  template: ReportTemplateBuilderModel;
+  previewCaseData: RuntimePreviewCaseData | null;
+}) {
+  if (block.kind === "identity-header") {
+    return (
+      <OfficialSection title={block.title || "هوية المدرسة"}>
+        <div className="grid grid-cols-3 gap-3">
+          <InfoBox label="الجهة" value="وزارة التعليم" />
+          <InfoBox label="المدرسة" value="اسم المدرسة" />
+          <InfoBox label="العام الدراسي" value="1447هـ" />
+        </div>
+      </OfficialSection>
+    );
+  }
+
+  if (block.kind === "case-meta") {
+    return (
+      <OfficialSection title={block.title || "بيانات التقرير"}>
+        <div className="grid grid-cols-2 gap-3">
+          <InfoBox label="عنوان الحالة" value={getCaseTitle(previewCaseData)} />
+          <InfoBox label="الخدمة" value={getServiceName(template, previewCaseData)} />
+          <InfoBox label="عدد القيم" value={`${getRuntimeValues(previewCaseData).length}`} />
+          <InfoBox label="عدد الشواهد" value={`${getRuntimeEvidences(previewCaseData).length}`} />
+        </div>
+      </OfficialSection>
+    );
+  }
+
+  if (block.kind === "student-summary") {
+    const student = getStudent(previewCaseData);
+
+    return (
+      <OfficialSection title={block.title || "بيانات الطالب/الطالبة"}>
+        <div className="grid grid-cols-2 gap-3">
+          <InfoBox label="الاسم" value={student.fullName || "غير محدد"} />
+          <InfoBox label="رقم الهوية" value={student.nationalId || "غير متوفر"} />
+          <InfoBox label="المرحلة" value={student.stage || "غير محدد"} />
+          <InfoBox label="الصف والفصل" value={[student.grade, student.classroom].filter(Boolean).join(" - ") || "غير محدد"} />
+          <InfoBox label="ولي الأمر" value={student.guardianName || "غير متوفر"} />
+          <InfoBox label="جوال ولي الأمر" value={student.guardianPhone || "غير متوفر"} />
+        </div>
+      </OfficialSection>
+    );
+  }
+
+  if (block.kind === "field-list") {
+    const values = getRuntimeValues(previewCaseData);
+
+    return (
+      <OfficialSection title={block.title || "بيانات الحالة"}>
+        <div className="grid grid-cols-2 gap-3">
+          {values.slice(0, 10).map((item, index) => (
+            <InfoBox
+              key={`${item.fieldKey || item.fieldLabel || index}`}
+              label={item.fieldLabel || item.fieldKey || `قيمة ${index + 1}`}
+              value={item.value || "—"}
+            />
+          ))}
+        </div>
+      </OfficialSection>
+    );
+  }
+
+  if (block.kind === "custom-paragraph") {
+    return (
+      <OfficialSection title={block.customTitle || block.title || "نص التقرير"}>
+        <p className="whitespace-pre-line text-sm leading-8 text-slate-700">
+          {block.customContent || "لم يتم إدخال محتوى مخصص بعد."}
+        </p>
+      </OfficialSection>
+    );
+  }
+
+  if (block.kind === "paragraph") {
+    return (
+      <OfficialSection title={block.title || "نص التقرير"}>
+        <p className="text-sm leading-8 text-slate-700">
+          يتم عرض هذا القسم ضمن التقرير الرسمي بناءً على إعدادات القالب وبيانات الحالة.
+        </p>
+      </OfficialSection>
+    );
+  }
+
+  if (block.kind === "text-library") {
+    return (
+      <OfficialSection title={block.title || "نص جاهز من المكتبة"}>
+        <p className="text-sm leading-8 text-slate-700">
+          سيتم ربط هذا القسم لاحقًا بمكتبة النصوص الرسمية حسب الخدمة والقالب.
+        </p>
+      </OfficialSection>
+    );
+  }
+
+  return null;
+}
+
+function OfficialEvidencePage({
+  pageTitle,
+  evidences,
+  evidenceLayoutMode,
+  pageNumber,
+  totalPages,
+}: {
+  pageTitle: string;
+  evidences: RuntimeEvidenceItem[];
+  evidenceLayoutMode: EvidenceLayoutMode;
+  pageNumber: number;
+  totalPages: number;
+}) {
+  const layout = getEvidenceLayoutClasses(evidenceLayoutMode);
+
+  return (
+    <OfficialPageFrame
+      title={pageTitle || "الشواهد والمرفقات"}
+      eyebrow={totalPages > 1 ? `الشواهد - صفحة ${pageNumber} من ${totalPages}` : "الشواهد"}
+    >
+      {evidences.length ? (
+        <div className={layout.gridClassName}>
+          {evidences.map((evidence, index) => {
+            const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+            const title =
+              evidence.title ||
+              evidence.caption ||
+              evidence.fileName ||
+              `شاهد ${index + 1}`;
+
+            return (
+              <article
+                key={evidence.id || `${evidence.fileName}-${index}`}
+                className="overflow-hidden rounded-xl border border-slate-300 bg-white"
+              >
+                <div className={layout.imageBoxClassName}>
+                  {isImageEvidence(evidence) && imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={title}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <div className="px-4 text-center">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-200 text-xl">
+                        📎
+                      </div>
+
+                      <span className="mt-3 block text-xs font-black text-slate-500">
+                        {evidence.fileName || "مرفق"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-slate-200 p-3">
+                  <p className="line-clamp-2 text-xs font-black leading-6 text-slate-800">
+                    {title}
+                  </p>
+
+                  {evidence.description || evidence.note ? (
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-slate-500">
+                      {evidence.description || evidence.note}
+                    </p>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
+          لا توجد شواهد مرتبطة بهذا التقرير.
+        </div>
+      )}
+    </OfficialPageFrame>
+  );
+}
+
+function OfficialApprovalPage({ identity }: { identity: ReportIdentity }) {
+  return (
+    <OfficialPageFrame title="الاعتماد والتوقيع" eyebrow="اعتماد التقرير">
+      <div className="mt-16 grid grid-cols-2 gap-8">
+        <SignatureBox
+          title="الموجه/الموجهة الطلابية"
+          name={identity.counselorName || "الموجه/الموجهة الطلابية"}
+        />
+        <SignatureBox
+          title="قائد/قائدة المدرسة"
+          name="قائد/قائدة المدرسة"
+        />
+      </div>
+    </OfficialPageFrame>
+  );
+}
+
+function OfficialSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-slate-300 bg-white p-4">
+      <h2 className="mb-4 border-b border-slate-200 pb-2 text-base font-black text-slate-950">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function InfoBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="text-[11px] font-bold text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-black leading-7 text-slate-900">
+        {value || "—"}
+      </p>
+    </div>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 font-black text-slate-900">{value || "—"}</p>
+    </div>
+  );
+}
+
+function SignatureBox({ title, name }: { title: string; name: string }) {
+  return (
+    <div className="rounded-xl border border-slate-300 bg-white p-6">
+      <p className="text-sm font-black text-slate-500">{title}</p>
+      <p className="mt-4 text-base font-black text-slate-950">{name}</p>
+      <div className="mt-20 border-t border-dashed border-slate-400 pt-3 text-xs text-slate-500">
+        التوقيع والختم
+      </div>
+    </div>
+  );
+}
+
+function chunkEvidencesForLayout(
+  evidences: RuntimeEvidenceItem[],
+  evidenceLayoutMode: EvidenceLayoutMode
+) {
+  const perPage = getEvidenceItemsPerPage(evidenceLayoutMode, evidences.length);
+  const chunks: RuntimeEvidenceItem[][] = [];
+
+  for (let index = 0; index < evidences.length; index += perPage) {
+    chunks.push(evidences.slice(index, index + perPage));
+  }
+
+  return chunks;
+}
+
+function getEvidenceItemsPerPage(
+  evidenceLayoutMode: EvidenceLayoutMode,
+  total: number
+) {
+  if (evidenceLayoutMode === "one-per-page") return 1;
+  if (evidenceLayoutMode === "two-per-page") return 2;
+  if (evidenceLayoutMode === "grid-2x2") return 4;
+  if (evidenceLayoutMode === "compact") return 6;
+
+  if (total <= 1) return 1;
+  if (total <= 2) return 2;
+  if (total <= 4) return 4;
+
+  return 4;
+}
+
+function getEvidenceLayoutClasses(evidenceLayoutMode: EvidenceLayoutMode) {
+  if (evidenceLayoutMode === "one-per-page") {
+    return {
+      gridClassName: "grid grid-cols-1 gap-4",
+      imageBoxClassName: "flex h-[170mm] items-center justify-center bg-slate-100",
+    };
+  }
+
+  if (evidenceLayoutMode === "two-per-page") {
+    return {
+      gridClassName: "grid grid-cols-1 gap-4",
+      imageBoxClassName: "flex h-[74mm] items-center justify-center bg-slate-100",
+    };
+  }
+
+  if (evidenceLayoutMode === "compact") {
+    return {
+      gridClassName: "grid grid-cols-2 gap-3",
+      imageBoxClassName: "flex h-[42mm] items-center justify-center bg-slate-100",
+    };
+  }
+
+  return {
+    gridClassName: "grid grid-cols-2 gap-4",
+    imageBoxClassName: "flex h-[58mm] items-center justify-center bg-slate-100",
+  };
+}
+
+function getRuntimeValues(
+  previewCaseData: RuntimePreviewCaseData | null
+): RuntimeValueItem[] {
+  const data = previewCaseData as { values?: RuntimeValueItem[] } | null;
+  return Array.isArray(data?.values) ? data.values : [];
+}
+
+function getRuntimeEvidences(
+  previewCaseData: RuntimePreviewCaseData | null
+): RuntimeEvidenceItem[] {
+  const data = previewCaseData as { evidences?: RuntimeEvidenceItem[] } | null;
+  return Array.isArray(data?.evidences) ? data.evidences : [];
+}
+
+function getStudent(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as
+    | {
+        student?: {
+          fullName?: string | null;
+          nationalId?: string | null;
+          stage?: string | null;
+          grade?: string | null;
+          classroom?: string | null;
+          guardianName?: string | null;
+          guardianPhone?: string | null;
+        } | null;
+      }
+    | null;
+
+  return {
+    fullName: data?.student?.fullName || "",
+    nationalId: data?.student?.nationalId || "",
+    stage: data?.student?.stage || "",
+    grade: data?.student?.grade || "",
+    classroom: data?.student?.classroom || "",
+    guardianName: data?.student?.guardianName || "",
+    guardianPhone: data?.student?.guardianPhone || "",
+  };
+}
+
+function getCaseTitle(previewCaseData: RuntimePreviewCaseData | null) {
+  const data = previewCaseData as { title?: string | null } | null;
+  return data?.title || "تقرير إرشادي";
+}
+
+function getServiceName(
+  template: ReportTemplateBuilderModel,
+  previewCaseData: RuntimePreviewCaseData | null
+) {
+  const data = previewCaseData as { serviceName?: string | null } | null;
+
+  if (data?.serviceName) {
+    return data.serviceName;
+  }
+
+  if (template.scope === "SERVICE" && template.serviceSlug) {
+    return template.serviceSlug;
+  }
+
+  return "الخدمة الإرشادية";
+}
+
+function isImageEvidence(evidence: RuntimeEvidenceItem) {
+  if (evidence.mimeType?.startsWith("image/")) {
+    return true;
+  }
+
+  const fileName = evidence.fileName || evidence.fileUrl || evidence.imageUrl || "";
+  return /\.(png|jpg|jpeg|webp|gif)$/i.test(fileName);
+}
+
+
+================================================================================
+FILE: components\report-engine\report-template-studio.tsx
+================================================================================
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  DEFAULT_REPORT_IDENTITY_SETTINGS,
+  REPORT_BLOCK_LIBRARY,
+  REPORT_SERVICE_OPTIONS,
+  REPORT_WORKFLOW_FIELD_OPTIONS,
+  type GeneratedReportSnapshot,
+  type ReportBlockKind,
+  type ReportIdentitySettings,
+  type ReportPageKind,
+  type ReportTemplateBlock,
+  type ReportTemplateBuilderModel,
+  type ReportTemplatePage,
+  type ReportTemplateStatus,
+  type ReportTextSnippet,
+} from "@/lib/report-engine/report-template-builder-types";
+import type {
+  RuntimePreviewCaseData,
+  RuntimeWorkflowFieldOption,
+} from "@/lib/report-engine/report-template-runtime-types";
+import {
+  initialReportTemplateBuilderPresets,
+  initialReportTextSnippets,
+} from "@/lib/report-engine/report-template-builder-presets";
+import { ReportTemplateAdminTools } from "@/components/report-engine/report-template-admin-tools";
+import { ReportTemplatePublishTools } from "@/components/report-engine/report-template-publish-tools";
+import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
+import {
+  getMatchingTextSnippets,
+  getTextLibrarySettings,
+  setTextLibrarySettingsOnBlock,
+  type TextLibraryFallbackBehavior,
+  type TextLibraryRenderMode,
+  type TextLibrarySettings,
+  type TextLibrarySourceMode,
+} from "@/lib/report-engine/report-text-library-runtime";
+
+const statusLabels: Record<ReportTemplateStatus, string> = {
+  DRAFT: "مسودة",
+  PUBLISHED: "منشور",
+  ARCHIVED: "مؤرشف",
+};
+
+const pageKindLabels: Record<ReportPageKind, string> = {
+  cover: "غلاف",
+  summary: "ملخص",
+  narrative: "محتوى",
+  results: "نتائج",
+  evidence: "شواهد",
+  approval: "اعتماد",
+};
+
+const blockKindLabels: Record<ReportBlockKind, string> = {
+  "identity-header": "هوية",
+  "cover-title": "عنوان",
+  "case-meta": "بيانات",
+  "student-summary": "طالب",
+  "service-summary": "خدمة",
+  paragraph: "نص",
+  "field-list": "حقول",
+  "text-library": "مكتبة نصوص",
+  "custom-paragraph": "فقرة مخصصة",
+  "evidence-gallery": "شواهد",
+  "approval-signature": "اعتماد",
+};
+
+const snippetCategories: Array<ReportTextSnippet["category"] | "all"> = [
+  "all",
+  "مقدمة",
+  "هدف",
+  "إجراء",
+  "نتيجة",
+  "توصية",
+  "خاتمة",
+];
+
+const pagePresets: {
+  kind: ReportPageKind;
+  title: string;
+  description: string;
+  defaultBlockKinds: ReportBlockKind[];
+}[] = [
+  {
+    kind: "cover",
+    title: "صفحة الغلاف",
+    description: "غلاف رسمي يعرض هوية المدرسة وعنوان التقرير دون تفاصيل كثيرة.",
+    defaultBlockKinds: ["identity-header", "cover-title"],
+  },
+  {
+    kind: "summary",
+    title: "ملخص التقرير",
+    description: "صفحة مختصرة تعرض أهم بيانات التقرير والحالة.",
+    defaultBlockKinds: ["case-meta"],
+  },
+  {
+    kind: "narrative",
+    title: "تفاصيل التنفيذ",
+    description: "صفحة محتوى تعرض المقدمة أو الإجراءات أو النصوص الأساسية.",
+    defaultBlockKinds: ["paragraph"],
+  },
+  {
+    kind: "results",
+    title: "النتائج والتوصيات",
+    description: "صفحة مخصصة للنتائج والتوصيات أو الحقول المختصرة.",
+    defaultBlockKinds: ["field-list", "text-library"],
+  },
+  {
+    kind: "evidence",
+    title: "الشواهد والمرفقات",
+    description: "صفحة مستقلة لعرض الشواهد حتى تبقى حدود A4 واضحة.",
+    defaultBlockKinds: ["evidence-gallery"],
+  },
+  {
+    kind: "approval",
+    title: "الاعتماد والتوقيع",
+    description: "صفحة ختامية للتوقيع والختم واعتماد التقرير.",
+    defaultBlockKinds: ["approval-signature"],
+  },
+];
+
+export function ReportTemplateStudio() {
+  const [templates, setTemplates] = useState<ReportTemplateBuilderModel[]>(
+    initialReportTemplateBuilderPresets,
+  );
+
+  const [activeTemplateId, setActiveTemplateId] = useState(
+    initialReportTemplateBuilderPresets[0]?.id || "",
+  );
+
+  const [savedTemplateIds, setSavedTemplateIds] = useState<Record<string, string>>({});
+
+  const [templatePendingDelete, setTemplatePendingDelete] =
+    useState<ReportTemplateBuilderModel | null>(null);
+
+  const [pagePendingDelete, setPagePendingDelete] =
+    useState<ReportTemplatePage | null>(null);
+
+  const [reportIdentity, setReportIdentity] =
+    useState<ReportIdentitySettings>(DEFAULT_REPORT_IDENTITY_SETTINGS);
+
+  const [reportTextSnippets, setReportTextSnippets] =
+    useState<ReportTextSnippet[]>(initialReportTextSnippets);
+
+  const [generatedSnapshots, setGeneratedSnapshots] = useState<
+    GeneratedReportSnapshot[]
+  >([]);
+
+  const [runtimeWorkflowFields, setRuntimeWorkflowFields] = useState<
+    RuntimeWorkflowFieldOption[]
+  >([]);
+
+  const [runtimeWorkflowMessage, setRuntimeWorkflowMessage] = useState("");
+
+  const [runtimePreviewCase, setRuntimePreviewCase] =
+    useState<RuntimePreviewCaseData | null>(null);
+
+  const [runtimePreviewMessage, setRuntimePreviewMessage] = useState("");
+
+  const [feedbackModal, setFeedbackModal] = useState<{
+    open: boolean;
+    type: "success" | "error";
+    title: string;
+    message: string;
+  }>({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
+
+  const activeTemplate = useMemo(() => {
+    return templates.find((template) => template.id === activeTemplateId);
+  }, [templates, activeTemplateId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSavedReportTemplates() {
+      try {
+        const response = await fetch(
+          "/api/dashboard/report-templates",
+          {
+            cache: "no-store",
+          },
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          return;
+        }
+
+        const savedTemplates = Array.isArray(result?.templates)
+          ? result.templates
+          : Array.isArray(result?.data)
+            ? result.data
+            : Array.isArray(result)
+              ? result
+              : [];
+
+        const loadedTemplates = savedTemplates
+          .map((item: any) => {
+            const rawTemplate = item?.templateJson ?? item?.content;
+
+            let parsedTemplate = rawTemplate;
+
+            if (typeof rawTemplate === "string") {
+              try {
+                parsedTemplate = JSON.parse(rawTemplate);
+              } catch {
+                parsedTemplate = null;
+              }
+            }
+
+            if (!parsedTemplate || typeof parsedTemplate !== "object") {
+              parsedTemplate = {
+                id: `saved-template-${item.id}`,
+                name: item.name || "قالب محفوظ",
+                description:
+                  item.description || "قالب محفوظ من قاعدة البيانات.",
+                scope: item.serviceSlug ? "SERVICE" : "GLOBAL",
+                serviceSlug: item.serviceSlug || undefined,
+                status: "DRAFT",
+                updatedAt: new Date().toISOString().slice(0, 10),
+                previewCaseId: "",
+                pages: [
+                  createPageFromPreset("cover"),
+                  createPageFromPreset("summary"),
+                  createPageFromPreset("evidence"),
+                  createPageFromPreset("approval"),
+                ],
+              };
+            }
+
+            const status =
+              parsedTemplate.status === "PUBLISHED" ||
+              parsedTemplate.status === "ARCHIVED" ||
+              parsedTemplate.status === "DRAFT"
+                ? parsedTemplate.status
+                : "DRAFT";
+
+            return {
+              ...parsedTemplate,
+              id: `saved-template-${item.id}`,
+              name: item.name || parsedTemplate.name || "قالب محفوظ",
+              description:
+                item.description ||
+                parsedTemplate.description ||
+                "قالب محفوظ من قاعدة البيانات.",
+              scope:
+                parsedTemplate.scope ||
+                (item.serviceSlug ? "SERVICE" : "GLOBAL"),
+              serviceSlug: item.serviceSlug || parsedTemplate.serviceSlug,
+              status,
+              updatedAt:
+                item.updatedAt ||
+                parsedTemplate.updatedAt ||
+                new Date().toISOString().slice(0, 10),
+              pages:
+                Array.isArray(parsedTemplate.pages) &&
+                parsedTemplate.pages.length > 0
+                  ? parsedTemplate.pages
+                  : [
+                      createPageFromPreset("cover"),
+                      createPageFromPreset("summary"),
+                      createPageFromPreset("evidence"),
+                      createPageFromPreset("approval"),
+                    ],
+            };
+          })
+          .filter(Boolean) as ReportTemplateBuilderModel[];
+
+        if (!isMounted || loadedTemplates.length === 0) {
+          return;
+        }
+
+        setTemplates((currentTemplates) => {
+          const presetsOnly = currentTemplates.filter(
+            (template) => !template.id.startsWith("saved-template-"),
+          );
+
+          return [...loadedTemplates, ...presetsOnly];
+        });
+
+        setSavedTemplateIds((current) => {
+          const next = { ...current };
+
+          savedTemplates.forEach((item: any) => {
+            if (item?.id) {
+              next[`saved-template-${item.id}`] = item.id;
+            }
+          });
+
+          return next;
+        });
+
+        setActiveTemplateId(loadedTemplates[0]?.id || "");
+      } catch {
+        // لا نوقف صانع القوالب إذا فشل تحميل القوالب المحفوظة.
+      }
+    }
+
+    loadSavedReportTemplates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeTemplate) {
+      return;
+    }
+
+    const serviceSlug =
+      activeTemplate.scope === "SERVICE" ? activeTemplate.serviceSlug : "";
+
+    async function loadWorkflowFields() {
+      try {
+        const response = await fetch(
+          `/api/admin/report-templates/workflow-fields?serviceSlug=${encodeURIComponent(
+            serviceSlug || "",
+          )}`,
+        );
+
+        const result = await response.json();
+
+        setRuntimeWorkflowFields(result.fields || []);
+        setRuntimeWorkflowMessage(result.message || "");
+      } catch {
+        setRuntimeWorkflowFields([]);
+        setRuntimeWorkflowMessage(
+          "تعذر جلب حقول الـ Workflow، سيتم استخدام الحقول الافتراضية.",
+        );
+      }
+    }
+
+    loadWorkflowFields();
+  }, [activeTemplate?.scope, activeTemplate?.serviceSlug, activeTemplate?.id]);
+
+  useEffect(() => {
+    if (!activeTemplate) {
+      return;
+    }
+
+    async function loadPreviewCase() {
+      const caseId = activeTemplate?.previewCaseId?.trim();
+
+      if (!caseId) {
+        setRuntimePreviewCase(null);
+        setRuntimePreviewMessage(
+          "لم يتم إدخال Case ID، سيتم استخدام بيانات تجريبية.",
+        );
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/admin/report-templates/preview-case?caseId=${encodeURIComponent(
+            caseId,
+          )}`,
+        );
+
+        const result = await response.json();
+
+        setRuntimePreviewCase(result.data || null);
+        setRuntimePreviewMessage(result.message || "");
+      } catch {
+        setRuntimePreviewCase(null);
+        setRuntimePreviewMessage(
+          "تعذر جلب بيانات الحالة، سيتم استخدام بيانات تجريبية.",
+        );
+      }
+    }
+
+    loadPreviewCase();
+  }, [activeTemplate?.previewCaseId, activeTemplate?.id]);
+
+  function updateActiveTemplate(
+    updater: (
+      template: ReportTemplateBuilderModel,
+    ) => ReportTemplateBuilderModel,
+  ) {
+    setTemplates((currentTemplates) =>
+      currentTemplates.map((template) =>
+        template.id === activeTemplateId ? updater(template) : template,
+      ),
+    );
+  }
+
+  function requestDeleteTemplate(template: ReportTemplateBuilderModel) {
+    if (templates.length <= 1) {
+      return;
+    }
+
+    setTemplatePendingDelete(template);
+  }
+
+  async function confirmDeleteTemplate() {
+    if (!templatePendingDelete) {
+      return;
+    }
+
+    const dbTemplateId = savedTemplateIds[templatePendingDelete.id];
+
+    try {
+      if (dbTemplateId) {
+        const response = await fetch(
+          `/api/dashboard/report-templates/${dbTemplateId}`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result?.error || result?.message || "تعذر حذف القالب.",
+          );
+        }
+      }
+
+      const remainingTemplates = templates.filter(
+        (template) => template.id !== templatePendingDelete.id,
+      );
+
+      setTemplates(remainingTemplates);
+
+      setSavedTemplateIds((current) => {
+        const next = { ...current };
+        delete next[templatePendingDelete.id];
+        return next;
+      });
+
+      if (activeTemplateId === templatePendingDelete.id) {
+        setActiveTemplateId(remainingTemplates[0]?.id || "");
+      }
+
+      setTemplatePendingDelete(null);
+
+      setFeedbackModal({
+        open: true,
+        type: "success",
+        title: "تم حذف القالب",
+        message: dbTemplateId
+          ? "تم حذف القالب من قاعدة البيانات وإزالته من القائمة."
+          : "تم حذف القالب غير المحفوظ من القائمة.",
+      });
+    } catch (error) {
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر حذف القالب",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ غير متوقع أثناء حذف القالب.",
+      });
+    }
+  }
+
+  function requestDeletePage(page: ReportTemplatePage) {
+    if (!activeTemplate || activeTemplate.pages.length <= 1) {
+      return;
+    }
+
+    setPagePendingDelete(page);
+  }
+
+  function confirmDeletePage() {
+    if (!pagePendingDelete) {
+      return;
+    }
+
+    updateActiveTemplate((template) => ({
+      ...template,
+      pages: template.pages.filter((page) => page.id !== pagePendingDelete.id),
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }));
+
+    setPagePendingDelete(null);
+  }
+
+  function createNewTemplate() {
+    const newTemplate: ReportTemplateBuilderModel = {
+      id: `custom-template-${Date.now()}`,
+      name: "قالب جديد",
+      description: "قالب مخصص يتم بناؤه من Case ID وبيانات الحالة.",
+      scope: "GLOBAL",
+      status: "DRAFT",
+      updatedAt: new Date().toISOString().slice(0, 10),
+      previewCaseId: "",
+      pages: [
+        createPageFromPreset("cover"),
+        createPageFromPreset("summary"),
+        createPageFromPreset("evidence"),
+        createPageFromPreset("approval"),
+      ],
+    };
+
+    setTemplates((currentTemplates) => [newTemplate, ...currentTemplates]);
+    setActiveTemplateId(newTemplate.id);
+  }
+
+  function duplicateTemplate(template: ReportTemplateBuilderModel) {
+    const timestamp = Date.now();
+
+    const copiedTemplate: ReportTemplateBuilderModel = {
+      ...template,
+      id: `copy-${template.id}-${timestamp}`,
+      name: `${template.name.replace(/ - نسخة( \d+)?$/u, "")} - نسخة`,
+      status: "DRAFT",
+      updatedAt: new Date().toISOString().slice(0, 10),
+      pages: template.pages.map((page) => ({
+        ...page,
+        id: `${page.id}-copy-${timestamp}`,
+        blocks: page.blocks.map((block) => ({
+          ...block,
+          id: `${block.id}-copy-${timestamp}`,
+        })),
+      })),
+    };
+
+    setTemplates((currentTemplates) => [copiedTemplate, ...currentTemplates]);
+    setActiveTemplateId(copiedTemplate.id);
+  }
+
+  function movePage(pageId: string, direction: "up" | "down") {
+    updateActiveTemplate((template) => {
+      const index = template.pages.findIndex((page) => page.id === pageId);
+
+      if (index === -1) {
+        return template;
+      }
+
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+      if (targetIndex < 0 || targetIndex >= template.pages.length) {
+        return template;
+      }
+
+      const pages = [...template.pages];
+      const [page] = pages.splice(index, 1);
+      pages.splice(targetIndex, 0, page);
+
+      return {
+        ...template,
+        pages,
+        updatedAt: new Date().toISOString().slice(0, 10),
+      };
+    });
+  }
+
+  function addPage(kind: ReportPageKind) {
+    updateActiveTemplate((template) => ({
+      ...template,
+      pages: [...template.pages, createPageFromPreset(kind)],
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }));
+  }
+
+  function updatePage(
+    pageId: string,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage,
+  ) {
+    updateActiveTemplate((template) => ({
+      ...template,
+      pages: template.pages.map((page) =>
+        page.id === pageId ? updater(page) : page,
+      ),
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }));
+  }
+
+  function addBlockToPage(pageId: string, block: ReportTemplateBlock) {
+    updatePage(pageId, (page) => ({
+      ...page,
+      blocks: [
+        ...page.blocks,
+        {
+          ...block,
+          id: `${block.kind}-${Date.now()}`,
+        },
+      ],
+    }));
+  }
+
+  function removeBlock(pageId: string, blockId: string) {
+    updatePage(pageId, (page) => ({
+      ...page,
+      blocks: page.blocks.filter((block) => block.id !== blockId),
+    }));
+  }
+
+  function moveBlock(pageId: string, blockId: string, direction: "up" | "down") {
+    updatePage(pageId, (page) => {
+      const index = page.blocks.findIndex((block) => block.id === blockId);
+
+      if (index === -1) {
+        return page;
+      }
+
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+      if (targetIndex < 0 || targetIndex >= page.blocks.length) {
+        return page;
+      }
+
+      const blocks = [...page.blocks];
+      const [block] = blocks.splice(index, 1);
+      blocks.splice(targetIndex, 0, block);
+
+      return {
+        ...page,
+        blocks,
+      };
+    });
+  }
+
+  function moveBlockToPage(
+    blockId: string,
+    fromPageId: string,
+    toPageId: string,
+  ) {
+    if (fromPageId === toPageId) {
+      return;
+    }
+
+    updateActiveTemplate((template) => {
+      const fromPage = template.pages.find((page) => page.id === fromPageId);
+      const block = fromPage?.blocks.find((item) => item.id === blockId);
+
+      if (!fromPage || !block) {
+        return template;
+      }
+
+      return {
+        ...template,
+        pages: template.pages.map((page) => {
+          if (page.id === fromPageId) {
+            return {
+              ...page,
+              blocks: page.blocks.filter((item) => item.id !== blockId),
+            };
+          }
+
+          if (page.id === toPageId) {
+            return {
+              ...page,
+              blocks: [...page.blocks, block],
+            };
+          }
+
+          return page;
+        }),
+        updatedAt: new Date().toISOString().slice(0, 10),
+      };
+    });
+  }
+
+  async function changeActiveTemplateStatus(status: ReportTemplateStatus) {
+    if (!activeTemplate) {
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر تحديث حالة القالب",
+        message: "لا يوجد قالب نشط لتحديث حالته.",
+      });
+      return;
+    }
+
+    const updatedTemplate: ReportTemplateBuilderModel = {
+      ...activeTemplate,
+      status,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    };
+
+    updateActiveTemplate(() => updatedTemplate);
+
+    const dbTemplateId = savedTemplateIds[activeTemplate.id];
+
+    const payload = {
+      name: updatedTemplate.name || "قالب تقرير جديد",
+      description:
+        updatedTemplate.description ||
+        "قالب تقرير مخصص يتم بناؤه من بيانات الحالة.",
+      serviceSlug: updatedTemplate.serviceSlug ?? null,
+      type: "SCHOOL",
+      content: JSON.stringify(updatedTemplate),
+      templateJson: updatedTemplate,
+      genderAware: true,
+      isActive: status !== "ARCHIVED",
+    };
+
+    try {
+      const response = dbTemplateId
+        ? await fetch(`/api/dashboard/report-templates/${dbTemplateId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/dashboard/report-templates", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error || result?.message || "تعذر تحديث حالة القالب.",
+        );
+      }
+
+      const savedId =
+        result?.template?.id ||
+        result?.data?.id ||
+        result?.id ||
+        dbTemplateId ||
+        "";
+
+      if (savedId) {
+        setSavedTemplateIds((current) => ({
+          ...current,
+          [activeTemplate.id]: savedId,
+        }));
+      }
+
+      setFeedbackModal({
+        open: true,
+        type: "success",
+        title:
+          status === "PUBLISHED"
+            ? "تم نشر القالب"
+            : status === "ARCHIVED"
+              ? "تمت أرشفة القالب"
+              : "تم تحويل القالب إلى مسودة",
+        message:
+          status === "PUBLISHED"
+            ? "تم نشر القالب وحفظ حالته في قاعدة البيانات بنجاح."
+            : status === "ARCHIVED"
+              ? "تمت أرشفة القالب وحفظ التغيير في قاعدة البيانات."
+              : "تم تحويل القالب إلى مسودة وحفظ التغيير في قاعدة البيانات.",
+      });
+    } catch (error) {
+      updateActiveTemplate(() => activeTemplate);
+
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر تحديث حالة القالب",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ غير متوقع أثناء تحديث حالة القالب.",
+      });
+    }
+  }
+
+  function addGeneratedSnapshot(snapshot: GeneratedReportSnapshot) {
+    setGeneratedSnapshots((currentSnapshots) => [
+      snapshot,
+      ...currentSnapshots,
+    ]);
+  }
+
+  async function handleSaveTemplate() {
+    if (!activeTemplate) {
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر حفظ القالب",
+        message: "لا يوجد قالب نشط لحفظه.",
+      });
+      return;
+    }
+
+    const dbTemplateId = savedTemplateIds[activeTemplate.id];
+
+    const payload = {
+      name: activeTemplate.name || "قالب تقرير جديد",
+      description:
+        activeTemplate.description ||
+        "قالب تقرير مخصص يتم بناؤه من بيانات الحالة.",
+      serviceSlug: activeTemplate.serviceSlug ?? null,
+      type: "SCHOOL",
+      content: JSON.stringify(activeTemplate),
+      templateJson: activeTemplate,
+      genderAware: true,
+      isActive: true,
+    };
+
+    async function createTemplate() {
+      return fetch("/api/dashboard/report-templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    async function updateTemplate(templateId: string) {
+      return fetch(`/api/dashboard/report-templates/${templateId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    try {
+      let response = dbTemplateId
+        ? await updateTemplate(dbTemplateId)
+        : await createTemplate();
+
+      let result = await response.json();
+
+      if (dbTemplateId && response.status === 404) {
+        response = await createTemplate();
+        result = await response.json();
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error || result?.message || "تعذر حفظ القالب.",
+        );
+      }
+
+      const savedId =
+        result?.template?.id ||
+        result?.data?.id ||
+        result?.id ||
+        dbTemplateId ||
+        "";
+
+      if (savedId) {
+        setSavedTemplateIds((current) => ({
+          ...current,
+          [activeTemplate.id]: savedId,
+        }));
+      }
+
+      setFeedbackModal({
+        open: true,
+        type: "success",
+        title: "تم حفظ القالب",
+        message: dbTemplateId
+          ? "تم تحديث القالب وحفظ التعديلات بنجاح."
+          : "تم إنشاء القالب وحفظه في قاعدة البيانات بنجاح.",
+      });
+    } catch (error) {
+      setFeedbackModal({
+        open: true,
+        type: "error",
+        title: "تعذر حفظ القالب",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ غير متوقع أثناء حفظ القالب.",
+      });
+    }
+  }
+
+  if (!activeTemplate) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-10" dir="rtl">
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <h1 className="text-xl font-black text-slate-900">
+            لا توجد قوالب متاحة
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-500">
+            أنشئ قالبًا جديدًا للبدء.
+          </p>
+
+          <button
+            type="button"
+            onClick={createNewTemplate}
+            className="mt-6 rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-900"
+          >
+            إنشاء قالب جديد
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50" dir="rtl">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <div>
+            <p className="text-sm font-bold text-emerald-700">
+              محرك التقارير
+            </p>
+
+            <h1 className="mt-1 text-2xl font-black text-slate-900">
+              صانع قوالب التقارير
+            </h1>
+
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-500">
+              ابنِ قالب التقرير مرة واحدة، واجعله يسحب بياناته تلقائيًا من
+              Case ID بدون أن يعيد الموجه تعبئة التقرير من الصفر.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveTemplate}
+              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-black text-white shadow-sm ring-1 ring-emerald-600/20 transition hover:bg-emerald-800"
+            >
+              حفظ القالب
+            </button>
+
+            <button
+              type="button"
+              onClick={createNewTemplate}
+              className="rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white shadow-sm ring-1 ring-sky-600/20 transition hover:bg-sky-800"
+            >
+              إنشاء قالب جديد
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto grid max-w-7xl grid-cols-[320px_1fr] gap-6 px-6 py-6">
+        <aside className="space-y-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              القوالب المتاحة
+            </h2>
+
+            <p className="mt-1 text-xs leading-6 text-slate-500">
+              اختر قالبًا لتعديل صفحاته وبلوكاته.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              {templates.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => setActiveTemplateId(template.id)}
+                  className={[
+                    "w-full rounded-2xl border p-4 text-right transition",
+                    template.id === activeTemplateId
+                      ? "border-emerald-700 bg-emerald-50"
+                      : "border-slate-200 bg-white hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <strong className="text-sm text-slate-900">
+                      {template.name}
+                    </strong>
+
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                      {statusLabels[template.status]}
+                    </span>
+                  </div>
+
+                  <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-500">
+                    {template.description}
+                  </p>
+
+                  <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-400">
+                    <span>
+                      {template.scope === "GLOBAL" ? "عام" : "خاص بخدمة"}
+                    </span>
+                    <span>•</span>
+                    <span>{template.pages.length} صفحات</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
+            <h3 className="text-sm font-black text-amber-900">
+              قاعدة مهمة
+            </h3>
+
+            <p className="mt-2 text-xs leading-7 text-amber-800">
+              القالب لا ينشئ بيانات جديدة. القالب فقط يرتب صفحات التقرير، أما
+              البيانات فتأتي من CaseEntry وCaseValue والطالب والشواهد والهوية.
+            </p>
+          </div>
+        </aside>
+
+        <section className="space-y-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
+              <div>
+                <label className="text-xs font-black text-slate-500">
+                  اسم القالب
+                </label>
+
+                <input
+                  value={activeTemplate.name}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      name: event.target.value,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-lg font-black text-slate-900 outline-none focus:border-emerald-700"
+                />
+
+                <label className="mt-5 block text-xs font-black text-slate-500">
+                  وصف القالب
+                </label>
+
+                <textarea
+                  value={activeTemplate.description}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      description: event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-700"
+                />
+              </div>
+
+              <div className="rounded-3xl bg-slate-50 p-4">
+                <div className="text-xs font-black text-slate-500">
+                  حالة القالب
+                </div>
+
+                <select
+                  value={activeTemplate.status}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      status: event.target.value as ReportTemplateStatus,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                >
+                  <option value="DRAFT">مسودة</option>
+                  <option value="PUBLISHED">منشور</option>
+                  <option value="ARCHIVED">مؤرشف</option>
+                </select>
+
+                <div className="mt-4 text-xs font-black text-slate-500">
+                  نطاق القالب
+                </div>
+
+                <select
+                  value={activeTemplate.scope}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      scope: event.target.value as "GLOBAL" | "SERVICE",
+                      serviceSlug:
+                        event.target.value === "GLOBAL"
+                          ? undefined
+                          : template.serviceSlug,
+                    }))
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                >
+                  <option value="GLOBAL">عام لكل الخدمات</option>
+                  <option value="SERVICE">خاص بخدمة</option>
+                </select>
+
+                {activeTemplate.scope === "SERVICE" ? (
+                  <>
+                    <div className="mt-4 text-xs font-black text-slate-500">
+                      الخدمة
+                    </div>
+
+                    <select
+                      value={activeTemplate.serviceSlug || ""}
+                      onChange={(event) =>
+                        updateActiveTemplate((template) => ({
+                          ...template,
+                          serviceSlug: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                    >
+                      <option value="">اختر الخدمة</option>
+                      {REPORT_SERVICE_OPTIONS.map((service) => (
+                        <option key={service.slug} value={service.slug}>
+                          {service.name}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : null}
+
+                <div className="mt-4 text-xs font-black text-slate-500">
+                  حالة تجريبية للمعاينة
+                </div>
+
+                <input
+                  value={activeTemplate.previewCaseId || ""}
+                  onChange={(event) =>
+                    updateActiveTemplate((template) => ({
+                      ...template,
+                      previewCaseId: event.target.value,
+                    }))
+                  }
+                  placeholder="Case ID اختياري"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
+                />
+
+                <div className="mt-4 grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => duplicateTemplate(activeTemplate)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100"
+                  >
+                    نسخ القالب
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => requestDeleteTemplate(activeTemplate)}
+                    disabled={templates.length <= 1}
+                    className="w-full rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    حذف القالب
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ReportTemplateAdminTools
+            template={activeTemplate}
+            identity={reportIdentity}
+            snippets={reportTextSnippets}
+            onIdentityChange={setReportIdentity}
+            onSnippetsChange={setReportTextSnippets}
+          />
+
+          <ReportTemplatePublishTools
+            template={activeTemplate}
+            identity={reportIdentity}
+            snippets={reportTextSnippets}
+            snapshots={generatedSnapshots}
+            onTemplateStatusChange={changeActiveTemplateStatus}
+            onSnapshotCreate={addGeneratedSnapshot}
+          />
+
+          <RuntimeConnectionStatus
+            workflowFieldsCount={runtimeWorkflowFields.length}
+            workflowMessage={runtimeWorkflowMessage}
+            previewCase={runtimePreviewCase}
+            previewMessage={runtimePreviewMessage}
+          />
+
+          <ReportTemplateLivePreview
+            template={activeTemplate}
+            snippets={reportTextSnippets}
+            previewCaseData={runtimePreviewCase}
+          />
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-black text-slate-900">
+              إضافة صفحة إلى القالب
+            </h2>
+
+            <p className="mt-1 text-sm leading-7 text-slate-500">
+              اختر نوع الصفحة. كل صفحة تمثل صفحة A4 مستقلة داخل التقرير.
+            </p>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              {pagePresets.map((preset) => (
+                <button
+                  key={preset.kind}
+                  type="button"
+                  onClick={() => addPage(preset.kind)}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-right transition hover:border-emerald-600 hover:bg-emerald-50"
+                >
+                  <strong className="text-sm font-black text-slate-900">
+                    إضافة {pageKindLabels[preset.kind]}
+                  </strong>
+
+                  <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-500">
+                    {preset.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-6">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">
+                صفحات القالب
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                عدّل صفحات القالب، أضف بلوكات، أو احذف الصفحات غير المطلوبة.
+              </p>
+            </div>
+
+            {activeTemplate.pages.map((page, pageIndex) => (
+              <TemplatePageCard
+                key={page.id}
+                template={activeTemplate}
+                snippets={reportTextSnippets}
+                page={page}
+                pageIndex={pageIndex}
+                pages={activeTemplate.pages}
+                workflowFields={runtimeWorkflowFields}
+                canMoveUp={pageIndex > 0}
+                canMoveDown={pageIndex < activeTemplate.pages.length - 1}
+                canDeletePage={activeTemplate.pages.length > 1}
+                onMovePage={movePage}
+                onRequestDeletePage={requestDeletePage}
+                onAddBlock={addBlockToPage}
+                onRemoveBlock={removeBlock}
+                onMoveBlock={moveBlock}
+                onMoveBlockToPage={moveBlockToPage}
+                onUpdatePage={updatePage}
+              />
+            ))}
+          </div>
+        </section>
+      </main>
+
+      {feedbackModal.open ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
+            <div
+              className={[
+                "mx-auto inline-flex rounded-full px-4 py-1.5 text-xs font-black",
+                feedbackModal.type === "success"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-red-100 text-red-700",
+              ].join(" ")}
+            >
+              {feedbackModal.type === "success" ? "نجاح" : "خطأ"}
+            </div>
+
+            <h2 className="mt-4 text-2xl font-black text-slate-900">
+              {feedbackModal.title}
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-sm text-center text-sm leading-7 text-slate-600">
+              {feedbackModal.message}
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                setFeedbackModal((current) => ({
+                  ...current,
+                  open: false,
+                }))
+              }
+              className="mx-auto mt-6 inline-flex min-w-32 items-center justify-center rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {templatePendingDelete ? (
+        <ConfirmModal
+          title="حذف قالب التقرير؟"
+          description={
+            <>
+              سيتم حذف قالب{" "}
+              <span className="font-black text-slate-900">
+                {templatePendingDelete.name}
+              </span>{" "}
+              من قائمة القوالب. إذا كان محفوظًا فسيتم حذفه من قاعدة البيانات أيضًا.
+            </>
+          }
+          confirmLabel="نعم، احذف القالب"
+          onCancel={() => setTemplatePendingDelete(null)}
+          onConfirm={confirmDeleteTemplate}
+        />
+      ) : null}
+
+      {pagePendingDelete ? (
+        <ConfirmModal
+          title="حذف صفحة من القالب؟"
+          description={
+            <>
+              سيتم حذف صفحة{" "}
+              <span className="font-black text-slate-900">
+                {pagePendingDelete.title}
+              </span>{" "}
+              من القالب الحالي.
+            </>
+          }
+          confirmLabel="نعم، احذف الصفحة"
+          onCancel={() => setPagePendingDelete(null)}
+          onConfirm={confirmDeletePage}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function RuntimeConnectionStatus({
+  workflowFieldsCount,
+  workflowMessage,
+  previewCase,
+  previewMessage,
+}: {
+  workflowFieldsCount: number;
+  workflowMessage: string;
+  previewCase: RuntimePreviewCaseData | null;
+  previewMessage: string;
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-black text-slate-900">
+            الربط الحقيقي للمعاينة
+          </h2>
+
+          <p className="mt-1 text-sm leading-7 text-slate-500">
+            هنا نقرأ حقول الـ Workflow الحقيقي وبيانات Case ID إن وجدت.
+          </p>
+        </div>
+
+        <span className="rounded-2xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600">
+          {previewCase ? "Case حقيقي" : "Sample/Fallback"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <h3 className="text-sm font-black text-slate-900">
+            حقول الـ Workflow
+          </h3>
+
+          <p className="mt-1 text-xs leading-6 text-slate-500">
+            {workflowMessage || "لم يتم الجلب بعد."}
+          </p>
+
+          <p className="mt-3 text-xs font-black text-emerald-700">
+            عدد الحقول: {workflowFieldsCount}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <h3 className="text-sm font-black text-slate-900">
+            بيانات Case ID
+          </h3>
+
+          <p className="mt-1 text-xs leading-6 text-slate-500">
+            {previewMessage || "لم يتم الجلب بعد."}
+          </p>
+
+          {previewCase ? (
+            <div className="mt-3 grid gap-1 text-xs text-slate-600">
+              <div>
+                <span className="font-black text-slate-900">الخدمة: </span>
+                {previewCase.serviceName || "غير محدد"}
+              </div>
+
+              <div>
+                <span className="font-black text-slate-900">العنوان: </span>
+                {previewCase.title || "غير محدد"}
+              </div>
+
+              <div>
+                <span className="font-black text-slate-900">عدد القيم: </span>
+                {previewCase.values.length}
+              </div>
+
+              <div>
+                <span className="font-black text-slate-900">عدد الشواهد: </span>
+                {previewCase.evidences.length}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function createPageFromPreset(kind: ReportPageKind): ReportTemplatePage {
+  const preset =
+    pagePresets.find((currentPreset) => currentPreset.kind === kind) ||
+    pagePresets[2];
+
+  return {
+    id: `page-${kind}-${Date.now()}`,
+    kind: preset.kind,
+    title: preset.title,
+    description: preset.description,
+    coverSettings:
+      kind === "cover"
+        ? {
+            showHeader: true,
+            showFooter: true,
+            titlePosition: "center",
+            showDescription: true,
+            showMetaChips: true,
+            visualStyle: "official",
+          }
+        : undefined,
+    blocks: preset.defaultBlockKinds
+      .map((blockKind) => {
+        const block = REPORT_BLOCK_LIBRARY.find(
+          (libraryBlock) => libraryBlock.kind === blockKind,
+        );
+
+        if (!block) {
+          return null;
+        }
+
+        return {
+          ...block,
+          id: `${block.kind}-${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2, 7)}`,
+        };
+      })
+      .filter((block): block is ReportTemplateBlock => Boolean(block)),
+  };
+}
+
+function TemplatePageCard({
+  template,
+  snippets,
+  page,
+  pageIndex,
+  pages,
+  workflowFields,
+  canMoveUp,
+  canMoveDown,
+  canDeletePage,
+  onMovePage,
+  onRequestDeletePage,
+  onAddBlock,
+  onRemoveBlock,
+  onMoveBlock,
+  onMoveBlockToPage,
+  onUpdatePage,
+}: {
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  page: ReportTemplatePage;
+  pageIndex: number;
+  pages: ReportTemplatePage[];
+  workflowFields: RuntimeWorkflowFieldOption[];
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  canDeletePage: boolean;
+  onMovePage: (pageId: string, direction: "up" | "down") => void;
+  onRequestDeletePage: (page: ReportTemplatePage) => void;
+  onAddBlock: (pageId: string, block: ReportTemplateBlock) => void;
+  onRemoveBlock: (pageId: string, blockId: string) => void;
+  onMoveBlock: (
+    pageId: string,
+    blockId: string,
+    direction: "up" | "down",
+  ) => void;
+  onMoveBlockToPage: (
+    blockId: string,
+    fromPageId: string,
+    toPageId: string,
+  ) => void;
+  onUpdatePage: (
+    pageId: string,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage,
+  ) => void;
+}) {
+  const [selectedBlockId, setSelectedBlockId] = useState(
+    REPORT_BLOCK_LIBRARY[0]?.id || "",
+  );
+
+  const selectedBlock = REPORT_BLOCK_LIBRARY.find(
+    (block) => block.id === selectedBlockId,
+  );
+
+  return (
+    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex flex-1 items-start gap-3">
+          <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-sm font-black text-emerald-800">
+            {pageIndex + 1}
+          </span>
+
+          <div className="flex-1">
+            <div className="grid gap-3 md:grid-cols-[1fr_180px]">
+              <input
+                value={page.title}
+                onChange={(event) =>
+                  onUpdatePage(page.id, (currentPage) => ({
+                    ...currentPage,
+                    title: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-lg font-black text-slate-900 outline-none focus:border-emerald-700"
+              />
+
+              <select
+                value={page.kind}
+                onChange={(event) =>
+                  onUpdatePage(page.id, (currentPage) => ({
+                    ...currentPage,
+                    kind: event.target.value as ReportPageKind,
+                    coverSettings:
+                      event.target.value === "cover"
+                        ? currentPage.coverSettings || {
+                            showHeader: true,
+                            showFooter: true,
+                            titlePosition: "center",
+                            showDescription: true,
+                            showMetaChips: true,
+                            visualStyle: "official",
+                          }
+                        : undefined,
+                  }))
+                }
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none focus:border-emerald-700"
+              >
+                {Object.entries(pageKindLabels).map(([kind, label]) => (
+                  <option key={kind} value={kind}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <textarea
+              value={page.description}
+              onChange={(event) =>
+                onUpdatePage(page.id, (currentPage) => ({
+                  ...currentPage,
+                  description: event.target.value,
+                }))
+              }
+              rows={2}
+              className="mt-3 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 text-slate-600 outline-none focus:border-emerald-700"
+            />
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => onMovePage(page.id, "up")}
+            disabled={!canMoveUp}
+            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600 disabled:opacity-40"
+          >
+            أعلى
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onMovePage(page.id, "down")}
+            disabled={!canMoveDown}
+            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600 disabled:opacity-40"
+          >
+            أسفل
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onRequestDeletePage(page)}
+            disabled={!canDeletePage}
+            className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-black text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            حذف الصفحة
+          </button>
+        </div>
+      </div>
+
+      {page.kind === "cover" ? (
+        <CoverSettingsEditor page={page} onUpdatePage={onUpdatePage} />
+      ) : null}
+
+      <div className="mt-5 grid gap-3">
+        {page.blocks.length ? (
+          page.blocks.map((block, blockIndex) => (
+            <BlockEditor
+              key={block.id}
+              template={template}
+              snippets={snippets}
+              page={page}
+              pages={pages}
+              workflowFields={workflowFields}
+              block={block}
+              blockIndex={blockIndex}
+              canMoveUp={blockIndex > 0}
+              canMoveDown={blockIndex < page.blocks.length - 1}
+              onUpdatePage={onUpdatePage}
+              onRemoveBlock={onRemoveBlock}
+              onMoveBlock={onMoveBlock}
+              onMoveBlockToPage={onMoveBlockToPage}
+            />
+          ))
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+            لا توجد بلوكات في هذه الصفحة بعد.
+          </div>
+        )}
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+        <label className="text-xs font-black text-slate-500">
+          إضافة بلوك لهذه الصفحة
+        </label>
+
+        <div className="mt-2 grid grid-cols-[1fr_auto] gap-3">
+          <select
+            value={selectedBlockId}
+            onChange={(event) => setSelectedBlockId(event.target.value)}
+            className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
+          >
+            {REPORT_BLOCK_LIBRARY.map((block) => (
+              <option key={block.id} value={block.id}>
+                {block.title} - {block.source.label}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={() => selectedBlock && onAddBlock(page.id, selectedBlock)}
+            className="rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-900"
+          >
+            إضافة
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CoverSettingsEditor({
+  page,
+  onUpdatePage,
+}: {
+  page: ReportTemplatePage;
+  onUpdatePage: (
+    pageId: string,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage,
+  ) => void;
+}) {
+  const settings = page.coverSettings || {};
+
+  return (
+    <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+      <h4 className="text-sm font-black text-emerald-900">إعدادات الغلاف</h4>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.showHeader !== false}
+            onChange={(event) =>
+              onUpdatePage(page.id, (currentPage) => ({
+                ...currentPage,
+                coverSettings: {
+                  ...currentPage.coverSettings,
+                  showHeader: event.target.checked,
+                },
+              }))
+            }
+          />
+          إظهار الهيدر
+        </label>
+
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.showFooter !== false}
+            onChange={(event) =>
+              onUpdatePage(page.id, (currentPage) => ({
+                ...currentPage,
+                coverSettings: {
+                  ...currentPage.coverSettings,
+                  showFooter: event.target.checked,
+                },
+              }))
+            }
+          />
+          إظهار الفوتر
+        </label>
+
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.showDescription !== false}
+            onChange={(event) =>
+              onUpdatePage(page.id, (currentPage) => ({
+                ...currentPage,
+                coverSettings: {
+                  ...currentPage.coverSettings,
+                  showDescription: event.target.checked,
+                },
+              }))
+            }
+          />
+          إظهار الوصف
+        </label>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <select
+          value={settings.titlePosition || "center"}
+          onChange={(event) =>
+            onUpdatePage(page.id, (currentPage) => ({
+              ...currentPage,
+              coverSettings: {
+                ...currentPage.coverSettings,
+                titlePosition: event.target.value as "center" | "top",
+              },
+            }))
+          }
+          className="rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-sm font-bold outline-none"
+        >
+          <option value="center">العنوان في المنتصف</option>
+          <option value="top">العنوان أعلى الصفحة</option>
+        </select>
+
+        <select
+          value={settings.visualStyle || "official"}
+          onChange={(event) =>
+            onUpdatePage(page.id, (currentPage) => ({
+              ...currentPage,
+              coverSettings: {
+                ...currentPage.coverSettings,
+                visualStyle: event.target.value as
+                  | "official"
+                  | "minimal"
+                  | "hero",
+              },
+            }))
+          }
+          className="rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-sm font-bold outline-none"
+        >
+          <option value="official">رسمي</option>
+          <option value="minimal">بسيط</option>
+          <option value="hero">بصري</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function BlockEditor({
+  template,
+  snippets,
+  page,
+  pages,
+  workflowFields,
+  block,
+  blockIndex,
+  canMoveUp,
+  canMoveDown,
+  onUpdatePage,
+  onRemoveBlock,
+  onMoveBlock,
+  onMoveBlockToPage,
+}: {
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  page: ReportTemplatePage;
+  pages: ReportTemplatePage[];
+  workflowFields: RuntimeWorkflowFieldOption[];
+  block: ReportTemplateBlock;
+  blockIndex: number;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onUpdatePage: (
+    pageId: string,
+    updater: (page: ReportTemplatePage) => ReportTemplatePage,
+  ) => void;
+  onRemoveBlock: (pageId: string, blockId: string) => void;
+  onMoveBlock: (
+    pageId: string,
+    blockId: string,
+    direction: "up" | "down",
+  ) => void;
+  onMoveBlockToPage: (
+    blockId: string,
+    fromPageId: string,
+    toPageId: string,
+  ) => void;
+}) {
+  function updateBlock(
+    updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
+  ) {
+    onUpdatePage(page.id, (currentPage) => ({
+      ...currentPage,
+      blocks: currentPage.blocks.map((currentBlock) =>
+        currentBlock.id === block.id ? updater(currentBlock) : currentBlock,
+      ),
+    }));
+  }
+
+  const selectableWorkflowFields = workflowFields.length
+    ? workflowFields
+    : REPORT_WORKFLOW_FIELD_OPTIONS;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-black text-slate-500">
+              {blockIndex + 1}
+            </span>
+
+            <input
+              value={block.title}
+              onChange={(event) =>
+                updateBlock((currentBlock) => ({
+                  ...currentBlock,
+                  title: event.target.value,
+                }))
+              }
+              className="min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-emerald-700"
+            />
+
+            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+              {blockKindLabels[block.kind]}
+            </span>
+
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+              {block.source.label}
+            </span>
+          </div>
+
+          <p className="mt-2 text-xs leading-6 text-slate-500">
+            مصدر البيانات: {block.source.description}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onMoveBlock(page.id, block.id, "up")}
+            disabled={!canMoveUp}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
+          >
+            أعلى
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onMoveBlock(page.id, block.id, "down")}
+            disabled={!canMoveDown}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
+          >
+            أسفل
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onRemoveBlock(page.id, block.id)}
+            className="rounded-xl border border-red-100 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50"
+          >
+            حذف
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <select
+          value={block.source.fieldKey || ""}
+          onChange={(event) =>
+            updateBlock((currentBlock) => ({
+              ...currentBlock,
+              source: {
+                ...currentBlock.source,
+                fieldKey: event.target.value || undefined,
+              },
+            }))
+          }
+          className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
+        >
+          <option value="">مصدر عام/غير محدد</option>
+
+          {selectableWorkflowFields.map((field) => (
+            <option key={field.key} value={field.key}>
+              {field.label}
+              {"stepTitle" in field && field.stepTitle
+                ? ` — ${field.stepTitle}`
+                : ""}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={page.id}
+          onChange={(event) =>
+            onMoveBlockToPage(block.id, page.id, event.target.value)
+          }
+          className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
+        >
+          {pages.map((currentPage) => (
+            <option key={currentPage.id} value={currentPage.id}>
+              نقل إلى: {currentPage.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <BlockSettingsEditor
+        template={template}
+        snippets={snippets}
+        block={block}
+        onUpdateBlock={updateBlock}
+      />
+
+      {block.kind === "custom-paragraph" ? (
+        <div className="mt-4 grid gap-3">
+          <input
+            value={block.customTitle || ""}
+            onChange={(event) =>
+              updateBlock((currentBlock) => ({
+                ...currentBlock,
+                customTitle: event.target.value,
+              }))
+            }
+            placeholder="عنوان الفقرة"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-700"
+          />
+
+          <textarea
+            value={block.customContent || ""}
+            onChange={(event) =>
+              updateBlock((currentBlock) => ({
+                ...currentBlock,
+                customContent: event.target.value,
+              }))
+            }
+            placeholder="محتوى الفقرة"
+            rows={3}
+            className="resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-700"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function BlockSettingsEditor({
+  template,
+  snippets,
+  block,
+  onUpdateBlock,
+}: {
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  block: ReportTemplateBlock;
+  onUpdateBlock: (
+    updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
+  ) => void;
+}) {
+  const settings = block.settings || {};
+
+  return (
+    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+      <h5 className="text-xs font-black text-slate-500">إعدادات البلوك</h5>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.showTitle !== false}
+            onChange={(event) =>
+              onUpdateBlock((currentBlock) => ({
+                ...currentBlock,
+                settings: {
+                  ...currentBlock.settings,
+                  showTitle: event.target.checked,
+                },
+              }))
+            }
+          />
+          إظهار العنوان
+        </label>
+
+        <select
+          value={settings.style || "card"}
+          onChange={(event) =>
+            onUpdateBlock((currentBlock) => ({
+              ...currentBlock,
+              settings: {
+                ...currentBlock.settings,
+                style: event.target.value as "plain" | "card" | "highlight",
+              },
+            }))
+          }
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
+        >
+          <option value="card">بطاقة</option>
+          <option value="plain">نص عادي</option>
+          <option value="highlight">تمييز</option>
+        </select>
+
+        <select
+          value={settings.columns || 2}
+          onChange={(event) =>
+            onUpdateBlock((currentBlock) => ({
+              ...currentBlock,
+              settings: {
+                ...currentBlock.settings,
+                columns: Number(event.target.value) as 1 | 2,
+              },
+            }))
+          }
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
+        >
+          <option value={1}>عمود واحد</option>
+          <option value={2}>عمودين</option>
+        </select>
+      </div>
+
+      {block.kind === "evidence-gallery" ? (
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <select
+            value={settings.evidenceLayout || "grid-2x2"}
+            onChange={(event) =>
+              onUpdateBlock((currentBlock) => ({
+                ...currentBlock,
+                settings: {
+                  ...currentBlock.settings,
+                  evidenceLayout: event.target.value as
+                    | "grid-2x2"
+                    | "two-columns"
+                    | "stacked"
+                    | "one-per-page",
+                },
+              }))
+            }
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
+          >
+            <option value="grid-2x2">شبكة 2×2</option>
+            <option value="two-columns">صورتان بجانب بعض</option>
+            <option value="stacked">صور تحت بعض</option>
+            <option value="one-per-page">شاهد لكل صفحة</option>
+          </select>
+
+          <select
+            value={settings.imageFit || "cover"}
+            onChange={(event) =>
+              onUpdateBlock((currentBlock) => ({
+                ...currentBlock,
+                settings: {
+                  ...currentBlock.settings,
+                  imageFit: event.target.value as "cover" | "contain",
+                },
+              }))
+            }
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
+          >
+            <option value="cover">ملء الإطار</option>
+            <option value="contain">احتواء كامل</option>
+          </select>
+
+          <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+            <input
+              type="checkbox"
+              checked={settings.showCaptions !== false}
+              onChange={(event) =>
+                onUpdateBlock((currentBlock) => ({
+                  ...currentBlock,
+                  settings: {
+                    ...currentBlock.settings,
+                    showCaptions: event.target.checked,
+                  },
+                }))
+              }
+            />
+            إظهار التعليقات
+          </label>
+        </div>
+      ) : null}
+
+      {block.kind === "text-library" ? (
+        <TextLibraryBlockSettingsEditor
+          template={template}
+          snippets={snippets}
+          block={block}
+          onUpdateBlock={onUpdateBlock}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function TextLibraryBlockSettingsEditor({
+  template,
+  snippets,
+  block,
+  onUpdateBlock,
+}: {
+  template: ReportTemplateBuilderModel;
+  snippets: ReportTextSnippet[];
+  block: ReportTemplateBlock;
+  onUpdateBlock: (
+    updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
+  ) => void;
+}) {
+  const settings = getTextLibrarySettings(block);
+
+  const matchingSnippets = getMatchingTextSnippets({
+    block,
+    template,
+    snippets,
+  });
+
+  function updateTextLibrarySettings(
+    nextSettings: Partial<TextLibrarySettings>,
+  ) {
+    onUpdateBlock((currentBlock) =>
+      setTextLibrarySettingsOnBlock(currentBlock, nextSettings),
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h5 className="text-sm font-black text-emerald-900">
+            ربط البلوك بمكتبة النصوص
+          </h5>
+
+          <p className="mt-1 text-xs leading-6 text-emerald-800">
+            اختر مصدر النص، التصنيف، وطريقة عرض النص داخل التقرير.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-emerald-700">
+          {matchingSnippets.length} نص مطابق
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div>
+          <label className="text-xs font-black text-slate-600">
+            مصدر النصوص
+          </label>
+
+          <select
+            value={settings.textSourceMode}
+            onChange={(event) =>
+              updateTextLibrarySettings({
+                textSourceMode: event.target.value as TextLibrarySourceMode,
+                snippetId: "",
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
+          >
+            <option value="same-template-service">نفس خدمة القالب</option>
+            <option value="global">النصوص العامة فقط</option>
+            <option value="specific-service">خدمة محددة</option>
+            <option value="all">كل النصوص</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-black text-slate-600">
+            التصنيف المطلوب
+          </label>
+
+          <select
+            value={settings.category}
+            onChange={(event) =>
+              updateTextLibrarySettings({
+                category: event.target.value,
+                snippetId: "",
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
+          >
+            {snippetCategories.map((category) => (
+              <option key={category} value={category}>
+                {category === "all" ? "كل التصنيفات" : category}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-black text-slate-600">
+            طريقة العرض
+          </label>
+
+          <select
+            value={settings.renderMode}
+            onChange={(event) =>
+              updateTextLibrarySettings({
+                renderMode: event.target.value as TextLibraryRenderMode,
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
+          >
+            <option value="first">أول نص مطابق</option>
+            <option value="all">كل النصوص المطابقة</option>
+            <option value="selected">نص محدد</option>
+          </select>
+        </div>
+      </div>
+
+      {settings.textSourceMode === "specific-service" ? (
+        <div className="mt-3">
+          <label className="text-xs font-black text-slate-600">
+            الخدمة المحددة
+          </label>
+
+          <select
+            value={settings.serviceSlug}
+            onChange={(event) =>
+              updateTextLibrarySettings({
+                serviceSlug: event.target.value,
+                snippetId: "",
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
+          >
+            <option value="">اختر خدمة</option>
+            {REPORT_SERVICE_OPTIONS.map((service) => (
+              <option key={service.slug} value={service.slug}>
+                {service.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {settings.renderMode === "selected" ? (
+        <div className="mt-3">
+          <label className="text-xs font-black text-slate-600">
+            النص المحدد
+          </label>
+
+          <select
+            value={settings.snippetId}
+            onChange={(event) =>
+              updateTextLibrarySettings({
+                snippetId: event.target.value,
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
+          >
+            <option value="">اختر نصًا من المكتبة</option>
+            {matchingSnippets.map((snippet) => (
+              <option key={snippet.id} value={snippet.id}>
+                {snippet.title} - {snippet.category}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div>
+          <label className="text-xs font-black text-slate-600">
+            عند عدم وجود نص مطابق
+          </label>
+
+          <select
+            value={settings.fallbackBehavior}
+            onChange={(event) =>
+              updateTextLibrarySettings({
+                fallbackBehavior: event.target
+                  .value as TextLibraryFallbackBehavior,
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
+          >
+            <option value="show-fallback">اعرض نصًا بديلًا</option>
+            <option value="hide">أخفِ البلوك</option>
+          </select>
+        </div>
+
+        <label className="mt-7 flex items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.editableByCounselor}
+            onChange={(event) =>
+              updateTextLibrarySettings({
+                editableByCounselor: event.target.checked,
+              })
+            }
+          />
+          يسمح للموجه/الموجهة بتعديل هذا النص لاحقًا
+        </label>
+      </div>
+
+      {settings.fallbackBehavior !== "hide" ? (
+        <div className="mt-3">
+          <label className="text-xs font-black text-slate-600">
+            النص البديل
+          </label>
+
+          <textarea
+            value={settings.fallbackText}
+            onChange={(event) =>
+              updateTextLibrarySettings({
+                fallbackText: event.target.value,
+              })
+            }
+            rows={2}
+            className="mt-2 w-full resize-none rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs leading-6 outline-none"
+          />
+        </div>
+      ) : null}
+
+      <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-3">
+        <p className="text-xs font-black text-slate-600">
+          النصوص المطابقة الآن
+        </p>
+
+        <div className="mt-2 flex flex-wrap gap-2">
+          {matchingSnippets.length ? (
+            matchingSnippets.slice(0, 8).map((snippet) => (
+              <span
+                key={snippet.id}
+                className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700"
+              >
+                {snippet.title}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs text-slate-500">
+              لا يوجد نص مطابق حسب الإعدادات الحالية.
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmModal({
+  title,
+  description,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  description: ReactNode;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-2xl font-black text-red-600">
+          !
+        </div>
+
+        <div className="mt-4 text-center">
+          <h2 className="text-xl font-black text-slate-900">{title}</h2>
+
+          <p className="mt-3 text-sm leading-7 text-slate-500">
+            {description}
+          </p>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            إلغاء
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-700"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+================================================================================
+FILE: lib\report-engine\report-template-builder-types.ts
+================================================================================
+
+export type ReportTemplateScope = "GLOBAL" | "SERVICE";
+
+export type ReportTemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
+export type ReportPageKind =
+  | "cover"
+  | "summary"
+  | "narrative"
+  | "results"
+  | "evidence"
+  | "approval";
+
+export type ReportBlockKind =
+  | "identity-header"
+  | "cover-title"
+  | "case-meta"
+  | "student-summary"
+  | "service-summary"
+  | "paragraph"
+  | "field-list"
+  | "text-library"
+  | "custom-paragraph"
+  | "evidence-gallery"
+  | "approval-signature";
+
+export type ReportDataSource =
+  | "identity"
+  | "caseEntry"
+  | "caseValues"
+  | "student"
+  | "service"
+  | "evidence"
+  | "textLibrary"
+  | "custom"
+  | "computed";
+
+export type ReportBlockSource = {
+  source: ReportDataSource;
+  label: string;
+  description: string;
+  fieldKey?: string;
+};
+
+export type ReportBlockSettings = {
+  showTitle?: boolean;
+  style?: "plain" | "card" | "highlight";
+  columns?: 1 | 2;
+  evidenceLayout?: "grid-2x2" | "two-columns" | "stacked" | "one-per-page";
+  imageFit?: "contain" | "cover";
+  showCaptions?: boolean;
+  itemsPerPage?: 1 | 2 | 4;
+};
+
+export type ReportCoverSettings = {
+  showHeader?: boolean;
+  showFooter?: boolean;
+  titlePosition?: "center" | "top";
+  showDescription?: boolean;
+  showMetaChips?: boolean;
+  visualStyle?: "official" | "minimal" | "hero";
+};
+
+export type ReportTemplateBlock = {
+  id: string;
+  kind: ReportBlockKind;
+  title: string;
+  source: ReportBlockSource;
+  required: boolean;
+
+  customTitle?: string;
+  customContent?: string;
+
+  settings?: ReportBlockSettings;
+};
+
+export type ReportTemplatePage = {
+  id: string;
+  kind: ReportPageKind;
+  title: string;
+  description: string;
+  blocks: ReportTemplateBlock[];
+  coverSettings?: ReportCoverSettings;
+};
+
+export type ReportTemplateBuilderModel = {
+  id: string;
+  name: string;
+  description: string;
+  scope: ReportTemplateScope;
+  serviceSlug?: string;
+  status: ReportTemplateStatus;
+  pages: ReportTemplatePage[];
+  updatedAt: string;
+  previewCaseId?: string;
+};
+
+export type ReportTextSnippet = {
+  id: string;
+  title: string;
+  category:
+    | "مقدمة"
+    | "هدف"
+    | "إجراء"
+    | "نتيجة"
+    | "توصية"
+    | "خاتمة";
+  serviceSlug?: string;
+  content: string;
+};
+
+export type ReportIdentitySettings = {
+  ministryName: string;
+  educationDepartment: string;
+  educationOffice: string;
+  schoolName: string;
+  schoolLeaderName: string;
+  counselorName: string;
+  academicYear: string;
+  semester: string;
+  ministryLogoUrl: string;
+  schoolLogoUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: "Tajawal" | "Cairo" | "Arial";
+};
+
+export type ReportTemplateValidationIssue = {
+  id: string;
+  severity: "success" | "warning" | "error";
+  title: string;
+  description: string;
+};
+
+export type ReportTemplateValidationResult = {
+  canPublish: boolean;
+  score: number;
+  issues: ReportTemplateValidationIssue[];
+};
+
+export const DEFAULT_REPORT_IDENTITY_SETTINGS: ReportIdentitySettings = {
+  ministryName: "وزارة التعليم",
+  educationDepartment: "الإدارة العامة للتعليم",
+  educationOffice: "مكتب التعليم",
+  schoolName: "اسم المدرسة",
+  schoolLeaderName: "قائد/قائدة المدرسة",
+  counselorName: "الموجه/الموجهة الطلابية",
+  academicYear: "1447هـ",
+  semester: "الفصل الدراسي الأول",
+  ministryLogoUrl: "/sample/report-evidence/ministry-logo.png",
+  schoolLogoUrl: "/sample/report-evidence/square-evidence-1.png",
+  primaryColor: "#0f5132",
+  secondaryColor: "#d9e7df",
+  fontFamily: "Tajawal",
+};
+
+export const REPORT_WORKFLOW_FIELD_OPTIONS = [
+  {
+    key: "programTitle",
+    label: "عنوان البرنامج",
+    source: "caseValues" as const,
+  },
+  {
+    key: "executionDate",
+    label: "تاريخ التنفيذ",
+    source: "caseValues" as const,
+  },
+  {
+    key: "intro",
+    label: "مقدمة التقرير",
+    source: "caseValues" as const,
+  },
+  {
+    key: "goals",
+    label: "أهداف البرنامج",
+    source: "caseValues" as const,
+  },
+  {
+    key: "procedures",
+    label: "إجراءات التنفيذ",
+    source: "caseValues" as const,
+  },
+  {
+    key: "results",
+    label: "النتائج",
+    source: "caseValues" as const,
+  },
+  {
+    key: "recommendations",
+    label: "التوصيات",
+    source: "caseValues" as const,
+  },
+  {
+    key: "targetGroup",
+    label: "الفئة المستهدفة",
+    source: "caseValues" as const,
+  },
+];
+
+export const REPORT_SERVICE_OPTIONS = [
+  {
+    slug: "guidance-programs",
+    name: "البرامج الإرشادية",
+  },
+  {
+    slug: "student-follow-up",
+    name: "متابعة الطلاب",
+  },
+  {
+    slug: "family-school-communication",
+    name: "التواصل بين الأسرة والمدرسة",
+  },
+  {
+    slug: "committees-meetings",
+    name: "اللجان والاجتماعات",
+  },
+  {
+    slug: "student-guidance-services",
+    name: "الخدمات الإرشادية",
+  },
+];
+
+export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
+  {
+    id: "block-identity-header",
+    kind: "identity-header",
+    title: "هوية المدرسة والهيدر",
+    source: {
+      source: "identity",
+      label: "بيانات الهوية",
+      description: "شعار الوزارة، شعار المدرسة، الإدارة، المكتب، واسم المدرسة.",
+    },
+    required: false,
+    settings: {
+      style: "plain",
+    },
+  },
+  {
+    id: "block-cover-title",
+    kind: "cover-title",
+    title: "عنوان الغلاف",
+    source: {
+      source: "caseEntry",
+      label: "بيانات الحالة",
+      description: "عنوان التقرير واسم الخدمة وتاريخ التنفيذ من CaseEntry.",
+      fieldKey: "programTitle",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "highlight",
+    },
+  },
+  {
+    id: "block-case-meta",
+    kind: "case-meta",
+    title: "بيانات التقرير",
+    source: {
+      source: "caseEntry",
+      label: "ملخص الحالة",
+      description: "تاريخ الإنشاء، الخدمة، الحالة، والفئة المستهدفة.",
+    },
+    required: false,
+    settings: {
+      columns: 2,
+      style: "card",
+    },
+  },
+  {
+    id: "block-student-summary",
+    kind: "student-summary",
+    title: "بيانات الطالب/الطالبة",
+    source: {
+      source: "student",
+      label: "بيانات نور",
+      description:
+        "اسم الطالب/الطالبة، الصف، الفصل، المرحلة، وولي الأمر عند توفره.",
+    },
+    required: false,
+    settings: {
+      columns: 2,
+      style: "card",
+    },
+  },
+  {
+    id: "block-service-summary",
+    kind: "service-summary",
+    title: "ملخص الخدمة",
+    source: {
+      source: "service",
+      label: "بيانات الخدمة",
+      description: "اسم الخدمة ونوعها وربطها بالتقرير.",
+    },
+    required: false,
+    settings: {
+      style: "card",
+    },
+  },
+  {
+    id: "block-paragraph",
+    kind: "paragraph",
+    title: "فقرة من بيانات الحالة",
+    source: {
+      source: "caseValues",
+      label: "حقول الخدمة",
+      description:
+        "مقدمة، وصف، إجراءات، نتائج، أو توصيات محفوظة داخل CaseValue.",
+      fieldKey: "intro",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "card",
+    },
+  },
+  {
+    id: "block-field-list",
+    kind: "field-list",
+    title: "قائمة حقول مختصرة",
+    source: {
+      source: "caseValues",
+      label: "حقول مختارة",
+      description: "عرض مجموعة حقول من الخدمة على شكل قائمة منظمة.",
+      fieldKey: "goals",
+    },
+    required: false,
+    settings: {
+      columns: 2,
+      style: "card",
+    },
+  },
+  {
+    id: "block-text-library",
+    kind: "text-library",
+    title: "نص جاهز من المكتبة",
+    source: {
+      source: "textLibrary",
+      label: "مكتبة النصوص",
+      description: "نص محفوظ مسبقًا مثل مقدمة، هدف، توصية، أو خاتمة.",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "highlight",
+    },
+  },
+  {
+    id: "block-custom-paragraph",
+    kind: "custom-paragraph",
+    title: "فقرة مخصصة",
+    customTitle: "عنوان الفقرة",
+    customContent: "اكتب محتوى هذه الفقرة داخل القالب.",
+    source: {
+      source: "custom",
+      label: "نص غير مرتبط",
+      description:
+        "عنوان ومحتوى يكتبه الأدمن داخل القالب ولا يعتمد على CaseValue.",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "card",
+    },
+  },
+  {
+    id: "block-evidence-gallery",
+    kind: "evidence-gallery",
+    title: "الشواهد والمرفقات",
+    source: {
+      source: "evidence",
+      label: "شواهد الحالة",
+      description: "الصور والملفات المرتبطة بالحالة أو الخدمة.",
+    },
+    required: false,
+    settings: {
+      evidenceLayout: "grid-2x2",
+      imageFit: "cover",
+      showCaptions: true,
+      itemsPerPage: 4,
+    },
+  },
+  {
+    id: "block-approval-signature",
+    kind: "approval-signature",
+    title: "الاعتماد والتوقيع",
+    source: {
+      source: "identity",
+      label: "بيانات الاعتماد",
+      description: "اسم الموجه/الموجهة، قائد/قائدة المدرسة، التاريخ، والتوقيع.",
+    },
+    required: false,
+    settings: {
+      style: "highlight",
+    },
+  },
+];
+export type GeneratedReportSnapshot = {
+  id: string;
+  templateId: string;
+  templateName: string;
+  templateStatus: ReportTemplateStatus;
+  templateSnapshot: ReportTemplateBuilderModel;
+  reportDataSnapshot: {
+    previewCaseId?: string;
+    generatedFrom: "sample" | "case";
+    note: string;
+  };
+  generatedAt: string;
+  generatedBy: string;
+};
+
+================================================================================
+FILE: lib\report-engine\report-template-builder-presets.ts
+================================================================================
+
+import type {
+  ReportTemplateBuilderModel,
+  ReportTextSnippet,
+} from "./report-template-builder-types";
+
+export const initialReportTextSnippets: ReportTextSnippet[] = [
+  {
+    id: "snippet-intro-positive",
+    title: "مقدمة برنامج تعزيز السلوك",
+    category: "مقدمة",
+    serviceSlug: "guidance-programs",
+    content:
+      "تم تنفيذ البرنامج ضمن الجهود الإرشادية الهادفة إلى تعزيز السلوك الإيجابي وترسيخ القيم التربوية داخل البيئة المدرسية.",
+  },
+  {
+    id: "snippet-goal-awareness",
+    title: "هدف توعوي عام",
+    category: "هدف",
+    serviceSlug: "guidance-programs",
+    content:
+      "رفع مستوى الوعي لدى الطلاب بأهمية الالتزام بالقيم والسلوكيات الإيجابية داخل المدرسة.",
+  },
+  {
+    id: "snippet-result-general",
+    title: "نتيجة عامة",
+    category: "نتيجة",
+    content:
+      "أسهمت الجهود المنفذة في تعزيز الوعي وتحسين مستوى التفاعل الإيجابي داخل البيئة التعليمية.",
+  },
+  {
+    id: "snippet-recommendation-followup",
+    title: "توصية بالمتابعة",
+    category: "توصية",
+    content:
+      "يوصى باستمرار المتابعة وتنفيذ برامج نوعية داعمة وربطها بالشواهد والتقارير الدورية.",
+  },
+];
+
+export const initialReportTemplateBuilderPresets: ReportTemplateBuilderModel[] =
+  [
+    {
+      id: "tpl-official-school-report",
+      name: "قالب رسمي مدرسي",
+      description:
+        "قالب رسمي متعدد الصفحات مناسب للتقارير الطويلة: غلاف، ملخص، تفاصيل، شواهد، واعتماد.",
+      scope: "GLOBAL",
+      status: "PUBLISHED",
+      updatedAt: "2026-05-30",
+      previewCaseId: "sample-case-1",
+      pages: [
+        {
+          id: "page-cover",
+          kind: "cover",
+          title: "صفحة الغلاف",
+          description:
+            "تعرض عنوان التقرير والهوية الأساسية بدون تكرار التفاصيل.",
+          coverSettings: {
+            showHeader: true,
+            showFooter: true,
+            titlePosition: "center",
+            showDescription: true,
+            showMetaChips: true,
+            visualStyle: "official",
+          },
+          blocks: [
+            {
+              id: "cover-identity",
+              kind: "identity-header",
+              title: "هوية المدرسة والهيدر",
+              source: {
+                source: "identity",
+                label: "بيانات الهوية",
+                description: "شعارات وبيانات المدرسة والإدارة.",
+              },
+              required: false,
+            },
+            {
+              id: "cover-title",
+              kind: "cover-title",
+              title: "عنوان التقرير",
+              source: {
+                source: "caseEntry",
+                label: "بيانات الحالة",
+                description: "عنوان التقرير واسم الخدمة من CaseEntry.",
+                fieldKey: "programTitle",
+              },
+              required: false,
+              settings: {
+                showTitle: true,
+                style: "highlight",
+              },
+            },
+          ],
+        },
+        {
+          id: "page-summary",
+          kind: "summary",
+          title: "ملخص التقرير",
+          description: "يعرض بيانات مختصرة للقارئ قبل التفاصيل.",
+          blocks: [
+            {
+              id: "summary-case-meta",
+              kind: "case-meta",
+              title: "بيانات التقرير",
+              source: {
+                source: "caseEntry",
+                label: "ملخص الحالة",
+                description:
+                  "التاريخ، الخدمة، الفئة المستهدفة، وحالة التقرير.",
+              },
+              required: false,
+              settings: {
+                columns: 2,
+                style: "card",
+              },
+            },
+          ],
+        },
+        {
+          id: "page-narrative",
+          kind: "narrative",
+          title: "تفاصيل التنفيذ",
+          description: "مقدمة، أهداف، إجراءات، نتائج وتوصيات من CaseValue.",
+          blocks: [
+            {
+              id: "narrative-paragraph",
+              kind: "paragraph",
+              title: "النصوص الأساسية",
+              source: {
+                source: "caseValues",
+                label: "حقول الخدمة",
+                description: "النصوص المدخلة سابقًا داخل الخدمة.",
+                fieldKey: "intro",
+              },
+              required: false,
+              settings: {
+                showTitle: true,
+                style: "card",
+              },
+            },
+            {
+              id: "custom-note",
+              kind: "custom-paragraph",
+              title: "فقرة مخصصة",
+              customTitle: "ملاحظة تنظيمية",
+              customContent:
+                "يمكن تعديل هذه الفقرة داخل القالب أو حذفها عند عدم الحاجة.",
+              source: {
+                source: "custom",
+                label: "نص غير مرتبط",
+                description: "فقرة يكتبها الأدمن داخل القالب.",
+              },
+              required: false,
+              settings: {
+                showTitle: true,
+                style: "plain",
+              },
+            },
+          ],
+        },
+        {
+          id: "page-evidence",
+          kind: "evidence",
+          title: "الشواهد والمرفقات",
+          description: "صفحات مستقلة للشواهد حتى لا تتمدد صفحة A4.",
+          blocks: [
+            {
+              id: "evidence-gallery",
+              kind: "evidence-gallery",
+              title: "معرض الشواهد",
+              source: {
+                source: "evidence",
+                label: "شواهد الحالة",
+                description: "يعرض الصور والملفات المرتبطة بالـ Case ID.",
+              },
+              required: false,
+              settings: {
+                evidenceLayout: "grid-2x2",
+                imageFit: "cover",
+                showCaptions: true,
+                itemsPerPage: 4,
+              },
+            },
+          ],
+        },
+        {
+          id: "page-approval",
+          kind: "approval",
+          title: "الاعتماد والتوقيع",
+          description: "صفحة رسمية ختامية للتوقيع والختم.",
+          blocks: [
+            {
+              id: "approval-signature",
+              kind: "approval-signature",
+              title: "التوقيع والاعتماد",
+              source: {
+                source: "identity",
+                label: "بيانات الاعتماد",
+                description: "اسم الموجه/الموجهة وقائد/قائدة المدرسة.",
+              },
+              required: false,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "tpl-visual-program-report",
+      name: "قالب بصري للبرامج",
+      description:
+        "قالب مختصر وجذاب للبرامج والأنشطة، يركز على العنوان والوصف والشواهد.",
+      scope: "SERVICE",
+      serviceSlug: "guidance-programs",
+      status: "PUBLISHED",
+      updatedAt: "2026-05-30",
+      previewCaseId: "sample-case-2",
+      pages: [
+        {
+          id: "visual-main",
+          kind: "cover",
+          title: "صفحة النشاط",
+          description: "صفحة خفيفة تحتوي العنوان والوصف وأول مجموعة شواهد.",
+          coverSettings: {
+            showHeader: false,
+            showFooter: true,
+            titlePosition: "center",
+            showDescription: true,
+            showMetaChips: true,
+            visualStyle: "minimal",
+          },
+          blocks: [
+            {
+              id: "visual-title",
+              kind: "cover-title",
+              title: "عنوان البرنامج",
+              source: {
+                source: "caseEntry",
+                label: "بيانات الحالة",
+                description: "اسم البرنامج وتاريخ التنفيذ.",
+                fieldKey: "programTitle",
+              },
+              required: false,
+            },
+            {
+              id: "visual-evidence",
+              kind: "evidence-gallery",
+              title: "شواهد مختارة",
+              source: {
+                source: "evidence",
+                label: "الشواهد",
+                description: "يعرض الشواهد بشكل بصري جذاب.",
+              },
+              required: false,
+              settings: {
+                evidenceLayout: "grid-2x2",
+                imageFit: "cover",
+                showCaptions: false,
+                itemsPerPage: 4,
+              },
+            },
+          ],
+        },
+      ],
+    },
+  ];

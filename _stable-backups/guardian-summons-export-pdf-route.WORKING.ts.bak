@@ -1,0 +1,201 @@
+﻿import { NextResponse } from "next/server";
+import { chromium } from "playwright";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type ExportRequestBody = {
+  payload?: Record<string, unknown>;
+  fileName?: string;
+};
+
+export async function POST(request: Request) {
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
+
+  try {
+    const body = (await request.json()) as ExportRequestBody;
+
+    const payload = body.payload || {};
+    const requestedFileName = ensurePdfExtension(
+      body.fileName || "guardian-summons.pdf"
+    );
+
+    const host = request.headers.get("host") || "localhost:3000";
+    const protocol =
+      request.headers.get("x-forwarded-proto") ||
+      (host.includes("localhost") ? "http" : "https");
+
+    const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8")
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+
+    const previewUrl = `${protocol}://${host}/pdf-preview/guardian-summons?pdf=true&payload=${encodeURIComponent(
+      encodedPayload
+    )}`;
+
+    browser = await chromium.launch({
+      headless: true,
+    });
+
+    const context = await browser.newContext({
+      viewport: {
+        width: 794,
+        height: 1123,
+      },
+      deviceScaleFactor: 1,
+    });
+
+    const page = await context.newPage();
+
+    page.on("console", (message) => {
+      if (message.type() === "error") {
+        console.error(
+          "GUARDIAN_SUMMONS_PDF_PREVIEW_CONSOLE_ERROR",
+          message.text()
+        );
+      }
+    });
+
+    page.on("pageerror", (error) => {
+      console.error("GUARDIAN_SUMMONS_PDF_PREVIEW_PAGE_ERROR", error);
+    });
+
+    const response = await page.goto(previewUrl, {
+      waitUntil: "networkidle",
+      timeout: 45_000,
+    });
+
+    if (!response || !response.ok()) {
+      const status = response?.status() || 0;
+      throw new Error(`تعذر فتح صفحة معاينة PDF. status=${status}`);
+    }
+
+    const pageCount = await page.locator(".pdf-report-page").count();
+
+    if (!pageCount) {
+      throw new Error("لم يتم العثور على صفحة PDF داخل المعاينة.");
+    }
+
+    await page.emulateMedia({
+      media: "print",
+    });
+
+    await page.evaluate(() => {
+      document.documentElement.style.background = "#ffffff";
+      document.documentElement.style.margin = "0";
+      document.documentElement.style.padding = "0";
+
+      document.body.style.background = "#ffffff";
+      document.body.style.margin = "0";
+      document.body.style.padding = "0";
+      document.body.style.overflow = "hidden";
+
+      const forbiddenSelectors = [
+        "nav",
+        "aside",
+        "[data-sidebar]",
+        "[data-dashboard-shell]",
+        ".no-print",
+        ".fixed",
+        ".sticky",
+      ];
+
+      for (const selector of forbiddenSelectors) {
+        document.querySelectorAll(selector).forEach((node) => {
+          const element = node as HTMLElement;
+          element.style.display = "none";
+        });
+      }
+
+      const pages = Array.from(document.querySelectorAll(".pdf-report-page"));
+
+      for (const pdfPage of pages) {
+        const element = pdfPage as HTMLElement;
+
+        element.style.background = "#ffffff";
+        element.style.boxShadow = "none";
+        element.style.border = "0";
+        element.style.margin = "0 auto";
+      }
+    });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: false,
+      margin: {
+        top: "0mm",
+        right: "0mm",
+        bottom: "0mm",
+        left: "0mm",
+      },
+    });
+
+    await context.close();
+    await browser.close();
+    browser = null;
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": buildContentDisposition(requestedFileName),
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
+
+    console.error("GUARDIAN_SUMMONS_PDF_EXPORT_ERROR", error);
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء إنشاء ملف PDF.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+function ensurePdfExtension(fileName: string) {
+  const cleaned = fileName
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+
+  return cleaned.endsWith(".pdf") ? cleaned : `${cleaned}.pdf`;
+}
+
+function buildContentDisposition(fileName: string) {
+  const asciiFallback = toAsciiFallback(fileName);
+  const encodedFileName = encodeRFC5987ValueChars(fileName);
+
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedFileName}`;
+}
+
+function toAsciiFallback(fileName: string) {
+  const fallback = fileName
+    .replace(/[^\x20-\x7E]/g, "-")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return fallback || "guardian-summons.pdf";
+}
+
+function encodeRFC5987ValueChars(value: string) {
+  return encodeURIComponent(value)
+    .replace(/['()]/g, escape)
+    .replace(/\*/g, "%2A");
+}

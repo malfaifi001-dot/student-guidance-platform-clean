@@ -1,0 +1,595 @@
+﻿
+import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+
+type GuardianSummonsLetterPreviewProps = {
+  template?: unknown;
+  previewCaseData?: RuntimePreviewCaseData | null;
+  snippets?: unknown;
+  pdfMode?: boolean;
+  forceOfficialHeader?: boolean;
+  showDynamicFields?: boolean;
+};
+
+type PreviewValue = {
+  fieldKey?: string;
+  fieldLabel?: string;
+  value?: unknown;
+};
+
+type DynamicFieldInfo = {
+  key: string;
+  label: string;
+  description: string;
+};
+
+export const guardianSummonsDynamicFields: DynamicFieldInfo[] = [
+  {
+    key: "studentName",
+    label: "اسم الطالب",
+    description: "يُقرأ من الطالب المختار في Smart Picker.",
+  },
+  {
+    key: "studentClass",
+    label: "الصف / الفصل",
+    description: "يجمع الصف والفصل من بيانات الطالب.",
+  },
+  {
+    key: "studentNationalId",
+    label: "رقم هوية الطالب",
+    description: "اختياري، يستخدم عند الحاجة داخل القالب.",
+  },
+  {
+    key: "guardianName",
+    label: "اسم ولي الأمر",
+    description: "يُقرأ من ولي أمر الطالب أو من بيانات الاستدعاء.",
+  },
+  {
+    key: "guardianPhone",
+    label: "جوال ولي الأمر",
+    description: "اختياري للتواصل أو الإشعارات المستقبلية.",
+  },
+  {
+    key: "summonDay / summonsDay",
+    label: "يوم الحضور",
+    description: "يأتي من Workflow استدعاء ولي أمر.",
+  },
+  {
+    key: "summonDate / summonsHijriDate",
+    label: "تاريخ الحضور",
+    description: "تاريخ حضور ولي الأمر.",
+  },
+  {
+    key: "summonTime / summonsTime",
+    label: "وقت الحضور",
+    description: "وقت الحضور المحدد في النموذج.",
+  },
+  {
+    key: "summonPeriod / summonsPeriod",
+    label: "الفترة",
+    description: "صباحًا أو مساءً.",
+  },
+  {
+    key: "summonReason / summonsReason",
+    label: "سبب الاستدعاء",
+    description: "يدعم أكثر من سبب مفصول بعلامة ،.",
+  },
+  {
+    key: "notes",
+    label: "ملاحظات",
+    description: "ملاحظات اختيارية تظهر فقط عند وجودها.",
+  },
+];
+
+export const guardianSummonsTemplatePreset = {
+  id: "tpl-guardian-summons-letter",
+  name: "خطاب استدعاء ولي أمر",
+  title: "استدعاء ولي أمر طالب",
+  description:
+    "قالب رسمي لطباعة خطاب استدعاء ولي أمر من خدمة التواصل بين الأسرة والمدرسة.",
+  scope: "SUB_WORKFLOW",
+  status: "PUBLISHED",
+  updatedAt: "2026-06-02",
+  documentType: "letter",
+  designPreset: "guardian-summons-letter-v1",
+  previewCaseId: "guardian-summons-preview",
+  pages: [
+    {
+      id: "guardian-summons-page",
+      kind: "letter",
+      title: "خطاب استدعاء ولي أمر",
+      description:
+        "صفحة رسمية واحدة تحتوي على ترويسة وخطاب الاستدعاء والتوقيع.",
+      blocks: [
+        {
+          id: "guardian-summons-letter-block",
+          kind: "custom-paragraph",
+          title: "نص خطاب الاستدعاء",
+          required: false,
+          source: {
+            source: "caseEntry",
+            label: "بيانات الاستدعاء",
+            description:
+              "بيانات الطالب وولي الأمر وموعد الحضور وسبب الاستدعاء.",
+          },
+        },
+      ],
+    },
+  ],
+} as any;
+
+export const guardianSummonsPreviewCaseData: RuntimePreviewCaseData = {
+  found: true,
+  caseId: "guardian-summons-preview",
+  serviceSlug: "family-school-communication",
+  serviceName: "التواصل بين الأسرة والمدرسة",
+  title: "استدعاء ولي أمر طالب",
+  status: "ISSUED",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  student: {
+    id: "preview-student",
+    name: "اسم الطالب",
+    nationalId: "0000000000",
+    grade: "الصف",
+    classroom: "الفصل",
+    stage: "المرحلة",
+    guardianName: "ولي أمر الطالب",
+    guardianPhone: "05xxxxxxxx",
+  },
+  values: [
+    {
+      fieldKey: "studentName",
+      fieldLabel: "اسم الطالب",
+      value: "اسم الطالب",
+    },
+    {
+      fieldKey: "studentClass",
+      fieldLabel: "الصف والفصل",
+      value: "الصف / الفصل",
+    },
+    {
+      fieldKey: "studentNationalId",
+      fieldLabel: "رقم الهوية",
+      value: "0000000000",
+    },
+    {
+      fieldKey: "guardianName",
+      fieldLabel: "ولي الأمر",
+      value: "ولي أمر الطالب",
+    },
+    {
+      fieldKey: "guardianPhone",
+      fieldLabel: "جوال ولي الأمر",
+      value: "05xxxxxxxx",
+    },
+    {
+      fieldKey: "summonDay",
+      fieldLabel: "يوم الحضور",
+      value: "الأحد",
+    },
+    {
+      fieldKey: "summonDate",
+      fieldLabel: "تاريخ الحضور",
+      value: "1440 هـ",
+    },
+    {
+      fieldKey: "summonTime",
+      fieldLabel: "وقت الحضور",
+      value: "09:00",
+    },
+    {
+      fieldKey: "summonPeriod",
+      fieldLabel: "الفترة",
+      value: "صباحًا",
+    },
+    {
+      fieldKey: "summonReason",
+      fieldLabel: "سبب الاستدعاء",
+      value:
+        "غيابه المتكرر لأكثر من خمسة أيام بدون عذر، تأخره المتكرر لأكثر من خمسة أيام بدون عذر",
+    },
+    {
+      fieldKey: "notes",
+      fieldLabel: "ملاحظات",
+      value: "مراجعة المرشد الطلابي عند الحضور.",
+    },
+  ],
+  evidences: [],
+};
+
+export function GuardianSummonsLetterPreview({
+  template,
+  previewCaseData,
+  pdfMode = false,
+  showDynamicFields = false,
+}: GuardianSummonsLetterPreviewProps) {
+  const data = previewCaseData || guardianSummonsPreviewCaseData;
+  const templateInfo = normalizeTemplateInfo(template);
+
+  const studentName =
+    getValue(data, ["studentName", "student_name"]) ||
+    data.student?.name ||
+    "........................";
+
+  const studentClass =
+    getValue(data, ["studentClass", "student_class"]) ||
+    [data.student?.grade, data.student?.classroom].filter(Boolean).join(" / ") ||
+    "........................";
+
+  const guardianName =
+    getValue(data, ["guardianName", "guardian_name", "parentName"]) ||
+    data.student?.guardianName ||
+    "ولي أمر الطالب";
+
+  const summonDay =
+    getValue(data, ["summonDay", "summonsDay", "attendanceDay", "day"]) ||
+    "........................";
+
+  const summonDate =
+    getValue(data, [
+      "summonDate",
+      "summonsDate",
+      "summonsHijriDate",
+      "attendanceDate",
+      "date",
+    ]) || "........................";
+
+  const summonTime =
+    getValue(data, ["summonTime", "summonsTime", "attendanceTime", "time"]) ||
+    "09:00";
+
+  const summonPeriod =
+    getValue(data, ["summonPeriod", "summonsPeriod", "period"]) || "صباحًا";
+
+  const summonReason =
+    getValue(data, ["summonReason", "summonsReason", "reason"]) ||
+    "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.";
+
+  const notes = getValue(data, ["notes", "printNotes", "summonNotes"]);
+
+  const showPreviewShell = !pdfMode;
+
+  return (
+    <div
+      dir="rtl"
+      className={
+        pdfMode
+          ? "bg-white"
+          : "rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm"
+      }
+    >
+      {showPreviewShell ? (
+        <section className="mb-5 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black text-emerald-700">
+                {templateInfo.sourceLabel}
+              </p>
+
+              <h2 className="mt-1 text-2xl font-black text-slate-900">
+                {templateInfo.name}
+              </h2>
+
+              <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+                {templateInfo.description}
+              </p>
+            </div>
+
+            <span className="rounded-full bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+              designPreset: guardian-summons-letter-v1
+            </span>
+          </div>
+
+          {showDynamicFields ? (
+            <DynamicFieldsPanel />
+          ) : null}
+        </section>
+      ) : null}
+
+      <article
+        className={[
+          "pdf-report-page mx-auto bg-white text-slate-950",
+          pdfMode
+            ? "min-h-[297mm] w-[210mm] px-[17mm] py-[11mm]"
+            : "min-h-[297mm] w-full max-w-[210mm] rounded-[1.5rem] border border-slate-100 px-[17mm] py-[11mm]",
+        ].join(" ")}
+        style={{
+          fontFamily: "Arial, Tahoma, sans-serif",
+        }}
+      >
+        <div className="text-center text-[14px] font-black">
+          بسم الله الرحمن الرحيم
+        </div>
+
+        <table className="mt-4 w-full table-fixed border-collapse">
+          <tbody>
+            <tr>
+              <td className="w-1/3 align-top">
+                <div className="text-right text-[12px] font-bold leading-7">
+                  <div>المملكة العربية السعودية</div>
+                  <div>وزارة التعليم</div>
+                  <div>الإدارة العامة للتعليم بمنطقة ................</div>
+                  <div>مكتب التعليم بمحافظة ................</div>
+                </div>
+              </td>
+
+              <td className="w-1/3 align-top">
+                <div className="flex flex-col items-center justify-start text-center">
+                  <MinistryLogoMark />
+
+                  <div className="mt-1 text-[12px] font-black text-emerald-700">
+                    وزارة التعليم
+                  </div>
+
+                  <div className="text-[11px] font-bold text-slate-500">
+                    Ministry of Education
+                  </div>
+                </div>
+              </td>
+
+              <td className="w-1/3 align-top">
+                <div className="text-left text-[12px] font-bold leading-7">
+                  <div>مدرسة ........................</div>
+                  <div>١٤٤٠ هـ / ١٤٣٩ هـ</div>
+                  <div>الإرشاد الطلابي</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="mx-auto mt-6 h-[1px] w-full bg-slate-200" />
+
+        <h1 className="mt-7 text-center text-[29px] font-black tracking-tight">
+          استدعاء ولي أمر طالب
+        </h1>
+
+        <table className="mt-8 w-full table-fixed border-collapse text-[15px] font-bold leading-9">
+          <tbody>
+            <tr>
+              <td className="w-[39mm] whitespace-nowrap text-right">
+                المكرم ولي أمر الطالب /
+              </td>
+
+              <td className="border-b border-dotted border-slate-900 px-3 text-center font-black">
+                {guardianName}
+              </td>
+
+              <td className="w-[13mm] whitespace-nowrap text-center">
+                بشأن
+              </td>
+
+              <td className="border-b border-dotted border-slate-900 px-3 text-center font-black">
+                {studentName}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table className="mt-2 w-full table-fixed border-collapse text-[15px] font-bold leading-9">
+          <tbody>
+            <tr>
+              <td className="w-[22mm] whitespace-nowrap text-right">
+                الطالب في الصف
+              </td>
+
+              <td className="border-b border-dotted border-slate-900 px-3 text-center font-black">
+                {studentClass}
+              </td>
+
+              <td className="w-[25mm] whitespace-nowrap text-left">
+                سلمه الله
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <section className="mt-7 text-center text-[15px] font-bold leading-9">
+          السلام عليكم ورحمة الله وبركاته ،،،
+        </section>
+
+        <section className="mx-auto mt-5 max-w-[165mm] text-center text-[15px] font-semibold leading-[2.1]">
+          نظرًا لأهمية التعاون المستمر والتنسيق بين المدرسة وولي أمر الطالب فيما
+          يخدم مصلحته ويحقق له النجاح بإذن الله.
+        </section>
+
+        <section className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+          <table className="w-full table-fixed border-collapse text-[14px] font-bold leading-8">
+            <tbody>
+              <tr>
+                <td className="w-[38mm] whitespace-nowrap text-right">
+                  لذا نأمل منكم الحضور
+                </td>
+
+                <td className="w-[10mm] text-center">يوم</td>
+
+                <td className="w-[30mm] border-b border-dotted border-slate-900 px-2 text-center font-black">
+                  {summonDay}
+                </td>
+
+                <td className="w-[18mm] text-center">الموافق</td>
+
+                <td className="border-b border-dotted border-slate-900 px-2 text-center font-black">
+                  {summonDate}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table className="mt-2 w-full table-fixed border-collapse text-[14px] font-bold leading-8">
+            <tbody>
+              <tr>
+                <td className="w-[22mm] text-right">الساعة</td>
+
+                <td className="w-[35mm] border-b border-dotted border-slate-900 px-2 text-center font-black">
+                  {summonTime}
+                </td>
+
+                <td className="w-[16mm] text-center">الفترة</td>
+
+                <td className="w-[35mm] border-b border-dotted border-slate-900 px-2 text-center font-black">
+                  {summonPeriod}
+                </td>
+
+                <td />
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section className="mt-8 text-center text-[17px] font-black">
+          لمناقشة وبحث مشكلة ابنكم وهي:
+        </section>
+
+        <section className="mx-auto mt-5 w-[142mm] space-y-3 text-[15px] font-semibold leading-8">
+          {splitReasons(summonReason).map((reason) => (
+            <div key={reason} className="flex items-start justify-start gap-3">
+              <span className="mt-3 h-2 w-2 rounded-full border border-slate-900" />
+              <span>{reason}</span>
+            </div>
+          ))}
+        </section>
+
+        {notes ? (
+          <section className="mx-auto mt-6 w-[150mm] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[13px] font-bold leading-7 text-slate-700">
+            <span className="font-black text-slate-900">ملاحظات: </span>
+            {notes}
+          </section>
+        ) : null}
+
+        <table className="mt-12 w-full table-fixed border-collapse text-center text-[14px] font-black">
+          <tbody>
+            <tr>
+              <td className="w-1/2">
+                <div>الموجه/الموجهة الطلابية</div>
+                <div className="mx-auto mt-7 w-[48mm] border-b border-dotted border-slate-900" />
+              </td>
+
+              <td className="w-1/2">
+                <div>قائد/قائدة المدرسة</div>
+                <div className="mx-auto mt-7 w-[48mm] border-b border-dotted border-slate-900" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </div>
+  );
+}
+
+function DynamicFieldsPanel() {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-black text-slate-900">
+            الحقول الديناميكية المستخدمة في الخطاب
+          </h3>
+
+          <p className="mt-1 text-xs leading-6 text-slate-500">
+            هذه المفاتيح تُغذّى من Smart Picker وWorkflow استدعاء ولي أمر. عند
+            تغيير القالب مستقبلًا ابقِ هذه المفاتيح كمصادر بيانات.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-500">
+          {guardianSummonsDynamicFields.length} حقل
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {guardianSummonsDynamicFields.map((field) => (
+          <div
+            key={field.key}
+            className="rounded-2xl border border-slate-200 bg-white p-3"
+          >
+            <div className="text-xs font-black text-emerald-700">
+              {field.label}
+            </div>
+
+            <code className="mt-1 block rounded-lg bg-slate-100 px-2 py-1 text-left text-[11px] font-bold text-slate-700 ltr">
+              {field.key}
+            </code>
+
+            <p className="mt-2 text-[11px] leading-5 text-slate-500">
+              {field.description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MinistryLogoMark() {
+  return (
+    <div className="relative h-[34px] w-[86px]" aria-hidden="true">
+      <span className="absolute left-[10px] top-[8px] h-2 w-2 rounded-full bg-sky-500" />
+      <span className="absolute left-[24px] top-[3px] h-2 w-2 rounded-full bg-emerald-500" />
+      <span className="absolute left-[38px] top-[9px] h-2 w-2 rounded-full bg-sky-500" />
+      <span className="absolute left-[52px] top-[4px] h-2 w-2 rounded-full bg-emerald-500" />
+      <span className="absolute left-[66px] top-[10px] h-2 w-2 rounded-full bg-sky-500" />
+      <span className="absolute left-[18px] top-[20px] h-2 w-2 rounded-full bg-emerald-500" />
+      <span className="absolute left-[34px] top-[22px] h-2 w-2 rounded-full bg-sky-500" />
+      <span className="absolute left-[50px] top-[20px] h-2 w-2 rounded-full bg-emerald-500" />
+    </div>
+  );
+}
+
+function getValue(data: RuntimePreviewCaseData, keys: string[]) {
+  const values = Array.isArray(data.values)
+    ? (data.values as PreviewValue[])
+    : [];
+
+  for (const key of keys) {
+    const item = values.find((value) => value.fieldKey === key);
+
+    if (
+      item?.value !== undefined &&
+      item.value !== null &&
+      String(item.value).trim()
+    ) {
+      return String(item.value).trim();
+    }
+  }
+
+  return "";
+}
+
+function splitReasons(value: string) {
+  const reasons = value
+    .split("،")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return reasons.length ? reasons : [value];
+}
+
+function normalizeTemplateInfo(template: unknown) {
+  if (!template || typeof template !== "object") {
+    return {
+      name: guardianSummonsTemplatePreset.name,
+      description: guardianSummonsTemplatePreset.description,
+      sourceLabel: "قالب رسمي",
+    };
+  }
+
+  const item = template as {
+    name?: unknown;
+    description?: unknown;
+    status?: unknown;
+  };
+
+  return {
+    name:
+      typeof item.name === "string" && item.name.trim()
+        ? item.name
+        : guardianSummonsTemplatePreset.name,
+    description:
+      typeof item.description === "string" && item.description.trim()
+        ? item.description
+        : guardianSummonsTemplatePreset.description,
+    sourceLabel:
+      item.status === "PUBLISHED" ? "قالب منشور" : "قالب رسمي",
+  };
+}

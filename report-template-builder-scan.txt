@@ -1,0 +1,463 @@
+﻿===== git status =====
+ M app/api/dashboard/admin/subscriptions/route.ts
+ M app/api/dashboard/admin/users/route.ts
+ M app/dashboard/admin/page.tsx
+ M app/dashboard/admin/users/page.tsx
+ M components/admin/admin-users-command-center.tsx
+ M dev.db
+?? app/api/dashboard/admin/operational-alerts/
+?? components/admin/admin-operational-alerts-panel.tsx
+?? report-template-builder-scan.txt
+
+===== report template related files =====
+
+FullName                                                                                   
+--------                                                                                   
+D:\student-guidance-platform-clean\report-template-builder-scan.txt                        
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\preview-c...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\preview-c...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\preview-c...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\preview-c...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\preview-c...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\preview-c...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\preview-c...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\workflow-...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\workflow-...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\workflow-...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\workflow-...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\workflow-...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\workflow-...
+D:\student-guidance-platform-clean\.next\server\app\api\admin\report-templates\workflow-...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\route.js
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\route...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\route...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\route...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\route...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\route...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\route...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\api\dashboard\report-templates\[temp...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\pag...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\pag...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\pag...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\pag...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\new...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\new...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\new...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\new...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\new...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\new...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\new...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\new...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\new...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\pag...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\pag...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\pag...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\pag...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-templates\pag...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-texts\page.js   
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-texts\page.js...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-texts\page.js...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-texts\page_cl...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-texts\page\ap...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-texts\page\bu...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-texts\page\ne...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-texts\page\re...
+D:\student-guidance-platform-clean\.next\server\app\dashboard\admin\report-texts\page\se...
+D:\student-guidance-platform-clean\.next\server\chunks\0wuz_app_api_dashboard_report-tem...
+D:\student-guidance-platform-clean\.next\server\chunks\0wuz_app_api_dashboard_report-tem...
+D:\student-guidance-platform-clean\.next\server\chunks\0zjb_server_app_api_admin_report-...
+D:\student-guidance-platform-clean\.next\server\chunks\0zjb_server_app_api_admin_report-...
+D:\student-guidance-platform-clean\.next\server\chunks\0zjb_server_app_api_admin_report-...
+D:\student-guidance-platform-clean\.next\server\chunks\0zjb_server_app_api_admin_report-...
+D:\student-guidance-platform-clean\.next\server\chunks\0zjb_server_app_api_dashboard_rep...
+D:\student-guidance-platform-clean\.next\server\chunks\0zjb_server_app_api_dashboard_rep...
+D:\student-guidance-platform-clean\.next\server\chunks\_next-internal_server_app_api_das...
+D:\student-guidance-platform-clean\.next\server\chunks\_next-internal_server_app_api_das...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\0zjb_server_app_dashboard_adm...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\0zjb_server_app_dashboard_adm...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\components_admin_report-text-...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\components_admin_report-text-...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\components_report-engine_repo...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\components_report-engine_repo...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\_next-internal_server_app_das...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\_next-internal_server_app_das...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\_next-internal_server_app_das...
+D:\student-guidance-platform-clean\.next\server\chunks\ssr\_next-internal_server_app_das...
+D:\student-guidance-platform-clean\app\api\admin\report-templates\preview-case\route.ts    
+D:\student-guidance-platform-clean\app\api\admin\report-templates\workflow-fields\route.ts 
+D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts             
+D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\r...
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\page.tsx           
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\new\page.tsx       
+D:\student-guidance-platform-clean\app\dashboard\admin\report-texts\page.tsx               
+D:\student-guidance-platform-clean\components\admin\report-text-library-admin.tsx          
+D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx        
+D:\student-guidance-platform-clean\components\report-engine\official-report-document.tsx   
+D:\student-guidance-platform-clean\components\report-engine\report-builder-pdf-renderer.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-document-renderer.tsx   
+D:\student-guidance-platform-clean\components\report-engine\report-print-button.tsx        
+D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview...
+D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tool...
+D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx     
+D:\student-guidance-platform-clean\components\report-engine\text-library-block-settings-...
+D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx   
+D:\student-guidance-platform-clean\components\reports\templates\report-template-form.tsx   
+D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx   
+D:\student-guidance-platform-clean\engine\reports\report-template-engine.ts                
+D:\student-guidance-platform-clean\lib\report-engine\report-builder-template-runtime.ts    
+D:\student-guidance-platform-clean\lib\report-engine\report-case-data-mapper.ts            
+D:\student-guidance-platform-clean\lib\report-engine\report-data-mapper.ts                 
+D:\student-guidance-platform-clean\lib\report-engine\report-identity-runtime.ts            
+D:\student-guidance-platform-clean\lib\report-engine\report-smart-text-engine.ts           
+D:\student-guidance-platform-clean\lib\report-engine\report-smart-text-library.ts          
+D:\student-guidance-platform-clean\lib\report-engine\report-snapshot.ts                    
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts    
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts      
+D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts        
+D:\student-guidance-platform-clean\lib\report-engine\report-template-runtime-types.ts      
+D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts         
+D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts                   
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts        
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts         
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.tscode     
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-types.ts           
+D:\student-guidance-platform-clean\lib\report-engine\report-theme.ts                       
+D:\student-guidance-platform-clean\lib\report-engine\report-types.ts                       
+D:\student-guidance-platform-clean\lib\report-engine\sample-report-data.ts                 
+D:\student-guidance-platform-clean\lib\reports\default-report-templates.ts                 
+D:\student-guidance-platform-clean\prisma\schema.before-remove-duplicate-report-template...
+D:\student-guidance-platform-clean\scripts\add-report-templates-loader-strong.cjs          
+D:\student-guidance-platform-clean\scripts\add-report-templates-loader.cjs                 
+D:\student-guidance-platform-clean\scripts\add-saved-report-templates-loader.cjs           
+D:\student-guidance-platform-clean\scripts\connect-report-template-delete-to-db.cjs        
+D:\student-guidance-platform-clean\scripts\connect-report-template-status-to-db.cjs        
+D:\student-guidance-platform-clean\scripts\debug-report-templates-db.cjs                   
+D:\student-guidance-platform-clean\scripts\debug-report-templates-db.ts                    
+D:\student-guidance-platform-clean\scripts\fix-report-template-save.cjs                    
+D:\student-guidance-platform-clean\scripts\fix-saved-report-templates-loader.cjs           
+D:\student-guidance-platform-clean\_backups\report-template-studio-corrupted.txt           
+D:\student-guidance-platform-clean\_backups\report-template-studio.backup.txt              
+
+
+
+
+===== admin report templates page =====
+import { ReportTemplateStudio } from "@/components/report-engine/report-template-studio";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+
+export default async function AdminReportTemplatesPage() {
+  await requireAdminPage();
+
+  return <ReportTemplateStudio />;
+}
+
+
+===== admin report templates new page =====
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+
+export default async function PlaceholderPage() {
+  await requireAdminPage();
+
+  return (
+    <main className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+      <h1 className="text-2xl font-black text-slate-900">إنشاء قالب جديد</h1>
+      <p className="mt-3 text-sm text-slate-500">هذه الصفحة قيد التجهيز.</p>
+    </main>
+  );
+}
+
+
+===== admin report texts page =====
+import { ReportTextTemplateStudio } from "@/components/admin/report-text-template-studio";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+
+export default async function ReportTextTemplatesStudioPage() {
+  await requireAdminPage();
+
+  return <ReportTextTemplateStudio />;
+}
+
+
+===== prisma report template models =====
+
+> prisma\schema.prisma:366:model CaseEntry {
+  prisma\schema.prisma:367:  id String @id @default(cuid())
+  prisma\schema.prisma:368:
+  prisma\schema.prisma:369:  schoolAccountId String
+  prisma\schema.prisma:370:  schoolAccount   SchoolAccount @relation(fields: 
+[schoolAccountId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:371:
+  prisma\schema.prisma:372:  serviceId String
+  prisma\schema.prisma:373:  service   Service @relation(fields: [serviceId], references: 
+[id])
+  prisma\schema.prisma:374:
+  prisma\schema.prisma:375:  workflowId      String?
+  prisma\schema.prisma:376:  workflow        Workflow?        @relation(fields: 
+[workflowId], references: [id])
+  prisma\schema.prisma:377:  guidanceReports GuidanceReport[]
+  prisma\schema.prisma:378:  studentId       String?
+  prisma\schema.prisma:379:  student         Student?         @relation(fields: 
+[studentId], references: [id])
+  prisma\schema.prisma:380:
+  prisma\schema.prisma:381:  createdById String?
+  prisma\schema.prisma:382:  createdBy   User?   @relation(fields: [createdById], 
+references: [id])
+  prisma\schema.prisma:383:
+  prisma\schema.prisma:384:  title       String?
+  prisma\schema.prisma:385:  status      CaseStatus @default(DRAFT)
+  prisma\schema.prisma:386:  submittedAt DateTime?
+  prisma\schema.prisma:387:
+  prisma\schema.prisma:388:  values    CaseValue[]
+  prisma\schema.prisma:389:  evidences Evidence[]
+  prisma\schema.prisma:390:
+  prisma\schema.prisma:391:  createdAt              DateTime         @default(now())
+  prisma\schema.prisma:392:  updatedAt              DateTime         @updatedAt
+  prisma\schema.prisma:393:  caseEvidences          CaseEvidence[]
+  prisma\schema.prisma:394:  createdReportTemplates ReportTemplate[]
+  prisma\schema.prisma:395:
+  prisma\schema.prisma:396:  @@index([schoolAccountId])
+  prisma\schema.prisma:397:  @@index([serviceId])
+  prisma\schema.prisma:398:  @@index([workflowId])
+  prisma\schema.prisma:399:  @@index([studentId])
+  prisma\schema.prisma:400:  @@index([status])
+  prisma\schema.prisma:401:}
+  prisma\schema.prisma:402:
+  prisma\schema.prisma:403:model CaseValue {
+  prisma\schema.prisma:404:  id String @id @default(cuid())
+  prisma\schema.prisma:405:
+  prisma\schema.prisma:406:  caseEntryId String
+  prisma\schema.prisma:407:  caseEntry   CaseEntry @relation(fields: [caseEntryId], 
+references: [id], onDelete: Cascade)
+  prisma\schema.prisma:408:
+  prisma\schema.prisma:409:  fieldId String?
+  prisma\schema.prisma:410:  field   DynamicField? @relation(fields: [fieldId], 
+references: [id])
+  prisma\schema.prisma:411:
+  prisma\schema.prisma:412:  fieldKey  String
+  prisma\schema.prisma:413:  value     String?
+  prisma\schema.prisma:414:  jsonValue Json?
+  prisma\schema.prisma:415:
+  prisma\schema.prisma:416:  createdAt DateTime @default(now())
+  prisma\schema.prisma:417:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:418:
+  prisma\schema.prisma:419:  @@index([caseEntryId])
+  prisma\schema.prisma:420:  @@index([fieldKey])
+  prisma\schema.prisma:421:}
+  prisma\schema.prisma:422:
+  prisma\schema.prisma:423:model Evidence {
+  prisma\schema.prisma:424:  id String @id @default(cuid())
+  prisma\schema.prisma:425:
+  prisma\schema.prisma:426:  caseEntryId String
+  prisma\schema.prisma:427:  caseEntry   CaseEntry @relation(fields: [caseEntryId], 
+references: [id], onDelete: Cascade)
+  prisma\schema.prisma:428:
+  prisma\schema.prisma:429:  type     EvidenceType
+  prisma\schema.prisma:430:  fileName String?
+  prisma\schema.prisma:431:  fileUrl  String?
+  prisma\schema.prisma:432:  mimeType String?
+  prisma\schema.prisma:433:  size     Int?
+  prisma\schema.prisma:434:  note     String?
+  prisma\schema.prisma:435:
+  prisma\schema.prisma:436:  createdAt DateTime @default(now())
+  prisma\schema.prisma:437:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:438:
+  prisma\schema.prisma:439:  @@index([caseEntryId])
+  prisma\schema.prisma:440:}
+  prisma\schema.prisma:441:
+  prisma\schema.prisma:442:model ExportTemplate {
+  prisma\schema.prisma:443:  id          String  @id @default(cuid())
+  prisma\schema.prisma:444:  serviceSlug String?
+  prisma\schema.prisma:445:  name        String
+  prisma\schema.prisma:446:  content     String
+  prisma\schema.prisma:447:  isDefault   Boolean @default(false)
+  prisma\schema.prisma:448:
+  prisma\schema.prisma:449:  createdAt DateTime @default(now())
+  prisma\schema.prisma:450:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:451:
+  prisma\schema.prisma:452:  @@index([serviceSlug])
+  prisma\schema.prisma:453:}
+  prisma\schema.prisma:454:
+  prisma\schema.prisma:455:model Plan {
+  prisma\schema.prisma:456:  id           String  @id @default(cuid())
+> prisma\schema.prisma:720:enum ReportTemplateType {
+  prisma\schema.prisma:721:  SYSTEM
+  prisma\schema.prisma:722:  SCHOOL
+  prisma\schema.prisma:723:  PERSONAL
+  prisma\schema.prisma:724:}
+  prisma\schema.prisma:725:
+> prisma\schema.prisma:726:model GuidanceReport {
+  prisma\schema.prisma:727:  id          String @id @default(cuid())
+  prisma\schema.prisma:728:  title       String
+  prisma\schema.prisma:729:  serviceSlug String
+  prisma\schema.prisma:730:
+  prisma\schema.prisma:731:  caseEntryId String
+  prisma\schema.prisma:732:  caseEntry   CaseEntry @relation(fields: [caseEntryId], 
+references: [id], onDelete: Cascade)
+  prisma\schema.prisma:733:
+  prisma\schema.prisma:734:  status ReportStatus @default(DRAFT)
+  prisma\schema.prisma:735:
+  prisma\schema.prisma:736:  genderMode String @default("MALE")
+  prisma\schema.prisma:737:
+  prisma\schema.prisma:738:  editableContent String
+  prisma\schema.prisma:739:  renderedContent String?
+  prisma\schema.prisma:740:
+  prisma\schema.prisma:741:  evidenceEnabled Boolean @default(true)
+  prisma\schema.prisma:742:
+  prisma\schema.prisma:743:  templateId         String?
+  prisma\schema.prisma:744:  templateSnapshot   Json?
+  prisma\schema.prisma:745:  reportDataSnapshot Json?
+  prisma\schema.prisma:746:  generatedAt        DateTime?
+  prisma\schema.prisma:747:  generatedPdfUrl    String?
+  prisma\schema.prisma:748:
+  prisma\schema.prisma:749:  approvedAt DateTime?
+  prisma\schema.prisma:750:  archivedAt DateTime?
+  prisma\schema.prisma:751:
+  prisma\schema.prisma:752:  createdAt DateTime @default(now())
+  prisma\schema.prisma:753:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:754:
+  prisma\schema.prisma:755:  evidenceItems ReportEvidence[]
+  prisma\schema.prisma:756:
+  prisma\schema.prisma:757:  @@index([caseEntryId])
+  prisma\schema.prisma:758:  @@index([serviceSlug])
+  prisma\schema.prisma:759:  @@index([status])
+  prisma\schema.prisma:760:  @@index([templateId])
+  prisma\schema.prisma:761:  @@index([generatedAt])
+  prisma\schema.prisma:762:}
+  prisma\schema.prisma:763:
+> prisma\schema.prisma:764:model ReportEvidence {
+  prisma\schema.prisma:765:  id String @id @default(cuid())
+  prisma\schema.prisma:766:
+  prisma\schema.prisma:767:  reportId String
+  prisma\schema.prisma:768:  report   GuidanceReport @relation(fields: [reportId], 
+references: [id], onDelete: Cascade)
+  prisma\schema.prisma:769:
+  prisma\schema.prisma:770:  fileName String
+  prisma\schema.prisma:771:  fileUrl  String
+  prisma\schema.prisma:772:  caption  String?
+  prisma\schema.prisma:773:
+  prisma\schema.prisma:774:  mimeType String?
+  prisma\schema.prisma:775:  size     Int?
+  prisma\schema.prisma:776:
+  prisma\schema.prisma:777:  sortOrder Int     @default(0)
+  prisma\schema.prisma:778:  visible   Boolean @default(true)
+  prisma\schema.prisma:779:
+  prisma\schema.prisma:780:  createdAt DateTime @default(now())
+  prisma\schema.prisma:781:
+  prisma\schema.prisma:782:  @@index([reportId])
+  prisma\schema.prisma:783:  @@index([visible])
+  prisma\schema.prisma:784:}
+  prisma\schema.prisma:785:
+> prisma\schema.prisma:786:model ReportTemplate {
+  prisma\schema.prisma:787:  id String @id @default(cuid())
+  prisma\schema.prisma:788:
+  prisma\schema.prisma:789:  name        String
+  prisma\schema.prisma:790:  description String?
+  prisma\schema.prisma:791:
+  prisma\schema.prisma:792:  serviceSlug String?
+  prisma\schema.prisma:793:
+  prisma\schema.prisma:794:  type ReportTemplateType @default(SYSTEM)
+  prisma\schema.prisma:795:
+  prisma\schema.prisma:796:  content String
+  prisma\schema.prisma:797:
+  prisma\schema.prisma:798:  templateJson Json?
+  prisma\schema.prisma:799:  version      Int   @default(1)
+  prisma\schema.prisma:800:
+  prisma\schema.prisma:801:  genderAware Boolean @default(true)
+  prisma\schema.prisma:802:
+  prisma\schema.prisma:803:  usageCount Int     @default(0)
+  prisma\schema.prisma:804:  isActive   Boolean @default(true)
+  prisma\schema.prisma:805:
+  prisma\schema.prisma:806:  createdById String?
+  prisma\schema.prisma:807:  createdBy   User?   @relation(fields: [createdById], 
+references: [id])
+  prisma\schema.prisma:808:
+  prisma\schema.prisma:809:  createdAt   DateTime   @default(now())
+  prisma\schema.prisma:810:  updatedAt   DateTime   @updatedAt
+  prisma\schema.prisma:811:  caseEntry   CaseEntry? @relation(fields: [caseEntryId], 
+references: [id])
+  prisma\schema.prisma:812:  caseEntryId String?
+  prisma\schema.prisma:813:
+  prisma\schema.prisma:814:  @@index([serviceSlug])
+  prisma\schema.prisma:815:  @@index([type])
+  prisma\schema.prisma:816:  @@index([isActive])
+  prisma\schema.prisma:817:  @@index([createdById])
+  prisma\schema.prisma:818:}
+  prisma\schema.prisma:819:
+  prisma\schema.prisma:820:model StudentImportSession {
+  prisma\schema.prisma:821:  id              String        @id @default(cuid())
+  prisma\schema.prisma:822:  schoolAccountId String
+  prisma\schema.prisma:823:  schoolAccount   SchoolAccount @relation(fields: 
+[schoolAccountId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:824:
+  prisma\schema.prisma:825:  title  String
+  prisma\schema.prisma:826:  source String              @default("NOOR_EXCEL")
+  prisma\schema.prisma:827:  status ImportSessionStatus @default(DRAFT)
+  prisma\schema.prisma:828:
+  prisma\schema.prisma:829:  totalRows     Int @default(0)
+  prisma\schema.prisma:830:  validRows     Int @default(0)
+  prisma\schema.prisma:831:  invalidRows   Int @default(0)
+  prisma\schema.prisma:832:  createdCount  Int @default(0)
+  prisma\schema.prisma:833:  updatedCount  Int @default(0)
+  prisma\schema.prisma:834:  skippedCount  Int @default(0)
+  prisma\schema.prisma:835:  conflictCount Int @default(0)
+  prisma\schema.prisma:836:
+  prisma\schema.prisma:837:  files StudentImportFile[]
+  prisma\schema.prisma:838:  rows  StudentImportRow[]
+  prisma\schema.prisma:839:
+  prisma\schema.prisma:840:  committedAt DateTime?
+  prisma\schema.prisma:841:  createdAt   DateTime  @default(now())
+  prisma\schema.prisma:842:  updatedAt   DateTime  @updatedAt
+  prisma\schema.prisma:843:
+  prisma\schema.prisma:844:  @@index([schoolAccountId])
+  prisma\schema.prisma:845:  @@index([status])
+  prisma\schema.prisma:846:}
+  prisma\schema.prisma:847:
+  prisma\schema.prisma:848:model StudentImportFile {
+  prisma\schema.prisma:849:  id        String               @id @default(cuid())
+  prisma\schema.prisma:850:  sessionId String
+  prisma\schema.prisma:851:  session   StudentImportSession @relation(fields: [sessionId], 
+references: [id], onDelete: Cascade)
+  prisma\schema.prisma:852:
+  prisma\schema.prisma:853:  fileName String
+  prisma\schema.prisma:854:  mimeType String?
+  prisma\schema.prisma:855:  size     Int?
+  prisma\schema.prisma:856:  rowCount Int     @default(0)
+  prisma\schema.prisma:857:
+  prisma\schema.prisma:858:  createdAt DateTime @default(now())
+  prisma\schema.prisma:859:
+  prisma\schema.prisma:860:  @@index([sessionId])
+  prisma\schema.prisma:861:}
+  prisma\schema.prisma:862:
+  prisma\schema.prisma:863:model StudentImportRow {
+  prisma\schema.prisma:864:  id        String               @id @default(cuid())
+  prisma\schema.prisma:865:  sessionId String
+  prisma\schema.prisma:866:  session   StudentImportSession @relation(fields: [sessionId], 
+references: [id], onDelete: Cascade)
+  prisma\schema.prisma:867:
+  prisma\schema.prisma:868:  rowIndex Int
+  prisma\schema.prisma:869:  status   ImportRowStatus @default(PENDING)
+  prisma\schema.prisma:870:
+  prisma\schema.prisma:871:  fullName      String
+  prisma\schema.prisma:872:  nationalId    String?
+  prisma\schema.prisma:873:  gender        Gender  @default(UNKNOWN)
+  prisma\schema.prisma:874:  stage         String?
+  prisma\schema.prisma:875:  grade         String?
+  prisma\schema.prisma:876:  classroom     String?
+
+
+

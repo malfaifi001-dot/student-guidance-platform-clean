@@ -1,0 +1,530 @@
+﻿===== ADMIN WORKFLOWS CODE EXPORT =====
+Generated: 06/02/2026 03:36:42
+
+================================================================================
+FILE: app\dashboard\admin\workflows\page.tsx
+================================================================================
+
+import Link from "next/link";
+import { ArrowUpLeft } from "lucide-react";
+import { dashboardServices } from "@/lib/constants/services";
+import { prisma } from "@/lib/prisma";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+
+export default async function AdminWorkflowsPage() {
+  await requireAdminPage();
+
+  const workflows = await prisma.workflow.findMany({
+    where: {
+      workflowType: WORKFLOW_TYPES.DEFAULT,
+      isActive: true,
+    },
+    include: {
+      service: true,
+      steps: true,
+    },
+  });
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white shadow-2xl">
+        <p className="text-sm font-bold text-sky-300">Admin Workflows</p>
+        <h1 className="mt-3 text-4xl font-black">إدارة Workflows الخدمات</h1>
+        <p className="mt-4 max-w-3xl leading-8 text-slate-300">
+          كل Workflow يتم رفعه مرتبط بخدمة محددة ومستقل عن باقي الخدمات.
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {dashboardServices.map((service) => {
+          const activeWorkflow = workflows.find(
+            (workflow) => workflow.service.slug === service.slug
+          );
+
+          return (
+            <Link
+              key={service.slug}
+              href={`/dashboard/admin/workflows/${service.slug}`}
+              className="group rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow transition hover:-translate-y-1 hover:shadow-xl"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold text-sky-700">
+                    {service.kind === "workflow" ? "Workflow Service" : "Standalone"}
+                  </p>
+                  <h2 className="mt-2 text-xl font-black text-slate-900">
+                    {service.title}
+                  </h2>
+                  <p className="mt-2 text-sm leading-7 text-slate-500">
+                    {service.description}
+                  </p>
+                </div>
+
+                <ArrowUpLeft className="h-5 w-5 text-slate-400 group-hover:text-sky-600" />
+              </div>
+
+              <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm">
+                {activeWorkflow ? (
+                  <p className="font-bold text-emerald-700">
+                    مفعل: {activeWorkflow.name} · {activeWorkflow.steps.length} خطوات
+                  </p>
+                ) : (
+                  <p className="font-bold text-slate-400">لا يوجد Workflow مفعل</p>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+      </section>
+    </div>
+  );
+}
+
+
+================================================================================
+FILE: app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+================================================================================
+
+
+================================================================================
+FILE: app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx
+================================================================================
+
+
+================================================================================
+FILE: app\api\dashboard\admin\workflows\upload\route.ts
+================================================================================
+
+import { NextResponse } from "next/server";
+import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
+import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
+import { dashboardServices } from "@/lib/constants/services";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+
+export async function POST(request: Request) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  try {
+    const formData = await request.formData();
+
+    const serviceSlug = String(formData.get("serviceSlug") ?? "");
+    const file = formData.get("file");
+
+    if (!serviceSlug) {
+      return NextResponse.json(
+        { error: "serviceSlug مطلوب." },
+        { status: 400 }
+      );
+    }
+
+    if (!(file instanceof File)) {
+      return NextResponse.json(
+        { error: "ملف Excel مطلوب." },
+        { status: 400 }
+      );
+    }
+
+    const serviceConfig = dashboardServices.find(
+      (service) => service.slug === serviceSlug
+    );
+
+    if (!serviceConfig) {
+      return NextResponse.json(
+        { error: "الخدمة غير معروفة." },
+        { status: 400 }
+      );
+    }
+
+    const buffer = await file.arrayBuffer();
+    const rows = await parseWorkflowExcel(buffer);
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: "لم يتم العثور على صفوف Workflow صالحة داخل الملف." },
+        { status: 400 }
+      );
+    }
+
+    const result = await uploadWorkflowForService({
+      serviceSlug,
+      serviceName: serviceConfig.title,
+      rows,
+    });
+
+    return NextResponse.json({
+      message: "تم رفع Workflow وتفعيله بنجاح.",
+      result,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء رفع Workflow.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+================================================================================
+FILE: app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+================================================================================
+
+
+================================================================================
+FILE: lib\workflow-builder\workflow-builder-types.ts
+================================================================================
+
+export const FIELD_TYPES = [
+  "TEXT",
+  "TEXTAREA",
+  "NUMBER",
+  "DATE",
+  "SELECT",
+  "MULTI_SELECT",
+  "CHECKBOX",
+  "RADIO",
+  "FILE_UPLOAD",
+  "IMAGE_UPLOAD",
+  "RICH_TEXT",
+] as const;
+
+export type WorkflowFieldType = (typeof FIELD_TYPES)[number];
+
+================================================================================
+FILE: lib\workflow-upload\workflow-excel-parser.ts
+================================================================================
+
+import * as XLSX from "xlsx";
+
+export type ParsedWorkflowRow = {
+  stepTitle: string;
+  stepDescription?: string;
+  stepOrder?: number;
+
+  fieldKey: string;
+  fieldLabel: string;
+  fieldType: string;
+  fieldRequired: boolean;
+  fieldOrder?: number;
+  allowOther: boolean;
+
+  dependsOnFieldKey?: string;
+
+  /**
+   * Legacy/global linked value.
+   * نتركه للتوافق مع الملفات القديمة، لكن الأفضل مستقبلاً استخدام:
+   * fieldLinkedToValue للحقل كاملًا
+   * optionLinkedToValue لخيار داخل الحقل
+   */
+  linkedToValue?: string;
+
+  /**
+   * يستخدم لإخفاء/إظهار الحقل كاملًا بناءً على قيمة حقل سابق.
+   */
+  fieldLinkedToValue?: string;
+
+  optionLabel?: string;
+  optionValue?: string;
+  optionOrder?: number;
+
+  /**
+   * هذا هو المهم للربط الحالي:
+   * البرنامج → خيارات الإجراء
+   * الإجراء → خيارات آلية التنفيذ
+   * آلية التنفيذ → خيارات الشاهد أو غيره
+   */
+  optionLinkedToValue?: string;
+};
+
+function normalize(value: unknown) {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeHeader(value: unknown) {
+  return normalize(value)
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه");
+}
+
+function bool(value: unknown) {
+  const v = normalize(value).toLowerCase();
+  return ["true", "yes", "1", "نعم", "صح", "مطلوب"].includes(v);
+}
+
+function numberOrUndefined(value: unknown) {
+  const normalized = normalize(value);
+  if (!normalized) return undefined;
+
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
+  stepTitle: [
+    "steptitle",
+    "step_title",
+    "step title",
+    "عنوان الخطوه",
+    "عنوان الخطوة",
+    "الخطوه",
+    "الخطوة",
+    "القسم",
+  ],
+
+  stepDescription: [
+    "stepdescription",
+    "step_description",
+    "step description",
+    "وصف الخطوه",
+    "وصف الخطوة",
+    "وصف القسم",
+  ],
+
+  stepOrder: [
+    "steporder",
+    "step_order",
+    "step order",
+    "ترتيب الخطوه",
+    "ترتيب الخطوة",
+    "ترتيب القسم",
+  ],
+
+  fieldKey: [
+    "fieldkey",
+    "field_key",
+    "field key",
+    "مفتاح الحقل",
+    "key",
+  ],
+
+  fieldLabel: [
+    "fieldlabel",
+    "field_label",
+    "field label",
+    "اسم الحقل",
+    "الحقل",
+  ],
+
+  fieldType: [
+    "fieldtype",
+    "field_type",
+    "field type",
+    "نوع الحقل",
+    "type",
+  ],
+
+  fieldRequired: [
+    "fieldrequired",
+    "required",
+    "isrequired",
+    "is_required",
+    "مطلوب",
+  ],
+
+  fieldOrder: [
+    "fieldorder",
+    "field_order",
+    "field order",
+    "ترتيب الحقل",
+  ],
+
+  allowOther: [
+    "allowother",
+    "allow_other",
+    "allow other",
+    "اخرى",
+    "يسمح اخرى",
+    "السماح باخرى",
+  ],
+
+  dependsOnFieldKey: [
+    "dependsonfieldkey",
+    "depends_on_field_key",
+    "depends_on",
+    "depends on",
+    "parentfieldkey",
+    "parent_field_key",
+    "يعتمد على",
+    "يعتمد علي",
+    "الحقل الاب",
+    "الحقل الأب",
+  ],
+
+  linkedToValue: [
+    "linkedtovalue",
+    "linked_to_value",
+    "linked to value",
+    "القيمه المرتبطه",
+    "القيمة المرتبطة",
+    "يرتبط بالقيمه",
+    "يرتبط بالقيمة",
+  ],
+
+  fieldLinkedToValue: [
+    "fieldlinkedtovalue",
+    "field_linked_to_value",
+    "field linked to value",
+    "fieldlinkedvalue",
+    "field_linked_value",
+    "قيمة ربط الحقل",
+    "القيمه المرتبطه بالحقل",
+    "القيمة المرتبطة بالحقل",
+  ],
+
+  optionLabel: [
+    "optionlabel",
+    "option_label",
+    "option label",
+    "الخيار",
+    "اسم الخيار",
+  ],
+
+  optionValue: [
+    "optionvalue",
+    "option_value",
+    "option value",
+    "قيمة الخيار",
+    "قيمه الخيار",
+  ],
+
+  optionOrder: [
+    "optionorder",
+    "option_order",
+    "option order",
+    "ترتيب الخيار",
+  ],
+
+  optionLinkedToValue: [
+    "optionlinkedtovalue",
+    "option_linked_to_value",
+    "option linked to value",
+    "optionlinkedvalue",
+    "option_linked_value",
+    "parentvalue",
+    "parent_value",
+    "dependsvalue",
+    "depends_on_value",
+    "optionparentvalue",
+    "option_parent_value",
+    "قيمة ربط الخيار",
+    "قيمه ربط الخيار",
+    "القيمة المرتبطة بالخيار",
+    "القيمه المرتبطه بالخيار",
+    "قيمة الاب",
+    "قيمة الأب",
+    "القيمة الاب",
+    "القيمة الأب",
+  ],
+};
+
+function detectHeaderIndex(rows: unknown[][]) {
+  let bestIndex = 0;
+  let bestScore = 0;
+
+  rows.slice(0, 20).forEach((row, index) => {
+    const cells = row.map(normalizeHeader);
+    let score = 0;
+
+    Object.values(headerMap).forEach((aliases) => {
+      const normalizedAliases = aliases.map(normalizeHeader);
+
+      if (
+        normalizedAliases.some((alias) =>
+          cells.some((cell) => cell === alias || cell.includes(alias))
+        )
+      ) {
+        score++;
+      }
+    });
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
+}
+
+function mapHeaders(headers: string[]) {
+  const result = new Map<keyof ParsedWorkflowRow, number>();
+  const normalizedHeaders = headers.map(normalizeHeader);
+
+  Object.entries(headerMap).forEach(([key, aliases]) => {
+    const normalizedAliases = aliases.map(normalizeHeader);
+
+    const index = normalizedHeaders.findIndex((header) =>
+      normalizedAliases.some(
+        (alias) => header === alias || header.includes(alias)
+      )
+    );
+
+    if (index >= 0) {
+      result.set(key as keyof ParsedWorkflowRow, index);
+    }
+  });
+
+  return result;
+}
+
+export async function parseWorkflowExcel(buffer: ArrayBuffer) {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+
+  if (!sheetName) return [];
+
+  const sheet = workbook.Sheets[sheetName];
+
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+    header: 1,
+    defval: "",
+  });
+
+  const headerIndex = detectHeaderIndex(rows);
+  const headers = rows[headerIndex].map(normalize);
+  const mapped = mapHeaders(headers);
+  const dataRows = rows.slice(headerIndex + 1);
+
+  return dataRows
+    .map((row, index): ParsedWorkflowRow => {
+      const get = (key: keyof ParsedWorkflowRow) => {
+        const colIndex = mapped.get(key);
+        return colIndex === undefined ? "" : normalize(row[colIndex]);
+      };
+
+      return {
+        stepTitle: get("stepTitle"),
+        stepDescription: get("stepDescription") || undefined,
+        stepOrder: numberOrUndefined(get("stepOrder")),
+
+        fieldKey: get("fieldKey"),
+        fieldLabel: get("fieldLabel"),
+        fieldType: get("fieldType") || "TEXT",
+        fieldRequired: bool(get("fieldRequired")),
+        fieldOrder: numberOrUndefined(get("fieldOrder")) ?? index + 1,
+        allowOther: bool(get("allowOther")),
+
+        dependsOnFieldKey: get("dependsOnFieldKey") || undefined,
+
+        linkedToValue: get("linkedToValue") || undefined,
+        fieldLinkedToValue: get("fieldLinkedToValue") || undefined,
+
+        optionLabel: get("optionLabel") || undefined,
+        optionValue: get("optionValue") || undefined,
+        optionOrder: numberOrUndefined(get("optionOrder")),
+        optionLinkedToValue: get("optionLinkedToValue") || undefined,
+      };
+    })
+    .filter((row) => row.stepTitle && row.fieldKey && row.fieldLabel);
+}

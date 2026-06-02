@@ -1,83 +1,51 @@
-﻿import { GuardianSummonsNewClient } from "@/components/family-school-communication/guardian-summons-new-client";
-import { prisma } from "@/lib/prisma";
-import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
-
-async function getGuardianSummonsWorkflow() {
-  const service = await prisma.service.findFirst({
-    where: {
-      slug: "family-school-communication",
-    },
-  });
-
-  if (!service) {
-    return null;
-  }
-
-  const workflow = await prisma.workflow.findFirst({
-    where: {
-      serviceId: service.id,
-      workflowType: WORKFLOW_TYPES.GUARDIAN_SUMMONS,
-      isActive: true,
-    },
-    orderBy: [{ updatedAt: "desc" }],
-    include: {
-      steps: {
-        include: {
-          fields: {
-            include: {
-              options: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!workflow) {
-    return null;
-  }
-
-  return {
-    id: workflow.id,
-    name: workflow.name,
-    serviceSlug: service.slug,
-    steps: workflow.steps
-      .sort((a, b) => a.order - b.order)
-      .map((step) => ({
-        id: step.id,
-        title: step.title,
-        description: step.description,
-        order: step.order,
-        fields: step.fields
-          .sort((a, b) => a.order - b.order)
-          .map((field) => ({
-            id: field.id,
-            key: field.key,
-            label: field.label,
-            type: field.type,
-            placeholder: field.placeholder,
-            helpText: field.helpText,
-            isRequired: field.isRequired,
-            order: field.order,
-            dependsOnFieldKey: field.dependsOnFieldKey,
-            linkedToValue: field.linkedToValue,
-            allowOther: field.allowOther,
-            options: field.options
-              .sort((a, b) => a.order - b.order)
-              .map((option) => ({
-                id: option.id,
-                label: option.label,
-                value: option.value,
-                order: option.order,
-                linkedToValue: option.linkedToValue,
-              })),
-          })),
-      })),
-  };
-}
+﻿import Link from "next/link";
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { getRuntimeWorkflowByServiceSlug } from "@/engine/runtime/runtime-resolver";
 
 export default async function NewGuardianSummonsPage() {
-  const workflow = await getGuardianSummonsWorkflow();
+  const result = await getRuntimeWorkflowByServiceSlug(
+    "family-school-communication",
+    "guardian-summons",
+  );
 
-  return <GuardianSummonsNewClient workflow={workflow} />;
+  if (!result) {
+    return (
+      <main dir="rtl" className="space-y-6 rounded-[2rem] border border-amber-200 bg-amber-50 p-8">
+        <div>
+          <p className="text-sm font-black text-amber-700">Workflow غير منشور</p>
+          <h1 className="mt-2 text-3xl font-black text-amber-950">
+            لم يتم نشر نموذج استدعاء ولي أمر بعد
+          </h1>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-7 text-amber-800">
+            يجب على الأدمن إنشاء/نشر Workflow استدعاء ولي أمر من صفحة إدارة Workflows قبل استخدامه من الموجه/الموجهة.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/dashboard/admin/workflows"
+            className="rounded-2xl bg-amber-700 px-5 py-3 text-sm font-black text-white transition hover:bg-amber-800"
+          >
+            الذهاب لإدارة Workflows
+          </Link>
+
+          <Link
+            href="/dashboard/family-school-communication"
+            className="rounded-2xl border border-amber-300 px-5 py-3 text-sm font-black text-amber-800 transition hover:bg-amber-100"
+          >
+            رجوع للتواصل مع الأسرة
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <DynamicFormRenderer
+      workflow={result.workflow}
+      serviceId={result.service.id}
+      requiresStudent
+      title="استدعاء ولي أمر"
+    />
+  );
 }
