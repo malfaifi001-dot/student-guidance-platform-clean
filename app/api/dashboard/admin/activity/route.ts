@@ -1,22 +1,12 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
-
-async function requireAdmin() {
-  const current = await getCurrentSessionUser();
-
-  if (!current?.user || current.user.role !== "ADMIN") {
-    return null;
-  }
-
-  return current;
-}
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 
 export async function GET() {
-  const current = await requireAdmin();
+  const adminError = await requireAdminApi();
 
-  if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+  if (adminError) {
+    return adminError;
   }
 
   const logs = await prisma.platformActivityLog.findMany({

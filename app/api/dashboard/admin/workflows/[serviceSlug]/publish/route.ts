@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
 
 type RouteContext = {
   params: Promise<{
@@ -8,6 +10,12 @@ type RouteContext = {
 };
 
 export async function POST(_request: Request, context: RouteContext) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
   try {
     const { serviceSlug } = await context.params;
 
@@ -27,6 +35,7 @@ export async function POST(_request: Request, context: RouteContext) {
     const draftWorkflow = await prisma.workflow.findFirst({
       where: {
         serviceId: service.id,
+        workflowType: WORKFLOW_TYPES.DEFAULT,
         status: "DRAFT",
       },
       orderBy: {
@@ -44,6 +53,7 @@ export async function POST(_request: Request, context: RouteContext) {
     await prisma.workflow.updateMany({
       where: {
         serviceId: draftWorkflow.serviceId,
+        workflowType: WORKFLOW_TYPES.DEFAULT,
         status: "ACTIVE",
       },
       data: {

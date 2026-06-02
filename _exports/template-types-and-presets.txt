@@ -1,0 +1,969 @@
+﻿===== TEMPLATE TYPES AND PRESETS EXPORT =====
+Generated: 06/02/2026 02:25:44
+Project: D:\student-guidance-platform-clean
+
+
+================================================================================
+FILE: lib\report-engine\report-template-builder-types.ts
+================================================================================
+
+export type ReportTemplateScope = "GLOBAL" | "SERVICE";
+
+export type ReportTemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
+export type ReportPageKind =
+  | "cover"
+  | "summary"
+  | "narrative"
+  | "results"
+  | "evidence"
+  | "approval";
+
+export type ReportBlockKind =
+  | "identity-header"
+  | "cover-title"
+  | "case-meta"
+  | "student-summary"
+  | "service-summary"
+  | "paragraph"
+  | "field-list"
+  | "text-library"
+  | "custom-paragraph"
+  | "evidence-gallery"
+  | "approval-signature";
+
+export type ReportDataSource =
+  | "identity"
+  | "caseEntry"
+  | "caseValues"
+  | "student"
+  | "service"
+  | "evidence"
+  | "textLibrary"
+  | "custom"
+  | "computed";
+
+export type ReportBlockSource = {
+  source: ReportDataSource;
+  label: string;
+  description: string;
+  fieldKey?: string;
+};
+
+export type ReportBlockSettings = {
+  showTitle?: boolean;
+  style?: "plain" | "card" | "highlight";
+  columns?: 1 | 2;
+  evidenceLayout?: "grid-2x2" | "two-columns" | "stacked" | "one-per-page";
+  imageFit?: "contain" | "cover";
+  showCaptions?: boolean;
+  itemsPerPage?: 1 | 2 | 4;
+};
+
+export type ReportCoverSettings = {
+  showHeader?: boolean;
+  showFooter?: boolean;
+  titlePosition?: "center" | "top";
+  showDescription?: boolean;
+  showMetaChips?: boolean;
+  visualStyle?: "official" | "minimal" | "hero";
+};
+
+export type ReportTemplateBlock = {
+  id: string;
+  kind: ReportBlockKind;
+  title: string;
+  source: ReportBlockSource;
+  required: boolean;
+
+  customTitle?: string;
+  customContent?: string;
+
+  settings?: ReportBlockSettings;
+};
+
+export type ReportTemplatePage = {
+  id: string;
+  kind: ReportPageKind;
+  title: string;
+  description: string;
+  blocks: ReportTemplateBlock[];
+  coverSettings?: ReportCoverSettings;
+};
+
+export type ReportTemplateBuilderModel = {
+  id: string;
+  name: string;
+  description: string;
+  scope: ReportTemplateScope;
+  serviceSlug?: string;
+  status: ReportTemplateStatus;
+  pages: ReportTemplatePage[];
+  updatedAt: string;
+  previewCaseId?: string;
+};
+
+export type ReportTextSnippet = {
+  id: string;
+  title: string;
+  category:
+    | "مقدمة"
+    | "هدف"
+    | "إجراء"
+    | "نتيجة"
+    | "توصية"
+    | "خاتمة";
+  serviceSlug?: string;
+  content: string;
+};
+
+export type ReportIdentitySettings = {
+  ministryName: string;
+  educationDepartment: string;
+  educationOffice: string;
+  schoolName: string;
+  schoolLeaderName: string;
+  counselorName: string;
+  academicYear: string;
+  semester: string;
+  ministryLogoUrl: string;
+  schoolLogoUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: "Tajawal" | "Cairo" | "Arial";
+};
+
+export type ReportTemplateValidationIssue = {
+  id: string;
+  severity: "success" | "warning" | "error";
+  title: string;
+  description: string;
+};
+
+export type ReportTemplateValidationResult = {
+  canPublish: boolean;
+  score: number;
+  issues: ReportTemplateValidationIssue[];
+};
+
+export const DEFAULT_REPORT_IDENTITY_SETTINGS: ReportIdentitySettings = {
+  ministryName: "وزارة التعليم",
+  educationDepartment: "الإدارة العامة للتعليم",
+  educationOffice: "مكتب التعليم",
+  schoolName: "اسم المدرسة",
+  schoolLeaderName: "قائد/قائدة المدرسة",
+  counselorName: "الموجه/الموجهة الطلابية",
+  academicYear: "1447هـ",
+  semester: "الفصل الدراسي الأول",
+  ministryLogoUrl: "/sample/report-evidence/ministry-logo.png",
+  schoolLogoUrl: "/sample/report-evidence/square-evidence-1.png",
+  primaryColor: "#0f5132",
+  secondaryColor: "#d9e7df",
+  fontFamily: "Tajawal",
+};
+
+export const REPORT_WORKFLOW_FIELD_OPTIONS = [
+  {
+    key: "programTitle",
+    label: "عنوان البرنامج",
+    source: "caseValues" as const,
+  },
+  {
+    key: "executionDate",
+    label: "تاريخ التنفيذ",
+    source: "caseValues" as const,
+  },
+  {
+    key: "intro",
+    label: "مقدمة التقرير",
+    source: "caseValues" as const,
+  },
+  {
+    key: "goals",
+    label: "أهداف البرنامج",
+    source: "caseValues" as const,
+  },
+  {
+    key: "procedures",
+    label: "إجراءات التنفيذ",
+    source: "caseValues" as const,
+  },
+  {
+    key: "results",
+    label: "النتائج",
+    source: "caseValues" as const,
+  },
+  {
+    key: "recommendations",
+    label: "التوصيات",
+    source: "caseValues" as const,
+  },
+  {
+    key: "targetGroup",
+    label: "الفئة المستهدفة",
+    source: "caseValues" as const,
+  },
+];
+
+export const REPORT_SERVICE_OPTIONS = [
+  {
+    slug: "guidance-programs",
+    name: "البرامج الإرشادية",
+  },
+  {
+    slug: "student-follow-up",
+    name: "متابعة الطلاب",
+  },
+  {
+    slug: "family-school-communication",
+    name: "التواصل بين الأسرة والمدرسة",
+  },
+  {
+    slug: "committees-meetings",
+    name: "اللجان والاجتماعات",
+  },
+  {
+    slug: "student-guidance-services",
+    name: "الخدمات الإرشادية",
+  },
+];
+
+export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
+  {
+    id: "block-identity-header",
+    kind: "identity-header",
+    title: "هوية المدرسة والهيدر",
+    source: {
+      source: "identity",
+      label: "بيانات الهوية",
+      description: "شعار الوزارة، شعار المدرسة، الإدارة، المكتب، واسم المدرسة.",
+    },
+    required: false,
+    settings: {
+      style: "plain",
+    },
+  },
+  {
+    id: "block-cover-title",
+    kind: "cover-title",
+    title: "عنوان الغلاف",
+    source: {
+      source: "caseEntry",
+      label: "بيانات الحالة",
+      description: "عنوان التقرير واسم الخدمة وتاريخ التنفيذ من CaseEntry.",
+      fieldKey: "programTitle",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "highlight",
+    },
+  },
+  {
+    id: "block-case-meta",
+    kind: "case-meta",
+    title: "بيانات التقرير",
+    source: {
+      source: "caseEntry",
+      label: "ملخص الحالة",
+      description: "تاريخ الإنشاء، الخدمة، الحالة، والفئة المستهدفة.",
+    },
+    required: false,
+    settings: {
+      columns: 2,
+      style: "card",
+    },
+  },
+  {
+    id: "block-student-summary",
+    kind: "student-summary",
+    title: "بيانات الطالب/الطالبة",
+    source: {
+      source: "student",
+      label: "بيانات نور",
+      description:
+        "اسم الطالب/الطالبة، الصف، الفصل، المرحلة، وولي الأمر عند توفره.",
+    },
+    required: false,
+    settings: {
+      columns: 2,
+      style: "card",
+    },
+  },
+  {
+    id: "block-service-summary",
+    kind: "service-summary",
+    title: "ملخص الخدمة",
+    source: {
+      source: "service",
+      label: "بيانات الخدمة",
+      description: "اسم الخدمة ونوعها وربطها بالتقرير.",
+    },
+    required: false,
+    settings: {
+      style: "card",
+    },
+  },
+  {
+    id: "block-paragraph",
+    kind: "paragraph",
+    title: "فقرة من بيانات الحالة",
+    source: {
+      source: "caseValues",
+      label: "حقول الخدمة",
+      description:
+        "مقدمة، وصف، إجراءات، نتائج، أو توصيات محفوظة داخل CaseValue.",
+      fieldKey: "intro",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "card",
+    },
+  },
+  {
+    id: "block-field-list",
+    kind: "field-list",
+    title: "قائمة حقول مختصرة",
+    source: {
+      source: "caseValues",
+      label: "حقول مختارة",
+      description: "عرض مجموعة حقول من الخدمة على شكل قائمة منظمة.",
+      fieldKey: "goals",
+    },
+    required: false,
+    settings: {
+      columns: 2,
+      style: "card",
+    },
+  },
+  {
+    id: "block-text-library",
+    kind: "text-library",
+    title: "نص جاهز من المكتبة",
+    source: {
+      source: "textLibrary",
+      label: "مكتبة النصوص",
+      description: "نص محفوظ مسبقًا مثل مقدمة، هدف، توصية، أو خاتمة.",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "highlight",
+    },
+  },
+  {
+    id: "block-custom-paragraph",
+    kind: "custom-paragraph",
+    title: "فقرة مخصصة",
+    customTitle: "عنوان الفقرة",
+    customContent: "اكتب محتوى هذه الفقرة داخل القالب.",
+    source: {
+      source: "custom",
+      label: "نص غير مرتبط",
+      description:
+        "عنوان ومحتوى يكتبه الأدمن داخل القالب ولا يعتمد على CaseValue.",
+    },
+    required: false,
+    settings: {
+      showTitle: true,
+      style: "card",
+    },
+  },
+  {
+    id: "block-evidence-gallery",
+    kind: "evidence-gallery",
+    title: "الشواهد والمرفقات",
+    source: {
+      source: "evidence",
+      label: "شواهد الحالة",
+      description: "الصور والملفات المرتبطة بالحالة أو الخدمة.",
+    },
+    required: false,
+    settings: {
+      evidenceLayout: "grid-2x2",
+      imageFit: "cover",
+      showCaptions: true,
+      itemsPerPage: 4,
+    },
+  },
+  {
+    id: "block-approval-signature",
+    kind: "approval-signature",
+    title: "الاعتماد والتوقيع",
+    source: {
+      source: "identity",
+      label: "بيانات الاعتماد",
+      description: "اسم الموجه/الموجهة، قائد/قائدة المدرسة، التاريخ، والتوقيع.",
+    },
+    required: false,
+    settings: {
+      style: "highlight",
+    },
+  },
+];
+export type GeneratedReportSnapshot = {
+  id: string;
+  templateId: string;
+  templateName: string;
+  templateStatus: ReportTemplateStatus;
+  templateSnapshot: ReportTemplateBuilderModel;
+  reportDataSnapshot: {
+    previewCaseId?: string;
+    generatedFrom: "sample" | "case";
+    note: string;
+  };
+  generatedAt: string;
+  generatedBy: string;
+};
+
+================================================================================
+FILE: lib\report-engine\report-template-builder-presets.ts
+================================================================================
+
+import type {
+  ReportTemplateBuilderModel,
+  ReportTextSnippet,
+} from "./report-template-builder-types";
+
+export const initialReportTextSnippets: ReportTextSnippet[] = [
+  {
+    id: "snippet-intro-positive",
+    title: "مقدمة برنامج تعزيز السلوك",
+    category: "مقدمة",
+    serviceSlug: "guidance-programs",
+    content:
+      "تم تنفيذ البرنامج ضمن الجهود الإرشادية الهادفة إلى تعزيز السلوك الإيجابي وترسيخ القيم التربوية داخل البيئة المدرسية.",
+  },
+  {
+    id: "snippet-goal-awareness",
+    title: "هدف توعوي عام",
+    category: "هدف",
+    serviceSlug: "guidance-programs",
+    content:
+      "رفع مستوى الوعي لدى الطلاب بأهمية الالتزام بالقيم والسلوكيات الإيجابية داخل المدرسة.",
+  },
+  {
+    id: "snippet-result-general",
+    title: "نتيجة عامة",
+    category: "نتيجة",
+    content:
+      "أسهمت الجهود المنفذة في تعزيز الوعي وتحسين مستوى التفاعل الإيجابي داخل البيئة التعليمية.",
+  },
+  {
+    id: "snippet-recommendation-followup",
+    title: "توصية بالمتابعة",
+    category: "توصية",
+    content:
+      "يوصى باستمرار المتابعة وتنفيذ برامج نوعية داعمة وربطها بالشواهد والتقارير الدورية.",
+  },
+];
+
+export const initialReportTemplateBuilderPresets: ReportTemplateBuilderModel[] =
+  [
+    {
+      id: "tpl-official-school-report",
+      name: "قالب رسمي مدرسي",
+      description:
+        "قالب رسمي متعدد الصفحات مناسب للتقارير الطويلة: غلاف، ملخص، تفاصيل، شواهد، واعتماد.",
+      scope: "GLOBAL",
+      status: "PUBLISHED",
+      updatedAt: "2026-05-30",
+      previewCaseId: "sample-case-1",
+      pages: [
+        {
+          id: "page-cover",
+          kind: "cover",
+          title: "صفحة الغلاف",
+          description:
+            "تعرض عنوان التقرير والهوية الأساسية بدون تكرار التفاصيل.",
+          coverSettings: {
+            showHeader: true,
+            showFooter: true,
+            titlePosition: "center",
+            showDescription: true,
+            showMetaChips: true,
+            visualStyle: "official",
+          },
+          blocks: [
+            {
+              id: "cover-identity",
+              kind: "identity-header",
+              title: "هوية المدرسة والهيدر",
+              source: {
+                source: "identity",
+                label: "بيانات الهوية",
+                description: "شعارات وبيانات المدرسة والإدارة.",
+              },
+              required: false,
+            },
+            {
+              id: "cover-title",
+              kind: "cover-title",
+              title: "عنوان التقرير",
+              source: {
+                source: "caseEntry",
+                label: "بيانات الحالة",
+                description: "عنوان التقرير واسم الخدمة من CaseEntry.",
+                fieldKey: "programTitle",
+              },
+              required: false,
+              settings: {
+                showTitle: true,
+                style: "highlight",
+              },
+            },
+          ],
+        },
+        {
+          id: "page-summary",
+          kind: "summary",
+          title: "ملخص التقرير",
+          description: "يعرض بيانات مختصرة للقارئ قبل التفاصيل.",
+          blocks: [
+            {
+              id: "summary-case-meta",
+              kind: "case-meta",
+              title: "بيانات التقرير",
+              source: {
+                source: "caseEntry",
+                label: "ملخص الحالة",
+                description:
+                  "التاريخ، الخدمة، الفئة المستهدفة، وحالة التقرير.",
+              },
+              required: false,
+              settings: {
+                columns: 2,
+                style: "card",
+              },
+            },
+          ],
+        },
+        {
+          id: "page-narrative",
+          kind: "narrative",
+          title: "تفاصيل التنفيذ",
+          description: "مقدمة، أهداف، إجراءات، نتائج وتوصيات من CaseValue.",
+          blocks: [
+            {
+              id: "narrative-paragraph",
+              kind: "paragraph",
+              title: "النصوص الأساسية",
+              source: {
+                source: "caseValues",
+                label: "حقول الخدمة",
+                description: "النصوص المدخلة سابقًا داخل الخدمة.",
+                fieldKey: "intro",
+              },
+              required: false,
+              settings: {
+                showTitle: true,
+                style: "card",
+              },
+            },
+            {
+              id: "custom-note",
+              kind: "custom-paragraph",
+              title: "فقرة مخصصة",
+              customTitle: "ملاحظة تنظيمية",
+              customContent:
+                "يمكن تعديل هذه الفقرة داخل القالب أو حذفها عند عدم الحاجة.",
+              source: {
+                source: "custom",
+                label: "نص غير مرتبط",
+                description: "فقرة يكتبها الأدمن داخل القالب.",
+              },
+              required: false,
+              settings: {
+                showTitle: true,
+                style: "plain",
+              },
+            },
+          ],
+        },
+        {
+          id: "page-evidence",
+          kind: "evidence",
+          title: "الشواهد والمرفقات",
+          description: "صفحات مستقلة للشواهد حتى لا تتمدد صفحة A4.",
+          blocks: [
+            {
+              id: "evidence-gallery",
+              kind: "evidence-gallery",
+              title: "معرض الشواهد",
+              source: {
+                source: "evidence",
+                label: "شواهد الحالة",
+                description: "يعرض الصور والملفات المرتبطة بالـ Case ID.",
+              },
+              required: false,
+              settings: {
+                evidenceLayout: "grid-2x2",
+                imageFit: "cover",
+                showCaptions: true,
+                itemsPerPage: 4,
+              },
+            },
+          ],
+        },
+        {
+          id: "page-approval",
+          kind: "approval",
+          title: "الاعتماد والتوقيع",
+          description: "صفحة رسمية ختامية للتوقيع والختم.",
+          blocks: [
+            {
+              id: "approval-signature",
+              kind: "approval-signature",
+              title: "التوقيع والاعتماد",
+              source: {
+                source: "identity",
+                label: "بيانات الاعتماد",
+                description: "اسم الموجه/الموجهة وقائد/قائدة المدرسة.",
+              },
+              required: false,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "tpl-visual-program-report",
+      name: "قالب بصري للبرامج",
+      description:
+        "قالب مختصر وجذاب للبرامج والأنشطة، يركز على العنوان والوصف والشواهد.",
+      scope: "SERVICE",
+      serviceSlug: "guidance-programs",
+      status: "PUBLISHED",
+      updatedAt: "2026-05-30",
+      previewCaseId: "sample-case-2",
+      pages: [
+        {
+          id: "visual-main",
+          kind: "cover",
+          title: "صفحة النشاط",
+          description: "صفحة خفيفة تحتوي العنوان والوصف وأول مجموعة شواهد.",
+          coverSettings: {
+            showHeader: false,
+            showFooter: true,
+            titlePosition: "center",
+            showDescription: true,
+            showMetaChips: true,
+            visualStyle: "minimal",
+          },
+          blocks: [
+            {
+              id: "visual-title",
+              kind: "cover-title",
+              title: "عنوان البرنامج",
+              source: {
+                source: "caseEntry",
+                label: "بيانات الحالة",
+                description: "اسم البرنامج وتاريخ التنفيذ.",
+                fieldKey: "programTitle",
+              },
+              required: false,
+            },
+            {
+              id: "visual-evidence",
+              kind: "evidence-gallery",
+              title: "شواهد مختارة",
+              source: {
+                source: "evidence",
+                label: "الشواهد",
+                description: "يعرض الشواهد بشكل بصري جذاب.",
+              },
+              required: false,
+              settings: {
+                evidenceLayout: "grid-2x2",
+                imageFit: "cover",
+                showCaptions: false,
+                itemsPerPage: 4,
+              },
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
+================================================================================
+FILE: lib\report-engine\report-template-runtime-types.ts
+================================================================================
+
+export type RuntimeWorkflowFieldOption = {
+  key: string;
+  label: string;
+  type?: string;
+  source: "workflow" | "fallback";
+  stepTitle?: string;
+};
+
+export type RuntimePreviewCaseValue = {
+  fieldKey: string;
+  fieldLabel: string;
+  value: string;
+};
+
+export type RuntimePreviewEvidence = {
+  id: string;
+  title: string;
+  imageUrl?: string;
+  fileUrl?: string;
+  caption?: string;
+};
+
+export type RuntimePreviewCaseData = {
+  found: boolean;
+  caseId?: string;
+  serviceSlug?: string;
+  serviceName?: string;
+  title?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+
+  student?: {
+    id?: string;
+    name?: string;
+    nationalId?: string;
+    grade?: string;
+    classroom?: string;
+    stage?: string;
+    guardianName?: string;
+    guardianPhone?: string;
+  };
+
+  values: RuntimePreviewCaseValue[];
+  evidences: RuntimePreviewEvidence[];
+};
+
+export type RuntimePreviewResponse = {
+  ok: boolean;
+  mode: "case" | "sample";
+  message: string;
+  data?: RuntimePreviewCaseData;
+};
+
+================================================================================
+FILE: lib\report-engine\report-template-validation.ts
+================================================================================
+
+import type {
+  ReportIdentitySettings,
+  ReportTemplateBuilderModel,
+  ReportTemplateValidationIssue,
+  ReportTemplateValidationResult,
+  ReportTextSnippet,
+} from "@/lib/report-engine/report-template-builder-types";
+
+export function validateReportTemplateForPublishing({
+  template,
+  identity,
+  snippets,
+}: {
+  template: ReportTemplateBuilderModel;
+  identity: ReportIdentitySettings;
+  snippets: ReportTextSnippet[];
+}): ReportTemplateValidationResult {
+  const issues: ReportTemplateValidationIssue[] = [];
+
+  if (!template.name.trim()) {
+    issues.push({
+      id: "missing-template-name",
+      severity: "error",
+      title: "اسم القالب مفقود",
+      description: "يجب كتابة اسم واضح للقالب قبل نشره.",
+    });
+  }
+
+  if (!template.description.trim()) {
+    issues.push({
+      id: "missing-template-description",
+      severity: "warning",
+      title: "وصف القالب غير مكتمل",
+      description: "يفضل إضافة وصف يساعد الأدمن لاحقًا على معرفة استخدام القالب.",
+    });
+  }
+
+  if (template.scope === "SERVICE" && !template.serviceSlug) {
+    issues.push({
+      id: "missing-service",
+      severity: "error",
+      title: "القالب خاص بخدمة بدون تحديد الخدمة",
+      description: "اختر الخدمة المرتبطة بالقالب أو اجعل القالب عامًا.",
+    });
+  }
+
+  if (!template.pages.length) {
+    issues.push({
+      id: "no-pages",
+      severity: "error",
+      title: "القالب لا يحتوي على صفحات",
+      description: "أضف صفحة واحدة على الأقل قبل النشر.",
+    });
+  }
+
+  const hasCover = template.pages.some((page) => page.kind === "cover");
+  const hasEvidence = template.pages.some((page) =>
+    page.blocks.some((block) => block.kind === "evidence-gallery")
+  );
+  const hasApproval = template.pages.some((page) =>
+    page.blocks.some((block) => block.kind === "approval-signature")
+  );
+  const hasCaseData = template.pages.some((page) =>
+    page.blocks.some((block) =>
+      ["case-meta", "paragraph", "field-list", "cover-title"].includes(block.kind)
+    )
+  );
+
+  if (!hasCover) {
+    issues.push({
+      id: "no-cover",
+      severity: "warning",
+      title: "لا توجد صفحة غلاف",
+      description: "الغلاف اختياري، لكنه مهم للتقارير الرسمية والطباعة.",
+    });
+  }
+
+  if (!hasCaseData) {
+    issues.push({
+      id: "no-case-data",
+      severity: "error",
+      title: "القالب لا يسحب بيانات من الحالة",
+      description:
+        "أضف بلوكًا مرتبطًا بالحالة مثل بيانات التقرير أو فقرة من بيانات الحالة.",
+    });
+  }
+
+  if (!hasEvidence) {
+    issues.push({
+      id: "no-evidence",
+      severity: "warning",
+      title: "لا يوجد بلوك شواهد",
+      description: "قد لا يناسب القالب التقارير التي تتطلب صورًا أو مرفقات.",
+    });
+  }
+
+  if (!hasApproval) {
+    issues.push({
+      id: "no-approval",
+      severity: "warning",
+      title: "لا توجد صفحة اعتماد",
+      description: "يفضل إضافة توقيع واعتماد للتقارير الرسمية.",
+    });
+  }
+
+  template.pages.forEach((page, pageIndex) => {
+    if (!page.title.trim()) {
+      issues.push({
+        id: `page-${page.id}-missing-title`,
+        severity: "error",
+        title: `صفحة رقم ${pageIndex + 1} بدون عنوان`,
+        description: "اكتب عنوانًا واضحًا للصفحة.",
+      });
+    }
+
+    if (!page.blocks.length) {
+      issues.push({
+        id: `page-${page.id}-empty`,
+        severity: "warning",
+        title: `صفحة ${page.title || pageIndex + 1} فارغة`,
+        description: "الصفحات الفارغة ستظهر بلا محتوى في التقرير.",
+      });
+    }
+
+    page.blocks.forEach((block) => {
+      if (
+        block.source.source === "caseValues" &&
+        !block.source.fieldKey &&
+        ["paragraph", "field-list"].includes(block.kind)
+      ) {
+        issues.push({
+          id: `block-${block.id}-missing-field`,
+          severity: "warning",
+          title: `مصدر غير محدد: ${block.title}`,
+          description:
+            "حدد الحقل الذي سيقرأ منه هذا البلوك من Workflow/CaseValue.",
+        });
+      }
+
+      if (block.kind === "custom-paragraph") {
+        if (!block.customTitle?.trim()) {
+          issues.push({
+            id: `block-${block.id}-missing-custom-title`,
+            severity: "warning",
+            title: "فقرة مخصصة بدون عنوان",
+            description: "يفضل كتابة عنوان للفقرة المخصصة.",
+          });
+        }
+
+        if (!block.customContent?.trim()) {
+          issues.push({
+            id: `block-${block.id}-missing-custom-content`,
+            severity: "warning",
+            title: "فقرة مخصصة بدون محتوى",
+            description: "اكتب محتوى الفقرة أو احذفها من القالب.",
+          });
+        }
+      }
+    });
+  });
+
+  if (!identity.schoolName.trim()) {
+    issues.push({
+      id: "identity-school-name",
+      severity: "error",
+      title: "اسم المدرسة مفقود",
+      description: "أدخل اسم المدرسة في إعدادات هوية التقرير.",
+    });
+  }
+
+  if (!identity.counselorName.trim()) {
+    issues.push({
+      id: "identity-counselor-name",
+      severity: "warning",
+      title: "اسم الموجه/الموجهة غير محدد",
+      description: "يفضل إدخال اسم الموجه/الموجهة في إعدادات الهوية.",
+    });
+  }
+
+  if (!identity.schoolLeaderName.trim()) {
+    issues.push({
+      id: "identity-leader-name",
+      severity: "warning",
+      title: "اسم قائد/قائدة المدرسة غير محدد",
+      description: "يفضل إدخال اسم القائد/القائدة للتقارير الرسمية.",
+    });
+  }
+
+  if (!snippets.length) {
+    issues.push({
+      id: "no-text-snippets",
+      severity: "warning",
+      title: "مكتبة النصوص فارغة",
+      description:
+        "إضافة نصوص جاهزة تساعد الموجه/الموجهة عند إصدار التقارير.",
+    });
+  }
+
+  const errors = issues.filter((issue) => issue.severity === "error").length;
+  const warnings = issues.filter((issue) => issue.severity === "warning").length;
+
+  const score = Math.max(0, 100 - errors * 30 - warnings * 8);
+
+  if (!issues.length) {
+    issues.push({
+      id: "template-ready",
+      severity: "success",
+      title: "القالب جاهز للنشر",
+      description: "لم يتم العثور على مشاكل أساسية في بنية القالب.",
+    });
+  }
+
+  return {
+    canPublish: errors === 0,
+    score,
+    issues,
+  };
+}

@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   ReportIdentitySettings,
   ReportTemplateBuilderModel,
   ReportTemplateValidationIssue,
@@ -124,8 +124,8 @@ export function validateReportTemplateForPublishing({
 
     page.blocks.forEach((block) => {
       if (
-        block.source.source === "caseValues" &&
-        !block.source.fieldKey &&
+        block.source?.source === "caseValues" &&
+        !block.source?.fieldKey &&
         ["paragraph", "field-list"].includes(block.kind)
       ) {
         issues.push({

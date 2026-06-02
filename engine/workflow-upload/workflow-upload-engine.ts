@@ -1,4 +1,9 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
+import {
+  WORKFLOW_TYPES,
+  normalizeWorkflowType,
+  type WorkflowType,
+} from "@/lib/workflows/workflow-types";
 import type { ParsedWorkflowRow } from "@/lib/workflow-upload/workflow-excel-parser";
 
 const allowedFieldTypes = new Set([
@@ -46,11 +51,6 @@ function getFieldLinkedToValue(fieldRows: ParsedWorkflowRow[]) {
     return first.fieldLinkedToValue;
   }
 
-  /**
-   * توافق مع الملفات القديمة:
-   * إذا كان linkedToValue مكررًا بنفس القيمة لكل صفوف الحقل، نعتبره ربط حقل كامل.
-   * إذا كان مختلفًا بين الخيارات، فهذا غالبًا ربط خيارات وليس ربط حقل، فلا نحفظه للحقل.
-   */
   const legacyValues = Array.from(
     new Set(
       fieldRows
@@ -59,7 +59,10 @@ function getFieldLinkedToValue(fieldRows: ParsedWorkflowRow[]) {
     )
   );
 
-  if (legacyValues.length === 1 && !fieldRows.some((row) => row.optionLinkedToValue)) {
+  if (
+    legacyValues.length === 1 &&
+    !fieldRows.some((row) => row.optionLinkedToValue)
+  ) {
     return legacyValues[0];
   }
 
@@ -67,19 +70,40 @@ function getFieldLinkedToValue(fieldRows: ParsedWorkflowRow[]) {
 }
 
 function getOptionLinkedToValue(row: ParsedWorkflowRow) {
-  /**
-   * الربط الصحيح للخيار.
-   * الأولوية للعمود الجديد optionLinkedToValue.
-   * ولو ملف قديم يستخدم linkedToValue في صف الخيار، نستفيد منه كـ fallback.
-   */
   return row.optionLinkedToValue || row.linkedToValue || null;
+}
+
+function getWorkflowDisplayName(params: {
+  serviceName: string;
+  workflowType: WorkflowType;
+}) {
+  if (params.workflowType === WORKFLOW_TYPES.GUARDIAN_SUMMONS) {
+    return "استدعاء ولي أمر";
+  }
+
+  if (params.workflowType === WORKFLOW_TYPES.CERTIFICATE) {
+    return "شهادة";
+  }
+
+  if (params.workflowType === WORKFLOW_TYPES.LETTER) {
+    return "خطاب";
+  }
+
+  if (params.workflowType === WORKFLOW_TYPES.FORM) {
+    return "نموذج";
+  }
+
+  return `${params.serviceName} Workflow`;
 }
 
 export async function uploadWorkflowForService(params: {
   serviceSlug: string;
   serviceName: string;
   rows: ParsedWorkflowRow[];
+  workflowType?: WorkflowType | string | null;
 }) {
+  const workflowType = normalizeWorkflowType(params.workflowType);
+
   const service = await prisma.service.upsert({
     where: { slug: params.serviceSlug },
     update: {
@@ -96,6 +120,7 @@ export async function uploadWorkflowForService(params: {
   await prisma.workflow.updateMany({
     where: {
       serviceId: service.id,
+      workflowType,
       isActive: true,
     },
     data: {
@@ -105,14 +130,21 @@ export async function uploadWorkflowForService(params: {
   });
 
   const latestWorkflow = await prisma.workflow.findFirst({
-    where: { serviceId: service.id },
+    where: {
+      serviceId: service.id,
+      workflowType,
+    },
     orderBy: { version: "desc" },
   });
 
   const workflow = await prisma.workflow.create({
     data: {
       serviceId: service.id,
-      name: `${service.name} Workflow`,
+      workflowType,
+      name: getWorkflowDisplayName({
+        serviceName: service.name,
+        workflowType,
+      }),
       version: latestWorkflow ? latestWorkflow.version + 1 : 1,
       status: "ACTIVE",
       isActive: true,
@@ -213,3 +245,4 @@ export async function uploadWorkflowForService(params: {
     optionsCount,
   };
 }
+

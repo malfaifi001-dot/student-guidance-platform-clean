@@ -1,12 +1,19 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 
 export async function POST(request: Request) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
   const current = await getCurrentSessionUser();
 
-  if (!current?.user || current.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+  if (!current?.user) {
+    return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
   }
 
   const payload = await request.json().catch(() => null);
@@ -16,7 +23,7 @@ export async function POST(request: Request) {
 
   if (!subscriptionId && !schoolAccountIdFromPayload) {
     return NextResponse.json(
-      { error: "حدد الحساب أو الاشتراك المراد إلغاء تفعيله." },
+      { error: "رقم الاشتراك أو حساب المدرسة مطلوب لإلغاء الاشتراك." },
       { status: 400 }
     );
   }
@@ -33,7 +40,7 @@ export async function POST(request: Request) {
 
   if (!subscription) {
     return NextResponse.json(
-      { error: "لم يتم العثور على اشتراك لهذا الحساب." },
+      { error: "لم يتم العثور على اشتراك مطابق للطلب." },
       { status: 404 }
     );
   }
@@ -63,13 +70,13 @@ export async function POST(request: Request) {
     data: {
       schoolAccountId: subscription.schoolAccountId,
       activatedById: current.user.id,
-      reason: `إلغاء تفعيل الحساب: ${subscription.schoolAccount.name}`,
+      reason: `إلغاء اشتراك المدرسة: ${subscription.schoolAccount.name}`,
       startsAt: now,
       endsAt: now,
     },
   });
 
   return NextResponse.json({
-    message: "تم إلغاء تفعيل الحساب وإغلاق الخدمات المرتبطة به.",
+    message: "تم إلغاء اشتراك المدرسة وتعطيل خدماتها.",
   });
 }

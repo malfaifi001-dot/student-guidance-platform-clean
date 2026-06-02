@@ -1,5 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 
 function slugify(input: string) {
@@ -15,16 +16,6 @@ function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
-}
-
-async function requireAdmin() {
-  const current = await getCurrentSessionUser();
-
-  if (!current?.user || current.user.role !== "ADMIN") {
-    return null;
-  }
-
-  return current;
 }
 
 async function syncSchoolServicesFromPlan(input: {
@@ -75,10 +66,16 @@ async function syncSchoolServicesFromPlan(input: {
 }
 
 export async function GET() {
-  const current = await requireAdmin();
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
 
   if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
   const [plans, services, schools, subscriptions, serviceAccess] =
@@ -165,10 +162,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const current = await requireAdmin();
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
 
   if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
   const payload = await request.json().catch(() => null);

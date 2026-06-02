@@ -1,12 +1,19 @@
 ﻿import { NextResponse } from "next/server";
 import { activateSchoolAccount } from "@/lib/activation/activation-service";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 
 export async function POST(request: Request) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
   const current = await getCurrentSessionUser();
 
-  if (!current?.user || current.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 403 });
+  if (!current?.user) {
+    return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
   }
 
   const payload = await request.json().catch(() => null);
@@ -18,7 +25,7 @@ export async function POST(request: Request) {
   if (!schoolAccountId) {
     return NextResponse.json(
       {
-        error: "اختر الحساب المراد تفعيله.",
+        error: "حساب المدرسة مطلوب للتفعيل.",
       },
       {
         status: 400,
@@ -34,6 +41,6 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({
-    message: "تم تفعيل الحساب يدويًا.",
+    message: "تم تفعيل المدرسة بنجاح.",
   });
 }

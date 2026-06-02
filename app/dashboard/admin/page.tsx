@@ -1,13 +1,14 @@
 ﻿import { AdminActivityMetricsPanel } from "@/components/admin/admin-activity-metrics-panel";
-import { requireDashboardUser } from "@/lib/auth/require-auth";
-import { redirect } from "next/navigation";
+import { AdminOperationalAlertsPanel } from "@/components/admin/admin-operational-alerts-panel";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 
 export default async function AdminDashboardPage() {
-  const current = await requireDashboardUser();
+  await requireAdminPage();
 
-  if (current.user.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
-  return <AdminActivityMetricsPanel />;
+  return (
+    <div className="space-y-6">
+      <AdminOperationalAlertsPanel />
+      <AdminActivityMetricsPanel />
+    </div>
+  );
 }

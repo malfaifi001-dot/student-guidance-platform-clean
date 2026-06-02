@@ -1,13 +1,25 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
 import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
 import { dashboardServices } from "@/lib/constants/services";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
 
 export async function POST(request: Request) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
   try {
     const formData = await request.formData();
 
     const serviceSlug = String(formData.get("serviceSlug") ?? "");
+    const workflowType = normalizeWorkflowType(
+      String(formData.get("workflowType") ?? "")
+    );
+
     const file = formData.get("file");
 
     if (!serviceSlug) {
@@ -49,6 +61,7 @@ export async function POST(request: Request) {
       serviceSlug,
       serviceName: serviceConfig.title,
       rows,
+      workflowType,
     });
 
     return NextResponse.json({

@@ -1,6 +1,23 @@
-export type ReportTemplateScope = "GLOBAL" | "SERVICE";
+﻿export type ReportTemplateScope =
+  | "GLOBAL"
+  | "SERVICE"
+  | "WORKFLOW"
+  | "SUB_WORKFLOW";
 
 export type ReportTemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
+export type ReportDocumentType =
+  | "REPORT"
+  | "LETTER"
+  | "CERTIFICATE"
+  | "MINUTES"
+  | "FORM"
+  | "NOTICE";
+
+export type ReportDesignPreset =
+  | "official-school-report"
+  | "visual-program-report"
+  | "guardian-summons-letter-v1";
 
 export type ReportPageKind =
   | "cover"
@@ -8,7 +25,8 @@ export type ReportPageKind =
   | "narrative"
   | "results"
   | "evidence"
-  | "approval";
+  | "approval"
+  | "letter";
 
 export type ReportBlockKind =
   | "identity-header"
@@ -92,6 +110,11 @@ export type ReportTemplateBuilderModel = {
   pages: ReportTemplatePage[];
   updatedAt: string;
   previewCaseId?: string;
+
+  documentType?: ReportDocumentType;
+  designPreset?: ReportDesignPreset;
+  workflowSlug?: string;
+  subWorkflowKey?: string;
 };
 
 export type ReportTextSnippet = {
@@ -192,6 +215,46 @@ export const REPORT_WORKFLOW_FIELD_OPTIONS = [
   {
     key: "targetGroup",
     label: "الفئة المستهدفة",
+    source: "caseValues" as const,
+  },
+  {
+    key: "guardianName",
+    label: "اسم ولي الأمر",
+    source: "caseValues" as const,
+  },
+  {
+    key: "studentName",
+    label: "اسم الطالب",
+    source: "caseValues" as const,
+  },
+  {
+    key: "studentClass",
+    label: "الصف / الفصل",
+    source: "caseValues" as const,
+  },
+  {
+    key: "summonsDay",
+    label: "يوم الحضور",
+    source: "caseValues" as const,
+  },
+  {
+    key: "summonsHijriDate",
+    label: "تاريخ الحضور هجري",
+    source: "caseValues" as const,
+  },
+  {
+    key: "summonsTime",
+    label: "ساعة الحضور",
+    source: "caseValues" as const,
+  },
+  {
+    key: "summonsPeriod",
+    label: "الفترة",
+    source: "caseValues" as const,
+  },
+  {
+    key: "summonsReason",
+    label: "سبب الاستدعاء",
     source: "caseValues" as const,
   },
 ];
@@ -393,6 +456,7 @@ export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
     },
   },
 ];
+
 export type GeneratedReportSnapshot = {
   id: string;
   templateId: string;

@@ -1,0 +1,101 @@
+﻿===== PROJECT TEMPLATE TREE EXPORT =====
+Generated: 06/02/2026 02:21:44
+Project: D:\student-guidance-platform-clean
+
+===== FILE TREE =====
+
+
+===== .\app\dashboard\admin =====
+app\dashboard\admin\report-templates\new\page.tsx
+app\dashboard\admin\report-templates\page.tsx
+app\dashboard\admin\report-texts\page.tsx
+app\dashboard\admin\workflow-builder\[workflowId]\page.tsx
+app\dashboard\admin\workflow-builder\[workflowId]\page.tsxcode
+app\dashboard\admin\workflow-builder\page.tsx
+app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx
+app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx
+app\dashboard\admin\workflows\page.tsx
+
+===== .\app\api\dashboard\admin =====
+app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+app\api\dashboard\admin\workflows\upload\route.ts
+
+===== .\components =====
+components\admin\report-text-library-admin.tsx
+components\admin\report-text-template-studio.tsx
+components\admin\workflow-builder-sidebar.tsx
+components\admin\workflow-field-editor.tsx
+components\admin\workflow-health\workflow-health-report.tsx
+components\admin\workflow-preview-panel.tsx
+components\admin\workflow-publish-button.tsx
+components\admin\workflow-step-editor.tsx
+components\admin\workflow-upload-card.tsx
+components\cases\case-value-renderer.tsx
+components\evidence\evidence-preview-grid.tsx
+components\report-engine\official-report-document.tsx
+components\report-engine\report-builder-pdf-renderer.tsx
+components\report-engine\report-document-renderer.tsx
+components\report-engine\report-print-button.tsx
+components\report-engine\report-template-admin-tools.tsx
+components\report-engine\report-template-live-preview.tsx
+components\report-engine\report-template-publish-tools.tsx
+components\report-engine\report-template-studio.tsx
+components\report-engine\text-library-block-settings-editor.tsx
+components\reports\new-report-case-picker.tsx
+components\reports\new-report-case-picker.tsx.tsx
+components\reports\report-actions.tsx
+components\reports\report-evidence-gallery.tsx
+components\reports\report-list.tsx
+components\reports\report-pdf-guidance-card.tsx
+components\reports\report-preview-a4.tsx
+components\reports\report-preview-toolbar.tsx
+components\reports\reports-dashboard.tsx
+components\reports\report-studio-editor.tsx
+components\reports\studio\report-context-panel.tsx
+components\reports\studio\report-gender-toggle.tsx
+components\reports\studio\report-smart-editor.tsx
+components\reports\studio\report-studio-shell.tsx
+components\reports\studio\report-template-sidebar.tsx
+components\reports\templates\report-template-form.tsx
+components\reports\templates\report-template-list.tsx
+components\workflow\dynamic-field-renderer.tsx
+components\workflow\dynamic-form-renderer.tsx
+components\workflow\dynamic-form-resume.tsx
+components\workflow\workflow-step-card.tsx
+
+===== .\lib =====
+lib\report-engine\report-builder-template-runtime.ts
+lib\report-engine\report-case-data-mapper.ts
+lib\report-engine\report-data-mapper.ts
+lib\report-engine\report-identity-runtime.ts
+lib\report-engine\report-smart-text-engine.ts
+lib\report-engine\report-smart-text-library.ts
+lib\report-engine\report-snapshot.ts
+lib\report-engine\report-template-builder-presets.ts
+lib\report-engine\report-template-builder-types.ts
+lib\report-engine\report-template-portability.ts
+lib\report-engine\report-template-runtime-types.ts
+lib\report-engine\report-templates.ts
+lib\report-engine\report-template-validation.ts
+lib\report-engine\report-text-library-runtime.ts
+lib\report-engine\report-text-studio-presets.ts
+lib\report-engine\report-text-studio-presets.tscode
+lib\report-engine\report-text-studio-types.ts
+lib\report-engine\report-theme.ts
+lib\report-engine\report-types.ts
+lib\report-engine\sample-report-data.ts
+lib\reports\default-report-templates.ts
+lib\reports\report-types.ts
+lib\reports\report-utils.ts
+lib\workflow-builder\workflow-builder-types.ts
+lib\workflows\workflow-types.ts
+lib\workflow-upload\workflow-excel-parser.ts
+lib\workflow-values\workflow-display-value.ts
+
+===== .\prisma =====
+prisma\migrations\20260528195326_workflow_preview_publish\migration.sql
+prisma\migrations\20260528203324_add_workflow_published_at\migration.sql
+prisma\schema.backup-before-report-schema-clean.prisma
+prisma\schema.before-remove-duplicate-report-template.prisma
+prisma\schema.prisma.backup-before-report-duplicate-fix

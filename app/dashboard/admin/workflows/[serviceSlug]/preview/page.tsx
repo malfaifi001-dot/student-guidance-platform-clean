@@ -1,7 +1,9 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 import { prisma } from "@/lib/prisma";
 import { dashboardServices } from "@/lib/constants/services";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
 
 type PageProps = {
   params: Promise<{
@@ -12,6 +14,8 @@ type PageProps = {
 export default async function WorkflowPreviewPage({
   params,
 }: PageProps) {
+  await requireAdminPage();
+
   const { serviceSlug } = await params;
 
   const serviceConfig = dashboardServices.find(
@@ -27,6 +31,7 @@ export default async function WorkflowPreviewPage({
       service: {
         slug: serviceSlug,
       },
+      workflowType: WORKFLOW_TYPES.DEFAULT,
       status: "DRAFT",
     },
     include: {

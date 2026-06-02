@@ -1,0 +1,174 @@
+﻿
+import { GuardianSummonsLetterPreview } from "@/components/report-engine/guardian-summons-letter-preview";
+import { initialReportTextSnippets } from "@/lib/report-engine/report-template-builder-presets";
+import { resolveGuardianSummonsTemplate } from "@/lib/report-engine/guardian-summons-template-runtime";
+import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+
+type PageProps = {
+  searchParams?: Promise<{
+    payload?: string;
+    pdf?: string;
+  }>;
+};
+
+type GuardianSummonsPdfPayload = {
+  id?: string;
+  status?: string;
+  createdAt?: string;
+  issuedAt?: string;
+  printedAt?: string;
+  student?: {
+    id?: string;
+    fullName?: string;
+    nationalId?: string | null;
+    grade?: string | null;
+    classroom?: string | null;
+    stage?: string | null;
+  };
+  guardianName?: string;
+  guardianPhone?: string;
+  summonDay?: string;
+  summonDate?: string;
+  summonTime?: string;
+  summonPeriod?: string;
+  summonReason?: string;
+  notes?: string;
+
+  schoolName?: string;
+  educationDepartment?: string;
+  educationOffice?: string;
+  academicYear?: string;
+  schoolLeaderName?: string;
+  counselorName?: string;
+  ministryLogoUrl?: string;
+};
+
+export default async function GuardianSummonsCleanPdfPreviewPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const payload = decodePayload(resolvedSearchParams.payload);
+
+  const template = await resolveGuardianSummonsTemplate();
+  const previewCaseData = buildPreviewCaseData(payload);
+
+  return (
+    <main dir="rtl" className="min-h-screen bg-white p-0">
+      <GuardianSummonsLetterPreview
+        template={template}
+        previewCaseData={previewCaseData}
+        snippets={initialReportTextSnippets}
+        pdfMode
+        forceOfficialHeader
+      />
+    </main>
+  );
+}
+
+function decodePayload(value?: string): GuardianSummonsPdfPayload {
+  if (!value) return {};
+
+  try {
+    const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+    const json = Buffer.from(normalized, "base64").toString("utf8");
+    const parsed = JSON.parse(json);
+
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function buildPreviewCaseData(
+  payload: GuardianSummonsPdfPayload
+): RuntimePreviewCaseData {
+  const student = payload.student || {};
+
+  const identity = {
+    schoolName:
+      payload.schoolName ||
+      "مدرسة ........................",
+
+    educationDepartment:
+      payload.educationDepartment ||
+      "الإدارة العامة للتعليم بمنطقة ................",
+
+    educationOffice:
+      payload.educationOffice ||
+      "مكتب التعليم بمحافظة ................",
+
+    academicYear:
+      payload.academicYear ||
+      "١٤٤٠ هـ / ١٤٣٩ هـ",
+
+    schoolLeaderName:
+      payload.schoolLeaderName ||
+      "",
+
+    counselorName:
+      payload.counselorName ||
+      "",
+
+    ministryLogoUrl:
+      payload.ministryLogoUrl || "/uploads/school-logos/MOE.png",
+  };
+
+  const allValues = {
+    ...identity,
+
+    guardianName: payload.guardianName || "",
+    guardianPhone: payload.guardianPhone || "",
+    studentName: student.fullName || "",
+    studentNationalId: student.nationalId || "",
+    studentClass: [student.grade, student.classroom].filter(Boolean).join(" / "),
+
+    summonDay: payload.summonDay || "",
+    summonsDay: payload.summonDay || "",
+
+    summonDate: payload.summonDate || "",
+    summonsHijriDate: payload.summonDate || "",
+
+    summonTime: payload.summonTime || "",
+    summonsTime: payload.summonTime || "",
+
+    summonPeriod: payload.summonPeriod || "",
+    summonsPeriod: payload.summonPeriod || "",
+
+    summonReason: payload.summonReason || "",
+    summonsReason: payload.summonReason || "",
+
+    notes: payload.notes || "",
+  };
+
+  return {
+    found: true,
+    caseId: payload.id || "guardian-summons-preview",
+    serviceSlug: "family-school-communication",
+    serviceName: "التواصل بين الأسرة والمدرسة",
+    title: "استدعاء ولي أمر طالب",
+    status: payload.status || "ISSUED",
+    createdAt: payload.createdAt || new Date().toISOString(),
+    updatedAt:
+      payload.printedAt ||
+      payload.issuedAt ||
+      payload.createdAt ||
+      new Date().toISOString(),
+    student: {
+      id: student.id || "",
+      name: student.fullName || "",
+      nationalId: student.nationalId || "",
+      grade: student.grade || "",
+      classroom: student.classroom || "",
+      stage: student.stage || "",
+      guardianName: payload.guardianName || "",
+      guardianPhone: payload.guardianPhone || "",
+    },
+    values: Object.entries(allValues).map(([fieldKey, value]) => ({
+      fieldKey,
+      fieldLabel: fieldKey,
+      value,
+    })),
+    evidences: [],
+  };
+}
+

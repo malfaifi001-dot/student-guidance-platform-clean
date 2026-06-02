@@ -1,0 +1,2735 @@
+﻿===== GUARDIAN SUMMONS DOCUMENT DESIGN SOURCE =====
+Generated: 06/02/2026 05:46:57
+
+================================================================================
+PAGE
+================================================================================
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+import {
+  GuardianSummonsLetterPreview,
+  guardianSummonsPreviewCaseData,
+  guardianSummonsTemplatePreset,
+} from "@/components/report-engine/guardian-summons-letter-preview";
+import { initialReportTextSnippets } from "@/lib/report-engine/report-template-builder-presets";
+
+export default async function GuardianSummonsDesignPreviewPage() {
+  await requireAdminPage();
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-black text-emerald-700">معاينة التصاميم</p>
+        <h1 className="mt-2 text-2xl font-black text-slate-900">
+          تصميم استدعاء ولي أمر
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+          هذه صفحة مستقلة لمعاينة النموذج. نفس التصميم داخل المصمم يقرأ البلوكات
+          والنصوص ومصادر الحقول، لذلك أي تعديل في المصمم ينعكس على الخطاب.
+        </p>
+      </section>
+
+      <GuardianSummonsLetterPreview
+        template={guardianSummonsTemplatePreset}
+        previewCaseData={guardianSummonsPreviewCaseData}
+        snippets={initialReportTextSnippets}
+      />
+    </main>
+  );
+}
+
+
+================================================================================
+RELATED FILES SEARCH
+================================================================================
+FILE: D:\student-guidance-platform-clean\app\api\admin\report-templates\preview-case\route.ts
+LINE: 7
+TEXT: } from "@/lib/report-engine/report-template-runtime-types";
+
+FILE: D:\student-guidance-platform-clean\app\api\admin\report-templates\workflow-fields\route.ts
+LINE: 3
+TEXT: import type { RuntimeWorkflowFieldOption } from "@/lib/report-engine/report-template-runtime-types";
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+LINE: 6
+TEXT:     templateId: string;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+LINE: 12
+TEXT:     const { templateId } = await context.params;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+LINE: 14
+TEXT:     const existingTemplate = await prisma.reportTemplate.findUnique({
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+LINE: 16
+TEXT:         id: templateId,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+LINE: 20
+TEXT:     if (!existingTemplate || !existingTemplate.isActive) {
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+LINE: 30
+TEXT:     const template = await prisma.reportTemplate.update({
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+LINE: 32
+TEXT:         id: templateId,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+LINE: 44
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+LINE: 47
+TEXT:     console.error("POST /api/dashboard/report-templates/[templateId]/use failed:", error);
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 2
+TEXT: import { Prisma, type ReportTemplateType } from "@prisma/client";
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 7
+TEXT:     templateId: string;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 11
+TEXT: type UpdateReportTemplatePayload = {
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 15
+TEXT:   type?: ReportTemplateType;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 17
+TEXT:   templateJson?: unknown;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 23
+TEXT: function normalizeTemplateType(value: unknown): ReportTemplateType | undefined {
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 49
+TEXT:     const { templateId } = await context.params;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 51
+TEXT:     const template = await prisma.reportTemplate.findUnique({
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 53
+TEXT:         id: templateId,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 57
+TEXT:     if (!template) {
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 69
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 73
+TEXT:       "GET /api/dashboard/report-templates/[templateId] failed:",
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 89
+TEXT:     const { templateId } = await context.params;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 90
+TEXT:     const payload = (await request.json()) as UpdateReportTemplatePayload;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 92
+TEXT:     const existingTemplate = await prisma.reportTemplate.findUnique({
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 94
+TEXT:         id: templateId,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 102
+TEXT:     if (!existingTemplate) {
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 112
+TEXT:     const nextType = normalizeTemplateType(payload.type);
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 114
+TEXT:     const data: Prisma.ReportTemplateUpdateInput = {};
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 136
+TEXT:     if (payload.templateJson !== undefined) {
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 137
+TEXT:       data.templateJson = normalizeJsonInput(payload.templateJson);
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 149
+TEXT:       data.version = existingTemplate.version + 1;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 152
+TEXT:     const template = await prisma.reportTemplate.update({
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 154
+TEXT:         id: templateId,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 162
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 166
+TEXT:       "PATCH /api/dashboard/report-templates/[templateId] failed:",
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 182
+TEXT:     const { templateId } = await context.params;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 184
+TEXT:     const template = await prisma.reportTemplate.update({
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 186
+TEXT:         id: templateId,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 196
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+LINE: 200
+TEXT:       "DELETE /api/dashboard/report-templates/[templateId] failed:",
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 2
+TEXT: import { Prisma, type ReportTemplateType } from "@prisma/client";
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 5
+TEXT: type CreateReportTemplatePayload = {
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 9
+TEXT:   type?: ReportTemplateType;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 11
+TEXT:   templateJson?: unknown;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 16
+TEXT: function normalizeTemplateType(value: unknown): ReportTemplateType {
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 48
+TEXT:     const templates = await prisma.reportTemplate.findMany({
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 65
+TEXT:       templates,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 68
+TEXT:     console.error("GET /api/dashboard/report-templates failed:", error);
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 82
+TEXT:     const payload = (await request.json()) as CreateReportTemplatePayload;
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 96
+TEXT:     const template = await prisma.reportTemplate.create({
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 101
+TEXT:         type: normalizeTemplateType(payload.type),
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 103
+TEXT:         ...(payload.templateJson !== undefined
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 104
+TEXT:           ? { templateJson: normalizeJsonInput(payload.templateJson) }
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 120
+TEXT:         template,
+
+FILE: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+LINE: 125
+TEXT:     console.error("POST /api/dashboard/report-templates failed:", error);
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\guardian-summons\page.tsx
+LINE: 3
+TEXT:   GuardianSummonsLetterPreview,
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\guardian-summons\page.tsx
+LINE: 5
+TEXT:   guardianSummonsTemplatePreset,
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\guardian-summons\page.tsx
+LINE: 7
+TEXT: import { initialReportTextSnippets } from "@/lib/report-engine/report-template-builder-presets";
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\guardian-summons\page.tsx
+LINE: 25
+TEXT:       <GuardianSummonsLetterPreview
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\guardian-summons\page.tsx
+LINE: 26
+TEXT:         template={guardianSummonsTemplatePreset}
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\official-school-report\page.tsx
+LINE: 2
+TEXT: import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\official-school-report\page.tsx
+LINE: 4
+TEXT:   initialReportTemplateBuilderPresets,
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\official-school-report\page.tsx
+LINE: 6
+TEXT: } from "@/lib/report-engine/report-template-builder-presets";
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\official-school-report\page.tsx
+LINE: 11
+TEXT:   const template =
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\official-school-report\page.tsx
+LINE: 12
+TEXT:     initialReportTemplateBuilderPresets.find(
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\official-school-report\page.tsx
+LINE: 14
+TEXT:     ) || initialReportTemplateBuilderPresets[0];
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\official-school-report\page.tsx
+LINE: 30
+TEXT:       <ReportTemplateLivePreview
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\official-school-report\page.tsx
+LINE: 31
+TEXT:         template={template}
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+LINE: 2
+TEXT: import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+LINE: 4
+TEXT:   initialReportTemplateBuilderPresets,
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+LINE: 6
+TEXT: } from "@/lib/report-engine/report-template-builder-presets";
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+LINE: 11
+TEXT:   const template =
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+LINE: 12
+TEXT:     initialReportTemplateBuilderPresets.find(
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+LINE: 14
+TEXT:     ) || initialReportTemplateBuilderPresets[0];
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+LINE: 30
+TEXT:       <ReportTemplateLivePreview
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+LINE: 31
+TEXT:         template={template}
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\page.tsx
+LINE: 6
+TEXT:     key: "guardian-summons-letter-v1",
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\page.tsx
+LINE: 12
+TEXT:     previewHref: "/dashboard/admin/document-designs/guardian-summons",
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\page.tsx
+LINE: 13
+TEXT:     useHref: "/dashboard/admin/report-templates?design=guardian-summons-letter-v1",
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\page.tsx
+LINE: 23
+TEXT:     previewHref: "/dashboard/admin/document-designs/official-school-report",
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\page.tsx
+LINE: 24
+TEXT:     useHref: "/dashboard/admin/report-templates?design=official-school-report",
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\page.tsx
+LINE: 34
+TEXT:     previewHref: "/dashboard/admin/document-designs/visual-program-report",
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\page.tsx
+LINE: 35
+TEXT:     useHref: "/dashboard/admin/report-templates?design=visual-program-report",
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\page.tsx
+LINE: 1
+TEXT: import { ReportTemplateStudio } from "@/components/report-engine/report-template-studio";
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\page.tsx
+LINE: 4
+TEXT: export default async function AdminReportTemplatesPage() {
+
+FILE: D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\page.tsx
+LINE: 7
+TEXT:   return <ReportTemplateStudio />;
+
+FILE: D:\student-guidance-platform-clean\app\pdf-preview\guardian-summons\page.tsx
+LINE: 3
+TEXT:   GuardianSummonsLetterPreview,
+
+FILE: D:\student-guidance-platform-clean\app\pdf-preview\guardian-summons\page.tsx
+LINE: 4
+TEXT:   guardianSummonsTemplatePreset,
+
+FILE: D:\student-guidance-platform-clean\app\pdf-preview\guardian-summons\page.tsx
+LINE: 6
+TEXT: import { initialReportTextSnippets } from "@/lib/report-engine/report-template-builder-presets";
+
+FILE: D:\student-guidance-platform-clean\app\pdf-preview\guardian-summons\page.tsx
+LINE: 7
+TEXT: import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+
+FILE: D:\student-guidance-platform-clean\app\pdf-preview\guardian-summons\page.tsx
+LINE: 50
+TEXT:         <GuardianSummonsLetterPreview
+
+FILE: D:\student-guidance-platform-clean\app\pdf-preview\guardian-summons\page.tsx
+LINE: 51
+TEXT:           template={guardianSummonsTemplatePreset}
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LINE: 8
+TEXT:   GuardianSummonsLetterPreview,
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LINE: 9
+TEXT:   guardianSummonsTemplatePreset,
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LINE: 11
+TEXT: import { initialReportTextSnippets } from "@/lib/report-engine/report-template-builder-presets";
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LINE: 12
+TEXT: import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LINE: 98
+TEXT:   function saveRecord(status: "ISSUED" | "PRINTED") {
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LINE: 122
+TEXT:     const record = saveRecord("ISSUED");
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LINE: 279
+TEXT:                     const record = saveRecord("PRINTED");
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LINE: 295
+TEXT:             <GuardianSummonsLetterPreview
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx
+LINE: 296
+TEXT:               template={guardianSummonsTemplatePreset}
+
+FILE: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-official-pdf-page.tsx
+LINE: 1
+TEXT: import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx
+LINE: 1
+TEXT: import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx
+LINE: 3
+TEXT: type GuardianSummonsLetterPreviewProps = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx
+LINE: 4
+TEXT:   template?: unknown;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx
+LINE: 17
+TEXT: export const guardianSummonsTemplatePreset = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx
+LINE: 24
+TEXT:   status: "PUBLISHED",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx
+LINE: 27
+TEXT:   designPreset: "guardian-summons-letter-v1",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx
+LINE: 75
+TEXT: export function GuardianSummonsLetterPreview({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx
+LINE: 78
+TEXT: }: GuardianSummonsLetterPreviewProps) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 6
+TEXT:   ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 8
+TEXT: } from "@/lib/report-engine/report-template-builder-types";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 9
+TEXT: import { REPORT_SERVICE_OPTIONS } from "@/lib/report-engine/report-template-builder-types";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 10
+TEXT: import { validateReportTemplateForPublishing } from "@/lib/report-engine/report-template-validation";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 12
+TEXT: type ReportTemplateAdminToolsProps = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 13
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 218
+TEXT: export function ReportTemplateAdminTools({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 219
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 224
+TEXT: }: ReportTemplateAdminToolsProps) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 237
+TEXT:     return validateReportTemplateForPublishing({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 238
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 242
+TEXT:   }, [template, identity, snippets]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 245
+TEXT:     return buildSampleVariables(identity, template);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 246
+TEXT:   }, [identity, template]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 321
+TEXT:         (template.scope === "SERVICE" ? template.serviceSlug : undefined),
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 572
+TEXT:                   validation.canPublish
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 628
+TEXT:                   validation.canPublish
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 633
+TEXT:                 {validation.canPublish
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 1291
+TEXT:   template: ReportTemplateBuilderModel
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 1294
+TEXT:     template.scope === "SERVICE" && template.serviceSlug
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 1295
+TEXT:       ? getServiceName(template.serviceSlug)
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+LINE: 1308
+TEXT:     reportTitle: template.name || "عنوان التقرير",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 5
+TEXT:   ReportTemplateBlock,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 6
+TEXT:   ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 8
+TEXT: } from "@/lib/report-engine/report-template-builder-types";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 9
+TEXT: import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 10
+TEXT: import { GuardianSummonsLetterPreview } from "@/components/report-engine/guardian-summons-letter-preview";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 17
+TEXT: type ReportTemplateLivePreviewProps = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 18
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 41
+TEXT: export function ReportTemplateLivePreview({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 42
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 46
+TEXT: }: ReportTemplateLivePreviewProps) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 47
+TEXT:   if (template.designPreset === "guardian-summons-letter-v1") {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 49
+TEXT:       <GuardianSummonsLetterPreview
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 50
+TEXT:         template={template}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 85
+TEXT:         {template.pages.map((page, pageIndex) => (
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 96
+TEXT:                       pageIndex < template.pages.length - 1 ? "page" : "auto",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 98
+TEXT:                       pageIndex < template.pages.length - 1 ? "always" : "auto",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 143
+TEXT:                 <CoverPreviewHeader template={template} pageTitle={page.title} />
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 152
+TEXT:                       template={template}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 167
+TEXT:                 <CoverPreviewFooter template={template} />
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 179
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 183
+TEXT:   block: ReportTemplateBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 184
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 205
+TEXT:             {getServiceName(template, previewCaseData)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 210
+TEXT:           {template.name}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 214
+TEXT:           {template.description}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 230
+TEXT:             value={getServiceName(template, previewCaseData)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 277
+TEXT:             value={getServiceName(template, previewCaseData)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 281
+TEXT:             value={template.scope === "GLOBAL" ? "عام" : "خاص بخدمة"}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 283
+TEXT:           <InfoPreview label="حالة القالب" value={template.status} />
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 284
+TEXT:           <InfoPreview label="عدد الصفحات" value={`${template.pages.length}`} />
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 327
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 333
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 446
+TEXT:   block: ReportTemplateBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 531
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 534
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 544
+TEXT:         {getServiceName(template, null)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 548
+TEXT:         {template.name || pageTitle}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 552
+TEXT:         {template.description}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 559
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 561
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 565
+TEXT:       <span>{template.scope === "GLOBAL" ? "قالب عام" : "قالب خاص بخدمة"}</span>
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 567
+TEXT:       <span>{template.status}</span>
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 645
+TEXT:   template: ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 667
+TEXT:     reportTitle: template.name || "عنوان التقرير",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 730
+TEXT:       name: getServiceName(template, previewCaseData),
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 731
+TEXT:       slug: template.serviceSlug || "",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 745
+TEXT:         name: getServiceName(template, previewCaseData),
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 746
+TEXT:         slug: template.serviceSlug || "",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 822
+TEXT:   template: ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 835
+TEXT:   if (template.scope === "SERVICE" && template.serviceSlug) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 836
+TEXT:     return template.serviceSlug;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+LINE: 842
+TEXT: function shouldShowTitle(block: ReportTemplateBlock) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 7
+TEXT:   ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 8
+TEXT:   ReportTemplateStatus,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 10
+TEXT: } from "@/lib/report-engine/report-template-builder-types";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 11
+TEXT: import { validateReportTemplateForPublishing } from "@/lib/report-engine/report-template-validation";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 13
+TEXT: type ReportTemplatePublishToolsProps = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 14
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 18
+TEXT:   onTemplateStatusChange: (status: ReportTemplateStatus) => void;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 29
+TEXT: type PortableTemplatePackage = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 32
+TEXT:   source: "student-guidance-platform-report-template-builder";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 33
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 38
+TEXT: export function ReportTemplatePublishTools({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 39
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 43
+TEXT:   onTemplateStatusChange,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 45
+TEXT: }: ReportTemplatePublishToolsProps) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 56
+TEXT:     return validateReportTemplateForPublishing({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 57
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 61
+TEXT:   }, [template, identity, snippets]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 63
+TEXT:   const templateStats = useMemo(() => {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 64
+TEXT:     const pagesCount = template.pages.length;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 65
+TEXT:     const blocksCount = template.pages.reduce(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 70
+TEXT:     const textLibraryBlocksCount = template.pages.reduce(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 77
+TEXT:     const evidenceBlocksCount = template.pages.reduce(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 85
+TEXT:       template.scope === "SERVICE" && template.serviceSlug
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 88
+TEXT:               !snippet.serviceSlug || snippet.serviceSlug === template.serviceSlug
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 101
+TEXT:   }, [template, snippets, snapshots]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 123
+TEXT:   function publishTemplate() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 124
+TEXT:     if (!validation.canPublish) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 133
+TEXT:     onTemplateStatusChange("PUBLISHED");
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 143
+TEXT:     onTemplateStatusChange("DRAFT");
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 152
+TEXT:   function archiveTemplate() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 153
+TEXT:     onTemplateStatusChange("ARCHIVED");
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 164
+TEXT:       id: `report-template-snapshot-${Date.now()}`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 165
+TEXT:       templateId: template.id,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 166
+TEXT:       templateName: template.name,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 167
+TEXT:       status: template.status,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 169
+TEXT:       pagesCount: template.pages.length,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 170
+TEXT:       blocksCount: templateStats.blocksCount,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 172
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 186
+TEXT:   function exportTemplatePackage() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 187
+TEXT:     const packageData: PortableTemplatePackage = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 190
+TEXT:       source: "student-guidance-platform-report-template-builder",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 191
+TEXT:       template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 203
+TEXT:     const fileName = buildSafeFileName(template.name);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 220
+TEXT:   async function importTemplatePackage(file: File | null) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 228
+TEXT:       const packageData = validatePortableTemplatePackage(parsed);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 233
+TEXT:         `تم التحقق من الملف بنجاح: ${packageData.template.name}. الاستيراد الحقيقي سيُربط لاحقًا بإنشاء Draft جديد بدل استبدال القالب الحالي مباشرة.`
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 261
+TEXT:             ونظام Draft / Published / Archived.
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 265
+TEXT:         <TemplateStatusBadge status={template.status} />
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 269
+TEXT:         <MetricCard label="الصفحات" value={templateStats.pagesCount} />
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 270
+TEXT:         <MetricCard label="البلوكات" value={templateStats.blocksCount} />
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 273
+TEXT:           value={templateStats.textLibraryBlocksCount}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 275
+TEXT:         <MetricCard label="النصوص المتاحة" value={templateStats.snippetsCount} />
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 294
+TEXT:               validation.canPublish
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 306
+TEXT:             value={validation.canPublish ? "جاهز للنشر" : "يحتاج مراجعة"}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 307
+TEXT:             tone={validation.canPublish ? "success" : "danger"}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 312
+TEXT:             value={`${templateStats.serviceSnippetsCount} نص متاح`}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 313
+TEXT:             tone={templateStats.serviceSnippetsCount > 0 ? "success" : "warning"}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 318
+TEXT:             value={`${templateStats.snapshotsCount} نسخة`}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 319
+TEXT:             tone={templateStats.snapshotsCount > 0 ? "success" : "neutral"}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 323
+TEXT:         {!validation.canPublish ? (
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 352
+TEXT:           onClick={publishTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 366
+TEXT:           onClick={archiveTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 382
+TEXT:           onClick={exportTemplatePackage}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 399
+TEXT:             importTemplatePackage(file);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 419
+TEXT: function TemplateStatusBadge({ status }: { status: ReportTemplateStatus }) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 421
+TEXT:     status === "PUBLISHED"
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 669
+TEXT:   return cleaned || "report-template";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 672
+TEXT: function validatePortableTemplatePackage(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 674
+TEXT: ): PortableTemplatePackage {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 679
+TEXT:   const packageData = value as Partial<PortableTemplatePackage>;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 687
+TEXT:     "student-guidance-platform-report-template-builder"
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 692
+TEXT:   if (!packageData.template || typeof packageData.template !== "object") {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 704
+TEXT:   return packageData as PortableTemplatePackage;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 710
+TEXT:     templateName?: string;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+LINE: 721
+TEXT:     title: value.templateName || value.name || value.title || `Snapshot ${index + 1}`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 14
+TEXT:   type ReportTemplateBlock,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 15
+TEXT:   type ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 16
+TEXT:   type ReportTemplatePage,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 17
+TEXT:   type ReportTemplateStatus,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 19
+TEXT: } from "@/lib/report-engine/report-template-builder-types";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 23
+TEXT: } from "@/lib/report-engine/report-template-runtime-types";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 25
+TEXT:   initialReportTemplateBuilderPresets,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 27
+TEXT: } from "@/lib/report-engine/report-template-builder-presets";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 28
+TEXT: import { ReportTemplateAdminTools } from "@/components/report-engine/report-template-admin-tools";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 29
+TEXT: import { ReportTemplatePublishTools } from "@/components/report-engine/report-template-publish-tools";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 30
+TEXT: import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 41
+TEXT: const statusLabels: Record<ReportTemplateStatus, string> = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 43
+TEXT:   PUBLISHED: "منشور",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 127
+TEXT:   const designToTemplateId: Record<string, string> = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 128
+TEXT:     "guardian-summons-letter-v1": "tpl-guardian-summons-letter",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 133
+TEXT:   const templateId = designToTemplateId[designKey] || designKey;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 135
+TEXT:   return initialReportTemplateBuilderPresets.find(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 136
+TEXT:     (template) =>
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 137
+TEXT:       template.id === templateId ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 138
+TEXT:       template.designPreset === designKey
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 142
+TEXT: function createTemplateFromDesignPreset(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 143
+TEXT:   sourceTemplate: ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 144
+TEXT: ): ReportTemplateBuilderModel {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 148
+TEXT:     ...sourceTemplate,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 149
+TEXT:     id: `design-copy-${sourceTemplate.id}-${timestamp}`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 150
+TEXT:     name: `${sourceTemplate.name} - نسخة قابلة للتعديل`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 153
+TEXT:     previewCaseId: sourceTemplate.previewCaseId || "",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 154
+TEXT:     pages: sourceTemplate.pages.map((page) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 164
+TEXT: export function ReportTemplateStudio() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 165
+TEXT:   const [templates, setTemplates] = useState<ReportTemplateBuilderModel[]>(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 166
+TEXT:     initialReportTemplateBuilderPresets,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 169
+TEXT:   const [activeTemplateId, setActiveTemplateId] = useState(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 170
+TEXT:     initialReportTemplateBuilderPresets[0]?.id || "",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 173
+TEXT:   const [savedTemplateIds, setSavedTemplateIds] = useState<Record<string, string>>({});
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 175
+TEXT:   const [templatePendingDelete, setTemplatePendingDelete] =
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 176
+TEXT:     useState<ReportTemplateBuilderModel | null>(null);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 179
+TEXT:     useState<ReportTemplatePage | null>(null);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 214
+TEXT:   const activeTemplate = useMemo(() => {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 215
+TEXT:     return templates.find((template) => template.id === activeTemplateId);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 216
+TEXT:   }, [templates, activeTemplateId]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 227
+TEXT:     const sourceTemplate = getPresetByDesignKey(designKey);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 229
+TEXT:     if (!sourceTemplate) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 233
+TEXT:     const copiedTemplate = createTemplateFromDesignPreset(sourceTemplate);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 235
+TEXT:     setTemplates((currentTemplates) => [copiedTemplate, ...currentTemplates]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 236
+TEXT:     setActiveTemplateId(copiedTemplate.id);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 252
+TEXT:     async function loadSavedReportTemplates() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 255
+TEXT:           "/api/dashboard/report-templates",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 267
+TEXT:         const savedTemplates = Array.isArray(result?.templates)
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 268
+TEXT:           ? result.templates
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 275
+TEXT:         const loadedTemplates = savedTemplates
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 277
+TEXT:             const rawTemplate = item?.templateJson ?? item?.content;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 279
+TEXT:             let parsedTemplate = rawTemplate;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 281
+TEXT:             if (typeof rawTemplate === "string") {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 283
+TEXT:                 parsedTemplate = JSON.parse(rawTemplate);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 285
+TEXT:                 parsedTemplate = null;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 289
+TEXT:             if (!parsedTemplate || typeof parsedTemplate !== "object") {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 290
+TEXT:               parsedTemplate = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 291
+TEXT:                 id: `saved-template-${item.id}`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 310
+TEXT:               parsedTemplate.status === "PUBLISHED" ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 311
+TEXT:               parsedTemplate.status === "ARCHIVED" ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 312
+TEXT:               parsedTemplate.status === "DRAFT"
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 313
+TEXT:                 ? parsedTemplate.status
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 317
+TEXT:               ...parsedTemplate,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 318
+TEXT:               id: `saved-template-${item.id}`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 319
+TEXT:               name: item.name || parsedTemplate.name || "قالب محفوظ",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 322
+TEXT:                 parsedTemplate.description ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 325
+TEXT:                 parsedTemplate.scope ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 327
+TEXT:               serviceSlug: item.serviceSlug || parsedTemplate.serviceSlug,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 331
+TEXT:                 parsedTemplate.updatedAt ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 334
+TEXT:                 Array.isArray(parsedTemplate.pages) &&
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 335
+TEXT:                 parsedTemplate.pages.length > 0
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 336
+TEXT:                   ? parsedTemplate.pages
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 345
+TEXT:           .filter(Boolean) as ReportTemplateBuilderModel[];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 347
+TEXT:         if (!isMounted || loadedTemplates.length === 0) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 351
+TEXT:         setTemplates((currentTemplates) => {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 352
+TEXT:           const presetsOnly = currentTemplates.filter(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 353
+TEXT:             (template) => !template.id.startsWith("saved-template-"),
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 356
+TEXT:           return [...loadedTemplates, ...presetsOnly];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 359
+TEXT:         setSavedTemplateIds((current) => {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 362
+TEXT:           savedTemplates.forEach((item: any) => {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 364
+TEXT:               next[`saved-template-${item.id}`] = item.id;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 371
+TEXT:         setActiveTemplateId(loadedTemplates[0]?.id || "");
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 377
+TEXT:     loadSavedReportTemplates();
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 385
+TEXT:     if (!activeTemplate) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 390
+TEXT:       activeTemplate.scope === "SERVICE" ? activeTemplate.serviceSlug : "";
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 395
+TEXT:           `/api/admin/report-templates/workflow-fields?serviceSlug=${encodeURIComponent(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 413
+TEXT:   }, [activeTemplate?.scope, activeTemplate?.serviceSlug, activeTemplate?.id]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 416
+TEXT:     if (!activeTemplate) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 421
+TEXT:       const caseId = activeTemplate?.previewCaseId?.trim();
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 433
+TEXT:           `/api/admin/report-templates/preview-case?caseId=${encodeURIComponent(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 451
+TEXT:   }, [activeTemplate?.previewCaseId, activeTemplate?.id]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 453
+TEXT:   function updateActiveTemplate(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 455
+TEXT:       template: ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 456
+TEXT:     ) => ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 458
+TEXT:     setTemplates((currentTemplates) =>
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 459
+TEXT:       currentTemplates.map((template) =>
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 460
+TEXT:         template.id === activeTemplateId ? updater(template) : template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 465
+TEXT:   function requestDeleteTemplate(template: ReportTemplateBuilderModel) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 466
+TEXT:     if (templates.length <= 1) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 470
+TEXT:     setTemplatePendingDelete(template);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 473
+TEXT:   async function confirmDeleteTemplate() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 474
+TEXT:     if (!templatePendingDelete) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 478
+TEXT:     const dbTemplateId = savedTemplateIds[templatePendingDelete.id];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 481
+TEXT:       if (dbTemplateId) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 483
+TEXT:           `/api/dashboard/report-templates/${dbTemplateId}`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 498
+TEXT:       const remainingTemplates = templates.filter(
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 499
+TEXT:         (template) => template.id !== templatePendingDelete.id,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 502
+TEXT:       setTemplates(remainingTemplates);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 504
+TEXT:       setSavedTemplateIds((current) => {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 506
+TEXT:         delete next[templatePendingDelete.id];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 510
+TEXT:       if (activeTemplateId === templatePendingDelete.id) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 511
+TEXT:         setActiveTemplateId(remainingTemplates[0]?.id || "");
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 514
+TEXT:       setTemplatePendingDelete(null);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 520
+TEXT:         message: dbTemplateId
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 537
+TEXT:   function requestDeletePage(page: ReportTemplatePage) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 538
+TEXT:     if (!activeTemplate || activeTemplate.pages.length <= 1) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 550
+TEXT:     updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 551
+TEXT:       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 552
+TEXT:       pages: template.pages.filter((page) => page.id !== pagePendingDelete.id),
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 559
+TEXT:   function createNewTemplate() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 560
+TEXT:     const newTemplate: ReportTemplateBuilderModel = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 561
+TEXT:       id: `custom-template-${Date.now()}`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 576
+TEXT:     setTemplates((currentTemplates) => [newTemplate, ...currentTemplates]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 577
+TEXT:     setActiveTemplateId(newTemplate.id);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 580
+TEXT:   function duplicateTemplate(template: ReportTemplateBuilderModel) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 583
+TEXT:     const copiedTemplate: ReportTemplateBuilderModel = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 584
+TEXT:       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 585
+TEXT:       id: `copy-${template.id}-${timestamp}`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 586
+TEXT:       name: `${template.name.replace(/ - نسخة( \d+)?$/u, "")} - نسخة`,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 589
+TEXT:       pages: template.pages.map((page) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 599
+TEXT:     setTemplates((currentTemplates) => [copiedTemplate, ...currentTemplates]);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 600
+TEXT:     setActiveTemplateId(copiedTemplate.id);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 604
+TEXT:     updateActiveTemplate((template) => {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 605
+TEXT:       const index = template.pages.findIndex((page) => page.id === pageId);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 608
+TEXT:         return template;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 613
+TEXT:       if (targetIndex < 0 || targetIndex >= template.pages.length) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 614
+TEXT:         return template;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 617
+TEXT:       const pages = [...template.pages];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 622
+TEXT:         ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 630
+TEXT:     updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 631
+TEXT:       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 632
+TEXT:       pages: [...template.pages, createPageFromPreset(kind)],
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 639
+TEXT:     updater: (page: ReportTemplatePage) => ReportTemplatePage,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 641
+TEXT:     updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 642
+TEXT:       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 643
+TEXT:       pages: template.pages.map((page) =>
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 650
+TEXT:   function addBlockToPage(pageId: string, block: ReportTemplateBlock) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 704
+TEXT:     updateActiveTemplate((template) => {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 705
+TEXT:       const fromPage = template.pages.find((page) => page.id === fromPageId);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 709
+TEXT:         return template;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 713
+TEXT:         ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 714
+TEXT:         pages: template.pages.map((page) => {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 736
+TEXT:   async function changeActiveTemplateStatus(status: ReportTemplateStatus) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 737
+TEXT:     if (!activeTemplate) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 747
+TEXT:     const updatedTemplate: ReportTemplateBuilderModel = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 748
+TEXT:       ...activeTemplate,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 753
+TEXT:     updateActiveTemplate(() => updatedTemplate);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 755
+TEXT:     const dbTemplateId = savedTemplateIds[activeTemplate.id];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 758
+TEXT:       name: updatedTemplate.name || "قالب تقرير جديد",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 760
+TEXT:         updatedTemplate.description ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 762
+TEXT:       serviceSlug: updatedTemplate.serviceSlug ?? null,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 764
+TEXT:       content: JSON.stringify(updatedTemplate),
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 765
+TEXT:       templateJson: updatedTemplate,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 771
+TEXT:       const response = dbTemplateId
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 772
+TEXT:         ? await fetch(`/api/dashboard/report-templates/${dbTemplateId}`, {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 779
+TEXT:         : await fetch("/api/dashboard/report-templates", {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 795
+TEXT:       const savedId =
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 796
+TEXT:         result?.template?.id ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 799
+TEXT:         dbTemplateId ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 802
+TEXT:       if (savedId) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 803
+TEXT:         setSavedTemplateIds((current) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 805
+TEXT:           [activeTemplate.id]: savedId,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 813
+TEXT:           status === "PUBLISHED"
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 819
+TEXT:           status === "PUBLISHED"
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 826
+TEXT:       updateActiveTemplate(() => activeTemplate);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 847
+TEXT:   async function handleSaveTemplate() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 848
+TEXT:     if (!activeTemplate) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 858
+TEXT:     const dbTemplateId = savedTemplateIds[activeTemplate.id];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 861
+TEXT:       name: activeTemplate.name || "قالب تقرير جديد",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 863
+TEXT:         activeTemplate.description ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 865
+TEXT:       serviceSlug: activeTemplate.serviceSlug ?? null,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 867
+TEXT:       content: JSON.stringify(activeTemplate),
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 868
+TEXT:       templateJson: activeTemplate,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 873
+TEXT:     async function createTemplate() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 874
+TEXT:       return fetch("/api/dashboard/report-templates", {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 883
+TEXT:     async function updateTemplate(templateId: string) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 884
+TEXT:       return fetch(`/api/dashboard/report-templates/${templateId}`, {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 894
+TEXT:       let response = dbTemplateId
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 895
+TEXT:         ? await updateTemplate(dbTemplateId)
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 896
+TEXT:         : await createTemplate();
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 900
+TEXT:       if (dbTemplateId && response.status === 404) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 901
+TEXT:         response = await createTemplate();
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 911
+TEXT:       const savedId =
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 912
+TEXT:         result?.template?.id ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 915
+TEXT:         dbTemplateId ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 918
+TEXT:       if (savedId) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 919
+TEXT:         setSavedTemplateIds((current) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 921
+TEXT:           [activeTemplate.id]: savedId,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 929
+TEXT:         message: dbTemplateId
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 946
+TEXT:   if (!activeTemplate) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 960
+TEXT:             onClick={createNewTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 992
+TEXT:               onClick={handleSaveTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1000
+TEXT:               onClick={createNewTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1021
+TEXT:               {templates.map((template) => (
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1023
+TEXT:                   key={template.id}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1025
+TEXT:                   onClick={() => setActiveTemplateId(template.id)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1028
+TEXT:                     template.id === activeTemplateId
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1035
+TEXT:                       {template.name}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1039
+TEXT:                       {statusLabels[template.status]}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1044
+TEXT:                     {template.description}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1049
+TEXT:                       {template.scope === "GLOBAL" ? "عام" : "خاص بخدمة"}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1052
+TEXT:                     <span>{template.pages.length} صفحات</span>
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1080
+TEXT:                   value={activeTemplate.name}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1082
+TEXT:                     updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1083
+TEXT:                       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1095
+TEXT:                   value={activeTemplate.description}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1097
+TEXT:                     updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1098
+TEXT:                       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1113
+TEXT:                   value={activeTemplate.status}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1115
+TEXT:                     updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1116
+TEXT:                       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1117
+TEXT:                       status: event.target.value as ReportTemplateStatus,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1123
+TEXT:                   <option value="PUBLISHED">منشور</option>
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1132
+TEXT:                   value={activeTemplate.scope}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1134
+TEXT:                     updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1135
+TEXT:                       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1136
+TEXT:                       scope: event.target.value as ReportTemplateBuilderModel["scope"],
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1140
+TEXT:                           : template.serviceSlug,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1151
+TEXT:                 {activeTemplate.scope !== "GLOBAL" ? (
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1158
+TEXT:                       value={activeTemplate.serviceSlug || ""}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1160
+TEXT:                         updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1161
+TEXT:                           ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1182
+TEXT:                   value={activeTemplate.documentType || "REPORT"}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1184
+TEXT:                     updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1185
+TEXT:                       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1199
+TEXT:                 {activeTemplate.scope === "WORKFLOW" ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1200
+TEXT:                 activeTemplate.scope === "SUB_WORKFLOW" ? (
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1207
+TEXT:                       value={activeTemplate.workflowSlug || ""}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1209
+TEXT:                         updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1210
+TEXT:                           ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1223
+TEXT:                       value={activeTemplate.subWorkflowKey || ""}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1225
+TEXT:                         updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1226
+TEXT:                           ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1240
+TEXT:                   value={activeTemplate.previewCaseId || ""}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1242
+TEXT:                     updateActiveTemplate((template) => ({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1243
+TEXT:                       ...template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1254
+TEXT:                     onClick={() => duplicateTemplate(activeTemplate)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1262
+TEXT:                     onClick={() => requestDeleteTemplate(activeTemplate)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1263
+TEXT:                     disabled={templates.length <= 1}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1273
+TEXT:           <ReportTemplateAdminTools
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1274
+TEXT:             template={activeTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1281
+TEXT:           <ReportTemplatePublishTools
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1282
+TEXT:             template={activeTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1286
+TEXT:             onTemplateStatusChange={changeActiveTemplateStatus}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1297
+TEXT:           <ReportTemplateLivePreview
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1298
+TEXT:             template={activeTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1343
+TEXT:             {activeTemplate.pages.map((page, pageIndex) => (
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1344
+TEXT:               <TemplatePageCard
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1346
+TEXT:                 template={activeTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1350
+TEXT:                 pages={activeTemplate.pages}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1353
+TEXT:                 canMoveDown={pageIndex < activeTemplate.pages.length - 1}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1354
+TEXT:                 canDeletePage={activeTemplate.pages.length > 1}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1405
+TEXT:       {templatePendingDelete ? (
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1412
+TEXT:                 {templatePendingDelete.name}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1418
+TEXT:           onCancel={() => setTemplatePendingDelete(null)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1419
+TEXT:           onConfirm={confirmDeleteTemplate}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1526
+TEXT: function createPageFromPreset(kind: ReportPageKind): ReportTemplatePage {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1564
+TEXT:       .filter((block): block is ReportTemplateBlock => Boolean(block)),
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1568
+TEXT: function TemplatePageCard({
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1569
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1586
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1588
+TEXT:   page: ReportTemplatePage;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1590
+TEXT:   pages: ReportTemplatePage[];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1596
+TEXT:   onRequestDeletePage: (page: ReportTemplatePage) => void;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1597
+TEXT:   onAddBlock: (pageId: string, block: ReportTemplateBlock) => void;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1611
+TEXT:     updater: (page: ReportTemplatePage) => ReportTemplatePage,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1725
+TEXT:               template={template}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1782
+TEXT:   page: ReportTemplatePage;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1785
+TEXT:     updater: (page: ReportTemplatePage) => ReportTemplatePage,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1891
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1905
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1907
+TEXT:   page: ReportTemplatePage;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1908
+TEXT:   pages: ReportTemplatePage[];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1910
+TEXT:   block: ReportTemplateBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1916
+TEXT:     updater: (page: ReportTemplatePage) => ReportTemplatePage,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1931
+TEXT:     updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2050
+TEXT:         template={template}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2089
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2094
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2096
+TEXT:   block: ReportTemplateBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2098
+TEXT:     updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2224
+TEXT:           template={template}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2235
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2240
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2242
+TEXT:   block: ReportTemplateBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2244
+TEXT:     updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2251
+TEXT:     template,
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2297
+TEXT:             <option value="same-template-service">نفس خدمة القالب</option>
+
+FILE: D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+LINE: 3
+TEXT: type Template = {
+
+FILE: D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+LINE: 10
+TEXT:   templates: Template[];
+
+FILE: D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+LINE: 14
+TEXT: export function ReportTemplateSidebar({ templates, onInsert }: Props) {
+
+FILE: D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+LINE: 21
+TEXT:           Templates
+
+FILE: D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+LINE: 26
+TEXT:         {templates.map((template) => (
+
+FILE: D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+LINE: 28
+TEXT:             key={template.id}
+
+FILE: D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+LINE: 30
+TEXT:             onClick={() => onInsert(template.content)}
+
+FILE: D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+LINE: 33
+TEXT:             <p className="font-black text-slate-900">{template.title}</p>
+
+FILE: D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+LINE: 36
+TEXT:               {template.content}
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-form.tsx
+LINE: 9
+TEXT: export function ReportTemplateForm({
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 1
+TEXT: type ReportTemplateItem = {
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 12
+TEXT:   templates?: ReportTemplateItem[];
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 15
+TEXT: export function ReportTemplateList({ templates = [] }: Props) {
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 28
+TEXT:       {templates.length === 0 ? (
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 56
+TEXT:               {templates.map((template) => (
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 57
+TEXT:                 <tr key={template.id} className="border-t border-slate-100">
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 59
+TEXT:                     {template.name}
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 63
+TEXT:                     {template.serviceSlug || "كل الخدمات"}
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 67
+TEXT:                     {template.type}
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 71
+TEXT:                     {template.usageCount}
+
+FILE: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+LINE: 76
+TEXT:                       {template.isActive ? "نشط" : "معطل"}
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts
+LINE: 1
+TEXT: import { guardianSummonsTemplatePreset } from "@/components/report-engine/guardian-summons-letter-preview";
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts
+LINE: 3
+TEXT:   ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts
+LINE: 5
+TEXT: } from "./report-template-builder-types";
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts
+LINE: 40
+TEXT: export const initialReportTemplateBuilderPresets: ReportTemplateBuilderModel[] = [
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts
+LINE: 41
+TEXT:     guardianSummonsTemplatePreset,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts
+LINE: 48
+TEXT:       status: "PUBLISHED",
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts
+LINE: 215
+TEXT:       status: "PUBLISHED",
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 1
+TEXT: export type ReportTemplateScope =
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 7
+TEXT: export type ReportTemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 17
+TEXT: export type ReportDesignPreset =
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 20
+TEXT:   | "guardian-summons-letter-v1";
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 81
+TEXT: export type ReportTemplateBlock = {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 94
+TEXT: export type ReportTemplatePage = {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 99
+TEXT:   blocks: ReportTemplateBlock[];
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 103
+TEXT: export type ReportTemplateBuilderModel = {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 107
+TEXT:   scope: ReportTemplateScope;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 109
+TEXT:   status: ReportTemplateStatus;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 110
+TEXT:   pages: ReportTemplatePage[];
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 115
+TEXT:   designPreset?: ReportDesignPreset;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 150
+TEXT: export type ReportTemplateValidationIssue = {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 157
+TEXT: export type ReportTemplateValidationResult = {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 158
+TEXT:   canPublish: boolean;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 160
+TEXT:   issues: ReportTemplateValidationIssue[];
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 285
+TEXT: export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 462
+TEXT:   templateId: string;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 463
+TEXT:   templateName: string;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 464
+TEXT:   templateStatus: ReportTemplateStatus;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+LINE: 465
+TEXT:   templateSnapshot: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 3
+TEXT:   ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 5
+TEXT: } from "@/lib/report-engine/report-template-builder-types";
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 7
+TEXT: export type ReportTemplatePortablePackage = {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 10
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 15
+TEXT: export function createReportTemplatePortablePackage(params: {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 16
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 19
+TEXT: }): ReportTemplatePortablePackage {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 23
+TEXT:     template: params.template,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 29
+TEXT: export function downloadReportTemplatePackage(params: {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 30
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 34
+TEXT:   const packageData = createReportTemplatePortablePackage(params);
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 40
+TEXT:   const safeName = params.template.name
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 49
+TEXT:   anchor.download = `${safeName || "report-template"}-${Date.now()}.json`;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 57
+TEXT: export async function readReportTemplatePackageFromFile(
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 59
+TEXT: ): Promise<ReportTemplatePortablePackage> {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 68
+TEXT: ): ReportTemplatePortablePackage {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 73
+TEXT:   const packageData = value as Partial<ReportTemplatePortablePackage>;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 79
+TEXT:   if (!packageData.template || typeof packageData.template !== "object") {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 80
+TEXT:     throw new Error("ملف القالب لا يحتوي على template صالح.");
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+LINE: 91
+TEXT:   return packageData as ReportTemplatePortablePackage;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 3
+TEXT:   ReportTemplateBuilderModel,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 4
+TEXT:   ReportTemplateValidationIssue,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 5
+TEXT:   ReportTemplateValidationResult,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 7
+TEXT: } from "@/lib/report-engine/report-template-builder-types";
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 9
+TEXT: export function validateReportTemplateForPublishing({
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 10
+TEXT:   template,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 14
+TEXT:   template: ReportTemplateBuilderModel;
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 17
+TEXT: }): ReportTemplateValidationResult {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 18
+TEXT:   const issues: ReportTemplateValidationIssue[] = [];
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 20
+TEXT:   if (!template.name.trim()) {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 22
+TEXT:       id: "missing-template-name",
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 29
+TEXT:   if (!template.description.trim()) {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 31
+TEXT:       id: "missing-template-description",
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 38
+TEXT:   if (template.scope === "SERVICE" && !template.serviceSlug) {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 47
+TEXT:   if (!template.pages.length) {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 56
+TEXT:   const hasCover = template.pages.some((page) => page.kind === "cover");
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 57
+TEXT:   const hasEvidence = template.pages.some((page) =>
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 60
+TEXT:   const hasApproval = template.pages.some((page) =>
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 63
+TEXT:   const hasCaseData = template.pages.some((page) =>
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 106
+TEXT:   template.pages.forEach((page, pageIndex) => {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 206
+TEXT:       id: "template-ready",
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+LINE: 214
+TEXT:     canPublish: errors === 0,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 3
+TEXT:   ReportTemplateDefinition,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 4
+TEXT:   ReportTemplateFieldKey,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 5
+TEXT:   ReportTemplateId,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 8
+TEXT: export const reportTemplates: ReportTemplateDefinition[] = [
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 92
+TEXT: export function getReportTemplate(templateId: ReportTemplateId) {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 94
+TEXT:     reportTemplates.find((template) => template.id === templateId) ||
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 95
+TEXT:     reportTemplates[0]
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 101
+TEXT:   key: ReportTemplateFieldKey
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 135
+TEXT:   templateId: ReportTemplateId
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 137
+TEXT:   const template = getReportTemplate(templateId);
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+LINE: 139
+TEXT:   return template.requiredFields.filter((field) => {
+
+FILE: D:\student-guidance-platform-clean\lib\reports\default-report-templates.ts
+LINE: 1
+TEXT: export const DEFAULT_REPORT_TEMPLATES = [
+
+FILE: D:\student-guidance-platform-clean\scripts\debug-report-templates-db.ts
+LINE: 4
+TEXT:   const templates = await prisma.reportTemplate.findMany({
+
+FILE: D:\student-guidance-platform-clean\scripts\debug-report-templates-db.ts
+LINE: 22
+TEXT:         count: templates.length,
+
+FILE: D:\student-guidance-platform-clean\scripts\debug-report-templates-db.ts
+LINE: 23
+TEXT:         templates,
+
+FILE: D:\student-guidance-platform-clean\_stable-backups\guardian-summons-letter-preview.STABLE-2026-06-02.tsx
+LINE: 1
+TEXT: import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+
+FILE: D:\student-guidance-platform-clean\_stable-backups\guardian-summons-letter-preview.STABLE-2026-06-02.tsx
+LINE: 3
+TEXT: type GuardianSummonsLetterPreviewProps = {
+
+FILE: D:\student-guidance-platform-clean\_stable-backups\guardian-summons-letter-preview.STABLE-2026-06-02.tsx
+LINE: 4
+TEXT:   template?: unknown;
+
+FILE: D:\student-guidance-platform-clean\_stable-backups\guardian-summons-letter-preview.STABLE-2026-06-02.tsx
+LINE: 17
+TEXT: export const guardianSummonsTemplatePreset = {
+
+FILE: D:\student-guidance-platform-clean\_stable-backups\guardian-summons-letter-preview.STABLE-2026-06-02.tsx
+LINE: 24
+TEXT:   status: "PUBLISHED",
+
+FILE: D:\student-guidance-platform-clean\_stable-backups\guardian-summons-letter-preview.STABLE-2026-06-02.tsx
+LINE: 27
+TEXT:   designPreset: "guardian-summons-letter-v1",
+
+FILE: D:\student-guidance-platform-clean\_stable-backups\guardian-summons-letter-preview.STABLE-2026-06-02.tsx
+LINE: 75
+TEXT: export function GuardianSummonsLetterPreview({
+
+FILE: D:\student-guidance-platform-clean\_stable-backups\guardian-summons-letter-preview.STABLE-2026-06-02.tsx
+LINE: 78
+TEXT: }: GuardianSummonsLetterPreviewProps) {
+
