@@ -107,9 +107,11 @@ export async function GET(request: Request) {
       });
     }
 
-    const fields: RuntimeWorkflowFieldOption[] = workflow.steps.flatMap((step) =>
-      step.fields.map((field) => ({
-        key: field.key,
+    const fields: RuntimeWorkflowFieldOption[] = workflow.steps.flatMap((step: any) =>
+step.fields.map((field: any) => ({
+  
+  
+  key: field.key,
         label: field.label,
         type: field.type,
         source: "workflow" as const,
