@@ -276,8 +276,8 @@ export function AdminUsersCommandCenter() {
   const stats = data?.stats;
 
   return (
-    <main className="space-y-5" dir="rtl">
-      <section className="relative overflow-hidden rounded-[1.7rem] border border-slate-100 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-5 shadow-sm">
+    <main className="space-y-6 pb-24" dir="rtl">
+      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-sky-50 to-blue-50 p-6 shadow-sm">
         <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-sky-100/70 blur-3xl" />
 
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-5">
@@ -287,7 +287,7 @@ export function AdminUsersCommandCenter() {
               Admin Users Command Center
             </div>
 
-            <h1 className="mt-3 text-3xl font-black text-slate-950">
+            <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950">
               إدارة المستخدمين والموجهين
             </h1>
 
@@ -304,8 +304,7 @@ export function AdminUsersCommandCenter() {
             >
               المشتركين
             </Link>
-
-            <Link
+<Link
               href="/dashboard/admin/subscriptions"
               className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-slate-800"
             >
@@ -321,6 +320,75 @@ export function AdminUsersCommandCenter() {
         </div>
       ) : null}
 
+      
+      {/* SMART_SELECTED_USER_BAR */}
+      {selectedUser ? (
+        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-950 text-white shadow-sm">
+          <div className="relative p-5">
+            <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-sky-500/20 blur-3xl" />
+            <div className="absolute -bottom-24 right-24 h-56 w-56 rounded-full bg-emerald-400/10 blur-3xl" />
+
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-3xl bg-white/10 ring-1 ring-white/10">
+                  <UserRound className="h-6 w-6" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-black text-sky-200">
+                    المستخدم المحدد الآن
+                  </p>
+                  <h2 className="mt-1 truncate text-2xl font-black">
+                    {selectedUser.officialName || selectedUser.name || "بدون اسم"}
+                  </h2>
+                  <p className="mt-1 truncate text-xs font-bold text-slate-300">
+                    {selectedUser.email} · {roleLabel(selectedUser.role)} · {selectedUser.schoolName || "بدون مدرسة"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/dashboard/admin/users/${selectedUser.id}`}
+                  className="rounded-2xl bg-sky-500 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-400"
+                >
+                  إدارة المستخدم
+                </Link>
+
+                <button
+                  type="button"
+                  disabled={processingId === selectedUser.id}
+                  onClick={() => runAction("logout-user", selectedUser)}
+                  className="rounded-2xl bg-white/10 px-5 py-3 text-sm font-black text-white ring-1 ring-white/10 transition hover:bg-white/15 disabled:opacity-60"
+                >
+                  تسجيل خروجه
+                </button>
+
+                {selectedUser.isActive ? (
+                  <button
+                    type="button"
+                    disabled={processingId === selectedUser.id}
+                    onClick={() => runAction("disable-user", selectedUser)}
+                    className="rounded-2xl bg-amber-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-300 disabled:opacity-60"
+                  >
+                    إيقاف الحساب
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={processingId === selectedUser.id}
+                    onClick={() => runAction("activate-user", selectedUser)}
+                    className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:opacity-60"
+                  >
+                    تفعيل الحساب
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatCard title="المستخدمون" value={stats?.totalUsers || 0} icon={<Users />} />
         <StatCard title="الموجهون" value={stats?.counselors || 0} icon={<UserRound />} tone="sky" />
@@ -332,7 +400,7 @@ export function AdminUsersCommandCenter() {
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
         <div className="space-y-4">
-          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-4 shadow-sm">
+          <section className="rounded-[1.7rem] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_180px]">
               <div className="relative">
                 <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -372,7 +440,7 @@ export function AdminUsersCommandCenter() {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-[1.45rem] border border-slate-100 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div>
                 <h2 className="text-xl font-black text-slate-950">
@@ -382,8 +450,7 @@ export function AdminUsersCommandCenter() {
                   النتائج: {filteredUsers.length}
                 </p>
               </div>
-
-              <button
+<button
                 type="button"
                 onClick={load}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-100"
@@ -401,7 +468,7 @@ export function AdminUsersCommandCenter() {
                   onClick={() => setSelectedUser(user)}
                   className={[
                     "grid w-full gap-3 p-4 text-right transition hover:bg-slate-50 lg:grid-cols-[minmax(0,1fr)_140px_120px_120px]",
-                    selectedUser?.id === user.id ? "bg-sky-50/50" : "bg-white",
+                    selectedUser?.id === user.id ? "bg-sky-50 ring-1 ring-sky-200" : "bg-white",
                   ].join(" ")}
                 >
                   <div className="flex min-w-0 items-center gap-3">
@@ -522,6 +589,13 @@ export function AdminUsersCommandCenter() {
                 </h3>
 
                 <div className="mt-4 grid gap-2">
+                  <Link
+                    href={`/dashboard/admin/users/${selectedUser.id}`}
+                    className="rounded-2xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
+                  >
+                    إدارة المستخدم
+                  </Link>
+
                   {selectedUser.isActive ? (
                     <ActionButton
                       icon={<Lock />}
@@ -708,3 +782,10 @@ function ActionButton({
     </button>
   );
 }
+
+
+
+
+
+
+

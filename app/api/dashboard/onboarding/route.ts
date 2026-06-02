@@ -62,7 +62,7 @@ export async function POST(request: Request) {
           id: session.schoolAccountId,
         },
         data: {
-          name: schoolName,
+          name: officialName || schoolName,
         },
       }),
 
@@ -109,3 +109,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

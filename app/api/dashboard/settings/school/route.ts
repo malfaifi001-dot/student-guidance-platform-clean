@@ -91,7 +91,7 @@ export async function PATCH(request: Request) {
           id: current.user.schoolAccountId,
         },
         data: {
-          name: schoolName,
+          name: officialName || schoolName,
         },
       }),
 
@@ -140,3 +140,4 @@ export async function PATCH(request: Request) {
     );
   }
 }
+

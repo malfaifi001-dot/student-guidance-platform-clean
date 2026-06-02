@@ -3,6 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 
+function getSchoolDisplayName(account: {
+  profile?: {
+    schoolName?: string | null;
+  } | null;
+}) {
+  const schoolName = String(account.profile?.schoolName || "").trim();
+  return schoolName || "هوية المدرسة غير مكتملة";
+}
+
 function slugify(input: string) {
   return input
     .trim()
@@ -125,11 +134,11 @@ export async function GET() {
               slug: true,
               isActive: true,
               profile: {
-                select: {
-                  schoolName: true,
-                  educationDepartment: true,
-                },
-              },
+            select: {
+              schoolName: true,
+              educationDepartment: true,
+            },
+          },
             },
           },
           plan: true,
@@ -481,3 +490,5 @@ export async function POST(request: Request) {
     { status: 400 }
   );
 }
+
+

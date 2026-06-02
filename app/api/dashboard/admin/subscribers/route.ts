@@ -6,6 +6,15 @@ import {
   isSubscriptionUsable,
 } from "@/lib/subscription/subscription-service";
 
+function getSchoolDisplayName(account: {
+  profile?: {
+    schoolName?: string | null;
+  } | null;
+}) {
+  const schoolName = String(account.profile?.schoolName || "").trim();
+  return schoolName || "هوية المدرسة غير مكتملة";
+}
+
 function getComputedStatus(input: {
   subscriptionStatus?: string | null;
   endsAt?: Date | null;
@@ -118,7 +127,7 @@ export async function GET() {
       accountName: account.name,
       slug: account.slug,
       isActive: account.isActive,
-      schoolName: account.profile?.schoolName || account.name,
+      schoolName: getSchoolDisplayName(account),
       educationDepartment: account.profile?.educationDepartment || "",
       ownerName: owner?.officialName || owner?.name || "غير محدد",
       ownerEmail: owner?.email || "",
@@ -177,3 +186,7 @@ export async function GET() {
     subscribers,
   });
 }
+
+
+
+

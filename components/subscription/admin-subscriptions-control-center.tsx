@@ -566,8 +566,7 @@ export function AdminSubscriptionsControlCenter() {
                     <tr key={subscription.id}>
                       <td className="p-3">
                         <p className="font-black text-slate-900">
-                          {subscription.schoolAccount.profile?.schoolName ||
-                            subscription.schoolAccount.name}
+                          {subscription.schoolAccount.name}
                         </p>
                         <p className="mt-1 text-xs font-bold text-slate-400">
                           {subscription.schoolAccount.slug}
@@ -660,7 +659,7 @@ export function AdminSubscriptionsControlCenter() {
                 <option value="">اختر الحساب</option>
                 {data?.schools.map((school) => (
                   <option key={school.id} value={school.id}>
-                    {school.profile?.schoolName || school.name}
+                    {school.name}
                   </option>
                 ))}
               </select>
@@ -723,7 +722,7 @@ export function AdminSubscriptionsControlCenter() {
                 <option value="">اختر الحساب</option>
                 {data?.schools.map((school) => (
                   <option key={school.id} value={school.id}>
-                    {school.profile?.schoolName || school.name}
+                    {school.name}
                   </option>
                 ))}
               </select>
@@ -870,3 +869,6 @@ function PlanMini({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+
+

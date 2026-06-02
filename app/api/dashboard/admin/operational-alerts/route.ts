@@ -228,8 +228,7 @@ export async function GET() {
           id: subscription.id,
           schoolAccountId: subscription.schoolAccountId,
           schoolName:
-            subscription.schoolAccount.profile?.schoolName ||
-            subscription.schoolAccount.name,
+            subscription.schoolAccount.profile?.schoolName || "هوية المدرسة غير مكتملة",
           planName: subscription.plan.name,
           endsAt: subscription.endsAt,
           status: subscription.status,
@@ -364,3 +363,4 @@ export async function GET() {
     alerts: sortedAlerts,
   });
 }
+

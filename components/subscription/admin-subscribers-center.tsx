@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowUpRight,
   CheckCircle2,
   Crown,
-  FileText,
   Loader2,
   PauseCircle,
   RefreshCw,
@@ -107,6 +107,22 @@ function statusClasses(status: SubscriberStatus) {
   return "bg-slate-50 text-slate-500";
 }
 
+function decisionLabel(item: Subscriber) {
+  if (item.pendingRequestsCount > 0) return "راجع طلبات التحويل";
+  if (item.computedStatus === "NO_SUBSCRIPTION") return "فعّل باقة للحساب";
+  if (item.computedStatus === "EXPIRED") return "مدّد الاشتراك";
+  if (item.computedStatus === "CANCELED") return "راجع سبب الإلغاء";
+  if (item.computedStatus === "PAST_DUE") return "متابعة الدفع";
+  if ((item.subscription?.remainingDays ?? 999) <= 7) return "قريب الانتهاء";
+  return "مستقر";
+}
+
+function decisionClass(item: Subscriber) {
+  if (item.pendingRequestsCount > 0) return "bg-violet-50 text-violet-700";
+  if (item.needsAttention) return "bg-amber-50 text-amber-700";
+  return "bg-emerald-50 text-emerald-700";
+}
+
 export function AdminSubscribersCenter() {
   const [data, setData] = useState<SubscribersPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,6 +134,7 @@ export function AdminSubscribersCenter() {
   >("attention");
   const [message, setMessage] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -127,6 +144,7 @@ export function AdminSubscribersCenter() {
 
     if (response.ok) {
       setData(result);
+      setSelectedId((current) => current || result.subscribers?.[0]?.schoolAccountId || null);
     } else {
       setMessage(result.error || "تعذر تحميل المشتركين.");
     }
@@ -193,6 +211,27 @@ export function AdminSubscribersCenter() {
     return list;
   }, [data?.subscribers, planId, query, sortBy, status]);
 
+  const selectedSubscriber =
+    filteredSubscribers.find((item) => item.schoolAccountId === selectedId) ||
+    filteredSubscribers[0] ||
+    null;
+
+  const priorityItems = useMemo(() => {
+    return [...(data?.subscribers || [])]
+      .filter((item) => item.needsAttention)
+      .sort((a, b) => {
+        if (b.pendingRequestsCount !== a.pendingRequestsCount) {
+          return b.pendingRequestsCount - a.pendingRequestsCount;
+        }
+
+        return (
+          (a.subscription?.remainingDays ?? 99999) -
+          (b.subscription?.remainingDays ?? 99999)
+        );
+      })
+      .slice(0, 3);
+  }, [data?.subscribers]);
+
   async function runAction(input: {
     type: "extend" | "year" | "cancel";
     subscriber: Subscriber;
@@ -250,33 +289,46 @@ export function AdminSubscribersCenter() {
   const stats = data?.stats;
 
   return (
-    <main className="space-y-5" dir="rtl">
-      <section className="relative overflow-hidden rounded-[1.7rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-5 shadow-sm">
-        <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-sky-100/70 blur-3xl" />
+    <main className="space-y-6 pb-24" dir="rtl">
+      <section className="relative overflow-hidden rounded-[2.2rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-sm">
+        <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-sky-500/20 blur-3xl" />
+        <div className="absolute -bottom-28 right-32 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
 
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-5">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[12px] font-black text-sky-700 shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[12px] font-black text-sky-100 ring-1 ring-white/10">
               <UserCheck className="h-4 w-4" />
-              Admin Subscribers Center
+              Admin Subscribers Decision Center
             </div>
 
-            <h1 className="mt-3 text-3xl font-black text-slate-950">
-              المشتركين والحسابات
+            <h1 className="mt-4 text-4xl font-black tracking-tight">
+              مركز قرارات المشتركين
             </h1>
 
-            <p className="mt-2 max-w-3xl text-[14px] font-bold leading-7 text-slate-600">
-              راقب الحسابات، الاشتراكات، الأيام المتبقية، طلبات التحويل،
-              والحسابات التي تحتاج متابعة من مكان واحد.
+            <p className="mt-3 max-w-3xl text-[14px] font-bold leading-7 text-slate-300">
+              هذه الصفحة تساعدك تعرف من يحتاج متابعة الآن، من يستحق التمديد،
+              ومن عنده طلب تحويل أو اشتراك منتهي أو بدون باقة.
             </p>
           </div>
 
-          <Link
-            href="/dashboard/admin/subscriptions"
-            className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-slate-800"
-          >
-            إدارة الباقات
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={load}
+              className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 text-sm font-black text-white ring-1 ring-white/10 transition hover:bg-white/15"
+            >
+              <RefreshCw className="h-4 w-4" />
+              تحديث
+            </button>
+
+            <Link
+              href="/dashboard/admin/subscriptions"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-slate-100"
+            >
+              إدارة الباقات
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -296,228 +348,259 @@ export function AdminSubscribersCenter() {
         <StatCard title="طلبات معلقة" value={stats?.pendingRequests || 0} icon={<WalletCards />} tone="violet" />
       </section>
 
-      <section className="rounded-[1.45rem] border border-slate-100 bg-white p-4 shadow-sm">
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_180px_180px]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="ابحث باسم الحساب، المدرسة، الإيميل، الباقة..."
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
-            />
-          </div>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <div className="space-y-6">
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_180px_180px]">
+              <div className="relative">
+                <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="ابحث باسم الحساب، المدرسة، الإيميل، الباقة..."
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 text-sm font-bold outline-none transition focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+                />
+              </div>
 
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value as FilterStatus)}
-            className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
-          >
-            <option value="ALL">كل الحالات</option>
-            <option value="NEEDS_ATTENTION">تحتاج متابعة</option>
-            <option value="ACTIVE">نشط</option>
-            <option value="TRIAL">تجربة</option>
-            <option value="EXPIRED">منتهي</option>
-            <option value="CANCELED">ملغي</option>
-            <option value="NO_SUBSCRIPTION">بدون اشتراك</option>
-          </select>
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value as FilterStatus)}
+                className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+              >
+                <option value="ALL">كل الحالات</option>
+                <option value="NEEDS_ATTENTION">تحتاج متابعة</option>
+                <option value="ACTIVE">نشط</option>
+                <option value="TRIAL">تجربة</option>
+                <option value="EXPIRED">منتهي</option>
+                <option value="CANCELED">ملغي</option>
+                <option value="NO_SUBSCRIPTION">بدون اشتراك</option>
+              </select>
 
-          <select
-            value={planId}
-            onChange={(event) => setPlanId(event.target.value)}
-            className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
-          >
-            <option value="ALL">كل الباقات</option>
-            {data?.plans.map((plan) => (
-              <option key={plan.id} value={plan.id}>
-                {plan.name}
-              </option>
-            ))}
-          </select>
+              <select
+                value={planId}
+                onChange={(event) => setPlanId(event.target.value)}
+                className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+              >
+                <option value="ALL">كل الباقات</option>
+                {data?.plans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}
+                  </option>
+                ))}
+              </select>
 
-          <select
-            value={sortBy}
-            onChange={(event) =>
-              setSortBy(event.target.value as "attention" | "remaining" | "students" | "newest")
-            }
-            className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
-          >
-            <option value="attention">الأولوية</option>
-            <option value="remaining">الأقرب انتهاء</option>
-            <option value="students">الأكثر طلابًا</option>
-            <option value="newest">ترتيب أبجدي</option>
-          </select>
-        </div>
-      </section>
+              <select
+                value={sortBy}
+                onChange={(event) =>
+                  setSortBy(event.target.value as "attention" | "remaining" | "students" | "newest")
+                }
+                className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+              >
+                <option value="attention">الأولوية</option>
+                <option value="remaining">الأقرب انتهاء</option>
+                <option value="students">الأكثر طلابًا</option>
+                <option value="newest">ترتيب أبجدي</option>
+              </select>
+            </div>
+          </section>
 
-      <section className="overflow-hidden rounded-[1.45rem] border border-slate-100 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <div>
-            <h2 className="text-xl font-black text-slate-950">
-              قائمة المشتركين
-            </h2>
-            <p className="mt-1 text-[12px] font-bold text-slate-400">
-              النتائج: {filteredSubscribers.length}
-            </p>
-          </div>
+          <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-950">
+                  الحسابات حسب الأولوية
+                </h2>
+                <p className="mt-1 text-[12px] font-bold text-slate-400">
+                  النتائج: {filteredSubscribers.length}
+                </p>
+              </div>
+            </div>
 
-          <button
-            type="button"
-            onClick={load}
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-100"
-          >
-            <RefreshCw className="h-4 w-4" />
-            تحديث
-          </button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1050px] text-right text-sm">
-            <thead className="bg-slate-50 text-xs font-black text-slate-500">
-              <tr>
-                <th className="p-4">الحساب</th>
-                <th className="p-4">المسؤول</th>
-                <th className="p-4">الباقة</th>
-                <th className="p-4">الحالة</th>
-                <th className="p-4">ينتهي</th>
-                <th className="p-4">المستخدمون</th>
-                <th className="p-4">الطلاب</th>
-                <th className="p-4">طلبات معلقة</th>
-                <th className="p-4">إجراءات</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-100">
+            <div className="grid gap-3 p-4">
               {filteredSubscribers.map((item) => (
-                <tr
+                <button
                   key={item.schoolAccountId}
-                  className={item.needsAttention ? "bg-amber-50/25" : "bg-white"}
+                  type="button"
+                  onClick={() => setSelectedId(item.schoolAccountId)}
+                  className={[
+                    "rounded-[1.5rem] border p-4 text-right transition hover:bg-slate-50",
+                    selectedSubscriber?.schoolAccountId === item.schoolAccountId
+                      ? "border-sky-200 bg-sky-50/70 ring-1 ring-sky-100"
+                      : "border-slate-100 bg-white",
+                  ].join(" ")}
                 >
-                  <td className="p-4">
-                    <p className="font-black text-slate-950">{item.schoolName}</p>
-                    <p className="mt-1 text-xs font-bold text-slate-400">
-                      {item.slug}
-                    </p>
-                  </td>
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-black text-slate-950">
+                          {item.ownerName || item.accountName || item.schoolName}
+                        </h3>
 
-                  <td className="p-4">
-                    <p className="font-bold text-slate-700">{item.ownerName}</p>
-                    <p className="mt-1 text-xs font-bold text-slate-400">
-                      {item.ownerEmail || "—"}
-                    </p>
-                  </td>
+                        <span
+                          className={[
+                            "rounded-full px-3 py-1 text-xs font-black",
+                            statusClasses(item.computedStatus),
+                          ].join(" ")}
+                        >
+                          {statusLabel(item.computedStatus)}
+                        </span>
 
-                  <td className="p-4">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
-                      <Crown className="h-3.5 w-3.5" />
-                      {item.subscription?.planName || "بدون باقة"}
-                    </span>
-                  </td>
-
-                  <td className="p-4">
-                    <span
-                      className={[
-                        "inline-flex rounded-full px-3 py-1 text-xs font-black",
-                        statusClasses(item.computedStatus),
-                      ].join(" ")}
-                    >
-                      {statusLabel(item.computedStatus)}
-                    </span>
-                  </td>
-
-                  <td className="p-4 text-xs font-bold text-slate-500">
-                    {item.subscription?.endsAt ? (
-                      <div>
-                        <p>
-                          {new Date(item.subscription.endsAt).toLocaleDateString(
-                            "ar-SA"
-                          )}
-                        </p>
-                        <p className="mt-1">
-                          {item.subscription.remainingDays !== null
-                            ? `${item.subscription.remainingDays} يوم`
-                            : "غير محدد"}
-                        </p>
+                        <span
+                          className={[
+                            "rounded-full px-3 py-1 text-xs font-black",
+                            decisionClass(item),
+                          ].join(" ")}
+                        >
+                          {decisionLabel(item)}
+                        </span>
                       </div>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
 
-                  <td className="p-4 font-black text-slate-700">
-                    {item.usersCount}
-                  </td>
-
-                  <td className="p-4 font-black text-slate-700">
-                    {item.studentsCount}
-                  </td>
-
-                  <td className="p-4">
-                    {item.pendingRequestsCount > 0 ? (
-                      <Link
-                        href="/dashboard/admin/activations"
-                        className="inline-flex rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700"
-                      >
-                        {item.pendingRequestsCount} طلب
-                      </Link>
-                    ) : (
-                      <span className="text-xs font-bold text-slate-300">لا يوجد</span>
-                    )}
-                  </td>
-
-                  <td className="p-4">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={processingId === item.schoolAccountId}
-                        onClick={() => runAction({ type: "extend", subscriber: item })}
-                        className="rounded-xl bg-sky-600 px-3 py-2 text-xs font-black text-white transition hover:bg-sky-700 disabled:opacity-60"
-                      >
-                        +30
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={processingId === item.schoolAccountId}
-                        onClick={() => runAction({ type: "year", subscriber: item })}
-                        className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                      >
-                        سنة
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={processingId === item.schoolAccountId}
-                        onClick={() => runAction({ type: "cancel", subscriber: item })}
-                        className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
-                      >
-                        إلغاء
-                      </button>
-
-                      <Link
-                        href="/dashboard/admin/subscriptions"
-                        className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-100"
-                      >
-                        إدارة
-                      </Link>
+                      <p className="mt-2 text-xs font-bold text-slate-400">
+                        {item.ownerEmail || "بدون بريد"} · الحساب: {item.accountName || item.slug} · المدرسة: {item.schoolName} · {item.educationDepartment || "بدون إدارة تعليم"}
+                      </p>
                     </div>
-                  </td>
-                </tr>
+
+                    <div className="flex flex-wrap gap-2 text-xs font-black">
+                      <MiniMetric label="المستخدمون" value={item.usersCount} />
+                      <MiniMetric label="الطلاب" value={item.studentsCount} />
+                      <MiniMetric
+                        label="المتبقي"
+                        value={
+                          item.subscription?.remainingDays !== null &&
+                          item.subscription?.remainingDays !== undefined
+                            ? item.subscription.remainingDays
+                            : "—"
+                        }
+                      />
+                    </div>
+                  </div>
+                </button>
               ))}
 
               {filteredSubscribers.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="p-10 text-center text-sm font-bold text-slate-400"
-                  >
-                    لا توجد نتائج مطابقة للفلاتر الحالية.
-                  </td>
-                </tr>
+                <div className="rounded-3xl bg-slate-50 p-10 text-center text-sm font-bold text-slate-400">
+                  لا توجد نتائج مطابقة للفلاتر الحالية.
+                </div>
               ) : null}
-            </tbody>
-          </table>
+            </div>
+          </section>
         </div>
+
+        <aside className="space-y-6">
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">ماذا أفعل الآن؟</h2>
+            <p className="mt-1 text-sm font-bold text-slate-500">
+              أعلى الحسابات التي تحتاج قرار سريع.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              {priorityItems.length > 0 ? (
+                priorityItems.map((item) => (
+                  <button
+                    key={item.schoolAccountId}
+                    type="button"
+                    onClick={() => setSelectedId(item.schoolAccountId)}
+                    className="w-full rounded-3xl bg-amber-50 p-4 text-right transition hover:bg-amber-100"
+                  >
+                    <p className="font-black text-amber-900">{item.ownerName || item.accountName || item.schoolName}</p>
+                    <p className="mt-1 text-xs font-bold text-amber-700">
+                      {decisionLabel(item)}
+                    </p>
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-3xl bg-emerald-50 p-4 text-sm font-black text-emerald-700">
+                  لا توجد حسابات حرجة الآن.
+                </div>
+              )}
+            </div>
+          </section>
+
+          {selectedSubscriber ? (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black text-sky-600">الحساب المحدد</p>
+                  <h2 className="mt-1 text-2xl font-black text-slate-950">
+                    {selectedSubscriber.ownerName || selectedSubscriber.accountName || selectedSubscriber.schoolName}
+                  </h2>
+                  <p className="mt-1 text-xs font-bold text-slate-400">
+                    {selectedSubscriber.ownerEmail || "بدون بريد"} · الحساب: {selectedSubscriber.accountName || selectedSubscriber.slug} · المدرسة: {selectedSubscriber.schoolName}
+                  </p>
+                </div>
+
+                <span
+                  className={[
+                    "rounded-full px-3 py-1 text-xs font-black",
+                    statusClasses(selectedSubscriber.computedStatus),
+                  ].join(" ")}
+                >
+                  {statusLabel(selectedSubscriber.computedStatus)}
+                </span>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <InfoBox label="الباقة" value={selectedSubscriber.subscription?.planName || "بدون باقة"} />
+                <InfoBox
+                  label="المتبقي"
+                  value={
+                    selectedSubscriber.subscription?.remainingDays !== null &&
+                    selectedSubscriber.subscription?.remainingDays !== undefined
+                      ? `${selectedSubscriber.subscription.remainingDays} يوم`
+                      : "غير محدد"
+                  }
+                />
+                <InfoBox label="المستخدمون" value={String(selectedSubscriber.usersCount)} />
+                <InfoBox label="الطلاب" value={String(selectedSubscriber.studentsCount)} />
+              </div>
+
+              <div className="mt-5 grid gap-2">
+                <button
+                  type="button"
+                  disabled={processingId === selectedSubscriber.schoolAccountId}
+                  onClick={() => runAction({ type: "extend", subscriber: selectedSubscriber })}
+                  className="rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-60"
+                >
+                  تمديد 30 يوم
+                </button>
+
+                <button
+                  type="button"
+                  disabled={processingId === selectedSubscriber.schoolAccountId}
+                  onClick={() => runAction({ type: "year", subscriber: selectedSubscriber })}
+                  className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  تمديد سنة
+                </button>
+
+                <button
+                  type="button"
+                  disabled={processingId === selectedSubscriber.schoolAccountId}
+                  onClick={() => runAction({ type: "cancel", subscriber: selectedSubscriber })}
+                  className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-black text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
+                >
+                  إلغاء الاشتراك
+                </button>
+
+                <Link
+                  href="/dashboard/admin/subscriptions"
+                  className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
+                >
+                  إدارة الاشتراك والخدمات
+                </Link>
+
+                {selectedSubscriber.pendingRequestsCount > 0 ? (
+                  <Link
+                    href="/dashboard/admin/activations"
+                    className="rounded-2xl bg-violet-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-violet-700"
+                  >
+                    مراجعة طلبات التحويل
+                  </Link>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+        </aside>
       </section>
     </main>
   );
@@ -544,7 +627,7 @@ function StatCard({
   }[tone];
 
   return (
-    <article className="rounded-[1.3rem] border border-slate-100 bg-white p-4 shadow-sm">
+    <article className="rounded-[1.4rem] border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-2xl font-black text-slate-950">{value}</p>
@@ -558,3 +641,30 @@ function StatCard({
     </article>
   );
 }
+
+function MiniMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <span className="rounded-2xl bg-slate-50 px-3 py-2 text-slate-600">
+      {label}: {value}
+    </span>
+  );
+}
+
+function InfoBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-3">
+      <p className="text-xs font-black text-slate-400">{label}</p>
+      <p className="mt-1 truncate text-sm font-black text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+
+
+
