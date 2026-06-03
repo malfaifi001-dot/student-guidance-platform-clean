@@ -15,7 +15,6 @@ type BlockKind =
   | "highlight-note"
   | "bullet-list"
   | "dynamic-fields"
-  | "evidence-gallery"
   | "closing-note";
 
 type BlockVariant =
@@ -43,11 +42,6 @@ type BlockPlacement =
 
 type TextSource = "manual" | "library" | "workflow";
 
-type EvidenceLayout = "ONE_PER_PAGE" | "TWO_PER_PAGE" | "GRID_2X2" | "ATTACHMENT_LIST";
-type EvidenceFit = "contain" | "cover";
-type EvidenceEmptyBehavior = "hide" | "message";
-type EvidenceAspectRatio = "LANDSCAPE_4_3" | "LANDSCAPE_16_9" | "PORTRAIT_3_4" | "SQUARE_1_1";
-
 type StudioTextSnippet = {
   id: string;
   title: string;
@@ -69,13 +63,6 @@ type StudioBlock = {
   showMeta: boolean;
   align: "right" | "center";
   placement: BlockPlacement;
-  evidenceLayout?: EvidenceLayout;
-  evidenceFit?: EvidenceFit;
-  evidenceAspectRatio?: EvidenceAspectRatio;
-  evidenceShowCaptions?: boolean;
-  evidenceAutoCreatePages?: boolean;
-  evidenceEmptyBehavior?: EvidenceEmptyBehavior;
-  evidenceStartIndex?: number;
 };
 
 type StudioPage = {
@@ -293,14 +280,6 @@ const blockLibrary: Array<{
     defaultVariant: "soft",
   },
   {
-    kind: "evidence-gallery",
-    title: "الشواهد والمرفقات",
-    description: "يعرض الشواهد المرتبطة بالحالة. إذا زادت الشواهد عن سعة الصفحة يتم إنشاء صفحات إضافية.",
-    defaultContent:
-      "يعرض هذا البلوك الشواهد المرتبطة بـ Case ID. لا تظهر الشواهد إلا إذا أضفت هذا البلوك.",
-    defaultVariant: "card",
-  },
-  {
     kind: "closing-note",
     title: "خاتمة واعتماد",
     description: "خاتمة رسمية ومساحة اعتماد خفيفة.",
@@ -330,12 +309,6 @@ function createBlock(kind: BlockKind): StudioBlock {
     showMeta: item.kind === "hero-title" || item.kind === "meta-strip",
     align: item.defaultAlign || "right",
     placement: item.kind === "hero-title" ? "middle-center" : "flow",
-    evidenceLayout: item.kind === "evidence-gallery" ? "TWO_PER_PAGE" : undefined,
-    evidenceFit: item.kind === "evidence-gallery" ? "contain" : undefined,
-    evidenceAspectRatio: item.kind === "evidence-gallery" ? "LANDSCAPE_4_3" : undefined,
-    evidenceShowCaptions: item.kind === "evidence-gallery" ? true : undefined,
-    evidenceAutoCreatePages: item.kind === "evidence-gallery" ? true : undefined,
-    evidenceEmptyBehavior: item.kind === "evidence-gallery" ? "message" : undefined,
   };
 }
 
@@ -356,8 +329,8 @@ function createPage(kind: PageKind, index: number): StudioPage {
     evidence: {
       kind: "evidence",
       title: "الشواهد والمرفقات",
-      description: "صفحة مستقلة لعرض الشواهد وتقسيمها تلقائيًا على صفحات A4 عند كثرتها.",
-      blockKinds: ["evidence-gallery"],
+      description: "صفحة تمهيدية للشواهد. تنظيم الصور الفعلي سيتم في إعدادات الشواهد لاحقًا.",
+      blockKinds: ["section-text"],
     },
     approval: {
       kind: "approval",
@@ -580,12 +553,6 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
                   showMeta: Boolean(block.settings?.showMeta),
                   align: block.settings?.align || "right",
                   placement: block.settings?.placement || "flow",
-                  evidenceLayout: block.settings?.evidenceLayout || undefined,
-                  evidenceFit: block.settings?.evidenceFit || undefined,
-                  evidenceAspectRatio: block.settings?.evidenceAspectRatio || "LANDSCAPE_4_3",
-                  evidenceShowCaptions: block.settings?.evidenceShowCaptions !== false,
-                  evidenceAutoCreatePages: block.settings?.evidenceAutoCreatePages !== false,
-                  evidenceEmptyBehavior: block.settings?.evidenceEmptyBehavior || "message",
                 }))
               : [createBlock("section-text")],
           }))
@@ -1034,13 +1001,6 @@ export function ReportTemplateStudio() {
             showTitle: block.showTitle,
             showMeta: block.showMeta,
             align: block.align,
-            placement: block.placement || "flow",
-            evidenceLayout: block.evidenceLayout || null,
-            evidenceFit: block.evidenceFit || null,
-            evidenceAspectRatio: block.evidenceAspectRatio || "LANDSCAPE_4_3",
-            evidenceShowCaptions: block.evidenceShowCaptions !== false,
-            evidenceAutoCreatePages: block.evidenceAutoCreatePages !== false,
-            evidenceEmptyBehavior: block.evidenceEmptyBehavior || "message",
             snippetId: block.snippetId || null,
           },
         })),
@@ -1842,139 +1802,6 @@ export function ReportTemplateStudio() {
                   </p>
                 </label>
 
-                {selectedBlock.kind === "evidence-gallery" ? (
-                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                    <p className="text-xs font-black text-emerald-900">
-                      إعدادات عرض الشواهد
-                    </p>
-
-                    <p className="mt-1 text-[11px] font-bold leading-6 text-emerald-800">
-                      القالب هو الذي يقرر كيف تظهر الشواهد. إذا زاد عدد الشواهد
-                      عن سعة الصفحة، يتم إنشاء صفحات شواهد إضافية تلقائيًا.
-                    </p>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <label className="block">
-                        <span className="text-xs font-black text-slate-500">
-                          طريقة العرض
-                        </span>
-
-                        <select
-                          value={selectedBlock.evidenceLayout || "TWO_PER_PAGE"}
-                          onChange={(event) =>
-                            updateBlock(selectedBlock.id, (block) => ({
-                              ...block,
-                              evidenceLayout: event.target.value as EvidenceLayout,
-                            }))
-                          }
-                          className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
-                        >
-                          <option value="ONE_PER_PAGE">شاهد واحد في الصفحة</option>
-                          <option value="TWO_PER_PAGE">شاهدان في الصفحة</option>
-                          <option value="GRID_2X2">4 شواهد في الصفحة</option>
-                          <option value="ATTACHMENT_LIST">قائمة مرفقات فقط</option>
-                        </select>
-                      </label>
-
-                      <label className="block">
-                        <span className="text-xs font-black text-slate-500">
-                          عرض الصورة
-                        </span>
-
-                        <select
-                          value={selectedBlock.evidenceFit || "contain"}
-                          onChange={(event) =>
-                            updateBlock(selectedBlock.id, (block) => ({
-                              ...block,
-                              evidenceFit: event.target.value as EvidenceFit,
-                            }))
-                          }
-                          className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
-                        >
-                          <option value="contain">احتواء كامل</option>
-                          <option value="cover">تعبئة الإطار</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    <label className="mt-3 block">
-                      <span className="text-xs font-black text-slate-500">
-                        أبعاد الصورة المتوقعة
-                      </span>
-
-                      <select
-                        value={selectedBlock.evidenceAspectRatio || "LANDSCAPE_4_3"}
-                        onChange={(event) =>
-                          updateBlock(selectedBlock.id, (block) => ({
-                            ...block,
-                            evidenceAspectRatio: event.target.value as EvidenceAspectRatio,
-                          }))
-                        }
-                        className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
-                      >
-                        <option value="LANDSCAPE_4_3">أفقي 4:3 - تصوير عادي</option>
-                        <option value="LANDSCAPE_16_9">أفقي عريض 16:9</option>
-                        <option value="PORTRAIT_3_4">طولي 3:4</option>
-                        <option value="SQUARE_1_1">مربع 1:1</option>
-                      </select>
-
-                      <p className="mt-2 text-[11px] font-bold leading-6 text-slate-500">
-                        هذا لا يجبر الموجه على قص الصورة، لكنه يحدد مساحة عرض الشاهد داخل التقرير حتى تظهر المعاينة بنفس تصورك.
-                      </p>
-                    </label>
-
-                    <div className="mt-3 grid gap-2">
-                      <label className="flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-black text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={selectedBlock.evidenceAutoCreatePages !== false}
-                          onChange={(event) =>
-                            updateBlock(selectedBlock.id, (block) => ({
-                              ...block,
-                              evidenceAutoCreatePages: event.target.checked,
-                            }))
-                          }
-                        />
-                        إنشاء صفحات إضافية تلقائيًا عند زيادة عدد الشواهد
-                      </label>
-
-                      <label className="flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-black text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={selectedBlock.evidenceShowCaptions !== false}
-                          onChange={(event) =>
-                            updateBlock(selectedBlock.id, (block) => ({
-                              ...block,
-                              evidenceShowCaptions: event.target.checked,
-                            }))
-                          }
-                        />
-                        إظهار التعليقات وأسماء الشواهد
-                      </label>
-
-                      <label className="block">
-                        <span className="text-xs font-black text-slate-500">
-                          إذا لا توجد شواهد
-                        </span>
-
-                        <select
-                          value={selectedBlock.evidenceEmptyBehavior || "message"}
-                          onChange={(event) =>
-                            updateBlock(selectedBlock.id, (block) => ({
-                              ...block,
-                              evidenceEmptyBehavior: event.target.value as EvidenceEmptyBehavior,
-                            }))
-                          }
-                          className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
-                        >
-                          <option value="message">إظهار رسالة لا توجد شواهد</option>
-                          <option value="hide">إخفاء البلوك بالكامل</option>
-                        </select>
-                      </label>
-                    </div>
-                  </div>
-                ) : null}
-
                 <div className="rounded-2xl bg-emerald-50 p-3 text-xs font-bold leading-6 text-emerald-800">
                   المتغيرات العامة: {"{{case.title}}"}، {"{{service.name}}"}،{" "}
                   {"{{student.name}}"}، {"{{identity.counselorName}}"}.
@@ -2253,11 +2080,11 @@ function OfficialPagePreview({
 
           <header className="relative z-10 rounded-[22px] border border-emerald-100 bg-gradient-to-l from-emerald-50 to-white p-5">
             <div className="grid grid-cols-[150px_1fr_150px] items-center gap-4">
-              <div className="flex h-20 w-28 items-center justify-center p-0">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-emerald-100 bg-white p-2">
                 <img
                   src="/uploads/school-logos/MOE.png"
                   alt="شعار وزارة التعليم"
-                  className="h-16 w-auto object-contain"
+                  className="max-h-full max-w-full object-contain"
                   onError={(event) => {
                     event.currentTarget.style.display = "none";
                   }}
@@ -2330,120 +2157,7 @@ function OfficialPagePreview({
           </footer>
         </div>
       </article>
-
-      <AutoEvidencePages
-        activePage={activePage}
-        context={context}
-        previewCase={previewCase}
-      />
     </section>
-  );
-}
-
-function AutoEvidencePages({
-  activePage,
-  context,
-  previewCase,
-}: {
-  activePage?: StudioPage;
-  context: Record<string, string>;
-  previewCase: PreviewCaseData | null;
-}) {
-  const evidenceBlock = activePage?.blocks.find(
-    (block) => block.kind === "evidence-gallery",
-  );
-
-  if (!activePage || !evidenceBlock) {
-    return null;
-  }
-
-  if (evidenceBlock.evidenceAutoCreatePages === false) {
-    return null;
-  }
-
-  const evidences = previewCase?.evidences || [];
-  const perPage = getEvidencePerPage(evidenceBlock);
-  const pagesCount = Math.ceil(evidences.length / perPage);
-
-  if (pagesCount <= 1) {
-    return null;
-  }
-
-  return (
-    <div className="mt-6 space-y-6">
-      {Array.from({ length: pagesCount - 1 }).map((_, index) => {
-        const pageNumber = index + 2;
-        const virtualBlock: StudioBlock = {
-          ...evidenceBlock,
-          id: evidenceBlock.id + "-auto-page-" + pageNumber,
-          title: evidenceBlock.title + " - صفحة " + pageNumber,
-          evidenceStartIndex: (pageNumber - 1) * perPage,
-        };
-
-        return (
-          <article
-            key={"auto-evidence-page-" + pageNumber}
-            className="mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[28px] border border-emerald-100 bg-[#f1faf5] p-[9mm] shadow-xl"
-          >
-            <div className="relative min-h-[279mm] rounded-[24px] border border-emerald-100 bg-white p-[12mm]">
-              <div className="pointer-events-none absolute inset-4 rounded-[22px] border border-emerald-50" />
-
-              <header className="relative z-10 rounded-[22px] border border-emerald-100 bg-gradient-to-l from-emerald-50 to-white p-5">
-                <div className="grid grid-cols-[150px_1fr_150px] items-center gap-4">
-                  <div className="flex h-20 w-28 items-center justify-center p-0">
-                    <img
-                      src="/uploads/school-logos/MOE.png"
-                      alt="شعار وزارة التعليم"
-                      className="h-16 w-auto object-contain"
-                      onError={(event) => {
-                        event.currentTarget.style.display = "none";
-                      }}
-                    />
-                  </div>
-
-                  <div className="text-center">
-                    <p className="text-sm font-black text-emerald-900">
-                      وزارة التعليم
-                    </p>
-                    <p className="mt-1 text-xs font-bold text-slate-600">
-                      الإدارة العامة للتعليم · مكتب التعليم
-                    </p>
-                    <p className="mt-1 text-xs font-bold text-slate-600">
-                      اسم المدرسة
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-emerald-100 bg-white p-3 text-center">
-                    <p className="text-[10px] font-black text-slate-400">
-                      صفحة شواهد
-                    </p>
-                    <p className="mt-1 text-sm font-black text-emerald-800">
-                      {pageNumber}
-                    </p>
-                  </div>
-                </div>
-              </header>
-
-              <main className="relative z-10 mt-6 min-h-[190mm]">
-                <PreviewBlock
-                  block={virtualBlock}
-                  context={context}
-                  previewCase={previewCase}
-                />
-              </main>
-
-              <footer className="absolute bottom-[10mm] left-[12mm] right-[12mm] z-10">
-                <div className="h-1 rounded-full bg-gradient-to-l from-emerald-700 to-emerald-200" />
-                <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
-                  <span>منصة التوجيه الطلابي</span>
-                  <span>تقرير رسمي ذكي · شواهد إضافية</span>
-                </div>
-              </footer>
-            </div>
-          </article>
-        );
-      })}
-    </div>
   );
 }
 
@@ -2572,101 +2286,6 @@ function PreviewBlock({
     );
   }
 
-  if (block.kind === "evidence-gallery") {
-    const realEvidences = previewCase?.evidences || [];
-    const perPage = getEvidencePerPage(block);
-    const startIndex = block.evidenceStartIndex || 0;
-    const placeholderEvidences = createEvidencePlaceholders(perPage, startIndex);
-    const sourceEvidences = realEvidences.length ? realEvidences : placeholderEvidences;
-
-    if (!realEvidences.length && block.evidenceEmptyBehavior === "hide") {
-      return null;
-    }
-
-    const visibleEvidences = sourceEvidences.slice(startIndex, startIndex + perPage);
-    const hiddenCount = Math.max(realEvidences.length - (startIndex + perPage), 0);
-    const isPlaceholderMode = !realEvidences.length;
-
-    if (block.evidenceLayout === "ATTACHMENT_LIST") {
-      return (
-        <section className={getBlockClass(block.variant, textAlign)}>
-          {block.showTitle ? <BlockTitle title={block.title} /> : null}
-
-          <div className="space-y-2">
-            {visibleEvidences.map((evidence, index) => (
-              <div
-                key={evidence.id || evidence.fileUrl || String(index)}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700"
-              >
-                <span>
-                  {evidence.caption || evidence.title || "مرفق " + (startIndex + index + 1)}
-                </span>
-
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">
-                  {isPlaceholderMode ? "معاينة" : "شاهد"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      );
-    }
-
-    return (
-      <section className={getBlockClass(block.variant, textAlign)}>
-        {block.showTitle ? <BlockTitle title={block.title} /> : null}
-
-        <div className={getEvidenceGridClass(block)}>
-          {visibleEvidences.map((evidence, index) => {
-            const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
-
-            return (
-              <figure
-                key={evidence.id || imageUrl || String(index)}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
-              >
-                {imageUrl && !isPlaceholderMode ? (
-                  <img
-                    src={imageUrl}
-                    alt={evidence.title || "شاهد " + (startIndex + index + 1)}
-                    className={getEvidenceImageClass(block) + " bg-slate-50"}
-                  />
-                ) : (
-                  <div className={getEvidenceImageHeightClass(block) + " flex w-full flex-col items-center justify-center bg-slate-50 text-center"}>
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">
-                      📎
-                    </div>
-                    <p className="mt-3 text-xs font-black text-slate-500">
-                      {isPlaceholderMode ? "مساحة شاهد للمعاينة" : "شاهد بدون صورة"}
-                    </p>
-                  </div>
-                )}
-
-                {block.evidenceShowCaptions !== false ? (
-                  <figcaption className="border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
-                    {evidence.caption || evidence.title || "شاهد " + (startIndex + index + 1)}
-                  </figcaption>
-                ) : null}
-              </figure>
-            );
-          })}
-        </div>
-
-        {hiddenCount > 0 && block.evidenceAutoCreatePages === false ? (
-          <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
-            يوجد {hiddenCount} شاهد إضافي لم يظهر لأن إنشاء الصفحات التلقائية غير مفعل.
-          </p>
-        ) : null}
-
-        {isPlaceholderMode ? (
-          <p className="mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
-            هذه مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
-          </p>
-        ) : null}
-      </section>
-    );
-  }
-
   if (block.kind === "closing-note") {
     return (
       <section className={getBlockClass(block.variant, textAlign)}>
@@ -2703,79 +2322,6 @@ function PreviewBlock({
         {rendered}
       </p>
     </section>
-  );
-}
-
-
-function createEvidencePlaceholders(
-  count: number,
-  startIndex: number,
-): NonNullable<PreviewCaseData["evidences"]> {
-  return Array.from({ length: count }).map((_, index) => {
-    const evidenceNumber = startIndex + index + 1;
-
-    return {
-      id: "placeholder-evidence-" + evidenceNumber,
-      title: "شاهد تجريبي " + evidenceNumber,
-      caption: "مكان الشاهد داخل التقرير",
-      fileUrl: "",
-      imageUrl: "",
-    };
-  });
-}
-
-function getEvidencePerPage(block: StudioBlock) {
-  if (block.evidenceLayout === "ONE_PER_PAGE") return 1;
-  if (block.evidenceLayout === "GRID_2X2") return 4;
-  if (block.evidenceLayout === "ATTACHMENT_LIST") return 8;
-
-  return 2;
-}
-
-function getEvidenceGridClass(block: StudioBlock) {
-  if (block.evidenceLayout === "ONE_PER_PAGE") {
-    return "grid gap-3";
-  }
-
-  return "grid gap-3 md:grid-cols-2";
-}
-
-
-function getEvidenceAspectRatioClass(block: StudioBlock) {
-  switch (block.evidenceAspectRatio || "LANDSCAPE_4_3") {
-    case "LANDSCAPE_16_9":
-      return "aspect-video";
-    case "PORTRAIT_3_4":
-      return "aspect-[3/4]";
-    case "SQUARE_1_1":
-      return "aspect-square";
-    case "LANDSCAPE_4_3":
-    default:
-      return "aspect-[4/3]";
-  }
-}
-
-function getEvidenceImageHeightClass(block: StudioBlock) {
-  return getEvidenceAspectRatioClass(block);
-}
-
-function getEvidenceImageClass(block: StudioBlock) {
-  const fit = block.evidenceFit === "cover" ? "object-cover" : "object-contain";
-
-  return getEvidenceImageHeightClass(block) + " w-full " + fit;
-}
-
-function EmptyEvidenceMessage() {
-  return (
-    <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50 p-6 text-center">
-      <p className="text-sm font-black text-emerald-800">
-        لا توجد شواهد مرتبطة بالـ Case ID الحالي
-      </p>
-
-      <p className="mt-2 text-xs font-bold leading-6 text-emerald-700">
-        هذا البلوك لن يعرض أي مرفقات في التقرير النهائي إلا إذا كانت الحالة تحتوي على شواهد.
-      </p>
-    </div>
   );
 }
 

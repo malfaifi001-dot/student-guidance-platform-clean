@@ -46,7 +46,6 @@ type TextSource = "manual" | "library" | "workflow";
 type EvidenceLayout = "ONE_PER_PAGE" | "TWO_PER_PAGE" | "GRID_2X2" | "ATTACHMENT_LIST";
 type EvidenceFit = "contain" | "cover";
 type EvidenceEmptyBehavior = "hide" | "message";
-type EvidenceAspectRatio = "LANDSCAPE_4_3" | "LANDSCAPE_16_9" | "PORTRAIT_3_4" | "SQUARE_1_1";
 
 type StudioTextSnippet = {
   id: string;
@@ -71,7 +70,6 @@ type StudioBlock = {
   placement: BlockPlacement;
   evidenceLayout?: EvidenceLayout;
   evidenceFit?: EvidenceFit;
-  evidenceAspectRatio?: EvidenceAspectRatio;
   evidenceShowCaptions?: boolean;
   evidenceAutoCreatePages?: boolean;
   evidenceEmptyBehavior?: EvidenceEmptyBehavior;
@@ -332,7 +330,6 @@ function createBlock(kind: BlockKind): StudioBlock {
     placement: item.kind === "hero-title" ? "middle-center" : "flow",
     evidenceLayout: item.kind === "evidence-gallery" ? "TWO_PER_PAGE" : undefined,
     evidenceFit: item.kind === "evidence-gallery" ? "contain" : undefined,
-    evidenceAspectRatio: item.kind === "evidence-gallery" ? "LANDSCAPE_4_3" : undefined,
     evidenceShowCaptions: item.kind === "evidence-gallery" ? true : undefined,
     evidenceAutoCreatePages: item.kind === "evidence-gallery" ? true : undefined,
     evidenceEmptyBehavior: item.kind === "evidence-gallery" ? "message" : undefined,
@@ -582,7 +579,6 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
                   placement: block.settings?.placement || "flow",
                   evidenceLayout: block.settings?.evidenceLayout || undefined,
                   evidenceFit: block.settings?.evidenceFit || undefined,
-                  evidenceAspectRatio: block.settings?.evidenceAspectRatio || "LANDSCAPE_4_3",
                   evidenceShowCaptions: block.settings?.evidenceShowCaptions !== false,
                   evidenceAutoCreatePages: block.settings?.evidenceAutoCreatePages !== false,
                   evidenceEmptyBehavior: block.settings?.evidenceEmptyBehavior || "message",
@@ -1037,7 +1033,6 @@ export function ReportTemplateStudio() {
             placement: block.placement || "flow",
             evidenceLayout: block.evidenceLayout || null,
             evidenceFit: block.evidenceFit || null,
-            evidenceAspectRatio: block.evidenceAspectRatio || "LANDSCAPE_4_3",
             evidenceShowCaptions: block.evidenceShowCaptions !== false,
             evidenceAutoCreatePages: block.evidenceAutoCreatePages !== false,
             evidenceEmptyBehavior: block.evidenceEmptyBehavior || "message",
@@ -1897,32 +1892,6 @@ export function ReportTemplateStudio() {
                       </label>
                     </div>
 
-                    <label className="mt-3 block">
-                      <span className="text-xs font-black text-slate-500">
-                        أبعاد الصورة المتوقعة
-                      </span>
-
-                      <select
-                        value={selectedBlock.evidenceAspectRatio || "LANDSCAPE_4_3"}
-                        onChange={(event) =>
-                          updateBlock(selectedBlock.id, (block) => ({
-                            ...block,
-                            evidenceAspectRatio: event.target.value as EvidenceAspectRatio,
-                          }))
-                        }
-                        className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
-                      >
-                        <option value="LANDSCAPE_4_3">أفقي 4:3 - تصوير عادي</option>
-                        <option value="LANDSCAPE_16_9">أفقي عريض 16:9</option>
-                        <option value="PORTRAIT_3_4">طولي 3:4</option>
-                        <option value="SQUARE_1_1">مربع 1:1</option>
-                      </select>
-
-                      <p className="mt-2 text-[11px] font-bold leading-6 text-slate-500">
-                        هذا لا يجبر الموجه على قص الصورة، لكنه يحدد مساحة عرض الشاهد داخل التقرير حتى تظهر المعاينة بنفس تصورك.
-                      </p>
-                    </label>
-
                     <div className="mt-3 grid gap-2">
                       <label className="flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-black text-slate-700">
                         <input
@@ -2253,11 +2222,11 @@ function OfficialPagePreview({
 
           <header className="relative z-10 rounded-[22px] border border-emerald-100 bg-gradient-to-l from-emerald-50 to-white p-5">
             <div className="grid grid-cols-[150px_1fr_150px] items-center gap-4">
-              <div className="flex h-20 w-28 items-center justify-center p-0">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-emerald-100 bg-white p-2">
                 <img
                   src="/uploads/school-logos/MOE.png"
                   alt="شعار وزارة التعليم"
-                  className="h-16 w-auto object-contain"
+                  className="max-h-full max-w-full object-contain"
                   onError={(event) => {
                     event.currentTarget.style.display = "none";
                   }}
@@ -2390,11 +2359,11 @@ function AutoEvidencePages({
 
               <header className="relative z-10 rounded-[22px] border border-emerald-100 bg-gradient-to-l from-emerald-50 to-white p-5">
                 <div className="grid grid-cols-[150px_1fr_150px] items-center gap-4">
-                  <div className="flex h-20 w-28 items-center justify-center p-0">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-emerald-100 bg-white p-2">
                     <img
                       src="/uploads/school-logos/MOE.png"
                       alt="شعار وزارة التعليم"
-                      className="h-16 w-auto object-contain"
+                      className="max-h-full max-w-full object-contain"
                       onError={(event) => {
                         event.currentTarget.style.display = "none";
                       }}
@@ -2637,7 +2606,7 @@ function PreviewBlock({
                       📎
                     </div>
                     <p className="mt-3 text-xs font-black text-slate-500">
-                      {isPlaceholderMode ? "مساحة شاهد للمعاينة" : "شاهد بدون صورة"}
+                      {isPlaceholderMode ? "مربع شاهد للمعاينة" : "شاهد بدون صورة"}
                     </p>
                   </div>
                 )}
@@ -2740,23 +2709,11 @@ function getEvidenceGridClass(block: StudioBlock) {
   return "grid gap-3 md:grid-cols-2";
 }
 
-
-function getEvidenceAspectRatioClass(block: StudioBlock) {
-  switch (block.evidenceAspectRatio || "LANDSCAPE_4_3") {
-    case "LANDSCAPE_16_9":
-      return "aspect-video";
-    case "PORTRAIT_3_4":
-      return "aspect-[3/4]";
-    case "SQUARE_1_1":
-      return "aspect-square";
-    case "LANDSCAPE_4_3":
-    default:
-      return "aspect-[4/3]";
-  }
-}
-
 function getEvidenceImageHeightClass(block: StudioBlock) {
-  return getEvidenceAspectRatioClass(block);
+  if (block.evidenceLayout === "ONE_PER_PAGE") return "h-[122mm]";
+  if (block.evidenceLayout === "GRID_2X2") return "h-36";
+
+  return "h-48";
 }
 
 function getEvidenceImageClass(block: StudioBlock) {
