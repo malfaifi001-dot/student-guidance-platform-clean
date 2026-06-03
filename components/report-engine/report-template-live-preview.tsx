@@ -8,6 +8,7 @@ import type {
 } from "@/lib/report-engine/report-template-builder-types";
 import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
 import { GuardianSummonsLetterPreview } from "@/components/report-engine/guardian-summons-letter-preview";
+import { AppreciationCertificatePreview } from "@/components/report-engine/appreciation-certificate-preview";
 import {
   resolveTextLibraryFallback,
   resolveTextLibrarySnippets,
@@ -44,13 +45,27 @@ export function ReportTemplateLivePreview({
   previewCaseData,
   pdfMode = false,
 }: ReportTemplateLivePreviewProps) {
-  if (template.designPreset === "guardian-summons-letter-v1") {
+  const designPreset = String(
+    (template as { designPreset?: string | null }).designPreset || ""
+  );
+  if (designPreset === "guardian-summons-letter-v1") {
     return (
       <GuardianSummonsLetterPreview
         template={template}
         previewCaseData={previewCaseData}
         pdfMode={pdfMode}
         snippets={snippets}
+      />
+    );
+  }
+
+  if (designPreset === "appreciation-certificate-v1") {
+    return (
+      <AppreciationCertificatePreview
+        template={template}
+        previewCaseData={previewCaseData}
+        pdfMode={pdfMode}
+        showDynamicFields={!pdfMode}
       />
     );
   }
@@ -870,5 +885,8 @@ function getPageKindLabel(kind: string) {
   if (kind === "approval") return "اعتماد";
   return kind;
 }
+
+
+
 
 

@@ -3,37 +3,59 @@ import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 
 const designs = [
   {
+    key: "minimal-guidance-report",
+    title: "تقرير رسمي مختصر",
+    type: "تقرير",
+    service: "عام لكل الخدمات",
+    description:
+      "تصميم هادئ ومختصر: غلاف رسمي، محتوى ذكي، واعتماد. مناسب للتقارير السريعة والرسمية.",
+    previewHref: "/dashboard/admin/document-designs/minimal-guidance-report",
+    useHref: "/dashboard/admin/report-templates?design=minimal-guidance-report",
+    status: "جديد",
+  },
+  {
+    key: "visual-program-report",
+    title: "تقرير بصري للبرامج",
+    type: "تقرير بصري",
+    service: "البرامج الإرشادية",
+    description:
+      "تصميم مختلف بصريًا للبرامج والأنشطة، يركز على العنوان والوصف والشواهد بطريقة خفيفة.",
+    previewHref: "/dashboard/admin/document-designs/visual-program-report",
+    useHref: "/dashboard/admin/report-templates?design=visual-program-report",
+    status: "جاهز",
+  },
+  {
+    key: "evidence-rich-report",
+    title: "تقرير الشواهد المصور",
+    type: "شواهد",
+    service: "عام أو حسب الخدمة",
+    description:
+      "تصميم مخصص للتقارير التي تعتمد على الصور. الشواهد تكون في صفحات مستقلة ويمكن ضبط عرضها لاحقًا.",
+    previewHref: "/dashboard/admin/document-designs/evidence-rich-report",
+    useHref: "/dashboard/admin/report-templates?design=evidence-rich-report",
+    status: "جديد",
+  },
+  {
+    key: "appreciation-certificate-v1",
+    title: "شهادة شكر وتقدير",
+    type: "شهادة",
+    service: "متابعة الطلاب",
+    description:
+      "قالب شهادة رسمي. التصميم ثابت، والمتغيرات من هوية المدرسة وبيانات الطالب وسجل المتابعة.",
+    previewHref: "/dashboard/admin/document-designs/appreciation-certificate",
+    useHref: "/dashboard/admin/report-templates?design=appreciation-certificate-v1",
+    status: "جاهز",
+  },
+  {
     key: "guardian-summons-letter-v1",
     title: "استدعاء ولي أمر",
     type: "خطاب",
     service: "التواصل بين الأسرة والمدرسة",
     description:
-      "نموذج رسمي لاستدعاء ولي أمر الطالب، يسحب بيانات الطالب وولي الأمر وموعد الحضور وأسباب الاستدعاء من Workflow الاستدعاء.",
+      "نموذج رسمي لاستدعاء ولي أمر، يسحب بيانات الطالب وولي الأمر وموعد الحضور وسبب الاستدعاء.",
     previewHref: "/dashboard/admin/document-designs/guardian-summons",
     useHref: "/dashboard/admin/report-templates?design=guardian-summons-letter-v1",
-    status: "جاهز للاستخدام",
-  },
-  {
-    key: "official-school-report",
-    title: "قالب رسمي مدرسي",
-    type: "تقرير",
-    service: "عام لكل الخدمات",
-    description:
-      "قالب رسمي متعدد الصفحات مناسب للتقارير الطويلة: غلاف، ملخص، تفاصيل، شواهد، واعتماد.",
-    previewHref: "/dashboard/admin/document-designs/official-school-report",
-    useHref: "/dashboard/admin/report-templates?design=official-school-report",
-    status: "جاهز للاستخدام",
-  },
-  {
-    key: "visual-program-report",
-    title: "قالب بصري للبرامج",
-    type: "تقرير بصري",
-    service: "البرامج الإرشادية",
-    description:
-      "قالب مختصر وجذاب للبرامج والأنشطة، يركز على العنوان والوصف والشواهد بشكل بصري خفيف.",
-    previewHref: "/dashboard/admin/document-designs/visual-program-report",
-    useHref: "/dashboard/admin/report-templates?design=visual-program-report",
-    status: "جاهز للاستخدام",
+    status: "جاهز",
   },
 ];
 
@@ -49,9 +71,10 @@ export default async function AdminDocumentDesignsPage() {
           معرض التصاميم والنماذج
         </h1>
 
-        <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
-          هنا نستعرض التصاميم الجاهزة قبل استخدامها. عند اختيار تصميم سيتم نسخه
-          إلى مصمم القوالب كقالب مستقل يمكن تعديل صفحاته وبلوكاته ونصوصه وحقوله.
+        <p className="mt-2 max-w-4xl text-sm leading-7 text-slate-500">
+          هنا تختار التصميم المناسب قبل دخوله إلى استديو القوالب. كل تصميم له
+          هوية مختلفة، لكن جميعها تحافظ على الترويسة الرسمية وشعار وزارة التعليم
+          والمتغيرات الديناميكية واختبار Case ID قبل النشر.
         </p>
       </section>
 
@@ -78,7 +101,7 @@ export default async function AdminDocumentDesignsPage() {
             </div>
 
             <p className="mt-3 text-xs font-bold text-slate-500">
-              الخدمة: {design.service}
+              التوجيه: {design.service}
             </p>
 
             <p className="mt-3 min-h-20 text-sm leading-7 text-slate-600">
@@ -97,7 +120,7 @@ export default async function AdminDocumentDesignsPage() {
                 href={design.useHref}
                 className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
               >
-                استخدام هذا التصميم
+                فتحه داخل الاستديو
               </Link>
             </div>
           </article>

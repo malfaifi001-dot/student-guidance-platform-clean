@@ -25,6 +25,8 @@ import {
   initialReportTemplateBuilderPresets,
   initialReportTextSnippets,
 } from "@/lib/report-engine/report-template-builder-presets";
+import { extraOfficialReportTemplatePresets } from "@/lib/report-engine/extra-official-template-presets";
+import { appreciationCertificateTemplatePreset } from "@/components/report-engine/appreciation-certificate-preview";
 import { ReportTemplateAdminTools } from "@/components/report-engine/report-template-admin-tools";
 import { ReportTemplatePublishTools } from "@/components/report-engine/report-template-publish-tools";
 import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
@@ -37,6 +39,12 @@ import {
   type TextLibrarySettings,
   type TextLibrarySourceMode,
 } from "@/lib/report-engine/report-text-library-runtime";
+
+const studioTemplatePresets: ReportTemplateBuilderModel[] = [
+  ...initialReportTemplateBuilderPresets,
+  ...extraOfficialReportTemplatePresets,
+  appreciationCertificateTemplatePreset as ReportTemplateBuilderModel,
+];
 
 const statusLabels: Record<ReportTemplateStatus, string> = {
   DRAFT: "مسودة",
@@ -132,7 +140,7 @@ function getPresetByDesignKey(designKey: string) {
 
   const templateId = designToTemplateId[designKey] || designKey;
 
-  return initialReportTemplateBuilderPresets.find(
+  return studioTemplatePresets.find(
     (template) =>
       template.id === templateId ||
       template.designPreset === designKey
@@ -167,7 +175,7 @@ export function ReportTemplateStudio() {
   );
 
   const [activeTemplateId, setActiveTemplateId] = useState(
-    initialReportTemplateBuilderPresets[0]?.id || "",
+    studioTemplatePresets[0]?.id || "",
   );
 
   const [savedTemplateIds, setSavedTemplateIds] = useState<Record<string, string>>({});
@@ -2525,6 +2533,8 @@ function ConfirmModal({
     </div>
   );
 }
+
+
 
 
 
