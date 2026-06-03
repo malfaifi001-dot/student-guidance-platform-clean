@@ -27,9 +27,6 @@ type BlockVariant =
   | "quote";
 type BlockPlacement =
   | "flow"
-  | "top"
-  | "middle"
-  | "bottom"
   | "top-right"
   | "top-center"
   | "top-left"
@@ -1588,26 +1585,20 @@ export function ReportTemplateStudio() {
                     className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
                   >
                     <option value="flow">حسب الترتيب الطبيعي</option>
-
-                    <option value="top">أعلى الصفحة</option>
-                    <option value="middle">وسط الصفحة</option>
-                    <option value="bottom">أسفل الصفحة</option>
-
                     <option value="top-right">أعلى يمين</option>
                     <option value="top-center">أعلى وسط</option>
                     <option value="top-left">أعلى يسار</option>
-
                     <option value="middle-right">وسط يمين</option>
-                    <option value="middle-center">وسط الصفحة - محدد</option>
+                    <option value="middle-center">وسط الصفحة</option>
                     <option value="middle-left">وسط يسار</option>
-
                     <option value="bottom-right">أسفل يمين</option>
                     <option value="bottom-center">أسفل وسط</option>
                     <option value="bottom-left">أسفل يسار</option>
                   </select>
 
                   <p className="mt-2 text-[11px] font-bold leading-6 text-slate-500">
-                    استخدم الموضع الثابت للعنوان أو الفقرة المهمة. يمكنك اختيار موضع عام مثل أعلى/وسط/أسفل، أو موضع دقيق مثل أعلى يمين أو أسفل وسط. إذا وضعت أكثر من بلوك في نفس المكان قد تتداخل.
+                    استخدم الموضع الثابت للعنوان أو الفقرة المهمة. إذا وضعت أكثر
+                    من بلوك في نفس المكان قد تتداخل، لذلك اترك البقية على الترتيب الطبيعي.
                   </p>
                 </label>
 
@@ -2143,30 +2134,19 @@ function BlockTitle({ title }: { title: string }) {
 }
 
 function getPlacementClass(placement: BlockPlacement) {
-  const fullCenteredBase = "absolute left-0 right-0 w-full";
-  const centeredBase = "absolute left-1/2 w-full max-w-[78%] -translate-x-1/2";
-  const sideBase = "absolute w-full max-w-[58%]";
+  const base = "absolute max-w-[78%]";
 
   const classes: Record<BlockPlacement, string> = {
     flow: "",
-
-    // الخيارات العامة: تبقى بعرضها الطبيعي الكامل مثل وضع الترتيب الطبيعي
-    top: `${fullCenteredBase} top-0`,
-    middle: `${fullCenteredBase} top-1/2 -translate-y-1/2`,
-    bottom: `${fullCenteredBase} bottom-0`,
-
-    // الخيارات الدقيقة: يمين/وسط/يسار بعرض مخصص حتى لا تملأ الصفحة كاملة
-    "top-right": `${sideBase} right-0 top-0`,
-    "top-center": `${centeredBase} top-0`,
-    "top-left": `${sideBase} left-0 top-0`,
-
-    "middle-right": `${sideBase} right-0 top-1/2 -translate-y-1/2`,
-    "middle-center": `${centeredBase} top-1/2 -translate-y-1/2`,
-    "middle-left": `${sideBase} left-0 top-1/2 -translate-y-1/2`,
-
-    "bottom-right": `${sideBase} bottom-0 right-0`,
-    "bottom-center": `${centeredBase} bottom-0`,
-    "bottom-left": `${sideBase} bottom-0 left-0`,
+    "top-right": `${base} right-0 top-0`,
+    "top-center": `${base} left-1/2 top-0 -translate-x-1/2`,
+    "top-left": `${base} left-0 top-0`,
+    "middle-right": `${base} right-0 top-1/2 -translate-y-1/2`,
+    "middle-center": `${base} left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2`,
+    "middle-left": `${base} left-0 top-1/2 -translate-y-1/2`,
+    "bottom-right": `${base} bottom-0 right-0`,
+    "bottom-center": `${base} bottom-0 left-1/2 -translate-x-1/2`,
+    "bottom-left": `${base} bottom-0 left-0`,
   };
 
   return classes[placement];
@@ -2187,8 +2167,6 @@ function getBlockClass(variant: BlockVariant, textAlign: string) {
 
   return classes[variant];
 }
-
-
 
 
 

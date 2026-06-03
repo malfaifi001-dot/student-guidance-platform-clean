@@ -25,20 +25,6 @@ type BlockVariant =
   | "highlight"
   | "outline"
   | "quote";
-type BlockPlacement =
-  | "flow"
-  | "top"
-  | "middle"
-  | "bottom"
-  | "top-right"
-  | "top-center"
-  | "top-left"
-  | "middle-right"
-  | "middle-center"
-  | "middle-left"
-  | "bottom-right"
-  | "bottom-center"
-  | "bottom-left";
 
 type TextSource = "manual" | "library" | "workflow";
 
@@ -62,7 +48,6 @@ type StudioBlock = {
   showTitle: boolean;
   showMeta: boolean;
   align: "right" | "center";
-  placement: BlockPlacement;
 };
 
 type StudioPage = {
@@ -308,7 +293,6 @@ function createBlock(kind: BlockKind): StudioBlock {
     showTitle: item.kind !== "plain-text" && item.kind !== "hero-title",
     showMeta: item.kind === "hero-title" || item.kind === "meta-strip",
     align: item.defaultAlign || "right",
-    placement: item.kind === "hero-title" ? "middle-center" : "flow",
   };
 }
 
@@ -1572,45 +1556,6 @@ export function ReportTemplateStudio() {
                   </label>
                 </div>
 
-                <label className="block">
-                  <span className="text-xs font-black text-slate-500">
-                    موضع البلوك داخل الصفحة
-                  </span>
-
-                  <select
-                    value={selectedBlock.placement || "flow"}
-                    onChange={(event) =>
-                      updateBlock(selectedBlock.id, (block) => ({
-                        ...block,
-                        placement: event.target.value as BlockPlacement,
-                      }))
-                    }
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
-                  >
-                    <option value="flow">حسب الترتيب الطبيعي</option>
-
-                    <option value="top">أعلى الصفحة</option>
-                    <option value="middle">وسط الصفحة</option>
-                    <option value="bottom">أسفل الصفحة</option>
-
-                    <option value="top-right">أعلى يمين</option>
-                    <option value="top-center">أعلى وسط</option>
-                    <option value="top-left">أعلى يسار</option>
-
-                    <option value="middle-right">وسط يمين</option>
-                    <option value="middle-center">وسط الصفحة - محدد</option>
-                    <option value="middle-left">وسط يسار</option>
-
-                    <option value="bottom-right">أسفل يمين</option>
-                    <option value="bottom-center">أسفل وسط</option>
-                    <option value="bottom-left">أسفل يسار</option>
-                  </select>
-
-                  <p className="mt-2 text-[11px] font-bold leading-6 text-slate-500">
-                    استخدم الموضع الثابت للعنوان أو الفقرة المهمة. يمكنك اختيار موضع عام مثل أعلى/وسط/أسفل، أو موضع دقيق مثل أعلى يمين أو أسفل وسط. إذا وضعت أكثر من بلوك في نفس المكان قد تتداخل.
-                  </p>
-                </label>
-
                 <div className="rounded-2xl bg-emerald-50 p-3 text-xs font-bold leading-6 text-emerald-800">
                   المتغيرات العامة: {"{{case.title}}"}، {"{{service.name}}"}،{" "}
                   {"{{student.name}}"}، {"{{identity.counselorName}}"}.
@@ -1923,38 +1868,15 @@ function OfficialPagePreview({
             </div>
           </header>
 
-          <main className="relative z-10 mt-6 min-h-[190mm]">
-            <div className="space-y-4">
-              {(activePage?.blocks || [])
-                .filter((block) => (block.placement || "flow") === "flow")
-                .map((block) => (
-                  <PreviewBlock
-                    key={block.id}
-                    block={block}
-                    context={context}
-                    previewCase={previewCase}
-                  />
-                ))}
-            </div>
-
-            <div className="pointer-events-none absolute inset-0">
-              {(activePage?.blocks || [])
-                .filter((block) => (block.placement || "flow") !== "flow")
-                .map((block) => (
-                  <div
-                    key={block.id}
-                    className={getPlacementClass(block.placement || "flow")}
-                  >
-                    <div className="pointer-events-auto">
-                      <PreviewBlock
-                        block={block}
-                        context={context}
-                        previewCase={previewCase}
-                      />
-                    </div>
-                  </div>
-                ))}
-            </div>
+          <main className="relative z-10 mt-6 space-y-4">
+            {activePage?.blocks.map((block) => (
+              <PreviewBlock
+                key={block.id}
+                block={block}
+                context={context}
+                previewCase={previewCase}
+              />
+            ))}
           </main>
 
           <footer className="absolute bottom-[10mm] left-[12mm] right-[12mm] z-10">
@@ -2142,36 +2064,6 @@ function BlockTitle({ title }: { title: string }) {
   );
 }
 
-function getPlacementClass(placement: BlockPlacement) {
-  const fullCenteredBase = "absolute left-0 right-0 w-full";
-  const centeredBase = "absolute left-1/2 w-full max-w-[78%] -translate-x-1/2";
-  const sideBase = "absolute w-full max-w-[58%]";
-
-  const classes: Record<BlockPlacement, string> = {
-    flow: "",
-
-    // الخيارات العامة: تبقى بعرضها الطبيعي الكامل مثل وضع الترتيب الطبيعي
-    top: `${fullCenteredBase} top-0`,
-    middle: `${fullCenteredBase} top-1/2 -translate-y-1/2`,
-    bottom: `${fullCenteredBase} bottom-0`,
-
-    // الخيارات الدقيقة: يمين/وسط/يسار بعرض مخصص حتى لا تملأ الصفحة كاملة
-    "top-right": `${sideBase} right-0 top-0`,
-    "top-center": `${centeredBase} top-0`,
-    "top-left": `${sideBase} left-0 top-0`,
-
-    "middle-right": `${sideBase} right-0 top-1/2 -translate-y-1/2`,
-    "middle-center": `${centeredBase} top-1/2 -translate-y-1/2`,
-    "middle-left": `${sideBase} left-0 top-1/2 -translate-y-1/2`,
-
-    "bottom-right": `${sideBase} bottom-0 right-0`,
-    "bottom-center": `${centeredBase} bottom-0`,
-    "bottom-left": `${sideBase} bottom-0 left-0`,
-  };
-
-  return classes[placement];
-}
-
 function getBlockClass(variant: BlockVariant, textAlign: string) {
   const base = `break-inside-avoid ${textAlign}`;
 
@@ -2187,8 +2079,5 @@ function getBlockClass(variant: BlockVariant, textAlign: string) {
 
   return classes[variant];
 }
-
-
-
 
 

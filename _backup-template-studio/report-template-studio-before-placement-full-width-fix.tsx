@@ -2143,19 +2143,16 @@ function BlockTitle({ title }: { title: string }) {
 }
 
 function getPlacementClass(placement: BlockPlacement) {
-  const fullCenteredBase = "absolute left-0 right-0 w-full";
   const centeredBase = "absolute left-1/2 w-full max-w-[78%] -translate-x-1/2";
   const sideBase = "absolute w-full max-w-[58%]";
 
   const classes: Record<BlockPlacement, string> = {
     flow: "",
 
-    // الخيارات العامة: تبقى بعرضها الطبيعي الكامل مثل وضع الترتيب الطبيعي
-    top: `${fullCenteredBase} top-0`,
-    middle: `${fullCenteredBase} top-1/2 -translate-y-1/2`,
-    bottom: `${fullCenteredBase} bottom-0`,
+    top: `${centeredBase} top-0`,
+    middle: `${centeredBase} top-1/2 -translate-y-1/2`,
+    bottom: `${centeredBase} bottom-0`,
 
-    // الخيارات الدقيقة: يمين/وسط/يسار بعرض مخصص حتى لا تملأ الصفحة كاملة
     "top-right": `${sideBase} right-0 top-0`,
     "top-center": `${centeredBase} top-0`,
     "top-left": `${sideBase} left-0 top-0`,
@@ -2187,7 +2184,6 @@ function getBlockClass(variant: BlockVariant, textAlign: string) {
 
   return classes[variant];
 }
-
 
 
 
