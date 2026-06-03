@@ -13,11 +13,19 @@ type SessionPayload = {
 };
 
 function getSecret() {
-  return (
-    process.env.AUTH_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    "dev-only-change-this-secret"
-  );
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+
+  if (secret && secret.trim().length >= 32) {
+    return secret;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "AUTH_SECRET is required in production and must be at least 32 characters."
+    );
+  }
+
+  return "dev-only-change-this-secret";
 }
 
 function base64UrlEncode(value: string) {
@@ -35,6 +43,17 @@ function base64UrlDecode(value: string) {
 
 function sign(value: string) {
   return crypto.createHmac("sha256", getSecret()).update(value).digest("hex");
+}
+
+function safeSignatureEquals(signature: string, expectedSignature: string) {
+  const signatureBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expectedSignature, "hex");
+
+  if (signatureBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
 }
 
 export function createTokenId() {
@@ -66,7 +85,9 @@ export function verifySessionToken(token?: string | null) {
 
   const expectedSignature = sign(encodedPayload);
 
-  if (signature !== expectedSignature) return null;
+  if (!safeSignatureEquals(signature, expectedSignature)) {
+    return null;
+  }
 
   try {
     const payload = JSON.parse(base64UrlDecode(encodedPayload)) as SessionPayload;

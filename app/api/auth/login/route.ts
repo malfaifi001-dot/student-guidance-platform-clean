@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 import { getRequestDeviceInfo } from "@/lib/auth/current-user";
 import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
+import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";
+import { logAuthLoginEvent } from "@/lib/admin/activity-events";
 import {
   createSessionToken,
   createTokenId,
@@ -17,6 +19,17 @@ export async function POST(request: Request) {
 
     const email = String(body?.email || "").trim().toLowerCase();
     const password = String(body?.password || "");
+
+    const rateLimitResponse = enforceRateLimit(request, {
+      namespace: "auth-login",
+      identity: email,
+      limit: 8,
+      windowMs: 10 * 60 * 1000,
+    });
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -75,6 +88,12 @@ export async function POST(request: Request) {
       });
     });
 
+    await logAuthLoginEvent({
+      userId: user.id,
+      schoolAccountId: user.schoolAccountId || null,
+      email: user.email,
+    });
+
     const response = NextResponse.json({
       success: true,
       redirectTo:
@@ -106,4 +125,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

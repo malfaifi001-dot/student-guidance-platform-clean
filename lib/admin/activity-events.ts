@@ -291,3 +291,25 @@ export async function logReportExportedEvent(input: {
     ...meta,
   });
 }
+
+export async function logAuthLoginEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  email?: string | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "AUTH",
+    action: "login",
+    severity: "SUCCESS",
+    title: `تم تسجيل دخول المستخدم ${input.email || ""}`.trim(),
+    details: {
+      email: input.email || null,
+    },
+    ...meta,
+  });
+}

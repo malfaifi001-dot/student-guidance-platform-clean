@@ -1,5 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { logAdminActivity } from "@/lib/admin/activity-log";
 import { getCurrentSessionUser, getRequestDeviceInfo } from "@/lib/auth/current-user";
 import {
   createSessionToken,
@@ -11,18 +13,6 @@ import {
 
 const ADMIN_RETURN_COOKIE = "admin_impersonation_return_token";
 
-function extractUser(sessionResult: unknown) {
-  const value = sessionResult as any;
-  return value?.user ?? value?.session?.user ?? value;
-}
-
-async function requireAdmin() {
-  const sessionResult = await getCurrentSessionUser();
-  const user = extractUser(sessionResult);
-  if (!user || user.role !== "ADMIN") return null;
-  return user;
-}
-
 type RouteContext = {
   params: Promise<{
     userId: string;
@@ -30,17 +20,33 @@ type RouteContext = {
 };
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  const admin = await requireAdmin();
+  const adminError = await requireAdminApi();
 
-  if (!admin) {
-    return NextResponse.json({ success: false, error: "غير مصرح." }, { status: 403 });
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
+  const admin = current?.user;
+
+  if (!admin || admin.role !== "ADMIN") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "غير مصرح.",
+      },
+      { status: 403 }
+    );
   }
 
   const { userId } = await context.params;
 
   if (admin.id === userId) {
     return NextResponse.json(
-      { success: false, error: "أنت داخل بالفعل بحساب الأدمن." },
+      {
+        success: false,
+        error: "أنت داخل بالفعل بحساب الأدمن.",
+      },
       { status: 400 }
     );
   }
@@ -49,25 +55,50 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   if (!currentAdminToken) {
     return NextResponse.json(
-      { success: false, error: "تعذر حفظ جلسة الأدمن الحالية." },
+      {
+        success: false,
+        error: "تعذر حفظ جلسة الأدمن الحالية.",
+      },
       { status: 400 }
     );
   }
 
   const targetUser = await prisma.user.findUnique({
-    where: { id: userId },
+    where: {
+      id: userId,
+    },
     select: {
       id: true,
       email: true,
+      name: true,
       role: true,
       schoolAccountId: true,
       isActive: true,
+      schoolAccount: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 
   if (!targetUser || !targetUser.isActive) {
     return NextResponse.json(
-      { success: false, error: "لا يمكن الدخول لحساب غير موجود أو غير مفعل." },
+      {
+        success: false,
+        error: "لا يمكن الدخول لحساب غير موجود أو غير مفعل.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (targetUser.role === "ADMIN") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لا يمكن انتحال حساب أدمن آخر.",
+      },
       { status: 400 }
     );
   }
@@ -85,19 +116,34 @@ export async function POST(request: NextRequest, context: RouteContext) {
     },
   });
 
+  await logAdminActivity({
+    actorUserId: admin.id,
+    targetUserId: targetUser.id,
+    schoolAccountId: targetUser.schoolAccountId || null,
+    category: "SECURITY",
+    action: "admin-impersonation-started",
+    severity: "WARNING",
+    title: `بدأ الأدمن انتحال حساب ${targetUser.email}`,
+    details: {
+      targetEmail: targetUser.email,
+      targetRole: targetUser.role,
+      targetSchoolAccountId: targetUser.schoolAccountId || null,
+      targetSchoolName: targetUser.schoolAccount?.name || null,
+      impersonationSessionId: session.id,
+    },
+    ipAddress: deviceInfo.ipAddress,
+    userAgent: deviceInfo.userAgent,
+  });
+
   const response = NextResponse.json({
     success: true,
     redirectTo: "/dashboard",
   });
 
-  response.cookies.set(
-    ADMIN_RETURN_COOKIE,
-    currentAdminToken,
-    {
-      ...getSessionCookieOptions(),
-      maxAge: 60 * 60,
-    }
-  );
+  response.cookies.set(ADMIN_RETURN_COOKIE, currentAdminToken, {
+    ...getSessionCookieOptions(),
+    maxAge: 60 * 60,
+  });
 
   response.cookies.set(
     SESSION_COOKIE_NAME,

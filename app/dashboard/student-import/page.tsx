@@ -1,14 +1,15 @@
 ﻿import { StudentImportCard } from "@/components/students/student-import-card";
 import { StudentTable } from "@/components/students/student-table";
-import { ensureDefaultSchoolAccount } from "@/engine/students/student-import-engine";
 import { prisma } from "@/lib/prisma";
+import { requireSchoolDashboardPageContext } from "@/lib/auth/dashboard-context";
 
 export default async function StudentImportPage() {
-  const school = await ensureDefaultSchoolAccount();
+  const context = await requireSchoolDashboardPageContext();
+  const schoolAccountId = context.schoolAccountId;
 
   const students = await prisma.student.findMany({
     where: {
-      schoolAccountId: school.id,
+      schoolAccountId,
       isActive: true,
     },
     include: {
@@ -36,3 +37,6 @@ export default async function StudentImportPage() {
     </div>
   );
 }
+
+
+

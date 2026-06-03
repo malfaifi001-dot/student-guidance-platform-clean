@@ -1,6 +1,5 @@
 ﻿import { prisma } from "@/lib/prisma";
 import { CaseStatus, EvidenceType } from "@prisma/client";
-import { ensureDefaultSchoolAccount } from "@/engine/students/student-import-engine";
 import {
   serializeCaseValues,
   type RuntimeCaseValues,
@@ -14,7 +13,14 @@ type EvidenceItem = {
   size: number;
 };
 
+type CaseAccessScope = {
+  schoolAccountId?: string | null;
+  isAdmin?: boolean;
+};
+
 type SaveRuntimeCaseParams = {
+  schoolAccountId: string;
+  createdById?: string | null;
   workflowId?: string | null;
   serviceId: string;
   title?: string | null;
@@ -24,7 +30,7 @@ type SaveRuntimeCaseParams = {
   status: "DRAFT" | "SUBMITTED";
 };
 
-type UpdateRuntimeCaseParams = {
+type UpdateRuntimeCaseParams = CaseAccessScope & {
   caseId: string;
   title?: string | null;
   studentId?: string | null;
@@ -65,6 +71,35 @@ function normalizeEvidenceItems(items: EvidenceItem[]) {
     });
 }
 
+function assertSchoolScope(scope: CaseAccessScope) {
+  if (scope.isAdmin) {
+    return;
+  }
+
+  if (!scope.schoolAccountId) {
+    throw new Error("لا يمكن تنفيذ العملية بدون ربط المستخدم بمدرسة.");
+  }
+}
+
+function buildCaseWhere(caseId: string, scope: CaseAccessScope) {
+  if (scope.isAdmin) {
+    return {
+      id: caseId,
+    };
+  }
+
+  const schoolAccountId = scope.schoolAccountId;
+
+  if (!schoolAccountId) {
+    throw new Error("لا يمكن تنفيذ العملية بدون ربط المستخدم بمدرسة.");
+  }
+
+  return {
+    id: caseId,
+    schoolAccountId,
+  };
+}
+
 async function assertServiceExists(serviceId: string) {
   const service = await prisma.service.findUnique({
     where: {
@@ -72,6 +107,8 @@ async function assertServiceExists(serviceId: string) {
     },
     select: {
       id: true,
+      slug: true,
+      status: true,
     },
   });
 
@@ -93,26 +130,40 @@ async function findWorkflowOrNull(workflowId?: string | null) {
     },
     select: {
       id: true,
+      serviceId: true,
+      status: true,
+      isActive: true,
     },
   });
 }
 
-async function findStudentOrNull(studentId?: string | null) {
+async function findStudentOrNull(
+  studentId: string | null | undefined,
+  scope: CaseAccessScope
+) {
   if (!studentId) {
     return null;
   }
 
-  return prisma.student.findUnique({
+  assertSchoolScope(scope);
+
+  const schoolAccountId = scope.schoolAccountId;
+
+  return prisma.student.findFirst({
     where: {
       id: studentId,
+      ...(scope.isAdmin ? {} : { schoolAccountId: schoolAccountId as string }),
     },
     select: {
       id: true,
+      schoolAccountId: true,
     },
   });
 }
 
 export async function saveRuntimeCase({
+  schoolAccountId,
+  createdById,
   workflowId,
   serviceId,
   title,
@@ -121,18 +172,25 @@ export async function saveRuntimeCase({
   evidenceItems = [],
   status,
 }: SaveRuntimeCaseParams) {
-  const school = await ensureDefaultSchoolAccount();
+  const scope = {
+    schoolAccountId,
+    isAdmin: false,
+  };
 
   const existingService = await assertServiceExists(serviceId);
   const existingWorkflow = await findWorkflowOrNull(workflowId);
-  const existingStudent = await findStudentOrNull(studentId);
+  const existingStudent = await findStudentOrNull(studentId, scope);
 
   if (workflowId && !existingWorkflow) {
     throw new Error(`workflowId غير موجود في قاعدة البيانات: ${workflowId}`);
   }
 
+  if (existingWorkflow && existingWorkflow.serviceId !== existingService.id) {
+    throw new Error("الـ workflow لا يتبع الخدمة المحددة.");
+  }
+
   if (studentId && !existingStudent) {
-    throw new Error(`studentId غير موجود في قاعدة البيانات: ${studentId}`);
+    throw new Error("الطالب غير موجود أو لا يتبع مدرستك.");
   }
 
   const serializedValues = serializeCaseValues(values);
@@ -140,10 +198,11 @@ export async function saveRuntimeCase({
 
   const caseEntry = await prisma.caseEntry.create({
     data: {
-      schoolAccountId: school.id,
+      schoolAccountId,
       serviceId: existingService.id,
       workflowId: existingWorkflow?.id,
       studentId: existingStudent?.id,
+      createdById: createdById || null,
       title: title || undefined,
       status: toCaseStatus(status),
       submittedAt: status === "SUBMITTED" ? new Date() : undefined,
@@ -170,29 +229,38 @@ export async function saveRuntimeCase({
 
 export async function updateRuntimeCase({
   caseId,
+  schoolAccountId,
+  isAdmin = false,
   title,
   studentId,
   values,
   evidenceItems = [],
   status,
 }: UpdateRuntimeCaseParams) {
-  const existingCase = await prisma.caseEntry.findUnique({
-    where: {
-      id: caseId,
-    },
+  const scope = {
+    schoolAccountId,
+    isAdmin,
+  };
+
+  const existingCase = await prisma.caseEntry.findFirst({
+    where: buildCaseWhere(caseId, scope),
     select: {
       id: true,
+      schoolAccountId: true,
     },
   });
 
   if (!existingCase) {
-    throw new Error(`caseId غير موجود في قاعدة البيانات: ${caseId}`);
+    throw new Error("الحالة غير موجودة أو لا تملك صلاحية الوصول إليها.");
   }
 
-  const existingStudent = await findStudentOrNull(studentId);
+  const existingStudent = await findStudentOrNull(studentId, {
+    schoolAccountId: existingCase.schoolAccountId,
+    isAdmin,
+  });
 
   if (studentId && !existingStudent) {
-    throw new Error(`studentId غير موجود في قاعدة البيانات: ${studentId}`);
+    throw new Error("الطالب غير موجود أو لا يتبع نفس مدرسة الحالة.");
   }
 
   const serializedValues = serializeCaseValues(values);
@@ -240,11 +308,12 @@ export async function updateRuntimeCase({
   return caseEntry;
 }
 
-export async function restoreCaseDraft(caseId: string) {
-  const caseEntry = await prisma.caseEntry.findUnique({
-    where: {
-      id: caseId,
-    },
+export async function restoreCaseDraft(
+  caseId: string,
+  scope: CaseAccessScope
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: buildCaseWhere(caseId, scope),
     include: {
       values: true,
       evidences: true,
@@ -274,7 +343,7 @@ export async function restoreCaseDraft(caseId: string) {
   });
 
   if (!caseEntry) {
-    throw new Error("الحالة غير موجودة.");
+    throw new Error("الحالة غير موجودة أو لا تملك صلاحية الوصول إليها.");
   }
 
   const restoredValues = Object.fromEntries(
@@ -290,13 +359,12 @@ export async function restoreCaseDraft(caseId: string) {
   };
 }
 
-
-
-export async function getCaseById(caseId: string) {
-  const caseEntry = await prisma.caseEntry.findUnique({
-    where: {
-      id: caseId,
-    },
+export async function getCaseById(
+  caseId: string,
+  scope: CaseAccessScope
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: buildCaseWhere(caseId, scope),
     include: {
       schoolAccount: true,
 
@@ -358,8 +426,9 @@ export async function getCaseById(caseId: string) {
   });
 
   if (!caseEntry) {
-    throw new Error("لم يتم العثور على الحالة.");
+    throw new Error("لم يتم العثور على الحالة أو لا تملك صلاحية الوصول إليها.");
   }
 
   return caseEntry;
 }
+

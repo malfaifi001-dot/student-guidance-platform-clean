@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+﻿import { notFound, redirect } from "next/navigation";
 
 import { CaseDetailsView } from "@/components/cases/case-details-view";
 import { getCaseById } from "@/engine/cases/case-runtime-engine";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 
 type PageProps = {
   params: Promise<{
@@ -11,9 +12,17 @@ type PageProps = {
 
 export default async function CaseDetailsPage({ params }: PageProps) {
   const { caseId } = await params;
+  const context = await requireDashboardPageContext();
+
+  if (!context.isAdmin && !context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
 
   try {
-    const caseEntry = await getCaseById(caseId);
+    const caseEntry = await getCaseById(caseId, {
+      schoolAccountId: context.schoolAccountId,
+      isAdmin: context.isAdmin,
+    });
 
     return <CaseDetailsView caseEntry={caseEntry} />;
   } catch {

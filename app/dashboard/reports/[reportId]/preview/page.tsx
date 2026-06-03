@@ -1,8 +1,8 @@
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
+﻿import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { OfficialFeatureRequiredPage } from "@/components/auth/official-feature-required-page";
 import { canUseOfficialFeatures, getMissingOfficialIdentityItems } from "@/lib/auth/official-feature-guard";
 import { buildReportIdentityFromCurrentUser } from "@/lib/report-engine/report-identity-runtime";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
 import type { ReportViewMode } from "@/components/reports/report-preview-toolbar";
@@ -80,14 +80,14 @@ type ReportFieldLookupItem = {
 };
 
 const blockLabels: Record<string, string> = {
-  summaryIntro: "ملخص التقرير",
-  intro: "مقدمة التقرير",
-  goals: "أهداف البرنامج",
-  procedures: "الإجراءات",
-  results: "النتائج",
-  recommendations: "التوصيات",
-  closingNotes: "ملاحظات ختامية",
-  evidenceNotes: "ملاحظات الشواهد",
+  summaryIntro: "Ù…Ù„Ø®Øµ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+  intro: "Ù…Ù‚Ø¯Ù…Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+  goals: "Ø£Ù‡Ø¯Ø§Ù Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬",
+  procedures: "Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª",
+  results: "Ø§Ù„Ù†ØªØ§Ø¦Ø¬",
+  recommendations: "Ø§Ù„ØªÙˆØµÙŠØ§Øª",
+  closingNotes: "Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø®ØªØ§Ù…ÙŠØ©",
+  evidenceNotes: "Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯",
 };
 
 const blockOrder = [
@@ -145,11 +145,11 @@ export default async function ReportRealPreviewPage({
   if (!officialIdentityReady && !pdfMode) {
     return (
       <OfficialFeatureRequiredPage
-        title="أكمل هوية المدرسة قبل معاينة التقرير الرسمي"
-        description="معاينة التقرير الرسمي تعتمد على بيانات المدرسة والموجه/الموجهة حتى تظهر الترويسة والغلاف بشكل صحيح."
+        title="Ø£ÙƒÙ…Ù„ Ù‡ÙˆÙŠØ© Ø§Ù„Ù…Ø¯Ø±Ø³Ø© Ù‚Ø¨Ù„ Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ø±Ø³Ù…ÙŠ"
+        description="Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ø±Ø³Ù…ÙŠ ØªØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø¯Ø±Ø³Ø© ÙˆØ§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø­ØªÙ‰ ØªØ¸Ù‡Ø± Ø§Ù„ØªØ±ÙˆÙŠØ³Ø© ÙˆØ§Ù„ØºÙ„Ø§Ù Ø¨Ø´ÙƒÙ„ ØµØ­ÙŠØ­."
         missingItems={officialIdentityMissingItems.map((item) => ({
           label: item,
-          description: "هذا الحقل مطلوب حتى تظهر التقارير الرسمية بهوية مكتملة.",
+          description: "Ù‡Ø°Ø§ Ø§Ù„Ø­Ù‚Ù„ Ù…Ø·Ù„ÙˆØ¨ Ø­ØªÙ‰ ØªØ¸Ù‡Ø± Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø±Ø³Ù…ÙŠØ© Ø¨Ù‡ÙˆÙŠØ© Ù…ÙƒØªÙ…Ù„Ø©.",
         }))}
       />
     );
@@ -320,8 +320,8 @@ export default async function ReportRealPreviewPage({
             href={backToReportsUrl}
             className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
           >
-            <span aria-hidden="true">←</span>
-            الرجوع للتقارير
+            <span aria-hidden="true">â†</span>
+            Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„ØªÙ‚Ø§Ø±ÙŠØ±
           </a>
         </div>
       ) : null}
@@ -364,26 +364,26 @@ function buildReportIdentity(report: any) {
   const schoolAccount = report.caseEntry.schoolAccount;
 
   return {
-    ministryName: "وزارة التعليم",
+    ministryName: "ÙˆØ²Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
 
     educationDepartment: profile?.district
-      ? `إدارة التعليم - ${profile.district}`
-      : "إدارة التعليم",
+      ? `Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ… - ${profile.district}`
+      : "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
 
     educationOffice: profile?.city
-      ? `مكتب التعليم - ${profile.city}`
-      : "مكتب التعليم",
+      ? `Ù…ÙƒØªØ¨ Ø§Ù„ØªØ¹Ù„ÙŠÙ… - ${profile.city}`
+      : "Ù…ÙƒØªØ¨ Ø§Ù„ØªØ¹Ù„ÙŠÙ…",
 
-    schoolName: profile?.schoolName || schoolAccount.name || "اسم المدرسة",
+    schoolName: profile?.schoolName || schoolAccount.name || "Ø§Ø³Ù… Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
 
     counselorName:
-      report.caseEntry.createdBy?.name || "الموجه/الموجهة الطلابية",
+      report.caseEntry.createdBy?.name || "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
 
-    counselorTitle: "الموجه/الموجهة الطلابية",
+    counselorTitle: "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
 
-    academicYear: profile?.academicYear || "العام الدراسي",
+    academicYear: profile?.academicYear || "Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
 
-    semester: profile?.currentSemester || "الفصل الدراسي",
+    semester: profile?.currentSemester || "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
 
     schoolLogoUrl: undefined,
 
@@ -464,8 +464,8 @@ function buildOfficialReportData({
       "execution_date",
       "program_date",
       "gregorian_date",
-      "تاريخ",
-      "التاريخ",
+      "ØªØ§Ø±ÙŠØ®",
+      "Ø§Ù„ØªØ§Ø±ÙŠØ®",
     ]) || reportDate;
 
   const programTitle =
@@ -473,8 +473,8 @@ function buildOfficialReportData({
       "program",
       "program_name",
       "program_title",
-      "عنوان البرنامج",
-      "البرنامج",
+      "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬",
+      "Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬",
     ]) || report.title;
 
   const targetGroup =
@@ -482,13 +482,13 @@ function buildOfficialReportData({
       "target",
       "beneficiaries",
       "target_group",
-      "المستفيدون",
-      "الفئة المستهدفة",
+      "Ø§Ù„Ù…Ø³ØªÙÙŠØ¯ÙˆÙ†",
+      "Ø§Ù„ÙØ¦Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©",
     ]) ||
     [student?.stage, student?.grade, student?.classroom]
       .filter(Boolean)
       .join(" - ") ||
-    "غير محدد";
+    "ØºÙŠØ± Ù…Ø­Ø¯Ø¯";
 
   const editableSections = buildEditableSections(parsedEditableContent);
 
@@ -540,24 +540,24 @@ function buildOfficialReportData({
         findValueByKeys(reportValues, [
           "academic_year",
           "school_year",
-          "العام الدراسي",
-          "السنة الدراسية",
+          "Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+          "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ©",
         ]) ||
-        "العام الدراسي",
+        "Ø§Ù„Ø¹Ø§Ù… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
 
       semester:
         findValueByKeys(reportValues, [
           "semester",
-          "الفصل الدراسي",
-          "الفصل",
+          "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
+          "Ø§Ù„ÙØµÙ„",
         ]) ||
         profile?.currentSemester ||
-        "الفصل الدراسي",
+        "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ",
 
       shortDescription:
         parsedEditableContent.blocks?.summaryIntro ||
         parsedEditableContent.blocks?.intro ||
-        `تقرير يوثق ${report.caseEntry.service.name} بناءً على بيانات الحالة والشواهد المرتبطة بها.`,
+        `ØªÙ‚Ø±ÙŠØ± ÙŠÙˆØ«Ù‚ ${report.caseEntry.service.name} Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø© ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ù‡Ø§.`,
     },
 
     sections,
@@ -566,8 +566,8 @@ function buildOfficialReportData({
 
     approval: {
       counselorName:
-        report.caseEntry.createdBy?.name || "الموجه/الموجهة الطلابية",
-      principalName: profile?.principalName || "قائد/قائدة المدرسة",
+        report.caseEntry.createdBy?.name || "Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ©",
+      principalName: profile?.principalName || "Ù‚Ø§Ø¦Ø¯/Ù‚Ø§Ø¦Ø¯Ø© Ø§Ù„Ù…Ø¯Ø±Ø³Ø©",
       date: reportDate,
     },
   } as OfficialReportData;
@@ -581,36 +581,36 @@ function buildStudentSection(student: any, guardian: any): ReportSection[] {
   return [
     {
       id: "student-info",
-      title: "بيانات الطالب/الطالبة",
+      title: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©",
       content: "",
       items: [
         {
-          label: "اسم الطالب/الطالبة",
+          label: "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©",
           value: student.fullName,
         },
         {
-          label: "رقم الهوية",
-          value: student.nationalId || "غير متوفر",
+          label: "Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©",
+          value: student.nationalId || "ØºÙŠØ± Ù…ØªÙˆÙØ±",
         },
         {
-          label: "المرحلة",
-          value: student.stage || "غير محدد",
+          label: "Ø§Ù„Ù…Ø±Ø­Ù„Ø©",
+          value: student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
         },
         {
-          label: "الصف",
-          value: student.grade || "غير محدد",
+          label: "Ø§Ù„ØµÙ",
+          value: student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
         },
         {
-          label: "الفصل",
-          value: student.classroom || "غير محدد",
+          label: "Ø§Ù„ÙØµÙ„",
+          value: student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
         },
         {
-          label: "ولي الأمر",
-          value: guardian?.name || "غير متوفر",
+          label: "ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±",
+          value: guardian?.name || "ØºÙŠØ± Ù…ØªÙˆÙØ±",
         },
         {
-          label: "جوال ولي الأمر",
-          value: guardian?.phone || "غير متوفر",
+          label: "Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±",
+          value: guardian?.phone || "ØºÙŠØ± Ù…ØªÙˆÙØ±",
         },
       ],
     },
@@ -698,7 +698,7 @@ function buildWorkflowSections(reportValues: ReportValueItem[]): ReportSection[]
     )
     .map((item) => ({
       label: item.fieldLabel,
-      value: item.displayValue || "—",
+      value: item.displayValue || "â€”",
     }));
 
   const otherItems = reportValues
@@ -714,7 +714,7 @@ function buildWorkflowSections(reportValues: ReportValueItem[]): ReportSection[]
     )
     .map((item) => ({
       label: item.fieldLabel,
-      value: item.displayValue || "—",
+      value: item.displayValue || "â€”",
     }));
 
   const sections: ReportSection[] = [];
@@ -722,7 +722,7 @@ function buildWorkflowSections(reportValues: ReportValueItem[]): ReportSection[]
   if (primaryItems.length) {
     sections.push({
       id: "workflow-primary",
-      title: "بيانات البرنامج والتنفيذ",
+      title: "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬ ÙˆØ§Ù„ØªÙ†ÙÙŠØ°",
       content: "",
       items: primaryItems,
     });
@@ -731,7 +731,7 @@ function buildWorkflowSections(reportValues: ReportValueItem[]): ReportSection[]
   if (otherItems.length) {
     sections.push({
       id: "workflow-extra",
-      title: "بيانات إضافية من الحالة",
+      title: "Ø¨ÙŠØ§Ù†Ø§Øª Ø¥Ø¶Ø§ÙÙŠØ© Ù…Ù† Ø§Ù„Ø­Ø§Ù„Ø©",
       content: "",
       items: otherItems,
     });
@@ -758,9 +758,9 @@ function buildReportEvidences(report: any): ReportEvidence[] {
 
   return report.caseEntry.evidences.map((item: any) => ({
     id: item.id,
-    title: item.note || item.fileName || "شاهد",
+    title: item.note || item.fileName || "Ø´Ø§Ù‡Ø¯",
     description: item.note || "",
-    fileName: item.fileName || "مرفق",
+    fileName: item.fileName || "Ù…Ø±ÙÙ‚",
     imageUrl: isImageMime(item.mimeType) ? item.fileUrl || undefined : undefined,
     fileUrl: item.fileUrl || undefined,
   }));
@@ -887,9 +887,9 @@ function findValueByKeys(items: ReportValueItem[], keys: string[]) {
 function normalizeSearchText(value: string) {
   return value
     .toLowerCase()
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه")
+    .replace(/[Ø£Ø¥Ø¢]/g, "Ø§")
+    .replace(/Ù‰/g, "ÙŠ")
+    .replace(/Ø©/g, "Ù‡")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -945,3 +945,4 @@ function normalizeEvidenceLayoutMode(value?: string | null) {
 
   return "two-per-page";
 }
+

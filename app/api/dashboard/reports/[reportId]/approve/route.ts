@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ReportStatus } from "@prisma/client";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { buildReportAccessWhere } from "@/lib/reports/report-access";
 
 type RouteContext = {
   params: Promise<{
@@ -9,23 +11,31 @@ type RouteContext = {
 };
 
 export async function POST(_request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
   try {
     const { reportId } = await context.params;
 
-    if (!reportId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "reportId مطلوب لاعتماد التقرير.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const existingReport = await prisma.guidanceReport.findUnique({
-      where: {
-        id: reportId,
-      },
+    const existingReport = await prisma.guidanceReport.findFirst({
+      where: buildReportAccessWhere(reportId, {
+        schoolAccountId: authResult.schoolAccountId,
+        isAdmin: authResult.isAdmin,
+      }),
       select: {
         id: true,
         status: true,
@@ -36,7 +46,7 @@ export async function POST(_request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "التقرير غير موجود.",
+          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
         },
         { status: 404 }
       );
@@ -54,7 +64,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
     const report = await prisma.guidanceReport.update({
       where: {
-        id: reportId,
+        id: existingReport.id,
       },
       data: {
         status: ReportStatus.APPROVED,

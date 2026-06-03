@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ReportStatus } from "@prisma/client";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { buildReportAccessWhere } from "@/lib/reports/report-access";
 
 type RouteContext = {
   params: Promise<{
@@ -14,24 +16,42 @@ type UpdateReportBody = {
   renderedContent?: string;
 };
 
+function requireUsableReportContext(context: {
+  isAdmin: boolean;
+  schoolAccountId: string | null;
+}) {
+  if (!context.isAdmin && !context.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
+  return null;
+}
+
 export async function GET(_request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  const contextError = requireUsableReportContext(authResult);
+  if (contextError) return contextError;
+
   try {
     const { reportId } = await context.params;
 
-    if (!reportId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "reportId مطلوب.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const report = await prisma.guidanceReport.findUnique({
-      where: {
-        id: reportId,
-      },
+    const report = await prisma.guidanceReport.findFirst({
+      where: buildReportAccessWhere(reportId, {
+        schoolAccountId: authResult.schoolAccountId,
+        isAdmin: authResult.isAdmin,
+      }),
       include: {
         evidenceItems: {
           orderBy: {
@@ -55,7 +75,7 @@ export async function GET(_request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "التقرير غير موجود.",
+          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
         },
         { status: 404 }
       );
@@ -80,24 +100,24 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  const contextError = requireUsableReportContext(authResult);
+  if (contextError) return contextError;
+
   try {
     const { reportId } = await context.params;
     const body = (await request.json()) as UpdateReportBody;
 
-    if (!reportId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "reportId مطلوب لتحديث التقرير.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const existingReport = await prisma.guidanceReport.findUnique({
-      where: {
-        id: reportId,
-      },
+    const existingReport = await prisma.guidanceReport.findFirst({
+      where: buildReportAccessWhere(reportId, {
+        schoolAccountId: authResult.schoolAccountId,
+        isAdmin: authResult.isAdmin,
+      }),
       select: {
         id: true,
         status: true,
@@ -108,7 +128,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "التقرير غير موجود.",
+          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
         },
         { status: 404 }
       );
@@ -161,7 +181,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const updatedReport = await prisma.guidanceReport.update({
       where: {
-        id: reportId,
+        id: existingReport.id,
       },
       data: {
         title,

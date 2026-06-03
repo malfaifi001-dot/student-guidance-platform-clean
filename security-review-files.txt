@@ -1,0 +1,4173 @@
+﻿
+
+================ FILE: package.json ================
+
+{
+  "name": "student-guidance-platform-clean",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.10.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.3.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.16.0",
+    "next": "16.2.6",
+    "playwright": "^1.60.0",
+    "prisma": "^7.8.0",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.76.1",
+    "recharts": "^3.8.1",
+    "shadcn": "^4.8.2",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
+
+
+================ FILE: next.config.ts ================
+
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+
+
+
+================ MISSING: middleware.ts ================
+
+
+
+================ MISSING: .env.example ================
+
+
+
+================ FILE: prisma\schema.prisma ================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+
+  users           User[]
+  profile         SchoolProfile?
+  students        Student[]
+  guardians       Guardian[]
+  staff           StaffMember[]
+  services        ServiceAccess[]
+  cases           CaseEntry[]
+  subscription    Subscription?
+  resultsAnalyses ResultsAnalysis[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  officialName String?
+  jobTitle     String?
+  isActive     Boolean  @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases    CaseEntry[]
+  sessions UserSession[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName          String
+  principalName       String?
+  educationDepartment String?
+  educationOffice     String?
+  city                String?
+  district            String?
+  stage               String?
+  academicYear        String?
+  currentSemester     String?
+  logoUrl             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows Workflow[]
+  cases     CaseEntry[]
+  access    ServiceAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name         String
+  version      Int            @default(1)
+  status       WorkflowStatus @default(DRAFT)
+  isActive     Boolean        @default(false)
+  workflowType String         @default("default")
+
+  steps WorkflowStep[]
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([serviceId, workflowType, isActive])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId      String?
+  workflow        Workflow?        @relation(fields: [workflowId], references: [id])
+  guidanceReports GuidanceReport[]
+  studentId       String?
+  student         Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values    CaseValue[]
+  evidences Evidence[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String?
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model ResultsAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title      String
+  grade      String?
+  classroom  String?
+  sourceFile String?
+  status     String  @default("COMPLETED")
+
+  totalStudents Int    @default(0)
+  totalSubjects Int    @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+model GuidanceReport {
+  id          String @id @default(cuid())
+  title       String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String
+  renderedContent String?
+
+  evidenceEnabled Boolean @default(true)
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  approvedAt DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([templateId])
+  @@index([generatedAt])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+
+  mimeType String?
+  size     Int?
+
+  sortOrder Int     @default(0)
+  visible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([visible])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  startsAt   DateTime?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
+
+
+================ FILE: lib\prisma.ts ================
+
+import { PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not defined");
+}
+
+const adapter = new PrismaBetterSqlite3({
+  url: databaseUrl,
+});
+
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
+
+
+================ FILE: app\api\auth\login\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/auth/password";
+import { getRequestDeviceInfo } from "@/lib/auth/current-user";
+import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
+import {
+  createSessionToken,
+  createTokenId,
+  getSessionCookieOptions,
+  getSessionExpiryDate,
+  SESSION_COOKIE_NAME,
+} from "@/lib/auth/session";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    const email = String(body?.email || "").trim().toLowerCase();
+    const password = String(body?.password || "");
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        passwordHash: true,
+        role: true,
+        schoolAccountId: true,
+        isActive: true,
+        onboardingCompleted: true,
+        onboardingSkippedAt: true,
+      },
+    });
+
+    if (!user || !verifyPassword(password, user.passwordHash)) {
+      return NextResponse.json(
+        { success: false, error: "بيانات الدخول غير صحيحة." },
+        { status: 401 }
+      );
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json(
+        { success: false, error: "الحساب غير مفعل." },
+        { status: 403 }
+      );
+    }
+
+    const deviceInfo = await getRequestDeviceInfo();
+    const tokenId = createTokenId();
+    const expiresAt = getSessionExpiryDate();
+
+    const session = await prisma.$transaction(async (tx) => {
+      if (shouldLimitActiveSessions()) {
+        await tx.userSession.updateMany({
+          where: {
+            userId: user.id,
+            isActive: true,
+          },
+          data: {
+            isActive: false,
+            revokedAt: new Date(),
+          },
+        });
+      }
+
+      return tx.userSession.create({
+        data: {
+          userId: user.id,
+          tokenId,
+          expiresAt,
+          userAgent: deviceInfo.userAgent,
+          ipAddress: deviceInfo.ipAddress,
+        },
+      });
+    });
+
+    const response = NextResponse.json({
+      success: true,
+      redirectTo:
+        user.onboardingCompleted || user.onboardingSkippedAt
+          ? "/dashboard"
+          : "/dashboard/onboarding",
+    });
+
+    response.cookies.set(
+      SESSION_COOKIE_NAME,
+      createSessionToken({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        schoolAccountId: user.schoolAccountId,
+        sessionId: session.id,
+        tokenId,
+      }),
+      getSessionCookieOptions()
+    );
+
+    return response;
+  } catch (error) {
+    console.error("LOGIN_ERROR", error);
+
+    return NextResponse.json(
+      { success: false, error: "حدث خطأ أثناء تسجيل الدخول." },
+      { status: 500 }
+    );
+  }
+}
+
+
+
+
+================ FILE: app\api\auth\logout\route.ts ================
+
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { logAuthLogoutEvent } from "@/lib/admin/activity-events";
+
+export async function POST() {
+  const current = await getCurrentSessionUser();
+  const currentSession = current as
+    | {
+        tokenId?: string | null;
+        user?: {
+          id: string;
+          email?: string | null;
+          schoolAccountId?: string | null;
+        };
+      }
+    | null;
+
+  if (currentSession?.user?.id) {
+    await logAuthLogoutEvent({
+      userId: currentSession.user.id,
+      schoolAccountId: currentSession.user.schoolAccountId || null,
+      email: currentSession.user.email || null,
+    });
+
+    if (currentSession.tokenId) {
+      await prisma.userSession.updateMany({
+        where: {
+          tokenId: currentSession.tokenId,
+          isActive: true,
+        },
+        data: {
+          isActive: false,
+          revokedAt: new Date(),
+        },
+      });
+    } else {
+      await prisma.userSession.updateMany({
+        where: {
+          userId: currentSession.user.id,
+          isActive: true,
+        },
+        data: {
+          isActive: false,
+          revokedAt: new Date(),
+        },
+      });
+    }
+  }
+
+  const cookieStore = await cookies();
+
+  cookieStore.set(SESSION_COOKIE_NAME, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    expires: new Date(0),
+  });
+
+  return NextResponse.json({
+    message: "تم تسجيل الخروج.",
+  });
+}
+
+
+
+================ FILE: app\api\auth\register\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth/password";
+import { getRequestDeviceInfo } from "@/lib/auth/current-user";
+import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
+import {
+  createSessionToken,
+  createTokenId,
+  getSessionCookieOptions,
+  getSessionExpiryDate,
+  SESSION_COOKIE_NAME,
+} from "@/lib/auth/session";
+
+function normalizeEmail(value: unknown) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function createSlugFromName(name: string) {
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+
+  return `${base || "school"}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    const name = String(body?.name || "").trim();
+    const email = normalizeEmail(body?.email);
+    const phone = String(body?.phone || "").trim();
+    const password = String(body?.password || "");
+    const gender = body?.gender === "FEMALE" ? "FEMALE" : "MALE";
+
+    if (!name || name.length < 3) {
+      return NextResponse.json(
+        { success: false, error: "الاسم الكامل مطلوب." },
+        { status: 400 }
+      );
+    }
+
+    if (!email || !email.includes("@")) {
+      return NextResponse.json(
+        { success: false, error: "البريد الإلكتروني غير صحيح." },
+        { status: 400 }
+      );
+    }
+
+    if (!phone || phone.length < 8) {
+      return NextResponse.json(
+        { success: false, error: "رقم الجوال مطلوب." },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { success: false, error: "كلمة المرور يجب أن تكون 8 أحرف على الأقل." },
+        { status: 400 }
+      );
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, error: "هذا البريد مسجل مسبقًا." },
+        { status: 409 }
+      );
+    }
+
+    const deviceInfo = await getRequestDeviceInfo();
+    const tokenId = createTokenId();
+    const expiresAt = getSessionExpiryDate();
+
+    const result = await prisma.$transaction(async (tx) => {
+      const schoolAccount = await tx.schoolAccount.create({
+        data: {
+          name: `مدرسة ${name}`,
+          slug: createSlugFromName(name),
+        },
+      });
+
+      const user = await tx.user.create({
+        data: {
+          schoolAccountId: schoolAccount.id,
+          name,
+          officialName: name,
+          email,
+          phone,
+          passwordHash: hashPassword(password),
+          role: "COUNSELOR",
+          gender,
+          jobTitle: gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي",
+          onboardingCompleted: false,
+        },
+      });
+
+      if (shouldLimitActiveSessions()) {
+        await tx.userSession.updateMany({
+          where: {
+            userId: user.id,
+            isActive: true,
+          },
+          data: {
+            isActive: false,
+            revokedAt: new Date(),
+          },
+        });
+      }
+
+      const session = await tx.userSession.create({
+        data: {
+          userId: user.id,
+          tokenId,
+          expiresAt,
+          userAgent: deviceInfo.userAgent,
+          ipAddress: deviceInfo.ipAddress,
+        },
+      });
+
+      return { user, schoolAccount, session };
+    });
+
+    const response = NextResponse.json({
+      success: true,
+      redirectTo: "/dashboard/onboarding",
+    });
+
+    response.cookies.set(
+      SESSION_COOKIE_NAME,
+      createSessionToken({
+        userId: result.user.id,
+        email: result.user.email,
+        role: result.user.role,
+        schoolAccountId: result.schoolAccount.id,
+        sessionId: result.session.id,
+        tokenId,
+      }),
+      getSessionCookieOptions()
+    );
+
+    return response;
+  } catch (error) {
+    console.error("REGISTER_ERROR", error);
+
+    return NextResponse.json(
+      { success: false, error: "حدث خطأ أثناء إنشاء الحساب." },
+      { status: 500 }
+    );
+  }
+}
+
+
+
+================ FILE: lib\auth\current-user.ts ================
+
+import { cookies, headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "@/lib/auth/session";
+
+export async function getCurrentSessionUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const sessionPayload = verifySessionToken(token);
+
+  if (!sessionPayload) {
+    return null;
+  }
+
+  const session = await prisma.userSession.findUnique({
+    where: {
+      tokenId: sessionPayload.tokenId,
+    },
+    include: {
+      user: {
+        include: {
+          schoolAccount: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!session || !session.isActive || session.revokedAt) {
+    return null;
+  }
+
+  if (session.expiresAt.getTime() < Date.now()) {
+    await prisma.userSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+      },
+    });
+
+    return null;
+  }
+
+  await prisma.userSession.update({
+    where: {
+      id: session.id,
+    },
+    data: {
+      lastSeenAt: new Date(),
+    },
+  });
+
+  return {
+    session,
+    user: session.user,
+  };
+}
+
+export async function getRequestDeviceInfo() {
+  const headerStore = await headers();
+
+  return {
+    userAgent: headerStore.get("user-agent") || null,
+    ipAddress:
+      headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headerStore.get("x-real-ip") ||
+      null,
+  };
+}
+
+
+
+================ FILE: lib\auth\password.ts ================
+
+import crypto from "crypto";
+
+const ITERATIONS = 120000;
+const KEY_LENGTH = 64;
+const DIGEST = "sha512";
+
+export function hashPassword(password: string) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto
+    .pbkdf2Sync(password, salt, ITERATIONS, KEY_LENGTH, DIGEST)
+    .toString("hex");
+
+  return `pbkdf2:${ITERATIONS}:${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash?: string | null) {
+  if (!storedHash) return false;
+
+  const parts = storedHash.split(":");
+
+  if (parts.length !== 4 || parts[0] !== "pbkdf2") {
+    return false;
+  }
+
+  const iterations = Number(parts[1]);
+  const salt = parts[2];
+  const originalHash = parts[3];
+
+  const hash = crypto
+    .pbkdf2Sync(password, salt, iterations, KEY_LENGTH, DIGEST)
+    .toString("hex");
+
+  return crypto.timingSafeEqual(
+    Buffer.from(hash, "hex"),
+    Buffer.from(originalHash, "hex")
+  );
+}
+
+
+
+================ FILE: lib\auth\require-auth.ts ================
+
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export async function requireDashboardUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    redirect("/login");
+  }
+
+  return current;
+}
+
+export async function requireCompletedOnboarding() {
+  const current = await requireDashboardUser();
+
+  if (!current.user.onboardingCompleted) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return current;
+}
+
+
+
+================ FILE: lib\auth\session-policy.ts ================
+
+export function shouldLimitActiveSessions() {
+  return process.env.AUTH_SINGLE_ACTIVE_SESSION === "true";
+}
+
+
+
+================ FILE: lib\auth\session.ts ================
+
+import crypto from "crypto";
+
+export const SESSION_COOKIE_NAME = "student_guidance_session";
+
+type SessionPayload = {
+  userId: string;
+  email: string;
+  role: string;
+  schoolAccountId: string | null;
+  sessionId: string;
+  tokenId: string;
+  exp: number;
+};
+
+function getSecret() {
+  return (
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    "dev-only-change-this-secret"
+  );
+}
+
+function base64UrlEncode(value: string) {
+  return Buffer.from(value)
+    .toString("base64")
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
+function base64UrlDecode(value: string) {
+  const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
+  return Buffer.from(normalized, "base64").toString("utf8");
+}
+
+function sign(value: string) {
+  return crypto.createHmac("sha256", getSecret()).update(value).digest("hex");
+}
+
+export function createTokenId() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+export function getSessionExpiryDate() {
+  return new Date(Date.now() + 1000 * 60 * 60 * 24 * 14);
+}
+
+export function createSessionToken(payload: Omit<SessionPayload, "exp">) {
+  const fullPayload: SessionPayload = {
+    ...payload,
+    exp: Date.now() + 1000 * 60 * 60 * 24 * 14,
+  };
+
+  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
+  const signature = sign(encodedPayload);
+
+  return `${encodedPayload}.${signature}`;
+}
+
+export function verifySessionToken(token?: string | null) {
+  if (!token) return null;
+
+  const [encodedPayload, signature] = token.split(".");
+
+  if (!encodedPayload || !signature) return null;
+
+  const expectedSignature = sign(encodedPayload);
+
+  if (signature !== expectedSignature) return null;
+
+  try {
+    const payload = JSON.parse(base64UrlDecode(encodedPayload)) as SessionPayload;
+
+    if (!payload.exp || payload.exp < Date.now()) {
+      return null;
+    }
+
+    if (!payload.sessionId || !payload.tokenId) {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export function getSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 14,
+  };
+}
+
+
+
+================ FILE: lib\security\auth.ts ================
+
+import "server-only";
+import type { UserRole } from "./roles";
+
+export type CurrentUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  tenantId: string;
+  schoolId: string;
+};
+
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  return {
+    id: "dev-user",
+    name: "Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„ØªØ·ÙˆÙŠØ±",
+    email: "dev@example.com",
+    role: "ADMIN",
+    tenantId: "default-tenant",
+    schoolId: "default-school",
+  };
+}
+
+
+================ FILE: lib\security\guards.ts ================
+
+import "server-only";
+import { notFound, redirect } from "next/navigation";
+import { getCurrentUser } from "./auth";
+import { hasPermission, type Permission } from "./permissions";
+
+export async function requireUser() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  return user;
+}
+
+export async function requirePermission(permission: Permission) {
+  const user = await requireUser();
+
+  if (!hasPermission(user.role, permission)) {
+    notFound();
+  }
+
+  return user;
+}
+
+export function denyIfMissing(value: unknown) {
+  if (!value) notFound();
+}
+
+
+================ FILE: lib\security\permissions.ts ================
+
+import type { UserRole } from "./roles";
+
+export const PERMISSIONS = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "workflows:read",
+  "workflows:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "cases:close",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "admin:manage",
+] as const;
+
+export type Permission = (typeof PERMISSIONS)[number];
+
+const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  ADMIN: [...PERMISSIONS],
+  SCHOOL_ADMIN: [
+    "dashboard:read",
+    "students:read",
+    "students:write",
+    "workflows:read",
+    "workflows:write",
+    "cases:read",
+    "cases:create",
+    "cases:update",
+    "cases:close",
+    "evidence:read",
+    "evidence:upload",
+    "reports:read",
+    "reports:export",
+  ],
+  COUNSELOR: [
+    "dashboard:read",
+    "students:read",
+    "cases:read",
+    "cases:create",
+    "cases:update",
+    "evidence:read",
+    "evidence:upload",
+    "reports:read",
+    "reports:export",
+  ],
+  VIEWER: ["dashboard:read", "students:read", "cases:read", "evidence:read", "reports:read"],
+};
+
+export function hasPermission(role: UserRole, permission: Permission) {
+  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+
+================ FILE: lib\security\rate-limit.ts ================
+
+import "server-only";
+
+type Bucket = {
+  count: number;
+  resetAt: number;
+};
+
+const buckets = new Map<string, Bucket>();
+
+export function checkRateLimit(key: string, limit = 20, windowMs = 60_000) {
+  const now = Date.now();
+  const current = buckets.get(key);
+
+  if (!current || current.resetAt < now) {
+    buckets.set(key, {
+      count: 1,
+      resetAt: now + windowMs,
+    });
+
+    return true;
+  }
+
+  if (current.count >= limit) {
+    return false;
+  }
+
+  current.count += 1;
+  return true;
+}
+
+
+================ FILE: lib\security\roles.ts ================
+
+export const USER_ROLES = ["ADMIN", "SCHOOL_ADMIN", "COUNSELOR", "VIEWER"] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
+export function isUserRole(value: unknown): value is UserRole {
+  return typeof value === "string" && USER_ROLES.includes(value as UserRole);
+}
+
+
+================ FILE: lib\security\tenant.ts ================
+
+import "server-only";
+import { notFound } from "next/navigation";
+import type { CurrentUser } from "./auth";
+
+export type TenantScopedEntity = {
+  tenantId?: string | null;
+  schoolId?: string | null;
+};
+
+export function assertTenantAccess(user: CurrentUser, entity: TenantScopedEntity) {
+  if (entity.tenantId && entity.tenantId !== user.tenantId) {
+    notFound();
+  }
+
+  if (entity.schoolId && entity.schoolId !== user.schoolId) {
+    notFound();
+  }
+}
+
+export function tenantWhere(user: CurrentUser) {
+  return {
+    tenantId: user.tenantId,
+    schoolId: user.schoolId,
+  };
+}
+
+
+================ FILE: lib\security\validation.ts ================
+
+import "server-only";
+
+export type AuditAction =
+  | "LOGIN"
+  | "LOGOUT"
+  | "VIEW_CASE"
+  | "CREATE_CASE"
+  | "UPDATE_CASE"
+  | "CLOSE_CASE"
+  | "UPLOAD_EVIDENCE"
+  | "EXPORT_REPORT"
+  | "UPLOAD_WORKFLOW";
+
+type AuditInput = {
+  userId?: string | null;
+  action: AuditAction;
+  entityType: string;
+  entityId?: string | null;
+  metadata?: Record<string, unknown>;
+};
+
+export async function auditLog(input: AuditInput) {
+  // Ù…Ø¤Ù‚ØªÙ‹Ø§ Ù„Ù„ØªØ·ÙˆÙŠØ±.
+  // Ù„Ø§Ø­Ù‚Ù‹Ø§ ÙŠØ±Ø¨Ø· Ø¨Ø¬Ø¯ÙˆÙ„ AuditLog ÙÙŠ Prisma.
+  console.info("[AUDIT]", {
+    ...input,
+    at: new Date().toISOString(),
+  });
+}
+
+
+================ FILE: lib\admin\admin-api-guard.ts ================
+
+import { NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export async function requireAdminApi() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    return NextResponse.json(
+      {
+        error: "يجب تسجيل الدخول.",
+        code: "UNAUTHENTICATED",
+      },
+      { status: 401 }
+    );
+  }
+
+  if (current.user.role !== "ADMIN") {
+    return NextResponse.json(
+      {
+        error: "ليست لديك صلاحية تنفيذ هذا الإجراء.",
+        code: "FORBIDDEN",
+      },
+      { status: 403 }
+    );
+  }
+
+  return null;
+}
+
+
+
+================ FILE: lib\admin\admin-page-guard.ts ================
+
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export async function requireAdminPage() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    redirect("/login");
+  }
+
+  if (current.user.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
+
+  return current;
+}
+
+
+
+================ FILE: lib\admin\activity-log.ts ================
+
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+export type PlatformActivityCategory =
+  | "AUTH"
+  | "USER"
+  | "SUBSCRIPTION"
+  | "ACTIVATION"
+  | "PAYMENT"
+  | "CASE"
+  | "REPORT"
+  | "EVIDENCE"
+  | "WORKFLOW"
+  | "SECURITY"
+  | "SYSTEM";
+
+export type PlatformActivitySeverity =
+  | "INFO"
+  | "SUCCESS"
+  | "WARNING"
+  | "ERROR";
+
+type PlatformActivityInput = {
+  actorUserId?: string | null;
+  targetUserId?: string | null;
+  schoolAccountId?: string | null;
+
+  category: PlatformActivityCategory | string;
+  action: string;
+  severity?: PlatformActivitySeverity | string;
+
+  title: string;
+  details?: Prisma.InputJsonValue | Record<string, unknown>;
+
+  ipAddress?: string | null;
+  userAgent?: string | null;
+};
+
+function toPrismaJsonValue(
+  value: Prisma.InputJsonValue | Record<string, unknown> | undefined
+): Prisma.InputJsonValue {
+  if (value === undefined) {
+    return {};
+  }
+
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+export async function logPlatformActivity(input: PlatformActivityInput) {
+  try {
+    await prisma.platformActivityLog.create({
+      data: {
+        actorUserId: input.actorUserId || null,
+        targetUserId: input.targetUserId || null,
+        schoolAccountId: input.schoolAccountId || null,
+        category: input.category,
+        action: input.action,
+        severity: input.severity || "INFO",
+        title: input.title,
+        details: toPrismaJsonValue(input.details),
+        ipAddress: input.ipAddress || null,
+        userAgent: input.userAgent || null,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to write platform activity log:", error);
+  }
+}
+
+export async function logAdminActivity(input: PlatformActivityInput) {
+  return logPlatformActivity(input);
+}
+
+
+
+================ FILE: lib\admin\activity-events.ts ================
+
+import { headers } from "next/headers";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { logPlatformActivity } from "@/lib/admin/activity-log";
+
+export async function getRequestActivityMeta() {
+  const headerStore = await headers();
+
+  return {
+    ipAddress:
+      headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headerStore.get("x-real-ip") ||
+      null,
+    userAgent: headerStore.get("user-agent") || null,
+  };
+}
+
+export async function logAuthLogoutEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  email?: string | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "AUTH",
+    action: "logout",
+    severity: "INFO",
+    title: `تم تسجيل خروج المستخدم ${input.email || ""}`.trim(),
+    details: {
+      email: input.email || null,
+    },
+    ...meta,
+  });
+}
+
+export async function logActivationCodeRedeemedEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  code: string;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "ACTIVATION",
+    action: "redeem-activation-code",
+    severity: "SUCCESS",
+    title: "تم استخدام كود تفعيل",
+    details: {
+      code: input.code,
+    },
+    ...meta,
+  });
+}
+
+export async function logBankTransferRequestedEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  amount?: number | null;
+  planId?: string | null;
+  billingCycle?: string | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "PAYMENT",
+    action: "bank-transfer-requested",
+    severity: "INFO",
+    title: "تم إرسال طلب تحويل بنكي",
+    details: {
+      amount: input.amount || null,
+      planId: input.planId || null,
+      billingCycle: input.billingCycle || null,
+    },
+    ...meta,
+  });
+}
+
+export async function logPlanOrderCreatedEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  planId: string;
+  planName?: string | null;
+  billingCycle?: string | null;
+  amount?: number | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "SUBSCRIPTION",
+    action: "plan-order-created",
+    severity: "INFO",
+    title: `تم طلب باقة ${input.planName || ""}`.trim(),
+    details: {
+      planId: input.planId,
+      planName: input.planName || null,
+      billingCycle: input.billingCycle || null,
+      amount: input.amount || null,
+    },
+    ...meta,
+  });
+}
+
+export async function logBankTransferReviewedEvent(input: {
+  actorUserId: string;
+  schoolAccountId?: string | null;
+  requestId: string;
+  status: "APPROVED" | "REJECTED";
+  amount?: number | null;
+  note?: string | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.actorUserId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "PAYMENT",
+    action:
+      input.status === "APPROVED"
+        ? "bank-transfer-approved"
+        : "bank-transfer-rejected",
+    severity: input.status === "APPROVED" ? "SUCCESS" : "WARNING",
+    title:
+      input.status === "APPROVED"
+        ? "تم قبول طلب التحويل البنكي"
+        : "تم رفض طلب التحويل البنكي",
+    details: {
+      requestId: input.requestId,
+      amount: input.amount || null,
+      note: input.note || null,
+    },
+    ...meta,
+  });
+}
+
+
+async function getActivityActor() {
+  const current = await getCurrentSessionUser();
+
+  return {
+    userId: current?.user?.id || null,
+    schoolAccountId: current?.user?.schoolAccountId || null,
+    email: current?.user?.email || null,
+    role: current?.user?.role || null,
+  };
+}
+
+
+export async function logCaseSavedEvent(input: {
+  caseId: string;
+  status: "DRAFT" | "SUBMITTED";
+  title?: string | null;
+  workflowId?: string | null;
+  serviceId?: string | null;
+  serviceSlug?: string | null;
+  studentId?: string | null;
+  valueCount?: number;
+  evidenceCount?: number;
+}) {
+  const [meta, actor] = await Promise.all([
+    getRequestActivityMeta(),
+    getActivityActor(),
+  ]);
+
+  await logPlatformActivity({
+    actorUserId: actor.userId,
+    targetUserId: actor.userId,
+    schoolAccountId: actor.schoolAccountId,
+    category: "CASE",
+    action: input.status === "SUBMITTED" ? "case-submitted" : "case-draft-saved",
+    severity: input.status === "SUBMITTED" ? "SUCCESS" : "INFO",
+    title:
+      input.status === "SUBMITTED"
+        ? "تم إرسال حالة إرشادية"
+        : "تم حفظ مسودة حالة إرشادية",
+    details: {
+      caseId: input.caseId,
+      caseTitle: input.title || null,
+      status: input.status,
+      workflowId: input.workflowId || null,
+      serviceId: input.serviceId || null,
+      serviceSlug: input.serviceSlug || null,
+      studentId: input.studentId || null,
+      valueCount: input.valueCount || 0,
+      evidenceCount: input.evidenceCount || 0,
+    },
+    ...meta,
+  });
+}
+
+export async function logEvidenceUploadedEvent(input: {
+  itemsCount: number;
+  totalSizeBytes: number;
+  fileNames?: string[];
+  source?: string;
+  caseId?: string | null;
+  reportId?: string | null;
+}) {
+  const [meta, actor] = await Promise.all([
+    getRequestActivityMeta(),
+    getActivityActor(),
+  ]);
+
+  await logPlatformActivity({
+    actorUserId: actor.userId,
+    targetUserId: actor.userId,
+    schoolAccountId: actor.schoolAccountId,
+    category: "EVIDENCE",
+    action: "evidence-uploaded",
+    severity: "SUCCESS",
+    title: "تم رفع شواهد",
+    details: {
+      itemsCount: input.itemsCount,
+      totalSizeBytes: input.totalSizeBytes,
+      fileNames: input.fileNames || [],
+      source: input.source || "general-evidence-upload",
+      caseId: input.caseId || null,
+      reportId: input.reportId || null,
+    },
+    ...meta,
+  });
+}
+
+export async function logReportCreatedEvent(input: {
+  reportId: string;
+  caseEntryId?: string | null;
+  title?: string | null;
+  templateId?: string | null;
+  serviceSlug?: string | null;
+  evidenceCount?: number;
+}) {
+  const [meta, actor] = await Promise.all([
+    getRequestActivityMeta(),
+    getActivityActor(),
+  ]);
+
+  await logPlatformActivity({
+    actorUserId: actor.userId,
+    targetUserId: actor.userId,
+    schoolAccountId: actor.schoolAccountId,
+    category: "REPORT",
+    action: "report-created",
+    severity: "SUCCESS",
+    title: "تم إنشاء تقرير إرشادي",
+    details: {
+      reportId: input.reportId,
+      caseEntryId: input.caseEntryId || null,
+      reportTitle: input.title || null,
+      templateId: input.templateId || null,
+      serviceSlug: input.serviceSlug || null,
+      evidenceCount: input.evidenceCount || 0,
+    },
+    ...meta,
+  });
+}
+
+export async function logReportExportedEvent(input: {
+  reportId: string;
+  format?: "PDF" | "WORD" | "HTML" | "UNKNOWN";
+  title?: string | null;
+}) {
+  const [meta, actor] = await Promise.all([
+    getRequestActivityMeta(),
+    getActivityActor(),
+  ]);
+
+  await logPlatformActivity({
+    actorUserId: actor.userId,
+    targetUserId: actor.userId,
+    schoolAccountId: actor.schoolAccountId,
+    category: "REPORT",
+    action: "report-exported",
+    severity: "SUCCESS",
+    title: "تم تصدير تقرير",
+    details: {
+      reportId: input.reportId,
+      format: input.format || "UNKNOWN",
+      reportTitle: input.title || null,
+    },
+    ...meta,
+  });
+}
+
+
+
+================ FILE: lib\subscription\subscription-api-guard.ts ================
+
+import { NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+export async function requireActiveSubscriptionApi() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.schoolAccountId) {
+    return NextResponse.json(
+      {
+        error: "يجب تسجيل الدخول أولًا.",
+        code: "UNAUTHENTICATED",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (current.user.role === "ADMIN") {
+    return null;
+  }
+
+  const overview = await getSchoolSubscriptionOverview(
+    current.user.schoolAccountId
+  );
+
+  if (!overview.usable) {
+    return NextResponse.json(
+      {
+        error: "حسابك يحتاج تفعيلًا للاستمرار في إنشاء الحالات أو التقارير.",
+        code: "SUBSCRIPTION_INACTIVE",
+        redirectTo: "/dashboard/subscription?reason=activation-required",
+      },
+      {
+        status: 402,
+      }
+    );
+  }
+
+  return null;
+}
+
+export async function requireServiceAccessApi(serviceSlug: string) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.schoolAccountId) {
+    return NextResponse.json(
+      {
+        error: "يجب تسجيل الدخول أولًا.",
+        code: "UNAUTHENTICATED",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (current.user.role === "ADMIN") {
+    return null;
+  }
+
+  const result = await isServiceAllowedForSchool({
+    schoolAccountId: current.user.schoolAccountId,
+    serviceSlug,
+  });
+
+  if (!result.ok) {
+    const reason =
+      result.reason === "SUBSCRIPTION_INACTIVE"
+        ? "activation-required"
+        : "service-not-in-plan";
+
+    return NextResponse.json(
+      {
+        error:
+          result.reason === "SUBSCRIPTION_INACTIVE"
+            ? "حسابك يحتاج تفعيلًا للاستمرار."
+            : "هذه الخدمة غير مشمولة في باقتك الحالية.",
+        code: result.reason,
+        serviceSlug,
+        redirectTo: `/dashboard/subscription?reason=${reason}&service=${encodeURIComponent(
+          serviceSlug
+        )}`,
+      },
+      {
+        status: 402,
+      }
+    );
+  }
+
+  return null;
+}
+
+
+
+================ FILE: lib\subscription\subscription-guard.ts ================
+
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+export async function requireActiveSubscriptionForCurrentUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.schoolAccountId) {
+    redirect("/login");
+  }
+
+  if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  const overview = await getSchoolSubscriptionOverview(
+    current.user.schoolAccountId
+  );
+
+  if (!overview.usable) {
+    redirect("/dashboard/subscription?reason=activation-required");
+  }
+
+  return current;
+}
+
+export async function requireServiceAccessForCurrentUser(serviceSlug: string) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.schoolAccountId) {
+    redirect("/login");
+  }
+
+  if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  const result = await isServiceAllowedForSchool({
+    schoolAccountId: current.user.schoolAccountId,
+    serviceSlug,
+  });
+
+  if (!result.ok) {
+    const reason =
+      result.reason === "SUBSCRIPTION_INACTIVE"
+        ? "activation-required"
+        : "service-not-in-plan";
+
+    redirect(
+      `/dashboard/subscription?reason=${reason}&service=${encodeURIComponent(
+        serviceSlug
+      )}`
+    );
+  }
+
+  return current;
+}
+
+export async function requireCanCreateInServiceForCurrentUser(
+  serviceSlug: string
+) {
+  await requireActiveSubscriptionForCurrentUser();
+  return requireServiceAccessForCurrentUser(serviceSlug);
+}
+
+
+
+================ FILE: lib\subscription\subscription-service.ts ================
+
+import { prisma } from "@/lib/prisma";
+import type { SubscriptionStatus } from "@prisma/client";
+
+export function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+export function getRemainingDays(endsAt?: Date | null) {
+  if (!endsAt) return null;
+
+  const diff = endsAt.getTime() - Date.now();
+  return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
+}
+
+export function isSubscriptionUsable(
+  status?: SubscriptionStatus | string | null,
+  endsAt?: Date | null
+) {
+  if (!status) return false;
+
+  if (status === "CANCELED" || status === "EXPIRED" || status === "PAST_DUE") {
+    return false;
+  }
+
+  if (!endsAt) {
+    return status === "ACTIVE" || status === "TRIAL";
+  }
+
+  return endsAt.getTime() > Date.now();
+}
+
+export function getPlanFeatureValue(
+  features: Array<{ key: string; value: string | null }>,
+  key: string,
+  fallback = "0"
+) {
+  return features.find((feature) => feature.key === key)?.value || fallback;
+}
+
+export function getPlanServiceSlugs(
+  features: Array<{ key: string; value: string | null }>
+) {
+  return features
+    .filter((feature) => feature.key.startsWith("service:"))
+    .filter((feature) => feature.value === "enabled")
+    .map((feature) => feature.key.replace("service:", ""));
+}
+
+export async function syncSchoolServicesFromPlan(input: {
+  schoolAccountId: string;
+  planId: string;
+}) {
+  const planFeatures = await prisma.planFeature.findMany({
+    where: {
+      planId: input.planId,
+      key: {
+        startsWith: "service:",
+      },
+      value: "enabled",
+    },
+  });
+
+  const enabledServiceSlugs = getPlanServiceSlugs(planFeatures);
+
+  const services = await prisma.service.findMany({
+    where: {
+      slug: {
+        in: enabledServiceSlugs,
+      },
+    },
+  });
+
+  for (const service of services) {
+    await prisma.serviceAccess.upsert({
+      where: {
+        schoolAccountId_serviceId: {
+          schoolAccountId: input.schoolAccountId,
+          serviceId: service.id,
+        },
+      },
+      update: {
+        isEnabled: true,
+        isPaid: true,
+      },
+      create: {
+        schoolAccountId: input.schoolAccountId,
+        serviceId: service.id,
+        isEnabled: true,
+        isPaid: true,
+      },
+    });
+  }
+}
+
+export async function assignPlanToSchool(input: {
+  schoolAccountId: string;
+  planId: string;
+  days?: number;
+  status?: SubscriptionStatus;
+  activatedById?: string;
+  reason?: string;
+}) {
+  const plan = await prisma.plan.findUnique({
+    where: {
+      id: input.planId,
+    },
+    include: {
+      features: true,
+    },
+  });
+
+  if (!plan) {
+    throw new Error("الباقة غير موجودة.");
+  }
+
+  const durationDays =
+    input.days && input.days > 0
+      ? input.days
+      : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
+
+  const now = new Date();
+  const endsAt = addDays(now, durationDays);
+
+  const subscription = await prisma.subscription.upsert({
+    where: {
+      schoolAccountId: input.schoolAccountId,
+    },
+    update: {
+      planId: plan.id,
+      status: input.status || "ACTIVE",
+      startsAt: now,
+      endsAt,
+    },
+    create: {
+      schoolAccountId: input.schoolAccountId,
+      planId: plan.id,
+      status: input.status || "ACTIVE",
+      startsAt: now,
+      endsAt,
+    },
+  });
+
+  await syncSchoolServicesFromPlan({
+    schoolAccountId: input.schoolAccountId,
+    planId: plan.id,
+  });
+
+  await prisma.manualActivation.create({
+    data: {
+      schoolAccountId: input.schoolAccountId,
+      activatedById: input.activatedById,
+      reason: input.reason || `إسناد باقة ${plan.name}`,
+      startsAt: now,
+      endsAt,
+    },
+  });
+
+  return subscription;
+}
+
+export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  const subscription = await prisma.subscription.findUnique({
+    where: {
+      schoolAccountId,
+    },
+    include: {
+      plan: {
+        include: {
+          features: true,
+        },
+      },
+    },
+  });
+
+  const usable = isSubscriptionUsable(
+    subscription?.status,
+    subscription?.endsAt
+  );
+
+  return {
+    subscription,
+    usable,
+    remainingDays: getRemainingDays(subscription?.endsAt),
+  };
+}
+
+export async function isServiceAllowedForSchool(input: {
+  schoolAccountId: string;
+  serviceSlug: string;
+}) {
+  const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+
+  if (!overview.usable) {
+    return {
+      ok: false,
+      reason: "SUBSCRIPTION_INACTIVE" as const,
+    };
+  }
+
+  const accessRows = await prisma.serviceAccess.findMany({
+    where: {
+      schoolAccountId: input.schoolAccountId,
+    },
+  });
+
+  /*
+    لو لم يتم ضبط أي ServiceAccess للحساب بعد، نسمح مؤقتًا حتى لا نكسر الحسابات القديمة.
+    بعد إسناد باقة من الأدمن، تصبح الخدمات مقيدة حسب الباقة.
+  */
+  if (accessRows.length === 0) {
+    return {
+      ok: true,
+      reason: "NO_SERVICE_RULES_YET" as const,
+    };
+  }
+
+  const serviceAccess = await prisma.serviceAccess.findFirst({
+    where: {
+      schoolAccountId: input.schoolAccountId,
+      service: {
+        slug: input.serviceSlug,
+      },
+    },
+  });
+
+  if (!serviceAccess?.isEnabled) {
+    return {
+      ok: false,
+      reason: "SERVICE_NOT_INCLUDED" as const,
+    };
+  }
+
+  return {
+    ok: true,
+    reason: "SERVICE_INCLUDED" as const,
+  };
+}
+
+
+
+================ FILE: lib\services\service-runtime-policy.ts ================
+
+export type StudentRequirementMode =
+  | "none"
+  | "single"
+  | "multiple"
+  | "target_audience";
+
+export type ServiceRuntimePolicy = {
+  serviceSlug: string;
+  requiresStudent: boolean;
+  supportsMultipleStudents: boolean;
+  studentMode: StudentRequirementMode;
+  evidenceMode: "none" | "guidance_programs_only";
+  committeeChainEnabled: boolean;
+};
+
+export const serviceRuntimePolicies: Record<string, ServiceRuntimePolicy> = {
+  "student-follow-up": {
+    serviceSlug: "student-follow-up",
+    requiresStudent: true,
+    supportsMultipleStudents: false,
+    studentMode: "single",
+    evidenceMode: "none",
+    committeeChainEnabled: false,
+  },
+
+  "family-school-communication": {
+    serviceSlug: "family-school-communication",
+    requiresStudent: true,
+    supportsMultipleStudents: false,
+    studentMode: "single",
+    evidenceMode: "none",
+    committeeChainEnabled: false,
+  },
+
+  "student-guidance-services": {
+    serviceSlug: "student-guidance-services",
+    requiresStudent: true,
+    supportsMultipleStudents: true,
+    studentMode: "single",
+    evidenceMode: "none",
+    committeeChainEnabled: false,
+  },
+
+  "guidance-programs": {
+    serviceSlug: "guidance-programs",
+    requiresStudent: false,
+    supportsMultipleStudents: false,
+    studentMode: "target_audience",
+    evidenceMode: "guidance_programs_only",
+    committeeChainEnabled: false,
+  },
+
+  "committees-meetings": {
+    serviceSlug: "committees-meetings",
+    requiresStudent: false,
+    supportsMultipleStudents: false,
+    studentMode: "none",
+    evidenceMode: "none",
+    committeeChainEnabled: true,
+  },
+};
+
+export function getServiceRuntimePolicy(serviceSlug: string): ServiceRuntimePolicy {
+  return (
+    serviceRuntimePolicies[serviceSlug] ?? {
+      serviceSlug,
+      requiresStudent: false,
+      supportsMultipleStudents: false,
+      studentMode: "none",
+      evidenceMode: "none",
+      committeeChainEnabled: false,
+    }
+  );
+}
+
+
+================ FILE: app\api\dashboard\admin\users\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  getRemainingDays,
+  isSubscriptionUsable,
+} from "@/lib/subscription/subscription-service";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+
+function getSubscriptionStatusLabel(status?: string | null, endsAt?: Date | null) {
+  if (!status) return "NO_SUBSCRIPTION";
+
+  if (endsAt && endsAt.getTime() <= Date.now() && status !== "CANCELED") {
+    return "EXPIRED";
+  }
+
+  return status;
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+export async function GET() {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+  }
+
+  const now = new Date();
+  const last30Days = addDays(now, -30);
+  const inactiveSince = addDays(now, -14);
+
+  const [
+    users,
+    logs,
+    pendingTransfers,
+    casesLast30,
+    recentActivity,
+  ] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        schoolAccount: {
+          include: {
+            profile: true,
+            subscription: {
+              include: {
+                plan: true,
+              },
+            },
+            _count: {
+              select: {
+                students: true,
+                users: true,
+              },
+            },
+          },
+        },
+        sessions: {
+          orderBy: {
+            lastSeenAt: "desc",
+          },
+          take: 1,
+        },
+        _count: {
+          select: {
+            cases: true,
+          },
+        },
+      },
+    }),
+
+    prisma.platformActivityLog.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 160,
+    }),
+
+    prisma.bankTransferRequest.findMany({
+      where: {
+        status: "PENDING",
+      },
+      select: {
+        schoolAccountId: true,
+      },
+    }),
+
+    prisma.caseEntry.groupBy({
+      by: ["createdById"],
+      where: {
+        createdAt: {
+          gte: last30Days,
+        },
+        createdById: {
+          not: null,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    }),
+
+    prisma.platformActivityLog.findMany({
+      where: {
+        createdAt: {
+          gte: last30Days,
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        actorUserId: true,
+        targetUserId: true,
+        schoolAccountId: true,
+        category: true,
+        action: true,
+        severity: true,
+        title: true,
+        createdAt: true,
+      },
+    }),
+  ]);
+
+  const pendingTransferCountBySchool = new Map<string, number>();
+
+  for (const request of pendingTransfers) {
+    pendingTransferCountBySchool.set(
+      request.schoolAccountId,
+      (pendingTransferCountBySchool.get(request.schoolAccountId) || 0) + 1
+    );
+  }
+
+  const casesLast30ByUser = new Map<string, number>();
+
+  for (const item of casesLast30) {
+    if (item.createdById) {
+      casesLast30ByUser.set(item.createdById, item._count._all);
+    }
+  }
+
+  const activityStatsByUser = new Map<
+    string,
+    {
+      activityLast30Days: number;
+      reportsLast30Days: number;
+      evidencesLast30Days: number;
+      lastActivityAt: Date | null;
+    }
+  >();
+
+  function ensureActivityStats(userId: string) {
+    const existing = activityStatsByUser.get(userId);
+
+    if (existing) return existing;
+
+    const created = {
+      activityLast30Days: 0,
+      reportsLast30Days: 0,
+      evidencesLast30Days: 0,
+      lastActivityAt: null as Date | null,
+    };
+
+    activityStatsByUser.set(userId, created);
+
+    return created;
+  }
+
+  for (const log of recentActivity) {
+    const relatedUserIds = [log.actorUserId, log.targetUserId].filter(
+      Boolean
+    ) as string[];
+
+    for (const userId of new Set(relatedUserIds)) {
+      const stats = ensureActivityStats(userId);
+
+      stats.activityLast30Days += 1;
+
+      if (log.category === "REPORT" || log.action === "report-created") {
+        stats.reportsLast30Days += 1;
+      }
+
+      if (log.category === "EVIDENCE" || log.action === "evidence-uploaded") {
+        stats.evidencesLast30Days += 1;
+      }
+
+      if (!stats.lastActivityAt || log.createdAt.getTime() > stats.lastActivityAt.getTime()) {
+        stats.lastActivityAt = log.createdAt;
+      }
+    }
+  }
+
+  const mappedUsers = users.map((user) => {
+    const subscription = user.schoolAccount?.subscription;
+    const computedSubscriptionStatus = getSubscriptionStatusLabel(
+      subscription?.status,
+      subscription?.endsAt
+    );
+
+    const subscriptionUsable = isSubscriptionUsable(
+      subscription?.status,
+      subscription?.endsAt
+    );
+
+    const userActivityStats = activityStatsByUser.get(user.id) || {
+      activityLast30Days: 0,
+      reportsLast30Days: 0,
+      evidencesLast30Days: 0,
+      lastActivityAt: null,
+    };
+
+    const lastSeenAt = user.sessions[0]?.lastSeenAt || null;
+    const casesLast30Days = casesLast30ByUser.get(user.id) || 0;
+    const reportsLast30Days = userActivityStats.reportsLast30Days;
+    const evidencesLast30Days = userActivityStats.evidencesLast30Days;
+    const activityLast30Days = userActivityStats.activityLast30Days;
+
+    const isInactive =
+      user.role === "COUNSELOR" &&
+      user.isActive &&
+      (!lastSeenAt || lastSeenAt.getTime() < inactiveSince.getTime());
+
+    const isVeryActive =
+      user.role === "COUNSELOR" &&
+      (casesLast30Days >= 10 ||
+        reportsLast30Days >= 5 ||
+        evidencesLast30Days >= 10 ||
+        activityLast30Days >= 20);
+
+    const isIncompleteOnboarding = !user.onboardingCompleted;
+
+    return {
+      id: user.id,
+      name: user.name,
+      officialName: user.officialName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      gender: user.gender,
+      jobTitle: user.jobTitle,
+      isActive: user.isActive,
+      onboardingCompleted: user.onboardingCompleted,
+      createdAt: user.createdAt,
+      lastSeenAt,
+      lastActivityAt: userActivityStats.lastActivityAt,
+      schoolAccountId: user.schoolAccountId,
+      schoolName:
+        user.schoolAccount?.profile?.schoolName ||
+        user.schoolAccount?.name ||
+        "بدون حساب",
+      schoolAccountName: user.schoolAccount?.name || "",
+      educationDepartment: user.schoolAccount?.profile?.educationDepartment || "",
+      schoolUsersCount: user.schoolAccount?._count.users || 0,
+      studentsCount: user.schoolAccount?._count.students || 0,
+      casesCount: user._count.cases,
+      casesLast30Days,
+      reportsLast30Days,
+      evidencesLast30Days,
+      activityLast30Days,
+      flags: {
+        inactive: isInactive,
+        veryActive: isVeryActive,
+        incompleteOnboarding: isIncompleteOnboarding,
+      },
+      pendingTransfersCount: user.schoolAccountId
+        ? pendingTransferCountBySchool.get(user.schoolAccountId) || 0
+        : 0,
+      subscription: subscription
+        ? {
+            id: subscription.id,
+            status: subscription.status,
+            computedStatus: computedSubscriptionStatus,
+            usable: subscriptionUsable,
+            planName: subscription.plan?.name || "بدون باقة",
+            planId: subscription.planId,
+            endsAt: subscription.endsAt,
+            remainingDays: getRemainingDays(subscription.endsAt),
+          }
+        : null,
+      riskLevel:
+        !user.isActive
+          ? "DISABLED"
+          : !subscription
+            ? "NO_SUBSCRIPTION"
+            : computedSubscriptionStatus === "EXPIRED" ||
+                computedSubscriptionStatus === "CANCELED" ||
+                computedSubscriptionStatus === "PAST_DUE"
+              ? "SUBSCRIPTION_ISSUE"
+              : pendingTransferCountBySchool.get(user.schoolAccountId || "") || 0
+                ? "PENDING_PAYMENT"
+                : isInactive
+                  ? "INACTIVE"
+                  : isIncompleteOnboarding
+                    ? "INCOMPLETE_ONBOARDING"
+                    : "OK",
+    };
+  });
+
+  const stats = {
+    totalUsers: mappedUsers.length,
+    counselors: mappedUsers.filter((user) => user.role === "COUNSELOR").length,
+    admins: mappedUsers.filter((user) => user.role === "ADMIN").length,
+    activeUsers: mappedUsers.filter((user) => user.isActive).length,
+    disabledUsers: mappedUsers.filter((user) => !user.isActive).length,
+    subscribedUsers: mappedUsers.filter((user) => user.subscription?.usable).length,
+    withoutSubscription: mappedUsers.filter((user) => !user.subscription).length,
+    needsAttention: mappedUsers.filter((user) => user.riskLevel !== "OK").length,
+    pendingTransfers: mappedUsers.reduce(
+      (sum, user) => sum + user.pendingTransfersCount,
+      0
+    ),
+    inactiveCounselors: mappedUsers.filter((user) => user.flags.inactive).length,
+    veryActiveCounselors: mappedUsers.filter((user) => user.flags.veryActive).length,
+    incompleteOnboarding: mappedUsers.filter((user) => user.flags.incompleteOnboarding).length,
+    casesLast30Days: mappedUsers.reduce((sum, user) => sum + user.casesLast30Days, 0),
+    reportsLast30Days: mappedUsers.reduce((sum, user) => sum + user.reportsLast30Days, 0),
+    evidencesLast30Days: mappedUsers.reduce((sum, user) => sum + user.evidencesLast30Days, 0),
+  };
+
+  return NextResponse.json({
+    stats,
+    users: mappedUsers,
+    logs,
+  });
+}
+
+export async function POST(request: Request) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+  }
+
+  const payload = await request.json().catch(() => null);
+  const action = String(payload?.action || "").trim();
+  const userId = String(payload?.userId || "").trim();
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "حدد المستخدم المطلوب." },
+      { status: 400 }
+    );
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    include: {
+      schoolAccount: true,
+    },
+  });
+
+  if (!targetUser) {
+    return NextResponse.json(
+      { error: "المستخدم غير موجود." },
+      { status: 404 }
+    );
+  }
+
+  if (targetUser.email === "admin@student-guidance.local" && action !== "activate-user") {
+    return NextResponse.json(
+      { error: "لا يمكن تعديل حساب الأدمن الأساسي من هنا." },
+      { status: 400 }
+    );
+  }
+
+  if (action === "activate-user" || action === "disable-user") {
+    const isActive = action === "activate-user";
+
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        isActive,
+      },
+    });
+
+    if (!isActive) {
+      await prisma.userSession.updateMany({
+        where: {
+          userId,
+          isActive: true,
+        },
+        data: {
+          isActive: false,
+          revokedAt: new Date(),
+        },
+      });
+    }
+
+    await logAdminActivity({
+      actorUserId: current.user.id,
+      targetUserId: userId,
+      schoolAccountId: targetUser.schoolAccountId,
+      category: "USER",
+      action,
+      severity: isActive ? "SUCCESS" : "WARNING",
+      title: isActive
+        ? `تم تفعيل المستخدم ${targetUser.email}`
+        : `تم إيقاف المستخدم ${targetUser.email}`,
+      details: {
+        targetEmail: targetUser.email,
+        targetRole: targetUser.role,
+      },
+    });
+
+    return NextResponse.json({
+      message: isActive ? "تم تفعيل المستخدم." : "تم إيقاف المستخدم وتسجيل خروجه.",
+    });
+  }
+
+  if (action === "set-role") {
+    const role = String(payload?.role || "").trim();
+
+    if (!["ADMIN", "COUNSELOR", "SCHOOL_OWNER", "STAFF"].includes(role)) {
+      return NextResponse.json(
+        { error: "الدور غير صحيح." },
+        { status: 400 }
+      );
+    }
+
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        role: role as "ADMIN" | "COUNSELOR" | "SCHOOL_OWNER" | "STAFF",
+      },
+    });
+
+    await logAdminActivity({
+      actorUserId: current.user.id,
+      targetUserId: userId,
+      schoolAccountId: targetUser.schoolAccountId,
+      category: "USER",
+      action: "set-role",
+      severity: "WARNING",
+      title: `تم تغيير دور المستخدم ${targetUser.email} إلى ${role}`,
+      details: {
+        previousRole: targetUser.role,
+        nextRole: role,
+      },
+    });
+
+    return NextResponse.json({
+      message: "تم تغيير دور المستخدم.",
+    });
+  }
+
+  if (action === "logout-user") {
+    await prisma.userSession.updateMany({
+      where: {
+        userId,
+        isActive: true,
+      },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+      },
+    });
+
+    await logAdminActivity({
+      actorUserId: current.user.id,
+      targetUserId: userId,
+      schoolAccountId: targetUser.schoolAccountId,
+      category: "SECURITY",
+      action: "logout-user",
+      severity: "INFO",
+      title: `تم تسجيل خروج المستخدم ${targetUser.email} من جميع الجلسات`,
+      details: {
+        targetEmail: targetUser.email,
+      },
+    });
+
+    return NextResponse.json({
+      message: "تم تسجيل خروج المستخدم من كل الجلسات.",
+    });
+  }
+
+  if (action === "cancel-subscription") {
+    if (!targetUser.schoolAccountId) {
+      return NextResponse.json(
+        { error: "المستخدم غير مرتبط بحساب مدرسة." },
+        { status: 400 }
+      );
+    }
+
+    const subscription = await prisma.subscription.findUnique({
+      where: {
+        schoolAccountId: targetUser.schoolAccountId,
+      },
+    });
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: "لا يوجد اشتراك مرتبط بهذا الحساب." },
+        { status: 404 }
+      );
+    }
+
+    await prisma.subscription.update({
+      where: {
+        id: subscription.id,
+      },
+      data: {
+        status: "CANCELED",
+        endsAt: new Date(),
+      },
+    });
+
+    await prisma.serviceAccess.updateMany({
+      where: {
+        schoolAccountId: targetUser.schoolAccountId,
+      },
+      data: {
+        isEnabled: false,
+      },
+    });
+
+    await logAdminActivity({
+      actorUserId: current.user.id,
+      targetUserId: userId,
+      schoolAccountId: targetUser.schoolAccountId,
+      category: "SUBSCRIPTION",
+      action: "cancel-subscription",
+      severity: "WARNING",
+      title: `تم إلغاء اشتراك حساب ${targetUser.schoolAccount?.name || targetUser.email}`,
+      details: {
+        targetEmail: targetUser.email,
+        subscriptionId: subscription.id,
+      },
+    });
+
+    return NextResponse.json({
+      message: "تم إلغاء الاشتراك وإغلاق الخدمات.",
+    });
+  }
+
+  return NextResponse.json(
+    { error: "إجراء غير معروف." },
+    { status: 400 }
+  );
+}
+
+
+
+================ FILE: app\api\dashboard\admin\users\[userId]\route.ts ================
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+const ROLES = ["ADMIN", "COUNSELOR", "SCHOOL_OWNER", "STAFF"];
+const GENDERS = ["MALE", "FEMALE"];
+
+function extractUser(sessionResult: unknown) {
+  const value = sessionResult as any;
+  return value?.user ?? value?.session?.user ?? value;
+}
+
+async function requireAdmin() {
+  const sessionResult = await getCurrentSessionUser();
+  const user = extractUser(sessionResult);
+  if (!user || user.role !== "ADMIN") return null;
+  return user;
+}
+
+type RouteContext = {
+  params: Promise<{
+    userId: string;
+  }>;
+};
+
+export async function GET(_request: NextRequest, context: RouteContext) {
+  const admin = await requireAdmin();
+
+  if (!admin) {
+    return NextResponse.json({ success: false, error: "غير مصرح." }, { status: 403 });
+  }
+
+  const { userId } = await context.params;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { schoolAccount: true },
+  });
+
+  if (!user) {
+    return NextResponse.json({ success: false, error: "المستخدم غير موجود." }, { status: 404 });
+  }
+
+  return NextResponse.json({ success: true, user: JSON.parse(JSON.stringify(user)) });
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  const admin = await requireAdmin();
+
+  if (!admin) {
+    return NextResponse.json({ success: false, error: "غير مصرح." }, { status: 403 });
+  }
+
+  const { userId } = await context.params;
+  const body = await request.json();
+
+  const email = String(body.email || "").trim().toLowerCase();
+  const name = String(body.name || "").trim();
+  const role = String(body.role || "COUNSELOR");
+  const gender = String(body.gender || "MALE");
+
+  if (!email || !name) {
+    return NextResponse.json(
+      { success: false, error: "الاسم والبريد الإلكتروني مطلوبة." },
+      { status: 400 }
+    );
+  }
+
+  if (!ROLES.includes(role)) {
+    return NextResponse.json({ success: false, error: "الدور غير صحيح." }, { status: 400 });
+  }
+
+  if (!GENDERS.includes(gender)) {
+    return NextResponse.json({ success: false, error: "الجنس غير صحيح." }, { status: 400 });
+  }
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        email,
+        name,
+        phone: body.phone ? String(body.phone).trim() : null,
+        officialName: body.officialName ? String(body.officialName).trim() : null,
+        jobTitle: body.jobTitle ? String(body.jobTitle).trim() : null,
+        role: role as any,
+        gender: gender as any,
+        isActive: Boolean(body.isActive),
+        onboardingCompleted: Boolean(body.onboardingCompleted),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      user: JSON.parse(JSON.stringify(updated)),
+    });
+  } catch (error) {
+    console.error("ADMIN_UPDATE_USER_ERROR", error);
+
+    return NextResponse.json(
+      { success: false, error: "تعذر حفظ بيانات المستخدم. تأكد أن البريد غير مستخدم." },
+      { status: 500 }
+    );
+  }
+}
+
+
+
+================ FILE: app\api\dashboard\admin\users\[userId]\password\route.ts ================
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { hashPassword } from "@/lib/auth/password";
+
+function extractUser(sessionResult: unknown) {
+  const value = sessionResult as any;
+  return value?.user ?? value?.session?.user ?? value;
+}
+
+async function requireAdmin() {
+  const sessionResult = await getCurrentSessionUser();
+  const user = extractUser(sessionResult);
+  if (!user || user.role !== "ADMIN") return null;
+  return user;
+}
+
+type RouteContext = {
+  params: Promise<{
+    userId: string;
+  }>;
+};
+
+export async function POST(request: NextRequest, context: RouteContext) {
+  const admin = await requireAdmin();
+
+  if (!admin) {
+    return NextResponse.json({ success: false, error: "غير مصرح." }, { status: 403 });
+  }
+
+  const { userId } = await context.params;
+  const body = await request.json();
+  const password = String(body.password || "").trim();
+
+  if (password.length < 8) {
+    return NextResponse.json(
+      { success: false, error: "كلمة المرور يجب ألا تقل عن 8 أحرف." },
+      { status: 400 }
+    );
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      passwordHash: hashPassword(password),
+    },
+  });
+
+  return NextResponse.json({ success: true });
+}
+
+
+
+================ FILE: app\api\dashboard\admin\users\[userId]\impersonate\route.ts ================
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser, getRequestDeviceInfo } from "@/lib/auth/current-user";
+import {
+  createSessionToken,
+  createTokenId,
+  getSessionCookieOptions,
+  getSessionExpiryDate,
+  SESSION_COOKIE_NAME,
+} from "@/lib/auth/session";
+
+const ADMIN_RETURN_COOKIE = "admin_impersonation_return_token";
+
+function extractUser(sessionResult: unknown) {
+  const value = sessionResult as any;
+  return value?.user ?? value?.session?.user ?? value;
+}
+
+async function requireAdmin() {
+  const sessionResult = await getCurrentSessionUser();
+  const user = extractUser(sessionResult);
+  if (!user || user.role !== "ADMIN") return null;
+  return user;
+}
+
+type RouteContext = {
+  params: Promise<{
+    userId: string;
+  }>;
+};
+
+export async function POST(request: NextRequest, context: RouteContext) {
+  const admin = await requireAdmin();
+
+  if (!admin) {
+    return NextResponse.json({ success: false, error: "غير مصرح." }, { status: 403 });
+  }
+
+  const { userId } = await context.params;
+
+  if (admin.id === userId) {
+    return NextResponse.json(
+      { success: false, error: "أنت داخل بالفعل بحساب الأدمن." },
+      { status: 400 }
+    );
+  }
+
+  const currentAdminToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+
+  if (!currentAdminToken) {
+    return NextResponse.json(
+      { success: false, error: "تعذر حفظ جلسة الأدمن الحالية." },
+      { status: 400 }
+    );
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      schoolAccountId: true,
+      isActive: true,
+    },
+  });
+
+  if (!targetUser || !targetUser.isActive) {
+    return NextResponse.json(
+      { success: false, error: "لا يمكن الدخول لحساب غير موجود أو غير مفعل." },
+      { status: 400 }
+    );
+  }
+
+  const deviceInfo = await getRequestDeviceInfo();
+  const tokenId = createTokenId();
+
+  const session = await prisma.userSession.create({
+    data: {
+      userId: targetUser.id,
+      tokenId,
+      expiresAt: getSessionExpiryDate(),
+      userAgent: `ADMIN_IMPERSONATION_BY_${admin.id} | ${deviceInfo.userAgent || ""}`,
+      ipAddress: deviceInfo.ipAddress,
+    },
+  });
+
+  const response = NextResponse.json({
+    success: true,
+    redirectTo: "/dashboard",
+  });
+
+  response.cookies.set(
+    ADMIN_RETURN_COOKIE,
+    currentAdminToken,
+    {
+      ...getSessionCookieOptions(),
+      maxAge: 60 * 60,
+    }
+  );
+
+  response.cookies.set(
+    SESSION_COOKIE_NAME,
+    createSessionToken({
+      userId: targetUser.id,
+      email: targetUser.email,
+      role: targetUser.role,
+      schoolAccountId: targetUser.schoolAccountId,
+      sessionId: session.id,
+      tokenId,
+    }),
+    getSessionCookieOptions()
+  );
+
+  return response;
+}
+
+
+
+================ FILE: app\api\dashboard\evidence\route.ts ================
+
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { NextResponse } from "next/server";
+import { logEvidenceUploadedEvent } from "@/lib/admin/activity-events";
+
+export const runtime = "nodejs";
+
+export async function POST(request: Request) {
+  const formData = await request.formData();
+  const files = formData.getAll("files");
+
+  const uploadedItems = [];
+
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "evidence");
+  await mkdir(uploadDir, { recursive: true });
+
+  for (const file of files) {
+    if (!(file instanceof File)) continue;
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const safeName = file.name.replace(/[^\w.\-\u0600-\u06FF]/g, "_");
+    const storedName = `${Date.now()}-${safeName}`;
+    const storedPath = path.join(uploadDir, storedName);
+
+    await writeFile(storedPath, buffer);
+
+    uploadedItems.push({
+      id: crypto.randomUUID(),
+      fileName: file.name,
+      fileUrl: `/uploads/evidence/${storedName}`,
+      mimeType: file.type || "application/octet-stream",
+      size: file.size,
+    });
+  }
+
+  
+  // audit-log:evidence-uploaded
+  if (uploadedItems.length > 0) {
+    await logEvidenceUploadedEvent({
+      itemsCount: uploadedItems.length,
+      totalSizeBytes: uploadedItems.reduce(
+        (sum, item) => sum + (Number(item.size) || 0),
+        0
+      ),
+      fileNames: uploadedItems.map((item) => item.fileName),
+      source: "dashboard-evidence-upload",
+    });
+  }
+
+  return NextResponse.json({
+    items: uploadedItems,
+  });
+}
+
+
+================ FILE: app\api\dashboard\results-analysis\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { parseResultsExcel } from "@/lib/results-analysis/results-analysis-parser";
+import { analyzeStudentResults } from "@/engine/results-analysis/results-analysis-engine";
+import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+
+type ResultRowWithSource = {
+  id: string;
+  studentId?: string | null;
+  studentName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  semester?: string | null;
+  subject?: string | null;
+  score?: number | null;
+  maxScore?: number | null;
+  percentage?: number | null;
+  status?: "PASS" | "FAIL" | "NEEDS_SUPPORT" | "UNKNOWN";
+  sourceFile?: string | null;
+};
+
+export async function POST(request: Request) {
+  // subscription-api-guard:POST:requireServiceAccessApi("results-analysis")
+  const subscriptionGuard = await requireServiceAccessApi("results-analysis");
+  if (subscriptionGuard) return subscriptionGuard;
+
+  try {
+    const formData = await request.formData();
+
+    const uploadedFiles = formData.getAll("files");
+    const fallbackFile = formData.get("file");
+
+    const files =
+      uploadedFiles.length > 0
+        ? uploadedFiles
+        : fallbackFile
+          ? [fallbackFile]
+          : [];
+
+    const title = String(formData.get("title") || "").trim();
+    const grade = String(formData.get("grade") || "").trim();
+    const classroom = String(formData.get("classroom") || "").trim();
+    const semester = String(formData.get("semester") || "").trim();
+
+    const excelFiles = files.filter(
+      (file): file is File => file instanceof File
+    );
+
+    if (excelFiles.length === 0) {
+      return NextResponse.json(
+        { error: "Ù…Ù„Ù Excel Ù…Ø·Ù„ÙˆØ¨." },
+        { status: 400 }
+      );
+    }
+
+    const allRows: ResultRowWithSource[] = [];
+
+    for (const file of excelFiles) {
+      const buffer = await file.arrayBuffer();
+      const rows = await parseResultsExcel(buffer);
+
+      allRows.push(
+        ...rows.map((row): ResultRowWithSource => ({
+          ...row,
+          semester: row.semester ?? (semester || null),
+          sourceFile: file.name,
+        }))
+      );
+    }
+
+    if (!allRows.length) {
+      return NextResponse.json(
+        { error: "Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø¨ÙŠØ§Ù†Ø§Øª Ù†ØªØ§Ø¦Ø¬ ØµØ§Ù„Ø­Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ù„Ù." },
+        { status: 400 }
+      );
+    }
+
+    const analysisOutput = analyzeStudentResults(allRows);
+    const summary = analysisOutput.summary;
+
+    const analysis = await prisma.resultsAnalysis.create({
+      data: {
+        title:
+          title ||
+          `ØªØ­Ù„ÙŠÙ„ Ù†ØªØ§Ø¦Ø¬ - ${new Date().toLocaleDateString("ar-SA")}`,
+        grade: grade || null,
+        classroom: classroom || null,
+        sourceFile: excelFiles.map((file) => file.name).join("ØŒ "),
+        totalStudents: summary.totalStudents,
+        totalSubjects: new Set(allRows.map((row) => row.subject).filter(Boolean))
+          .size,
+        averageScore: summary.averagePercentage,
+        summaryJson: analysisOutput,
+        rowsJson: allRows,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      analysisId: analysis.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù†ØªØ§Ø¦Ø¬.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\school-data\student-import-sessions\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ensureDefaultSchoolAccount } from "@/engine/students/student-import-engine";
+
+export async function GET() {
+  const school = await ensureDefaultSchoolAccount();
+
+  const sessions = await prisma.studentImportSession.findMany({
+    where: {
+      schoolAccountId: school.id,
+    },
+    include: {
+      files: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 50,
+  });
+
+
+  
+  return NextResponse.json({ sessions });
+}
+
+
+================ FILE: app\api\dashboard\school-data\student-import-sessions\[sessionId]\route.ts ================
+
+import { NextResponse, type NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+type RouteContext = {
+  params: Promise<{
+    sessionId: string;
+  }>;
+};
+
+export async function GET(_request: NextRequest, context: RouteContext) {
+  const { sessionId } = await context.params;
+
+  const session = await prisma.studentImportSession.findUnique({
+    where: {
+      id: sessionId,
+    },
+    include: {
+      files: true,
+      rows: {
+        orderBy: {
+          rowIndex: "asc",
+        },
+      },
+    },
+  });
+
+  if (!session) {
+    return NextResponse.json(
+      { error: "Ø¯ÙØ¹Ø© Ø§Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©." },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({ session });
+}
+
+
+================ FILE: app\api\dashboard\school-data\student-import-sessions\[sessionId]\commit\route.ts ================
+
+import { NextResponse, type NextRequest } from "next/server";
+import { commitStudentImportSession } from "@/engine/students/student-import-engine";
+
+type RouteContext = {
+  params: Promise<{
+    sessionId: string;
+  }>;
+};
+
+export async function POST(_request: NextRequest, context: RouteContext) {
+  const { sessionId } = await context.params;
+
+  try {
+    const session = await commitStudentImportSession(sessionId);
+
+    return NextResponse.json({
+      message: "ØªÙ… Ø§Ø¹ØªÙ…Ø§Ø¯ Ø¯ÙØ¹Ø© Ø§Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ø¨Ù†Ø¬Ø§Ø­.",
+      session,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„Ø¯ÙØ¹Ø©.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\settings\school\logo\route.ts ================
+
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/prisma";
+
+export const runtime = "nodejs";
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
+const ALLOWED_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+]);
+
+function getExtension(file: File) {
+  if (file.type === "image/png") return "png";
+  if (file.type === "image/jpeg") return "jpg";
+  if (file.type === "image/webp") return "webp";
+  if (file.type === "image/svg+xml") return "svg";
+
+  const nameExtension = file.name.split(".").pop()?.toLowerCase();
+
+  if (nameExtension && ["png", "jpg", "jpeg", "webp", "svg"].includes(nameExtension)) {
+    return nameExtension === "jpeg" ? "jpg" : nameExtension;
+  }
+
+  return "png";
+}
+
+export async function POST(request: Request) {
+  try {
+    const current = await getCurrentSessionUser();
+
+    if (!current || !current.user.schoolAccountId) {
+      return NextResponse.json(
+        { success: false, error: "يلزم تسجيل الدخول." },
+        { status: 401 }
+      );
+    }
+
+    const formData = await request.formData();
+    const file = formData.get("logo");
+
+    if (!(file instanceof File)) {
+      return NextResponse.json(
+        { success: false, error: "ملف الشعار مطلوب." },
+        { status: 400 }
+      );
+    }
+
+    if (!ALLOWED_TYPES.has(file.type)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "صيغة الشعار غير مدعومة. استخدم PNG أو JPG أو WEBP أو SVG.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { success: false, error: "حجم الشعار يجب ألا يتجاوز 2MB." },
+        { status: 400 }
+      );
+    }
+
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "school-logos");
+    await mkdir(uploadDir, { recursive: true });
+
+    const extension = getExtension(file);
+    const fileName = `${current.user.schoolAccountId}-${Date.now()}.${extension}`;
+    const diskPath = path.join(uploadDir, fileName);
+    const publicUrl = `/uploads/school-logos/${fileName}`;
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(diskPath, buffer);
+
+    await prisma.schoolProfile.upsert({
+      where: {
+        schoolAccountId: current.user.schoolAccountId,
+      },
+      update: {
+        logoUrl: publicUrl,
+      },
+      create: {
+        schoolAccountId: current.user.schoolAccountId,
+        schoolName:
+          current.user.schoolAccount?.name || "اسم المدرسة",
+        logoUrl: publicUrl,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      logoUrl: publicUrl,
+      message: "تم رفع شعار المدرسة بنجاح.",
+    });
+  } catch (error) {
+    console.error("SCHOOL_LOGO_UPLOAD_ERROR", error);
+
+    return NextResponse.json(
+      { success: false, error: "حدث خطأ أثناء رفع شعار المدرسة." },
+      { status: 500 }
+    );
+  }
+}
+
+
+
+================ FILE: app\api\dashboard\admin\workflows\upload\route.ts ================
+
+import { NextResponse } from "next/server";
+import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
+import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
+import { dashboardServices } from "@/lib/constants/services";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
+
+export async function POST(request: Request) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  try {
+    const formData = await request.formData();
+
+    const serviceSlug = String(formData.get("serviceSlug") ?? "");
+    const workflowType = normalizeWorkflowType(
+      String(formData.get("workflowType") ?? "")
+    );
+
+    const file = formData.get("file");
+
+    if (!serviceSlug) {
+      return NextResponse.json(
+        { error: "serviceSlug مطلوب." },
+        { status: 400 }
+      );
+    }
+
+    if (!(file instanceof File)) {
+      return NextResponse.json(
+        { error: "ملف Excel مطلوب." },
+        { status: 400 }
+      );
+    }
+
+    const serviceConfig = dashboardServices.find(
+      (service) => service.slug === serviceSlug
+    );
+
+    if (!serviceConfig) {
+      return NextResponse.json(
+        { error: "الخدمة غير معروفة." },
+        { status: 400 }
+      );
+    }
+
+    const buffer = await file.arrayBuffer();
+    const rows = await parseWorkflowExcel(buffer);
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: "لم يتم العثور على صفوف Workflow صالحة داخل الملف." },
+        { status: 400 }
+      );
+    }
+
+    const result = await uploadWorkflowForService({
+      serviceSlug,
+      serviceName: serviceConfig.title,
+      rows,
+      workflowType,
+    });
+
+    return NextResponse.json({
+      message: "تم رفع Workflow وتفعيله بنجاح.",
+      result,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء رفع Workflow.",
+      },
+      { status: 400 }
+    );
+  }
+}
+

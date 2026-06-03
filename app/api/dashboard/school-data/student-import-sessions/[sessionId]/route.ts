@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+﻿import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 
 type RouteContext = {
   params: Promise<{
@@ -8,11 +9,18 @@ type RouteContext = {
 };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
+  const authResult = await requireSchoolDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
   const { sessionId } = await context.params;
 
-  const session = await prisma.studentImportSession.findUnique({
+  const session = await prisma.studentImportSession.findFirst({
     where: {
       id: sessionId,
+      schoolAccountId: authResult.schoolAccountId,
     },
     include: {
       files: true,
@@ -26,10 +34,16 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   if (!session) {
     return NextResponse.json(
-      { error: "دفعة الاستيراد غير موجودة." },
+      {
+        success: false,
+        error: "دفعة الاستيراد غير موجودة أو لا تملك صلاحية الوصول إليها.",
+      },
       { status: 404 }
     );
   }
 
-  return NextResponse.json({ session });
+  return NextResponse.json({
+    success: true,
+    session,
+  });
 }

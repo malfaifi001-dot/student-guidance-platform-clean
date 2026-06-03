@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { getRequestDeviceInfo } from "@/lib/auth/current-user";
 import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
+import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";
 import {
   createSessionToken,
   createTokenId,
@@ -35,6 +36,17 @@ export async function POST(request: Request) {
     const phone = String(body?.phone || "").trim();
     const password = String(body?.password || "");
     const gender = body?.gender === "FEMALE" ? "FEMALE" : "MALE";
+
+    const rateLimitResponse = enforceRateLimit(request, {
+      namespace: "auth-register",
+      identity: email || phone,
+      limit: 5,
+      windowMs: 30 * 60 * 1000,
+    });
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
     if (!name || name.length < 3) {
       return NextResponse.json(

@@ -1,8 +1,9 @@
-import { notFound } from "next/navigation";
+﻿import { notFound, redirect } from "next/navigation";
 
 import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
 import { prisma } from "@/lib/prisma";
 import { sortRuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 
 type PageProps = {
   params: Promise<{
@@ -12,11 +13,20 @@ type PageProps = {
 
 export default async function EditCasePage({ params }: PageProps) {
   const { caseId } = await params;
+  const context = await requireDashboardPageContext();
 
-  const caseEntry = await prisma.caseEntry.findUnique({
-    where: {
-      id: caseId,
-    },
+  const schoolAccountId = context.schoolAccountId;
+
+  if (!context.isAdmin && !schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  const caseWhere = context.isAdmin
+    ? { id: caseId }
+    : { id: caseId, schoolAccountId: schoolAccountId as string };
+
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: caseWhere,
     include: {
       values: true,
       evidences: true,

@@ -1,40 +1,57 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import type { NoorStudentRow } from "@/lib/noor/excel-parser";
 
-const DEFAULT_SCHOOL_SLUG = "demo-school";
-
-export async function ensureDefaultSchoolAccount() {
-  return prisma.schoolAccount.upsert({
-    where: { slug: DEFAULT_SCHOOL_SLUG },
-    update: {},
-    create: {
-      name: "مدرسة تجريبية",
-      slug: DEFAULT_SCHOOL_SLUG,
-      profile: {
-        create: {
-          schoolName: "مدرسة تجريبية",
-          academicYear: "1447",
-          currentSemester: "الفصل الدراسي الأول",
-        },
-      },
-    },
-  });
+export async function ensureDefaultSchoolAccount(): Promise<never> {
+  throw new Error(
+    "ensureDefaultSchoolAccount ممنوعة في مسارات الإنتاج. مرّر schoolAccountId الخاص بالمستخدم الحالي."
+  );
 }
 
-export async function createStudentImportSession(params: {
+type CreateStudentImportSessionParams = {
+  schoolAccountId: string;
   fileName: string;
   mimeType?: string | null;
   size?: number | null;
   rows: NoorStudentRow[];
-}) {
-  const school = await ensureDefaultSchoolAccount();
+};
+
+type CommitStudentImportSessionParams = {
+  schoolAccountId: string;
+  sessionId: string;
+};
+
+function assertSchoolAccountId(schoolAccountId?: string | null) {
+  if (!schoolAccountId) {
+    throw new Error("لا يمكن تنفيذ العملية بدون ربط المستخدم بمدرسة.");
+  }
+
+  return schoolAccountId;
+}
+
+export async function createStudentImportSession(
+  params: CreateStudentImportSessionParams
+) {
+  const schoolAccountId = assertSchoolAccountId(params.schoolAccountId);
+
+  const school = await prisma.schoolAccount.findUnique({
+    where: {
+      id: schoolAccountId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!school) {
+    throw new Error("المدرسة غير موجودة.");
+  }
 
   const validRows = params.rows.filter((row) => row.fullName?.trim().length > 2);
   const invalidRows = params.rows.length - validRows.length;
 
   const session = await prisma.studentImportSession.create({
     data: {
-      schoolAccountId: school.id,
+      schoolAccountId,
       title: `دفعة استيراد - ${new Date().toLocaleDateString("ar-SA")}`,
       status: "PARSED",
       totalRows: params.rows.length,
@@ -60,7 +77,10 @@ export async function createStudentImportSession(params: {
           classroom: row.classroom || null,
           guardianName: row.guardianName || null,
           guardianPhone: row.guardianPhone || null,
-          errorMessage: row.fullName?.trim().length > 2 ? null : "اسم الطالب مفقود أو غير صالح",
+          errorMessage:
+            row.fullName?.trim().length > 2
+              ? null
+              : "اسم الطالب مفقود أو غير صالح",
           rawJson: row,
         })),
       },
@@ -70,16 +90,23 @@ export async function createStudentImportSession(params: {
   return session;
 }
 
-export async function commitStudentImportSession(sessionId: string) {
-  const school = await ensureDefaultSchoolAccount();
+export async function commitStudentImportSession(
+  params: CommitStudentImportSessionParams
+) {
+  const schoolAccountId = assertSchoolAccountId(params.schoolAccountId);
 
-  const session = await prisma.studentImportSession.findUnique({
-    where: { id: sessionId },
-    include: { rows: true },
+  const session = await prisma.studentImportSession.findFirst({
+    where: {
+      id: params.sessionId,
+      schoolAccountId,
+    },
+    include: {
+      rows: true,
+    },
   });
 
   if (!session) {
-    throw new Error("دفعة الاستيراد غير موجودة.");
+    throw new Error("دفعة الاستيراد غير موجودة أو لا تملك صلاحية الوصول إليها.");
   }
 
   if (session.status === "COMMITTED") {
@@ -100,7 +127,7 @@ export async function commitStudentImportSession(sessionId: string) {
     const existingStudent = row.nationalId
       ? await prisma.student.findFirst({
           where: {
-            schoolAccountId: school.id,
+            schoolAccountId,
             nationalId: row.nationalId,
           },
         })
@@ -111,7 +138,7 @@ export async function commitStudentImportSession(sessionId: string) {
     if (row.guardianName || row.guardianPhone) {
       const guardian = await prisma.guardian.create({
         data: {
-          schoolAccountId: school.id,
+          schoolAccountId,
           name: row.guardianName || "ولي أمر غير محدد",
           phone: row.guardianPhone || null,
           relation: "ولي أمر",
@@ -123,7 +150,9 @@ export async function commitStudentImportSession(sessionId: string) {
 
     if (existingStudent) {
       await prisma.student.update({
-        where: { id: existingStudent.id },
+        where: {
+          id: existingStudent.id,
+        },
         data: {
           fullName: row.fullName,
           gender: row.gender,
@@ -135,7 +164,9 @@ export async function commitStudentImportSession(sessionId: string) {
       });
 
       await prisma.studentImportRow.update({
-        where: { id: row.id },
+        where: {
+          id: row.id,
+        },
         data: {
           status: "UPDATED",
           matchedStudentId: existingStudent.id,
@@ -146,7 +177,7 @@ export async function commitStudentImportSession(sessionId: string) {
     } else {
       const student = await prisma.student.create({
         data: {
-          schoolAccountId: school.id,
+          schoolAccountId,
           guardianId,
           fullName: row.fullName,
           nationalId: row.nationalId,
@@ -158,7 +189,9 @@ export async function commitStudentImportSession(sessionId: string) {
       });
 
       await prisma.studentImportRow.update({
-        where: { id: row.id },
+        where: {
+          id: row.id,
+        },
         data: {
           status: "CREATED",
           matchedStudentId: student.id,
@@ -170,7 +203,9 @@ export async function commitStudentImportSession(sessionId: string) {
   }
 
   return prisma.studentImportSession.update({
-    where: { id: sessionId },
+    where: {
+      id: session.id,
+    },
     data: {
       status: "COMMITTED",
       createdCount,

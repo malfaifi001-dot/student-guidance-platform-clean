@@ -1,6 +1,8 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { requireActiveSubscriptionApi } from "@/lib/subscription/subscription-api-guard";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { buildReportAccessWhere } from "@/lib/reports/report-access";
 
 type RouteContext = {
   params: Promise<{
@@ -16,7 +18,23 @@ type EvidencePayloadItem = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
-  // subscription-api-guard:PATCH:requireActiveSubscriptionApi()
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
   const subscriptionGuard = await requireActiveSubscriptionApi();
   if (subscriptionGuard) return subscriptionGuard;
 
@@ -24,10 +42,11 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { reportId } = await context.params;
     const body = await request.json();
 
-    const report = await prisma.guidanceReport.findUnique({
-      where: {
-        id: reportId,
-      },
+    const report = await prisma.guidanceReport.findFirst({
+      where: buildReportAccessWhere(reportId, {
+        schoolAccountId: authResult.schoolAccountId,
+        isAdmin: authResult.isAdmin,
+      }),
       select: {
         id: true,
         status: true,
@@ -38,7 +57,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "التقرير غير موجود.",
+          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
         },
         { status: 404 }
       );
@@ -101,7 +120,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         prisma.reportEvidence.updateMany({
           where: {
             id: item.id,
-            reportId,
+            reportId: report.id,
           },
           data: {
             caption: item.caption,
@@ -114,7 +133,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const evidenceItems = await prisma.reportEvidence.findMany({
       where: {
-        reportId,
+        reportId: report.id,
       },
       orderBy: {
         sortOrder: "asc",

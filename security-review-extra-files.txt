@@ -1,0 +1,2481 @@
+﻿
+
+================ FILE: app\api\dashboard\cases\autosave\route.ts ================
+
+import { NextResponse } from "next/server";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    console.log("AUTOSAVE", body);
+
+    return NextResponse.json({
+      success: true,
+      message: "Autosave completed",
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Autosave failed",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\cases\save-draft\route.ts ================
+
+import { NextResponse } from "next/server";
+import { saveRuntimeCase } from "@/engine/cases/case-runtime-engine";
+import { logCaseSavedEvent } from "@/lib/admin/activity-events";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    const result = await saveRuntimeCase({
+      workflowId: body.workflowId,
+      serviceId: body.serviceId,
+      title: body.title,
+      studentId: body.studentId,
+      values: body.values || {},
+      evidenceItems: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems
+        : [],
+      status: "DRAFT",
+    });
+
+    
+    // audit-log:case-draft-saved
+    await logCaseSavedEvent({
+      caseId: result.id,
+      status: "DRAFT",
+      title: body.title || null,
+      workflowId: body.workflowId || null,
+      serviceId: body.serviceId || null,
+      studentId: body.studentId || null,
+      valueCount:
+        body.values && typeof body.values === "object"
+          ? Object.keys(body.values).length
+          : 0,
+      evidenceCount: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
+      message: "ØªÙ… Ø­ÙØ¸ Ø§Ù„Ù…Ø³ÙˆØ¯Ø© Ø¨Ù†Ø¬Ø§Ø­.",
+      caseId: result.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø­ÙØ¸ Ø§Ù„Ù…Ø³ÙˆØ¯Ø©.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\cases\submit\route.ts ================
+
+import { NextResponse } from "next/server";
+import { saveRuntimeCase } from "@/engine/cases/case-runtime-engine";
+import { logCaseSavedEvent } from "@/lib/admin/activity-events";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    const result = await saveRuntimeCase({
+      workflowId: body.workflowId,
+      serviceId: body.serviceId,
+      title: body.title,
+      studentId: body.studentId,
+      values: body.values || {},
+      evidenceItems: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems
+        : [],
+      status: "SUBMITTED",
+    });
+
+    
+    // audit-log:case-submitted
+    await logCaseSavedEvent({
+      caseId: result.id,
+      status: "SUBMITTED",
+      title: body.title || null,
+      workflowId: body.workflowId || null,
+      serviceId: body.serviceId || null,
+      studentId: body.studentId || null,
+      valueCount:
+        body.values && typeof body.values === "object"
+          ? Object.keys(body.values).length
+          : 0,
+      evidenceCount: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
+      message: "ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø­Ø§Ù„Ø© Ø¨Ù†Ø¬Ø§Ø­.",
+      caseId: result.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø­Ø§Ù„Ø©.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\cases\[caseId]\route.ts ================
+
+import { NextResponse } from "next/server";
+import { updateRuntimeCase, getCaseById } from "@/engine/cases/case-runtime-engine";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export async function GET(_request: Request, context: RouteContext) {
+  try {
+    const { caseId } = await context.params;
+    const caseEntry = await getCaseById(caseId);
+
+    return NextResponse.json({
+      caseEntry,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¬Ù„Ø¨ Ø§Ù„Ø­Ø§Ù„Ø©.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  try {
+    const { caseId } = await context.params;
+    const body = await request.json();
+
+    const result = await updateRuntimeCase({
+      caseId,
+      title: body.title,
+      studentId: body.studentId,
+      values: body.values || {},
+      evidenceItems: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems
+        : [],
+      status: body.status,
+    });
+
+    return NextResponse.json({
+      message: "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø© Ø¨Ù†Ø¬Ø§Ø­.",
+      caseId: result.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\reports\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { logReportCreatedEvent } from "@/lib/admin/activity-events";
+import {
+  mapCaseEntryToReportData,
+  type ReportMappedCase,
+} from "@/lib/report-engine/report-case-data-mapper";
+import {
+  createDefaultTemplateSnapshot,
+  createReportDataSnapshot,
+} from "@/lib/report-engine/report-snapshot";
+
+type CreateReportBody = {
+  caseEntryId?: string;
+  caseId?: string;
+  title?: string;
+  templateId?: string;
+};
+
+function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+function isPublishedBuilderTemplate(templateJson: Record<string, any> | null) {
+  return templateJson?.status === "PUBLISHED" && Array.isArray(templateJson?.pages);
+}
+
+async function createTemplateSnapshotFromDatabase(templateId: string) {
+  const builderTemplate = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  const templateJson =
+    parseBuilderTemplateJson(builderTemplate?.templateJson) ||
+    parseBuilderTemplateJson(builderTemplate?.content);
+
+  if (!builderTemplate || !isPublishedBuilderTemplate(templateJson)) {
+    return createDefaultTemplateSnapshot(templateId);
+  }
+
+  const safeTemplateJson = templateJson as Record<string, any>;
+
+  return {
+    templateId: builderTemplate.id,
+    templateName: builderTemplate.name,
+    version: 1,
+    capturedAt: new Date().toISOString(),
+    source: "TEMPLATE_BUILDER",
+    settings: {
+      showCover: true,
+      defaultTemplate: builderTemplate.id,
+      defaultEvidenceLayout: "grid-2x2",
+      pageSize: "A4",
+      direction: "rtl",
+    },
+    builderTemplate: {
+      ...safeTemplateJson,
+      id: builderTemplate.id,
+      name: builderTemplate.name || safeTemplateJson.name,
+      description:
+        builderTemplate.description ||
+        safeTemplateJson.description ||
+        "Ù‚Ø§Ù„Ø¨ ØªÙ‚Ø±ÙŠØ± Ù…Ø­ÙÙˆØ¸ Ù…Ù† ØµØ§Ù†Ø¹ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨.",
+      serviceSlug:
+        builderTemplate.serviceSlug || safeTemplateJson.serviceSlug || null,
+      status: "PUBLISHED",
+    },
+  };
+}
+
+function buildReportContent(reportData: ReportMappedCase) {
+  const studentLines = reportData.student
+    ? [
+        `Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©: ${reportData.student.fullName}`,
+        `Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©: ${reportData.student.nationalId || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø§Ù„Ù…Ø±Ø­Ù„Ø©: ${reportData.student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ØµÙ: ${reportData.student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ÙØµÙ„: ${reportData.student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianName || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianPhone || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+      ].join("\n")
+    : "Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø·Ø§Ù„Ø¨/Ø·Ø§Ù„Ø¨Ø© Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const valuesLines = reportData.values.length
+    ? reportData.values
+        .map((item, index) => {
+          return `${index + 1}. ${item.fieldLabel}: ${item.value || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ù…Ø­ÙÙˆØ¸Ø© ÙÙŠ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const evidencesLines = reportData.evidences.length
+    ? reportData.evidences
+        .map((item, index) => {
+          return `${index + 1}. ${item.title || item.fileName || "Ø´Ø§Ù‡Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´ÙˆØ§Ù‡Ø¯ Ù…Ø±ÙÙ‚Ø©.";
+
+  return `
+ØªÙ‚Ø±ÙŠØ±: ${reportData.title}
+
+Ø§Ù„Ø®Ø¯Ù…Ø©:
+${reportData.service.name}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©:
+${studentLines}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©:
+Ø±Ù‚Ù… Ø§Ù„Ø­Ø§Ù„Ø©: ${reportData.id}
+Ø­Ø§Ù„Ø© Ø§Ù„Ø³Ø¬Ù„: ${reportData.status}
+ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡: ${new Date(reportData.createdAt).toLocaleDateString("ar-SA")}
+
+Ø§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø³Ø¬Ù„Ø©:
+${valuesLines}
+
+Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯:
+${evidencesLines}
+
+Ù…Ù„Ø®Øµ Ø§Ù„ØªÙ‚Ø±ÙŠØ±:
+ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ù‡Ø°Ø§ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³Ø¬Ù„Ø© ÙÙŠ Ù…Ù†ØµØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØŒ ÙˆÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©ØŒ ÙˆØ§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø¯Ø®Ù„Ø©ØŒ ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…Ø±ÙÙ‚Ø©.
+`.trim();
+}
+
+export async function POST(request: Request) {
+  // subscription-api-guard:POST:requireActiveSubscriptionApi()
+  const subscriptionGuard = await requireActiveSubscriptionApi();
+  if (subscriptionGuard) return subscriptionGuard;
+
+  try {
+    const body = (await request.json()) as CreateReportBody;
+
+    const caseEntryId = body.caseEntryId || body.caseId;
+
+    if (!caseEntryId) {
+      return NextResponse.json(
+        {
+          error: "caseEntryId Ù…Ø·Ù„ÙˆØ¨ Ù„Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const templateId = body.templateId || "official-long";
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: caseEntryId,
+      },
+      include: {
+        service: true,
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+        values: {
+          include: {
+            field: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        caseEvidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const reportData = mapCaseEntryToReportData(caseEntry);
+
+    const reportTitle =
+      body.title?.trim() ||
+      `ØªÙ‚Ø±ÙŠØ± - ${reportData.title || reportData.service.name}`;
+
+    const initialContent = buildReportContent(reportData);
+
+    const templateSnapshot = await createTemplateSnapshotFromDatabase(templateId);
+    const reportDataSnapshot = createReportDataSnapshot(reportData);
+
+    const report = await prisma.guidanceReport.create({
+      data: {
+        title: reportTitle,
+        serviceSlug: reportData.service.slug,
+        caseEntryId: reportData.id,
+        genderMode: caseEntry.student?.gender === "FEMALE" ? "FEMALE" : "MALE",
+
+        editableContent: initialContent,
+        renderedContent: initialContent,
+
+        templateId,
+        templateSnapshot,
+        reportDataSnapshot,
+        generatedAt: new Date(),
+
+        evidenceItems: {
+          create: reportData.evidences.map((item, index) => ({
+            fileName: item.fileName || `evidence-${index + 1}`,
+            fileUrl: item.fileUrl,
+            caption: item.note || item.title || item.fileName || null,
+            sortOrder: index,
+            visible: true,
+          })),
+        },
+      },
+      include: {
+        evidenceItems: true,
+      },
+    });
+
+    
+    // audit-log:report-created
+    await logReportCreatedEvent({
+      reportId: report.id,
+      caseEntryId: reportData.id,
+      title: report.title,
+      templateId,
+      serviceSlug: reportData.service.slug,
+      evidenceCount: Array.isArray(report.evidenceItems)
+        ? report.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
+      success: true,
+      reportId: report.id,
+      previewUrl: `/dashboard/reports/${report.id}/preview?template=${templateId}`,
+    });
+  } catch (error) {
+    console.error("create report error:", error);
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\reports\prepare\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { mapCaseEntryToReportData } from "@/lib/report-engine/report-case-data-mapper";
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldKey,
+  getWorkflowFieldLabel,
+  type WorkflowValueLike,
+} from "@/lib/workflow-values/workflow-display-value";
+
+type FieldLookupItem = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: Array<{
+    label?: string | null;
+    value?: string | null;
+  }> | null;
+};
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const caseId = searchParams.get("caseId")?.trim();
+
+    if (!caseId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "caseId Ù…Ø·Ù„ÙˆØ¨ Ù„ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: caseId,
+      },
+      include: {
+        service: true,
+
+        workflow: {
+          include: {
+            steps: {
+              include: {
+                fields: {
+                  include: {
+                    options: {
+                      orderBy: {
+                        order: "asc",
+                      },
+                    },
+                  },
+                  orderBy: {
+                    order: "asc",
+                  },
+                },
+              },
+              orderBy: {
+                order: "asc",
+              },
+            },
+          },
+        },
+
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+
+        values: {
+          include: {
+            field: {
+              include: {
+                options: {
+                  orderBy: {
+                    order: "asc",
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+
+        caseEvidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const rawReportData = mapCaseEntryToReportData(caseEntry as any);
+    const localizedValues = buildLocalizedValues(caseEntry as any);
+
+    const reportData = {
+      ...rawReportData,
+      values: localizedValues,
+    };
+
+    return NextResponse.json({
+      ok: true,
+      reportData,
+    });
+  } catch (error) {
+    console.error("prepare report error:", error);
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "ØªØ¹Ø°Ø± ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+function buildFieldMap(caseEntry: any) {
+  const map = new Map<string, FieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function normalizeCaseValue(
+  value: any,
+  fieldMap: Map<string, FieldLookupItem>
+): WorkflowValueLike {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function shouldHideValue(item: WorkflowValueLike) {
+  const key = getWorkflowFieldKey(item);
+
+  return (
+    !key ||
+    key === "selectedStudent" ||
+    key.endsWith("__other") ||
+    ["student", "guardian", "metadata"].includes(key)
+  );
+}
+
+function buildLocalizedValues(caseEntry: any) {
+  const fieldMap = buildFieldMap(caseEntry);
+
+  const normalizedValues = caseEntry.values.map((value: any) =>
+    normalizeCaseValue(value, fieldMap)
+  );
+
+  return normalizedValues
+    .filter((item: WorkflowValueLike) => !shouldHideValue(item))
+    .map((item: WorkflowValueLike, index: number) => {
+      const fieldKey = getWorkflowFieldKey(item);
+      const fieldLabel = getWorkflowFieldLabel(item, index);
+      const displayValue = formatWorkflowDisplayValue(item, normalizedValues);
+
+      return {
+        fieldKey,
+        fieldLabel,
+        value: displayValue || "â€”",
+      };
+    });
+}
+
+
+================ FILE: app\api\dashboard\reports\[reportId]\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ReportStatus } from "@prisma/client";
+
+type RouteContext = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+type UpdateReportBody = {
+  title?: string;
+  editableContent?: string;
+  renderedContent?: string;
+};
+
+export async function GET(_request: Request, context: RouteContext) {
+  try {
+    const { reportId } = await context.params;
+
+    if (!reportId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "reportId Ù…Ø·Ù„ÙˆØ¨.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const report = await prisma.guidanceReport.findUnique({
+      where: {
+        id: reportId,
+      },
+      include: {
+        evidenceItems: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
+        caseEntry: {
+          include: {
+            service: true,
+            student: {
+              include: {
+                guardian: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!report) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ø§Ù„ØªÙ‚Ø±ÙŠØ± ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.",
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      report,
+    });
+  } catch (error) {
+    console.error("get report error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "ØªØ¹Ø°Ø± Ø¬Ù„Ø¨ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  try {
+    const { reportId } = await context.params;
+    const body = (await request.json()) as UpdateReportBody;
+
+    if (!reportId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "reportId Ù…Ø·Ù„ÙˆØ¨ Ù„ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const existingReport = await prisma.guidanceReport.findUnique({
+      where: {
+        id: reportId,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (!existingReport) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ø§Ù„ØªÙ‚Ø±ÙŠØ± ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.",
+        },
+        { status: 404 }
+      );
+    }
+
+    if (existingReport.status === ReportStatus.APPROVED) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„ ØªÙ‚Ø±ÙŠØ± Ù…Ø¹ØªÙ…Ø¯. ÙŠÙ…ÙƒÙ†Ùƒ Ù†Ø³Ø® Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ù„Ø¥Ù†Ø´Ø§Ø¡ Ù†Ø³Ø®Ø© Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„ØªØ¹Ø¯ÙŠÙ„.",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (existingReport.status === ReportStatus.ARCHIVED) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„ ØªÙ‚Ø±ÙŠØ± Ù…Ø¤Ø±Ø´Ù.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const title = body.title?.trim();
+    const editableContent = body.editableContent?.trim();
+    const renderedContent = body.renderedContent?.trim();
+
+    if (!title) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ù…Ø·Ù„ÙˆØ¨.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!editableContent) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ù…Ø­ØªÙˆÙ‰ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø£Ù† ÙŠÙƒÙˆÙ† ÙØ§Ø±ØºÙ‹Ø§.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const updatedReport = await prisma.guidanceReport.update({
+      where: {
+        id: reportId,
+      },
+      data: {
+        title,
+        editableContent,
+        renderedContent: renderedContent || editableContent,
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        editableContent: true,
+        renderedContent: true,
+        updatedAt: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      report: {
+        ...updatedReport,
+        updatedAt: updatedReport.updatedAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("update report error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "ØªØ¹Ø°Ø± ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\reports\[reportId]\approve\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ReportStatus } from "@prisma/client";
+
+type RouteContext = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+export async function POST(_request: Request, context: RouteContext) {
+  try {
+    const { reportId } = await context.params;
+
+    if (!reportId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "reportId Ù…Ø·Ù„ÙˆØ¨ Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const existingReport = await prisma.guidanceReport.findUnique({
+      where: {
+        id: reportId,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (!existingReport) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ø§Ù„ØªÙ‚Ø±ÙŠØ± ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.",
+        },
+        { status: 404 }
+      );
+    }
+
+    if (existingReport.status === ReportStatus.ARCHIVED) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø§Ø¹ØªÙ…Ø§Ø¯ ØªÙ‚Ø±ÙŠØ± Ù…Ø¤Ø±Ø´Ù.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const report = await prisma.guidanceReport.update({
+      where: {
+        id: reportId,
+      },
+      data: {
+        status: ReportStatus.APPROVED,
+        approvedAt: new Date(),
+      },
+      select: {
+        id: true,
+        status: true,
+        approvedAt: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      report,
+    });
+  } catch (error) {
+    console.error("approve report error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "ØªØ¹Ø°Ø± Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\reports\[reportId]\delete\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ReportStatus } from "@prisma/client";
+
+type RouteContext = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+async function archiveReport(reportId: string) {
+  const existingReport = await prisma.guidanceReport.findUnique({
+    where: {
+      id: reportId,
+    },
+    select: {
+      id: true,
+      status: true,
+    },
+  });
+
+  if (!existingReport) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Ø§Ù„ØªÙ‚Ø±ÙŠØ± ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.",
+    };
+  }
+
+  if (existingReport.status === ReportStatus.ARCHIVED) {
+    return {
+      ok: true,
+      status: 200,
+      report: existingReport,
+    };
+  }
+
+  const report = await prisma.guidanceReport.update({
+    where: {
+      id: reportId,
+    },
+    data: {
+      status: ReportStatus.ARCHIVED,
+      archivedAt: new Date(),
+    },
+    select: {
+      id: true,
+      status: true,
+      archivedAt: true,
+    },
+  });
+
+  return {
+    ok: true,
+    status: 200,
+    report,
+  };
+}
+
+export async function POST(_request: Request, context: RouteContext) {
+  try {
+    const { reportId } = await context.params;
+
+    if (!reportId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "reportId Ù…Ø·Ù„ÙˆØ¨ Ù„Ø£Ø±Ø´ÙØ© Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const result = await archiveReport(reportId);
+
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.error,
+        },
+        { status: result.status }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      report: result.report,
+    });
+  } catch (error) {
+    console.error("archive report error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "ØªØ¹Ø°Ø± Ø£Ø±Ø´ÙØ© Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  return POST(_request, context);
+}
+
+
+================ FILE: app\api\dashboard\reports\[reportId]\duplicate\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { Prisma, ReportStatus } from "@prisma/client";
+
+type RouteContext = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+function cloneJsonValue(
+  value: Prisma.JsonValue | null
+): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (value === null) {
+    return Prisma.JsonNull;
+  }
+
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function buildDuplicatedTitle(title: string) {
+  const cleanTitle = title.trim();
+
+  if (!cleanTitle) {
+    return "Ù†Ø³Ø®Ø© Ù…Ù† ØªÙ‚Ø±ÙŠØ±";
+  }
+
+  if (cleanTitle.startsWith("Ù†Ø³Ø®Ø© Ù…Ù†")) {
+    return cleanTitle;
+  }
+
+  return `Ù†Ø³Ø®Ø© Ù…Ù† ${cleanTitle}`;
+}
+
+export async function POST(_request: Request, context: RouteContext) {
+  try {
+    const { reportId } = await context.params;
+
+    if (!reportId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "reportId Ù…Ø·Ù„ÙˆØ¨ Ù„Ù†Ø³Ø® Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const sourceReport = await prisma.guidanceReport.findUnique({
+      where: {
+        id: reportId,
+      },
+      include: {
+        evidenceItems: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
+      },
+    });
+
+    if (!sourceReport) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ø§Ù„ØªÙ‚Ø±ÙŠØ± ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const duplicatedReport = await prisma.guidanceReport.create({
+      data: {
+        title: buildDuplicatedTitle(sourceReport.title),
+        serviceSlug: sourceReport.serviceSlug,
+        caseEntryId: sourceReport.caseEntryId,
+
+        status: ReportStatus.DRAFT,
+
+        genderMode: sourceReport.genderMode,
+        editableContent: sourceReport.editableContent,
+        renderedContent: sourceReport.renderedContent,
+
+        evidenceEnabled: sourceReport.evidenceEnabled,
+
+        templateId: sourceReport.templateId,
+        templateSnapshot: cloneJsonValue(sourceReport.templateSnapshot),
+        reportDataSnapshot: cloneJsonValue(sourceReport.reportDataSnapshot),
+
+        generatedAt: new Date(),
+        generatedPdfUrl: null,
+        approvedAt: null,
+        archivedAt: null,
+
+        evidenceItems: {
+          create: sourceReport.evidenceItems.map((item) => ({
+            fileName: item.fileName,
+            fileUrl: item.fileUrl,
+            caption: item.caption,
+            mimeType: item.mimeType,
+            size: item.size,
+            sortOrder: item.sortOrder,
+            visible: item.visible,
+          })),
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        templateId: true,
+        status: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      reportId: duplicatedReport.id,
+      previewUrl: `/dashboard/reports/${duplicatedReport.id}/preview`,
+      report: duplicatedReport,
+    });
+  } catch (error) {
+    console.error("duplicate report error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "ØªØ¹Ø°Ø± Ù†Ø³Ø® Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+
+================ FILE: app\api\dashboard\reports\[reportId]\evidence\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+
+type RouteContext = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+type EvidencePayloadItem = {
+  id?: unknown;
+  caption?: unknown;
+  visible?: unknown;
+  sortOrder?: unknown;
+};
+
+export async function PATCH(request: Request, context: RouteContext) {
+  // subscription-api-guard:PATCH:requireActiveSubscriptionApi()
+  const subscriptionGuard = await requireActiveSubscriptionApi();
+  if (subscriptionGuard) return subscriptionGuard;
+
+  try {
+    const { reportId } = await context.params;
+    const body = await request.json();
+
+    const report = await prisma.guidanceReport.findUnique({
+      where: {
+        id: reportId,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (!report) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "التقرير غير موجود.",
+        },
+        { status: 404 }
+      );
+    }
+
+    if (report.status === "APPROVED" || report.status === "ARCHIVED") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لا يمكن تعديل شواهد تقرير معتمد أو مؤرشف.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const items = Array.isArray(body?.items)
+      ? (body.items as EvidencePayloadItem[])
+      : [];
+
+    if (!items.length) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لا توجد شواهد لتحديثها.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const normalizedItems = items
+      .map((item, index) => ({
+        id: typeof item.id === "string" ? item.id : "",
+        caption:
+          typeof item.caption === "string"
+            ? item.caption.trim()
+            : item.caption === null
+              ? ""
+              : "",
+        visible:
+          typeof item.visible === "boolean" ? item.visible : true,
+        sortOrder:
+          typeof item.sortOrder === "number" && Number.isFinite(item.sortOrder)
+            ? item.sortOrder
+            : index,
+      }))
+      .filter((item) => item.id);
+
+    if (!normalizedItems.length) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "بيانات الشواهد غير صحيحة.",
+        },
+        { status: 400 }
+      );
+    }
+
+    await prisma.$transaction(
+      normalizedItems.map((item, index) =>
+        prisma.reportEvidence.updateMany({
+          where: {
+            id: item.id,
+            reportId,
+          },
+          data: {
+            caption: item.caption,
+            visible: item.visible,
+            sortOrder: item.sortOrder ?? index,
+          },
+        })
+      )
+    );
+
+    const evidenceItems = await prisma.reportEvidence.findMany({
+      where: {
+        reportId,
+      },
+      orderBy: {
+        sortOrder: "asc",
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      evidenceItems,
+    });
+  } catch (error) {
+    console.error("REPORT_EVIDENCE_UPDATE_ERROR", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "حدث خطأ أثناء تحديث شواهد التقرير.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+
+
+================ FILE: app\api\dashboard\reports\[reportId]\export\pdf\route.ts ================
+
+import { NextResponse } from "next/server";
+import { chromium } from "playwright";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type RouteContext = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+function getBaseUrl(request: Request) {
+  const url = new URL(request.url);
+
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    `${url.protocol}//${url.host}`
+  );
+}
+
+function copySearchParams(source: URLSearchParams) {
+  const target = new URLSearchParams();
+
+  for (const [key, value] of source.entries()) {
+    if (key !== "inline") {
+      target.set(key, value);
+    }
+  }
+
+  target.set("pdf", "true");
+  target.set("studio", "true");
+
+  return target;
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
+
+  try {
+    const { reportId } = await context.params;
+    const requestUrl = new URL(request.url);
+    const baseUrl = getBaseUrl(request);
+    const searchParams = copySearchParams(requestUrl.searchParams);
+
+    const previewUrl = `${baseUrl}/dashboard/reports/${reportId}/preview?${searchParams.toString()}`;
+    const cookieHeader = request.headers.get("cookie") || "";
+
+    browser = await chromium.launch({
+      headless: true,
+    });
+
+    const browserContext = await browser.newContext({
+      viewport: {
+        width: 1280,
+        height: 1600,
+      },
+      extraHTTPHeaders: cookieHeader
+        ? {
+            cookie: cookieHeader,
+          }
+        : undefined,
+    });
+
+    const page = await browserContext.newPage();
+
+    page.on("console", (message) => {
+      const text = message.text();
+
+      if (message.type() === "error") {
+        console.error("PDF_PREVIEW_CONSOLE_ERROR", text);
+      }
+    });
+
+    page.on("pageerror", (error) => {
+      console.error("PDF_PREVIEW_PAGE_ERROR", error);
+    });
+
+    const response = await page.goto(previewUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 45_000,
+    });
+
+    if (!response || !response.ok()) {
+      const status = response?.status() || 0;
+
+      throw new Error(
+        `ØªØ¹Ø°Ø± ÙØªØ­ ØµÙØ­Ø© Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ©. Status: ${status}. URL: ${previewUrl}`
+      );
+    }
+
+    await page.waitForLoadState("networkidle", {
+      timeout: 45_000,
+    }).catch(() => null);
+
+    const hasReportPage = await page
+      .locator(".pdf-report-page")
+      .first()
+      .isVisible({
+        timeout: 45_000,
+      })
+      .catch(() => false);
+
+    if (!hasReportPage) {
+      const currentUrl = page.url();
+      const title = await page.title().catch(() => "");
+      const bodyText = await page
+        .locator("body")
+        .innerText({
+          timeout: 5_000,
+        })
+        .catch(() => "");
+
+      console.error("PDF_EXPORT_NO_REPORT_PAGE", {
+        previewUrl,
+        currentUrl,
+        title,
+        bodyText: bodyText.slice(0, 1500),
+      });
+
+      throw new Error(
+        [
+          "Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ ØµÙØ­Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©.",
+          `Current URL: ${currentUrl}`,
+          `Title: ${title || "Ø¨Ø¯ÙˆÙ† Ø¹Ù†ÙˆØ§Ù†"}`,
+          `Body: ${bodyText.slice(0, 300)}`,
+        ].join("\n")
+      );
+    }
+
+    await page.evaluate(() => {
+      const pages = Array.from(document.querySelectorAll(".pdf-report-page"));
+
+      if (!pages.length) return;
+
+      document.body.innerHTML = "";
+
+      const root = document.createElement("main");
+      root.style.margin = "0";
+      root.style.padding = "0";
+      root.style.background = "white";
+
+      pages.forEach((reportPage) => {
+        root.appendChild(reportPage.cloneNode(true));
+      });
+
+      document.body.appendChild(root);
+    });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: "0",
+        right: "0",
+        bottom: "0",
+        left: "0",
+      },
+    });
+
+    await browserContext.close();
+
+    const inline = requestUrl.searchParams.get("inline") === "true";
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="guidance-report-${reportId}.pdf"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("REPORT_PDF_EXPORT_ERROR", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØµØ¯ÙŠØ± PDF.",
+      },
+      { status: 500 }
+    );
+  } finally {
+    if (browser) {
+      await browser.close().catch(() => null);
+    }
+  }
+}
+
+
+
+================ FILE: app\api\dashboard\students\search\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ensureDefaultSchoolAccount } from "@/engine/students/student-import-engine";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+
+  const query = searchParams.get("query")?.trim() || "";
+
+  const school = await ensureDefaultSchoolAccount();
+
+  const students = await prisma.student.findMany({
+    where: {
+      schoolAccountId: school.id,
+      isActive: true,
+      OR: [
+        {
+          fullName: {
+            contains: query,
+          },
+        },
+        {
+          nationalId: {
+            contains: query,
+          },
+        },
+      ],
+    },
+    include: {
+      guardian: true,
+    },
+    orderBy: {
+      fullName: "asc",
+    },
+    take: 20,
+  });
+
+  return NextResponse.json({
+    students,
+  });
+}
+
+
+================ FILE: app\api\dashboard\school-data\students\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { parseNoorExcel } from "@/lib/noor/excel-parser";
+import {
+  createStudentImportSession,
+  ensureDefaultSchoolAccount,
+} from "@/engine/students/student-import-engine";
+
+export async function GET() {
+  const school = await ensureDefaultSchoolAccount();
+
+  const students = await prisma.student.findMany({
+    where: {
+      schoolAccountId: school.id,
+      isActive: true,
+    },
+    include: {
+      guardian: true,
+    },
+    orderBy: {
+      fullName: "asc",
+    },
+    take: 200,
+  });
+
+  return NextResponse.json({ students });
+}
+
+export async function POST(request: Request) {
+  const formData = await request.formData();
+  const file = formData.get("file");
+
+  if (!(file instanceof File)) {
+    return NextResponse.json(
+      { error: "Ù„Ù… ÙŠØªÙ… Ø¥Ø±ÙØ§Ù‚ Ù…Ù„Ù Excel." },
+      { status: 400 }
+    );
+  }
+
+  const buffer = await file.arrayBuffer();
+  const rows = await parseNoorExcel(buffer);
+
+  const session = await createStudentImportSession({
+    fileName: file.name,
+    mimeType: file.type,
+    size: file.size,
+    rows,
+  });
+
+  return NextResponse.json({
+    message: "ØªÙ… ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù…Ù„Ù ÙˆØ¥Ù†Ø´Ø§Ø¡ Ø¯ÙØ¹Ø© Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ù„Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©.",
+    sessionId: session.id,
+  });
+}
+
+
+================ FILE: app\api\dashboard\subscription\redeem-code\route.ts ================
+
+import { NextResponse } from "next/server";
+import { redeemActivationCode } from "@/lib/activation/activation-service";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { logActivationCodeRedeemedEvent } from "@/lib/admin/activity-events";
+
+export async function POST(request: Request) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.id || !current.user.schoolAccountId) {
+    return NextResponse.json(
+      {
+        error: "يجب تسجيل الدخول أولًا.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  const payload = await request.json().catch(() => null);
+  const code = String(payload?.code || "").trim();
+
+  if (!code) {
+    return NextResponse.json(
+      {
+        error: "أدخل كود التفعيل.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  const result = await redeemActivationCode({
+    code,
+    userId: current.user.id,
+    schoolAccountId: current.user.schoolAccountId,
+  });
+
+  
+    // audit-log:redeem-activation-code
+    await logActivationCodeRedeemedEvent({
+      userId: current.user.id,
+      schoolAccountId: current.user.schoolAccountId,
+      code,
+    });
+
+if (!result.ok) {
+    return NextResponse.json(
+      {
+        error: result.message,
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  return NextResponse.json({
+    message: result.message,
+  });
+}
+
+
+
+================ FILE: app\api\dashboard\subscription\bank-transfer\route.ts ================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { logBankTransferRequestedEvent } from "@/lib/admin/activity-events";
+
+export async function POST(request: Request) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.schoolAccountId) {
+    return NextResponse.json(
+      {
+        error: "يجب تسجيل الدخول أولًا.",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  const payload = await request.json().catch(() => null);
+
+  const senderName = String(payload?.senderName || "").trim();
+  const phone = String(payload?.phone || "").trim();
+  const amount = Number(payload?.amount || 0);
+  const receiptUrl = String(payload?.receiptUrl || "").trim();
+  const note = String(payload?.note || "").trim();
+
+  if (!senderName) {
+    return NextResponse.json(
+      {
+        error: "اكتب اسم المحوّل.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (!amount || amount <= 0) {
+    return NextResponse.json(
+      {
+        error: "اكتب مبلغ التحويل.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  await prisma.bankTransferRequest.create({
+    data: {
+      schoolAccountId: current.user.schoolAccountId,
+      amount,
+      currency: "SAR",
+      senderName,
+      receiptUrl: receiptUrl || null,
+      adminNote: [phone ? `جوال: ${phone}` : "", note ? `ملاحظة: ${note}` : ""]
+        .filter(Boolean)
+        .join(" | "),
+      status: "PENDING",
+    },
+  });
+
+  
+    // audit-log:bank-transfer-requested
+    await logBankTransferRequestedEvent({
+      userId: current.user.id,
+      schoolAccountId: current.user.schoolAccountId,
+      amount: Number(amount || 0),
+    });
+
+return NextResponse.json({
+    message: "تم إرسال طلب التفعيل. سيقوم الأدمن بمراجعته.",
+  });
+}
+
+
+
+================ FILE: engine\students\student-import-engine.ts ================
+
+import { prisma } from "@/lib/prisma";
+import type { NoorStudentRow } from "@/lib/noor/excel-parser";
+
+const DEFAULT_SCHOOL_SLUG = "demo-school";
+
+export async function ensureDefaultSchoolAccount() {
+  return prisma.schoolAccount.upsert({
+    where: { slug: DEFAULT_SCHOOL_SLUG },
+    update: {},
+    create: {
+      name: "Ù…Ø¯Ø±Ø³Ø© ØªØ¬Ø±ÙŠØ¨ÙŠØ©",
+      slug: DEFAULT_SCHOOL_SLUG,
+      profile: {
+        create: {
+          schoolName: "Ù…Ø¯Ø±Ø³Ø© ØªØ¬Ø±ÙŠØ¨ÙŠØ©",
+          academicYear: "1447",
+          currentSemester: "Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ Ø§Ù„Ø£ÙˆÙ„",
+        },
+      },
+    },
+  });
+}
+
+export async function createStudentImportSession(params: {
+  fileName: string;
+  mimeType?: string | null;
+  size?: number | null;
+  rows: NoorStudentRow[];
+}) {
+  const school = await ensureDefaultSchoolAccount();
+
+  const validRows = params.rows.filter((row) => row.fullName?.trim().length > 2);
+  const invalidRows = params.rows.length - validRows.length;
+
+  const session = await prisma.studentImportSession.create({
+    data: {
+      schoolAccountId: school.id,
+      title: `Ø¯ÙØ¹Ø© Ø§Ø³ØªÙŠØ±Ø§Ø¯ - ${new Date().toLocaleDateString("ar-SA")}`,
+      status: "PARSED",
+      totalRows: params.rows.length,
+      validRows: validRows.length,
+      invalidRows,
+      files: {
+        create: {
+          fileName: params.fileName,
+          mimeType: params.mimeType,
+          size: params.size ?? null,
+          rowCount: params.rows.length,
+        },
+      },
+      rows: {
+        create: params.rows.map((row, index) => ({
+          rowIndex: index + 1,
+          status: row.fullName?.trim().length > 2 ? "VALID" : "INVALID",
+          fullName: row.fullName || "Ø¨Ø¯ÙˆÙ† Ø§Ø³Ù…",
+          nationalId: row.nationalId || null,
+          gender: row.gender ?? "UNKNOWN",
+          stage: row.stage || null,
+          grade: row.grade || null,
+          classroom: row.classroom || null,
+          guardianName: row.guardianName || null,
+          guardianPhone: row.guardianPhone || null,
+          errorMessage: row.fullName?.trim().length > 2 ? null : "Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨ Ù…ÙÙ‚ÙˆØ¯ Ø£Ùˆ ØºÙŠØ± ØµØ§Ù„Ø­",
+          rawJson: row,
+        })),
+      },
+    },
+  });
+
+  return session;
+}
+
+export async function commitStudentImportSession(sessionId: string) {
+  const school = await ensureDefaultSchoolAccount();
+
+  const session = await prisma.studentImportSession.findUnique({
+    where: { id: sessionId },
+    include: { rows: true },
+  });
+
+  if (!session) {
+    throw new Error("Ø¯ÙØ¹Ø© Ø§Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.");
+  }
+
+  if (session.status === "COMMITTED") {
+    throw new Error("Ù‡Ø°Ù‡ Ø§Ù„Ø¯ÙØ¹Ø© ØªÙ… Ø§Ø¹ØªÙ…Ø§Ø¯Ù‡Ø§ Ù…Ø³Ø¨Ù‚Ù‹Ø§.");
+  }
+
+  let createdCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+  let conflictCount = 0;
+
+  for (const row of session.rows) {
+    if (row.status !== "VALID") {
+      skippedCount++;
+      continue;
+    }
+
+    const existingStudent = row.nationalId
+      ? await prisma.student.findFirst({
+          where: {
+            schoolAccountId: school.id,
+            nationalId: row.nationalId,
+          },
+        })
+      : null;
+
+    let guardianId: string | undefined;
+
+    if (row.guardianName || row.guardianPhone) {
+      const guardian = await prisma.guardian.create({
+        data: {
+          schoolAccountId: school.id,
+          name: row.guardianName || "ÙˆÙ„ÙŠ Ø£Ù…Ø± ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+          phone: row.guardianPhone || null,
+          relation: "ÙˆÙ„ÙŠ Ø£Ù…Ø±",
+        },
+      });
+
+      guardianId = guardian.id;
+    }
+
+    if (existingStudent) {
+      await prisma.student.update({
+        where: { id: existingStudent.id },
+        data: {
+          fullName: row.fullName,
+          gender: row.gender,
+          stage: row.stage,
+          grade: row.grade,
+          classroom: row.classroom,
+          guardianId,
+        },
+      });
+
+      await prisma.studentImportRow.update({
+        where: { id: row.id },
+        data: {
+          status: "UPDATED",
+          matchedStudentId: existingStudent.id,
+        },
+      });
+
+      updatedCount++;
+    } else {
+      const student = await prisma.student.create({
+        data: {
+          schoolAccountId: school.id,
+          guardianId,
+          fullName: row.fullName,
+          nationalId: row.nationalId,
+          gender: row.gender,
+          stage: row.stage,
+          grade: row.grade,
+          classroom: row.classroom,
+        },
+      });
+
+      await prisma.studentImportRow.update({
+        where: { id: row.id },
+        data: {
+          status: "CREATED",
+          matchedStudentId: student.id,
+        },
+      });
+
+      createdCount++;
+    }
+  }
+
+  return prisma.studentImportSession.update({
+    where: { id: sessionId },
+    data: {
+      status: "COMMITTED",
+      createdCount,
+      updatedCount,
+      skippedCount,
+      conflictCount,
+      committedAt: new Date(),
+    },
+  });
+}
+
+
+================ FILE: engine\results-analysis\results-analysis-engine.ts ================
+
+import type {
+  ResultsAnalysisOutput,
+  ResultsAnalysisSummary,
+  StudentResultRow,
+  StudentResultStatus,
+} from "@/lib/results-analysis/results-analysis-types";
+
+function normalizePercentage(row: StudentResultRow): number | null {
+  if (typeof row.percentage === "number") return row.percentage;
+
+  if (
+    typeof row.score === "number" &&
+    typeof row.maxScore === "number" &&
+    row.maxScore > 0
+  ) {
+    return Math.round((row.score / row.maxScore) * 100);
+  }
+
+  return null;
+}
+
+function detectStatus(percentage: number | null): StudentResultStatus {
+  if (percentage === null) return "UNKNOWN";
+  if (percentage >= 50) return "PASS";
+  if (percentage >= 35) return "NEEDS_SUPPORT";
+  return "FAIL";
+}
+
+export function analyzeStudentResults(
+  rows: StudentResultRow[],
+): ResultsAnalysisOutput {
+  const normalizedRows = rows.map((row) => {
+    const percentage = normalizePercentage(row);
+    const status = row.status ?? detectStatus(percentage);
+
+    return {
+      ...row,
+      percentage,
+      status,
+    };
+  });
+
+  const percentages = normalizedRows
+    .map((row) => row.percentage)
+    .filter((value): value is number => typeof value === "number");
+
+  const summary: ResultsAnalysisSummary = {
+    totalStudents: normalizedRows.length,
+    passedStudents: normalizedRows.filter((row) => row.status === "PASS").length,
+    failedStudents: normalizedRows.filter((row) => row.status === "FAIL").length,
+    needsSupportStudents: normalizedRows.filter(
+      (row) => row.status === "NEEDS_SUPPORT",
+    ).length,
+    unknownStudents: normalizedRows.filter((row) => row.status === "UNKNOWN")
+      .length,
+    averagePercentage:
+      percentages.length > 0
+        ? Math.round(
+            percentages.reduce((sum, value) => sum + value, 0) /
+              percentages.length,
+          )
+        : 0,
+    highestPercentage: percentages.length > 0 ? Math.max(...percentages) : 0,
+    lowestPercentage: percentages.length > 0 ? Math.min(...percentages) : 0,
+  };
+
+  return {
+    summary,
+    rows: normalizedRows,
+  };
+}
+
+
+================ FILE: lib\results-analysis\results-analysis-parser.ts ================
+
+import * as XLSX from "xlsx";
+import type { StudentResultRow } from "./results-analysis-types";
+
+function normalizeKey(value: string) {
+  return value.replace(/\s+/g, "").trim().toLowerCase();
+}
+
+function getValue(row: Record<string, unknown>, keys: string[]) {
+  const normalized = Object.entries(row).map(([key, value]) => ({
+    key,
+    normalizedKey: normalizeKey(key),
+    value,
+  }));
+
+  for (const wanted of keys) {
+    const found = normalized.find((item) => item.normalizedKey === normalizeKey(wanted));
+    if (found) return found.value;
+  }
+
+  return "";
+}
+
+export async function parseResultsExcel(buffer: ArrayBuffer): Promise<StudentResultRow[]> {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+    defval: "",
+  });
+return rows
+  .map((row) => ({
+    id: crypto.randomUUID(),
+    studentName: String(getValue(row, ["Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨", "Ø§Ù„Ø·Ø§Ù„Ø¨", "Ø§Ù„Ø§Ø³Ù…", "name", "studentName"])).trim(),
+      subject: String(getValue(row, ["Ø§Ù„Ù…Ø§Ø¯Ø©", "Ø§Ø³Ù… Ø§Ù„Ù…Ø§Ø¯Ø©", "subject"])).trim(),
+      score: Number(getValue(row, ["Ø§Ù„Ø¯Ø±Ø¬Ø©", "Ø¯Ø±Ø¬Ø© Ø§Ù„Ø·Ø§Ù„Ø¨", "score"]) || 0),
+      maxScore: Number(getValue(row, ["Ø§Ù„Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ø¹Ø¸Ù…Ù‰", "Ø§Ù„Ø¯Ø±Ø¬Ø© Ø§Ù„Ø¹Ø¸Ù…Ù‰", "maxScore"]) || 100),
+      grade: String(getValue(row, ["Ø§Ù„ØµÙ", "grade"]) || "").trim() || null,
+      classroom: String(getValue(row, ["Ø§Ù„ÙØµÙ„", "Ø§Ù„Ø´Ø¹Ø¨Ø©", "classroom", "section"]) || "").trim() || null,
+      semester: String(getValue(row, ["Ø§Ù„ÙØµÙ„ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ", "Ø§Ù„ØªØ±Ù…", "semester", "term"]) || "").trim() || null,
+    }))
+    .filter((row) => row.studentName && row.subject);
+}
+
+
+================ FILE: lib\workflow-upload\workflow-excel-parser.ts ================
+
+import * as XLSX from "xlsx";
+
+export type ParsedWorkflowRow = {
+  stepTitle: string;
+  stepDescription?: string;
+  stepOrder?: number;
+
+  fieldKey: string;
+  fieldLabel: string;
+  fieldType: string;
+  fieldRequired: boolean;
+  fieldOrder?: number;
+  allowOther: boolean;
+
+  dependsOnFieldKey?: string;
+
+  /**
+   * Legacy/global linked value.
+   * Ù†ØªØ±ÙƒÙ‡ Ù„Ù„ØªÙˆØ§ÙÙ‚ Ù…Ø¹ Ø§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø©ØŒ Ù„ÙƒÙ† Ø§Ù„Ø£ÙØ¶Ù„ Ù…Ø³ØªÙ‚Ø¨Ù„Ø§Ù‹ Ø§Ø³ØªØ®Ø¯Ø§Ù…:
+   * fieldLinkedToValue Ù„Ù„Ø­Ù‚Ù„ ÙƒØ§Ù…Ù„Ù‹Ø§
+   * optionLinkedToValue Ù„Ø®ÙŠØ§Ø± Ø¯Ø§Ø®Ù„ Ø§Ù„Ø­Ù‚Ù„
+   */
+  linkedToValue?: string;
+
+  /**
+   * ÙŠØ³ØªØ®Ø¯Ù… Ù„Ø¥Ø®ÙØ§Ø¡/Ø¥Ø¸Ù‡Ø§Ø± Ø§Ù„Ø­Ù‚Ù„ ÙƒØ§Ù…Ù„Ù‹Ø§ Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ù‚ÙŠÙ…Ø© Ø­Ù‚Ù„ Ø³Ø§Ø¨Ù‚.
+   */
+  fieldLinkedToValue?: string;
+
+  optionLabel?: string;
+  optionValue?: string;
+  optionOrder?: number;
+
+  /**
+   * Ù‡Ø°Ø§ Ù‡Ùˆ Ø§Ù„Ù…Ù‡Ù… Ù„Ù„Ø±Ø¨Ø· Ø§Ù„Ø­Ø§Ù„ÙŠ:
+   * Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬ â†’ Ø®ÙŠØ§Ø±Ø§Øª Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡
+   * Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ â†’ Ø®ÙŠØ§Ø±Ø§Øª Ø¢Ù„ÙŠØ© Ø§Ù„ØªÙ†ÙÙŠØ°
+   * Ø¢Ù„ÙŠØ© Ø§Ù„ØªÙ†ÙÙŠØ° â†’ Ø®ÙŠØ§Ø±Ø§Øª Ø§Ù„Ø´Ø§Ù‡Ø¯ Ø£Ùˆ ØºÙŠØ±Ù‡
+   */
+  optionLinkedToValue?: string;
+};
+
+function normalize(value: unknown) {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeHeader(value: unknown) {
+  return normalize(value)
+    .toLowerCase()
+    .replace(/[Ø£Ø¥Ø¢]/g, "Ø§")
+    .replace(/Ù‰/g, "ÙŠ")
+    .replace(/Ø©/g, "Ù‡");
+}
+
+function bool(value: unknown) {
+  const v = normalize(value).toLowerCase();
+  return ["true", "yes", "1", "Ù†Ø¹Ù…", "ØµØ­", "Ù…Ø·Ù„ÙˆØ¨"].includes(v);
+}
+
+function numberOrUndefined(value: unknown) {
+  const normalized = normalize(value);
+  if (!normalized) return undefined;
+
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
+  stepTitle: [
+    "steptitle",
+    "step_title",
+    "step title",
+    "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø®Ø·ÙˆÙ‡",
+    "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø®Ø·ÙˆØ©",
+    "Ø§Ù„Ø®Ø·ÙˆÙ‡",
+    "Ø§Ù„Ø®Ø·ÙˆØ©",
+    "Ø§Ù„Ù‚Ø³Ù…",
+  ],
+
+  stepDescription: [
+    "stepdescription",
+    "step_description",
+    "step description",
+    "ÙˆØµÙ Ø§Ù„Ø®Ø·ÙˆÙ‡",
+    "ÙˆØµÙ Ø§Ù„Ø®Ø·ÙˆØ©",
+    "ÙˆØµÙ Ø§Ù„Ù‚Ø³Ù…",
+  ],
+
+  stepOrder: [
+    "steporder",
+    "step_order",
+    "step order",
+    "ØªØ±ØªÙŠØ¨ Ø§Ù„Ø®Ø·ÙˆÙ‡",
+    "ØªØ±ØªÙŠØ¨ Ø§Ù„Ø®Ø·ÙˆØ©",
+    "ØªØ±ØªÙŠØ¨ Ø§Ù„Ù‚Ø³Ù…",
+  ],
+
+  fieldKey: [
+    "fieldkey",
+    "field_key",
+    "field key",
+    "Ù…ÙØªØ§Ø­ Ø§Ù„Ø­Ù‚Ù„",
+    "key",
+  ],
+
+  fieldLabel: [
+    "fieldlabel",
+    "field_label",
+    "field label",
+    "Ø§Ø³Ù… Ø§Ù„Ø­Ù‚Ù„",
+    "Ø§Ù„Ø­Ù‚Ù„",
+  ],
+
+  fieldType: [
+    "fieldtype",
+    "field_type",
+    "field type",
+    "Ù†ÙˆØ¹ Ø§Ù„Ø­Ù‚Ù„",
+    "type",
+  ],
+
+  fieldRequired: [
+    "fieldrequired",
+    "required",
+    "isrequired",
+    "is_required",
+    "Ù…Ø·Ù„ÙˆØ¨",
+  ],
+
+  fieldOrder: [
+    "fieldorder",
+    "field_order",
+    "field order",
+    "ØªØ±ØªÙŠØ¨ Ø§Ù„Ø­Ù‚Ù„",
+  ],
+
+  allowOther: [
+    "allowother",
+    "allow_other",
+    "allow other",
+    "Ø§Ø®Ø±Ù‰",
+    "ÙŠØ³Ù…Ø­ Ø§Ø®Ø±Ù‰",
+    "Ø§Ù„Ø³Ù…Ø§Ø­ Ø¨Ø§Ø®Ø±Ù‰",
+  ],
+
+  dependsOnFieldKey: [
+    "dependsonfieldkey",
+    "depends_on_field_key",
+    "depends_on",
+    "depends on",
+    "parentfieldkey",
+    "parent_field_key",
+    "ÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰",
+    "ÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„ÙŠ",
+    "Ø§Ù„Ø­Ù‚Ù„ Ø§Ù„Ø§Ø¨",
+    "Ø§Ù„Ø­Ù‚Ù„ Ø§Ù„Ø£Ø¨",
+  ],
+
+  linkedToValue: [
+    "linkedtovalue",
+    "linked_to_value",
+    "linked to value",
+    "Ø§Ù„Ù‚ÙŠÙ…Ù‡ Ø§Ù„Ù…Ø±ØªØ¨Ø·Ù‡",
+    "Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø©",
+    "ÙŠØ±ØªØ¨Ø· Ø¨Ø§Ù„Ù‚ÙŠÙ…Ù‡",
+    "ÙŠØ±ØªØ¨Ø· Ø¨Ø§Ù„Ù‚ÙŠÙ…Ø©",
+  ],
+
+  fieldLinkedToValue: [
+    "fieldlinkedtovalue",
+    "field_linked_to_value",
+    "field linked to value",
+    "fieldlinkedvalue",
+    "field_linked_value",
+    "Ù‚ÙŠÙ…Ø© Ø±Ø¨Ø· Ø§Ù„Ø­Ù‚Ù„",
+    "Ø§Ù„Ù‚ÙŠÙ…Ù‡ Ø§Ù„Ù…Ø±ØªØ¨Ø·Ù‡ Ø¨Ø§Ù„Ø­Ù‚Ù„",
+    "Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ø­Ù‚Ù„",
+  ],
+
+  optionLabel: [
+    "optionlabel",
+    "option_label",
+    "option label",
+    "Ø§Ù„Ø®ÙŠØ§Ø±",
+    "Ø§Ø³Ù… Ø§Ù„Ø®ÙŠØ§Ø±",
+  ],
+
+  optionValue: [
+    "optionvalue",
+    "option_value",
+    "option value",
+    "Ù‚ÙŠÙ…Ø© Ø§Ù„Ø®ÙŠØ§Ø±",
+    "Ù‚ÙŠÙ…Ù‡ Ø§Ù„Ø®ÙŠØ§Ø±",
+  ],
+
+  optionOrder: [
+    "optionorder",
+    "option_order",
+    "option order",
+    "ØªØ±ØªÙŠØ¨ Ø§Ù„Ø®ÙŠØ§Ø±",
+  ],
+
+  optionLinkedToValue: [
+    "optionlinkedtovalue",
+    "option_linked_to_value",
+    "option linked to value",
+    "optionlinkedvalue",
+    "option_linked_value",
+    "parentvalue",
+    "parent_value",
+    "dependsvalue",
+    "depends_on_value",
+    "optionparentvalue",
+    "option_parent_value",
+    "Ù‚ÙŠÙ…Ø© Ø±Ø¨Ø· Ø§Ù„Ø®ÙŠØ§Ø±",
+    "Ù‚ÙŠÙ…Ù‡ Ø±Ø¨Ø· Ø§Ù„Ø®ÙŠØ§Ø±",
+    "Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ø®ÙŠØ§Ø±",
+    "Ø§Ù„Ù‚ÙŠÙ…Ù‡ Ø§Ù„Ù…Ø±ØªØ¨Ø·Ù‡ Ø¨Ø§Ù„Ø®ÙŠØ§Ø±",
+    "Ù‚ÙŠÙ…Ø© Ø§Ù„Ø§Ø¨",
+    "Ù‚ÙŠÙ…Ø© Ø§Ù„Ø£Ø¨",
+    "Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ø§Ø¨",
+    "Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ø£Ø¨",
+  ],
+};
+
+function detectHeaderIndex(rows: unknown[][]) {
+  let bestIndex = 0;
+  let bestScore = 0;
+
+  rows.slice(0, 20).forEach((row, index) => {
+    const cells = row.map(normalizeHeader);
+    let score = 0;
+
+    Object.values(headerMap).forEach((aliases) => {
+      const normalizedAliases = aliases.map(normalizeHeader);
+
+      if (
+        normalizedAliases.some((alias) =>
+          cells.some((cell) => cell === alias || cell.includes(alias))
+        )
+      ) {
+        score++;
+      }
+    });
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
+}
+
+function mapHeaders(headers: string[]) {
+  const result = new Map<keyof ParsedWorkflowRow, number>();
+  const normalizedHeaders = headers.map(normalizeHeader);
+
+  Object.entries(headerMap).forEach(([key, aliases]) => {
+    const normalizedAliases = aliases.map(normalizeHeader);
+
+    const index = normalizedHeaders.findIndex((header) =>
+      normalizedAliases.some(
+        (alias) => header === alias || header.includes(alias)
+      )
+    );
+
+    if (index >= 0) {
+      result.set(key as keyof ParsedWorkflowRow, index);
+    }
+  });
+
+  return result;
+}
+
+export async function parseWorkflowExcel(buffer: ArrayBuffer) {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+
+  if (!sheetName) return [];
+
+  const sheet = workbook.Sheets[sheetName];
+
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+    header: 1,
+    defval: "",
+  });
+
+  const headerIndex = detectHeaderIndex(rows);
+  const headers = rows[headerIndex].map(normalize);
+  const mapped = mapHeaders(headers);
+  const dataRows = rows.slice(headerIndex + 1);
+
+  return dataRows
+    .map((row, index): ParsedWorkflowRow => {
+      const get = (key: keyof ParsedWorkflowRow) => {
+        const colIndex = mapped.get(key);
+        return colIndex === undefined ? "" : normalize(row[colIndex]);
+      };
+
+      return {
+        stepTitle: get("stepTitle"),
+        stepDescription: get("stepDescription") || undefined,
+        stepOrder: numberOrUndefined(get("stepOrder")),
+
+        fieldKey: get("fieldKey"),
+        fieldLabel: get("fieldLabel"),
+        fieldType: get("fieldType") || "TEXT",
+        fieldRequired: bool(get("fieldRequired")),
+        fieldOrder: numberOrUndefined(get("fieldOrder")) ?? index + 1,
+        allowOther: bool(get("allowOther")),
+
+        dependsOnFieldKey: get("dependsOnFieldKey") || undefined,
+
+        linkedToValue: get("linkedToValue") || undefined,
+        fieldLinkedToValue: get("fieldLinkedToValue") || undefined,
+
+        optionLabel: get("optionLabel") || undefined,
+        optionValue: get("optionValue") || undefined,
+        optionOrder: numberOrUndefined(get("optionOrder")),
+        optionLinkedToValue: get("optionLinkedToValue") || undefined,
+      };
+    })
+    .filter((row) => row.stepTitle && row.fieldKey && row.fieldLabel);
+}

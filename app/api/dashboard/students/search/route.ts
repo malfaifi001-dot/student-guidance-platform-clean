@@ -1,30 +1,47 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ensureDefaultSchoolAccount } from "@/engine/students/student-import-engine";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
+  const authResult = await requireSchoolDashboardApiContext();
 
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  const { searchParams } = new URL(request.url);
   const query = searchParams.get("query")?.trim() || "";
 
-  const school = await ensureDefaultSchoolAccount();
+  if (query.length > 80) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "عبارة البحث طويلة جدًا.",
+      },
+      { status: 400 }
+    );
+  }
 
   const students = await prisma.student.findMany({
     where: {
-      schoolAccountId: school.id,
+      schoolAccountId: authResult.schoolAccountId,
       isActive: true,
-      OR: [
-        {
-          fullName: {
-            contains: query,
-          },
-        },
-        {
-          nationalId: {
-            contains: query,
-          },
-        },
-      ],
+      ...(query
+        ? {
+            OR: [
+              {
+                fullName: {
+                  contains: query,
+                },
+              },
+              {
+                nationalId: {
+                  contains: query,
+                },
+              },
+            ],
+          }
+        : {}),
     },
     include: {
       guardian: true,
@@ -36,6 +53,7 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json({
+    success: true,
     students,
   });
 }

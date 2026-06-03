@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { mapCaseEntryToReportData } from "@/lib/report-engine/report-case-data-mapper";
 import {
   formatWorkflowDisplayValue,
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "caseId مطلوب لتجهيز بيانات التقرير.",
+          error: "caseId Ù…Ø·Ù„ÙˆØ¨ Ù„ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
         },
         { status: 400 }
       );
@@ -105,7 +106,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "الحالة غير موجودة.",
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
         },
         { status: 404 }
       );
@@ -129,7 +130,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "تعذر تجهيز بيانات التقرير.",
+        error: "ØªØ¹Ø°Ø± ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
       },
       { status: 500 }
     );
@@ -212,7 +213,7 @@ function buildLocalizedValues(caseEntry: any) {
       return {
         fieldKey,
         fieldLabel,
-        value: displayValue || "—",
+        value: displayValue || "â€”",
       };
     });
 }

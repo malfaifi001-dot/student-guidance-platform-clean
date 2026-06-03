@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { chromium } from "playwright";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { getReportAccess } from "@/lib/reports/report-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,8 +40,41 @@ function copySearchParams(source: URLSearchParams) {
 export async function GET(request: Request, context: RouteContext) {
   let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
 
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
   try {
     const { reportId } = await context.params;
+
+    const reportAccess = await getReportAccess(reportId, {
+      schoolAccountId: authResult.schoolAccountId,
+      isAdmin: authResult.isAdmin,
+    });
+
+    if (!reportAccess) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
+        },
+        { status: 404 }
+      );
+    }
+
     const requestUrl = new URL(request.url);
     const baseUrl = getBaseUrl(request);
     const searchParams = copySearchParams(requestUrl.searchParams);

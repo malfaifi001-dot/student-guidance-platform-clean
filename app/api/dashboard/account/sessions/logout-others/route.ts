@@ -1,43 +1,68 @@
 ﻿import { NextResponse } from "next/server";
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+
+type CurrentSessionWithToken = Awaited<ReturnType<typeof getCurrentSessionUser>> & {
+  tokenId?: string | null;
+};
 
 export async function POST() {
-  try {
-    const current = await getCurrentSessionUser();
+  const current = (await getCurrentSessionUser()) as CurrentSessionWithToken;
 
-    if (!current) {
-      return NextResponse.json(
-        { success: false, error: "يلزم تسجيل الدخول." },
-        { status: 401 }
-      );
-    }
-
-    const result = await prisma.userSession.updateMany({
-      where: {
-        userId: current.user.id,
-        id: {
-          not: current.session.id,
-        },
-        isActive: true,
-      },
-      data: {
-        isActive: false,
-        revokedAt: new Date(),
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      revokedCount: result.count,
-      message: "تم تسجيل الخروج من الأجهزة الأخرى.",
-    });
-  } catch (error) {
-    console.error("LOGOUT_OTHER_SESSIONS_ERROR", error);
-
+  if (!current?.user?.id) {
     return NextResponse.json(
-      { success: false, error: "حدث خطأ أثناء إنهاء الجلسات الأخرى." },
-      { status: 500 }
+      {
+        success: false,
+        error: "يجب تسجيل الدخول أولًا.",
+        code: "UNAUTHENTICATED",
+      },
+      { status: 401 }
     );
   }
+
+  const currentTokenId = current.tokenId || null;
+
+  if (!currentTokenId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "تعذر تحديد الجلسة الحالية.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const result = await prisma.userSession.updateMany({
+    where: {
+      userId: current.user.id,
+      isActive: true,
+      tokenId: {
+        not: currentTokenId,
+      },
+    },
+    data: {
+      isActive: false,
+      revokedAt: new Date(),
+    },
+  });
+
+  await logAdminActivity({
+    actorUserId: current.user.id,
+    targetUserId: current.user.id,
+    schoolAccountId: current.user.schoolAccountId || null,
+    category: "SECURITY",
+    action: "account-other-sessions-revoked",
+    severity: "INFO",
+    title: "تم تسجيل الخروج من الجلسات الأخرى",
+    details: {
+      revokedSessionsCount: result.count,
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: "تم تسجيل الخروج من الجلسات الأخرى.",
+    revokedSessionsCount: result.count,
+  });
 }

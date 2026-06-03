@@ -1,8 +1,9 @@
 ﻿import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import crypto from "crypto";
 import { NextResponse } from "next/server";
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 
 export const runtime = "nodejs";
 
@@ -12,67 +13,110 @@ const ALLOWED_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/webp",
-  "image/svg+xml",
 ]);
 
 function getExtension(file: File) {
   if (file.type === "image/png") return "png";
   if (file.type === "image/jpeg") return "jpg";
   if (file.type === "image/webp") return "webp";
-  if (file.type === "image/svg+xml") return "svg";
 
-  const nameExtension = file.name.split(".").pop()?.toLowerCase();
+  return null;
+}
 
-  if (nameExtension && ["png", "jpg", "jpeg", "webp", "svg"].includes(nameExtension)) {
-    return nameExtension === "jpeg" ? "jpg" : nameExtension;
+function validateLogoFile(file: File) {
+  if (file.size <= 0) {
+    return "ملف الشعار فارغ.";
   }
 
-  return "png";
+  if (file.size > MAX_FILE_SIZE) {
+    return "حجم الشعار يجب ألا يتجاوز 2MB.";
+  }
+
+  if (!ALLOWED_TYPES.has(file.type)) {
+    return "صيغة الشعار غير مدعومة. استخدم PNG أو JPG أو WEBP فقط.";
+  }
+
+  if (!getExtension(file)) {
+    return "تعذر تحديد امتداد الشعار بشكل آمن.";
+  }
+
+  return null;
 }
 
 export async function POST(request: Request) {
+  const authResult = await requireSchoolDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
   try {
-    const current = await getCurrentSessionUser();
-
-    if (!current || !current.user.schoolAccountId) {
-      return NextResponse.json(
-        { success: false, error: "يلزم تسجيل الدخول." },
-        { status: 401 }
-      );
-    }
-
     const formData = await request.formData();
     const file = formData.get("logo");
 
     if (!(file instanceof File)) {
       return NextResponse.json(
-        { success: false, error: "ملف الشعار مطلوب." },
-        { status: 400 }
-      );
-    }
-
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return NextResponse.json(
         {
           success: false,
-          error: "صيغة الشعار غير مدعومة. استخدم PNG أو JPG أو WEBP أو SVG.",
+          error: "ملف الشعار مطلوب.",
         },
         { status: 400 }
       );
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    const validationError = validateLogoFile(file);
+
+    if (validationError) {
       return NextResponse.json(
-        { success: false, error: "حجم الشعار يجب ألا يتجاوز 2MB." },
+        {
+          success: false,
+          error: validationError,
+        },
         { status: 400 }
       );
     }
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "school-logos");
+    const extension = getExtension(file);
+
+    if (!extension) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "صيغة الشعار غير مدعومة.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const school = await prisma.schoolAccount.findUnique({
+      where: {
+        id: authResult.schoolAccountId,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (!school) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "المدرسة غير موجودة.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const uploadDir = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      "school-logos"
+    );
     await mkdir(uploadDir, { recursive: true });
 
-    const extension = getExtension(file);
-    const fileName = `${current.user.schoolAccountId}-${Date.now()}.${extension}`;
+    const fileName = `${authResult.schoolAccountId}-${crypto.randomUUID()}.${extension}`;
     const diskPath = path.join(uploadDir, fileName);
     const publicUrl = `/uploads/school-logos/${fileName}`;
 
@@ -81,15 +125,14 @@ export async function POST(request: Request) {
 
     await prisma.schoolProfile.upsert({
       where: {
-        schoolAccountId: current.user.schoolAccountId,
+        schoolAccountId: authResult.schoolAccountId,
       },
       update: {
         logoUrl: publicUrl,
       },
       create: {
-        schoolAccountId: current.user.schoolAccountId,
-        schoolName:
-          current.user.schoolAccount?.name || "اسم المدرسة",
+        schoolAccountId: authResult.schoolAccountId,
+        schoolName: school.name || "اسم المدرسة",
         logoUrl: publicUrl,
       },
     });
@@ -103,7 +146,10 @@ export async function POST(request: Request) {
     console.error("SCHOOL_LOGO_UPLOAD_ERROR", error);
 
     return NextResponse.json(
-      { success: false, error: "حدث خطأ أثناء رفع شعار المدرسة." },
+      {
+        success: false,
+        error: "حدث خطأ أثناء رفع شعار المدرسة.",
+      },
       { status: 500 }
     );
   }

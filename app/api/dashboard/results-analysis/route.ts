@@ -1,8 +1,21 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseResultsExcel } from "@/lib/results-analysis/results-analysis-parser";
 import { analyzeStudentResults } from "@/engine/results-analysis/results-analysis-engine";
-import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+
+export const runtime = "nodejs";
+
+const MAX_RESULTS_FILE_SIZE = 8 * 1024 * 1024;
+const MAX_RESULTS_FILES = 5;
+
+const ALLOWED_RESULTS_FILE_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/octet-stream",
+  "",
+]);
 
 type ResultRowWithSource = {
   id: string;
@@ -20,10 +33,39 @@ type ResultRowWithSource = {
   sourceFile?: string | null;
 };
 
+function hasExcelExtension(fileName: string) {
+  return /\.(xlsx|xls|csv)$/i.test(fileName);
+}
+
+function validateResultsFile(file: File) {
+  if (file.size <= 0) {
+    return "ملف النتائج فارغ.";
+  }
+
+  if (file.size > MAX_RESULTS_FILE_SIZE) {
+    return "حجم ملف النتائج أكبر من الحد المسموح 8MB.";
+  }
+
+  if (!hasExcelExtension(file.name)) {
+    return "صيغة ملف النتائج غير مدعومة. ارفع ملف xlsx أو xls أو csv.";
+  }
+
+  if (!ALLOWED_RESULTS_FILE_TYPES.has(file.type)) {
+    return "نوع ملف النتائج غير مسموح.";
+  }
+
+  return null;
+}
+
 export async function POST(request: Request) {
-  // subscription-api-guard:POST:requireServiceAccessApi("results-analysis")
-  const subscriptionGuard = await requireServiceAccessApi("results-analysis");
-  if (subscriptionGuard) return subscriptionGuard;
+  const authResult = await requireSchoolDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  const serviceGuard = await requireServiceAccessApi("results-analysis");
+  if (serviceGuard) return serviceGuard;
 
   try {
     const formData = await request.formData();
@@ -49,9 +91,36 @@ export async function POST(request: Request) {
 
     if (excelFiles.length === 0) {
       return NextResponse.json(
-        { error: "ملف Excel مطلوب." },
+        {
+          success: false,
+          error: "ملف Excel مطلوب.",
+        },
         { status: 400 }
       );
+    }
+
+    if (excelFiles.length > MAX_RESULTS_FILES) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `يمكن رفع ${MAX_RESULTS_FILES} ملفات كحد أقصى في كل تحليل.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    for (const file of excelFiles) {
+      const validationError = validateResultsFile(file);
+
+      if (validationError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: validationError,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const allRows: ResultRowWithSource[] = [];
@@ -71,7 +140,10 @@ export async function POST(request: Request) {
 
     if (!allRows.length) {
       return NextResponse.json(
-        { error: "لم يتم العثور على بيانات نتائج صالحة داخل الملف." },
+        {
+          success: false,
+          error: "لم يتم العثور على بيانات نتائج صالحة داخل الملف.",
+        },
         { status: 400 }
       );
     }
@@ -81,6 +153,7 @@ export async function POST(request: Request) {
 
     const analysis = await prisma.resultsAnalysis.create({
       data: {
+        schoolAccountId: authResult.schoolAccountId,
         title:
           title ||
           `تحليل نتائج - ${new Date().toLocaleDateString("ar-SA")}`,
@@ -103,6 +176,7 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       {
+        success: false,
         error:
           error instanceof Error
             ? error.message

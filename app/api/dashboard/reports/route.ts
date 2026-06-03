@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { logReportCreatedEvent } from "@/lib/admin/activity-events";
 import {
   mapCaseEntryToReportData,
@@ -79,7 +80,7 @@ async function createTemplateSnapshotFromDatabase(templateId: string) {
       description:
         builderTemplate.description ||
         safeTemplateJson.description ||
-        "قالب تقرير محفوظ من صانع القوالب.",
+        "Ù‚Ø§Ù„Ø¨ ØªÙ‚Ø±ÙŠØ± Ù…Ø­ÙÙˆØ¸ Ù…Ù† ØµØ§Ù†Ø¹ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨.",
       serviceSlug:
         builderTemplate.serviceSlug || safeTemplateJson.serviceSlug || null,
       status: "PUBLISHED",
@@ -90,54 +91,54 @@ async function createTemplateSnapshotFromDatabase(templateId: string) {
 function buildReportContent(reportData: ReportMappedCase) {
   const studentLines = reportData.student
     ? [
-        `اسم الطالب/الطالبة: ${reportData.student.fullName}`,
-        `رقم الهوية: ${reportData.student.nationalId || "غير متوفر"}`,
-        `المرحلة: ${reportData.student.stage || "غير محدد"}`,
-        `الصف: ${reportData.student.grade || "غير محدد"}`,
-        `الفصل: ${reportData.student.classroom || "غير محدد"}`,
-        `ولي الأمر: ${reportData.student.guardianName || "غير متوفر"}`,
-        `جوال ولي الأمر: ${reportData.student.guardianPhone || "غير متوفر"}`,
+        `Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©: ${reportData.student.fullName}`,
+        `Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©: ${reportData.student.nationalId || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø§Ù„Ù…Ø±Ø­Ù„Ø©: ${reportData.student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ØµÙ: ${reportData.student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ÙØµÙ„: ${reportData.student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianName || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianPhone || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
       ].join("\n")
-    : "لا يوجد طالب/طالبة مرتبط بهذه الحالة.";
+    : "Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø·Ø§Ù„Ø¨/Ø·Ø§Ù„Ø¨Ø© Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.";
 
   const valuesLines = reportData.values.length
     ? reportData.values
         .map((item, index) => {
-          return `${index + 1}. ${item.fieldLabel}: ${item.value || "غير محدد"}`;
+          return `${index + 1}. ${item.fieldLabel}: ${item.value || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`;
         })
         .join("\n")
-    : "لا توجد قيم محفوظة في الحالة.";
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ù…Ø­ÙÙˆØ¸Ø© ÙÙŠ Ø§Ù„Ø­Ø§Ù„Ø©.";
 
   const evidencesLines = reportData.evidences.length
     ? reportData.evidences
         .map((item, index) => {
-          return `${index + 1}. ${item.title || item.fileName || "شاهد"}`;
+          return `${index + 1}. ${item.title || item.fileName || "Ø´Ø§Ù‡Ø¯"}`;
         })
         .join("\n")
-    : "لا توجد شواهد مرفقة.";
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´ÙˆØ§Ù‡Ø¯ Ù…Ø±ÙÙ‚Ø©.";
 
   return `
-تقرير: ${reportData.title}
+ØªÙ‚Ø±ÙŠØ±: ${reportData.title}
 
-الخدمة:
+Ø§Ù„Ø®Ø¯Ù…Ø©:
 ${reportData.service.name}
 
-بيانات الطالب/الطالبة:
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©:
 ${studentLines}
 
-بيانات الحالة:
-رقم الحالة: ${reportData.id}
-حالة السجل: ${reportData.status}
-تاريخ الإنشاء: ${new Date(reportData.createdAt).toLocaleDateString("ar-SA")}
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©:
+Ø±Ù‚Ù… Ø§Ù„Ø­Ø§Ù„Ø©: ${reportData.id}
+Ø­Ø§Ù„Ø© Ø§Ù„Ø³Ø¬Ù„: ${reportData.status}
+ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡: ${new Date(reportData.createdAt).toLocaleDateString("ar-SA")}
 
-القيم المسجلة:
+Ø§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø³Ø¬Ù„Ø©:
 ${valuesLines}
 
-الشواهد:
+Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯:
 ${evidencesLines}
 
-ملخص التقرير:
-تم إنشاء هذا التقرير بناءً على البيانات المسجلة في منصة التوجيه الطلابي، ويعتمد على الحالة المرتبطة بالخدمة، وبيانات الطالب/الطالبة، والقيم المدخلة، والشواهد المرفقة.
+Ù…Ù„Ø®Øµ Ø§Ù„ØªÙ‚Ø±ÙŠØ±:
+ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ù‡Ø°Ø§ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³Ø¬Ù„Ø© ÙÙŠ Ù…Ù†ØµØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØŒ ÙˆÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©ØŒ ÙˆØ§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø¯Ø®Ù„Ø©ØŒ ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…Ø±ÙÙ‚Ø©.
 `.trim();
 }
 
@@ -154,7 +155,7 @@ export async function POST(request: Request) {
     if (!caseEntryId) {
       return NextResponse.json(
         {
-          error: "caseEntryId مطلوب لإنشاء التقرير.",
+          error: "caseEntryId Ù…Ø·Ù„ÙˆØ¨ Ù„Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
         },
         { status: 400 }
       );
@@ -197,17 +198,20 @@ export async function POST(request: Request) {
     if (!caseEntry) {
       return NextResponse.json(
         {
-          error: "الحالة غير موجودة.",
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
         },
         { status: 404 }
       );
     }
 
+    const serviceGuard = await requireServiceAccessApi(caseEntry.service.slug);
+    if (serviceGuard) return serviceGuard;
+
     const reportData = mapCaseEntryToReportData(caseEntry);
 
     const reportTitle =
       body.title?.trim() ||
-      `تقرير - ${reportData.title || reportData.service.name}`;
+      `ØªÙ‚Ø±ÙŠØ± - ${reportData.title || reportData.service.name}`;
 
     const initialContent = buildReportContent(reportData);
 
@@ -267,7 +271,7 @@ return NextResponse.json({
 
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "فشل إنشاء التقرير.",
+        error: error instanceof Error ? error.message : "ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
       },
       { status: 400 }
     );
