@@ -1,11 +1,6 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  ReportDesignRenderer,
-  reportDesignTemplates,
-  type ReportDesignId,
-} from "@/components/report-engine/design-renderers/report-design-renderer";
 
 type TemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 type TemplateScope = "GLOBAL" | "SERVICE" | "WORKFLOW" | "LOCATION";
@@ -103,7 +98,6 @@ type StudioTemplate = {
   description: string;
   status: TemplateStatus;
   designTheme?: StudioDesignTheme;
-  designTemplateId?: ReportDesignId;
   scope: TemplateScope;
   serviceSlug?: string;
   workflowSlug?: string;
@@ -432,7 +426,6 @@ function createInitialTemplate(): StudioTemplate {
       "قالب رسمي متعدد الصفحات بهوية ثابتة، يتم بناء محتواه من بلوكات نصية ذكية ومتغيرات ديناميكية.",
     status: "DRAFT",
     designTheme: "MINISTRY_CLASSIC",
-    designTemplateId: "ministry-form",
     scope: "GLOBAL",
     previewCaseId: "",
     documentType: "REPORT",
@@ -756,10 +749,6 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
   return {
     ...fallback,
     id: templateJson.id || item?.id || fallback.id,
-    designTemplateId:
-      templateJson.designTemplateId ||
-      smartStudio.designTemplateId ||
-      "ministry-form",
     name: item?.name || templateJson.name || fallback.name,
     description:
       item?.description || templateJson.description || fallback.description,
@@ -1159,7 +1148,6 @@ export function ReportTemplateStudio() {
       locationKey: template.locationKey || undefined,
       status,
       documentType: template.documentType,
-      designTemplateId: template.designTemplateId || "ministry-form",
       designTheme: template.designTheme || "MINISTRY_CLASSIC",
       designPreset: "official-smart-multi-page",
       previewCaseId: template.previewCaseId,
@@ -1218,7 +1206,6 @@ export function ReportTemplateStudio() {
         version: 2,
         mode: "multi-page-workflow-aware",
         designTheme: template.designTheme || "MINISTRY_CLASSIC",
-        designTemplateId: template.designTemplateId || "ministry-form",
         pages: template.pages,
       },
     };
@@ -1323,13 +1310,6 @@ export function ReportTemplateStudio() {
             <span className="rounded-full bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
               {statusLabels[template.status]}
             </span>
-
-            <a
-              href="/dashboard/admin/report-templates/library"
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              مكتبة القوالب
-            </a>
 
             <button
               type="button"
@@ -1747,134 +1727,6 @@ export function ReportTemplateStudio() {
             usedFieldKeys={usedWorkflowFieldKeys}
             onInsertVariable={insertVariable}
           />
-
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-black text-emerald-700">
-                  شريط التصاميم السريع
-                </p>
-                <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                  هذه تصاميم لنفس القالب، وليست قوالب منفصلة. اختر التصميم وستتغير المعاينة مباشرة.
-                </p>
-              </div>
-
-              <select
-                value={template.designTheme || "MINISTRY_CLASSIC"}
-                onChange={(event) =>
-                  updateTemplate({
-                    designTheme: event.target.value as StudioDesignTheme,
-                  })
-                }
-                className="min-w-72 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
-              >
-                {designThemeOptions.map((theme) => (
-                  <option key={theme.value} value={theme.value}>
-                    {theme.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-              {designThemeOptions.map((theme) => {
-                const active = (template.designTheme || "MINISTRY_CLASSIC") === theme.value;
-
-                return (
-                  <button
-                    key={theme.value}
-                    type="button"
-                    onClick={() =>
-                      updateTemplate({
-                        designTheme: theme.value,
-                      })
-                    }
-                    className={[
-                      "rounded-2xl border p-3 text-right transition",
-                      active
-                        ? "border-emerald-600 bg-emerald-50 shadow-sm"
-                        : "border-slate-200 bg-slate-50 hover:bg-white",
-                    ].join(" ")}
-                  >
-                    <strong className="text-xs font-black text-slate-900">
-                      {theme.label}
-                    </strong>
-
-                    <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
-                      {theme.description}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-black text-emerald-700">
-                  معرض التصاميم الحقيقية
-                </p>
-                <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                  هذه ليست ألوان فقط؛ كل تصميم يرسم الصفحة بطريقة مختلفة. اختر التصميم وستتغير بنية المعاينة مباشرة.
-                </p>
-              </div>
-
-              <select
-                value={template.designTemplateId || "ministry-form"}
-                onChange={(event) =>
-                  updateTemplate({
-                    designTemplateId: event.target.value as ReportDesignId,
-                  })
-                }
-                className="min-w-72 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
-              >
-                {reportDesignTemplates.map((design) => (
-                  <option key={design.id} value={design.id}>
-                    {design.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-              {reportDesignTemplates.map((design) => {
-                const active = (template.designTemplateId || "ministry-form") === design.id;
-
-                return (
-                  <button
-                    key={design.id}
-                    type="button"
-                    onClick={() =>
-                      updateTemplate({
-                        designTemplateId: design.id,
-                      })
-                    }
-                    className={[
-                      "rounded-2xl border p-3 text-right transition",
-                      active
-                        ? design.activeCardClass
-                        : design.cardClass,
-                    ].join(" ")}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <strong className="text-xs font-black text-slate-900">
-                        {design.name}
-                      </strong>
-
-                      <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-black text-slate-600">
-                        {design.badge}
-                      </span>
-                    </div>
-
-                    <p className="mt-2 text-[11px] font-bold leading-5 text-slate-500">
-                      {design.description}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
 
           <OfficialPagePreview
             template={template}
@@ -2355,7 +2207,7 @@ export function ReportTemplateStudio() {
           </section>
 
           <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
-            <h3 className="text-sm font-black text-emerald-900">
+            <h3 className={theme.headerTitleClass}>
               الهوية ثابتة
             </h3>
 
@@ -2546,9 +2398,11 @@ function WorkflowAwarenessPanel({
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
+  const theme = getDesignThemePalette(template.designTheme);
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <p className="text-[10px] font-black text-slate-400">{label}</p>
+      <p className={theme.badgeLabelClass}>{label}</p>
       <p className="mt-1 text-sm font-black text-slate-900">{value}</p>
     </div>
   );
@@ -2572,16 +2426,249 @@ function OfficialPagePreview({
   onAddPage: () => void;
 }) {
   return (
-    <ReportDesignRenderer
-      designId={template.designTemplateId || "ministry-form"}
-      template={template}
-      activePage={activePage}
-      activePageId={activePageId}
-      context={context}
-      previewCase={previewCase}
-      onActivePageChange={onActivePageChange}
-      onAddPage={onAddPage}
-    />
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">
+            المعاينة الرسمية A4
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            استخدم أسماء الصفحات للتنقل بدل السكرول الطويل.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+          {previewCase ? "Case ID فعلي" : "بيانات تجريبية"}
+        </span>
+      </div>
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        {template.pages.map((page, index) => (
+          <button
+            key={page.id}
+            type="button"
+            onClick={() => onActivePageChange(page.id)}
+            className={[
+              "rounded-2xl border px-4 py-2 text-xs font-black transition",
+              page.id === activePageId
+                ? "border-emerald-600 bg-emerald-700 text-white"
+                : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-emerald-50",
+            ].join(" ")}
+          >
+            {index + 1}. {page.title}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={onAddPage}
+          className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+        >
+          + صفحة محتوى
+        </button>
+      </div>
+
+      <article className={theme.previewShellClass}>
+        <div className={theme.pageClass}>
+          <div className={theme.innerFrameClass} />
+
+          <header className={theme.headerClass}>
+            <div className="grid grid-cols-[150px_1fr_150px] items-center gap-4">
+              <div className={theme.logoWrapClass}>
+                <img
+                  src="/uploads/school-logos/MOE.png"
+                  alt="شعار وزارة التعليم"
+                  className={theme.logoImageClass}
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              </div>
+
+              <div className="text-center">
+                <p className={theme.headerTitleClass}>
+                  وزارة التعليم
+                </p>
+                <p className={theme.headerSubtitleClass}>
+                  الإدارة العامة للتعليم · مكتب التعليم
+                </p>
+                <p className={theme.headerSubtitleClass}>
+                  اسم المدرسة
+                </p>
+              </div>
+
+              <div className={theme.badgeClass}>
+                <p className={theme.badgeLabelClass}>
+                  صفحة التقرير
+                </p>
+                <p className={theme.badgeValueClass}>
+                  {activePage?.title || "صفحة"}
+                </p>
+              </div>
+            </div>
+          </header>
+
+          <main className="relative z-10 mt-6 min-h-[190mm]">
+            <div className="space-y-4">
+              {(activePage?.blocks || [])
+                .filter((block) => (block.placement || "flow") === "flow")
+                .map((block) => (
+                  <PreviewBlock
+                    key={block.id}
+                    block={block}
+                    context={context}
+                    previewCase={previewCase}
+                  />
+                ))}
+            </div>
+
+            <div className="pointer-events-none absolute inset-0">
+              {(activePage?.blocks || [])
+                .filter((block) => (block.placement || "flow") !== "flow")
+                .map((block) => (
+                  <div
+                    key={block.id}
+                    className={getPlacementClass(block.placement || "flow")}
+                  >
+                    <div className="pointer-events-auto">
+                      <PreviewBlock
+                        block={block}
+                        context={context}
+                        previewCase={previewCase}
+                      />
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </main>
+
+          <footer className="absolute bottom-[10mm] left-[12mm] right-[12mm] z-10">
+            <div className={theme.footerBarClass} />
+            <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+              <span>منصة التوجيه الطلابي</span>
+              <span>تقرير رسمي ذكي · {activePage?.title}</span>
+            </div>
+          </footer>
+        </div>
+      </article>
+
+      <AutoEvidencePages
+        activePage={activePage}
+        context={context}
+        previewCase={previewCase}
+        designTheme={template.designTheme}
+      />
+    </section>
+  );
+}
+
+function AutoEvidencePages({
+  activePage,
+  context,
+  previewCase,
+  designTheme,
+}: {
+  activePage?: StudioPage;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designTheme?: StudioDesignTheme;
+}) {
+  const theme = getDesignThemePalette(designTheme);
+  const evidenceBlock = activePage?.blocks.find(
+    (block) => block.kind === "evidence-gallery",
+  );
+
+  if (!activePage || !evidenceBlock) {
+    return null;
+  }
+
+  if (evidenceBlock.evidenceAutoCreatePages === false) {
+    return null;
+  }
+
+  const evidences = previewCase?.evidences || [];
+  const perPage = getEvidencePerPage(evidenceBlock);
+  const pagesCount = Math.ceil(evidences.length / perPage);
+
+  if (pagesCount <= 1) {
+    return null;
+  }
+
+  return (
+    <div className="mt-6 space-y-6">
+      {Array.from({ length: pagesCount - 1 }).map((_, index) => {
+        const pageNumber = index + 2;
+        const virtualBlock: StudioBlock = {
+          ...evidenceBlock,
+          id: evidenceBlock.id + "-auto-page-" + pageNumber,
+          title: evidenceBlock.title + " - صفحة " + pageNumber,
+          evidenceStartIndex: (pageNumber - 1) * perPage,
+        };
+
+        return (
+          <article
+            key={"auto-evidence-page-" + pageNumber}
+            className={theme.previewShellClass}
+          >
+            <div className={theme.pageClass}>
+              <div className={theme.innerFrameClass} />
+
+              <header className={theme.headerClass}>
+                <div className="grid grid-cols-[150px_1fr_150px] items-center gap-4">
+                  <div className={theme.logoWrapClass}>
+                    <img
+                      src="/uploads/school-logos/MOE.png"
+                      alt="شعار وزارة التعليم"
+                      className={theme.logoImageClass}
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </div>
+
+                  <div className="text-center">
+                    <p className={theme.headerTitleClass}>
+                      وزارة التعليم
+                    </p>
+                    <p className={theme.headerSubtitleClass}>
+                      الإدارة العامة للتعليم · مكتب التعليم
+                    </p>
+                    <p className={theme.headerSubtitleClass}>
+                      اسم المدرسة
+                    </p>
+                  </div>
+
+                  <div className={theme.badgeClass}>
+                    <p className={theme.badgeLabelClass}>
+                      صفحة شواهد
+                    </p>
+                    <p className={theme.badgeValueClass}>
+                      {pageNumber}
+                    </p>
+                  </div>
+                </div>
+              </header>
+
+              <main className="relative z-10 mt-6 min-h-[190mm]">
+                <PreviewBlock
+                  block={virtualBlock}
+                  context={context}
+                  previewCase={previewCase}
+                />
+              </main>
+
+              <footer className="absolute bottom-[10mm] left-[12mm] right-[12mm] z-10">
+                <div className={theme.footerBarClass} />
+                <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+                  <span>منصة التوجيه الطلابي</span>
+                  <span>تقرير رسمي ذكي · شواهد إضافية</span>
+                </div>
+              </footer>
+            </div>
+          </article>
+        );
+      })}
+    </div>
   );
 }
 

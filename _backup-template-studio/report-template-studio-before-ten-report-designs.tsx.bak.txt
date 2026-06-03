@@ -1853,21 +1853,15 @@ export function ReportTemplateStudio() {
                     className={[
                       "rounded-2xl border p-3 text-right transition",
                       active
-                        ? design.activeCardClass
-                        : design.cardClass,
+                        ? "border-emerald-600 bg-emerald-50 shadow-sm"
+                        : "border-slate-200 bg-slate-50 hover:bg-white",
                     ].join(" ")}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <strong className="text-xs font-black text-slate-900">
-                        {design.name}
-                      </strong>
+                    <strong className="text-xs font-black text-slate-900">
+                      {design.name}
+                    </strong>
 
-                      <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-black text-slate-600">
-                        {design.badge}
-                      </span>
-                    </div>
-
-                    <p className="mt-2 text-[11px] font-bold leading-5 text-slate-500">
+                    <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
                       {design.description}
                     </p>
                   </button>
