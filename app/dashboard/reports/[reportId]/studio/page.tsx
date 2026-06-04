@@ -216,20 +216,7 @@ export default async function ReportStudioPage({ params, searchParams }: PagePro
   };
 
   return (
-    <main className="space-y-6" dir="rtl">
-      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-8 text-white shadow-2xl">
-        <div>
-          <p className="text-sm font-bold text-sky-100">Report Live Studio</p>
-
-          <h1 className="mt-3 text-4xl font-black">تحرير التقرير</h1>
-
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-50">
-            عدّل النصوص وقيم التقرير قبل الاعتماد. التعديل هنا لا يغيّر الحالة
-            الأصلية، بل يحفظ نسخة تحريرية داخل التقرير فقط.
-          </p>
-        </div>
-      </section>
-
+    <main className="space-y-0" dir="rtl">
       <ReportStudioEditor report={normalizedReport} />
     </main>
   );

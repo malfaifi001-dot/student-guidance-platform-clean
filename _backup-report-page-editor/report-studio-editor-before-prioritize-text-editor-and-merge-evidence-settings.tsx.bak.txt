@@ -617,20 +617,87 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
           </div>
         </div>
 
-        <div className="grid items-start gap-5 p-5 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[460px_minmax(0,1fr)]">
-          <aside className="space-y-3 self-start">
-{feedback ? <FeedbackCard feedback={feedback} /> : null}
+        <div className="grid gap-5 p-5 xl:grid-cols-[340px_1fr]">
+          <aside className="space-y-3">
+            <StatusPanel
+              locked={locked}
+              status={report.status}
+              hasChanges={hasChanges}
+              textCount={filledTextsCount}
+              evidenceCount={visibleEvidenceCount}
+            />
 
-                        {/* REPORT_STUDIO_SIDE_TEXT_EDITOR */}
-            <details open className="rounded-3xl border border-emerald-100 bg-white p-3 shadow-sm">
-              <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3 transition hover:bg-slate-100">
+            {feedback ? <FeedbackCard feedback={feedback} /> : null}
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-sm font-black text-slate-900">
+                عنوان التقرير
+              </h2>
+
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                disabled={locked}
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
+              />
+            </section>
+
+                        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-sm font-black text-slate-900">
+                إعدادات الشواهد
+              </h2>
+
+              <select
+                value={evidenceLayoutMode}
+                onChange={(event) =>
+                  setEvidenceLayoutMode(event.target.value as EvidenceLayoutMode)
+                }
+                disabled={locked}
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
+              >
+                {EVIDENCE_LAYOUT_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <p className="mt-2 text-xs font-bold leading-6 text-slate-500">
+                هذا الخيار يحفظ داخل التقرير فقط.
+              </p>
+            </section>
+
+            <div className="grid gap-2">
+              <button
+                type="button"
+                onClick={saveReport}
+                disabled={locked || saving || (!hasChanges && !evidenceChanged)}
+                className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {saving || savingEvidence ? "جاري الحفظ..." : "حفظ التعديلات وتحديث المعاينة"}
+              </button>
+
+              <button
+                type="button"
+                onClick={approveReport}
+                disabled={locked || approving}
+                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {approving ? "جاري الاعتماد..." : "اعتماد التقرير"}
+              </button>
+            </div>
+          </aside>
+
+          <section className="flex min-w-0 flex-col gap-4">
+            <details open className="order-2 rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm">
+              <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
                 <div>
-                  <h2 className="text-base font-black text-slate-950">
+                  <h2 className="text-lg font-black text-slate-950">
                     تعديل نصوص الصفحة الحالية
                   </h2>
 
                   <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                    هذا هو المدخل الأساسي للتعديل. عدّل النصوص هنا وسترى أثرها مباشرة في المعاينة المجاورة.
+                    مفتوح لأنه أهم جزء في التعديل. يمكنك إغلاقه إذا أردت التركيز على المعاينة فقط.
                   </p>
                 </div>
 
@@ -649,7 +716,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                 </div>
               </summary>
 
-              <div className="mt-3 space-y-3">
+              <div className="mt-4 space-y-4">
                 {editableBlocks.length ? (
                   editableBlocks.map((block, index) => {
                     const blockKey = getBlockKey(activePage, block, index);
@@ -663,7 +730,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                     return (
                       <article
                         key={blockKey}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                        className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
@@ -719,7 +786,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                           }
                           disabled={locked}
                           rows={7}
-                          className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold leading-7 text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
+                          className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold leading-8 text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
                         />
 
                         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white px-3 py-2 text-[11px] font-bold leading-6 text-slate-500">
@@ -744,45 +811,8 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
               </div>
             </details>
 
-<section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-sm font-black text-slate-900">
-                عنوان التقرير
-              </h2>
-
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                disabled={locked}
-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
-              />
-            </section>
-
-                                    <div className="grid gap-2">
-              <button
-                type="button"
-                onClick={saveReport}
-                disabled={locked || saving || (!hasChanges && !evidenceChanged)}
-                className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                {saving || savingEvidence ? "جاري الحفظ..." : "حفظ التعديلات وتحديث المعاينة"}
-              </button>
-
-              <button
-                type="button"
-                onClick={approveReport}
-                disabled={locked || approving}
-                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-              >
-                {approving ? "جاري الاعتماد..." : "اعتماد التقرير"}
-              </button>
-            </div>
-          </aside>
-
-          <section className="flex min-w-0 flex-col gap-4">
-            
-
             {activePageHasEvidence ? (
-              <details className="order-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <details className="order-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                 <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
                   <div>
                     <h2 className="text-lg font-black text-slate-950">
@@ -805,32 +835,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                   </div>
                 </summary>
 
-                <div className="mt-4 space-y-4">
-                  <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
-                    <h3 className="text-sm font-black text-emerald-950">
-                      إعدادات عرض الشواهد داخل التقرير
-                    </h3>
-
-                    <p className="mt-1 text-xs font-bold leading-6 text-emerald-800">
-                      هذا الخيار يحفظ داخل التقرير فقط، ومحرك الشواهد سيحافظ على كل شاهد داخل إطار الصفحة وينشئ صفحات إضافية عند الحاجة.
-                    </p>
-
-                    <select
-                      value={evidenceLayoutMode}
-                      onChange={(event) =>
-                        setEvidenceLayoutMode(event.target.value as EvidenceLayoutMode)
-                      }
-                      disabled={locked}
-                      className="mt-3 w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
-                    >
-                      {EVIDENCE_LAYOUT_OPTIONS.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </section>
-
+                <div className="mt-4">
                   <EvidenceEditor
                     locked={locked}
                     items={evidenceItems}
@@ -853,34 +858,9 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                   </p>
                 </div>
 
-                <div className="grid gap-2 text-right">
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                    تحديث مباشر قبل الحفظ
-                  </span>
-
-                  <div className="flex flex-wrap items-center gap-2" aria-label="حالة مختصرة للتقرير">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
-                      الحالة: {getStatusName(report.status)}
-                    </span>
-
-                    <span
-                      className={[
-                        "rounded-full px-3 py-1 text-xs font-black",
-                        locked
-                          ? "bg-slate-200 text-slate-700"
-                          : hasChanges
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-emerald-100 text-emerald-800",
-                      ].join(" ")}
-                    >
-                      {locked ? "مغلق" : hasChanges ? "غير محفوظ" : "محفوظ"}
-                    </span>
-
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
-                      {filledTextsCount} نص معدل · {visibleEvidenceCount} شاهد ظاهر
-                    </span>
-                  </div>
-                </div>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                  تحديث مباشر قبل الحفظ
+                </span>
               </div>
 
               <div className="mb-4 flex flex-wrap gap-2">

@@ -313,20 +313,7 @@ export default async function ReportRealPreviewPage({
             : "min-h-screen bg-slate-50 px-6 py-8"
       }
     >
-
-      {!studioMode ? (
-        <div className="no-print mx-auto mb-3 flex max-w-[210mm] justify-start">
-          <a
-            href={backToReportsUrl}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-          >
-            <span aria-hidden="true">â†</span>
-            Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„ØªÙ‚Ø§Ø±ÙŠØ±
-          </a>
-        </div>
-      ) : null}
-
-      {!studioMode ? (
+{!studioMode ? (
         <ReportPdfGuidanceCard
           reportTitle={report.title}
           serviceName={report.caseEntry.service.name}
