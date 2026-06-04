@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   CommitteeChainRepeater,
@@ -18,12 +18,22 @@ type WorkflowStepCardProps = {
   onChange: (key: string, value: unknown) => void;
 };
 
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .trim();
+}
+
 function textOf(field: RuntimeField) {
-  return `${field.key} ${field.label}`.toLowerCase();
+  return normalizeText(`${field.key} ${field.label}`);
 }
 
 function isAgendaField(field: RuntimeField) {
   const text = textOf(field);
+
   return (
     text.includes("agenda") ||
     text.includes("committee_agenda") ||
@@ -35,6 +45,7 @@ function isAgendaField(field: RuntimeField) {
 
 function isDiscussionField(field: RuntimeField) {
   const text = textOf(field);
+
   return (
     text.includes("discussion") ||
     text.includes("committee_discussion") ||
@@ -45,6 +56,7 @@ function isDiscussionField(field: RuntimeField) {
 
 function isRecommendationField(field: RuntimeField) {
   const text = textOf(field);
+
   return (
     text.includes("recommendation") ||
     text.includes("committee_recommendation") ||
@@ -55,7 +67,11 @@ function isRecommendationField(field: RuntimeField) {
 }
 
 function isCommitteeChainField(field: RuntimeField) {
-  return isAgendaField(field) || isDiscussionField(field) || isRecommendationField(field);
+  return (
+    isAgendaField(field) ||
+    isDiscussionField(field) ||
+    isRecommendationField(field)
+  );
 }
 
 export function isCommitteeChainStep(step?: RuntimeStep | null) {
@@ -75,7 +91,7 @@ export function WorkflowStepCard({
   onChange,
 }: WorkflowStepCardProps) {
   const visibleFields = step.fields.filter((field) =>
-    shouldShowField(field, values)
+    shouldShowField(field, values),
   );
 
   const shouldRenderCommitteeChain =

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
 
 type StudioReportStatus =
   | "DRAFT"
@@ -36,14 +37,23 @@ type WorkflowValueOverride = {
   editedValue: string;
 };
 
-type EditorialBlocks = {
-  intro: string;
-  goals: string;
-  procedures: string;
-  results: string;
-  recommendations: string;
-  closingNotes: string;
-  evidenceNotes: string;
+type EditableContentPayload = {
+  version?: number;
+  type?: string;
+  blocks?: Record<string, string>;
+  pageOverrides?: Record<
+    string,
+    Record<
+      string,
+      {
+        content?: string;
+        title?: string;
+        hidden?: boolean;
+      }
+    >
+  >;
+  workflowValueOverrides?: WorkflowValueOverride[];
+  evidenceLayoutMode?: EvidenceLayoutMode;
 };
 
 type StudioReport = {
@@ -53,6 +63,10 @@ type StudioReport = {
   status: StudioReportStatus;
   genderMode: string;
   templateId?: string | null;
+  hasTemplateSnapshot?: boolean;
+  hasReportDataSnapshot?: boolean;
+  templateSnapshot?: any;
+  reportDataSnapshot?: any;
   editableContent: string;
   renderedContent: string;
   createdAt: string;
@@ -91,8 +105,6 @@ type ReportStudioEditorProps = {
   report: StudioReport;
 };
 
-type EditorTab = "overview" | "texts" | "values" | "evidence" | "final";
-
 type EvidenceLayoutMode =
   | "auto"
   | "one-per-page"
@@ -108,14 +120,31 @@ type FeedbackState =
     }
   | null;
 
-const DEFAULT_BLOCKS: EditorialBlocks = {
-  intro: "",
-  goals: "",
-  procedures: "",
-  results: "",
-  recommendations: "",
-  closingNotes: "",
-  evidenceNotes: "",
+type TemplatePage = {
+  id: string;
+  title: string;
+  kind?: string;
+  blocks: TemplateBlock[];
+};
+
+type TemplateBlock = {
+  id?: string;
+  kind?: string;
+  title?: string;
+  content?: string;
+  defaultContent?: string;
+  customContent?: string;
+  variant?: string;
+  align?: string;
+  settings?: Record<string, any>;
+  [key: string]: any;
+};
+
+type SuggestionItem = {
+  id: string;
+  title: string;
+  body: string;
+  helper: string;
 };
 
 const EVIDENCE_LAYOUT_OPTIONS: Array<{
@@ -150,123 +179,62 @@ const EVIDENCE_LAYOUT_OPTIONS: Array<{
   },
 ];
 
-const TEXT_BLOCKS: Array<{
-  key: keyof EditorialBlocks;
-  title: string;
-  helper: string;
-  placeholder: string;
-}> = [
-  {
-    key: "intro",
-    title: "مقدمة التقرير",
-    helper: "صياغة افتتاحية مختصرة تظهر في بداية التقرير عند الحاجة.",
-    placeholder:
-      "مثال: بناءً على تنفيذ الخدمة الإرشادية وتوثيق بيانات الحالة، تم إعداد هذا التقرير لعرض أبرز الإجراءات والنتائج...",
-  },
-  {
-    key: "goals",
-    title: "الأهداف",
-    helper: "أهداف التقرير أو البرنامج بصياغة رسمية.",
-    placeholder:
-      "مثال: يهدف التقرير إلى توثيق الإجراءات الإرشادية، وقياس أثر البرنامج، وتحديد التوصيات المناسبة...",
-  },
-  {
-    key: "procedures",
-    title: "الإجراءات",
-    helper: "ما تم تنفيذه أو متابعته داخل الحالة أو الخدمة.",
-    placeholder:
-      "مثال: تم تنفيذ لقاء إرشادي، وتوثيق الشواهد، ومراجعة البيانات المرتبطة بالحالة...",
-  },
-  {
-    key: "results",
-    title: "النتائج",
-    helper: "أهم المخرجات التي ترغب في إظهارها في التقرير.",
-    placeholder:
-      "مثال: أظهرت المتابعة تحسنًا في المؤشرات المستهدفة مع الحاجة إلى استمرار المتابعة...",
-  },
-  {
-    key: "recommendations",
-    title: "التوصيات",
-    helper: "توصيات عملية مختصرة قابلة للتنفيذ.",
-    placeholder:
-      "مثال: يوصى باستمرار المتابعة، وتعزيز التواصل مع الأسرة، وتوثيق المستجدات في سجل الحالة...",
-  },
-  {
-    key: "closingNotes",
-    title: "ملاحظات ختامية",
-    helper: "ملاحظات عامة قبل الاعتماد النهائي.",
-    placeholder: "اكتب أي ملاحظات ختامية مناسبة للتقرير...",
-  },
-  {
-    key: "evidenceNotes",
-    title: "ملاحظات الشواهد",
-    helper: "ملاحظات مرتبطة بالمرفقات والصور.",
-    placeholder:
-      "مثال: تم إرفاق الشواهد الداعمة للتقرير لأغراض التوثيق والمتابعة...",
-  },
-];
-
 export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const locked = report.status === "APPROVED" || report.status === "ARCHIVED";
-  const [activeTab, setActiveTab] = useState<EditorTab>("overview");
+
+  const parsed = useMemo(
+    () => parseEditableContent(report.editableContent, report.renderedContent),
+    [report.editableContent, report.renderedContent],
+  );
+
+  const template = useMemo(() => normalizeTemplateSnapshot(report), [report]);
+  const pages = template.pages as TemplatePage[];
+
+  const [activePageId, setActivePageId] = useState(
+    pages[0]?.id || "missing-template-pages",
+  );
   const [title, setTitle] = useState(report.title);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
   const [previewVersion, setPreviewVersion] = useState(1);
+  const [blockOverrides, setBlockOverrides] = useState<Record<string, string>>(() =>
+    sanitizeInitialBlockOverrides(pages, parsed.blocks || {}),
+  );
+  const [suggestionBlock, setSuggestionBlock] = useState<{
+    page: TemplatePage;
+    block: TemplateBlock;
+    blockKey: string;
+  } | null>(null);
+  const [suggestionIndexes, setSuggestionIndexes] = useState<
+    Record<string, number>
+  >({});
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>(
-    report.evidenceItems
+    report.evidenceItems,
   );
   const [savingEvidence, setSavingEvidence] = useState(false);
   const [evidenceLayoutMode, setEvidenceLayoutMode] =
-    useState<EvidenceLayoutMode>("two-per-page");
+    useState<EvidenceLayoutMode>(parsed.evidenceLayoutMode || "two-per-page");
 
-  const parsed = useMemo(
-    () => parseEditableContent(report.editableContent, report.renderedContent),
-    [report.editableContent, report.renderedContent]
-  );
+  const runtimeContext = useMemo(() => buildRuntimeContext(report), [report]);
 
-  const [blocks, setBlocks] = useState<EditorialBlocks>(parsed.blocks);
+  const activePage =
+    pages.find((page: TemplatePage) => page.id === activePageId) || pages[0];
 
-  const initialOverrideMap = useMemo(() => {
-    const map: Record<string, string> = {};
+  const editableBlocks = useMemo(() => {
+    return (activePage?.blocks || []).filter(isEditableTextBlock);
+  }, [activePage]);
 
-    for (const item of report.reportValues) {
-      const override = parsed.workflowValueOverrides.find(
-        (entry) =>
-          entry.fieldKey === item.fieldKey || entry.fieldLabel === item.fieldLabel
-      );
+  const activePageHasEvidence = useMemo(() => {
+    const pageHasEvidenceBlock = (activePage?.blocks || []).some(
+      (block) => normalizeBlockKind(block) === "evidence-gallery",
+    );
 
-      map[item.fieldKey] = override?.editedValue ?? item.value;
-    }
-
-    return map;
-  }, [parsed.workflowValueOverrides, report.reportValues]);
-
-  const [valueMap, setValueMap] =
-    useState<Record<string, string>>(initialOverrideMap);
-
-  const workflowValueOverrides = useMemo(() => {
-    return report.reportValues.map((item) => ({
-      fieldKey: item.fieldKey,
-      fieldLabel: item.fieldLabel,
-      originalValue: item.value,
-      editedValue: valueMap[item.fieldKey] ?? item.value,
-    }));
-  }, [report.reportValues, valueMap]);
-
-  const changedValuesCount = workflowValueOverrides.filter(
-    (item) => item.editedValue.trim() !== item.originalValue.trim()
-  ).length;
-
-  const filledTextsCount = TEXT_BLOCKS.filter((item) =>
-    blocks[item.key].trim()
-  ).length;
-
-  const visibleEvidenceCount = evidenceItems.filter((item) => item.visible).length;
+    return pageHasEvidenceBlock || report.evidenceItems.length > 0;
+  }, [activePage, report.evidenceItems.length]);
 
   const evidenceChanged =
     JSON.stringify(
@@ -275,7 +243,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
         caption: item.caption || "",
         visible: item.visible,
         sortOrder: item.sortOrder,
-      }))
+      })),
     ) !==
     JSON.stringify(
       report.evidenceItems.map((item) => ({
@@ -283,62 +251,103 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
         caption: item.caption || "",
         visible: item.visible,
         sortOrder: item.sortOrder,
-      }))
+      })),
     );
 
-  const renderedContent = useMemo(() => {
-    return buildRenderedContent(blocks, workflowValueOverrides);
-  }, [blocks, workflowValueOverrides]);
+  const cleanBlockOverrides = useMemo(() => {
+    const sanitized = sanitizeInitialBlockOverrides(pages, blockOverrides);
+    const clean: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(sanitized)) {
+      const text = value.trim();
+
+      if (text && !isLegacyRenderedReportDump(text)) {
+        clean[key] = value;
+      }
+    }
+
+    return clean;
+  }, [pages, blockOverrides]);
+
+  const hasChanges =
+    title !== report.title ||
+    JSON.stringify(cleanBlockOverrides) !==
+      JSON.stringify(parsed.blocks || {}) ||
+    evidenceLayoutMode !== (parsed.evidenceLayoutMode || "two-per-page") ||
+    evidenceChanged;
+
+  const filledTextsCount = Object.keys(cleanBlockOverrides).length;
+  const visibleEvidenceCount = evidenceItems.filter((item) => item.visible).length;
+
+  const previewUrl = `/dashboard/reports/${report.id}/preview?template=${encodeURIComponent(
+    report.templateId || "",
+  )}&studio=true&v=${previewVersion}`;
+
+  const pdfPreviewUrl = `/api/dashboard/reports/${report.id}/export/pdf?template=${encodeURIComponent(
+    report.templateId || "",
+  )}&inline=true&v=${previewVersion}`;
+
+  const pdfDownloadUrl = `/api/dashboard/reports/${report.id}/export/pdf?template=${encodeURIComponent(
+    report.templateId || "",
+  )}&v=${previewVersion}`;
+
+  const livePreviewTemplate = useMemo(() => {
+    const livePage = buildLivePreviewPage({
+      page: activePage,
+      blocks: cleanBlockOverrides,
+      context: runtimeContext,
+    });
+
+    return {
+      ...template,
+      pages: livePage ? [livePage] : [],
+    };
+  }, [activePage, cleanBlockOverrides, runtimeContext, template]);
+
+  const livePreviewCaseData = useMemo(
+    () => buildPreviewCaseDataForRenderer(report),
+    [report],
+  );
 
   const editableContent = useMemo(() => {
     return JSON.stringify(
       {
-        version: 10,
-        type: "COUNSELOR_REPORT_STUDIO",
+        version: 20,
+        type: "FINAL_REPORT_PAGE_EDITOR",
         updatedAt: new Date().toISOString(),
         reportId: report.id,
         caseEntryId: report.caseEntry.id,
         serviceSlug: report.caseEntry.service.slug,
         templateId: report.templateId,
         evidenceLayoutMode,
-        blocks,
-        workflowValueOverrides,
+        blocks: cleanBlockOverrides,
+        pageOverrides: buildPageOverrides(pages, cleanBlockOverrides),
+        workflowValueOverrides: parsed.workflowValueOverrides || [],
       },
       null,
-      2
+      2,
     );
   }, [
-    blocks,
-    workflowValueOverrides,
-    report.id,
+    cleanBlockOverrides,
+    evidenceLayoutMode,
+    pages,
+    parsed.workflowValueOverrides,
     report.caseEntry.id,
     report.caseEntry.service.slug,
+    report.id,
     report.templateId,
-    evidenceLayoutMode,
   ]);
 
-  const hasChanges =
-    title !== report.title ||
-    JSON.stringify(blocks) !== JSON.stringify(parsed.blocks) ||
-    JSON.stringify(valueMap) !== JSON.stringify(initialOverrideMap) ||
-    evidenceChanged;
-
-  const previewUrl = `/dashboard/reports/${report.id}/preview?template=${encodeURIComponent(
-    report.templateId || ""
-  )}&studio=true&v=${previewVersion}`;
-
-  const pdfPreviewUrl = `/api/dashboard/reports/${report.id}/export/pdf?template=${encodeURIComponent(
-    report.templateId || ""
-  )}&inline=true&v=${previewVersion}`;
-
-  const pdfDownloadUrl = `/api/dashboard/reports/${report.id}/export/pdf?template=${encodeURIComponent(
-    report.templateId || ""
-  )}&v=${previewVersion}`;
+  const renderedContent = useMemo(() => {
+    return buildRenderedContentFromPages({
+      pages,
+      blocks: cleanBlockOverrides,
+      context: runtimeContext,
+    });
+  }, [pages, cleanBlockOverrides, runtimeContext]);
 
   async function saveEvidenceItems() {
-    if (!evidenceChanged) {
-      return;
-    }
+    if (!evidenceChanged) return;
 
     const response = await fetch(`/api/dashboard/reports/${report.id}/evidence`, {
       method: "PATCH",
@@ -362,7 +371,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
       data = JSON.parse(raw);
     } catch {
       throw new Error(
-        "مسار حفظ الشواهد رجع HTML بدل JSON. تأكد أن app/api/dashboard/reports/[reportId]/evidence/route.ts موجود ثم أعد تشغيل السيرفر."
+        "مسار حفظ الشواهد رجع HTML بدل JSON. أعد تشغيل السيرفر وتأكد من route الشواهد.",
       );
     }
 
@@ -375,7 +384,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
         data.evidenceItems.map((item: EvidenceItem, index: number) => ({
           ...item,
           sortOrder: index,
-        }))
+        })),
       );
     }
   }
@@ -422,7 +431,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
         type: "success",
         title: "تم حفظ التعديلات",
         message:
-          "تم حفظ النصوص والقيم والشواهد داخل التقرير فقط دون تغيير بيانات الحالة الأصلية.",
+          "تم حفظ تعديلات التقرير فقط. بيانات الحالة الأصلية لم تتغير.",
       });
 
       setPreviewVersion((current) => current + 1);
@@ -458,7 +467,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
 
       const response = await fetch(
         `/api/dashboard/reports/${report.id}/approve`,
-        { method: "POST" }
+        { method: "POST" },
       );
 
       const data = await response.json();
@@ -490,26 +499,48 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
     }
   }
 
-  function updateBlock(key: keyof EditorialBlocks, value: string) {
-    setBlocks((current) => ({
+  function updateBlock(blockKey: string, value: string) {
+    setBlockOverrides((current) => ({
       ...current,
-      [key]: value,
+      [blockKey]: value,
     }));
   }
 
-  function updateValue(fieldKey: string, value: string) {
-    setValueMap((current) => ({
+  function resetBlock(blockKey: string) {
+    setBlockOverrides((current) => {
+      const next = { ...current };
+      delete next[blockKey];
+      return next;
+    });
+  }
+
+  function rotateSuggestion(page: TemplatePage, block: TemplateBlock) {
+    const blockIndex = page.blocks.findIndex((item) => item === block);
+    const blockKey = getBlockKey(page, block, blockIndex >= 0 ? blockIndex : 0);
+    const suggestions = buildSuggestionsForBlock({
+      block,
+      context: runtimeContext,
+    });
+
+    if (!suggestions.length) return;
+
+    const nextIndex =
+      ((suggestionIndexes[blockKey] ?? -1) + 1) % suggestions.length;
+
+    setSuggestionIndexes((current) => ({
       ...current,
-      [fieldKey]: value,
+      [blockKey]: nextIndex,
     }));
+
+    updateBlock(blockKey, suggestions[nextIndex].body);
   }
 
   function updateEvidenceItem(
     id: string,
-    patch: Partial<Pick<EvidenceItem, "caption" | "visible">>
+    patch: Partial<Pick<EvidenceItem, "caption" | "visible">>,
   ) {
     setEvidenceItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, ...patch } : item))
+      current.map((item) => (item.id === id ? { ...item, ...patch } : item)),
     );
   }
 
@@ -517,9 +548,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
     setEvidenceItems((current) => {
       const index = current.findIndex((item) => item.id === id);
 
-      if (index === -1) {
-        return current;
-      }
+      if (index === -1) return current;
 
       const targetIndex = direction === "up" ? index - 1 : index + 1;
 
@@ -554,34 +583,33 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
               </h1>
 
               <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
-                حرر النصوص والقيم والشواهد الخاصة بالتقرير قبل معاينة PDF أو
-                تحميل النسخة الرسمية. التقرير تابع لخدمة{" "}
-                <span className="font-black text-slate-900">
-                  {report.caseEntry.service.name}
-                </span>
-                .
+                عدّل النصوص الظاهرة داخل صفحات القالب فقط. التعديل لا يغير
+                بيانات الحالة الأصلية.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <Link
-                href={`/dashboard/reports/${report.id}/preview`}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                href={`/dashboard/reports/${report.id}/preview?template=${encodeURIComponent(
+                  report.templateId || "",
+                )}&v=${previewVersion}`}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
               >
-                الرجوع للمعاينة
+                فتح المعاينة
               </Link>
 
               <a
                 href={pdfPreviewUrl}
                 target="_blank"
-                className="rounded-2xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-800"
+                rel="noreferrer"
+                className="rounded-2xl bg-blue-700 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-800"
               >
                 معاينة PDF
               </a>
 
               <a
                 href={pdfDownloadUrl}
-                className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white transition hover:bg-emerald-800"
+                className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
               >
                 تحميل PDF
               </a>
@@ -589,102 +617,324 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
           </div>
         </div>
 
-        <div className="grid gap-0 xl:grid-cols-[420px_minmax(0,1fr)]">
-          <aside className="border-l border-slate-100 bg-white p-5">
-            <StatusPanel
-              locked={locked}
-              status={report.status}
-              hasChanges={hasChanges}
-              changedValuesCount={changedValuesCount}
-              filledTextsCount={filledTextsCount}
-              visibleEvidenceCount={visibleEvidenceCount}
-            />
+        <div className="grid items-start gap-5 p-5 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[460px_minmax(0,1fr)]">
+          <aside className="space-y-3 self-start">
+{feedback ? <FeedbackCard feedback={feedback} /> : null}
 
-            <Tabs activeTab={activeTab} onChange={setActiveTab} />
+                        {/* REPORT_STUDIO_SIDE_TEXT_EDITOR */}
+            <details open className="rounded-3xl border border-emerald-100 bg-white p-3 shadow-sm">
+              <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3 transition hover:bg-slate-100">
+                <div>
+                  <h2 className="text-base font-black text-slate-950">
+                    تعديل نصوص الصفحة الحالية
+                  </h2>
 
-            <EditorPanel
-              activeTab={activeTab}
-              report={report}
-              title={title}
-              blocks={blocks}
-              valueMap={valueMap}
-              evidenceItems={evidenceItems}
-              evidenceLayoutMode={evidenceLayoutMode}
-              locked={locked}
-              onTitleChange={setTitle}
-              onBlockChange={updateBlock}
-              onValueChange={updateValue}
-              onEvidenceChange={updateEvidenceItem}
-              onEvidenceMove={moveEvidenceItem}
-              onEvidenceLayoutChange={setEvidenceLayoutMode}
-              changedValuesCount={changedValuesCount}
-              filledTextsCount={filledTextsCount}
-              visibleEvidenceCount={visibleEvidenceCount}
-            />
+                  <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                    هذا هو المدخل الأساسي للتعديل. عدّل النصوص هنا وسترى أثرها مباشرة في المعاينة المجاورة.
+                  </p>
+                </div>
 
-            {feedback ? (
-              <FeedbackBox
-                feedback={feedback}
-                onClose={() => setFeedback(null)}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600">
+                    {activePage?.title || "صفحة التقرير"}
+                  </span>
+
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                    {editableBlocks.length} بلوك نصي
+                  </span>
+
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500">
+                    فتح / إخفاء
+                  </span>
+                </div>
+              </summary>
+
+              <div className="mt-3 space-y-3">
+                {editableBlocks.length ? (
+                  editableBlocks.map((block, index) => {
+                    const blockKey = getBlockKey(activePage, block, index);
+                    const automaticText = getAutomaticBlockText(block, runtimeContext);
+                    const overrideText = blockOverrides[blockKey];
+                    const currentText =
+                      overrideText !== undefined && !isLegacyRenderedReportDump(overrideText)
+                        ? overrideText
+                        : automaticText;
+
+                    return (
+                      <article
+                        key={blockKey}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-black text-slate-900">
+                              {getBlockTitle(block)}
+                            </p>
+
+                            <p className="mt-1 text-[11px] font-bold text-slate-500">
+                              {getFriendlyBlockKind(block)}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSuggestionBlock({
+                                  page: activePage,
+                                  block,
+                                  blockKey,
+                                })
+                              }
+                              disabled={locked}
+                              className="rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-50"
+                            >
+                              نصوص مقترحة
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => rotateSuggestion(activePage, block)}
+                              disabled={locked}
+                              className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                            >
+                              تدوير النص
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => resetBlock(blockKey)}
+                              disabled={locked}
+                              className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
+                            >
+                              رجوع للتلقائي
+                            </button>
+                          </div>
+                        </div>
+
+                        <textarea
+                          value={currentText}
+                          onChange={(event) =>
+                            updateBlock(blockKey, event.target.value)
+                          }
+                          disabled={locked}
+                          rows={7}
+                          className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold leading-7 text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
+                        />
+
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white px-3 py-2 text-[11px] font-bold leading-6 text-slate-500">
+                          <span>
+                            يتم عرض هذا النص داخل البلوك المحدد فقط.
+                          </span>
+
+                          <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+                            {currentText.trim() ? "جاهز للمعاينة" : "يستخدم النص التلقائي"}
+                          </span>
+                        </div>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <p className="text-sm font-black text-slate-600">
+                      لا توجد نصوص قابلة للتعديل في هذه الصفحة.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </details>
+
+<section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-sm font-black text-slate-900">
+                عنوان التقرير
+              </h2>
+
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                disabled={locked}
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
               />
-            ) : null}
+            </section>
 
-            <div className="mt-5 grid gap-2">
+                                    <div className="grid gap-2">
               <button
                 type="button"
                 onClick={saveReport}
-                disabled={saving || locked || !hasChanges}
-                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={locked || saving || (!hasChanges && !evidenceChanged)}
+                className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {saving || savingEvidence ? "جاري الحفظ..." : "حفظ التعديلات"}
+                {saving || savingEvidence ? "جاري الحفظ..." : "حفظ التعديلات وتحديث المعاينة"}
               </button>
 
               <button
                 type="button"
-                onClick={() => setPreviewVersion((current) => current + 1)}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                onClick={approveReport}
+                disabled={locked || approving}
+                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
               >
-                تحديث المعاينة
+                {approving ? "جاري الاعتماد..." : "اعتماد التقرير"}
               </button>
-
-              {!locked ? (
-                <button
-                  type="button"
-                  onClick={approveReport}
-                  disabled={approving || isPending}
-                  className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:opacity-50"
-                >
-                  {approving ? "جاري الاعتماد..." : "اعتماد التقرير"}
-                </button>
-              ) : null}
             </div>
           </aside>
 
-          <section className="bg-slate-100 p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-black text-slate-500">
-                  المعاينة الحية
-                </p>
-                <h2 className="text-lg font-black text-slate-950">
-                  شكل التقرير كما سيظهر للموجه/الموجهة
-                </h2>
+          <section className="flex min-w-0 flex-col gap-4">
+            
+
+            {activePageHasEvidence ? (
+              <details className="order-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
+                  <div>
+                    <h2 className="text-lg font-black text-slate-950">
+                      الشواهد والمرفقات
+                    </h2>
+
+                    <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                      مغلقة افتراضيًا لتبسيط الصفحة. افتحها فقط إذا أردت تعديل ترتيب الشواهد أو التعليقات أو الإظهار.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600">
+                      {evidenceItems.filter((item) => item.visible).length} ظاهر من {evidenceItems.length}
+                    </span>
+
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                      فتح / إخفاء
+                    </span>
+                  </div>
+                </summary>
+
+                <div className="mt-4 space-y-4">
+                  <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
+                    <h3 className="text-sm font-black text-emerald-950">
+                      إعدادات عرض الشواهد داخل التقرير
+                    </h3>
+
+                    <p className="mt-1 text-xs font-bold leading-6 text-emerald-800">
+                      هذا الخيار يحفظ داخل التقرير فقط، ومحرك الشواهد سيحافظ على كل شاهد داخل إطار الصفحة وينشئ صفحات إضافية عند الحاجة.
+                    </p>
+
+                    <select
+                      value={evidenceLayoutMode}
+                      onChange={(event) =>
+                        setEvidenceLayoutMode(event.target.value as EvidenceLayoutMode)
+                      }
+                      disabled={locked}
+                      className="mt-3 w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
+                    >
+                      {EVIDENCE_LAYOUT_OPTIONS.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </section>
+
+                  <EvidenceEditor
+                    locked={locked}
+                    items={evidenceItems}
+                    onUpdate={updateEvidenceItem}
+                    onMove={moveEvidenceItem}
+                  />
+                </div>
+              </details>
+            ) : null}
+
+            <section className="order-first rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-black text-slate-950">
+                    المعاينة الرسمية للصفحة الحالية
+                  </h2>
+
+                  <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                    المعاينة هي الأساس هنا. اختر الصفحة من الأعلى، ثم افتح تحرير النصوص فقط عند الحاجة.
+                  </p>
+                </div>
+
+                <div className="grid gap-2 text-right">
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                    تحديث مباشر قبل الحفظ
+                  </span>
+
+                  <div className="flex flex-wrap items-center gap-2" aria-label="حالة مختصرة للتقرير">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                      الحالة: {getStatusName(report.status)}
+                    </span>
+
+                    <span
+                      className={[
+                        "rounded-full px-3 py-1 text-xs font-black",
+                        locked
+                          ? "bg-slate-200 text-slate-700"
+                          : hasChanges
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-emerald-100 text-emerald-800",
+                      ].join(" ")}
+                    >
+                      {locked ? "مغلق" : hasChanges ? "غير محفوظ" : "محفوظ"}
+                    </span>
+
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                      {filledTextsCount} نص معدل · {visibleEvidenceCount} شاهد ظاهر
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <p className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-500">
-                يتم التحديث بعد الحفظ أو الضغط على تحديث المعاينة
-              </p>
-            </div>
+              <div className="mb-4 flex flex-wrap gap-2">
+                {pages.map((page, index) => {
+                  const active = page.id === activePageId;
 
-            <iframe
-              key={previewUrl}
-              src={previewUrl}
-              className="h-[calc(100vh-280px)] min-h-[760px] w-full rounded-2xl border border-slate-200 bg-white shadow-sm"
-              title="معاينة التقرير"
-            />
+                  return (
+                    <button
+                      key={page.id}
+                      type="button"
+                      onClick={() => setActivePageId(page.id)}
+                      className={[
+                        "rounded-2xl border px-4 py-2 text-xs font-black transition",
+                        active
+                          ? "border-emerald-600 bg-emerald-700 text-white"
+                          : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-white",
+                      ].join(" ")}
+                    >
+                      {index + 1}. {page.title}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="overflow-hidden rounded-3xl border border-slate-100 bg-slate-50 p-4">
+                {livePreviewTemplate.pages.length ? (
+                  <FinalReportDesignRenderer
+                    template={livePreviewTemplate}
+                    previewCaseData={livePreviewCaseData as any}
+                    editorialBlocks={cleanBlockOverrides}
+                    identity={{}}
+                  />
+                ) : (
+                  <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm font-bold text-slate-500">
+                    لا توجد صفحة نشطة للمعاينة.
+                  </div>
+                )}
+              </div>
+            </section>
           </section>
         </div>
       </section>
+
+      {suggestionBlock ? (
+        <SuggestionsModal
+          block={suggestionBlock.block}
+          context={runtimeContext}
+          onClose={() => setSuggestionBlock(null)}
+          onUse={(text) => {
+            updateBlock(suggestionBlock.blockKey, text);
+            setSuggestionBlock(null);
+          }}
+        />
+      ) : null}
     </main>
   );
 }
@@ -693,16 +943,14 @@ function StatusPanel({
   locked,
   status,
   hasChanges,
-  changedValuesCount,
-  filledTextsCount,
-  visibleEvidenceCount,
+  textCount,
+  evidenceCount,
 }: {
   locked: boolean;
   status: string;
   hasChanges: boolean;
-  changedValuesCount: number;
-  filledTextsCount: number;
-  visibleEvidenceCount: number;
+  textCount: number;
+  evidenceCount: number;
 }) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
@@ -728,782 +976,1061 @@ function StatusPanel({
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <MiniStat label="النصوص" value={`${filledTextsCount}`} />
-        <MiniStat label="القيم" value={`${changedValuesCount}`} />
-        <MiniStat label="الشواهد" value={`${visibleEvidenceCount}`} />
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <MiniStat label="النصوص المعدلة" value={`${textCount}`} />
+        <MiniStat label="الشواهد الظاهرة" value={`${evidenceCount}`} />
       </div>
     </section>
   );
 }
 
-function Tabs({
-  activeTab,
-  onChange,
-}: {
-  activeTab: EditorTab;
-  onChange: (tab: EditorTab) => void;
-}) {
-  const tabs: Array<{ id: EditorTab; label: string }> = [
-    { id: "overview", label: "الأساسيات" },
-    { id: "texts", label: "النصوص" },
-    { id: "values", label: "القيم" },
-    { id: "evidence", label: "الشواهد" },
-    { id: "final", label: "الاعتماد" },
-  ];
+function FeedbackCard({ feedback }: { feedback: NonNullable<FeedbackState> }) {
+  const classes = {
+    success: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    error: "border-red-200 bg-red-50 text-red-800",
+    warning: "border-amber-200 bg-amber-50 text-amber-800",
+    info: "border-sky-200 bg-sky-50 text-sky-800",
+  };
 
   return (
-    <div className="mt-4 grid grid-cols-2 gap-2">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          onClick={() => onChange(tab.id)}
-          className={[
-            "rounded-2xl border px-4 py-3 text-sm font-black transition",
-            activeTab === tab.id
-              ? "border-slate-950 bg-slate-950 text-white"
-              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-          ].join(" ")}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function EditorPanel({
-  activeTab,
-  report,
-  title,
-  blocks,
-  valueMap,
-  evidenceItems,
-  evidenceLayoutMode,
-  locked,
-  onTitleChange,
-  onBlockChange,
-  onValueChange,
-  onEvidenceChange,
-  onEvidenceMove,
-  onEvidenceLayoutChange,
-  changedValuesCount,
-  filledTextsCount,
-  visibleEvidenceCount,
-}: {
-  activeTab: EditorTab;
-  report: StudioReport;
-  title: string;
-  blocks: EditorialBlocks;
-  valueMap: Record<string, string>;
-  evidenceItems: EvidenceItem[];
-  evidenceLayoutMode: EvidenceLayoutMode;
-  locked: boolean;
-  onTitleChange: (value: string) => void;
-  onBlockChange: (key: keyof EditorialBlocks, value: string) => void;
-  onValueChange: (fieldKey: string, value: string) => void;
-  onEvidenceChange: (
-    id: string,
-    patch: Partial<Pick<EvidenceItem, "caption" | "visible">>
-  ) => void;
-  onEvidenceMove: (id: string, direction: "up" | "down") => void;
-  onEvidenceLayoutChange: (value: EvidenceLayoutMode) => void;
-  changedValuesCount: number;
-  filledTextsCount: number;
-  visibleEvidenceCount: number;
-}) {
-  if (activeTab === "overview") {
-    return (
-      <div className="mt-4 space-y-4">
-        <FieldCard title="عنوان التقرير" helper="العنوان الظاهر في المعاينة وملف PDF.">
-          <input
-            value={title}
-            onChange={(event) => onTitleChange(event.target.value)}
-            disabled={locked}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-          />
-        </FieldCard>
-
-        <FieldCard title="بيانات الحالة" helper="هذه البيانات للقراءة فقط من الحالة الأصلية.">
-          <InfoRow label="الخدمة" value={report.caseEntry.service.name} />
-          <InfoRow label="الحالة" value={report.caseEntry.title || "بدون عنوان"} />
-          <InfoRow
-            label="الطالب/الطالبة"
-            value={report.caseEntry.student?.fullName || "غير مرتبط"}
-          />
-          <InfoRow
-            label="الصف والفصل"
-            value={[
-              report.caseEntry.student?.grade,
-              report.caseEntry.student?.classroom,
-            ]
-              .filter(Boolean)
-              .join(" - ") || "غير محدد"}
-          />
-        </FieldCard>
-      </div>
-    );
-  }
-
-  if (activeTab === "texts") {
-    return (
-      <div className="mt-4 space-y-4">
-        {TEXT_BLOCKS.map((item) => (
-          <FieldCard key={item.key} title={item.title} helper={item.helper}>
-            <textarea
-              value={blocks[item.key]}
-              onChange={(event) => onBlockChange(item.key, event.target.value)}
-              disabled={locked}
-              rows={5}
-              placeholder={item.placeholder}
-              className="w-full resize-y rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-8 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-            />
-          </FieldCard>
-        ))}
-      </div>
-    );
-  }
-
-  if (activeTab === "values") {
-    return (
-      <div className="mt-4 space-y-4">
-        {report.reportValues.map((item) => {
-          const current = valueMap[item.fieldKey] ?? item.value;
-          const changed = current.trim() !== item.value.trim();
-
-          return (
-            <FieldCard
-              key={item.fieldKey}
-              title={item.fieldLabel}
-              helper={changed ? "تم تعديل هذه القيمة داخل التقرير فقط." : "قيمة قادمة من الحالة."}
-            >
-              <textarea
-                value={current}
-                onChange={(event) => onValueChange(item.fieldKey, event.target.value)}
-                disabled={locked}
-                rows={4}
-                className="w-full resize-y rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-8 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-              />
-
-              {changed ? (
-                <button
-                  type="button"
-                  onClick={() => onValueChange(item.fieldKey, item.value)}
-                  className="mt-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
-                >
-                  استرجاع القيمة الأصلية
-                </button>
-              ) : null}
-            </FieldCard>
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (activeTab === "evidence") {
-    return (
-      <EvidenceManager
-        evidenceItems={evidenceItems}
-        evidenceLayoutMode={evidenceLayoutMode}
-        locked={locked}
-        onEvidenceChange={onEvidenceChange}
-        onEvidenceMove={onEvidenceMove}
-        onEvidenceLayoutChange={onEvidenceLayoutChange}
-      />
-    );
-  }
-
-  return (
-    <ApprovalReadinessPanel
-      report={report}
-      title={title}
-      filledTextsCount={filledTextsCount}
-      changedValuesCount={changedValuesCount}
-      visibleEvidenceCount={visibleEvidenceCount}
-      evidenceLayoutMode={evidenceLayoutMode}
-      locked={locked}
-    />
-  );
-}
-
-function ApprovalReadinessPanel({
-  report,
-  title,
-  filledTextsCount,
-  changedValuesCount,
-  visibleEvidenceCount,
-  evidenceLayoutMode,
-  locked,
-}: {
-  report: StudioReport;
-  title: string;
-  filledTextsCount: number;
-  changedValuesCount: number;
-  visibleEvidenceCount: number;
-  evidenceLayoutMode: EvidenceLayoutMode;
-  locked: boolean;
-}) {
-  const checks = [
-    {
-      label: "عنوان التقرير",
-      ok: Boolean(title.trim()),
-      helper: title.trim()
-        ? "العنوان موجود وجاهز للظهور في التقرير."
-        : "أضف عنوانًا واضحًا للتقرير قبل الاعتماد.",
-    },
-    {
-      label: "النصوص التحريرية",
-      ok: filledTextsCount > 0,
-      helper:
-        filledTextsCount > 0
-          ? `تمت تعبئة ${filledTextsCount} قسم نصي.`
-          : "يفضل إضافة مقدمة أو نتائج أو توصيات قبل الاعتماد.",
-    },
-    {
-      label: "قيم الحالة",
-      ok: report.reportValues.length > 0,
-      helper:
-        report.reportValues.length > 0
-          ? `يوجد ${report.reportValues.length} قيمة قادمة من الحالة.`
-          : "لا توجد قيم حالة ظاهرة في التقرير.",
-    },
-    {
-      label: "الشواهد الظاهرة",
-      ok: visibleEvidenceCount > 0,
-      helper:
-        visibleEvidenceCount > 0
-          ? `يوجد ${visibleEvidenceCount} شاهد ظاهر في التقرير.`
-          : "لا توجد شواهد ظاهرة. يمكن الاعتماد بدون شواهد إذا كان ذلك مقصودًا.",
-      warningOnly: true,
-    },
-    {
-      label: "توزيع الشواهد",
-      ok: Boolean(evidenceLayoutMode),
-      helper: `التوزيع الحالي: ${getEvidenceLayoutName(evidenceLayoutMode)}.`,
-    },
-  ];
-
-  const blockingIssues = checks.filter((check) => !check.ok && !check.warningOnly);
-  const warnings = checks.filter((check) => !check.ok && check.warningOnly);
-  const ready = blockingIssues.length === 0;
-
-  return (
-    <div className="mt-4 space-y-4">
-      <section
-        className={[
-          "rounded-3xl border p-5",
-          ready
-            ? "border-emerald-200 bg-emerald-50"
-            : "border-amber-200 bg-amber-50",
-        ].join(" ")}
-      >
-        <p
-          className={[
-            "text-xs font-black",
-            ready ? "text-emerald-700" : "text-amber-700",
-          ].join(" ")}
-        >
-          فحص جاهزية التقرير
-        </p>
-
-        <h3
-          className={[
-            "mt-2 text-xl font-black",
-            ready ? "text-emerald-950" : "text-amber-950",
-          ].join(" ")}
-        >
-          {ready ? "التقرير جاهز للاعتماد" : "التقرير يحتاج مراجعة قبل الاعتماد"}
-        </h3>
-
-        <p
-          className={[
-            "mt-2 text-sm leading-7",
-            ready ? "text-emerald-800" : "text-amber-800",
-          ].join(" ")}
-        >
-          {ready
-            ? "يمكنك الآن فتح معاينة PDF ثم اعتماد التقرير بثقة."
-            : "راجع العناصر التالية قبل الاعتماد حتى يظهر التقرير بشكل رسمي ومكتمل."}
-        </p>
-      </section>
-
-      <div className="space-y-2">
-        {checks.map((check) => (
-          <div
-            key={check.label}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-black text-slate-900">
-                  {check.label}
-                </p>
-                <p className="mt-1 text-xs leading-6 text-slate-500">
-                  {check.helper}
-                </p>
-              </div>
-
-              <span
-                className={[
-                  "rounded-full px-3 py-1 text-[11px] font-black",
-                  check.ok
-                    ? "bg-emerald-50 text-emerald-700"
-                    : check.warningOnly
-                      ? "bg-amber-50 text-amber-700"
-                      : "bg-red-50 text-red-700",
-                ].join(" ")}
-              >
-                {check.ok ? "مكتمل" : check.warningOnly ? "تنبيه" : "مطلوب"}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {locked ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold leading-7 text-slate-600">
-          هذا التقرير مغلق لأنه معتمد أو مؤرشف.
-        </div>
-      ) : warnings.length ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold leading-7 text-amber-800">
-          يوجد تنبيه غير مانع. تستطيع الاعتماد إذا كان التقرير لا يحتاج شواهد.
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function getEvidenceLayoutName(value: EvidenceLayoutMode) {
-  if (value === "one-per-page") return "شاهد لكل صفحة";
-  if (value === "two-per-page") return "شاهدان في كل صفحة";
-  if (value === "grid-2x2") return "أربعة شواهد 2×2";
-  if (value === "compact") return "مختصر";
-  return "تلقائي";
-}
-
-function EvidenceManager({
-  evidenceItems,
-  evidenceLayoutMode,
-  locked,
-  onEvidenceChange,
-  onEvidenceMove,
-  onEvidenceLayoutChange,
-}: {
-  evidenceItems: EvidenceItem[];
-  evidenceLayoutMode: EvidenceLayoutMode;
-  locked: boolean;
-  onEvidenceChange: (
-    id: string,
-    patch: Partial<Pick<EvidenceItem, "caption" | "visible">>
-  ) => void;
-  onEvidenceMove: (id: string, direction: "up" | "down") => void;
-  onEvidenceLayoutChange: (value: EvidenceLayoutMode) => void;
-}) {
-  const visibleCount = evidenceItems.filter((item) => item.visible).length;
-
-  return (
-    <div className="mt-4 space-y-4">
-      <FieldCard
-        title="إدارة الشواهد"
-        helper="رتّب الشواهد، اكتب عنوانًا مناسبًا لكل شاهد، وحدد ما يظهر في التقرير الرسمي."
-      >
-        <div className="mb-4 rounded-3xl border border-slate-200 bg-white p-4">
-          <p className="text-sm font-black text-slate-950">
-            توزيع الشواهد داخل PDF
-          </p>
-          <p className="mt-1 text-xs leading-6 text-slate-500">
-            اختر طريقة توزيع الصور والمرفقات داخل التقرير الرسمي.
-          </p>
-
-          <div className="mt-4 grid gap-2">
-            {EVIDENCE_LAYOUT_OPTIONS.map((option) => {
-              const active = evidenceLayoutMode === option.id;
-
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => onEvidenceLayoutChange(option.id)}
-                  disabled={locked}
-                  className={[
-                    "rounded-2xl border px-4 py-3 text-right transition disabled:opacity-60",
-                    active
-                      ? "border-slate-950 bg-slate-950 text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white",
-                  ].join(" ")}
-                >
-                  <span className="block text-sm font-black">
-                    {option.label}
-                  </span>
-                  <span
-                    className={[
-                      "mt-1 block text-xs leading-5",
-                      active ? "text-slate-200" : "text-slate-500",
-                    ].join(" ")}
-                  >
-                    {option.helper}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="mt-3 rounded-2xl bg-blue-50 px-3 py-2 text-xs font-bold leading-6 text-blue-700">
-            اختر مثلًا: شاهدان في كل صفحة، ثم اضغط حفظ التعديلات، بعدها افتح معاينة PDF.
-          </p>
-        </div>
-
-        <div className="mb-4 grid grid-cols-2 gap-2">
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <p className="text-xs font-bold text-slate-500">كل الشواهد</p>
-            <p className="mt-1 text-lg font-black text-slate-950">
-              {evidenceItems.length}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-            <p className="text-xs font-bold text-emerald-700">الظاهر في التقرير</p>
-            <p className="mt-1 text-lg font-black text-emerald-800">
-              {visibleCount}
-            </p>
-          </div>
-        </div>
-
-        {evidenceItems.length ? (
-          <div className="space-y-3">
-            {evidenceItems.map((item, index) => (
-              <EvidenceEditorCard
-                key={item.id}
-                item={item}
-                index={index}
-                total={evidenceItems.length}
-                locked={locked}
-                onChange={onEvidenceChange}
-                onMove={onEvidenceMove}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center">
-            <p className="text-sm font-black text-slate-700">
-              لا توجد شواهد مرتبطة بهذا التقرير.
-            </p>
-            <p className="mt-2 text-xs leading-6 text-slate-500">
-              أضف الشواهد من الحالة أو الخدمة، ثم أعد إنشاء التقرير أو اربطها بالتقرير.
-            </p>
-          </div>
-        )}
-      </FieldCard>
-    </div>
-  );
-}
-
-function EvidenceEditorCard({
-  item,
-  index,
-  total,
-  locked,
-  onChange,
-  onMove,
-}: {
-  item: EvidenceItem;
-  index: number;
-  total: number;
-  locked: boolean;
-  onChange: (
-    id: string,
-    patch: Partial<Pick<EvidenceItem, "caption" | "visible">>
-  ) => void;
-  onMove: (id: string, direction: "up" | "down") => void;
-}) {
-  const image = isImageEvidence(item);
-
-  return (
-    <article
-      className={[
-        "overflow-hidden rounded-3xl border bg-white",
-        item.visible ? "border-slate-200" : "border-slate-200 opacity-70",
-      ].join(" ")}
-    >
-      <div className="grid gap-0 sm:grid-cols-[140px_minmax(0,1fr)]">
-        <div className="flex h-36 items-center justify-center bg-slate-100">
-          {image && item.fileUrl ? (
-            <img
-              src={item.fileUrl}
-              alt={item.caption || item.fileName}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="px-4 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl">
-                📎
-              </div>
-              <p className="mt-2 line-clamp-2 text-xs font-bold text-slate-500">
-                {item.fileName || "ملف"}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="p-4">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <p className="text-xs font-black text-slate-400">
-                شاهد رقم {index + 1}
-              </p>
-              <p className="mt-1 line-clamp-1 text-sm font-black text-slate-900">
-                {item.caption || item.fileName}
-              </p>
-            </div>
-
-            <span
-              className={[
-                "rounded-full px-3 py-1 text-[11px] font-black",
-                item.visible
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-slate-100 text-slate-500",
-              ].join(" ")}
-            >
-              {item.visible ? "ظاهر" : "مخفي"}
-            </span>
-          </div>
-
-          <input
-            value={item.caption || ""}
-            onChange={(event) =>
-              onChange(item.id, {
-                caption: event.target.value,
-              })
-            }
-            disabled={locked}
-            placeholder="عنوان الشاهد داخل التقرير..."
-            className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
-          />
-
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                onChange(item.id, {
-                  visible: !item.visible,
-                })
-              }
-              disabled={locked}
-              className={[
-                "rounded-xl px-3 py-2 text-xs font-black transition disabled:opacity-50",
-                item.visible
-                  ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700",
-              ].join(" ")}
-            >
-              {item.visible ? "إخفاء من التقرير" : "إظهار في التقرير"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onMove(item.id, "up")}
-              disabled={locked || index === 0}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
-            >
-              رفع
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onMove(item.id, "down")}
-              disabled={locked || index === total - 1}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
-            >
-              خفض
-            </button>
-
-            {item.fileUrl ? (
-              <a
-                href={item.fileUrl}
-                target="_blank"
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50"
-              >
-                فتح الملف
-              </a>
-            ) : (
-              <span className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700">
-                لا يوجد رابط للملف
-              </span>
-            )}
-          </div>
-
-          <p className="mt-3 text-[11px] leading-5 text-slate-400">
-            {item.mimeType || "نوع غير محدد"}
-            {item.size ? ` · ${formatFileSize(item.size)}` : ""}
-          </p>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function isImageEvidence(item: EvidenceItem) {
-  return (
-    item.mimeType?.startsWith("image/") ||
-    /\.(png|jpg|jpeg|webp|gif)$/i.test(item.fileName || item.fileUrl || "")
-  );
-}
-
-function formatFileSize(size: number) {
-  if (!Number.isFinite(size) || size <= 0) {
-    return "حجم غير معروف";
-  }
-
-  if (size < 1024) {
-    return `${size} B`;
-  }
-
-  if (size < 1024 * 1024) {
-    return `${Math.round(size / 1024)} KB`;
-  }
-
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function FieldCard({
-  title,
-  helper,
-  children,
-}: {
-  title: string;
-  helper: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-      <h3 className="text-sm font-black text-slate-950">{title}</h3>
-      <p className="mt-1 text-xs leading-6 text-slate-500">{helper}</p>
-      <div className="mt-4">{children}</div>
+    <section className={["rounded-3xl border p-4", classes[feedback.type]].join(" ")}>
+      <p className="text-sm font-black">{feedback.title}</p>
+      <p className="mt-1 text-xs font-bold leading-6">{feedback.message}</p>
     </section>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="mb-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs font-bold text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-black text-slate-900">{value}</p>
-    </div>
   );
 }
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-white px-3 py-3 text-center">
-      <p className="text-[11px] font-bold text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-black text-slate-950">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+      <p className="text-[11px] font-black text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-black text-slate-950">{value}</p>
     </div>
   );
 }
 
-function FeedbackBox({
-  feedback,
+function SuggestionsModal({
+  block,
+  context,
   onClose,
+  onUse,
 }: {
-  feedback: NonNullable<FeedbackState>;
+  block: TemplateBlock;
+  context: Record<string, string>;
   onClose: () => void;
+  onUse: (text: string) => void;
 }) {
-  const styles =
-    feedback.type === "success"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : feedback.type === "error"
-        ? "border-red-200 bg-red-50 text-red-800"
-        : feedback.type === "warning"
-          ? "border-amber-200 bg-amber-50 text-amber-800"
-          : "border-blue-200 bg-blue-50 text-blue-800";
+  const suggestions = buildSuggestionsForBlock({ block, context });
 
   return (
-    <div className={`mt-4 rounded-3xl border p-4 ${styles}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-black">{feedback.title}</h3>
-          <p className="mt-1 text-xs leading-6">{feedback.message}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+      <section className="max-h-[86vh] w-full max-w-3xl overflow-auto rounded-[2rem] bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black text-emerald-700">
+              نصوص مقترحة بالقيم الحقيقية
+            </p>
+            <h2 className="mt-2 text-xl font-black text-slate-950">
+              {getBlockTitle(block)}
+            </h2>
+            <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+              اختر صياغة جاهزة. يمكنك تعديلها بعد الإدراج.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+          >
+            إغلاق
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-xl bg-white/70 px-3 py-1 text-xs font-black"
-        >
-          إغلاق
-        </button>
-      </div>
+        <div className="mt-4 grid gap-3">
+          {suggestions.map((suggestion) => (
+            <article
+              key={suggestion.id}
+              className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black text-slate-900">
+                    {suggestion.title}
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-slate-500">
+                    {suggestion.helper}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onUse(suggestion.body)}
+                  className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white hover:bg-slate-800"
+                >
+                  استخدام هذا النص
+                </button>
+              </div>
+
+              <p className="mt-3 whitespace-pre-line rounded-2xl bg-white px-4 py-3 text-sm font-bold leading-8 text-slate-700">
+                {suggestion.body}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
     </div>
   );
+}
+
+function EvidenceEditor({
+  locked,
+  items,
+  onUpdate,
+  onMove,
+}: {
+  locked: boolean;
+  items: EvidenceItem[];
+  onUpdate: (
+    id: string,
+    patch: Partial<Pick<EvidenceItem, "caption" | "visible">>,
+  ) => void;
+  onMove: (id: string, direction: "up" | "down") => void;
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black text-slate-950">
+            الشواهد في هذه الصفحة
+          </h2>
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            إظهار/إخفاء الشواهد أو تعديل التعليق داخل التقرير فقط.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+          {items.filter((item) => item.visible).length} ظاهر
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {items.length ? (
+          items.map((item, index) => (
+            <article
+              key={item.id}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black text-slate-900">
+                    {item.fileName}
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-slate-500">
+                    شاهد رقم {index + 1}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={locked || index === 0}
+                    onClick={() => onMove(item.id, "up")}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
+                  >
+                    أعلى
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={locked || index === items.length - 1}
+                    onClick={() => onMove(item.id, "down")}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
+                  >
+                    أسفل
+                  </button>
+
+                  <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={item.visible}
+                      disabled={locked}
+                      onChange={(event) =>
+                        onUpdate(item.id, { visible: event.target.checked })
+                      }
+                    />
+                    ظاهر
+                  </label>
+                </div>
+              </div>
+
+              <input
+                value={item.caption || ""}
+                disabled={locked}
+                onChange={(event) =>
+                  onUpdate(item.id, { caption: event.target.value })
+                }
+                placeholder="تعليق الشاهد داخل التقرير..."
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
+              />
+            </article>
+          ))
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
+            لا توجد شواهد مرتبطة بهذا التقرير.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function pickReportTemplateSnapshot(source: any) {
+  if (!source) {
+    return null;
+  }
+
+  if (Array.isArray(source.pages)) {
+    return source;
+  }
+
+  if (Array.isArray(source.smartStudio?.pages)) {
+    return source.smartStudio;
+  }
+
+  if (Array.isArray(source.templateJson?.pages)) {
+    return source.templateJson;
+  }
+
+  if (Array.isArray(source.templateJson?.smartStudio?.pages)) {
+    return source.templateJson.smartStudio;
+  }
+
+  if (Array.isArray(source.builderTemplate?.pages)) {
+    return source.builderTemplate;
+  }
+
+  if (Array.isArray(source.snapshot?.pages)) {
+    return source.snapshot;
+  }
+
+  return source;
+}
+
+function extractReportTemplatePages(snapshot: any): TemplatePage[] {
+  const candidates = [
+    snapshot?.pages,
+    snapshot?.smartStudio?.pages,
+    snapshot?.templateJson?.pages,
+    snapshot?.templateJson?.smartStudio?.pages,
+    snapshot?.builderTemplate?.pages,
+    snapshot?.snapshot?.pages,
+  ];
+
+  const pagesCandidate = candidates.find((item) => Array.isArray(item));
+
+  if (!Array.isArray(pagesCandidate)) {
+    return [];
+  }
+
+  return pagesCandidate.map((page: any, index: number) => ({
+    ...page,
+    id: String(page?.id || "page-" + (index + 1)),
+    title: String(page?.title || "صفحة " + (index + 1)),
+    kind: page?.kind || "content",
+    blocks: Array.isArray(page?.blocks) ? page.blocks : [],
+  }));
+}
+
+function normalizeTemplateSnapshot(report: StudioReport) {
+  const source =
+    report.templateSnapshot?.builderTemplate ||
+    report.templateSnapshot?.templateJson ||
+    report.templateSnapshot?.smartStudio ||
+    report.templateSnapshot ||
+    null;
+
+  const snapshot = pickReportTemplateSnapshot(source);
+  const pages = extractReportTemplatePages(snapshot);
+
+  if (pages.length) {
+    return {
+      ...(snapshot || {}),
+      pages,
+    };
+  }
+
+  return {
+    id: "missing-template-pages",
+    name: report.title,
+    designTemplateId: "ministry-form",
+    pages: [
+      {
+        id: "missing-template-pages",
+        title: "لم يتم العثور على صفحات القالب",
+        kind: "content",
+        blocks: [],
+      },
+    ],
+  };
 }
 
 function parseEditableContent(
-  editableContent: string,
-  renderedContent: string
-): {
-  blocks: EditorialBlocks;
-  workflowValueOverrides: WorkflowValueOverride[];
-} {
-  if (!editableContent?.trim()) {
+  editableContent?: string | null,
+  _renderedContent?: string | null,
+): EditableContentPayload {
+  const content = editableContent?.trim();
+
+  if (!content) {
     return {
-      blocks: {
-        ...DEFAULT_BLOCKS,
-        intro: renderedContent || "",
-      },
+      blocks: {},
       workflowValueOverrides: [],
+      evidenceLayoutMode: "two-per-page",
     };
   }
 
   try {
-    const parsed = JSON.parse(editableContent) as {
-      blocks?: Partial<EditorialBlocks>;
-      workflowValueOverrides?: WorkflowValueOverride[];
-    };
+    const parsed = JSON.parse(content) as EditableContentPayload;
+    const pageBlocks = flattenEditablePageOverrides(parsed.pageOverrides || {});
+    const rawBlocks = parsed.blocks || {};
 
     return {
+      ...parsed,
       blocks: {
-        ...DEFAULT_BLOCKS,
-        ...(parsed.blocks || {}),
+        ...rawBlocks,
+        ...pageBlocks,
       },
+      pageOverrides: parsed.pageOverrides || {},
       workflowValueOverrides: Array.isArray(parsed.workflowValueOverrides)
         ? parsed.workflowValueOverrides
         : [],
+      evidenceLayoutMode: parsed.evidenceLayoutMode || "two-per-page",
     };
   } catch {
     return {
-      blocks: {
-        ...DEFAULT_BLOCKS,
-        intro: renderedContent || editableContent || "",
-      },
+      blocks: {},
       workflowValueOverrides: [],
+      evidenceLayoutMode: "two-per-page",
     };
   }
 }
 
-function buildRenderedContent(
-  blocks: EditorialBlocks,
-  workflowValueOverrides: WorkflowValueOverride[]
+function buildRuntimeContext(report: StudioReport) {
+  const data = report.reportDataSnapshot || {};
+  const student = report.caseEntry.student;
+
+  const context: Record<string, string> = {
+    "case.id": report.caseEntry.id,
+    "case.title": report.caseEntry.title || report.title,
+    "case.status": report.caseEntry.status,
+    "case.createdAt": formatDate(report.caseEntry.createdAt),
+    "report.title": report.title,
+    reportTitle: report.title,
+    caseTitle: report.caseEntry.title || report.title,
+
+    "service.name": report.caseEntry.service.name,
+    "service.slug": report.caseEntry.service.slug,
+    serviceName: report.caseEntry.service.name,
+    serviceSlug: report.caseEntry.service.slug,
+
+    "student.name": student?.fullName || "",
+    "student.grade": student?.grade || "",
+    "student.classroom": student?.classroom || "",
+    "student.stage": student?.stage || "",
+    "student.guardianName": student?.guardianName || "",
+    "student.guardianPhone": student?.guardianPhone || "",
+    studentName: student?.fullName || "",
+    studentGrade: student?.grade || "",
+    studentClassroom: student?.classroom || "",
+    studentStage: student?.stage || "",
+    guardianName: student?.guardianName || "",
+    guardianPhone: student?.guardianPhone || "",
+
+    "evidence.count": String(report.evidenceItems.length),
+    evidenceCount: String(report.evidenceItems.length),
+  };
+
+  for (const item of report.reportValues) {
+    if (item.fieldKey) {
+      context[item.fieldKey] = item.value;
+      context[`field.${item.fieldKey}`] = item.value;
+    }
+
+    if (item.fieldLabel) {
+      context[item.fieldLabel] = item.value;
+      context[`field.${item.fieldLabel}`] = item.value;
+    }
+  }
+
+  if (data && typeof data === "object") {
+    for (const [key, value] of Object.entries(flattenObject(data))) {
+      if (context[key] === undefined) {
+        context[key] = String(value ?? "");
+      }
+    }
+  }
+
+  context.programTitle =
+    context.programTitle ||
+    context.program_name ||
+    context["field.program_name"] ||
+    context["عنوان البرنامج"] ||
+    report.title;
+
+  context.executionDate =
+    context.executionDate ||
+    context.gregorian_date ||
+    context.execution_date ||
+    context["field.gregorian_date"] ||
+    context["case.createdAt"];
+
+  context.week =
+    context.week || context["field.week"] || context["الأسبوع"] || "";
+
+  context.day =
+    context.day || context["field.day"] || context["اليوم"] || "";
+
+  context.targetGroup =
+    context.targetGroup ||
+    context.beneficiaries ||
+    context.target_group ||
+    context["field.beneficiaries"] ||
+    context["student.grade"] ||
+    "";
+
+  return context;
+}
+
+function flattenObject(
+  value: unknown,
+  prefix = "",
+  result: Record<string, string> = {},
 ) {
-  const blockText = TEXT_BLOCKS.map((item) => {
-    const value = blocks[item.key].trim();
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return result;
+  }
 
-    if (!value) return "";
+  for (const [key, child] of Object.entries(value)) {
+    const nextKey = prefix ? `${prefix}.${key}` : key;
 
-    return `${item.title}\n${value}`;
-  })
+    if (child && typeof child === "object" && !Array.isArray(child)) {
+      flattenObject(child, nextKey, result);
+    } else {
+      result[nextKey] = String(child ?? "");
+    }
+  }
+
+  return result;
+}
+
+function isEditableTextBlock(block: TemplateBlock) {
+  const kind = normalizeBlockKind(block);
+
+  if (
+    kind === "evidence-gallery" ||
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "meta-strip" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary"
+  ) {
+    return false;
+  }
+
+  return (
+    kind === "hero-title" ||
+    kind === "cover-title" ||
+    kind === "section-text" ||
+    kind === "multi-paragraph" ||
+    kind === "paragraph" ||
+    kind === "custom-paragraph" ||
+    kind === "text-library" ||
+    kind === "bullet-list" ||
+    kind === "closing-note" ||
+    Boolean(block.content || block.defaultContent || block.settings?.content)
+  );
+}
+
+function normalizeBlockKind(block: TemplateBlock) {
+  return (
+    block.settings?.smartBlockKind ||
+    block.smartBlockKind ||
+    block.kind ||
+    "section-text"
+  );
+}
+
+function getBlockKey(page: TemplatePage, block: TemplateBlock, index: number) {
+  if (block.id) {
+    return String(block.id);
+  }
+
+  const title = getBlockTitle(block)
+    .replace(/\s+/g, "_")
+    .replace(/[^A-Za-z0-9_\u0600-\u06FF-]/g, "");
+
+  const kind = normalizeBlockKind(block);
+
+  return String(`${page.id}__${kind}__${title || index + 1}`);
+}
+
+function getBlockTitle(block: TemplateBlock) {
+  return String(
+    block.customTitle ||
+      block.title ||
+      block.settings?.title ||
+      getFriendlyBlockKind(block),
+  );
+}
+
+function getFriendlyBlockKind(block: TemplateBlock) {
+  const kind = normalizeBlockKind(block);
+
+  if (kind === "hero-title" || kind === "cover-title") return "عنوان رئيسي";
+  if (kind === "text-library") return "نص من مكتبة النصوص";
+  if (kind === "custom-paragraph") return "فقرة مخصصة";
+  if (kind === "multi-paragraph") return "نص متعدد الفقرات";
+  if (kind === "bullet-list") return "قائمة نقاط";
+  if (kind === "closing-note") return "خاتمة واعتماد";
+
+  return "نص قابل للتعديل";
+}
+
+function getAutomaticBlockText(block: TemplateBlock, context: Record<string, string>) {
+  const kind = normalizeBlockKind(block);
+  const settings = block.settings || {};
+
+  if (kind === "cover-title" || kind === "hero-title") {
+    return renderText(
+      repairArabicMojibake(block.content || settings.content || "{{case.title}}"),
+      context,
+    );
+  }
+
+  if (kind === "text-library") {
+    return renderText(repairArabicMojibake(resolveTextLibraryFallback(block)), context);
+  }
+
+  const content =
+    block.content ||
+    block.customContent ||
+    settings.content ||
+    block.defaultContent ||
+    "";
+
+  return renderText(repairArabicMojibake(content), context);
+}
+
+function resolveTextLibraryFallback(block: TemplateBlock) {
+  const category =
+    block.settings?.textLibrary?.category ||
+    block.settings?.category ||
+    block.category ||
+    getBlockTitle(block);
+
+  if (String(category).includes("هدف")) {
+    return "يهدف هذا التقرير إلى توثيق {serviceName} وبيان أبرز البيانات والإجراءات المرتبطة بالحالة {caseTitle}.";
+  }
+
+  if (String(category).includes("إجراء")) {
+    return "تم تنفيذ الإجراءات المرتبطة بخدمة {serviceName} وفق البيانات المعتمدة في الحالة، مع توثيق ما يلزم من شواهد.";
+  }
+
+  if (String(category).includes("نتيجة")) {
+    return "توضح البيانات الحالية أن خدمة {serviceName} تم التعامل معها وفق ما ورد في الحالة، مع حفظ النتائج داخل التقرير.";
+  }
+
+  if (String(category).includes("توصية")) {
+    return "يوصى بمتابعة الحالة عند الحاجة وتحديث السجل عند وجود مستجدات، مع الاستفادة من الشواهد المرتبطة بالتقرير.";
+  }
+
+  if (String(category).includes("خاتمة")) {
+    return "تم إعداد هذا التقرير من منصة التوجيه الطلابي اعتمادًا على بيانات الحالة والشواهد المرتبطة بها.";
+  }
+
+  return "تم إعداد هذا التقرير لخدمة {serviceName} بناءً على بيانات الحالة {caseTitle} والشواهد المرتبطة بها.";
+}
+
+function buildSuggestionsForBlock({
+  block,
+  context,
+}: {
+  block: TemplateBlock;
+  context: Record<string, string>;
+}): SuggestionItem[] {
+  const serviceName = safeValue(context.serviceName, "الخدمة الإرشادية");
+  const caseTitle = safeValue(context.caseTitle, "الحالة");
+  const studentName = safeValue(context.studentName, "الطالب/الطالبة");
+  const programTitle = safeValue(context.programTitle, caseTitle);
+  const executionDate = safeValue(context.executionDate, "التاريخ المحدد");
+  const week = safeValue(context.week, "الأسبوع المحدد");
+  const targetGroup = safeValue(context.targetGroup, "الفئة المستهدفة");
+  const evidenceCount = safeValue(context.evidenceCount, "0");
+
+  const title = getBlockTitle(block);
+  const kind = normalizeBlockKind(block);
+  const purpose = detectSuggestionPurpose(title, kind);
+
+  if (purpose === "goals") {
+    return [
+      {
+        id: "goals-1",
+        title: "هدف رسمي مختصر",
+        helper: "مناسب للتقارير المختصرة.",
+        body: `يهدف هذا التقرير إلى توثيق ${serviceName} المرتبطة بـ ${caseTitle}، وبيان أبرز البيانات والإجراءات والشواهد التي تم تسجيلها في المنصة.`,
+      },
+      {
+        id: "goals-2",
+        title: "هدف تربوي",
+        helper: "صياغة تربوية مناسبة للإدارة.",
+        body: `يسعى التقرير إلى إبراز الجهود التربوية والإرشادية المقدمة ضمن ${serviceName}، ومتابعة أثرها على ${studentName} أو الفئة المستهدفة، وفق البيانات المعتمدة.`,
+      },
+      {
+        id: "goals-3",
+        title: "هدف تفصيلي",
+        helper: "مناسب للتقارير الطويلة.",
+        body: `يهدف التقرير إلى جمع بيانات ${caseTitle} في صورة منظمة، تشمل الخدمة المقدمة، القيم المسجلة، الشواهد الداعمة، والتوصيات المناسبة لضمان جودة المتابعة.`,
+      },
+    ];
+  }
+
+  if (purpose === "procedures") {
+    return [
+      {
+        id: "procedures-1",
+        title: "إجراء رسمي",
+        helper: "صياغة مباشرة وواضحة.",
+        body: `تم تنفيذ ${serviceName} خلال ${week} بتاريخ ${executionDate}، وفق الإجراءات المعتمدة في الخطة، مع توثيق البيانات والشواهد ذات العلاقة.`,
+      },
+      {
+        id: "procedures-2",
+        title: "إجراء منظم",
+        helper: "يركز على التوثيق.",
+        body: `تمت مراجعة بيانات ${caseTitle}، وتنظيم القيم المرتبطة بالخدمة، وربط الشواهد الداعمة وعددها ${evidenceCount}، تمهيدًا لإصدار التقرير الرسمي.`,
+      },
+      {
+        id: "procedures-3",
+        title: "إجراء تربوي",
+        helper: "مناسب للبرامج والمتابعات.",
+        body: `جرى التعامل مع ${caseTitle} بما يتناسب مع طبيعة ${serviceName}، مع مراعاة احتياج ${studentName} أو ${targetGroup}، وتوثيق ما تم تنفيذه داخل التقرير.`,
+      },
+    ];
+  }
+
+  if (purpose === "results") {
+    return [
+      {
+        id: "results-1",
+        title: "نتيجة مختصرة",
+        helper: "تصلح للنتائج العامة.",
+        body: `أظهرت البيانات المسجلة أن ${serviceName} تم تنفيذها وتوثيقها بنجاح، مع توفر الشواهد والبيانات اللازمة لدعم التقرير.`,
+      },
+      {
+        id: "results-2",
+        title: "نتيجة تحليلية",
+        helper: "تعطي التقرير طابعًا أكثر مهنية.",
+        body: `تشير المعطيات المرتبطة بـ ${caseTitle} إلى اكتمال عناصر التقرير الأساسية، بما في ذلك البيانات، القيم، والشواهد، مما يعزز موثوقية التقرير النهائي.`,
+      },
+      {
+        id: "results-3",
+        title: "نتيجة متابعة",
+        helper: "مناسب للحالات التي تحتاج استمرار.",
+        body: `توضح نتائج المتابعة أن الحالة تتطلب الاستمرار في الرصد عند الحاجة، مع تحديث السجل والشواهد عند ظهور أي مستجدات مرتبطة بـ ${serviceName}.`,
+      },
+    ];
+  }
+
+  if (purpose === "recommendations") {
+    return [
+      {
+        id: "recommendations-1",
+        title: "توصيات عملية",
+        helper: "مختصرة وقابلة للتنفيذ.",
+        body: `يوصى بمتابعة ${caseTitle} وفق الحاجة، وتحديث البيانات في المنصة عند وجود مستجدات، مع الاستمرار في توثيق الشواهد المرتبطة بـ ${serviceName}.`,
+      },
+      {
+        id: "recommendations-2",
+        title: "توصيات للإدارة",
+        helper: "مناسبة للرفع الرسمي.",
+        body: `يوصى بالاطلاع على هذا التقرير واعتماد ما ورد فيه من بيانات وشواهد، مع دعم الإجراءات التي تعزز جودة تنفيذ ${serviceName}.`,
+      },
+      {
+        id: "recommendations-3",
+        title: "توصيات تربوية",
+        helper: "صياغة تربوية مرنة.",
+        body: `يوصى بتعزيز التواصل والمتابعة بما يخدم مصلحة ${studentName} أو ${targetGroup}، والاستفادة من نتائج التقرير في تحسين التدخلات اللاحقة.`,
+      },
+    ];
+  }
+
+  if (purpose === "closing") {
+    return [
+      {
+        id: "closing-1",
+        title: "خاتمة رسمية",
+        helper: "مناسبة للتقارير الرسمية.",
+        body: `وبذلك تم إعداد هذا التقرير لخدمة ${serviceName} اعتمادًا على البيانات المسجلة والشواهد المرتبطة بالحالة، ليكون مرجعًا رسميًا عند الحاجة.`,
+      },
+      {
+        id: "closing-2",
+        title: "خاتمة مختصرة",
+        helper: "مناسبة لتقرير سريع.",
+        body: `تم توثيق بيانات ${caseTitle} وشواهدها في هذا التقرير، مع حفظ نسخة قابلة للمراجعة والاعتماد.`,
+      },
+      {
+        id: "closing-3",
+        title: "خاتمة تربوية",
+        helper: "مناسبة للموجهين.",
+        body: `يعكس هذا التقرير الجهود المبذولة في متابعة ${caseTitle} ضمن ${serviceName}، ويؤكد أهمية استمرار التوثيق والمتابعة عند الحاجة.`,
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "intro-1",
+      title: "مقدمة رسمية",
+      helper: "صياغة مناسبة لمعظم التقارير.",
+      body: `بناءً على بيانات ${caseTitle} المرتبطة بخدمة ${serviceName}، تم إعداد هذا التقرير لعرض أبرز المعلومات والقيم والشواهد المسجلة في المنصة.`,
+    },
+    {
+      id: "intro-2",
+      title: "مقدمة تربوية",
+      helper: "صياغة إنسانية للموجه.",
+      body: `يأتي هذا التقرير ضمن جهود التوجيه الطلابي في متابعة ${caseTitle}، وتوثيق ما يرتبط بها من إجراءات ونتائج تخدم ${studentName} أو ${targetGroup}.`,
+    },
+    {
+      id: "intro-3",
+      title: "مقدمة مختصرة",
+      helper: "مناسبة للتقارير السريعة.",
+      body: `يوثق هذا التقرير خدمة ${serviceName} للحالة ${caseTitle}، مع عرض البيانات والشواهد الداعمة بصورة منظمة.`,
+    },
+    {
+      id: "intro-4",
+      title: "مقدمة تفصيلية",
+      helper: "تضيف سياقًا أكثر للتقرير.",
+      body: `تم إنشاء هذا التقرير بعد مراجعة بيانات الحالة وربطها بالقيم والشواهد المتاحة، بهدف تقديم صورة واضحة عن ${serviceName} وما تم توثيقه بشأن ${caseTitle}.`,
+    },
+  ];
+}
+
+function detectSuggestionPurpose(title: string, kind: string) {
+  const text = `${title} ${kind}`;
+
+  if (text.includes("هدف") || text.includes("أهداف")) return "goals";
+  if (text.includes("إجراء") || text.includes("تنفيذ")) return "procedures";
+  if (text.includes("نتيجة") || text.includes("نتائج")) return "results";
+  if (text.includes("توصية") || text.includes("توصيات")) return "recommendations";
+  if (text.includes("خاتمة") || text.includes("اعتماد")) return "closing";
+
+  return "intro";
+}
+
+function safeValue(value: string | undefined, fallback: string) {
+  const clean = String(value || "").trim();
+
+  return clean || fallback;
+}
+
+function renderText(text: string, context: Record<string, string>) {
+  return repairArabicMojibake(String(text || ""))
+    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, key: string) =>
+      resolveContextVariable(key, context),
+    )
+    .replace(/\{([A-Za-z0-9_.\-\u0600-\u06FF ]+)\}/g, (_match, key: string) =>
+      resolveContextVariable(key, context),
+    );
+}
+
+function resolveContextVariable(key: string, context: Record<string, string>) {
+  const cleanKey = String(key || "").trim();
+
+  const aliases: Record<string, string[]> = {
+    reportTitle: ["reportTitle", "report.title", "case.title", "caseTitle"],
+    caseTitle: ["case.title", "caseTitle", "reportTitle"],
+    serviceName: ["service.name", "serviceName"],
+    studentName: ["student.name", "studentName"],
+    studentGrade: ["student.grade", "studentGrade"],
+    studentClassroom: ["student.classroom", "studentClassroom"],
+    guardianName: ["student.guardianName", "guardianName"],
+    guardianPhone: ["student.guardianPhone", "guardianPhone"],
+  };
+
+  const keys = [
+    cleanKey,
+    ...(aliases[cleanKey] || []),
+    cleanKey.startsWith("field.") ? cleanKey : `field.${cleanKey}`,
+  ];
+
+  for (const lookupKey of keys) {
+    const value = context[lookupKey];
+
+    if (value !== undefined && value !== null && String(value).trim()) {
+      return String(value);
+    }
+  }
+
+  return "";
+}
+
+function buildPageOverrides(
+  pages: TemplatePage[],
+  blocks: Record<string, string>,
+) {
+  const pageOverrides: EditableContentPayload["pageOverrides"] = {};
+
+  for (const page of pages) {
+    page.blocks.forEach((block, index) => {
+      const blockKey = getBlockKey(page, block, index);
+      const content = blocks[blockKey];
+
+      if (!content?.trim() || isLegacyRenderedReportDump(content)) {
+        return;
+      }
+
+      pageOverrides[page.id] ||= {};
+      pageOverrides[page.id][blockKey] = {
+        content,
+      };
+    });
+  }
+
+  return pageOverrides;
+}
+
+function buildRenderedContentFromPages({
+  pages,
+  blocks,
+  context,
+}: {
+  pages: TemplatePage[];
+  blocks: Record<string, string>;
+  context: Record<string, string>;
+}) {
+  return pages
+    .map((page) => {
+      const blockText = page.blocks
+        .map((block, index) => {
+          const blockKey = getBlockKey(page, block, index);
+          const value = blocks[blockKey]?.trim();
+
+          if (!value || isLegacyRenderedReportDump(value)) {
+            return "";
+          }
+
+          return `${page.title} - ${getBlockTitle(block)}\n${renderText(
+            value,
+            context,
+          )}`;
+        })
+        .filter(Boolean)
+        .join("\n\n");
+
+      return blockText;
+    })
     .filter(Boolean)
     .join("\n\n");
+}
 
-  const changedValues = workflowValueOverrides
-    .filter((item) => item.editedValue.trim() !== item.originalValue.trim())
-    .map((item) => `${item.fieldLabel}\n${item.editedValue}`)
-    .join("\n\n");
+function buildLivePreviewPage({
+  page,
+  blocks,
+  context,
+}: {
+  page?: TemplatePage;
+  blocks: Record<string, string>;
+  context: Record<string, string>;
+}) {
+  if (!page) {
+    return null;
+  }
 
-  return [blockText, changedValues ? `القيم المعدلة\n${changedValues}` : ""]
-    .filter(Boolean)
-    .join("\n\n");
+  return {
+    ...page,
+    blocks: page.blocks.map((block, index) => {
+      const blockKey = getBlockKey(page, block, index);
+      const override = blocks[blockKey];
+      const automaticText = getAutomaticBlockText(block, context);
+      const content =
+        override !== undefined
+          ? repairArabicMojibake(override)
+          : automaticText;
+
+      return {
+        ...block,
+        content,
+        customContent: content,
+        settings: {
+          ...(block.settings || {}),
+          content,
+        },
+      };
+    }),
+  };
+}
+
+function buildPreviewCaseDataForRenderer(report: StudioReport) {
+  const student = report.caseEntry.student;
+  const snapshot = report.reportDataSnapshot || {};
+
+  return {
+    caseId: report.caseEntry.id,
+    id: report.caseEntry.id,
+    title: report.caseEntry.title || report.title,
+    status: report.caseEntry.status,
+    createdAt: report.caseEntry.createdAt,
+    updatedAt: report.updatedAt,
+    serviceName: report.caseEntry.service.name,
+    serviceSlug: report.caseEntry.service.slug,
+    student: {
+      name: student?.fullName || "",
+      fullName: student?.fullName || "",
+      grade: student?.grade || "",
+      classroom: student?.classroom || "",
+      stage: student?.stage || "",
+      guardianName: student?.guardianName || "",
+      guardianPhone: student?.guardianPhone || "",
+    },
+    values: report.reportValues.map((item) => ({
+      fieldKey: item.fieldKey,
+      fieldLabel: item.fieldLabel,
+      value: item.value,
+    })),
+    evidences: report.evidenceItems
+      .filter((item) => item.visible)
+      .map((item) => ({
+        id: item.id,
+        title: item.caption || item.fileName,
+        caption: item.caption || item.fileName,
+        fileUrl: item.fileUrl,
+        imageUrl: item.fileUrl,
+      })),
+    snapshot,
+  };
+}
+
+function repairArabicMojibake(value: string) {
+  const text = String(value || "");
+
+  if (!/[ØÙÃ]/.test(text)) {
+    return text;
+  }
+
+  try {
+    const bytes = new Uint8Array(
+      Array.from(text).map((char) => char.charCodeAt(0) & 255),
+    );
+
+    const decoded = new TextDecoder("utf-8").decode(bytes);
+    const originalArabic = (text.match(/[\\u0600-\\u06FF]/g) || []).length;
+    const decodedArabic = (decoded.match(/[\\u0600-\\u06FF]/g) || []).length;
+
+    return decodedArabic > originalArabic ? decoded : text;
+  } catch {
+    return text;
+  }
+}
+
+
+
+function sanitizeInitialBlockOverrides(
+  pages: TemplatePage[],
+  blocks: Record<string, string>,
+) {
+  const allowedKeys = new Set<string>();
+
+  for (const page of pages) {
+    page.blocks.forEach((block, index) => {
+      if (!isEditableTextBlock(block)) {
+        return;
+      }
+
+      allowedKeys.add(getBlockKey(page, block, index));
+
+      if (block.id) {
+        allowedKeys.add(String(block.id));
+      }
+    });
+  }
+
+  const clean: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(blocks || {})) {
+    if (!allowedKeys.has(key)) {
+      continue;
+    }
+
+    if (isLegacyRenderedReportDump(value)) {
+      continue;
+    }
+
+    clean[key] = repairArabicMojibake(value);
+  }
+
+  return clean;
+}
+
+function flattenEditablePageOverrides(
+  pageOverrides: EditableContentPayload["pageOverrides"],
+) {
+  const blocks: Record<string, string> = {};
+
+  for (const page of Object.values(pageOverrides || {})) {
+    for (const [blockKey, override] of Object.entries(page || {})) {
+      const content = override?.content || "";
+
+      if (!content.trim() || isLegacyRenderedReportDump(content)) {
+        continue;
+      }
+
+      blocks[blockKey] = repairArabicMojibake(content);
+    }
+  }
+
+  return blocks;
+}
+
+function isLegacyRenderedReportDump(value: string) {
+  const text = String(value || "");
+
+  if (!text.trim()) {
+    return false;
+  }
+
+  const hasReplacementChars = /�/.test(text);
+  const hasMojibakeMarks = /[ØÙÃ]/.test(text);
+  const hasReportDumpLabels =
+    /program_name\s*:|semester\s*:|gregorian_date\s*:|beneficiaries\s*:|execution_action\s*:|execution_mechanism\s*:|performance_indicator\s*:|selectedStudent\s*:/.test(
+      text,
+    );
+
+  const hasOldArabicDump =
+    text.includes("ملخص التقرير") ||
+    text.includes("بيانات الحالة") ||
+    text.includes("القيم المسجلة") ||
+    text.includes("الشواهد:") ||
+    text.includes("تقرير:");
+
+  const tooLongForBlock = text.length > 1800;
+
+  return (
+    hasReplacementChars ||
+    hasMojibakeMarks ||
+    hasReportDumpLabels ||
+    (hasOldArabicDump && tooLongForBlock)
+  );
+}
+
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return new Date().toLocaleDateString("ar-SA");
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA");
+  } catch {
+    return String(value);
+  }
 }
 
 function getStatusName(status: string) {

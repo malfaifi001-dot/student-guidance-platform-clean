@@ -1,4 +1,5 @@
 ﻿import { NextResponse } from "next/server";
+import { StudentPickerMode } from "@prisma/client";
 import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
 import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
 import { dashboardServices } from "@/lib/constants/services";
@@ -6,8 +7,19 @@ import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { logAdminActivity } from "@/lib/admin/activity-log";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
+
+const STUDENT_PICKER_MODES = new Set(Object.values(StudentPickerMode));
+
+function normalizeStudentPickerMode(value: unknown): StudentPickerMode {
+  const text = String(value ?? "").trim().toUpperCase();
+
+  return STUDENT_PICKER_MODES.has(text as StudentPickerMode)
+    ? (text as StudentPickerMode)
+    : StudentPickerMode.SERVICE_DEFAULT;
+}
 
 const MAX_WORKFLOW_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -58,6 +70,9 @@ export async function POST(request: Request) {
     const serviceSlug = String(formData.get("serviceSlug") ?? "").trim();
     const workflowType = normalizeWorkflowType(
       String(formData.get("workflowType") ?? "")
+    );
+    const studentPickerMode = normalizeStudentPickerMode(
+      formData.get("studentPickerMode")
     );
 
     const file = formData.get("file");
@@ -127,6 +142,34 @@ export async function POST(request: Request) {
       rows,
       workflowType,
     });
+
+    const uploadedWorkflow = await prisma.workflow.findFirst({
+      where: {
+        service: {
+          slug: serviceSlug,
+        },
+        workflowType,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (uploadedWorkflow) {
+      await prisma.workflow.update({
+        where: {
+          id: uploadedWorkflow.id,
+        },
+        data: {
+          studentPickerMode,
+        },
+      });
+    }
+
+    // WORKFLOW_UPLOAD_STUDENT_PICKER_MODE_MARKER
 
     await logAdminActivity({
       actorUserId: admin?.id || null,

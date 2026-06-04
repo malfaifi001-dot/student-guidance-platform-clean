@@ -121,21 +121,21 @@ type PublishedReportTemplateOption = {
 const REPORT_TEMPLATE_CHOICES: ReportTemplateChoice[] = [
   {
     id: "official-long",
-    name: "القالب الرسمي",
+    name: "قالب منشور",
     description: "قالب A4 رسمي مناسب للحفظ والطباعة والاعتماد.",
     bestFor: "التقارير الرسمية والملفات المعتمدة",
     badge: "رسمي",
   },
   {
     id: "visual-activity",
-    name: "القالب البصري",
+    name: "قالب منشور",
     description: "قالب يبرز الشواهد والصور والأنشطة بشكل أوضح.",
     bestFor: "البرامج والفعاليات والشواهد المصورة",
     badge: "بصري",
   },
   {
     id: "executive-brief",
-    name: "القالب المختصر",
+    name: "قالب منشور",
     description: "قالب سريع يركز على أهم البيانات والنتائج.",
     bestFor: "الملخصات والتقارير السريعة",
     badge: "مختصر",
@@ -156,9 +156,7 @@ export function NewReportCasePicker({
   const router = useRouter();
 
   const [selectedCaseId, setSelectedCaseId] = useState(initialCaseId);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
-    publishedTemplates[0]?.id || "official-long"
-  );
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
   const [query, setQuery] = useState("");
   const [preparedReportData, setPreparedReportData] =
@@ -203,24 +201,20 @@ export function NewReportCasePicker({
   }, [cases, selectedCaseId]);
 
   const templateChoices = useMemo<ReportTemplateChoice[]>(() => {
-    if (publishedTemplates.length > 0) {
-      return publishedTemplates.map((template) => ({
-        id: template.id,
-        name: template.name,
-        description:
-          template.description || "قالب منشور من صانع قوالب التقارير.",
-        bestFor:
-          template.scope === "SERVICE"
-            ? "تقارير الخدمة المرتبطة بهذا القالب"
-            : "التقارير العامة لكل الخدمات",
-        badge: template.scope === "SERVICE" ? "قالب خدمة" : "قالب عام",
-        serviceSlug: template.serviceSlug,
-        pagesCount: template.pagesCount,
-        isBuilderTemplate: true,
-      }));
-    }
-
-    return REPORT_TEMPLATE_CHOICES;
+    return publishedTemplates.map((template) => ({
+      id: template.id,
+      name: template.name,
+      description:
+        template.description || "قالب منشور من صانع قوالب التقارير.",
+      bestFor:
+        template.scope === "SERVICE"
+          ? "هذا القالب مخصص لخدمة محددة."
+          : "قالب عام مناسب لأكثر من خدمة.",
+      badge: template.scope === "SERVICE" ? "خدمة" : "عام",
+      serviceSlug: template.serviceSlug,
+      pagesCount: template.pagesCount,
+      isBuilderTemplate: true,
+    }));
   }, [publishedTemplates]);
 
   const selectedTemplate = useMemo(() => {

@@ -1,25 +1,32 @@
 ﻿import { notFound } from "next/navigation";
 
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
-import { prisma } from "@/lib/prisma";
 import { dashboardServices } from "@/lib/constants/services";
+import { prisma } from "@/lib/prisma";
 import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
 
 type PageProps = {
   params: Promise<{
     serviceSlug: string;
   }>;
+  searchParams?: Promise<{
+    workflowId?: string;
+  }>;
 };
 
 export default async function WorkflowPreviewPage({
   params,
+  searchParams,
 }: PageProps) {
   await requireAdminPage();
 
   const { serviceSlug } = await params;
+  const query = searchParams ? await searchParams : {};
+  const selectedWorkflowId = String(query?.workflowId || "").trim();
 
   const serviceConfig = dashboardServices.find(
-    (service) => service.slug === serviceSlug
+    (service) => service.slug === serviceSlug,
   );
 
   if (!serviceConfig) {
@@ -27,19 +34,48 @@ export default async function WorkflowPreviewPage({
   }
 
   const workflow = await prisma.workflow.findFirst({
-    where: {
-      service: {
-        slug: serviceSlug,
-      },
-      workflowType: WORKFLOW_TYPES.DEFAULT,
-      status: "DRAFT",
-    },
+    where: selectedWorkflowId
+      ? {
+          id: selectedWorkflowId,
+          service: {
+            slug: serviceSlug,
+          },
+        }
+      : {
+          service: {
+            slug: serviceSlug,
+          },
+          workflowType: WORKFLOW_TYPES.DEFAULT,
+          OR: [
+            {
+              status: "DRAFT",
+            },
+            {
+              status: "ACTIVE",
+              isActive: true,
+            },
+          ],
+        },
     include: {
+      service: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+        },
+      },
       steps: {
         include: {
           fields: {
             include: {
-              options: true,
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
             },
           },
         },
@@ -48,85 +84,113 @@ export default async function WorkflowPreviewPage({
         },
       },
     },
-    orderBy: {
-      version: "desc",
-    },
+    orderBy: selectedWorkflowId
+      ? undefined
+      : [
+          {
+            status: "asc",
+          },
+          {
+            version: "desc",
+          },
+        ],
   });
 
   if (!workflow) {
     return (
-      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-amber-700">
-        لا يوجد Draft Workflow لهذه الخدمة.
-      </div>
+      <main className="space-y-5" dir="rtl">
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8 text-amber-800">
+          <p className="text-sm font-black">Workflow Preview</p>
+
+          <h1 className="mt-2 text-3xl font-black">
+            لا يوجد Workflow للمعاينة
+          </h1>
+
+          <p className="mt-3 text-sm font-bold leading-7">
+            ارفع ملف Excel أو اختر نسخة محفوظة من سجل المرفوعات.
+          </p>
+        </section>
+      </main>
     );
   }
 
+  const runtimeWorkflow = {
+    id: workflow.id,
+    name: workflow.name,
+    serviceSlug: workflow.service.slug,
+    workflowType: workflow.workflowType,
+    studentPickerMode: workflow.studentPickerMode || "SERVICE_DEFAULT",
+    steps: workflow.steps.map((step) => ({
+      id: step.id,
+      title: step.title,
+      description: step.description,
+      order: step.order,
+      fields: step.fields.map((field) => ({
+        id: field.id,
+        key: field.key,
+        label: field.label,
+        type: String(field.type),
+        placeholder: field.placeholder,
+        helpText: field.helpText,
+        isRequired: field.isRequired,
+        order: field.order,
+        allowOther: field.allowOther,
+        dependsOnFieldKey: field.dependsOnFieldKey,
+        linkedToValue: field.linkedToValue,
+        options: field.options.map((option) => ({
+          id: option.id,
+          label: option.label,
+          value: option.value,
+          order: option.order,
+          linkedToValue: option.linkedToValue,
+        })),
+      })),
+    })),
+  };
+
   return (
-    <div className="space-y-8">
-      <section className="rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white shadow-2xl">
-        <p className="text-sm font-bold text-sky-300">
-          Workflow Preview
-        </p>
+    <main className="space-y-6" dir="rtl">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-black text-sky-700">
+              Workflow Preview
+            </p>
 
-        <h1 className="mt-3 text-4xl font-black">
-          Preview - {workflow.name}
-        </h1>
+            <h1 className="mt-2 text-3xl font-black text-slate-950">
+              معاينة تجربة الموجه - {serviceConfig.title}
+            </h1>
 
-        <p className="mt-4 text-slate-300">
-          Version {workflow.version}
-        </p>
-      </section>
+            <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+              النسخة: {workflow.name} · Version {workflow.version}
+            </p>
+          </div>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="space-y-6">
-          {workflow.steps.map((step) => (
-            <div
-              key={step.id}
-              className="rounded-2xl border border-slate-200 bg-slate-50 p-6"
-            >
-              <h2 className="text-xl font-black text-slate-900">
-                {step.order}. {step.title}
-              </h2>
-
-              <div className="mt-5 grid gap-4">
-                {step.fields.map((field) => (
-                  <div
-                    key={field.id}
-                    className="rounded-2xl border border-slate-200 bg-white p-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold text-slate-900">
-                        {field.label}
-                      </p>
-
-                      <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-700">
-                        {field.type}
-                      </span>
-                    </div>
-
-                    <p className="mt-2 text-xs text-slate-500">
-                      key: {field.key}
-                    </p>
-
-                    {field.options.length > 0 ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {field.options.map((option) => (
-                          <span
-                            key={option.id}
-                            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700"
-                          >
-                            {option.label}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+          <span
+            className={[
+              "rounded-full px-4 py-2 text-xs font-black ring-1",
+              workflow.isActive
+                ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                : workflow.status === "DRAFT"
+                  ? "bg-sky-50 text-sky-700 ring-sky-100"
+                  : "bg-slate-50 text-slate-600 ring-slate-200",
+            ].join(" ")}
+          >
+            {workflow.isActive
+              ? "مفعل حاليًا"
+              : workflow.status === "DRAFT"
+                ? "مسودة"
+                : workflow.status}
+          </span>
         </div>
       </section>
-    </div>
+
+      <DynamicFormRenderer
+        workflow={runtimeWorkflow}
+        serviceId={workflow.service.id}
+        title={`معاينة - ${workflow.name}`}
+        previewMode
+      />
+    </main>
   );
 }

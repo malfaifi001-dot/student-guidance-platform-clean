@@ -112,7 +112,7 @@ export type ReportTemplateBuilderModel = {
   previewCaseId?: string;
 
   documentType?: ReportDocumentType;
-  designPreset?: ReportDesignPreset;
+  designPreset?: "official-school-report" | "visual-program-report" | "guardian-summons-letter-v1" | "minimal-guidance-report" | "evidence-rich-report" | "guidance-session-report" | "appreciation-certificate-v1";
   workflowSlug?: string;
   subWorkflowKey?: string;
 };
@@ -471,3 +471,5 @@ export type GeneratedReportSnapshot = {
   generatedAt: string;
   generatedBy: string;
 };
+
+

@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import type { ReportViewMode } from "@/components/reports/report-preview-toolbar";
 
 import { ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
-import { ReportBuilderPdfRenderer } from "@/components/report-engine/report-builder-pdf-renderer";
+import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
 import { ReportPdfGuidanceCard } from "@/components/reports/report-pdf-guidance-card";
 
 import type {
@@ -298,7 +298,7 @@ export default async function ReportRealPreviewPage({
 
   const pdfPreviewUrl = `${pdfExportUrl}&inline=true`;
 
-  const editReportUrl = `/dashboard/reports/${report.id}/studio`;
+  const editReportUrl = `/dashboard/reports/${report.id}/studio?template=${encodeURIComponent(resolvedSearchParams.template || report.templateId || "")}`;
 
   const backToReportsUrl = "/dashboard/reports";
 
@@ -313,20 +313,7 @@ export default async function ReportRealPreviewPage({
             : "min-h-screen bg-slate-50 px-6 py-8"
       }
     >
-
-      {!studioMode ? (
-        <div className="no-print mx-auto mb-3 flex max-w-[210mm] justify-start">
-          <a
-            href={backToReportsUrl}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-          >
-            <span aria-hidden="true">â†</span>
-            Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„ØªÙ‚Ø§Ø±ÙŠØ±
-          </a>
-        </div>
-      ) : null}
-
-      {!studioMode ? (
+{!studioMode ? (
         <ReportPdfGuidanceCard
           reportTitle={report.title}
           serviceName={report.caseEntry.service.name}
@@ -338,12 +325,11 @@ export default async function ReportRealPreviewPage({
 
       <section className={pdfMode ? "mx-auto bg-white" : studioMode ? "mx-auto" : "mx-auto mt-4 max-w-[210mm]"}>
         {builderTemplate ? (
-          <ReportBuilderPdfRenderer
-            template={builderTemplate}
+          <FinalReportDesignRenderer
+            template={builderTemplate as any}
             previewCaseData={builderPreviewCaseData as any}
-            identity={runtimeReportIdentity}
+            identity={runtimeReportIdentity as any}
             editorialBlocks={parsedEditableContent.blocks || {}}
-            evidenceLayoutMode={evidenceLayoutMode}
           />
         ) : (
           <ReportDocumentRenderer

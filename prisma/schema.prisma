@@ -43,6 +43,12 @@ enum ServiceStatus {
   COMING_SOON
 }
 
+enum StudentPickerMode {
+  SERVICE_DEFAULT
+  REQUIRED
+  DISABLED
+}
+
 enum WorkflowStatus {
   DRAFT
   ACTIVE
@@ -114,8 +120,8 @@ model SchoolAccount {
   slug                  String                 @unique
   isActive              Boolean                @default(true)
   studentImportSessions StudentImportSession[]
+  users                 User[]
 
-  users           User[]
   profile         SchoolProfile?
   students        Student[]
   guardians       Guardian[]
@@ -289,8 +295,9 @@ model Workflow {
   isActive     Boolean        @default(false)
   workflowType String         @default("default")
 
-  steps WorkflowStep[]
-  cases CaseEntry[]
+  studentPickerMode StudentPickerMode @default(SERVICE_DEFAULT)
+  steps             WorkflowStep[]
+  cases             CaseEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -372,11 +379,12 @@ model CaseEntry {
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id])
 
-  workflowId      String?
-  workflow        Workflow?        @relation(fields: [workflowId], references: [id])
-  guidanceReports GuidanceReport[]
-  studentId       String?
-  student         Student?         @relation(fields: [studentId], references: [id])
+  workflowId       String?
+  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+  workflowSnapshot Json?
+  guidanceReports  GuidanceReport[]
+  studentId        String?
+  student          Student?         @relation(fields: [studentId], references: [id])
 
   createdById String?
   createdBy   User?   @relation(fields: [createdById], references: [id])
@@ -837,9 +845,17 @@ model StudentImportSession {
   files StudentImportFile[]
   rows  StudentImportRow[]
 
-  committedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  committedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  academicYear      String?
+  term              String?
+  importMode        String    @default("FULL_SYNC")
+  committedByUserId String?
+  isArchived        Boolean   @default(false)
+  archivedAt        DateTime?
+  archivedByUserId  String?
+  cycleId           String?
 
   @@index([schoolAccountId])
   @@index([status])
@@ -881,8 +897,9 @@ model StudentImportRow {
   errorMessage     String?
   rawJson          Json?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  planAction String?
 
   @@index([sessionId])
   @@index([nationalId])
@@ -966,4 +983,54 @@ model PlatformActivityLog {
   @@index([category])
   @@index([action])
   @@index([createdAt])
+}
+
+model StudentImportChange {
+  id String @id @default(cuid())
+
+  sessionId String
+  rowId     String?
+  studentId String?
+
+  action String
+
+  beforeJson Json?
+  afterJson  Json?
+
+  rolledBackAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([studentId])
+  @@index([action])
+}
+
+model NoorImportCycle {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  academicYear    String
+  term            String
+  title           String
+  status          String @default("DRAFT")
+
+  totalStudents     Int @default(0)
+  totalSessions     Int @default(0)
+  pendingSessions   Int @default(0)
+  committedSessions Int @default(0)
+
+  latestSessionId   String?
+  latestCommittedAt DateTime?
+
+  isArchived       Boolean   @default(false)
+  archivedAt       DateTime?
+  archivedByUserId String?
+  createdByUserId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([schoolAccountId, academicYear, term])
+  @@index([status])
 }

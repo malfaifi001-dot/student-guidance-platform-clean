@@ -1,4 +1,5 @@
-﻿"use client";
+﻿
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -49,6 +50,7 @@ type Props = {
   caseId?: string;
   initialValues?: RuntimeValues;
   initialEvidenceItems?: EvidenceItem[];
+  previewMode?: boolean;
 };
 
 /**
@@ -182,6 +184,165 @@ function isStudentPickerStep(step?: RuntimeStep | null) {
   );
 }
 
+const RUNTIME_SERVICE_LABELS: Record<string, string> = {
+  "guidance-programs": "البرامج الإرشادية",
+  "student-follow-up": "متابعة الطلاب",
+  "family-school-communication": "التواصل الأسري",
+  "student-guidance-services": "الخدمات الإرشادية",
+  "committees-meetings": "اللجان والاجتماعات",
+};
+
+const RUNTIME_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
+  positive_behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+  behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+};
+
+function normalizeRuntimeCaseTitleText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanRuntimeCaseTitle(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  if (!text || text === "null" || text === "undefined" || text.length > 140) {
+    return "";
+  }
+
+  return text;
+}
+
+function isGenericRuntimeCaseTitle(title: string) {
+  const normalized = normalizeRuntimeCaseTitleText(title);
+
+  return (
+    !normalized ||
+    normalized === "بدون عنوان" ||
+    normalized === "حاله بدون عنوان" ||
+    normalized === "حالة بدون عنوان" ||
+    normalized === "حاله جديده" ||
+    normalized === "حالة جديدة" ||
+    normalized.includes("برنامج ارشادي جديد")
+  );
+}
+
+function extractRuntimeTitleSelectedValues(value: unknown): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return [String(value)];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractRuntimeTitleSelectedValues(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return [
+      ...extractRuntimeTitleSelectedValues(record.value),
+      ...extractRuntimeTitleSelectedValues(record.id),
+      ...extractRuntimeTitleSelectedValues(record.key),
+      ...extractRuntimeTitleSelectedValues(record.slug),
+      ...extractRuntimeTitleSelectedValues(record.label),
+      ...extractRuntimeTitleSelectedValues(record.name),
+    ];
+  }
+
+  return [];
+}
+
+function isRuntimeTitleField(field: RuntimeField) {
+  const text = normalizeRuntimeCaseTitleText(
+    [field.key, field.label, field.type, field.helpText ?? ""].join(" "),
+  );
+
+  return (
+    text.includes("program") ||
+    text.includes("activity") ||
+    text.includes("title") ||
+    text.includes("برنامج") ||
+    text.includes("النشاط") ||
+    text.includes("عنوان") ||
+    text.includes("موضوع")
+  );
+}
+
+function getRuntimeFieldOptionLabel(field: RuntimeField, rawValue: unknown) {
+  const selectedValues = extractRuntimeTitleSelectedValues(rawValue);
+
+  for (const selectedValue of selectedValues) {
+    const cleanSelected = String(selectedValue).trim();
+
+    if (!cleanSelected) {
+      continue;
+    }
+
+    const fallbackLabel = RUNTIME_CASE_TITLE_FALLBACK_LABELS[cleanSelected];
+
+    if (fallbackLabel) {
+      return fallbackLabel;
+    }
+
+    const option = field.options.find((item) => {
+      return (
+        String(item.value || "").trim() === cleanSelected ||
+        String(item.label || "").trim() === cleanSelected
+      );
+    });
+
+    if (option?.label) {
+      return cleanRuntimeCaseTitle(option.label);
+    }
+  }
+
+  return "";
+}
+
+function getSmartRuntimeCaseTitle({
+  workflow,
+  values,
+  fallbackTitle,
+}: {
+  workflow: RuntimeWorkflow;
+  values: RuntimeValues;
+  fallbackTitle?: string | null;
+}) {
+  for (const step of workflow.steps) {
+    for (const field of step.fields) {
+      if (!isRuntimeTitleField(field)) {
+        continue;
+      }
+
+      const rawValue = values[field.key];
+
+      const candidate =
+        getRuntimeFieldOptionLabel(field, rawValue) ||
+        cleanRuntimeCaseTitle(rawValue);
+
+      if (candidate && !isGenericRuntimeCaseTitle(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  const cleanFallback = cleanRuntimeCaseTitle(fallbackTitle);
+
+  if (cleanFallback && !isGenericRuntimeCaseTitle(cleanFallback)) {
+    return cleanFallback;
+  }
+
+  return RUNTIME_SERVICE_LABELS[workflow.serviceSlug] || workflow.name || "حالة جديدة";
+}
+
 function hasEvidenceStep(workflow: RuntimeWorkflow) {
   return workflow.steps.some(isEvidenceStep);
 }
@@ -207,6 +368,7 @@ export function DynamicFormRenderer({
   caseId,
   initialValues,
   initialEvidenceItems,
+  previewMode = false,
 }: Props) {
   const router = useRouter();
 
@@ -245,8 +407,24 @@ export function DynamicFormRenderer({
   const supportsEvidence =
     SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || workflowHasEvidenceStep;
 
+  const workflowStudentPickerMode =
+    typeof (workflow as any).studentPickerMode === "string"
+      ? (workflow as any).studentPickerMode
+      : "SERVICE_DEFAULT";
+
+  const workflowStudentPickerDecision =
+    workflowStudentPickerMode === "REQUIRED"
+      ? true
+      : workflowStudentPickerMode === "DISABLED"
+        ? false
+        : undefined;
+
   const needsStudent =
-    requiresStudent ?? SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+    workflowStudentPickerDecision ??
+    requiresStudent ??
+    SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+
+  // WORKFLOW_STUDENT_PICKER_MODE_RUNTIME_MARKER
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});
@@ -459,7 +637,11 @@ export function DynamicFormRenderer({
         body: JSON.stringify({
           workflowId: workflow.id,
           serviceId,
-          title: title || workflow.name,
+          title: getSmartRuntimeCaseTitle({
+            workflow: normalizedWorkflow,
+            values,
+            fallbackTitle: title || workflow.name,
+          }),
           studentId: selectedStudent?.id ?? null,
 
           values: {
@@ -672,7 +854,7 @@ export function DynamicFormRenderer({
             disabled={loading}
             className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            حفظ مسودة
+            {previewMode ? "معاينة فقط" : "حفظ مسودة"}
           </button>
 
           <button
@@ -681,7 +863,7 @@ export function DynamicFormRenderer({
             disabled={loading}
             className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "جاري الحفظ..." : caseId ? "تحديث الحالة" : "إرسال"}
+            {previewMode ? "لا يتم الحفظ في المعاينة" : loading ? "جاري الحفظ..." : caseId ? "تحديث الحالة" : "إرسال"}
           </button>
         </div>
       </section>

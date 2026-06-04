@@ -1,0 +1,3524 @@
+﻿WORKFLOW ACTUAL ROUTES CURRENT FILES
+Generated: 06/04/2026 09:06:55
+
+
+
+==================== FILE: app\dashboard\admin\workflows\[serviceSlug]\page.tsx ====================
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { WorkflowHealthReport } from "@/components/admin/workflow-health/workflow-health-report";
+import { validateWorkflow } from "@/engine/workflow-validation/workflow-validator";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+import { dashboardServices } from "@/lib/constants/services";
+import { prisma } from "@/lib/prisma";
+import { WORKFLOW_TYPES, isSecondaryWorkflow, getWorkflowPlacementLabel } from "@/lib/workflows/workflow-types";
+
+type PageProps = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+export default async function ServiceWorkflowPage({ params }: PageProps) {
+  await requireAdminPage();
+
+  const { serviceSlug } = await params;
+
+  const serviceConfig = dashboardServices.find(
+    (service) => service.slug === serviceSlug
+  );
+
+  if (!serviceConfig) {
+    notFound();
+  }
+
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          version: "desc",
+        },
+      },
+    },
+  });
+
+  const defaultWorkflows =
+    service?.workflows.filter(
+      (workflow) => workflow.workflowType === WORKFLOW_TYPES.DEFAULT
+    ) ?? [];
+
+  const subWorkflows =
+    service?.workflows.filter(
+      (workflow) => isSecondaryWorkflow(workflow.workflowType)
+    ) ?? [];
+
+  const activeWorkflow = defaultWorkflows.find((workflow) => workflow.isActive);
+
+  const healthReport = activeWorkflow
+    ? validateWorkflow({
+        id: activeWorkflow.id,
+        name: activeWorkflow.name,
+        steps: activeWorkflow.steps.map((step) => ({
+          id: step.id,
+          title: step.title,
+          fields: step.fields.map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            type: field.type,
+            isRequired: field.isRequired,
+            dependsOnFieldKey: field.dependsOnFieldKey,
+            linkedToValue: field.linkedToValue,
+            allowOther: field.allowOther,
+            options: field.options.map((option) => ({
+              id: option.id,
+              label: option.label,
+              value: option.value,
+              linkedToValue: option.linkedToValue,
+            })),
+          })),
+        })),
+      })
+    : null;
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
+        <p className="text-sm font-bold text-sky-100">Service Workflow</p>
+
+        <h1 className="mt-3 text-4xl font-black">{serviceConfig.title}</h1>
+
+        <p className="mt-4 max-w-3xl leading-8 text-sky-50">
+          إدارة Workflow الأساسي والـ Workflows الفرعية داخل هذه الخدمة.
+        </p>
+
+        <div className="mt-8">
+          <Link
+            href={`/dashboard/admin/workflows/${serviceSlug}/upload`}
+            className="rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-700 hover:bg-sky-50"
+          >
+            رفع Workflow Excel
+          </Link>
+        </div>
+      </section>
+
+      {healthReport ? <WorkflowHealthReport report={healthReport} /> : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+        <h2 className="text-2xl font-black text-slate-900">Workflow الأساسي المفعل</h2>
+
+        {activeWorkflow ? (
+          <div className="mt-6 space-y-4">
+            <div className="rounded-2xl bg-slate-50 p-5">
+              <p className="text-sm text-slate-500">الاسم</p>
+              <p className="mt-1 text-xl font-black text-slate-900">
+                {activeWorkflow.name}
+              </p>
+              <p className="mt-2 text-sm text-slate-500">
+                Version {activeWorkflow.version} · {activeWorkflow.steps.length} خطوات
+              </p>
+            </div>
+
+            {activeWorkflow.steps
+              .sort((a, b) => a.order - b.order)
+              .map((step) => (
+                <div
+                  key={step.id}
+                  className="rounded-2xl border border-slate-100 bg-slate-50 p-5"
+                >
+                  <h3 className="font-black text-slate-900">
+                    {step.order}. {step.title}
+                  </h3>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    {step.fields.length} حقول
+                  </p>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl bg-amber-50 p-6 text-sm font-bold text-amber-700">
+            لا يوجد Workflow أساسي مفعل لهذه الخدمة.
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow">
+        <h2 className="text-2xl font-black text-slate-900">
+          Workflows فرعية داخل الخدمة
+        </h2>
+
+        <p className="mt-2 text-sm leading-7 text-slate-500">
+          مثل استدعاء ولي أمر. هذه لا تظهر كخدمة مستقلة في مركز Workflows، لكنها تستخدم داخل صفحات الخدمة.
+        </p>
+
+        {subWorkflows.length ? (
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {subWorkflows.map((workflow) => (
+              <article
+                key={workflow.id}
+                className="rounded-2xl border border-slate-100 bg-slate-50 p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black text-emerald-700">
+                      {getWorkflowPlacementLabel(workflow.workflowType)}
+                    </p>
+                    <h3 className="mt-1 text-lg font-black text-slate-900">
+                      {workflow.name}
+                    </h3>
+                  </div>
+
+                  <span
+                    className={[
+                      "rounded-full px-3 py-1 text-[11px] font-black",
+                      workflow.isActive
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-slate-100 text-slate-500",
+                    ].join(" ")}
+                  >
+                    {workflow.isActive ? "مفعل" : workflow.status}
+                  </span>
+                </div>
+
+                <p className="mt-3 text-sm text-slate-500">
+                  Version {workflow.version} · {workflow.steps.length} خطوات
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-sm font-bold text-slate-500">
+            لا توجد Workflows فرعية داخل هذه الخدمة.
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+
+
+
+
+==================== FILE: app\dashboard\admin\workflows\[serviceSlug]\load\page.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx ====================
+import { notFound } from "next/navigation";
+
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+import { prisma } from "@/lib/prisma";
+import { dashboardServices } from "@/lib/constants/services";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+
+type PageProps = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+export default async function WorkflowPreviewPage({
+  params,
+}: PageProps) {
+  await requireAdminPage();
+
+  const { serviceSlug } = await params;
+
+  const serviceConfig = dashboardServices.find(
+    (service) => service.slug === serviceSlug
+  );
+
+  if (!serviceConfig) {
+    notFound();
+  }
+
+  const workflow = await prisma.workflow.findFirst({
+    where: {
+      service: {
+        slug: serviceSlug,
+      },
+      workflowType: WORKFLOW_TYPES.DEFAULT,
+      status: "DRAFT",
+    },
+    include: {
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+        orderBy: {
+          order: "asc",
+        },
+      },
+    },
+    orderBy: {
+      version: "desc",
+    },
+  });
+
+  if (!workflow) {
+    return (
+      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-amber-700">
+        لا يوجد Draft Workflow لهذه الخدمة.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white shadow-2xl">
+        <p className="text-sm font-bold text-sky-300">
+          Workflow Preview
+        </p>
+
+        <h1 className="mt-3 text-4xl font-black">
+          Preview - {workflow.name}
+        </h1>
+
+        <p className="mt-4 text-slate-300">
+          Version {workflow.version}
+        </p>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="space-y-6">
+          {workflow.steps.map((step) => (
+            <div
+              key={step.id}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+            >
+              <h2 className="text-xl font-black text-slate-900">
+                {step.order}. {step.title}
+              </h2>
+
+              <div className="mt-5 grid gap-4">
+                {step.fields.map((field) => (
+                  <div
+                    key={field.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold text-slate-900">
+                        {field.label}
+                      </p>
+
+                      <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-700">
+                        {field.type}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-xs text-slate-500">
+                      key: {field.key}
+                    </p>
+
+                    {field.options.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {field.options.map((option) => (
+                          <span
+                            key={option.id}
+                            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700"
+                          >
+                            {option.label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
+
+==================== FILE: app\dashboard\admin\workflows\[serviceSlug]\edit\page.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: app\api\dashboard\admin\workflows\[serviceSlug]\load\route.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts ====================
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+
+type RouteContext = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+export async function POST(_request: Request, context: RouteContext) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  try {
+    const { serviceSlug } = await context.params;
+
+    const service = await prisma.service.findUnique({
+      where: {
+        slug: serviceSlug,
+      },
+    });
+
+    if (!service) {
+      return NextResponse.json(
+        { error: "الخدمة غير موجودة." },
+        { status: 404 }
+      );
+    }
+
+    const draftWorkflow = await prisma.workflow.findFirst({
+      where: {
+        serviceId: service.id,
+        workflowType: WORKFLOW_TYPES.DEFAULT,
+        status: "DRAFT",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    if (!draftWorkflow) {
+      return NextResponse.json(
+        { error: "لا يوجد Workflow مسودة لاعتماده." },
+        { status: 404 }
+      );
+    }
+
+    await prisma.workflow.updateMany({
+      where: {
+        serviceId: draftWorkflow.serviceId,
+        workflowType: WORKFLOW_TYPES.DEFAULT,
+        status: "ACTIVE",
+      },
+      data: {
+        status: "ARCHIVED",
+        isActive: false,
+      },
+    });
+
+    const publishedWorkflow = await prisma.workflow.update({
+      where: {
+        id: draftWorkflow.id,
+      },
+      data: {
+        status: "ACTIVE",
+        isActive: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      workflowId: publishedWorkflow.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء اعتماد Workflow.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+
+==================== FILE: app\api\dashboard\admin\workflows\[serviceSlug]\unpublish\route.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: components\admin\workflows\guardian-summons-workflow-admin-card.tsx ====================
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { CheckCircle2, FileSignature, Loader2, WandSparkles } from "lucide-react";
+
+export function GuardianSummonsWorkflowAdminCard() {
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function publishWorkflow() {
+    try {
+      setLoading(true);
+      setMessage(null);
+      setError(null);
+
+      const response = await fetch("/api/admin/workflows/guardian-summons", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "تعذر إنشاء/نشر Workflow استدعاء ولي أمر.");
+      }
+
+      setMessage(data.message || "تم إنشاء/نشر Workflow استدعاء ولي أمر بنجاح.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-5">
+        <div className="flex items-start gap-4">
+          <div className="rounded-3xl bg-emerald-100 p-4 text-emerald-700">
+            <FileSignature className="h-7 w-7" />
+          </div>
+
+          <div>
+            <p className="text-xs font-black text-emerald-700">Workflow فرعي داخل خدمة التواصل</p>
+            <h2 className="mt-1 text-2xl font-black text-slate-950">
+              استدعاء ولي أمر
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-7 text-slate-600">
+              ينشئ Workflow مستقل باسم guardian-summons داخل خدمة التواصل بين الأسرة والمدرسة، ثم يظهر للموجه/الموجهة في الداشبورد ويُحفظ كسجل حالة طبيعي.
+            </p>
+
+            {message ? (
+              <div className="mt-4 flex items-center gap-2 rounded-2xl bg-emerald-100 px-4 py-3 text-sm font-black text-emerald-800">
+                <CheckCircle2 className="h-4 w-4" />
+                {message}
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="mt-4 rounded-2xl bg-rose-100 px-4 py-3 text-sm font-black text-rose-800">
+                {error}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={publishWorkflow}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <WandSparkles className="h-4 w-4" />
+            )}
+            إنشاء/نشر Workflow
+          </button>
+
+          <Link
+            href="/dashboard/family-school-communication/guardian-summons/new"
+            className="inline-flex items-center rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-50"
+          >
+            تجربة صفحة الموجه
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+
+==================== FILE: components\workflow\dynamic-form-renderer.tsx ====================
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
+import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { WorkflowStepCard } from "@/components/workflow/workflow-step-card";
+
+import type {
+  RuntimeField,
+  RuntimeStep,
+  RuntimeWorkflow,
+} from "@/engine/runtime/runtime-resolver";
+import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+
+type EvidenceItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
+
+type FeedbackState = {
+  open: boolean;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message?: string;
+};
+
+type SmartStudent = {
+  id: string;
+  fullName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  stage?: string | null;
+  guardianName?: string | null;
+  guardianPhone?: string | null;
+};
+
+type Props = {
+  workflow: RuntimeWorkflow;
+  serviceId: string;
+  requiresStudent?: boolean;
+  title?: string | null;
+  caseId?: string;
+  initialValues?: RuntimeValues;
+  initialEvidenceItems?: EvidenceItem[];
+};
+
+/**
+ * خدمات تسمح بالشواهد على مستوى النظام.
+ * الظهور الفعلي للشواهد لا يكون هنا فقط؛ بل لازم تكون الخطوة الحالية خطوة شواهد.
+ */
+const SERVICES_WITH_EVIDENCE = new Set([
+  "guidance-programs",
+  "student-follow-up",
+  "family-school-communication",
+  "student-guidance-services",
+  "committees-meetings",
+]);
+
+/**
+ * خدمات تحتاج اختيار طالب/طالبة افتراضيًا.
+ * يمكن تجاوزها من الصفحة عبر requiresStudent={false}.
+ */
+const SERVICES_REQUIRING_STUDENT = new Set([
+  "student-follow-up",
+  "family-school-communication",
+  "student-guidance-services",
+]);
+
+function normalizeRuntimeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stepSearchText(step?: RuntimeStep | null) {
+  if (!step) return "";
+
+  return normalizeRuntimeText(
+    [
+      step.title,
+      step.description ?? "",
+      ...step.fields.map((field) =>
+        [
+          field.key,
+          field.label,
+          field.type,
+          field.placeholder ?? "",
+          field.helpText ?? "",
+        ].join(" ")
+      ),
+    ].join(" ")
+  );
+}
+
+function isEvidenceField(field: RuntimeField) {
+  const text = normalizeRuntimeText(
+    [
+      field.key,
+      field.label,
+      field.type,
+      field.placeholder ?? "",
+      field.helpText ?? "",
+    ].join(" ")
+  );
+
+  return (
+    field.type === "FILE_UPLOAD" ||
+    field.type === "IMAGE_UPLOAD" ||
+    text.includes("evidence") ||
+    text.includes("attachment") ||
+    text.includes("attachments") ||
+    text.includes("file_upload") ||
+    text.includes("image_upload") ||
+    text.includes("شواهد") ||
+    text.includes("الشواهد") ||
+    text.includes("مرفقات") ||
+    text.includes("المرفقات") ||
+    text.includes("ملف") ||
+    text.includes("صوره") ||
+    text.includes("صورة")
+  );
+}
+
+function isEvidenceStep(step?: RuntimeStep | null) {
+  if (!step) return false;
+
+  const text = stepSearchText(step);
+
+  return (
+    step.fields.some(isEvidenceField) ||
+    text.includes("evidence") ||
+    text.includes("attachment") ||
+    text.includes("attachments") ||
+    text.includes("شواهد") ||
+    text.includes("الشواهد") ||
+    text.includes("مرفقات") ||
+    text.includes("المرفقات")
+  );
+}
+
+function isStudentPickerField(field: RuntimeField) {
+  const text = normalizeRuntimeText(
+    [field.key, field.label, field.type, field.helpText ?? ""].join(" ")
+  );
+
+  return (
+    field.type === "STUDENT_PICKER" ||
+    text.includes("student_picker") ||
+    text.includes("student picker") ||
+    text.includes("اختيار طالب") ||
+    text.includes("اختيار الطالبه") ||
+    text.includes("اختيار الطالبة") ||
+    text.includes("الطالب المستهدف") ||
+    text.includes("الطالبه المستهدفه") ||
+    text.includes("الطالبة المستهدفة")
+  );
+}
+
+function isStudentPickerStep(step?: RuntimeStep | null) {
+  if (!step) return false;
+
+  const text = stepSearchText(step);
+
+  return (
+    step.fields.some(isStudentPickerField) ||
+    text.includes("student_picker") ||
+    text.includes("student picker") ||
+    text.includes("اختيار طالب") ||
+    text.includes("اختيار الطالبة") ||
+    text.includes("الطالب المستهدف")
+  );
+}
+
+const RUNTIME_SERVICE_LABELS: Record<string, string> = {
+  "guidance-programs": "البرامج الإرشادية",
+  "student-follow-up": "متابعة الطلاب",
+  "family-school-communication": "التواصل الأسري",
+  "student-guidance-services": "الخدمات الإرشادية",
+  "committees-meetings": "اللجان والاجتماعات",
+};
+
+const RUNTIME_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
+  positive_behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+  behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+};
+
+function normalizeRuntimeCaseTitleText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanRuntimeCaseTitle(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  if (!text || text === "null" || text === "undefined" || text.length > 140) {
+    return "";
+  }
+
+  return text;
+}
+
+function isGenericRuntimeCaseTitle(title: string) {
+  const normalized = normalizeRuntimeCaseTitleText(title);
+
+  return (
+    !normalized ||
+    normalized === "بدون عنوان" ||
+    normalized === "حاله بدون عنوان" ||
+    normalized === "حالة بدون عنوان" ||
+    normalized === "حاله جديده" ||
+    normalized === "حالة جديدة" ||
+    normalized.includes("برنامج ارشادي جديد")
+  );
+}
+
+function extractRuntimeTitleSelectedValues(value: unknown): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return [String(value)];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractRuntimeTitleSelectedValues(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return [
+      ...extractRuntimeTitleSelectedValues(record.value),
+      ...extractRuntimeTitleSelectedValues(record.id),
+      ...extractRuntimeTitleSelectedValues(record.key),
+      ...extractRuntimeTitleSelectedValues(record.slug),
+      ...extractRuntimeTitleSelectedValues(record.label),
+      ...extractRuntimeTitleSelectedValues(record.name),
+    ];
+  }
+
+  return [];
+}
+
+function isRuntimeTitleField(field: RuntimeField) {
+  const text = normalizeRuntimeCaseTitleText(
+    [field.key, field.label, field.type, field.helpText ?? ""].join(" "),
+  );
+
+  return (
+    text.includes("program") ||
+    text.includes("activity") ||
+    text.includes("title") ||
+    text.includes("برنامج") ||
+    text.includes("النشاط") ||
+    text.includes("عنوان") ||
+    text.includes("موضوع")
+  );
+}
+
+function getRuntimeFieldOptionLabel(field: RuntimeField, rawValue: unknown) {
+  const selectedValues = extractRuntimeTitleSelectedValues(rawValue);
+
+  for (const selectedValue of selectedValues) {
+    const cleanSelected = String(selectedValue).trim();
+
+    if (!cleanSelected) {
+      continue;
+    }
+
+    const fallbackLabel = RUNTIME_CASE_TITLE_FALLBACK_LABELS[cleanSelected];
+
+    if (fallbackLabel) {
+      return fallbackLabel;
+    }
+
+    const option = field.options.find((item) => {
+      return (
+        String(item.value || "").trim() === cleanSelected ||
+        String(item.label || "").trim() === cleanSelected
+      );
+    });
+
+    if (option?.label) {
+      return cleanRuntimeCaseTitle(option.label);
+    }
+  }
+
+  return "";
+}
+
+function getSmartRuntimeCaseTitle({
+  workflow,
+  values,
+  fallbackTitle,
+}: {
+  workflow: RuntimeWorkflow;
+  values: RuntimeValues;
+  fallbackTitle?: string | null;
+}) {
+  for (const step of workflow.steps) {
+    for (const field of step.fields) {
+      if (!isRuntimeTitleField(field)) {
+        continue;
+      }
+
+      const rawValue = values[field.key];
+
+      const candidate =
+        getRuntimeFieldOptionLabel(field, rawValue) ||
+        cleanRuntimeCaseTitle(rawValue);
+
+      if (candidate && !isGenericRuntimeCaseTitle(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  const cleanFallback = cleanRuntimeCaseTitle(fallbackTitle);
+
+  if (cleanFallback && !isGenericRuntimeCaseTitle(cleanFallback)) {
+    return cleanFallback;
+  }
+
+  return RUNTIME_SERVICE_LABELS[workflow.serviceSlug] || workflow.name || "حالة جديدة";
+}
+
+function hasEvidenceStep(workflow: RuntimeWorkflow) {
+  return workflow.steps.some(isEvidenceStep);
+}
+
+function hasStudentPickerStep(workflow: RuntimeWorkflow) {
+  return workflow.steps.some(isStudentPickerStep);
+}
+
+function isEmptyValue(value: unknown) {
+  return (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+export function DynamicFormRenderer({
+  workflow,
+  serviceId,
+  requiresStudent,
+  title,
+  caseId,
+  initialValues,
+  initialEvidenceItems,
+}: Props) {
+  const router = useRouter();
+
+  const steps = useMemo(() => {
+    return [...workflow.steps]
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        ...step,
+        fields: [...step.fields]
+          .sort((a, b) => a.order - b.order)
+          .map((field) => ({
+            ...field,
+            options: [...field.options].sort((a, b) => a.order - b.order),
+          })),
+      }));
+  }, [workflow.steps]);
+
+  const normalizedWorkflow: RuntimeWorkflow = useMemo(
+    () => ({
+      ...workflow,
+      steps,
+    }),
+    [workflow, steps]
+  );
+
+  const workflowHasEvidenceStep = useMemo(
+    () => hasEvidenceStep(normalizedWorkflow),
+    [normalizedWorkflow]
+  );
+
+  const workflowHasStudentPickerStep = useMemo(
+    () => hasStudentPickerStep(normalizedWorkflow),
+    [normalizedWorkflow]
+  );
+
+  const supportsEvidence =
+    SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || workflowHasEvidenceStep;
+
+  const needsStudent =
+    requiresStudent ?? SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});
+  const [selectedStudent, setSelectedStudent] = useState<SmartStudent | null>(
+    () => extractInitialStudent(initialValues)
+  );
+
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>(
+    initialEvidenceItems ?? []
+  );
+
+  const [loading, setLoading] = useState(false);
+
+  const [feedback, setFeedback] = useState<FeedbackState>({
+    open: false,
+    type: "info",
+    title: "",
+  });
+
+  const currentStep = steps[currentStepIndex];
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === steps.length - 1;
+
+  const showEvidenceCard = supportsEvidence && isEvidenceStep(currentStep);
+
+  const showStudentPickerCard =
+    needsStudent &&
+    (isStudentPickerStep(currentStep) ||
+      (!workflowHasStudentPickerStep && isFirstStep));
+
+  const showStudentSummaryCard =
+    needsStudent && !showStudentPickerCard && Boolean(selectedStudent);
+
+  function showFeedback(
+    type: FeedbackState["type"],
+    titleText: string,
+    message?: string
+  ) {
+    setFeedback({
+      open: true,
+      type,
+      title: titleText,
+      message,
+    });
+  }
+
+  /**
+   * يمسح القيم التابعة عند تغيير القيمة الأب.
+   * مثال:
+   * البرنامج تغيّر → يمسح الإجراء التنفيذي والآلية والمؤشر المرتبط بها.
+   */
+  function updateValue(fieldKey: string, value: unknown) {
+    setValues((current) => {
+      const next: RuntimeValues = {
+        ...current,
+        [fieldKey]: value,
+      };
+
+      const dependentKeys = new Set<string>();
+      const changedKeys = new Set<string>([fieldKey]);
+
+      let keepSearching = true;
+
+      while (keepSearching) {
+        keepSearching = false;
+
+        for (const step of steps) {
+          for (const field of step.fields) {
+            if (!field.dependsOnFieldKey) continue;
+
+            if (
+              changedKeys.has(field.dependsOnFieldKey) &&
+              !dependentKeys.has(field.key)
+            ) {
+              dependentKeys.add(field.key);
+              changedKeys.add(field.key);
+              keepSearching = true;
+            }
+          }
+        }
+      }
+
+      for (const key of dependentKeys) {
+        delete next[key];
+        delete next[`${key}__other`];
+      }
+
+      return next;
+    });
+  }
+
+  function handleStudentSelected(student: SmartStudent | null) {
+    setSelectedStudent(student);
+
+    setValues((current) => ({
+      ...current,
+      selectedStudent: student
+        ? {
+            id: student.id,
+            fullName: student.fullName,
+            nationalId: student.nationalId,
+            grade: student.grade,
+            classroom: student.classroom,
+            stage: student.stage,
+            guardianName: student.guardianName,
+            guardianPhone: student.guardianPhone,
+          }
+        : null,
+    }));
+  }
+
+  function validateStudentSelection() {
+    if (!needsStudent) return true;
+
+    if (selectedStudent?.id) return true;
+
+    showFeedback(
+      "warning",
+      "اختيار الطالب/الطالبة مطلوب",
+      "اختر الطالب/الطالبة أولًا قبل حفظ أو إرسال الحالة."
+    );
+
+    return false;
+  }
+
+  function shouldShowFieldInCurrentValues(field: RuntimeField) {
+    if (!field.dependsOnFieldKey) return true;
+
+    const parentValue = values[field.dependsOnFieldKey];
+
+    if (isEmptyValue(parentValue)) return false;
+
+    if (!field.linkedToValue) return true;
+
+    if (Array.isArray(parentValue)) {
+      return parentValue.map(String).includes(String(field.linkedToValue));
+    }
+
+    return String(parentValue) === String(field.linkedToValue);
+  }
+
+  function validateCurrentStep() {
+    if (!validateStudentSelection()) return false;
+
+    if (!currentStep) return true;
+
+    const visibleFields = currentStep.fields.filter(shouldShowFieldInCurrentValues);
+
+    for (const field of visibleFields) {
+      if (!field.isRequired) continue;
+
+      const value = values[field.key];
+
+      if (isEmptyValue(value)) {
+        showFeedback(
+          "warning",
+          "حقل مطلوب",
+          `يرجى تعبئة الحقل: ${field.label}`
+        );
+
+        return false;
+      }
+
+      if (value === "__OTHER__" && isEmptyValue(values[`${field.key}__other`])) {
+        showFeedback(
+          "warning",
+          "تفصيل خيار أخرى مطلوب",
+          `يرجى كتابة قيمة خيار أخرى في الحقل: ${field.label}`
+        );
+
+        return false;
+      }
+
+      if (
+        Array.isArray(value) &&
+        value.includes("__OTHER__") &&
+        isEmptyValue(values[`${field.key}__other`])
+      ) {
+        showFeedback(
+          "warning",
+          "تفصيل خيار أخرى مطلوب",
+          `يرجى كتابة قيمة خيار أخرى في الحقل: ${field.label}`
+        );
+
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  async function handleSave(type: "draft" | "submit") {
+    if (!validateStudentSelection()) return;
+    if (type === "submit" && !validateCurrentStep()) return;
+
+    try {
+      setLoading(true);
+
+      const endpoint = caseId
+        ? `/api/dashboard/cases/${caseId}`
+        : type === "submit"
+          ? "/api/dashboard/cases/submit"
+          : "/api/dashboard/cases/save-draft";
+
+      const response = await fetch(endpoint, {
+        method: caseId ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          workflowId: workflow.id,
+          serviceId,
+          title: getSmartRuntimeCaseTitle({
+            workflow: normalizedWorkflow,
+            values,
+            fallbackTitle: title || workflow.name,
+          }),
+          studentId: selectedStudent?.id ?? null,
+
+          values: {
+            ...values,
+            selectedStudent: selectedStudent
+              ? {
+                  id: selectedStudent.id,
+                  fullName: selectedStudent.fullName,
+                  nationalId: selectedStudent.nationalId,
+                  grade: selectedStudent.grade,
+                  classroom: selectedStudent.classroom,
+                  stage: selectedStudent.stage,
+                  guardianName: selectedStudent.guardianName,
+                  guardianPhone: selectedStudent.guardianPhone,
+                }
+              : null,
+          },
+
+          status: type === "submit" ? "SUBMITTED" : "DRAFT",
+          evidenceItems: supportsEvidence ? evidenceItems : [],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "حدث خطأ أثناء حفظ الحالة.");
+      }
+
+      showFeedback(
+        "success",
+        type === "submit" ? "تم إرسال الحالة" : "تم حفظ المسودة",
+        "تم حفظ البيانات بنجاح."
+      );
+
+      setTimeout(() => {
+        router.push(`/dashboard/cases/${data.caseId}`);
+        router.refresh();
+      }, 700);
+    } catch (error) {
+      showFeedback(
+        "error",
+        "تعذر الحفظ",
+        error instanceof Error ? error.message : "حدث خطأ غير متوقع."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function goNext() {
+    if (!validateCurrentStep()) return;
+
+    setCurrentStepIndex((current) => Math.min(current + 1, steps.length - 1));
+  }
+
+  function goPrevious() {
+    setCurrentStepIndex((current) => Math.max(current - 1, 0));
+  }
+
+  function handleEvidenceUploaded(items: EvidenceItem[]) {
+    setEvidenceItems((current) => [...current, ...items]);
+
+    showFeedback(
+      "success",
+      "تم رفع الشواهد",
+      "تمت إضافة الشواهد إلى الحالة بنجاح."
+    );
+  }
+
+  function handleDeleteEvidence(id: string) {
+    setEvidenceItems((current) => current.filter((item) => item.id !== id));
+
+    showFeedback("info", "تم حذف الشاهد", "تم حذف الشاهد من قائمة الشواهد.");
+  }
+
+  if (!currentStep) {
+    return (
+      <main className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
+        <h1 className="text-2xl font-black text-amber-900">
+          لا توجد خطوات في هذا النموذج
+        </h1>
+
+        <p className="mt-2 text-sm leading-7 text-amber-800">
+          لم يتم العثور على خطوات Workflow لهذه الخدمة. راجع ملف Excel أو إعدادات
+          النشر من لوحة الأدمن.
+        </p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="space-y-8">
+      <SmartFeedbackModal
+        open={feedback.open}
+        type={feedback.type}
+        title={feedback.title}
+        description={feedback.message}
+        onOpenChange={(open) => setFeedback((current) => ({ ...current, open }))}
+      />
+
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-10 text-white shadow-2xl">
+        <p className="text-sm font-bold text-sky-100">Workflow Runtime</p>
+
+        <h1 className="mt-4 text-4xl font-black">{title || workflow.name}</h1>
+
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-50">
+          نموذج ديناميكي مبني على Workflow منشور. الحقول والخيارات والتبعيات
+          تظهر حسب إعدادات الخدمة والبيانات المرفوعة من لوحة الأدمن.
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+            الخطوة {currentStepIndex + 1} من {steps.length}
+          </span>
+
+          {needsStudent ? (
+            <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+              يتطلب اختيار طالب/طالبة
+            </span>
+          ) : null}
+
+          {supportsEvidence ? (
+            <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+              يدعم الشواهد
+            </span>
+          ) : null}
+        </div>
+      </section>
+
+      {showStudentPickerCard ? (
+        <SmartStudentPickerCard
+          selectedStudent={selectedStudent}
+          onStudentSelected={handleStudentSelected}
+        />
+      ) : null}
+
+      {showStudentSummaryCard && selectedStudent ? (
+        <StudentContextSummary
+          student={selectedStudent}
+          onEdit={() => {
+            const pickerIndex = steps.findIndex(isStudentPickerStep);
+            setCurrentStepIndex(pickerIndex >= 0 ? pickerIndex : 0);
+          }}
+        />
+      ) : null}
+
+      <StepProgress currentStepIndex={currentStepIndex} steps={steps} />
+
+      <WorkflowStepCard
+        step={currentStep}
+        values={values}
+        serviceSlug={workflow.serviceSlug}
+        onChange={updateValue}
+      />
+
+      {showEvidenceCard ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mb-6">
+            <p className="text-sm font-black text-sky-600">شواهد الحالة</p>
+
+            <h2 className="mt-2 text-3xl font-black text-slate-900">
+              الشواهد والمرفقات
+            </h2>
+
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              أضف الصور أو الملفات الداعمة لهذه الحالة. تظهر هذه البطاقة فقط في
+              خطوة الشواهد، ولا تظهر في باقي الخطوات.
+            </p>
+          </div>
+
+          <EvidenceUploadCard onUploaded={handleEvidenceUploaded} />
+
+          <div className="mt-6">
+            <EvidencePreviewGrid
+              items={evidenceItems}
+              onDelete={handleDeleteEvidence}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={goPrevious}
+            disabled={isFirstStep || loading}
+            className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            السابق
+          </button>
+
+          {!isLastStep ? (
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={loading}
+              className="rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              التالي
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => handleSave("draft")}
+            disabled={loading}
+            className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            حفظ مسودة
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSave("submit")}
+            disabled={loading}
+            className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "جاري الحفظ..." : caseId ? "تحديث الحالة" : "إرسال"}
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function extractInitialStudent(
+  initialValues: RuntimeValues | undefined
+): SmartStudent | null {
+  const value = initialValues?.selectedStudent;
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null;
+  }
+
+  return {
+    id: value.id,
+    fullName:
+      "fullName" in value && typeof value.fullName === "string"
+        ? value.fullName
+        : "طالب/طالبة",
+    nationalId:
+      "nationalId" in value && typeof value.nationalId === "string"
+        ? value.nationalId
+        : null,
+    grade:
+      "grade" in value && typeof value.grade === "string"
+        ? value.grade
+        : null,
+    classroom:
+      "classroom" in value && typeof value.classroom === "string"
+        ? value.classroom
+        : null,
+    stage:
+      "stage" in value && typeof value.stage === "string" ? value.stage : null,
+    guardianName:
+      "guardianName" in value && typeof value.guardianName === "string"
+        ? value.guardianName
+        : null,
+    guardianPhone:
+      "guardianPhone" in value && typeof value.guardianPhone === "string"
+        ? value.guardianPhone
+        : null,
+  };
+}
+
+function StepProgress({
+  currentStepIndex,
+  steps,
+}: {
+  currentStepIndex: number;
+  steps: RuntimeStep[];
+}) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap gap-2">
+        {steps.map((step, index) => {
+          const isActive = index === currentStepIndex;
+          const isDone = index < currentStepIndex;
+
+          return (
+            <div
+              key={step.id}
+              className={[
+                "flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-black",
+                isActive
+                  ? "border-sky-200 bg-sky-50 text-sky-700"
+                  : isDone
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-slate-50 text-slate-500",
+              ].join(" ")}
+            >
+              <span>{index + 1}</span>
+              <span>{step.title}</span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SmartStudentPickerCard({
+  selectedStudent,
+  onStudentSelected,
+}: {
+  selectedStudent: SmartStudent | null;
+  onStudentSelected: (student: SmartStudent | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [students, setStudents] = useState<SmartStudent[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery.length < 2) {
+      setStudents([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function searchStudents() {
+      try {
+        setLoading(true);
+
+        const response = await fetch(
+          `/api/dashboard/students/search?q=${encodeURIComponent(trimmedQuery)}`,
+          {
+            signal: controller.signal,
+          }
+        );
+
+        const data = await response.json();
+        const normalizedStudents = normalizeStudentsResponse(data);
+
+        setStudents(normalizedStudents);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const timer = window.setTimeout(searchStudents, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <section className="rounded-[2rem] border border-sky-200 bg-sky-50/70 p-6 shadow-sm">
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <div>
+          <p className="text-sm font-black text-sky-700">
+            اختيار الطالب/الطالبة
+          </p>
+
+          <h2 className="mt-2 text-2xl font-black text-slate-900">
+            اختر الطالب/الطالبة المرتبط بهذه الحالة
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-slate-600">
+            ابحث باسم الطالب/الطالبة أو رقم الهوية. بعد الاختيار سيتم ربط
+            الحالة بسجل الطالب/الطالبة وبيانات ولي الأمر.
+          </p>
+
+          <div className="relative mt-5">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="اكتب اسم الطالب/الطالبة أو رقم الهوية..."
+              className="h-14 w-full rounded-2xl border border-sky-200 bg-white px-5 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+            />
+
+            {query.trim().length >= 2 ? (
+              <div className="absolute z-30 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                {loading ? (
+                  <div className="p-4 text-sm font-bold text-slate-500">
+                    جاري البحث...
+                  </div>
+                ) : students.length ? (
+                  students.map((student) => (
+                    <button
+                      key={student.id}
+                      type="button"
+                      onClick={() => {
+                        onStudentSelected(student);
+                        setQuery("");
+                        setStudents([]);
+                      }}
+                      className="w-full rounded-xl p-3 text-right transition hover:bg-sky-50"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <strong className="text-sm text-slate-900">
+                          {student.fullName}
+                        </strong>
+
+                        <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500">
+                          {student.nationalId || "بدون هوية"}
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {[
+                          student.stage,
+                          student.grade,
+                          student.classroom
+                            ? `فصل ${student.classroom}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" - ") || "لا توجد بيانات صفية"}
+                      </p>
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-4 text-sm font-bold text-slate-500">
+                    لا توجد نتائج مطابقة.
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-sky-100 bg-white p-5">
+          {selectedStudent ? (
+            <StudentSelectedCard
+              student={selectedStudent}
+              onClear={() => onStudentSelected(null)}
+            />
+          ) : (
+            <div className="flex h-full min-h-44 flex-col justify-center rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-5 text-center">
+              <p className="text-sm font-black text-sky-700">
+                لم يتم اختيار طالب/طالبة
+              </p>
+
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                اختيار الطالب/الطالبة يساعد في التقارير والتصدير وتتبع الحالات.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StudentContextSummary({
+  student,
+  onEdit,
+}: {
+  student: SmartStudent;
+  onEdit: () => void;
+}) {
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div>
+        <p className="text-xs font-black text-slate-500">
+          الطالب/الطالبة المرتبط بالحالة
+        </p>
+
+        <h3 className="mt-1 text-lg font-black text-slate-900">
+          {student.fullName}
+        </h3>
+
+        <p className="mt-1 text-xs text-slate-500">
+          {[
+            student.stage,
+            student.grade,
+            student.classroom ? `فصل ${student.classroom}` : null,
+            student.guardianName ? `ولي الأمر: ${student.guardianName}` : null,
+          ]
+            .filter(Boolean)
+            .join(" - ")}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+      >
+        تعديل الاختيار
+      </button>
+    </section>
+  );
+}
+
+function StudentSelectedCard({
+  student,
+  onClear,
+}: {
+  student: SmartStudent;
+  onClear: () => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-emerald-700">
+            تم اختيار الطالب/الطالبة
+          </p>
+
+          <h3 className="mt-1 text-lg font-black text-slate-900">
+            {student.fullName}
+          </h3>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-100"
+        >
+          مسح
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-2 text-xs">
+        <InfoRow label="رقم الهوية" value={student.nationalId || "غير متاح"} />
+        <InfoRow label="المرحلة" value={student.stage || "غير متاح"} />
+        <InfoRow label="الصف" value={student.grade || "غير متاح"} />
+        <InfoRow label="الفصل" value={student.classroom || "غير متاح"} />
+        <InfoRow label="ولي الأمر" value={student.guardianName || "غير متاح"} />
+        <InfoRow
+          label="جوال ولي الأمر"
+          value={student.guardianPhone || "غير متاح"}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2">
+      <span className="font-bold text-slate-500">{label}</span>
+      <strong className="text-slate-800">{value}</strong>
+    </div>
+  );
+}
+
+function normalizeStudentsResponse(data: unknown): SmartStudent[] {
+  const source = Array.isArray(data)
+    ? data
+    : data &&
+        typeof data === "object" &&
+        "students" in data &&
+        Array.isArray(data.students)
+      ? data.students
+      : data &&
+          typeof data === "object" &&
+          "items" in data &&
+          Array.isArray(data.items)
+        ? data.items
+        : [];
+
+  return source
+    .map((item) => normalizeStudent(item))
+    .filter((student): student is SmartStudent => Boolean(student));
+}
+
+function normalizeStudent(item: unknown): SmartStudent | null {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const record = item as Record<string, unknown>;
+
+  const id = safeString(record.id);
+  const fullName =
+    safeString(record.fullName) ||
+    safeString(record.name) ||
+    safeString(record.studentName);
+
+  if (!id || !fullName) {
+    return null;
+  }
+
+  const guardian =
+    record.guardian && typeof record.guardian === "object"
+      ? (record.guardian as Record<string, unknown>)
+      : null;
+
+  return {
+    id,
+    fullName,
+    nationalId: safeString(record.nationalId),
+    grade: safeString(record.grade),
+    classroom: safeString(record.classroom),
+    stage: safeString(record.stage),
+    guardianName:
+      safeString(record.guardianName) ||
+      safeString(guardian?.name) ||
+      safeString(guardian?.fullName),
+    guardianPhone:
+      safeString(record.guardianPhone) ||
+      safeString(guardian?.phone) ||
+      safeString(guardian?.mobile),
+  };
+}
+
+function safeString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+
+==================== FILE: components\workflow\workflow-step-card.tsx ====================
+"use client";
+
+import {
+  CommitteeChainRepeater,
+  isCommitteeRowsValid,
+} from "@/components/committees/committee-chain-repeater";
+import { DynamicFieldRenderer } from "@/components/workflow/dynamic-field-renderer";
+import {
+  shouldShowField,
+  type RuntimeValues,
+} from "@/engine/runtime/field-dependency-engine";
+import type { RuntimeField, RuntimeStep } from "@/engine/runtime/runtime-resolver";
+
+type WorkflowStepCardProps = {
+  step: RuntimeStep;
+  values: RuntimeValues;
+  serviceSlug: string;
+  onChange: (key: string, value: unknown) => void;
+};
+
+function textOf(field: RuntimeField) {
+  return `${field.key} ${field.label}`.toLowerCase();
+}
+
+function isAgendaField(field: RuntimeField) {
+  const text = textOf(field);
+  return (
+    text.includes("agenda") ||
+    text.includes("committee_agenda") ||
+    text.includes("Ø¬Ø¯ÙˆÙ„") ||
+    text.includes("Ø§Ù„Ø£Ø¹Ù…Ø§Ù„") ||
+    text.includes("Ø§Ù„Ø§Ø¹Ù…Ø§Ù„")
+  );
+}
+
+function isDiscussionField(field: RuntimeField) {
+  const text = textOf(field);
+  return (
+    text.includes("discussion") ||
+    text.includes("committee_discussion") ||
+    text.includes("Ù…Ø­ÙˆØ±") ||
+    text.includes("Ù†Ù‚Ø§Ø´")
+  );
+}
+
+function isRecommendationField(field: RuntimeField) {
+  const text = textOf(field);
+  return (
+    text.includes("recommendation") ||
+    text.includes("committee_recommendation") ||
+    text.includes("ØªÙˆØµÙŠØ©") ||
+    text.includes("Ø§Ù„ØªÙˆØµÙŠØ©") ||
+    text.includes("Ø§Ù„ØªÙˆØµÙŠØ§Øª")
+  );
+}
+
+function isCommitteeChainField(field: RuntimeField) {
+  return isAgendaField(field) || isDiscussionField(field) || isRecommendationField(field);
+}
+
+export function isCommitteeChainStep(step?: RuntimeStep | null) {
+  if (!step) return false;
+
+  return (
+    step.fields.some(isAgendaField) &&
+    step.fields.some(isDiscussionField) &&
+    step.fields.some(isRecommendationField)
+  );
+}
+
+export function WorkflowStepCard({
+  step,
+  values,
+  serviceSlug,
+  onChange,
+}: WorkflowStepCardProps) {
+  const visibleFields = step.fields.filter((field) =>
+    shouldShowField(field, values)
+  );
+
+  const shouldRenderCommitteeChain =
+    serviceSlug === "committees-meetings" && isCommitteeChainStep(step);
+
+  const normalFields = shouldRenderCommitteeChain
+    ? visibleFields.filter((field) => !isCommitteeChainField(field))
+    : visibleFields;
+
+  const committeeValid = isCommitteeRowsValid(values.committee_items);
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-6 border-b border-slate-100 pb-5">
+        <p className="text-sm font-bold text-sky-700">Ø§Ù„Ø®Ø·ÙˆØ© {step.order}</p>
+
+        <h2 className="mt-2 text-2xl font-black text-slate-900">
+          {step.title}
+        </h2>
+
+        {step.description ? (
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            {step.description}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        {normalFields.map((field) => (
+          <div
+            key={field.id}
+            className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+          >
+            <DynamicFieldRenderer
+              field={field}
+              value={values[field.key]}
+              values={values}
+              onChange={(key, value) => onChange(key, value)}
+            />
+          </div>
+        ))}
+
+        {shouldRenderCommitteeChain ? (
+          <div className="md:col-span-2">
+            <CommitteeChainRepeater
+              fields={step.fields}
+              value={
+                Array.isArray(values.committee_items)
+                  ? (values.committee_items as any[])
+                  : undefined
+              }
+              onChange={(rows) => onChange("committee_items", rows)}
+            />
+
+            {!committeeValid ? (
+              <p className="mt-3 text-sm font-bold text-rose-500">
+                ÙŠØ¬Ø¨ Ø¥ÙƒÙ…Ø§Ù„ ØµÙ ÙˆØ§Ø­Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„: Ø¬Ø¯ÙˆÙ„ Ø£Ø¹Ù…Ø§Ù„ + Ù…Ø­ÙˆØ± Ù†Ù‚Ø§Ø´ + ØªÙˆØµÙŠØ©.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {normalFields.length === 0 && !shouldRenderCommitteeChain ? (
+          <div className="rounded-2xl bg-slate-50 p-6 text-sm font-semibold text-slate-400">
+            Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­Ù‚ÙˆÙ„ Ø¸Ø§Ù‡Ø±Ø© ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„Ø®Ø·ÙˆØ© Ø­Ø§Ù„ÙŠÙ‹Ø§.
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+
+==================== FILE: components\workflow\dynamic-field-renderer.tsx ====================
+"use client";
+
+import type { RuntimeField, RuntimeOption } from "@/engine/runtime/runtime-resolver";
+import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+
+type DynamicFieldRendererProps = {
+  field: RuntimeField;
+  value: unknown;
+  values: RuntimeValues;
+  onChange: (key: string, value: unknown) => void;
+};
+
+function FieldLabel({ field }: { field: RuntimeField }) {
+  return (
+    <label className="mb-3 block text-sm font-black text-slate-800">
+      {field.label}
+      {field.isRequired ? <span className="mr-1 text-rose-500">*</span> : null}
+    </label>
+  );
+}
+
+function HelpText({ text }: { text?: string | null }) {
+  if (!text) return null;
+  return <p className="mt-2 text-xs leading-6 text-slate-400">{text}</p>;
+}
+
+function getFilteredOptions(field: RuntimeField, values: RuntimeValues) {
+  if (!field.dependsOnFieldKey) return field.options;
+
+  const parentValue = values[field.dependsOnFieldKey];
+
+  return field.options.filter((option) => {
+    if (!option.linkedToValue) return true;
+
+    if (Array.isArray(parentValue)) {
+      return parentValue.includes(option.linkedToValue);
+    }
+
+    return String(parentValue ?? "") === String(option.linkedToValue);
+  });
+}
+
+function SelectOptions({
+  options,
+  allowOther,
+}: {
+  options: RuntimeOption[];
+  allowOther: boolean;
+}) {
+  return (
+    <>
+      <option value="">Ø§Ø®ØªØ±...</option>
+      {options.map((option) => (
+        <option key={option.id} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+      {allowOther ? <option value="__OTHER__">Ø£Ø®Ø±Ù‰</option> : null}
+    </>
+  );
+}
+
+export function DynamicFieldRenderer({
+  field,
+  value,
+  values,
+  onChange,
+}: DynamicFieldRendererProps) {
+  const baseInputClass =
+    "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100";
+
+  const filteredOptions = getFilteredOptions(field, values);
+
+  if (field.type === "TEXT" || field.type === "NUMBER" || field.type === "DATE") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <input
+          type={field.type === "NUMBER" ? "number" : field.type === "DATE" ? "date" : "text"}
+          value={String(value ?? "")}
+          placeholder={field.placeholder ?? ""}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          className={baseInputClass}
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "TEXTAREA" || field.type === "RICH_TEXT") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <textarea
+          value={String(value ?? "")}
+          placeholder={field.placeholder ?? ""}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          rows={5}
+          className={baseInputClass}
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "SELECT" || field.type === "RADIO") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <select
+          value={String(value ?? "")}
+          onChange={(event) => onChange(field.key, event.target.value)}
+          className={baseInputClass}
+        >
+          <SelectOptions options={filteredOptions} allowOther={field.allowOther} />
+        </select>
+
+        {value === "__OTHER__" ? (
+          <input
+            value={String(values[`${field.key}__other`] ?? "")}
+            onChange={(event) => onChange(`${field.key}__other`, event.target.value)}
+            placeholder="Ø§ÙƒØªØ¨ Ø®ÙŠØ§Ø± Ø£Ø®Ø±Ù‰..."
+            className={baseInputClass}
+          />
+        ) : null}
+
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "MULTI_SELECT" || field.type === "CHECKBOX") {
+    const selectedValues = Array.isArray(value) ? value.map(String) : [];
+
+    const allOptions = [
+      ...filteredOptions,
+      ...(field.allowOther
+        ? [{ id: "__other__", label: "Ø£Ø®Ø±Ù‰", value: "__OTHER__", order: 999, linkedToValue: null }]
+        : []),
+    ];
+
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+
+        <div className="grid gap-2 md:grid-cols-2">
+          {allOptions.map((option) => {
+            const checked = selectedValues.includes(option.value);
+
+            return (
+              <label
+                key={option.id}
+                className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(event) => {
+                    const next = event.target.checked
+                      ? [...selectedValues, option.value]
+                      : selectedValues.filter((item) => item !== option.value);
+
+                    onChange(field.key, next);
+                  }}
+                />
+                {option.label}
+              </label>
+            );
+          })}
+        </div>
+
+        {selectedValues.includes("__OTHER__") ? (
+          <input
+            value={String(values[`${field.key}__other`] ?? "")}
+            onChange={(event) => onChange(`${field.key}__other`, event.target.value)}
+            placeholder="Ø§ÙƒØªØ¨ Ø®ÙŠØ§Ø± Ø£Ø®Ø±Ù‰..."
+            className={baseInputClass}
+          />
+        ) : null}
+
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  if (field.type === "FILE_UPLOAD" || field.type === "IMAGE_UPLOAD") {
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+        <FieldLabel field={field} />
+        <input
+          type="file"
+          accept={field.type === "IMAGE_UPLOAD" ? "image/*" : undefined}
+          onChange={(event) => onChange(field.key, event.target.files?.[0] ?? null)}
+          className="w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm"
+        />
+        <HelpText text={field.helpText} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+      Ù†ÙˆØ¹ Ø§Ù„Ø­Ù‚Ù„ ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ… Ø­Ø§Ù„ÙŠÙ‹Ø§: {field.type}
+    </div>
+  );
+}
+
+
+==================== FILE: engine\runtime\runtime-resolver.ts ====================
+import { prisma } from "@/lib/prisma";
+
+export type RuntimeOption = {
+  id: string;
+  label: string;
+  value: string;
+  order: number;
+  linkedToValue?: string | null;
+};
+
+export type RuntimeField = {
+  id: string;
+  key: string;
+  label: string;
+  type: string;
+  placeholder?: string | null;
+  helpText?: string | null;
+  isRequired: boolean;
+  order: number;
+  dependsOnFieldKey?: string | null;
+  linkedToValue?: string | null;
+  allowOther: boolean;
+  options: RuntimeOption[];
+};
+
+export type RuntimeStep = {
+  id: string;
+  title: string;
+  description?: string | null;
+  order: number;
+  fields: RuntimeField[];
+};
+
+export type RuntimeWorkflow = {
+  id: string;
+  name: string;
+  serviceSlug: string;
+  workflowType?: string;
+  steps: RuntimeStep[];
+};
+
+export function sortRuntimeWorkflow(workflow: RuntimeWorkflow): RuntimeWorkflow {
+  return {
+    ...workflow,
+    steps: [...workflow.steps]
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        ...step,
+        fields: [...step.fields]
+          .sort((a, b) => a.order - b.order)
+          .map((field) => ({
+            ...field,
+            options: [...field.options].sort((a, b) => a.order - b.order),
+          })),
+      })),
+  };
+}
+
+export async function getRuntimeWorkflowByServiceSlug(
+  serviceSlug: string,
+  workflowType = "default",
+) {
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        where: {
+          isActive: true,
+          status: "ACTIVE",
+          workflowType,
+        },
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          version: "desc",
+        },
+        take: 1,
+      },
+    },
+  });
+
+  const workflow = service?.workflows[0];
+
+  if (!service || !workflow) {
+    return null;
+  }
+
+  return {
+    service,
+    workflow: sortRuntimeWorkflow({
+      id: workflow.id,
+      name: workflow.name,
+      serviceSlug: service.slug,
+      workflowType: workflow.workflowType,
+      steps: workflow.steps.map((step) => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        order: step.order,
+        fields: step.fields.map((field) => ({
+          id: field.id,
+          key: field.key,
+          label: field.label,
+          type: field.type,
+          placeholder: field.placeholder,
+          helpText: field.helpText,
+          isRequired: field.isRequired,
+          order: field.order,
+          allowOther: field.allowOther,
+          dependsOnFieldKey: field.dependsOnFieldKey,
+          linkedToValue: field.linkedToValue,
+          options: field.options.map((option) => ({
+            id: option.id,
+            label: option.label,
+            value: option.value,
+            order: option.order,
+            linkedToValue: option.linkedToValue,
+          })),
+        })),
+      })),
+    }),
+  };
+}
+
+
+
+==================== FILE: lib\workflow-values\workflow-display-value.ts ====================
+export type WorkflowOptionLike = {
+  label?: string | null;
+  value?: string | null;
+};
+
+export type WorkflowFieldLike = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: WorkflowOptionLike[] | null;
+};
+
+export type WorkflowValueLike = {
+  id?: string | null;
+  fieldKey?: string | null;
+  value?: string | null;
+  jsonValue?: unknown;
+  field?: WorkflowFieldLike | null;
+};
+
+export function getWorkflowFieldKey(item: WorkflowValueLike) {
+  return item.field?.key || item.fieldKey || item.id || "";
+}
+
+export function getWorkflowFieldLabel(item: WorkflowValueLike, index?: number) {
+  return (
+    item.field?.label ||
+    item.field?.key ||
+    item.fieldKey ||
+    (typeof index === "number" ? `Ù‚ÙŠÙ…Ø© Ø±Ù‚Ù… ${index + 1}` : "Ù‚ÙŠÙ…Ø©")
+  );
+}
+
+export function formatWorkflowDisplayValue(
+  item: WorkflowValueLike,
+  allValues: WorkflowValueLike[] = []
+) {
+  const fieldKey = getWorkflowFieldKey(item);
+  const rawValue = getRawWorkflowValue(item);
+  const otherValue = getOtherValueForField(fieldKey, allValues);
+
+  return formatValueByFieldOptions(rawValue, item.field?.options || [], otherValue);
+}
+
+export function stringifyWorkflowRawValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+
+  if (typeof value === "string") return value;
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => stringifyWorkflowRawValue(item)).filter(Boolean).join("ØŒ ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    if (typeof record.fullName === "string") return record.fullName;
+    if (typeof record.name === "string") return record.name;
+    if (typeof record.label === "string") return record.label;
+    if (typeof record.value === "string") return record.value;
+
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+
+  return String(value);
+}
+
+function getRawWorkflowValue(item: WorkflowValueLike) {
+  if (item.jsonValue !== null && item.jsonValue !== undefined) {
+    return normalizeStoredValue(item.jsonValue);
+  }
+
+  return normalizeStoredValue(item.value);
+}
+
+function normalizeStoredValue(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+
+  const trimmed = value.trim();
+
+  if (!trimmed) return "";
+
+  if (
+    (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+    (trimmed.startsWith("{") && trimmed.endsWith("}"))
+  ) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed;
+    }
+  }
+
+  return trimmed;
+}
+
+function formatValueByFieldOptions(
+  value: unknown,
+  options: WorkflowOptionLike[],
+  otherValue?: string
+): string {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => formatSingleChoice(item, options, otherValue))
+      .filter(Boolean)
+      .join("ØŒ ");
+  }
+
+  return formatSingleChoice(value, options, otherValue);
+}
+
+function formatSingleChoice(
+  value: unknown,
+  options: WorkflowOptionLike[],
+  otherValue?: string
+): string {
+  const normalizedValue = stringifyWorkflowRawValue(value).trim();
+
+  if (!normalizedValue) return "";
+
+  if (normalizedValue === "__OTHER__" || normalizedValue === "OTHER") {
+    return otherValue?.trim() || "Ø£Ø®Ø±Ù‰";
+  }
+
+  const matchedOption = options.find(
+    (option) => String(option.value ?? "").trim() === normalizedValue
+  );
+
+  if (matchedOption?.label) {
+    return matchedOption.label;
+  }
+
+  return normalizedValue;
+}
+
+function getOtherValueForField(
+  fieldKey: string,
+  allValues: WorkflowValueLike[]
+) {
+  if (!fieldKey) return "";
+
+  const otherKey = `${fieldKey}__other`;
+
+  const found = allValues.find((item) => {
+    const key = getWorkflowFieldKey(item);
+    return key === otherKey || item.fieldKey === otherKey;
+  });
+
+  if (!found) return "";
+
+  return stringifyWorkflowRawValue(found.value ?? found.jsonValue);
+}
+
+
+==================== FILE: lib\constants\services.ts ====================
+export type AppService = {
+  slug: string;
+  title: string;
+  description: string;
+  href: string;
+  kind: "workflow" | "standalone" | "admin";
+};
+
+export const workflowServices: AppService[] = [
+  {
+    slug: "guidance-programs",
+    title: "Ø§Ù„Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©",
+    description: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ© ÙˆØ®Ø·Ø· Ø§Ù„ØªÙ†ÙÙŠØ°.",
+    href: "/dashboard/guidance-programs",
+    kind: "workflow",
+  },
+  {
+    slug: "student-follow-up",
+    title: "Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø·Ù„Ø§Ø¨",
+    description: "Ù…ØªØ§Ø¨Ø¹Ø© Ø§Ù„Ø­Ø§Ù„Ø§Øª Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØ© Ø¹Ø¨Ø± Workflow Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠ.",
+    href: "/dashboard/student-follow-up",
+    kind: "workflow",
+  },
+  {
+    slug: "committees-meetings",
+    title: "Ø§Ù„Ù„Ø¬Ø§Ù† ÙˆØ§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹Ø§Øª",
+    description: "Ø¥Ø¯Ø§Ø±Ø© Ù…Ø­Ø§Ø¶Ø± Ø§Ù„Ù„Ø¬Ø§Ù† ÙˆØ§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹Ø§Øª ÙˆØ§Ù„ØªÙˆØµÙŠØ§Øª.",
+    href: "/dashboard/committees-meetings",
+    kind: "workflow",
+  },
+  {
+    slug: "family-school-communication",
+    title: "Ø§Ù„ØªÙˆØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø£Ø³Ø±Ø© ÙˆØ§Ù„Ù…Ø¯Ø±Ø³Ø©",
+    description: "ØªÙˆØ«ÙŠÙ‚ Ø§Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø± ÙˆÙ†ØªØ§Ø¦Ø¬ Ø§Ù„ØªÙˆØ§ØµÙ„.",
+    href: "/dashboard/family-school-communication",
+    kind: "workflow",
+  },
+  {
+    slug: "student-guidance-services",
+    title: "Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ÙŠØ© Ø§Ù„Ù…Ù‚Ø¯Ù…Ø© Ù„Ù„Ø·Ù„Ø§Ø¨",
+    description: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ÙŠØ© Ø¹Ø¨Ø± Workflow Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠ.",
+    href: "/dashboard/student-guidance-services",
+    kind: "workflow",
+  },
+];
+
+export const standaloneServices: AppService[] = [
+  {
+    slug: "comprehensive-reference",
+    title: "Ø§Ù„Ø³Ø¬Ù„ Ø§Ù„Ø´Ø§Ù…Ù„ Ù„Ù„Ø·Ø§Ù„Ø¨",
+    description: "Ø¹Ø±Ø¶ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨ ÙˆØ³Ø¬Ù„Ø§ØªÙ‡ Ø§Ù„ØªØ±Ø¨ÙˆÙŠØ©.",
+    href: "/dashboard/comprehensive-reference",
+    kind: "standalone",
+  },
+  {
+    slug: "results-analysis",
+    title: "ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù†ØªØ§Ø¦Ø¬",
+    description: "Ø±ÙØ¹ ÙˆØªØ­Ù„ÙŠÙ„ Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ø·Ù„Ø§Ø¨ Ù…Ù† Ù…Ù„ÙØ§Øª Excel.",
+    href: "/dashboard/results-analysis",
+    kind: "standalone",
+  },
+  {
+    slug: "reports",
+    title: "Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±",
+    description: "Ø¥Ù†Ø´Ø§Ø¡ ÙˆÙ…Ø¹Ø§ÙŠÙ†Ø© ÙˆØ§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø¥Ø±Ø´Ø§Ø¯ÙŠØ©.",
+    href: "/dashboard/reports",
+    kind: "standalone",
+  },
+];
+
+export const dashboardServices = [
+  ...workflowServices,
+  ...standaloneServices,
+];
+
+
+==================== FILE: prisma\schema.prisma ====================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+
+  users           User[]
+  profile         SchoolProfile?
+  students        Student[]
+  guardians       Guardian[]
+  staff           StaffMember[]
+  services        ServiceAccess[]
+  cases           CaseEntry[]
+  subscription    Subscription?
+  resultsAnalyses ResultsAnalysis[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  officialName String?
+  jobTitle     String?
+  isActive     Boolean  @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases    CaseEntry[]
+  sessions UserSession[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName          String
+  principalName       String?
+  educationDepartment String?
+  educationOffice     String?
+  city                String?
+  district            String?
+  stage               String?
+  academicYear        String?
+  currentSemester     String?
+  logoUrl             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows Workflow[]
+  cases     CaseEntry[]
+  access    ServiceAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name         String
+  version      Int            @default(1)
+  status       WorkflowStatus @default(DRAFT)
+  isActive     Boolean        @default(false)
+  workflowType String         @default("default")
+
+  steps WorkflowStep[]
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([serviceId, workflowType, isActive])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId      String?
+  workflow        Workflow?        @relation(fields: [workflowId], references: [id])
+  guidanceReports GuidanceReport[]
+  studentId       String?
+  student         Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values    CaseValue[]
+  evidences Evidence[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String?
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model ResultsAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title      String
+  grade      String?
+  classroom  String?
+  sourceFile String?
+  status     String  @default("COMPLETED")
+
+  totalStudents Int    @default(0)
+  totalSubjects Int    @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+model GuidanceReport {
+  id          String @id @default(cuid())
+  title       String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String
+  renderedContent String?
+
+  evidenceEnabled Boolean @default(true)
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  approvedAt DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([templateId])
+  @@index([generatedAt])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+
+  mimeType String?
+  size     Int?
+
+  sortOrder Int     @default(0)
+  visible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([visible])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  startsAt   DateTime?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+

@@ -137,6 +137,166 @@ async function findWorkflowOrNull(workflowId?: string | null) {
   });
 }
 
+async function buildWorkflowSnapshotForCase(workflowId?: string | null) {
+  if (!workflowId) {
+    return null;
+  }
+
+  const workflow = await prisma.workflow.findUnique({
+    where: {
+      id: workflowId,
+    },
+    include: {
+      service: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+        },
+      },
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+        orderBy: {
+          order: "asc",
+        },
+      },
+    },
+  });
+
+  if (!workflow) {
+    return null;
+  }
+
+  return {
+    capturedAt: new Date().toISOString(),
+    id: workflow.id,
+    name: workflow.name,
+    version: workflow.version,
+    status: workflow.status,
+    isActive: workflow.isActive,
+    workflowType: workflow.workflowType,
+    service: workflow.service,
+    steps: workflow.steps.map((step) => ({
+      id: step.id,
+      title: step.title,
+      description: step.description,
+      order: step.order,
+      fields: step.fields.map((field) => ({
+        id: field.id,
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        placeholder: field.placeholder,
+        helpText: field.helpText,
+        isRequired: field.isRequired,
+        order: field.order,
+        dependsOnFieldKey: field.dependsOnFieldKey,
+        linkedToValue: field.linkedToValue,
+        allowOther: field.allowOther,
+        options: field.options.map((option) => ({
+          id: option.id,
+          label: option.label,
+          value: option.value,
+          order: option.order,
+          linkedToValue: option.linkedToValue,
+        })),
+      })),
+    })),
+  };
+}
+
+
+type RuntimeStudentSnapshotSource = {
+  id: string;
+  schoolAccountId: string;
+  fullName: string;
+  nationalId: string | null;
+  gender: string | null;
+  stage: string | null;
+  grade: string | null;
+  classroom: string | null;
+  isActive: boolean;
+  guardian: {
+    id: string;
+    name: string;
+    phone: string | null;
+    relation: string | null;
+  } | null;
+};
+
+function buildStudentSnapshots(student: RuntimeStudentSnapshotSource) {
+  const studentSnapshot = {
+    id: student.id,
+    fullName: student.fullName,
+    nationalId: student.nationalId,
+    gender: student.gender,
+    stage: student.stage,
+    grade: student.grade,
+    classroom: student.classroom,
+    isActive: student.isActive,
+    capturedAt: new Date().toISOString(),
+  };
+
+  const guardianSnapshot = student.guardian
+    ? {
+        id: student.guardian.id,
+        name: student.guardian.name,
+        phone: student.guardian.phone,
+        relation: student.guardian.relation,
+        capturedAt: new Date().toISOString(),
+      }
+    : null;
+
+  return {
+    studentSnapshot,
+    guardianSnapshot,
+    selectedStudent: {
+      ...studentSnapshot,
+      guardian: guardianSnapshot,
+      guardianName: guardianSnapshot?.name ?? null,
+      guardianPhone: guardianSnapshot?.phone ?? null,
+    },
+  };
+}
+
+function mergeStudentSnapshotsIntoValues(
+  values: RuntimeCaseValues,
+  student: RuntimeStudentSnapshotSource | null
+): RuntimeCaseValues {
+  const nextValues = { ...(values || {}) } as Record<string, unknown>;
+
+  if (!student) {
+    delete nextValues.selectedStudent;
+    delete nextValues.studentSnapshot;
+    delete nextValues.guardianSnapshot;
+
+    return nextValues as unknown as RuntimeCaseValues;
+  }
+
+  const snapshots = buildStudentSnapshots(student);
+
+  nextValues.selectedStudent = snapshots.selectedStudent;
+  nextValues.studentSnapshot = snapshots.studentSnapshot;
+  nextValues.guardianSnapshot = snapshots.guardianSnapshot;
+
+  return nextValues as unknown as RuntimeCaseValues;
+}
+
+// SMART_STUDENT_SERVER_SNAPSHOT_MARKER
+
 async function findStudentOrNull(
   studentId: string | null | undefined,
   scope: CaseAccessScope
@@ -157,6 +317,21 @@ async function findStudentOrNull(
     select: {
       id: true,
       schoolAccountId: true,
+      fullName: true,
+      nationalId: true,
+      gender: true,
+      stage: true,
+      grade: true,
+      classroom: true,
+      isActive: true,
+      guardian: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          relation: true,
+        },
+      },
     },
   });
 }
@@ -193,14 +368,20 @@ export async function saveRuntimeCase({
     throw new Error("الطالب غير موجود أو لا يتبع مدرستك.");
   }
 
-  const serializedValues = serializeCaseValues(values);
+  const valuesWithStudentSnapshot = mergeStudentSnapshotsIntoValues(
+    values,
+    existingStudent
+  );
+  const serializedValues = serializeCaseValues(valuesWithStudentSnapshot);
   const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
+  const workflowSnapshot = await buildWorkflowSnapshotForCase(existingWorkflow?.id);
 
   const caseEntry = await prisma.caseEntry.create({
     data: {
       schoolAccountId,
       serviceId: existingService.id,
       workflowId: existingWorkflow?.id,
+      workflowSnapshot: workflowSnapshot || undefined,
       studentId: existingStudent?.id,
       createdById: createdById || null,
       title: title || undefined,
@@ -263,7 +444,11 @@ export async function updateRuntimeCase({
     throw new Error("الطالب غير موجود أو لا يتبع نفس مدرسة الحالة.");
   }
 
-  const serializedValues = serializeCaseValues(values);
+  const valuesWithStudentSnapshot = mergeStudentSnapshotsIntoValues(
+    values,
+    existingStudent
+  );
+  const serializedValues = serializeCaseValues(valuesWithStudentSnapshot);
   const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
 
   await prisma.caseValue.deleteMany({
@@ -420,6 +605,20 @@ export async function getCaseById(
       evidences: {
         orderBy: {
           createdAt: "asc",
+        },
+      },
+
+      guidanceReports: {
+        orderBy: {
+          updatedAt: "desc",
+        },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          templateId: true,
+          createdAt: true,
+          updatedAt: true,
         },
       },
     },

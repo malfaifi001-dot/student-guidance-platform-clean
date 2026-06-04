@@ -1,0 +1,1362 @@
+﻿"use client";
+
+export type ReportDesignId =
+  | "ministry-form"
+  | "modern-official"
+  | "evidence-showcase"
+  | "formal-memo"
+  | "counseling-case-file"
+  | "behavior-followup"
+  | "program-impact"
+  | "girls-rose-official"
+  | "girls-lilac-elegant"
+  | "girls-pearl-calm";
+
+type PreviewCaseData = {
+  evidences?: Array<{
+    id?: string;
+    title?: string;
+    fileUrl?: string;
+    imageUrl?: string;
+    caption?: string;
+  }>;
+  values?: Array<{
+    fieldKey?: string | null;
+    fieldLabel?: string | null;
+    value?: string | null;
+  }>;
+  serviceName?: string;
+  serviceSlug?: string;
+  caseId?: string;
+  title?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  student?: {
+    name?: string;
+    grade?: string;
+    classroom?: string;
+    stage?: string;
+    guardianName?: string;
+    guardianPhone?: string;
+  };
+};
+
+type ReportDesignRendererProps = {
+  designId?: ReportDesignId;
+  template: any;
+  activePage?: any;
+  activePageId: string;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  onActivePageChange: (pageId: string) => void;
+  onAddPage: () => void;
+};
+
+export const reportDesignTemplates: Array<{
+  id: ReportDesignId;
+  name: string;
+  description: string;
+  badge: string;
+  cardClass: string;
+  activeCardClass: string;
+}> = [
+  {
+    id: "ministry-form",
+    name: "نموذج الوزارة الرسمي",
+    badge: "رسمي",
+    description: "قريب من نماذج الوزارة: رأس داكن، شكل رسمي، وفوتر أخضر.",
+    cardClass: "border-slate-200 bg-slate-50 hover:bg-white",
+    activeCardClass: "border-slate-800 bg-slate-100 shadow-sm",
+  },
+  {
+    id: "modern-official",
+    name: "تقرير رسمي حديث",
+    badge: "حديث",
+    description: "شريط جانبي أكاديمي وبطاقات منظمة للتقارير التفصيلية.",
+    cardClass: "border-sky-200 bg-sky-50 hover:bg-white",
+    activeCardClass: "border-sky-700 bg-sky-100 shadow-sm",
+  },
+  {
+    id: "evidence-showcase",
+    name: "تقرير شواهد بصري",
+    badge: "شواهد",
+    description: "مناسب للتقارير التي تركز على الصور والمرفقات والإنجاز.",
+    cardClass: "border-emerald-200 bg-emerald-50 hover:bg-white",
+    activeCardClass: "border-emerald-700 bg-emerald-100 shadow-sm",
+  },
+  {
+    id: "formal-memo",
+    name: "خطاب ومحضر رسمي",
+    badge: "خطاب",
+    description: "تصميم صارم للمحاضر والاستدعاءات والخطابات الإدارية.",
+    cardClass: "border-zinc-300 bg-zinc-50 hover:bg-white",
+    activeCardClass: "border-zinc-900 bg-zinc-100 shadow-sm",
+  },
+  {
+    id: "counseling-case-file",
+    name: "ملف حالة إرشادية",
+    badge: "حالة",
+    description: "يشبه ملف متابعة: عمود بيانات جانبي ومحتوى رئيسي للحالة.",
+    cardClass: "border-teal-200 bg-teal-50 hover:bg-white",
+    activeCardClass: "border-teal-700 bg-teal-100 shadow-sm",
+  },
+  {
+    id: "behavior-followup",
+    name: "متابعة سلوكية",
+    badge: "سلوك",
+    description: "تصميم بجدول زمني جانبي مناسب للمتابعة والخطط العلاجية.",
+    cardClass: "border-amber-200 bg-amber-50 hover:bg-white",
+    activeCardClass: "border-amber-700 bg-amber-100 shadow-sm",
+  },
+  {
+    id: "program-impact",
+    name: "أثر برنامج إرشادي",
+    badge: "برنامج",
+    description: "تصميم بصري لتقارير البرامج، الأثر، الإحصاءات، والتوصيات.",
+    cardClass: "border-cyan-200 bg-cyan-50 hover:bg-white",
+    activeCardClass: "border-cyan-700 bg-cyan-100 shadow-sm",
+  },
+  {
+    id: "girls-rose-official",
+    name: "بناتي وردي رسمي",
+    badge: "بناتي",
+    description: "تصميم ناعم للبنات مع محافظة على الطابع الرسمي للتقرير.",
+    cardClass: "border-rose-200 bg-rose-50 hover:bg-white",
+    activeCardClass: "border-rose-600 bg-rose-100 shadow-sm",
+  },
+  {
+    id: "girls-lilac-elegant",
+    name: "بناتي ليلكي أنيق",
+    badge: "بناتي",
+    description: "تصميم بنفسجي هادئ مناسب للتقارير الفردية والبرامج.",
+    cardClass: "border-violet-200 bg-violet-50 hover:bg-white",
+    activeCardClass: "border-violet-700 bg-violet-100 shadow-sm",
+  },
+  {
+    id: "girls-pearl-calm",
+    name: "بناتي لؤلؤي هادئ",
+    badge: "بناتي",
+    description: "تصميم فاتح وهادئ مناسب لتقارير الرعاية والدعم والمتابعة.",
+    cardClass: "border-fuchsia-200 bg-fuchsia-50 hover:bg-white",
+    activeCardClass: "border-fuchsia-700 bg-fuchsia-100 shadow-sm",
+  },
+];
+
+export function ReportDesignRenderer({
+  designId,
+  template,
+  activePage,
+  activePageId,
+  context,
+  previewCase,
+  onActivePageChange,
+  onAddPage,
+}: ReportDesignRendererProps) {
+  const selectedDesign = normalizeDesignId(
+    designId || template?.designTemplateId || "ministry-form",
+  );
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">
+            المعاينة الرسمية A4
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            التصميم الحالي: {getDesignName(selectedDesign)}
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+          {previewCase ? "Case ID فعلي" : "بيانات تجريبية"}
+        </span>
+      </div>
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        {(template?.pages || []).map((page: any, index: number) => (
+          <button
+            key={page.id}
+            type="button"
+            onClick={() => onActivePageChange(page.id)}
+            className={[
+              "rounded-2xl border px-4 py-2 text-xs font-black transition",
+              page.id === activePageId
+                ? "border-emerald-600 bg-emerald-700 text-white"
+                : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-emerald-50",
+            ].join(" ")}
+          >
+            {index + 1}. {page.title}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={onAddPage}
+          className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+        >
+          + صفحة محتوى
+        </button>
+      </div>
+
+      <A4DesignPage
+        designId={selectedDesign}
+        page={activePage}
+        context={context}
+        previewCase={previewCase}
+        pageLabel={activePage?.title || "صفحة"}
+      />
+
+      <AutoEvidencePages
+        designId={selectedDesign}
+        activePage={activePage}
+        context={context}
+        previewCase={previewCase}
+      />
+    </section>
+  );
+}
+
+
+export function FinalReportDesignRenderer({
+  template,
+  previewCaseData,
+  editorialBlocks = {},
+  identity = {},
+}: {
+  template: any;
+  previewCaseData: PreviewCaseData | null;
+  editorialBlocks?: Record<string, string>;
+  identity?: Record<string, any>;
+}) {
+  const selectedDesign = normalizeDesignId(
+    template?.designTemplateId || template?.designTheme || "ministry-form",
+  );
+
+  const normalizedTemplate = normalizeFinalReportTemplate(
+    template,
+    editorialBlocks,
+  );
+
+  const context = buildFinalReportContext(previewCaseData, identity);
+
+  const pages = normalizedTemplate.pages?.length
+    ? normalizedTemplate.pages
+    : [
+        {
+          id: "final-preview-fallback",
+          title: normalizedTemplate.name || "التقرير",
+          kind: "content",
+          blocks: [
+            {
+              id: "fallback-title",
+              kind: "hero-title",
+              title: "عنوان التقرير",
+              content: "{{case.title}}",
+              variant: "hero",
+              align: "center",
+              showTitle: false,
+              placement: "flow",
+            },
+            {
+              id: "fallback-fields",
+              kind: "dynamic-fields",
+              title: "بيانات الحالة",
+              content: "",
+              variant: "card",
+              align: "right",
+              showTitle: true,
+              placement: "flow",
+            },
+          ],
+        },
+      ];
+
+  return (
+    <section className="space-y-4 bg-transparent print:space-y-0" dir="rtl">
+      {pages.map((page: any) => (
+        <div key={page.id} className="break-after-page print:break-after-page">
+          <A4DesignPage
+            designId={selectedDesign}
+            page={page}
+            context={context}
+            previewCase={previewCaseData}
+            pageLabel={page.title || normalizedTemplate.name || "التقرير"}
+          />
+
+          <AutoEvidencePages
+            designId={selectedDesign}
+            activePage={page}
+            context={context}
+            previewCase={previewCaseData}
+          />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function normalizeFinalReportTemplate(
+  template: any,
+  editorialBlocks: Record<string, string>,
+) {
+  const pages = Array.isArray(template?.pages) ? template.pages : [];
+
+  return {
+    ...template,
+    pages: pages.map((page: any, pageIndex: number) => {
+      const pageBlocks = Array.isArray(page?.blocks) ? page.blocks : [];
+
+      const normalizedBlocks = pageBlocks.map((block: any, blockIndex: number) =>
+        normalizeFinalReportBlock(block, blockIndex, editorialBlocks),
+      );
+
+      const shouldAddEvidenceBlock =
+        page?.kind === "evidence" &&
+        !normalizedBlocks.some((block: any) => block.kind === "evidence-gallery");
+
+      return {
+        ...page,
+        id: page?.id || "final-page-" + (pageIndex + 1),
+        title: page?.title || "صفحة " + (pageIndex + 1),
+        kind: page?.kind || "content",
+        blocks: shouldAddEvidenceBlock
+          ? [
+              ...normalizedBlocks,
+              {
+                id: "auto-evidence-gallery-" + (pageIndex + 1),
+                kind: "evidence-gallery",
+                title: "الشواهد والمرفقات",
+                content: "",
+                variant: "card",
+                align: "right",
+                showTitle: true,
+                placement: "flow",
+                evidenceLayout: "GRID_2X2",
+                evidenceFit: "contain",
+                evidenceAspectRatio: "LANDSCAPE_4_3",
+                evidenceShowCaptions: true,
+                evidenceAutoCreatePages: true,
+                evidenceEmptyBehavior: "message",
+              },
+            ]
+          : normalizedBlocks,
+      };
+    }),
+  };
+}
+
+function normalizeFinalReportBlock(
+  block: any,
+  index: number,
+  editorialBlocks: Record<string, string>,
+) {
+  const settings = block?.settings || {};
+  const smartKind =
+    settings.smartBlockKind ||
+    block?.smartBlockKind ||
+    block?.kind ||
+    "section-text";
+
+  const blockId = block?.id || "final-block-" + (index + 1);
+
+  const editedContent =
+    editorialBlocks[blockId] ||
+    editorialBlocks[smartKind] ||
+    editorialBlocks[block?.title] ||
+    "";
+
+  return {
+    ...block,
+    id: blockId,
+    kind: smartKind,
+    title: block?.title || settings.title || "بلوك التقرير",
+    content:
+      editedContent ||
+      block?.content ||
+      settings.content ||
+      block?.defaultContent ||
+      "",
+    variant: block?.variant || settings.style || "card",
+    align: block?.align || settings.align || "right",
+    showTitle:
+      typeof block?.showTitle === "boolean"
+        ? block.showTitle
+        : settings.showTitle !== false,
+    showMeta:
+      typeof block?.showMeta === "boolean"
+        ? block.showMeta
+        : settings.showMeta !== false,
+    placement: block?.placement || settings.placement || "flow",
+    snippetId: block?.snippetId || settings.snippetId || null,
+
+    evidenceLayout:
+      block?.evidenceLayout || settings.evidenceLayout || "GRID_2X2",
+    evidenceFit: block?.evidenceFit || settings.evidenceFit || "contain",
+    evidenceAspectRatio:
+      block?.evidenceAspectRatio ||
+      settings.evidenceAspectRatio ||
+      "LANDSCAPE_4_3",
+    evidenceShowCaptions:
+      typeof block?.evidenceShowCaptions === "boolean"
+        ? block.evidenceShowCaptions
+        : settings.evidenceShowCaptions !== false,
+    evidenceAutoCreatePages:
+      typeof block?.evidenceAutoCreatePages === "boolean"
+        ? block.evidenceAutoCreatePages
+        : settings.evidenceAutoCreatePages !== false,
+    evidenceEmptyBehavior:
+      block?.evidenceEmptyBehavior ||
+      settings.evidenceEmptyBehavior ||
+      "message",
+  };
+}
+
+function buildFinalReportContext(
+  previewCaseData: PreviewCaseData | null,
+  identity: Record<string, any>,
+) {
+  const context: Record<string, string> = {
+    "case.id": previewCaseData?.caseId || "",
+    "case.title": previewCaseData?.title || "تقرير رسمي",
+    "case.status": previewCaseData?.status || "",
+    "case.createdAt": formatFinalDate(previewCaseData?.createdAt),
+    "case.updatedAt": formatFinalDate(previewCaseData?.updatedAt),
+
+    "service.name": previewCaseData?.serviceName || "",
+    "service.slug": previewCaseData?.serviceSlug || "",
+
+    "student.name": previewCaseData?.student?.name || "",
+    "student.grade": previewCaseData?.student?.grade || "",
+    "student.classroom": previewCaseData?.student?.classroom || "",
+    "student.stage": previewCaseData?.student?.stage || "",
+    "student.guardianName": previewCaseData?.student?.guardianName || "",
+    "student.guardianPhone": previewCaseData?.student?.guardianPhone || "",
+
+    "identity.schoolName": identity.schoolName || "",
+    "identity.counselorName": identity.counselorName || "",
+    "identity.principalName":
+      identity.principalName || identity.schoolLeaderName || "",
+    "identity.educationDepartment": identity.educationDepartment || "",
+    "identity.educationOffice": identity.educationOffice || "",
+    "identity.academicYear": identity.academicYear || "",
+    "identity.semester": identity.semester || "",
+
+    "evidence.count": String(previewCaseData?.evidences?.length || 0),
+  };
+
+  for (const value of previewCaseData?.values || []) {
+    const key = value.fieldKey || "";
+    const label = value.fieldLabel || "";
+
+    if (key) {
+      context["field." + key] = value.value || "";
+    }
+
+    if (label) {
+      context["field." + label] = value.value || "";
+    }
+  }
+
+  return context;
+}
+
+function formatFinalDate(value?: string | null) {
+  if (!value) {
+    return new Date().toLocaleDateString("ar-SA");
+  }
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA");
+  } catch {
+    return String(value);
+  }
+}
+
+
+function A4DesignPage({
+  designId,
+  page,
+  context,
+  previewCase,
+  pageLabel,
+}: {
+  designId: ReportDesignId;
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  pageLabel: string;
+}) {
+  if (designId === "modern-official") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[30px] border border-sky-100 bg-sky-50 p-[8mm] shadow-xl">
+        <div className="relative grid min-h-[279mm] grid-cols-[34mm_1fr] overflow-hidden rounded-[24px] bg-white">
+          <aside className="relative bg-gradient-to-b from-sky-950 via-sky-800 to-emerald-700 p-5 text-white">
+            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
+            <div className="mt-10 rotate-180 [writing-mode:vertical-rl]">
+              <p className="text-sm font-black tracking-wide">منصة التوجيه الطلابي</p>
+              <p className="mt-3 text-xs font-bold text-sky-100">تقرير رسمي حديث</p>
+            </div>
+          </aside>
+
+          <div className="relative p-[11mm]">
+            <header className="rounded-3xl border border-sky-100 bg-sky-50 p-5">
+              <p className="text-xs font-black text-sky-700">وزارة التعليم</p>
+              <h1 className="mt-1 text-xl font-black text-slate-950">
+                {context["case.title"] || pageLabel}
+              </h1>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-bold text-slate-600">
+                <MetaCard label="الخدمة" value={context["service.name"]} />
+                <MetaCard label="التاريخ" value={context["case.createdAt"]} />
+                <MetaCard label="المعد" value={context["identity.counselorName"]} />
+              </div>
+            </header>
+
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[185mm]" />
+            <DesignFooter text="تقرير رسمي حديث" barClass="from-sky-800 to-emerald-300" />
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "evidence-showcase") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-emerald-100 bg-emerald-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] overflow-hidden rounded-[28px] bg-white p-[11mm]">
+          <div className="absolute left-0 right-0 top-0 h-[44mm] bg-gradient-to-l from-emerald-800 via-teal-700 to-slate-900" />
+          <header className="relative z-10 grid grid-cols-[1fr_90px] items-start gap-5 text-white">
+            <div>
+              <p className="text-xs font-black text-emerald-100">تقرير بصري للشواهد والإنجاز</p>
+              <h1 className="mt-3 text-3xl font-black leading-[1.5]">{context["case.title"] || pageLabel}</h1>
+              <p className="mt-2 text-xs font-bold text-emerald-100">
+                {context["service.name"]} · {context["case.createdAt"]}
+              </p>
+            </div>
+            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-16 w-auto justify-self-end object-contain brightness-0 invert" />
+          </header>
+
+          <div className="relative z-10 mt-9 rounded-[30px] border border-emerald-100 bg-white p-5 shadow-sm">
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[185mm]" />
+          </div>
+
+          <DesignFooter text="تقرير شواهد بصري" barClass="from-emerald-800 to-teal-200" />
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "formal-memo") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white p-[12mm] shadow-xl">
+        <div className="relative min-h-[273mm] border-2 border-slate-800 p-[8mm]">
+          <header className="border-b-2 border-slate-800 pb-5">
+            <div className="grid grid-cols-[110px_1fr_110px] items-center gap-4">
+              <div className="text-right text-xs font-bold leading-6 text-slate-700">
+                <p>وزارة التعليم</p><p>الإدارة العامة للتعليم</p><p>مكتب التعليم</p>
+              </div>
+              <div className="text-center">
+                <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain" />
+                <h1 className="mt-3 text-xl font-black text-slate-950">{pageLabel}</h1>
+              </div>
+              <div className="text-left text-xs font-bold leading-6 text-slate-700">
+                <p>رقم الحالة</p><p>{context["case.id"]}</p><p>{context["case.createdAt"]}</p>
+              </div>
+            </div>
+          </header>
+
+          <main className="mt-8">
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[190mm]" />
+          </main>
+
+          <div className="absolute bottom-[10mm] left-[8mm] right-[8mm] grid grid-cols-2 gap-5 text-sm font-black text-slate-800">
+            <div className="border-t border-slate-700 pt-3">الموجه/الموجهة الطلابية</div>
+            <div className="border-t border-slate-700 pt-3">مدير/مديرة المدرسة</div>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "counseling-case-file") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[22px] border border-teal-100 bg-teal-50 p-[8mm] shadow-xl">
+        <div className="grid min-h-[279mm] grid-cols-[48mm_1fr] overflow-hidden rounded-[18px] bg-white">
+          <aside className="bg-teal-900 p-5 text-white">
+            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-14 w-auto object-contain brightness-0 invert" />
+            <h2 className="mt-8 text-lg font-black leading-8">ملف حالة إرشادية</h2>
+            <div className="mt-8 space-y-3">
+              <SideMeta label="الطالب/ـة" value={context["student.name"]} />
+              <SideMeta label="الصف" value={context["student.grade"]} />
+              <SideMeta label="الخدمة" value={context["service.name"]} />
+              <SideMeta label="الشواهد" value={context["evidence.count"]} />
+            </div>
+          </aside>
+
+          <div className="relative p-[11mm]">
+            <header className="border-b border-teal-100 pb-5">
+              <p className="text-xs font-black text-teal-700">التوجيه الطلابي · ملف متابعة</p>
+              <h1 className="mt-2 text-2xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
+            </header>
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[200mm]" />
+            <DesignFooter text="ملف حالة إرشادية" barClass="from-teal-900 to-teal-200" />
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "behavior-followup") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[26px] border border-amber-100 bg-amber-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] rounded-[22px] bg-white p-[11mm]">
+          <header className="grid grid-cols-[1fr_100px] items-center gap-5 rounded-[26px] bg-gradient-to-l from-amber-600 to-orange-400 p-6 text-white">
+            <div>
+              <p className="text-xs font-black text-amber-100">خطة متابعة وتقويم سلوكي</p>
+              <h1 className="mt-2 text-2xl font-black">{context["case.title"] || pageLabel}</h1>
+            </div>
+            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-16 w-auto object-contain brightness-0 invert" />
+          </header>
+
+          <div className="mt-6 grid grid-cols-[28mm_1fr] gap-5">
+            <aside className="space-y-4">
+              {["الرصد", "التدخل", "المتابعة", "الإغلاق"].map((item, index) => (
+                <div key={item} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-center">
+                  <p className="text-lg font-black text-amber-700">{index + 1}</p>
+                  <p className="mt-1 text-[11px] font-black text-slate-600">{item}</p>
+                </div>
+              ))}
+            </aside>
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[190mm]" />
+          </div>
+
+          <DesignFooter text="متابعة سلوكية" barClass="from-amber-700 to-orange-200" />
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "program-impact") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-cyan-100 bg-cyan-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] rounded-[28px] bg-white p-[11mm]">
+          <header className="rounded-[32px] border border-cyan-100 bg-gradient-to-l from-cyan-700 to-blue-800 p-6 text-white">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-cyan-100">تقرير أثر برنامج إرشادي</p>
+                <h1 className="mt-3 text-3xl font-black">{context["case.title"] || pageLabel}</h1>
+              </div>
+              <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-14 w-auto object-contain brightness-0 invert" />
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              <MiniStat label="الخدمة" value={context["service.name"]} />
+              <MiniStat label="الشواهد" value={context["evidence.count"]} />
+              <MiniStat label="التاريخ" value={context["case.createdAt"]} />
+            </div>
+          </header>
+
+          <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[185mm]" />
+          <DesignFooter text="أثر برنامج إرشادي" barClass="from-cyan-700 to-blue-200" />
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "girls-rose-official") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-rose-100 bg-rose-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] overflow-hidden rounded-[30px] bg-white p-[11mm]">
+          <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-rose-100" />
+          <div className="absolute -right-8 top-20 h-28 w-28 rounded-full bg-pink-100" />
+          <header className="relative z-10 rounded-[28px] border border-rose-100 bg-gradient-to-l from-rose-100 to-white p-6">
+            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-14 w-auto object-contain" />
+            <p className="mt-5 text-xs font-black text-rose-700">تقرير إرشادي بناتي رسمي</p>
+            <h1 className="mt-2 text-3xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
+          </header>
+
+          <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="relative z-10 mt-6 min-h-[185mm]" />
+          <DesignFooter text="بناتي وردي رسمي" barClass="from-rose-700 to-pink-200" />
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "girls-lilac-elegant") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-violet-100 bg-violet-50 p-[8mm] shadow-xl">
+        <div className="relative grid min-h-[279mm] grid-cols-[1fr_32mm] overflow-hidden rounded-[28px] bg-white">
+          <div className="relative p-[11mm]">
+            <header className="border-b border-violet-100 pb-5">
+              <p className="text-xs font-black text-violet-700">تقرير إرشادي أنيق</p>
+              <h1 className="mt-2 text-3xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
+              <p className="mt-2 text-xs font-bold text-slate-500">{context["service.name"]}</p>
+            </header>
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-6 min-h-[200mm]" />
+            <DesignFooter text="بناتي ليلكي أنيق" barClass="from-violet-800 to-fuchsia-200" />
+          </div>
+
+          <aside className="bg-gradient-to-b from-violet-700 to-fuchsia-500 p-5 text-white">
+            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain brightness-0 invert" />
+            <div className="mx-auto mt-10 h-40 w-px bg-white/40" />
+            <p className="mt-5 rotate-180 text-center text-xs font-black [writing-mode:vertical-rl]">منصة التوجيه الطلابي</p>
+          </aside>
+        </div>
+      </article>
+    );
+  }
+
+  if (designId === "girls-pearl-calm") {
+    return (
+      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[36px] border border-fuchsia-100 bg-fuchsia-50 p-[8mm] shadow-xl">
+        <div className="relative min-h-[279mm] rounded-[32px] border border-fuchsia-100 bg-gradient-to-b from-white via-white to-fuchsia-50 p-[11mm]">
+          <header className="grid grid-cols-[90px_1fr] items-center gap-5 rounded-[30px] border border-fuchsia-100 bg-white/80 p-5 shadow-sm">
+            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-16 w-auto object-contain" />
+            <div>
+              <p className="text-xs font-black text-fuchsia-700">رعاية ودعم ومتابعة</p>
+              <h1 className="mt-2 text-2xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
+            </div>
+          </header>
+
+          <div className="mt-5 rounded-[30px] border border-fuchsia-100 bg-white p-5">
+            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[190mm]" />
+          </div>
+
+          <DesignFooter text="بناتي لؤلؤي هادئ" barClass="from-fuchsia-700 to-rose-200" />
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white shadow-xl">
+      <div className="relative min-h-[297mm] bg-white p-[12mm] pt-[48mm]">
+        <header className="absolute left-0 right-0 top-0 z-10 rounded-b-[42px] bg-[#1d343f] px-[18mm] py-[10mm] text-white">
+          <div className="grid grid-cols-[120px_1fr_120px] items-center gap-4">
+            <div className="text-right text-xs font-bold leading-6 text-slate-100">
+              <p>وزارة التعليم</p><p>الإدارة العامة للتعليم</p>
+            </div>
+            <div className="text-center">
+              <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
+              <p className="mt-3 text-sm font-black text-white">منصة التوجيه الطلابي</p>
+            </div>
+            <div className="text-left text-xs font-bold leading-6 text-slate-100">
+              <p>{context["case.createdAt"]}</p><p>{context["service.name"]}</p>
+            </div>
+          </div>
+        </header>
+
+        <div className="pointer-events-none absolute inset-[8mm] border border-slate-100" />
+        <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="relative z-10 min-h-[205mm]" />
+        <DesignFooter text="نموذج الوزارة الرسمي" barClass="from-slate-900 to-emerald-300" />
+      </div>
+    </article>
+  );
+}
+
+function PageBlocks({
+  page,
+  context,
+  previewCase,
+  designId,
+  className,
+}: {
+  page?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+  className: string;
+}) {
+  const blocks = page?.blocks || [];
+  const flowBlocks = blocks.filter((block: any) => (block.placement || "flow") === "flow");
+  const fixedBlocks = blocks.filter((block: any) => (block.placement || "flow") !== "flow");
+
+  return (
+    <main className={`relative ${className}`}>
+      <div className="space-y-4">
+        {flowBlocks.map((block: any) => (
+          <DesignBlock key={block.id} block={block} context={context} previewCase={previewCase} designId={designId} />
+        ))}
+      </div>
+
+      <div className="pointer-events-none absolute inset-0">
+        {fixedBlocks.map((block: any) => (
+          <div key={block.id} className={getPlacementClass(block.placement || "flow")}>
+            <div className="pointer-events-auto">
+              <DesignBlock block={block} context={context} previewCase={previewCase} designId={designId} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+function DesignBlock({
+  block,
+  context,
+  previewCase,
+  designId,
+}: {
+  block: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+}) {
+  if (block.hideWhenMissing && block.boundFieldKey) {
+    const value = String(context[`field.${block.boundFieldKey}`] || "").trim();
+    if (!value) return null;
+  }
+
+  const rendered = renderText(block.content || "", context);
+  const textAlign = block.align === "center" ? "text-center" : "text-right";
+  const accent = getDesignAccentClasses(designId);
+
+  if (block.kind === "hero-title") {
+    return (
+      <section className={getBlockShellClass(designId, "hero", "text-center")}>
+        <p className={["text-xs font-black", accent.subtleTextClass].join(" ")}>
+          {context["service.name"]}
+        </p>
+        <h1 className="mx-auto mt-3 max-w-[145mm] text-3xl font-black leading-[1.7] text-slate-950">{rendered}</h1>
+      </section>
+    );
+  }
+
+  if (block.kind === "meta-strip") {
+    return (
+      <section className={getBlockShellClass(designId, "soft", textAlign)}>
+        <div className="grid gap-2 md:grid-cols-2">
+          {splitLines(rendered).map((line) => (
+            <div key={line} className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+              {line}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "bullet-list") {
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <ul className="space-y-2">
+          {splitLines(rendered).map((line) => (
+            <li key={line} className="flex gap-2 text-sm leading-7 text-slate-700">
+              <span className={["mt-2 h-2 w-2 shrink-0 rounded-full", accent.dotClass].join(" ")} />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+
+  if (block.kind === "multi-paragraph") {
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <div className="space-y-3">
+          {splitParagraphs(rendered).map((paragraph) => (
+            <p key={paragraph} className="text-sm leading-8 text-slate-700">{paragraph}</p>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "dynamic-fields") {
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <div className="grid gap-2 md:grid-cols-2">
+          {[
+            ["الخدمة", context["service.name"]],
+            ["عنوان الحالة", context["case.title"]],
+            ["الطالب/الطالبة", context["student.name"]],
+            ["الصف", context["student.grade"]],
+            ["ولي الأمر", context["student.guardianName"]],
+            ["عدد الشواهد", context["evidence.count"]],
+          ].map(([label, value]) => (
+            <MetaCard key={label} label={label} value={value || "غير متوفر"} />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "evidence-gallery") {
+    return <EvidenceBlock block={block} previewCase={previewCase} designId={designId} textAlign={textAlign} />;
+  }
+
+  if (block.kind === "closing-note") {
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <p className="text-sm leading-8 text-slate-700">{rendered}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+      {block.showTitle ? <BlockTitle title={block.title} /> : null}
+      <p className="whitespace-pre-line text-sm leading-8 text-slate-700">{rendered}</p>
+    </section>
+  );
+}
+
+function EvidenceBlock({
+  block,
+  previewCase,
+  designId,
+  textAlign,
+}: {
+  block: any;
+  previewCase: PreviewCaseData | null;
+  designId: ReportDesignId;
+  textAlign: string;
+}) {
+  const realEvidences = previewCase?.evidences || [];
+  const perPage = getEvidencePerPage(block);
+  const startIndex = block.evidenceStartIndex || 0;
+  const placeholderEvidences = createEvidencePlaceholders(perPage, startIndex);
+  const sourceEvidences = realEvidences.length ? realEvidences : placeholderEvidences;
+  const visibleEvidences = sourceEvidences.slice(startIndex, startIndex + perPage);
+  const isPlaceholderMode = !realEvidences.length;
+  const hiddenCount = Math.max(realEvidences.length - (startIndex + perPage), 0);
+  const accent = getDesignAccentClasses(designId);
+
+  if (!realEvidences.length && block.evidenceEmptyBehavior === "hide") return null;
+
+  if (block.evidenceLayout === "ATTACHMENT_LIST") {
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <div className="space-y-2">
+          {visibleEvidences.map((evidence, index) => (
+            <div key={evidence.id || String(index)} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+              <span>{evidence.caption || evidence.title || `مرفق ${startIndex + index + 1}`}</span>
+              <span className={["rounded-full px-3 py-1 text-[11px] font-black", accent.badgeClass].join(" ")}>
+                {isPlaceholderMode ? "معاينة" : "شاهد"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+      {block.showTitle ? <BlockTitle title={block.title} /> : null}
+
+      <div className={getEvidenceGridClass(block)}>
+        {visibleEvidences.map((evidence, index) => {
+          const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+
+          return (
+            <figure key={evidence.id || imageUrl || String(index)} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              {imageUrl && !isPlaceholderMode ? (
+                <img src={imageUrl} alt={evidence.title || `شاهد ${startIndex + index + 1}`} className={`${getEvidenceImageClass(block)} bg-slate-50`} />
+              ) : (
+                <div className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center justify-center bg-slate-50 text-center`}>
+                  <div className={["flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", accent.iconClass].join(" ")}>📎</div>
+                  <p className="mt-3 text-xs font-black text-slate-500">مساحة شاهد للمعاينة</p>
+                </div>
+              )}
+
+              {block.evidenceShowCaptions !== false ? (
+                <figcaption className="border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
+                  {evidence.caption || evidence.title || `شاهد ${startIndex + index + 1}`}
+                </figcaption>
+              ) : null}
+            </figure>
+          );
+        })}
+      </div>
+
+      {hiddenCount > 0 && block.evidenceAutoCreatePages === false ? (
+        <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
+          يوجد {hiddenCount} شاهد إضافي لم يظهر لأن إنشاء الصفحات التلقائية غير مفعل.
+        </p>
+      ) : null}
+
+      {isPlaceholderMode ? (
+        <p className={["mt-3 rounded-2xl px-3 py-2 text-xs font-bold", accent.noticeClass].join(" ")}>
+          هذه مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function AutoEvidencePages({
+  designId,
+  activePage,
+  context,
+  previewCase,
+}: {
+  designId: ReportDesignId;
+  activePage?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+}) {
+  const evidenceBlock = activePage?.blocks?.find((block: any) => block.kind === "evidence-gallery");
+
+  if (!activePage || !evidenceBlock || evidenceBlock.evidenceAutoCreatePages === false) return null;
+
+  const evidences = previewCase?.evidences || [];
+  const perPage = getEvidencePerPage(evidenceBlock);
+  const pagesCount = Math.ceil(evidences.length / perPage);
+
+  if (pagesCount <= 1) return null;
+
+  return (
+    <div className="mt-6 space-y-6">
+      {Array.from({ length: pagesCount - 1 }).map((_, index) => {
+        const pageNumber = index + 2;
+        const virtualPage = {
+          ...activePage,
+          id: `${activePage.id}-evidence-auto-${pageNumber}`,
+          title: `${activePage.title} - صفحة ${pageNumber}`,
+          blocks: [
+            {
+              ...evidenceBlock,
+              id: `${evidenceBlock.id}-auto-${pageNumber}`,
+              title: `${evidenceBlock.title} - صفحة ${pageNumber}`,
+              evidenceStartIndex: (pageNumber - 1) * perPage,
+            },
+          ],
+        };
+
+        return (
+          <A4DesignPage
+            key={virtualPage.id}
+            designId={designId}
+            page={virtualPage}
+            context={context}
+            previewCase={previewCase}
+            pageLabel={`صفحة شواهد ${pageNumber}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function MetaCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white px-3 py-2">
+      <p className="text-[10px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 text-xs font-black text-slate-800">{value}</p>
+    </div>
+  );
+}
+
+function SideMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/10 p-3">
+      <p className="text-[10px] font-black text-teal-100">{label}</p>
+      <p className="mt-1 text-xs font-black text-white">{value || "غير متوفر"}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/15 p-3">
+      <p className="text-[10px] font-black text-cyan-100">{label}</p>
+      <p className="mt-1 text-xs font-black text-white">{value || "غير متوفر"}</p>
+    </div>
+  );
+}
+
+function DesignFooter({ text, barClass }: { text: string; barClass: string }) {
+  return (
+    <footer className="absolute bottom-[10mm] left-[12mm] right-[12mm]">
+      <div className={`h-1 rounded-full bg-gradient-to-l ${barClass}`} />
+      <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+        <span>منصة التوجيه الطلابي</span>
+        <span>{text}</span>
+      </div>
+    </footer>
+  );
+}
+
+function BlockTitle({ title }: { title: string }) {
+  return <h3 className="mb-3 text-base font-black text-slate-950">{title}</h3>;
+}
+
+function renderText(text: string, context: Record<string, string>) {
+  return String(text || "").replace(/{{\s*([^}]+)\s*}}/g, (_, key: string) => {
+    const cleanKey = key.trim();
+    return context[cleanKey] || `{{${cleanKey}}}`;
+  });
+}
+
+function splitLines(text: string) {
+  return String(text || "").split(/\n+/).map((line) => line.trim()).filter(Boolean);
+}
+
+function splitParagraphs(text: string) {
+  return String(text || "").split(/\n\s*\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+function normalizeDesignId(value: string): ReportDesignId {
+  if (
+    value === "ministry-form" ||
+    value === "modern-official" ||
+    value === "evidence-showcase" ||
+    value === "formal-memo" ||
+    value === "counseling-case-file" ||
+    value === "behavior-followup" ||
+    value === "program-impact" ||
+    value === "girls-rose-official" ||
+    value === "girls-lilac-elegant" ||
+    value === "girls-pearl-calm"
+  ) {
+    return value;
+  }
+
+  return "ministry-form";
+}
+
+function getDesignName(designId: ReportDesignId) {
+  return reportDesignTemplates.find((design) => design.id === designId)?.name || "تصميم رسمي";
+}
+
+function getDesignAccentClasses(designId: ReportDesignId) {
+  switch (designId) {
+    case "modern-official":
+      return {
+        subtleTextClass: "text-sky-700",
+        dotClass: "bg-sky-700",
+        iconClass: "bg-sky-50 text-sky-700",
+        badgeClass: "bg-sky-50 text-sky-700",
+        noticeClass: "bg-sky-50 text-sky-700",
+        cardShellClass: "rounded-3xl border border-sky-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-3xl border border-sky-100 bg-sky-50 p-5",
+        highlightShellClass: "rounded-3xl border border-sky-200 bg-gradient-to-l from-sky-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-3xl border border-dashed border-sky-300 bg-white p-5",
+        quoteShellClass: "rounded-3xl border border-sky-100 bg-slate-50 p-5",
+        heroShellClass: "rounded-3xl border border-sky-100 bg-gradient-to-l from-sky-50 to-white p-5",
+      };
+
+    case "evidence-showcase":
+      return {
+        subtleTextClass: "text-emerald-700",
+        dotClass: "bg-emerald-700",
+        iconClass: "bg-emerald-50 text-emerald-700",
+        badgeClass: "bg-emerald-50 text-emerald-700",
+        noticeClass: "bg-emerald-50 text-emerald-700",
+        cardShellClass: "rounded-[28px] border border-emerald-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-[28px] border border-emerald-100 bg-emerald-50 p-5",
+        highlightShellClass: "rounded-[28px] border border-emerald-200 bg-gradient-to-l from-emerald-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-[28px] border border-dashed border-emerald-300 bg-white p-5",
+        quoteShellClass: "rounded-[28px] border border-emerald-100 bg-teal-50 p-5",
+        heroShellClass: "rounded-[28px] border border-emerald-100 bg-gradient-to-l from-emerald-50 to-white p-5",
+      };
+
+    case "formal-memo":
+      return {
+        subtleTextClass: "text-zinc-800",
+        dotClass: "bg-zinc-800",
+        iconClass: "bg-zinc-100 text-zinc-800",
+        badgeClass: "bg-zinc-100 text-zinc-700",
+        noticeClass: "bg-zinc-100 text-zinc-800",
+        cardShellClass: "border-b border-zinc-300 bg-white px-1 py-4",
+        softShellClass: "border-b border-zinc-300 bg-zinc-50 px-4 py-4",
+        highlightShellClass: "border border-zinc-800 bg-zinc-50 p-5",
+        outlineShellClass: "border border-dashed border-zinc-500 bg-white p-5",
+        quoteShellClass: "border-r-4 border-zinc-800 bg-zinc-50 p-5",
+        heroShellClass: "border-b-2 border-zinc-800 bg-white px-1 py-5",
+      };
+
+    case "counseling-case-file":
+      return {
+        subtleTextClass: "text-teal-700",
+        dotClass: "bg-teal-700",
+        iconClass: "bg-teal-50 text-teal-700",
+        badgeClass: "bg-teal-50 text-teal-700",
+        noticeClass: "bg-teal-50 text-teal-700",
+        cardShellClass: "rounded-3xl border border-teal-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-3xl border border-teal-100 bg-teal-50 p-5",
+        highlightShellClass: "rounded-3xl border border-teal-200 bg-gradient-to-l from-teal-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-3xl border border-dashed border-teal-300 bg-white p-5",
+        quoteShellClass: "rounded-3xl border border-teal-100 bg-slate-50 p-5",
+        heroShellClass: "rounded-3xl border border-teal-100 bg-gradient-to-l from-teal-50 to-white p-5",
+      };
+
+    case "behavior-followup":
+      return {
+        subtleTextClass: "text-amber-700",
+        dotClass: "bg-amber-700",
+        iconClass: "bg-amber-50 text-amber-700",
+        badgeClass: "bg-amber-50 text-amber-700",
+        noticeClass: "bg-amber-50 text-amber-700",
+        cardShellClass: "rounded-3xl border border-amber-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-3xl border border-amber-100 bg-amber-50 p-5",
+        highlightShellClass: "rounded-3xl border border-amber-200 bg-gradient-to-l from-amber-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-3xl border border-dashed border-amber-300 bg-white p-5",
+        quoteShellClass: "rounded-3xl border border-amber-100 bg-orange-50 p-5",
+        heroShellClass: "rounded-3xl border border-amber-100 bg-gradient-to-l from-amber-50 to-white p-5",
+      };
+
+    case "program-impact":
+      return {
+        subtleTextClass: "text-cyan-700",
+        dotClass: "bg-cyan-700",
+        iconClass: "bg-cyan-50 text-cyan-700",
+        badgeClass: "bg-cyan-50 text-cyan-700",
+        noticeClass: "bg-cyan-50 text-cyan-700",
+        cardShellClass: "rounded-[28px] border border-cyan-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-[28px] border border-cyan-100 bg-cyan-50 p-5",
+        highlightShellClass: "rounded-[28px] border border-cyan-200 bg-gradient-to-l from-cyan-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-[28px] border border-dashed border-cyan-300 bg-white p-5",
+        quoteShellClass: "rounded-[28px] border border-cyan-100 bg-blue-50 p-5",
+        heroShellClass: "rounded-[28px] border border-cyan-100 bg-gradient-to-l from-cyan-50 to-white p-5",
+      };
+
+    case "girls-rose-official":
+      return {
+        subtleTextClass: "text-rose-700",
+        dotClass: "bg-rose-600",
+        iconClass: "bg-rose-50 text-rose-600",
+        badgeClass: "bg-rose-50 text-rose-700",
+        noticeClass: "bg-rose-50 text-rose-700",
+        cardShellClass: "rounded-[28px] border border-rose-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-[28px] border border-rose-100 bg-rose-50 p-5",
+        highlightShellClass: "rounded-[28px] border border-rose-200 bg-gradient-to-l from-rose-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-[28px] border border-dashed border-rose-300 bg-white p-5",
+        quoteShellClass: "rounded-[28px] border border-rose-100 bg-pink-50 p-5",
+        heroShellClass: "rounded-[28px] border border-rose-100 bg-gradient-to-l from-rose-50 to-white p-5",
+      };
+
+    case "girls-lilac-elegant":
+      return {
+        subtleTextClass: "text-violet-700",
+        dotClass: "bg-violet-700",
+        iconClass: "bg-violet-50 text-violet-700",
+        badgeClass: "bg-violet-50 text-violet-700",
+        noticeClass: "bg-violet-50 text-violet-700",
+        cardShellClass: "rounded-[28px] border border-violet-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-[28px] border border-violet-100 bg-violet-50 p-5",
+        highlightShellClass: "rounded-[28px] border border-violet-200 bg-gradient-to-l from-violet-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-[28px] border border-dashed border-violet-300 bg-white p-5",
+        quoteShellClass: "rounded-[28px] border border-violet-100 bg-fuchsia-50 p-5",
+        heroShellClass: "rounded-[28px] border border-violet-100 bg-gradient-to-l from-violet-50 to-white p-5",
+      };
+
+    case "girls-pearl-calm":
+      return {
+        subtleTextClass: "text-fuchsia-700",
+        dotClass: "bg-fuchsia-700",
+        iconClass: "bg-fuchsia-50 text-fuchsia-700",
+        badgeClass: "bg-fuchsia-50 text-fuchsia-700",
+        noticeClass: "bg-fuchsia-50 text-fuchsia-700",
+        cardShellClass: "rounded-[28px] border border-fuchsia-100 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-[28px] border border-fuchsia-100 bg-fuchsia-50 p-5",
+        highlightShellClass: "rounded-[28px] border border-fuchsia-200 bg-gradient-to-l from-fuchsia-50 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-[28px] border border-dashed border-fuchsia-300 bg-white p-5",
+        quoteShellClass: "rounded-[28px] border border-fuchsia-100 bg-rose-50 p-5",
+        heroShellClass: "rounded-[28px] border border-fuchsia-100 bg-gradient-to-l from-fuchsia-50 to-white p-5",
+      };
+
+    case "ministry-form":
+    default:
+      return {
+        subtleTextClass: "text-slate-800",
+        dotClass: "bg-slate-800",
+        iconClass: "bg-slate-100 text-slate-800",
+        badgeClass: "bg-slate-100 text-slate-700",
+        noticeClass: "bg-slate-100 text-slate-800",
+        cardShellClass: "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm",
+        softShellClass: "rounded-3xl border border-slate-200 bg-slate-50 p-5",
+        highlightShellClass: "rounded-3xl border border-slate-300 bg-gradient-to-l from-slate-100 to-white p-5 shadow-sm",
+        outlineShellClass: "rounded-3xl border border-dashed border-slate-400 bg-white p-5",
+        quoteShellClass: "rounded-3xl border border-slate-200 bg-slate-50 p-5",
+        heroShellClass: "rounded-3xl border border-slate-200 bg-gradient-to-l from-slate-50 to-white p-5",
+      };
+  }
+}
+
+function getBlockShellClass(designId: ReportDesignId, variant: string, textAlign: string) {
+  const base = `break-inside-avoid ${textAlign}`;
+  const accent = getDesignAccentClasses(designId);
+
+  if (variant === "hero") return `${base} ${accent.heroShellClass}`;
+  if (variant === "plain") return `${base} px-1 py-2`;
+  if (variant === "soft") return `${base} ${accent.softShellClass}`;
+  if (variant === "highlight") return `${base} ${accent.highlightShellClass}`;
+  if (variant === "outline") return `${base} ${accent.outlineShellClass}`;
+  if (variant === "quote") return `${base} ${accent.quoteShellClass}`;
+
+  return `${base} ${accent.cardShellClass}`;
+}
+
+function getPlacementClass(placement: string) {
+  const fullCenteredBase = "absolute left-0 right-0 w-full";
+  const centeredBase = "absolute left-1/2 w-full max-w-[78%] -translate-x-1/2";
+  const sideBase = "absolute w-full max-w-[58%]";
+
+  const classes: Record<string, string> = {
+    flow: "",
+    top: `${fullCenteredBase} top-0`,
+    middle: `${fullCenteredBase} top-1/2 -translate-y-1/2`,
+    bottom: `${fullCenteredBase} bottom-0`,
+    "top-right": `${sideBase} right-0 top-0`,
+    "top-center": `${centeredBase} top-0`,
+    "top-left": `${sideBase} left-0 top-0`,
+    "middle-right": `${sideBase} right-0 top-1/2 -translate-y-1/2`,
+    "middle-center": `${centeredBase} top-1/2 -translate-y-1/2`,
+    "middle-left": `${sideBase} left-0 top-1/2 -translate-y-1/2`,
+    "bottom-right": `${sideBase} bottom-0 right-0`,
+    "bottom-center": `${centeredBase} bottom-0`,
+    "bottom-left": `${sideBase} bottom-0 left-0`,
+  };
+
+  return classes[placement] || "";
+}
+
+function getEvidencePerPage(block: any) {
+  if (block.evidenceLayout === "ONE_PER_PAGE") return 1;
+  if (block.evidenceLayout === "GRID_2X2") return 4;
+  if (block.evidenceLayout === "ATTACHMENT_LIST") return 8;
+  return 2;
+}
+
+function createEvidencePlaceholders(count: number, startIndex: number) {
+  return Array.from({ length: count }).map((_, index) => ({
+    id: `placeholder-evidence-${startIndex + index + 1}`,
+    title: `شاهد تجريبي ${startIndex + index + 1}`,
+    caption: "مكان الشاهد داخل التقرير",
+    fileUrl: "",
+    imageUrl: "",
+  }));
+}
+
+function getEvidenceGridClass(block: any) {
+  if (block.evidenceLayout === "ONE_PER_PAGE") return "grid gap-3";
+  return "grid gap-3 md:grid-cols-2";
+}
+
+function getEvidenceImageHeightClass(block: any) {
+  switch (block.evidenceAspectRatio || "LANDSCAPE_4_3") {
+    case "LANDSCAPE_16_9":
+      return "aspect-video";
+    case "PORTRAIT_3_4":
+      return "aspect-[3/4]";
+    case "SQUARE_1_1":
+      return "aspect-square";
+    case "LANDSCAPE_4_3":
+    default:
+      return "aspect-[4/3]";
+  }
+}
+
+function getEvidenceImageClass(block: any) {
+  const fit = block.evidenceFit === "cover" ? "object-cover" : "object-contain";
+  return `${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+}

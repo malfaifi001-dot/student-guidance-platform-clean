@@ -1,775 +1,1096 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
 import {
-  DEFAULT_REPORT_IDENTITY_SETTINGS,
-  REPORT_BLOCK_LIBRARY,
-  REPORT_SERVICE_OPTIONS,
-  REPORT_WORKFLOW_FIELD_OPTIONS,
-  type GeneratedReportSnapshot,
-  type ReportBlockKind,
-  type ReportIdentitySettings,
-  type ReportPageKind,
-  type ReportTemplateBlock,
-  type ReportTemplateBuilderModel,
-  type ReportTemplatePage,
-  type ReportTemplateStatus,
-  type ReportTextSnippet,
-} from "@/lib/report-engine/report-template-builder-types";
-import type {
-  RuntimePreviewCaseData,
-  RuntimeWorkflowFieldOption,
-} from "@/lib/report-engine/report-template-runtime-types";
-import {
-  initialReportTemplateBuilderPresets,
-  initialReportTextSnippets,
-} from "@/lib/report-engine/report-template-builder-presets";
-import { ReportTemplateAdminTools } from "@/components/report-engine/report-template-admin-tools";
-import { ReportTemplatePublishTools } from "@/components/report-engine/report-template-publish-tools";
-import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
-import {
-  getMatchingTextSnippets,
-  getTextLibrarySettings,
-  setTextLibrarySettingsOnBlock,
-  type TextLibraryFallbackBehavior,
-  type TextLibraryRenderMode,
-  type TextLibrarySettings,
-  type TextLibrarySourceMode,
-} from "@/lib/report-engine/report-text-library-runtime";
+  ReportDesignRenderer,
+  reportDesignTemplates,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
 
-const statusLabels: Record<ReportTemplateStatus, string> = {
+type TemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+type TemplateScope = "GLOBAL" | "SERVICE" | "WORKFLOW" | "LOCATION";
+type PageKind = "content" | "recommendations" | "evidence" | "approval" | "custom";
+
+
+type BlockKind =
+  | "hero-title"
+  | "meta-strip"
+  | "plain-text"
+  | "section-text"
+  | "multi-paragraph"
+  | "highlight-note"
+  | "bullet-list"
+  | "dynamic-fields"
+  | "evidence-gallery"
+  | "closing-note";
+
+type BlockVariant =
+  | "hero"
+  | "plain"
+  | "card"
+  | "soft"
+  | "highlight"
+  | "outline"
+  | "quote";
+type BlockPlacement =
+  | "flow"
+  | "top"
+  | "middle"
+  | "bottom"
+  | "top-right"
+  | "top-center"
+  | "top-left"
+  | "middle-right"
+  | "middle-center"
+  | "middle-left"
+  | "bottom-right"
+  | "bottom-center"
+  | "bottom-left";
+
+type TextSource = "manual" | "library" | "workflow";
+
+type EvidenceLayout = "ONE_PER_PAGE" | "TWO_PER_PAGE" | "GRID_2X2" | "ATTACHMENT_LIST";
+type EvidenceFit = "contain" | "cover";
+type EvidenceEmptyBehavior = "hide" | "message";
+type EvidenceAspectRatio = "LANDSCAPE_4_3" | "LANDSCAPE_16_9" | "PORTRAIT_3_4" | "SQUARE_1_1";
+
+type StudioTextSnippet = {
+  id: string;
+  title: string;
+  category: "مقدمة" | "هدف" | "إجراء" | "نتيجة" | "توصية" | "خاتمة";
+  content: string;
+};
+
+type StudioBlock = {
+  id: string;
+  kind: BlockKind;
+  title: string;
+  content: string;
+  variant: BlockVariant;
+  source: TextSource;
+  snippetId?: string;
+  boundFieldKey?: string;
+  hideWhenMissing?: boolean;
+  showTitle: boolean;
+  showMeta: boolean;
+  align: "right" | "center";
+  placement: BlockPlacement;
+  evidenceLayout?: EvidenceLayout;
+  evidenceFit?: EvidenceFit;
+  evidenceAspectRatio?: EvidenceAspectRatio;
+  evidenceShowCaptions?: boolean;
+  evidenceAutoCreatePages?: boolean;
+  evidenceEmptyBehavior?: EvidenceEmptyBehavior;
+  evidenceStartIndex?: number;
+};
+
+type StudioPage = {
+  id: string;
+  kind: PageKind;
+  title: string;
+  description: string;
+  blocks: StudioBlock[];
+};
+
+type StudioTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  status: TemplateStatus;
+  designTemplateId?: ReportDesignId;
+  scope: TemplateScope;
+  serviceSlug?: string;
+  workflowSlug?: string;
+  locationKey?: string;
+  previewCaseId: string;
+  documentType: "REPORT";
+  updatedAt: string;
+  pages: StudioPage[];
+};
+
+type WorkflowFieldOption = {
+  key: string;
+  label: string;
+  type?: string;
+  source?: string;
+  stepTitle?: string;
+  isRequired?: boolean;
+  required?: boolean;
+};
+
+type PreviewCaseValue = {
+  fieldKey?: string | null;
+  fieldLabel?: string | null;
+  value?: string | null;
+};
+
+type PreviewCaseData = {
+  found?: boolean;
+  caseId?: string;
+  serviceSlug?: string;
+  serviceName?: string;
+  title?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  student?: {
+    name?: string;
+    nationalId?: string;
+    grade?: string;
+    classroom?: string;
+    stage?: string;
+    guardianName?: string;
+    guardianPhone?: string;
+  };
+  values?: PreviewCaseValue[];
+  evidences?: Array<{
+    id?: string;
+    title?: string;
+    fileUrl?: string;
+    imageUrl?: string;
+    caption?: string;
+  }>;
+};
+
+const SERVICE_OPTIONS = [
+  { slug: "guidance-programs", name: "البرامج الإرشادية" },
+  { slug: "family-school-communication", name: "التواصل بين الأسرة والمدرسة" },
+  { slug: "student-follow-up", name: "متابعة الطلاب" },
+  { slug: "committees-meetings", name: "اللجان والاجتماعات" },
+  { slug: "guidance-services", name: "الخدمات الإرشادية" },
+  { slug: "results-analysis", name: "تحليل النتائج" },
+];
+
+const statusLabels: Record<TemplateStatus, string> = {
   DRAFT: "مسودة",
   PUBLISHED: "منشور",
   ARCHIVED: "مؤرشف",
 };
 
-const pageKindLabels: Record<ReportPageKind, string> = {
-  cover: "غلاف",
-  summary: "ملخص",
-  narrative: "محتوى",
-  results: "نتائج",
+const scopeLabels: Record<TemplateScope, string> = {
+  GLOBAL: "عام لكل المنصة",
+  SERVICE: "موجه لخدمة",
+  WORKFLOW: "موجه لـ Workflow",
+  LOCATION: "موجه لمكان محدد",
+};
+
+const pageKindLabels: Record<PageKind, string> = {
+  content: "محتوى",
+  recommendations: "توصيات",
   evidence: "شواهد",
   approval: "اعتماد",
-  letter: "خطاب",
+  custom: "مخصصة",
 };
 
-const blockKindLabels: Record<ReportBlockKind, string> = {
-  "identity-header": "هوية",
-  "cover-title": "عنوان",
-  "case-meta": "بيانات",
-  "student-summary": "طالب",
-  "service-summary": "خدمة",
-  paragraph: "نص",
-  "field-list": "حقول",
-  "text-library": "مكتبة نصوص",
-  "custom-paragraph": "فقرة مخصصة",
-  "evidence-gallery": "شواهد",
-  "approval-signature": "اعتماد",
-};
-
-const snippetCategories: Array<ReportTextSnippet["category"] | "all"> = [
-  "all",
-  "مقدمة",
-  "هدف",
-  "إجراء",
-  "نتيجة",
-  "توصية",
-  "خاتمة",
+const textSnippets: StudioTextSnippet[] = [
+  {
+    id: "intro-official",
+    title: "مقدمة رسمية مختصرة",
+    category: "مقدمة",
+    content:
+      "بناءً على ما تم رصده في {{service.name}}، تم إعداد هذا التقرير لتوثيق الإجراء المتخذ وبيان أبرز النتائج والتوصيات.",
+  },
+  {
+    id: "meeting-summary",
+    title: "صياغة اجتماع",
+    category: "إجراء",
+    content:
+      "تم عقد اجتماع {{field.meetingName}} بتاريخ {{field.meetingDate}}، وذلك لمناقشة {{field.discussionTopic}} واتخاذ ما يلزم من توصيات.",
+  },
+  {
+    id: "student-followup",
+    title: "صياغة متابعة طالب",
+    category: "إجراء",
+    content:
+      "تمت متابعة حالة الطالب/الطالبة {{student.name}} في الصف {{student.grade}}، وجرى توثيق الإجراء وفق البيانات المسجلة في الحالة.",
+  },
+  {
+    id: "result-positive",
+    title: "نتيجة إيجابية",
+    category: "نتيجة",
+    content:
+      "أسهمت الجهود المنفذة في تعزيز الوعي وتحسين مستوى التفاعل الإيجابي داخل البيئة التعليمية.",
+  },
+  {
+    id: "recommendation-general",
+    title: "توصية عامة",
+    category: "توصية",
+    content:
+      "يوصى بمتابعة الحالة خلال الفترة القادمة، وتوثيق أي مستجدات، والتنسيق مع الأطراف ذات العلاقة عند الحاجة.",
+  },
+  {
+    id: "closing-official",
+    title: "خاتمة رسمية",
+    category: "خاتمة",
+    content:
+      "جرى إعداد هذا التقرير من خلال منصة التوجيه الطلابي، وفق البيانات المدخلة والمعتمدة في الحالة.",
+  },
 ];
 
-const pagePresets: {
-  kind: ReportPageKind;
+const blockLibrary: Array<{
+  kind: BlockKind;
   title: string;
   description: string;
-  defaultBlockKinds: ReportBlockKind[];
-}[] = [
+  defaultContent: string;
+  defaultVariant: BlockVariant;
+  defaultAlign?: "right" | "center";
+}> = [
   {
-    kind: "cover",
-    title: "صفحة الغلاف",
-    description: "غلاف رسمي يعرض هوية المدرسة وعنوان التقرير دون تفاصيل كثيرة.",
-    defaultBlockKinds: ["identity-header", "cover-title"],
+    kind: "hero-title",
+    title: "عنوان رئيسي في المنتصف",
+    description: "عنوان كبير للتقرير أو النموذج، مع تاريخ ومعد التقرير اختياريًا.",
+    defaultContent: "{{case.title}}",
+    defaultVariant: "hero",
+    defaultAlign: "center",
   },
   {
-    kind: "summary",
-    title: "ملخص التقرير",
-    description: "صفحة مختصرة تعرض أهم بيانات التقرير والحالة.",
-    defaultBlockKinds: ["case-meta"],
+    kind: "meta-strip",
+    title: "بيانات مختصرة تحت العنوان",
+    description: "تاريخ، معد التقرير، الخدمة، رقم الحالة.",
+    defaultContent:
+      "التاريخ: {{case.createdAt}}\nالمعد: {{identity.counselorName}}\nالخدمة: {{service.name}}\nرقم الحالة: {{case.id}}",
+    defaultVariant: "soft",
   },
   {
-    kind: "narrative",
-    title: "تفاصيل التنفيذ",
-    description: "صفحة محتوى تعرض المقدمة أو الإجراءات أو النصوص الأساسية.",
-    defaultBlockKinds: ["paragraph"],
+    kind: "plain-text",
+    title: "فقرة بدون عنوان",
+    description: "نص عادي داخل التقرير بدون عنوان ظاهر.",
+    defaultContent:
+      "اكتب هنا نصًا رسميًا، أو اختر نصًا من مكتبة النصوص. يمكنك استخدام متغيرات مثل {{case.title}} و {{student.name}}.",
+    defaultVariant: "plain",
   },
   {
-    kind: "results",
-    title: "النتائج والتوصيات",
-    description: "صفحة مخصصة للنتائج والتوصيات أو الحقول المختصرة.",
-    defaultBlockKinds: ["field-list", "text-library"],
+    kind: "section-text",
+    title: "بلوك نص مع عنوان",
+    description: "عنوان صغير وتحته فقرة رسمية.",
+    defaultContent:
+      "تم توثيق هذا الجزء بناءً على البيانات المدخلة في الحالة، ويمكن ربط النص بمتغيرات ديناميكية من Workflow.",
+    defaultVariant: "card",
   },
   {
-    kind: "evidence",
+    kind: "multi-paragraph",
+    title: "نص فقرات متعددة",
+    description: "مناسب للوصف التفصيلي أو دراسة الحالة أو محاور الاجتماع.",
+    defaultContent:
+      "الفقرة الأولى: يتم هنا عرض وصف مختصر للسياق العام.\n\nالفقرة الثانية: يتم هنا توضيح الإجراء أو المعالجة أو التوصيات.",
+    defaultVariant: "outline",
+  },
+  {
+    kind: "highlight-note",
+    title: "بلوك مميز للنتيجة",
+    description: "مربع بصري هادئ لإظهار نتيجة أو ملاحظة مهمة.",
+    defaultContent:
+      "أسهمت الجهود المنفذة في تعزيز الوعي وتحسين مستوى التفاعل الإيجابي داخل البيئة التعليمية.",
+    defaultVariant: "highlight",
+  },
+  {
+    kind: "bullet-list",
+    title: "قائمة نقاط",
+    description: "مناسب للأهداف أو الإجراءات أو التوصيات.",
+    defaultContent:
+      "تعزيز الوعي لدى الفئة المستهدفة\nتوثيق الإجراءات المتخذة\nمتابعة النتائج خلال الفترة القادمة",
+    defaultVariant: "card",
+  },
+  {
+    kind: "dynamic-fields",
+    title: "حقول ديناميكية من الحالة",
+    description: "يعرض أهم قيم Case ID وWorkflow بشكل مرتب.",
+    defaultContent:
+      "هذا البلوك يعرض بيانات الحالة والطالب والحقول المتاحة عند اختبار Case ID.",
+    defaultVariant: "soft",
+  },
+  {
+    kind: "evidence-gallery",
     title: "الشواهد والمرفقات",
-    description: "صفحة مستقلة لعرض الشواهد حتى تبقى حدود A4 واضحة.",
-    defaultBlockKinds: ["evidence-gallery"],
+    description: "يعرض الشواهد المرتبطة بالحالة. إذا زادت الشواهد عن سعة الصفحة يتم إنشاء صفحات إضافية.",
+    defaultContent:
+      "يعرض هذا البلوك الشواهد المرتبطة بـ Case ID. لا تظهر الشواهد إلا إذا أضفت هذا البلوك.",
+    defaultVariant: "card",
   },
   {
-    kind: "approval",
-    title: "الاعتماد والتوقيع",
-    description: "صفحة ختامية للتوقيع والختم واعتماد التقرير.",
-    defaultBlockKinds: ["approval-signature"],
+    kind: "closing-note",
+    title: "خاتمة واعتماد",
+    description: "خاتمة رسمية ومساحة اعتماد خفيفة.",
+    defaultContent:
+      "تم إعداد التقرير واعتماده وفق البيانات المتاحة في منصة التوجيه الطلابي.",
+    defaultVariant: "quote",
   },
 ];
 
-
-function getPresetByDesignKey(designKey: string) {
-  const designToTemplateId: Record<string, string> = {
-    "guardian-summons-letter-v1": "tpl-guardian-summons-letter",
-    "official-school-report": "tpl-official-school-report",
-    "visual-program-report": "tpl-visual-program-report",
-  };
-
-  const templateId = designToTemplateId[designKey] || designKey;
-
-  return initialReportTemplateBuilderPresets.find(
-    (template) =>
-      template.id === templateId ||
-      template.designPreset === designKey
-  );
+function makeId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function createTemplateFromDesignPreset(
-  sourceTemplate: ReportTemplateBuilderModel,
-): ReportTemplateBuilderModel {
-  const timestamp = Date.now();
+function createBlock(kind: BlockKind): StudioBlock {
+  const item = blockLibrary.find((block) => block.kind === kind) || blockLibrary[2];
 
   return {
-    ...sourceTemplate,
-    id: `design-copy-${sourceTemplate.id}-${timestamp}`,
-    name: `${sourceTemplate.name} - نسخة قابلة للتعديل`,
-    status: "DRAFT",
-    updatedAt: new Date().toISOString().slice(0, 10),
-    previewCaseId: sourceTemplate.previewCaseId || "",
-    pages: sourceTemplate.pages.map((page) => ({
-      ...page,
-      id: `${page.id}-design-copy-${timestamp}`,
-      blocks: page.blocks.map((block) => ({
-        ...block,
-        id: `${block.id}-design-copy-${timestamp}`,
-      })),
-    })),
+    id: makeId(kind),
+    kind: item.kind,
+    title: item.title,
+    content: item.defaultContent,
+    variant: item.defaultVariant,
+    source: "manual",
+    boundFieldKey: undefined,
+    hideWhenMissing: false,
+    showTitle: item.kind !== "plain-text" && item.kind !== "hero-title",
+    showMeta: item.kind === "hero-title" || item.kind === "meta-strip",
+    align: item.defaultAlign || "right",
+    placement: item.kind === "hero-title" ? "middle-center" : "flow",
+    evidenceLayout: item.kind === "evidence-gallery" ? "TWO_PER_PAGE" : undefined,
+    evidenceFit: item.kind === "evidence-gallery" ? "contain" : undefined,
+    evidenceAspectRatio: item.kind === "evidence-gallery" ? "LANDSCAPE_4_3" : undefined,
+    evidenceShowCaptions: item.kind === "evidence-gallery" ? true : undefined,
+    evidenceAutoCreatePages: item.kind === "evidence-gallery" ? true : undefined,
+    evidenceEmptyBehavior: item.kind === "evidence-gallery" ? "message" : undefined,
   };
 }
-export function ReportTemplateStudio() {
-  const [templates, setTemplates] = useState<ReportTemplateBuilderModel[]>(
-    initialReportTemplateBuilderPresets,
-  );
 
-  const [activeTemplateId, setActiveTemplateId] = useState(
-    initialReportTemplateBuilderPresets[0]?.id || "",
-  );
+function createPage(kind: PageKind, index: number): StudioPage {
+  const presets: Record<PageKind, Omit<StudioPage, "id" | "blocks"> & { blockKinds: BlockKind[] }> = {
+    content: {
+      kind: "content",
+      title: index === 1 ? "صفحة العنوان والمحتوى" : `صفحة محتوى ${index}`,
+      description: "صفحة A4 رسمية تحتوي بلوكات نصية ذكية.",
+      blockKinds: index === 1 ? ["hero-title", "meta-strip", "section-text"] : ["section-text"],
+    },
+    recommendations: {
+      kind: "recommendations",
+      title: "التوصيات والنتائج",
+      description: "صفحة مخصصة لعرض النتائج والتوصيات.",
+      blockKinds: ["highlight-note", "bullet-list"],
+    },
+    evidence: {
+      kind: "evidence",
+      title: "الشواهد والمرفقات",
+      description: "صفحة مستقلة لعرض الشواهد وتقسيمها تلقائيًا على صفحات A4 عند كثرتها.",
+      blockKinds: ["evidence-gallery"],
+    },
+    approval: {
+      kind: "approval",
+      title: "الاعتماد والتوقيع",
+      description: "صفحة ختامية للاعتماد.",
+      blockKinds: ["closing-note"],
+    },
+    custom: {
+      kind: "custom",
+      title: `صفحة مخصصة ${index}`,
+      description: "صفحة مخصصة يمكن بناؤها بالبلوكات.",
+      blockKinds: ["plain-text"],
+    },
+  };
 
-  const [savedTemplateIds, setSavedTemplateIds] = useState<Record<string, string>>({});
+  const preset = presets[kind];
 
-  const [templatePendingDelete, setTemplatePendingDelete] =
-    useState<ReportTemplateBuilderModel | null>(null);
+  return {
+    id: makeId(`page-${kind}`),
+    kind: preset.kind,
+    title: preset.title,
+    description: preset.description,
+    blocks: preset.blockKinds.map(createBlock),
+  };
+}
 
-  const [pagePendingDelete, setPagePendingDelete] =
-    useState<ReportTemplatePage | null>(null);
+function createInitialTemplate(): StudioTemplate {
+  return {
+    id: "official-smart-template",
+    name: "القالب الرسمي الذكي",
+    description:
+      "قالب رسمي متعدد الصفحات بهوية ثابتة، يتم بناء محتواه من بلوكات نصية ذكية ومتغيرات ديناميكية.",
+    status: "DRAFT",
+    designTemplateId: "ministry-form",
+    scope: "GLOBAL",
+    previewCaseId: "",
+    documentType: "REPORT",
+    updatedAt: "غير محفوظ",
+    pages: [createPage("content", 1)],
+  };
+}
 
-  const [reportIdentity, setReportIdentity] =
-    useState<ReportIdentitySettings>(DEFAULT_REPORT_IDENTITY_SETTINGS);
+function buildRuntimeContext(template: StudioTemplate, previewCase: PreviewCaseData | null) {
+  const values: Record<string, string> = {};
 
-  const [reportTextSnippets, setReportTextSnippets] =
-    useState<ReportTextSnippet[]>(initialReportTextSnippets);
+  for (const item of previewCase?.values || []) {
+    if (item.fieldKey) {
+      values[`field.${item.fieldKey}`] = item.value || "";
+    }
+  }
 
-  const [generatedSnapshots, setGeneratedSnapshots] = useState<
-    GeneratedReportSnapshot[]
-  >([]);
+  return {
+    "identity.ministryName": "وزارة التعليم",
+    "identity.educationDepartment": "الإدارة العامة للتعليم",
+    "identity.educationOffice": "مكتب التعليم",
+    "identity.schoolName": "اسم المدرسة",
+    "identity.counselorName": "اسم الموجه/الموجهة",
+    "identity.principalName": "اسم مدير/مديرة المدرسة",
 
-  const [runtimeWorkflowFields, setRuntimeWorkflowFields] = useState<
-    RuntimeWorkflowFieldOption[]
-  >([]);
+    "template.name": template.name,
+    "template.description": template.description,
 
-  const [runtimeWorkflowMessage, setRuntimeWorkflowMessage] = useState("");
+    "case.id": previewCase?.caseId || "CASE-ID",
+    "case.title": previewCase?.title || "عنوان التقرير",
+    "case.status": previewCase?.status || "مسودة",
+    "case.createdAt": formatDate(previewCase?.createdAt) || "1447/01/01 هـ",
+    "case.updatedAt": formatDate(previewCase?.updatedAt) || "1447/01/01 هـ",
 
-  const [runtimePreviewCase, setRuntimePreviewCase] =
-    useState<RuntimePreviewCaseData | null>(null);
+    "service.name": previewCase?.serviceName || getServiceName(template.serviceSlug) || "الخدمة الإرشادية",
+    "service.slug": previewCase?.serviceSlug || template.serviceSlug || "general",
 
-  const [runtimePreviewMessage, setRuntimePreviewMessage] = useState("");
+    "student.name": previewCase?.student?.name || "اسم الطالب/الطالبة",
+    "student.grade": previewCase?.student?.grade || "الصف",
+    "student.classroom": previewCase?.student?.classroom || "الفصل",
+    "student.stage": previewCase?.student?.stage || "المرحلة",
+    "student.guardianName": previewCase?.student?.guardianName || "اسم ولي الأمر",
+    "student.guardianPhone": previewCase?.student?.guardianPhone || "رقم ولي الأمر",
 
-  const [feedbackModal, setFeedbackModal] = useState<{
-    open: boolean;
-    type: "success" | "error";
-    title: string;
-    message: string;
-  }>({
-    open: false,
-    type: "success",
-    title: "",
-    message: "",
+    "evidence.count": String(previewCase?.evidences?.length || 0),
+
+    ...values,
+  };
+}
+
+
+
+function getServiceName(slug?: string) {
+  return SERVICE_OPTIONS.find((service) => service.slug === slug)?.name || "";
+}
+
+function formatDate(value?: string) {
+  if (!value) return "";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function renderText(text: string, context: Record<string, string>) {
+  return text.replace(/{{\s*([^}]+)\s*}}/g, (_, key: string) => {
+    const cleanKey = key.trim();
+    return context[cleanKey] || `{{${cleanKey}}}`;
   });
+}
 
-  const activeTemplate = useMemo(() => {
-    return templates.find((template) => template.id === activeTemplateId);
-  }, [templates, activeTemplateId]);
+function splitLines(text: string) {
+  return text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
+function splitParagraphs(text: string) {
+  return text
+    .split(/\n\s*\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const designKey = params.get("design");
+function extractUsedWorkflowFieldKeys(template: StudioTemplate) {
+  const keys = new Set<string>();
+  const regex = /{{\s*field\.([^}\s]+)\s*}}/g;
 
-    if (!designKey) {
-      return;
+  for (const page of template.pages) {
+    for (const block of page.blocks) {
+      const content = `${block.title}\n${block.content}`;
+      let match = regex.exec(content);
+
+      while (match) {
+        keys.add(match[1]);
+        match = regex.exec(content);
+      }
     }
+  }
 
-    const sourceTemplate = getPresetByDesignKey(designKey);
+  return keys;
+}
 
-    if (!sourceTemplate) {
-      return;
+function groupWorkflowFields(fields: WorkflowFieldOption[]) {
+  const groups = new Map<string, WorkflowFieldOption[]>();
+
+  for (const field of fields) {
+    const groupName = field.stepTitle || "حقول عامة";
+    const current = groups.get(groupName) || [];
+    current.push(field);
+    groups.set(groupName, current);
+  }
+
+  return Array.from(groups.entries()).map(([stepTitle, items]) => ({
+    stepTitle,
+    fields: items,
+  }));
+}
+
+function parseSavedTemplateJson(item: any) {
+  const raw = item?.templateJson ?? item?.content ?? null;
+
+  if (!raw) return null;
+
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
     }
+  }
 
-    const copiedTemplate = createTemplateFromDesignPreset(sourceTemplate);
+  if (typeof raw === "object") {
+    return raw;
+  }
 
-    setTemplates((currentTemplates) => [copiedTemplate, ...currentTemplates]);
-    setActiveTemplateId(copiedTemplate.id);
+  return null;
+}
 
-    setFeedbackModal({
-      open: true,
-      type: "success",
-      title: "تم استخدام التصميم",
-      message:
-        "تم نسخ التصميم إلى مصمم القوالب كقالب جديد قابل للتعديل. يمكنك الآن تعديل الصفحات والبلوكات ثم حفظه ونشره.",
-    });
+function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
+  const templateJson = parseSavedTemplateJson(item) || {};
+  const smartStudio = templateJson?.smartStudio || {};
+  const fallback = createInitialTemplate();
 
-    const nextUrl = window.location.pathname;
-    window.history.replaceState({}, "", nextUrl);
-  }, []);
+  const pages =
+    Array.isArray(smartStudio?.pages) && smartStudio.pages.length
+      ? smartStudio.pages
+      : Array.isArray(templateJson?.pages) && templateJson.pages.length
+        ? templateJson.pages.map((page: any, pageIndex: number) => ({
+            id: page.id || makeId("page-loaded"),
+            kind:
+              page.kind === "approval"
+                ? "approval"
+                : page.kind === "evidence"
+                  ? "evidence"
+                  : pageIndex === 0
+                    ? "content"
+                    : "custom",
+            title: page.title || `صفحة ${pageIndex + 1}`,
+            description: page.description || "صفحة مستوردة من قالب محفوظ.",
+            blocks: Array.isArray(page.blocks)
+              ? page.blocks.map((block: any) => ({
+                  id: block.id || makeId("block-loaded"),
+                  kind:
+                    block.settings?.smartBlockKind ||
+                    block.source?.fieldKey ||
+                    "section-text",
+                  title: block.title || block.customTitle || "بلوك",
+                  content:
+                    block.customContent ||
+                    block.content ||
+                    block.source?.description ||
+                    "",
+                  variant: block.settings?.style || "card",
+                  source:
+                    block.source?.source === "library" ||
+                    block.source?.source === "workflow"
+                      ? block.source.source
+                      : "manual",
+                  snippetId: block.settings?.snippetId || undefined,
+                  boundFieldKey: block.settings?.boundFieldKey || undefined,
+                  hideWhenMissing: Boolean(block.settings?.hideWhenMissing),
+                  showTitle: block.settings?.showTitle !== false,
+                  showMeta: Boolean(block.settings?.showMeta),
+                  align: block.settings?.align || "right",
+                  placement: block.settings?.placement || "flow",
+                  evidenceLayout: block.settings?.evidenceLayout || undefined,
+                  evidenceFit: block.settings?.evidenceFit || undefined,
+                  evidenceAspectRatio: block.settings?.evidenceAspectRatio || "LANDSCAPE_4_3",
+                  evidenceShowCaptions: block.settings?.evidenceShowCaptions !== false,
+                  evidenceAutoCreatePages: block.settings?.evidenceAutoCreatePages !== false,
+                  evidenceEmptyBehavior: block.settings?.evidenceEmptyBehavior || "message",
+                }))
+              : [createBlock("section-text")],
+          }))
+        : fallback.pages;
+
+  return {
+    ...fallback,
+    id: templateJson.id || item?.id || fallback.id,
+    designTemplateId:
+      templateJson.designTemplateId ||
+      smartStudio.designTemplateId ||
+      "ministry-form",
+    name: item?.name || templateJson.name || fallback.name,
+    description:
+      item?.description || templateJson.description || fallback.description,
+    status:
+      templateJson.status === "PUBLISHED" ||
+      templateJson.status === "ARCHIVED" ||
+      templateJson.status === "DRAFT"
+        ? templateJson.status
+        : item?.isActive === false
+          ? "ARCHIVED"
+          : "DRAFT",
+    scope:
+      templateJson.scope ||
+      templateJson?.workflowBinding?.scope ||
+      (item?.serviceSlug ? "SERVICE" : "GLOBAL"),
+    serviceSlug:
+      item?.serviceSlug ||
+      templateJson.serviceSlug ||
+      templateJson?.workflowBinding?.serviceSlug ||
+      undefined,
+    workflowSlug:
+      templateJson.workflowSlug ||
+      templateJson?.workflowBinding?.workflowSlug ||
+      undefined,
+    locationKey:
+      templateJson.locationKey ||
+      templateJson?.workflowBinding?.locationKey ||
+      undefined,
+    previewCaseId: templateJson.previewCaseId || "",
+    updatedAt:
+      item?.updatedAt ||
+      templateJson.updatedAt ||
+      new Date().toISOString().slice(0, 10),
+    pages,
+  } as StudioTemplate;
+}
+
+export function ReportTemplateStudio() {
+  const [template, setTemplate] = useState<StudioTemplate>(() => createInitialTemplate());
+  const [activePageId, setActivePageId] = useState(() => template.pages[0]?.id || "");
+  const [selectedBlockId, setSelectedBlockId] = useState(() => template.pages[0]?.blocks[0]?.id || "");
+  const [savedTemplateId, setSavedTemplateId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [testingCase, setTestingCase] = useState(false);
+  const [previewCase, setPreviewCase] = useState<PreviewCaseData | null>(null);
+  const [workflowFields, setWorkflowFields] = useState<WorkflowFieldOption[]>([]);
+  const [workflowMessage, setWorkflowMessage] = useState("اختر خدمة أو Workflow لعرض الحقول المتاحة.");
+  const [loadingWorkflow, setLoadingWorkflow] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+
+  const activePage = useMemo(
+    () => template.pages.find((page) => page.id === activePageId) || template.pages[0],
+    [template.pages, activePageId],
+  );
+
+  const selectedBlock = useMemo(
+    () =>
+      activePage?.blocks.find((block) => block.id === selectedBlockId) ||
+      template.pages.flatMap((page) => page.blocks).find((block) => block.id === selectedBlockId) ||
+      null,
+    [activePage?.blocks, selectedBlockId, template.pages],
+  );
+
+  const runtimeContext = useMemo(
+    () => buildRuntimeContext(template, previewCase),
+    [template, previewCase],
+  );
+
   useEffect(() => {
     let isMounted = true;
 
-    async function loadSavedReportTemplates() {
+    async function loadTemplateFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const templateId = params.get("templateId");
+
+      if (!templateId) return;
+
       try {
+        const cached = sessionStorage.getItem("template-studio-selected");
+
+        if (cached) {
+          const cachedItem = JSON.parse(cached);
+
+          if (String(cachedItem?.id || "") === templateId) {
+            const hydrated = hydrateStudioTemplateFromSavedItem(cachedItem);
+
+            if (!isMounted) return;
+
+            setTemplate(hydrated);
+            setSavedTemplateId(templateId);
+            setActivePageId(hydrated.pages[0]?.id || "");
+            setSelectedBlockId(hydrated.pages[0]?.blocks[0]?.id || "");
+            sessionStorage.removeItem("template-studio-selected");
+
+            setFeedback({
+              type: "success",
+              message: "تم فتح القالب المحفوظ داخل الاستديو.",
+            });
+
+            return;
+          }
+        }
+
         const response = await fetch(
-          "/api/dashboard/report-templates",
-          {
-            cache: "no-store",
-          },
+          `/api/dashboard/report-templates/${encodeURIComponent(templateId)}`,
+          { cache: "no-store" },
         );
 
         const result = await response.json();
 
         if (!response.ok) {
-          return;
+          throw new Error(result?.error || result?.message || "تعذر تحميل القالب.");
         }
 
-        const savedTemplates = Array.isArray(result?.templates)
-          ? result.templates
-          : Array.isArray(result?.data)
-            ? result.data
-            : Array.isArray(result)
-              ? result
-              : [];
+        const item = result?.template || result?.data || result;
+        const hydrated = hydrateStudioTemplateFromSavedItem(item);
 
-        const loadedTemplates = savedTemplates
-          .map((item: any) => {
-            const rawTemplate = item?.templateJson ?? item?.content;
+        if (!isMounted) return;
 
-            let parsedTemplate = rawTemplate;
-
-            if (typeof rawTemplate === "string") {
-              try {
-                parsedTemplate = JSON.parse(rawTemplate);
-              } catch {
-                parsedTemplate = null;
-              }
-            }
-
-            if (!parsedTemplate || typeof parsedTemplate !== "object") {
-              parsedTemplate = {
-                id: `saved-template-${item.id}`,
-                name: item.name || "قالب محفوظ",
-                description:
-                  item.description || "قالب محفوظ من قاعدة البيانات.",
-                scope: item.serviceSlug ? "SERVICE" : "GLOBAL",
-                serviceSlug: item.serviceSlug || undefined,
-                status: "DRAFT",
-                updatedAt: new Date().toISOString().slice(0, 10),
-                previewCaseId: "",
-                pages: [
-                  createPageFromPreset("cover"),
-                  createPageFromPreset("summary"),
-                  createPageFromPreset("evidence"),
-                  createPageFromPreset("approval"),
-                ],
-              };
-            }
-
-            const status =
-              parsedTemplate.status === "PUBLISHED" ||
-              parsedTemplate.status === "ARCHIVED" ||
-              parsedTemplate.status === "DRAFT"
-                ? parsedTemplate.status
-                : "DRAFT";
-
-            return {
-              ...parsedTemplate,
-              id: `saved-template-${item.id}`,
-              name: item.name || parsedTemplate.name || "قالب محفوظ",
-              description:
-                item.description ||
-                parsedTemplate.description ||
-                "قالب محفوظ من قاعدة البيانات.",
-              scope:
-                parsedTemplate.scope ||
-                (item.serviceSlug ? "SERVICE" : "GLOBAL"),
-              serviceSlug: item.serviceSlug || parsedTemplate.serviceSlug,
-              status,
-              updatedAt:
-                item.updatedAt ||
-                parsedTemplate.updatedAt ||
-                new Date().toISOString().slice(0, 10),
-              pages:
-                Array.isArray(parsedTemplate.pages) &&
-                parsedTemplate.pages.length > 0
-                  ? parsedTemplate.pages
-                  : [
-                      createPageFromPreset("cover"),
-                      createPageFromPreset("summary"),
-                      createPageFromPreset("evidence"),
-                      createPageFromPreset("approval"),
-                    ],
-            };
-          })
-          .filter(Boolean) as ReportTemplateBuilderModel[];
-
-        if (!isMounted || loadedTemplates.length === 0) {
-          return;
-        }
-
-        setTemplates((currentTemplates) => {
-          const presetsOnly = currentTemplates.filter(
-            (template) => !template.id.startsWith("saved-template-"),
-          );
-
-          return [...loadedTemplates, ...presetsOnly];
+        setTemplate(hydrated);
+        setSavedTemplateId(templateId);
+        setActivePageId(hydrated.pages[0]?.id || "");
+        setSelectedBlockId(hydrated.pages[0]?.blocks[0]?.id || "");
+        setFeedback({
+          type: "success",
+          message: "تم تحميل القالب المحفوظ داخل الاستديو.",
         });
+      } catch (error) {
+        if (!isMounted) return;
 
-        setSavedTemplateIds((current) => {
-          const next = { ...current };
-
-          savedTemplates.forEach((item: any) => {
-            if (item?.id) {
-              next[`saved-template-${item.id}`] = item.id;
-            }
-          });
-
-          return next;
+        setFeedback({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "تعذر فتح القالب من المكتبة.",
         });
-
-        setActiveTemplateId(loadedTemplates[0]?.id || "");
-      } catch {
-        // لا نوقف صانع القوالب إذا فشل تحميل القوالب المحفوظة.
       }
     }
 
-    loadSavedReportTemplates();
+    loadTemplateFromQuery();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  useEffect(() => {
-    if (!activeTemplate) {
-      return;
-    }
+  const usedWorkflowFieldKeys = useMemo(
+    () => extractUsedWorkflowFieldKeys(template),
+    [template],
+  );
 
-    const serviceSlug =
-      activeTemplate.scope === "SERVICE" ? activeTemplate.serviceSlug : "";
+  useEffect(() => {
+    let isMounted = true;
 
     async function loadWorkflowFields() {
-      try {
-        const response = await fetch(
-          `/api/admin/report-templates/workflow-fields?serviceSlug=${encodeURIComponent(
-            serviceSlug || "",
-          )}`,
-        );
-
-        const result = await response.json();
-
-        setRuntimeWorkflowFields(result.fields || []);
-        setRuntimeWorkflowMessage(result.message || "");
-      } catch {
-        setRuntimeWorkflowFields([]);
-        setRuntimeWorkflowMessage(
-          "تعذر جلب حقول الـ Workflow، سيتم استخدام الحقول الافتراضية.",
-        );
+      if (template.scope === "GLOBAL" || template.scope === "LOCATION") {
+        setWorkflowFields([]);
+        setWorkflowMessage("هذا القالب غير مربوط بخدمة أو Workflow حاليًا.");
+        return;
       }
-    }
 
-    loadWorkflowFields();
-  }, [activeTemplate?.scope, activeTemplate?.serviceSlug, activeTemplate?.id]);
-
-  useEffect(() => {
-    if (!activeTemplate) {
-      return;
-    }
-
-    async function loadPreviewCase() {
-      const caseId = activeTemplate?.previewCaseId?.trim();
-
-      if (!caseId) {
-        setRuntimePreviewCase(null);
-        setRuntimePreviewMessage(
-          "لم يتم إدخال Case ID، سيتم استخدام بيانات تجريبية.",
-        );
+      if (!template.serviceSlug) {
+        setWorkflowFields([]);
+        setWorkflowMessage("اختر الخدمة أولًا حتى تظهر حقول الـ Workflow المرتبطة بها.");
         return;
       }
 
       try {
+        setLoadingWorkflow(true);
+
         const response = await fetch(
-          `/api/admin/report-templates/preview-case?caseId=${encodeURIComponent(
-            caseId,
+          `/api/admin/report-templates/workflow-fields?serviceSlug=${encodeURIComponent(
+            template.serviceSlug,
           )}`,
+          { cache: "no-store" },
         );
 
         const result = await response.json();
 
-        setRuntimePreviewCase(result.data || null);
-        setRuntimePreviewMessage(result.message || "");
+        if (!isMounted) return;
+
+        setWorkflowFields(Array.isArray(result?.fields) ? result.fields : []);
+        setWorkflowMessage(
+          result?.message ||
+            "تم جلب الحقول المتاحة. اختر المتغيرات المناسبة وأدرجها في البلوكات.",
+        );
       } catch {
-        setRuntimePreviewCase(null);
-        setRuntimePreviewMessage(
-          "تعذر جلب بيانات الحالة، سيتم استخدام بيانات تجريبية.",
-        );
-      }
-    }
+        if (!isMounted) return;
 
-    loadPreviewCase();
-  }, [activeTemplate?.previewCaseId, activeTemplate?.id]);
-
-  function updateActiveTemplate(
-    updater: (
-      template: ReportTemplateBuilderModel,
-    ) => ReportTemplateBuilderModel,
-  ) {
-    setTemplates((currentTemplates) =>
-      currentTemplates.map((template) =>
-        template.id === activeTemplateId ? updater(template) : template,
-      ),
-    );
-  }
-
-  function requestDeleteTemplate(template: ReportTemplateBuilderModel) {
-    if (templates.length <= 1) {
-      return;
-    }
-
-    setTemplatePendingDelete(template);
-  }
-
-  async function confirmDeleteTemplate() {
-    if (!templatePendingDelete) {
-      return;
-    }
-
-    const dbTemplateId = savedTemplateIds[templatePendingDelete.id];
-
-    try {
-      if (dbTemplateId) {
-        const response = await fetch(
-          `/api/dashboard/report-templates/${dbTemplateId}`,
-          {
-            method: "DELETE",
-          },
-        );
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result?.error || result?.message || "تعذر حذف القالب.",
-          );
+        setWorkflowFields([]);
+        setWorkflowMessage("تعذر جلب حقول الـ Workflow. يمكن الاستمرار بالنصوص اليدوية مؤقتًا.");
+      } finally {
+        if (isMounted) {
+          setLoadingWorkflow(false);
         }
       }
-
-      const remainingTemplates = templates.filter(
-        (template) => template.id !== templatePendingDelete.id,
-      );
-
-      setTemplates(remainingTemplates);
-
-      setSavedTemplateIds((current) => {
-        const next = { ...current };
-        delete next[templatePendingDelete.id];
-        return next;
-      });
-
-      if (activeTemplateId === templatePendingDelete.id) {
-        setActiveTemplateId(remainingTemplates[0]?.id || "");
-      }
-
-      setTemplatePendingDelete(null);
-
-      setFeedbackModal({
-        open: true,
-        type: "success",
-        title: "تم حذف القالب",
-        message: dbTemplateId
-          ? "تم حذف القالب من قاعدة البيانات وإزالته من القائمة."
-          : "تم حذف القالب غير المحفوظ من القائمة.",
-      });
-    } catch (error) {
-      setFeedbackModal({
-        open: true,
-        type: "error",
-        title: "تعذر حذف القالب",
-        message:
-          error instanceof Error
-            ? error.message
-            : "حدث خطأ غير متوقع أثناء حذف القالب.",
-      });
-    }
-  }
-
-  function requestDeletePage(page: ReportTemplatePage) {
-    if (!activeTemplate || activeTemplate.pages.length <= 1) {
-      return;
     }
 
-    setPagePendingDelete(page);
-  }
+    loadWorkflowFields();
 
-  function confirmDeletePage() {
-    if (!pagePendingDelete) {
-      return;
-    }
+    return () => {
+      isMounted = false;
+    };
+  }, [template.scope, template.serviceSlug, template.workflowSlug]);
 
-    updateActiveTemplate((template) => ({
-      ...template,
-      pages: template.pages.filter((page) => page.id !== pagePendingDelete.id),
+  function updateTemplate(next: Partial<StudioTemplate>) {
+    setTemplate((current) => ({
+      ...current,
+      ...next,
       updatedAt: new Date().toISOString().slice(0, 10),
     }));
-
-    setPagePendingDelete(null);
   }
 
-  function createNewTemplate() {
-    const newTemplate: ReportTemplateBuilderModel = {
-      id: `custom-template-${Date.now()}`,
-      name: "قالب جديد",
-      description: "قالب مخصص يتم بناؤه من Case ID وبيانات الحالة.",
-      scope: "GLOBAL",
-      status: "DRAFT",
+  function updatePage(pageId: string, updater: (page: StudioPage) => StudioPage) {
+    setTemplate((current) => ({
+      ...current,
       updatedAt: new Date().toISOString().slice(0, 10),
-      previewCaseId: "",
-      pages: [
-        createPageFromPreset("cover"),
-        createPageFromPreset("summary"),
-        createPageFromPreset("evidence"),
-        createPageFromPreset("approval"),
-      ],
-    };
-
-    setTemplates((currentTemplates) => [newTemplate, ...currentTemplates]);
-    setActiveTemplateId(newTemplate.id);
+      pages: current.pages.map((page) => (page.id === pageId ? updater(page) : page)),
+    }));
   }
 
-  function duplicateTemplate(template: ReportTemplateBuilderModel) {
-    const timestamp = Date.now();
-
-    const copiedTemplate: ReportTemplateBuilderModel = {
-      ...template,
-      id: `copy-${template.id}-${timestamp}`,
-      name: `${template.name.replace(/ - نسخة( \d+)?$/u, "")} - نسخة`,
-      status: "DRAFT",
+  function updateBlock(blockId: string, updater: (block: StudioBlock) => StudioBlock) {
+    setTemplate((current) => ({
+      ...current,
       updatedAt: new Date().toISOString().slice(0, 10),
-      pages: template.pages.map((page) => ({
+      pages: current.pages.map((page) => ({
         ...page,
-        id: `${page.id}-copy-${timestamp}`,
-        blocks: page.blocks.map((block) => ({
-          ...block,
-          id: `${block.id}-copy-${timestamp}`,
-        })),
+        blocks: page.blocks.map((block) =>
+          block.id === blockId ? updater(block) : block,
+        ),
       })),
-    };
-
-    setTemplates((currentTemplates) => [copiedTemplate, ...currentTemplates]);
-    setActiveTemplateId(copiedTemplate.id);
+    }));
   }
 
-  function movePage(pageId: string, direction: "up" | "down") {
-    updateActiveTemplate((template) => {
-      const index = template.pages.findIndex((page) => page.id === pageId);
+  function addPage(kind: PageKind) {
+    const page = createPage(kind, template.pages.length + 1);
 
-      if (index === -1) {
-        return template;
-      }
-
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
-
-      if (targetIndex < 0 || targetIndex >= template.pages.length) {
-        return template;
-      }
-
-      const pages = [...template.pages];
-      const [page] = pages.splice(index, 1);
-      pages.splice(targetIndex, 0, page);
-
-      return {
-        ...template,
-        pages,
-        updatedAt: new Date().toISOString().slice(0, 10),
-      };
-    });
-  }
-
-  function addPage(kind: ReportPageKind) {
-    updateActiveTemplate((template) => ({
-      ...template,
-      pages: [...template.pages, createPageFromPreset(kind)],
+    setTemplate((current) => ({
+      ...current,
       updatedAt: new Date().toISOString().slice(0, 10),
+      pages: [...current.pages, page],
     }));
+
+    setActivePageId(page.id);
+    setSelectedBlockId(page.blocks[0]?.id || "");
   }
 
-  function updatePage(
-    pageId: string,
-    updater: (page: ReportTemplatePage) => ReportTemplatePage,
-  ) {
-    updateActiveTemplate((template) => ({
-      ...template,
-      pages: template.pages.map((page) =>
-        page.id === pageId ? updater(page) : page,
-      ),
-      updatedAt: new Date().toISOString().slice(0, 10),
-    }));
-  }
-
-  function addBlockToPage(pageId: string, block: ReportTemplateBlock) {
-    updatePage(pageId, (page) => ({
-      ...page,
-      blocks: [
-        ...page.blocks,
-        {
-          ...block,
-          id: `${block.kind}-${Date.now()}`,
-        },
-      ],
-    }));
-  }
-
-  function removeBlock(pageId: string, blockId: string) {
-    updatePage(pageId, (page) => ({
-      ...page,
-      blocks: page.blocks.filter((block) => block.id !== blockId),
-    }));
-  }
-
-  function moveBlock(pageId: string, blockId: string, direction: "up" | "down") {
-    updatePage(pageId, (page) => {
-      const index = page.blocks.findIndex((block) => block.id === blockId);
-
-      if (index === -1) {
-        return page;
-      }
-
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
-
-      if (targetIndex < 0 || targetIndex >= page.blocks.length) {
-        return page;
-      }
-
-      const blocks = [...page.blocks];
-      const [block] = blocks.splice(index, 1);
-      blocks.splice(targetIndex, 0, block);
-
-      return {
-        ...page,
-        blocks,
-      };
-    });
-  }
-
-  function moveBlockToPage(
-    blockId: string,
-    fromPageId: string,
-    toPageId: string,
-  ) {
-    if (fromPageId === toPageId) {
+  function removeActivePage() {
+    if (!activePage || template.pages.length <= 1) {
       return;
     }
 
-    updateActiveTemplate((template) => {
-      const fromPage = template.pages.find((page) => page.id === fromPageId);
-      const block = fromPage?.blocks.find((item) => item.id === blockId);
+    const remainingPages = template.pages.filter((page) => page.id !== activePage.id);
 
-      if (!fromPage || !block) {
-        return template;
-      }
+    setTemplate((current) => ({
+      ...current,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      pages: remainingPages,
+    }));
 
-      return {
-        ...template,
-        pages: template.pages.map((page) => {
-          if (page.id === fromPageId) {
-            return {
-              ...page,
-              blocks: page.blocks.filter((item) => item.id !== blockId),
-            };
-          }
-
-          if (page.id === toPageId) {
-            return {
-              ...page,
-              blocks: [...page.blocks, block],
-            };
-          }
-
-          return page;
-        }),
-        updatedAt: new Date().toISOString().slice(0, 10),
-      };
-    });
+    setActivePageId(remainingPages[0]?.id || "");
+    setSelectedBlockId(remainingPages[0]?.blocks[0]?.id || "");
   }
 
-  async function changeActiveTemplateStatus(status: ReportTemplateStatus) {
-    if (!activeTemplate) {
-      setFeedbackModal({
-        open: true,
-        type: "error",
-        title: "تعذر تحديث حالة القالب",
-        message: "لا يوجد قالب نشط لتحديث حالته.",
+  function addBlock(kind: BlockKind) {
+    if (!activePage) return;
+
+    const block = createBlock(kind);
+
+    updatePage(activePage.id, (page) => ({
+      ...page,
+      blocks: [...page.blocks, block],
+    }));
+
+    setSelectedBlockId(block.id);
+  }
+
+  function removeSelectedBlock() {
+    if (!selectedBlock || !activePage || activePage.blocks.length <= 1) {
+      return;
+    }
+
+    const remaining = activePage.blocks.filter((block) => block.id !== selectedBlock.id);
+
+    updatePage(activePage.id, (page) => ({
+      ...page,
+      blocks: remaining,
+    }));
+
+    setSelectedBlockId(remaining[0]?.id || "");
+  }
+
+  function moveBlock(direction: "up" | "down") {
+    if (!selectedBlock || !activePage) return;
+
+    const index = activePage.blocks.findIndex((block) => block.id === selectedBlock.id);
+    if (index === -1) return;
+
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= activePage.blocks.length) return;
+
+    const nextBlocks = [...activePage.blocks];
+    const [block] = nextBlocks.splice(index, 1);
+    nextBlocks.splice(targetIndex, 0, block);
+
+    updatePage(activePage.id, (page) => ({
+      ...page,
+      blocks: nextBlocks,
+    }));
+  }
+
+  function applySnippet(snippetId: string) {
+    if (!selectedBlock) return;
+
+    const snippet = textSnippets.find((item) => item.id === snippetId);
+    if (!snippet) return;
+
+    updateBlock(selectedBlock.id, (block) => ({
+      ...block,
+      source: "library",
+      snippetId,
+      title: block.title || snippet.title,
+      content: snippet.content,
+    }));
+  }
+
+  function insertVariable(variable: string) {
+    if (!selectedBlock) {
+      setFeedback({
+        type: "info",
+        message: "اختر بلوكًا أولًا حتى يتم إدراج المتغير داخله.",
       });
       return;
     }
 
-    const updatedTemplate: ReportTemplateBuilderModel = {
-      ...activeTemplate,
-      status,
-      updatedAt: new Date().toISOString().slice(0, 10),
-    };
+    updateBlock(selectedBlock.id, (block) => ({
+      ...block,
+      content: `${block.content}${block.content.trim() ? " " : ""}${variable}`,
+    }));
+  }
 
-    updateActiveTemplate(() => updatedTemplate);
+  async function runCaseTest() {
+    const caseId = template.previewCaseId.trim();
 
-    const dbTemplateId = savedTemplateIds[activeTemplate.id];
-
-    const payload = {
-      name: updatedTemplate.name || "قالب تقرير جديد",
-      description:
-        updatedTemplate.description ||
-        "قالب تقرير مخصص يتم بناؤه من بيانات الحالة.",
-      serviceSlug: updatedTemplate.serviceSlug ?? null,
-      type: "SCHOOL",
-      content: JSON.stringify(updatedTemplate),
-      templateJson: updatedTemplate,
-      genderAware: true,
-      isActive: status !== "ARCHIVED",
-    };
+    if (!caseId) {
+      setPreviewCase(null);
+      setFeedback({
+        type: "info",
+        message: "لم يتم إدخال Case ID. سيتم عرض بيانات تجريبية داخل المعاينة.",
+      });
+      return;
+    }
 
     try {
-      const response = dbTemplateId
-        ? await fetch(`/api/dashboard/report-templates/${dbTemplateId}`, {
+      setTestingCase(true);
+
+      const response = await fetch(
+        `/api/admin/report-templates/preview-case?caseId=${encodeURIComponent(
+          caseId,
+        )}`,
+        { cache: "no-store" },
+      );
+
+      const result = await response.json();
+
+      setPreviewCase(result?.data || null);
+      setFeedback({
+        type: result?.data ? "success" : "info",
+        message:
+          result?.message ||
+          "تم تنفيذ الاختبار. إذا لم توجد حالة فعلية ستبقى المعاينة على بيانات تجريبية.",
+      });
+    } catch {
+      setPreviewCase(null);
+      setFeedback({
+        type: "error",
+        message: "تعذر اختبار Case ID. راجع الرقم أو جرّب لاحقًا.",
+      });
+    } finally {
+      setTestingCase(false);
+    }
+  }
+
+  function toReportTemplateJson(status: TemplateStatus) {
+    return {
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      scope: template.scope,
+      serviceSlug: template.serviceSlug || undefined,
+      workflowSlug: template.workflowSlug || undefined,
+      locationKey: template.locationKey || undefined,
+      status,
+      documentType: template.documentType,
+      designTemplateId: template.designTemplateId || "ministry-form",
+      designPreset: "official-smart-multi-page",
+      previewCaseId: template.previewCaseId,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      officialLayout: {
+        pageSize: "A4",
+        ministryLogoOnly: true,
+        headerLocked: true,
+        identityLocked: true,
+        multiPage: true,
+      },
+      workflowBinding: {
+        scope: template.scope,
+        serviceSlug: template.serviceSlug || null,
+        workflowSlug: template.workflowSlug || null,
+        locationKey: template.locationKey || null,
+        fields: workflowFields,
+        usedFieldKeys: Array.from(usedWorkflowFieldKeys),
+      },
+      pages: template.pages.map((page) => ({
+        id: page.id,
+        kind: page.kind === "approval" ? "approval" : page.kind === "evidence" ? "evidence" : "narrative",
+        title: page.title,
+        description: page.description,
+        blocks: page.blocks.map((block) => ({
+          id: block.id,
+          kind: "custom-paragraph",
+          title: block.title,
+          customTitle: block.showTitle ? block.title : "",
+          customContent: block.content,
+          required: false,
+          source: {
+            source: block.source,
+            label: block.source === "library" ? "مكتبة النصوص" : "كتابة مباشرة",
+            description: "بلوك من الاستديو الرسمي الذكي متعدد الصفحات",
+            fieldKey: block.kind,
+          },
+          settings: {
+            smartBlockKind: block.kind,
+            style: block.variant,
+            showTitle: block.showTitle,
+            showMeta: block.showMeta,
+            align: block.align,
+            placement: block.placement || "flow",
+            evidenceLayout: block.evidenceLayout || null,
+            evidenceFit: block.evidenceFit || null,
+            evidenceAspectRatio: block.evidenceAspectRatio || "LANDSCAPE_4_3",
+            evidenceShowCaptions: block.evidenceShowCaptions !== false,
+            evidenceAutoCreatePages: block.evidenceAutoCreatePages !== false,
+            evidenceEmptyBehavior: block.evidenceEmptyBehavior || "message",
+            snippetId: block.snippetId || null,
+          },
+        })),
+      })),
+      smartStudio: {
+        version: 2,
+        mode: "multi-page-workflow-aware",
+        designTemplateId: template.designTemplateId || "ministry-form",
+        pages: template.pages,
+      },
+    };
+  }
+
+  async function saveTemplate(nextStatus: TemplateStatus = template.status) {
+    try {
+      setSaving(true);
+
+      const templateJson = toReportTemplateJson(nextStatus);
+
+      const payload = {
+        name: template.name || "القالب الرسمي الذكي",
+        description: template.description || "قالب رسمي ذكي متعدد الصفحات.",
+        serviceSlug:
+          template.scope === "SERVICE" || template.scope === "WORKFLOW"
+            ? template.serviceSlug || null
+            : null,
+        type: "SCHOOL",
+        content: JSON.stringify(templateJson),
+        templateJson,
+        genderAware: true,
+        isActive: nextStatus !== "ARCHIVED",
+      };
+
+      const response = savedTemplateId
+        ? await fetch(`/api/dashboard/report-templates/${savedTemplateId}`, {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
@@ -787,1754 +1108,1676 @@ export function ReportTemplateStudio() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          result?.error || result?.message || "تعذر تحديث حالة القالب.",
-        );
+        throw new Error(result?.error || result?.message || "تعذر حفظ القالب.");
       }
 
-      const savedId =
-        result?.template?.id ||
-        result?.data?.id ||
-        result?.id ||
-        dbTemplateId ||
-        "";
+      const nextSavedId =
+        result?.template?.id || result?.data?.id || result?.id || savedTemplateId;
 
-      if (savedId) {
-        setSavedTemplateIds((current) => ({
-          ...current,
-          [activeTemplate.id]: savedId,
-        }));
+      if (nextSavedId) {
+        setSavedTemplateId(nextSavedId);
       }
 
-      setFeedbackModal({
-        open: true,
+      setTemplate((current) => ({
+        ...current,
+        status: nextStatus,
+        updatedAt: new Date().toISOString().slice(0, 10),
+      }));
+
+      setFeedback({
         type: "success",
-        title:
-          status === "PUBLISHED"
-            ? "تم نشر القالب"
-            : status === "ARCHIVED"
-              ? "تمت أرشفة القالب"
-              : "تم تحويل القالب إلى مسودة",
         message:
-          status === "PUBLISHED"
-            ? "تم نشر القالب وحفظ حالته في قاعدة البيانات بنجاح."
-            : status === "ARCHIVED"
-              ? "تمت أرشفة القالب وحفظ التغيير في قاعدة البيانات."
-              : "تم تحويل القالب إلى مسودة وحفظ التغيير في قاعدة البيانات.",
+          nextStatus === "PUBLISHED"
+            ? "تم حفظ القالب ونشره بنجاح."
+            : "تم حفظ مسودة القالب بنجاح.",
       });
     } catch (error) {
-      updateActiveTemplate(() => activeTemplate);
-
-      setFeedbackModal({
-        open: true,
+      setFeedback({
         type: "error",
-        title: "تعذر تحديث حالة القالب",
-        message:
-          error instanceof Error
-            ? error.message
-            : "حدث خطأ غير متوقع أثناء تحديث حالة القالب.",
-      });
-    }
-  }
-
-  function addGeneratedSnapshot(snapshot: GeneratedReportSnapshot) {
-    setGeneratedSnapshots((currentSnapshots) => [
-      snapshot,
-      ...currentSnapshots,
-    ]);
-  }
-
-  async function handleSaveTemplate() {
-    if (!activeTemplate) {
-      setFeedbackModal({
-        open: true,
-        type: "error",
-        title: "تعذر حفظ القالب",
-        message: "لا يوجد قالب نشط لحفظه.",
-      });
-      return;
-    }
-
-    const dbTemplateId = savedTemplateIds[activeTemplate.id];
-
-    const payload = {
-      name: activeTemplate.name || "قالب تقرير جديد",
-      description:
-        activeTemplate.description ||
-        "قالب تقرير مخصص يتم بناؤه من بيانات الحالة.",
-      serviceSlug: activeTemplate.serviceSlug ?? null,
-      type: "SCHOOL",
-      content: JSON.stringify(activeTemplate),
-      templateJson: activeTemplate,
-      genderAware: true,
-      isActive: true,
-    };
-
-    async function createTemplate() {
-      return fetch("/api/dashboard/report-templates", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-    }
-
-    async function updateTemplate(templateId: string) {
-      return fetch(`/api/dashboard/report-templates/${templateId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-    }
-
-    try {
-      let response = dbTemplateId
-        ? await updateTemplate(dbTemplateId)
-        : await createTemplate();
-
-      let result = await response.json();
-
-      if (dbTemplateId && response.status === 404) {
-        response = await createTemplate();
-        result = await response.json();
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          result?.error || result?.message || "تعذر حفظ القالب.",
-        );
-      }
-
-      const savedId =
-        result?.template?.id ||
-        result?.data?.id ||
-        result?.id ||
-        dbTemplateId ||
-        "";
-
-      if (savedId) {
-        setSavedTemplateIds((current) => ({
-          ...current,
-          [activeTemplate.id]: savedId,
-        }));
-      }
-
-      setFeedbackModal({
-        open: true,
-        type: "success",
-        title: "تم حفظ القالب",
-        message: dbTemplateId
-          ? "تم تحديث القالب وحفظ التعديلات بنجاح."
-          : "تم إنشاء القالب وحفظه في قاعدة البيانات بنجاح.",
-      });
-    } catch (error) {
-      setFeedbackModal({
-        open: true,
-        type: "error",
-        title: "تعذر حفظ القالب",
         message:
           error instanceof Error
             ? error.message
             : "حدث خطأ غير متوقع أثناء حفظ القالب.",
       });
+    } finally {
+      setSaving(false);
     }
   }
 
-  if (!activeTemplate) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-10" dir="rtl">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-xl font-black text-slate-900">
-            لا توجد قوالب متاحة
-          </h1>
-
-          <p className="mt-2 text-sm text-slate-500">
-            أنشئ قالبًا جديدًا للبدء.
-          </p>
-
-          <button
-            type="button"
-            onClick={createNewTemplate}
-            className="mt-6 rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-900"
-          >
-            إنشاء قالب جديد
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50" dir="rtl">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+    <div className="min-h-screen bg-[#f5f8f6]" dir="rtl">
+      <header className="border-b border-emerald-100 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-[1640px] flex-col gap-4 px-6 py-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-sm font-bold text-emerald-700">
-              محرك التقارير
+            <p className="text-sm font-black text-emerald-700">
+              استديو القوالب الرسمي
             </p>
 
-            <h1 className="mt-1 text-2xl font-black text-slate-900">
-              صانع قوالب التقارير
+            <h1 className="mt-1 text-2xl font-black text-slate-950">
+              قالب رسمي ذكي متعدد الصفحات
             </h1>
 
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-500">
-              ابنِ قالب التقرير مرة واحدة، واجعله يسحب بياناته تلقائيًا من
-              Case ID بدون أن يعيد الموجه تعبئة التقرير من الصفر.
+            <p className="mt-2 max-w-4xl text-sm leading-7 text-slate-500">
+              الهوية ثابتة، والصفحات والبلوكات هي منطقة التحكم. عند ربط القالب
+              بخدمة أو Workflow ستظهر خريطة الحقول المتاحة حتى تعرف ماذا تستخدم
+              داخل التقرير.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+              {statusLabels[template.status]}
+            </span>
+
+            <a
+              href="/dashboard/admin/report-templates/designs"
+              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-100"
+            >
+              معرض التصاميم
+            </a>
+
+            <a
+              href="/dashboard/admin/report-templates/library"
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              مكتبة القوالب
+            </a>
+
             <button
               type="button"
-              onClick={handleSaveTemplate}
-              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-black text-white shadow-sm ring-1 ring-emerald-600/20 transition hover:bg-emerald-800"
+              onClick={() => saveTemplate("DRAFT")}
+              disabled={saving}
+              className="rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-50 disabled:opacity-60"
             >
-              حفظ القالب
+              حفظ مسودة
             </button>
 
             <button
               type="button"
-              onClick={createNewTemplate}
-              className="rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white shadow-sm ring-1 ring-sky-600/20 transition hover:bg-sky-800"
+              onClick={() => saveTemplate("PUBLISHED")}
+              disabled={saving}
+              className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60"
             >
-              إنشاء قالب جديد
+              حفظ ونشر
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl grid-cols-[320px_1fr] gap-6 px-6 py-6">
+      <main className="mx-auto grid max-w-[1640px] gap-5 px-6 py-6 xl:grid-cols-[315px_minmax(0,1fr)_390px]">
         <aside className="space-y-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-black text-slate-900">
-              القوالب المتاحة
-            </h2>
+          <section className="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-black text-slate-900">
+                  صفحات القالب
+                </h2>
+                <p className="mt-1 text-xs leading-6 text-slate-500">
+                  تنقل بين الصفحات بالاسم بدل السكرول الطويل.
+                </p>
+              </div>
 
-            <p className="mt-1 text-xs leading-6 text-slate-500">
-              اختر قالبًا لتعديل صفحاته وبلوكاته.
-            </p>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
+                {template.pages.length}
+              </span>
+            </div>
 
-            <div className="mt-4 space-y-3">
-              {templates.map((template) => (
+            <div className="mt-4 space-y-2">
+              {template.pages.map((page, index) => (
                 <button
-                  key={template.id}
+                  key={page.id}
                   type="button"
-                  onClick={() => setActiveTemplateId(template.id)}
+                  onClick={() => {
+                    setActivePageId(page.id);
+                    setSelectedBlockId(page.blocks[0]?.id || "");
+                  }}
                   className={[
-                    "w-full rounded-2xl border p-4 text-right transition",
-                    template.id === activeTemplateId
-                      ? "border-emerald-700 bg-emerald-50"
+                    "w-full rounded-2xl border p-3 text-right transition",
+                    page.id === activePageId
+                      ? "border-emerald-600 bg-emerald-50"
                       : "border-slate-200 bg-white hover:bg-slate-50",
                   ].join(" ")}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <strong className="text-sm text-slate-900">
-                      {template.name}
-                    </strong>
-
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
-                      {statusLabels[template.status]}
-                    </span>
-                  </div>
-
-                  <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-500">
-                    {template.description}
-                  </p>
-
-                  <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-400">
-                    <span>
-                      {template.scope === "GLOBAL" ? "عام" : "خاص بخدمة"}
-                    </span>
-                    <span>•</span>
-                    <span>{template.pages.length} صفحات</span>
-                  </div>
+                  <span className="text-[11px] font-black text-slate-400">
+                    صفحة {index + 1} · {pageKindLabels[page.kind]}
+                  </span>
+                  <strong className="mt-1 block text-xs font-black text-slate-900">
+                    {page.title}
+                  </strong>
                 </button>
               ))}
             </div>
-          </div>
 
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
-            <h3 className="text-sm font-black text-amber-900">
-              قاعدة مهمة
-            </h3>
-
-            <p className="mt-2 text-xs leading-7 text-amber-800">
-              القالب لا ينشئ بيانات جديدة. القالب فقط يرتب صفحات التقرير، أما
-              البيانات فتأتي من CaseEntry وCaseValue والطالب والشواهد والهوية.
-            </p>
-          </div>
-        </aside>
-
-        <section className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
-              <div>
-                <label className="text-xs font-black text-slate-500">
-                  اسم القالب
-                </label>
-
-                <input
-                  value={activeTemplate.name}
-                  onChange={(event) =>
-                    updateActiveTemplate((template) => ({
-                      ...template,
-                      name: event.target.value,
-                    }))
+            <div className="mt-4 grid gap-2">
+              <select
+                onChange={(event) => {
+                  const value = event.target.value as PageKind;
+                  if (value) {
+                    addPage(value);
+                    event.target.value = "";
                   }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-lg font-black text-slate-900 outline-none focus:border-emerald-700"
-                />
+                }}
+                className="w-full rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-xs font-black text-emerald-900 outline-none"
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  + إضافة صفحة
+                </option>
+                <option value="content">صفحة محتوى</option>
+                <option value="recommendations">صفحة توصيات ونتائج</option>
+                <option value="evidence">صفحة شواهد</option>
+                <option value="approval">صفحة اعتماد</option>
+                <option value="custom">صفحة مخصصة</option>
+              </select>
 
-                <label className="mt-5 block text-xs font-black text-slate-500">
-                  وصف القالب
-                </label>
-
-                <textarea
-                  value={activeTemplate.description}
-                  onChange={(event) =>
-                    updateActiveTemplate((template) => ({
-                      ...template,
-                      description: event.target.value,
-                    }))
-                  }
-                  rows={3}
-                  className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-700"
-                />
-              </div>
-
-              <div className="rounded-3xl bg-slate-50 p-4">
-                <div className="text-xs font-black text-slate-500">
-                  حالة القالب
-                </div>
-
-                <select
-                  value={activeTemplate.status}
-                  onChange={(event) =>
-                    updateActiveTemplate((template) => ({
-                      ...template,
-                      status: event.target.value as ReportTemplateStatus,
-                    }))
-                  }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
-                >
-                  <option value="DRAFT">مسودة</option>
-                  <option value="PUBLISHED">منشور</option>
-                  <option value="ARCHIVED">مؤرشف</option>
-                </select>
-
-                <div className="mt-4 text-xs font-black text-slate-500">
-                  نطاق القالب
-                </div>
-
-                <select
-                  value={activeTemplate.scope}
-                  onChange={(event) =>
-                    updateActiveTemplate((template) => ({
-                      ...template,
-                      scope: event.target.value as ReportTemplateBuilderModel["scope"],
-                      serviceSlug:
-                        event.target.value === "GLOBAL"
-                          ? undefined
-                          : template.serviceSlug,
-                    }))
-                  }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
-                >
-                  <option value="GLOBAL">عام لكل الخدمات</option>
-                  <option value="SERVICE">خاص بخدمة</option>
-                  <option value="WORKFLOW">خاص بـ Workflow</option>
-                  <option value="SUB_WORKFLOW">خاص بإجراء فرعي</option>
-                </select>
-
-                {activeTemplate.scope !== "GLOBAL" ? (
-                  <>
-                    <div className="mt-4 text-xs font-black text-slate-500">
-                      الخدمة
-                    </div>
-
-                    <select
-                      value={activeTemplate.serviceSlug || ""}
-                      onChange={(event) =>
-                        updateActiveTemplate((template) => ({
-                          ...template,
-                          serviceSlug: event.target.value,
-                        }))
-                      }
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
-                    >
-                      <option value="">اختر الخدمة</option>
-                      {REPORT_SERVICE_OPTIONS.map((service) => (
-                        <option key={service.slug} value={service.slug}>
-                          {service.name}
-                        </option>
-                      ))}
-                    </select>
-                  </>
-                ) : null}
-
-                                <div className="mt-4 text-xs font-black text-slate-500">
-                  نوع المستند
-                </div>
-
-                <select
-                  value={activeTemplate.documentType || "REPORT"}
-                  onChange={(event) =>
-                    updateActiveTemplate((template) => ({
-                      ...template,
-                      documentType: event.target.value as any,
-                    }))
-                  }
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
-                >
-                  <option value="REPORT">تقرير</option>
-                  <option value="LETTER">خطاب</option>
-                  <option value="CERTIFICATE">شهادة</option>
-                  <option value="MINUTES">محضر</option>
-                  <option value="FORM">نموذج</option>
-                  <option value="NOTICE">إشعار</option>
-                </select>
-
-                {activeTemplate.scope === "WORKFLOW" ||
-                activeTemplate.scope === "SUB_WORKFLOW" ? (
-                  <>
-                    <div className="mt-4 text-xs font-black text-slate-500">
-                      Workflow
-                    </div>
-
-                    <input
-                      value={activeTemplate.workflowSlug || ""}
-                      onChange={(event) =>
-                        updateActiveTemplate((template) => ({
-                          ...template,
-                          workflowSlug: event.target.value,
-                        }))
-                      }
-                      placeholder="مثال: guardian-summons"
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
-                    />
-
-                    <div className="mt-4 text-xs font-black text-slate-500">
-                      الاستخدام / الإجراء الفرعي
-                    </div>
-
-                    <input
-                      value={activeTemplate.subWorkflowKey || ""}
-                      onChange={(event) =>
-                        updateActiveTemplate((template) => ({
-                          ...template,
-                          subWorkflowKey: event.target.value,
-                        }))
-                      }
-                      placeholder="مثال: issue-guardian-summons"
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
-                    />
-                  </>
-                ) : null}
-                <div className="mt-4 text-xs font-black text-slate-500">
-                  حالة تجريبية للمعاينة
-                </div>
-
-                <input
-                  value={activeTemplate.previewCaseId || ""}
-                  onChange={(event) =>
-                    updateActiveTemplate((template) => ({
-                      ...template,
-                      previewCaseId: event.target.value,
-                    }))
-                  }
-                  placeholder="Case ID اختياري"
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none"
-                />
-
-                <div className="mt-4 grid gap-2">
-                  <button
-                    type="button"
-                    onClick={() => duplicateTemplate(activeTemplate)}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100"
-                  >
-                    نسخ القالب
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => requestDeleteTemplate(activeTemplate)}
-                    disabled={templates.length <= 1}
-                    className="w-full rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    حذف القالب
-                  </button>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={removeActivePage}
+                disabled={template.pages.length <= 1}
+                className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                حذف الصفحة الحالية
+              </button>
             </div>
-          </div>
+          </section>
 
-          <ReportTemplateAdminTools
-            template={activeTemplate}
-            identity={reportIdentity}
-            snippets={reportTextSnippets}
-            onIdentityChange={setReportIdentity}
-            onSnippetsChange={setReportTextSnippets}
-          />
-
-          <ReportTemplatePublishTools
-            template={activeTemplate}
-            identity={reportIdentity}
-            snippets={reportTextSnippets}
-            snapshots={generatedSnapshots}
-            onTemplateStatusChange={changeActiveTemplateStatus}
-            onSnapshotCreate={addGeneratedSnapshot}
-          />
-
-          <RuntimeConnectionStatus
-            workflowFieldsCount={runtimeWorkflowFields.length}
-            workflowMessage={runtimeWorkflowMessage}
-            previewCase={runtimePreviewCase}
-            previewMessage={runtimePreviewMessage}
-          />
-
-          <ReportTemplateLivePreview
-            template={activeTemplate}
-            snippets={reportTextSnippets}
-            previewCaseData={runtimePreviewCase}
-          />
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-black text-slate-900">
-              إضافة صفحة إلى القالب
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              مكتبة البلوكات
             </h2>
 
-            <p className="mt-1 text-sm leading-7 text-slate-500">
-              اختر نوع الصفحة. كل صفحة تمثل صفحة A4 مستقلة داخل التقرير.
+            <p className="mt-1 text-xs leading-6 text-slate-500">
+              تتم إضافة البلوك داخل الصفحة المحددة فقط.
             </p>
 
-            <div className="mt-5 grid gap-3 md:grid-cols-3">
-              {pagePresets.map((preset) => (
+            <div className="mt-4 space-y-2">
+              {blockLibrary.map((block) => (
                 <button
-                  key={preset.kind}
+                  key={block.kind}
                   type="button"
-                  onClick={() => addPage(preset.kind)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-right transition hover:border-emerald-600 hover:bg-emerald-50"
+                  onClick={() => addBlock(block.kind)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-right transition hover:border-emerald-300 hover:bg-emerald-50"
                 >
-                  <strong className="text-sm font-black text-slate-900">
-                    إضافة {pageKindLabels[preset.kind]}
+                  <strong className="text-xs font-black text-slate-900">
+                    {block.title}
                   </strong>
 
-                  <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-500">
-                    {preset.description}
+                  <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                    {block.description}
                   </p>
                 </button>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div className="grid gap-6">
-            <div>
-              <h2 className="text-xl font-black text-slate-900">
-                صفحات القالب
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                عدّل صفحات القالب، أضف بلوكات، أو احذف الصفحات غير المطلوبة.
-              </p>
-            </div>
-
-            {activeTemplate.pages.map((page, pageIndex) => (
-              <TemplatePageCard
-                key={page.id}
-                template={activeTemplate}
-                snippets={reportTextSnippets}
-                page={page}
-                pageIndex={pageIndex}
-                pages={activeTemplate.pages}
-                workflowFields={runtimeWorkflowFields}
-                canMoveUp={pageIndex > 0}
-                canMoveDown={pageIndex < activeTemplate.pages.length - 1}
-                canDeletePage={activeTemplate.pages.length > 1}
-                onMovePage={movePage}
-                onRequestDeletePage={requestDeletePage}
-                onAddBlock={addBlockToPage}
-                onRemoveBlock={removeBlock}
-                onMoveBlock={moveBlock}
-                onMoveBlockToPage={moveBlockToPage}
-                onUpdatePage={updatePage}
-              />
-            ))}
-          </div>
-        </section>
-      </main>
-
-      {feedbackModal.open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
-            <div
-              className={[
-                "mx-auto inline-flex rounded-full px-4 py-1.5 text-xs font-black",
-                feedbackModal.type === "success"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-red-100 text-red-700",
-              ].join(" ")}
-            >
-              {feedbackModal.type === "success" ? "نجاح" : "خطأ"}
-            </div>
-
-            <h2 className="mt-4 text-2xl font-black text-slate-900">
-              {feedbackModal.title}
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              بلوكات الصفحة الحالية
             </h2>
 
-            <p className="mx-auto mt-3 max-w-sm text-center text-sm leading-7 text-slate-600">
-              {feedbackModal.message}
-            </p>
+            <div className="mt-4 space-y-2">
+              {activePage?.blocks.map((block, index) => (
+                <button
+                  key={block.id}
+                  type="button"
+                  onClick={() => setSelectedBlockId(block.id)}
+                  className={[
+                    "w-full rounded-2xl border p-3 text-right transition",
+                    block.id === selectedBlockId
+                      ? "border-emerald-600 bg-emerald-50"
+                      : "border-slate-200 bg-white hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  <span className="text-[11px] font-black text-slate-400">
+                    بلوك {index + 1}
+                  </span>
+                  <strong className="mt-1 block text-xs font-black text-slate-900">
+                    {block.title}
+                  </strong>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => moveBlock("up")}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
+              >
+                أعلى
+              </button>
+
+              <button
+                type="button"
+                onClick={() => moveBlock("down")}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
+              >
+                أسفل
+              </button>
+            </div>
 
             <button
               type="button"
-              onClick={() =>
-                setFeedbackModal((current) => ({
-                  ...current,
-                  open: false,
-                }))
-              }
-              className="mx-auto mt-6 inline-flex min-w-32 items-center justify-center rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+              onClick={removeSelectedBlock}
+              disabled={!activePage || activePage.blocks.length <= 1}
+              className="mt-2 w-full rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              إغلاق
+              حذف البلوك المحدد
             </button>
-          </div>
-        </div>
-      ) : null}
-      {templatePendingDelete ? (
-        <ConfirmModal
-          title="حذف قالب التقرير؟"
-          description={
-            <>
-              سيتم حذف قالب{" "}
-              <span className="font-black text-slate-900">
-                {templatePendingDelete.name}
-              </span>{" "}
-              من قائمة القوالب. إذا كان محفوظًا فسيتم حذفه من قاعدة البيانات أيضًا.
-            </>
-          }
-          confirmLabel="نعم، احذف القالب"
-          onCancel={() => setTemplatePendingDelete(null)}
-          onConfirm={confirmDeleteTemplate}
-        />
-      ) : null}
+          </section>
+        </aside>
 
-      {pagePendingDelete ? (
-        <ConfirmModal
-          title="حذف صفحة من القالب؟"
-          description={
-            <>
-              سيتم حذف صفحة{" "}
-              <span className="font-black text-slate-900">
-                {pagePendingDelete.title}
-              </span>{" "}
-              من القالب الحالي.
-            </>
-          }
-          confirmLabel="نعم، احذف الصفحة"
-          onCancel={() => setPagePendingDelete(null)}
-          onConfirm={confirmDeletePage}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function RuntimeConnectionStatus({
-  workflowFieldsCount,
-  workflowMessage,
-  previewCase,
-  previewMessage,
-}: {
-  workflowFieldsCount: number;
-  workflowMessage: string;
-  previewCase: RuntimePreviewCaseData | null;
-  previewMessage: string;
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-black text-slate-900">
-            الربط الحقيقي للمعاينة
-          </h2>
-
-          <p className="mt-1 text-sm leading-7 text-slate-500">
-            هنا نقرأ حقول الـ Workflow الحقيقي وبيانات Case ID إن وجدت.
-          </p>
-        </div>
-
-        <span className="rounded-2xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600">
-          {previewCase ? "Case حقيقي" : "Sample/Fallback"}
-        </span>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-sm font-black text-slate-900">
-            حقول الـ Workflow
-          </h3>
-
-          <p className="mt-1 text-xs leading-6 text-slate-500">
-            {workflowMessage || "لم يتم الجلب بعد."}
-          </p>
-
-          <p className="mt-3 text-xs font-black text-emerald-700">
-            عدد الحقول: {workflowFieldsCount}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-sm font-black text-slate-900">
-            بيانات Case ID
-          </h3>
-
-          <p className="mt-1 text-xs leading-6 text-slate-500">
-            {previewMessage || "لم يتم الجلب بعد."}
-          </p>
-
-          {previewCase ? (
-            <div className="mt-3 grid gap-1 text-xs text-slate-600">
+        <section className="space-y-5">
+          <details className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
               <div>
-                <span className="font-black text-slate-900">الخدمة: </span>
-                {previewCase.serviceName || "غير محدد"}
+                <p className="text-sm font-black text-slate-900">إعدادات القالب والربط</p>
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  اضغط لعرض أو إخفاء اسم القالب، التوجيه، الخدمة، Workflow، و Case ID.
+                </p>
               </div>
 
-              <div>
-                <span className="font-black text-slate-900">العنوان: </span>
-                {previewCase.title || "غير محدد"}
-              </div>
+              <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                فتح / إخفاء
+              </span>
+            </summary>
 
-              <div>
-                <span className="font-black text-slate-900">عدد القيم: </span>
-                {previewCase.values.length}
-              </div>
+            <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_220px_220px]">
+              <label className="block">
+                <span className="text-xs font-black text-slate-500">
+                  اسم القالب
+                </span>
+                <input
+                  value={template.name}
+                  onChange={(event) => updateTemplate({ name: event.target.value })}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                />
+              </label>
 
-              <div>
-                <span className="font-black text-slate-900">عدد الشواهد: </span>
-                {previewCase.evidences.length}
-              </div>
+              <label className="block">
+                <span className="text-xs font-black text-slate-500">
+                  التوجيه
+                </span>
+                <select
+                  value={template.scope}
+                  onChange={(event) =>
+                    updateTemplate({
+                      scope: event.target.value as TemplateScope,
+                      serviceSlug:
+                        event.target.value === "GLOBAL" ||
+                        event.target.value === "LOCATION"
+                          ? undefined
+                          : template.serviceSlug,
+                    })
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                >
+                  <option value="GLOBAL">عام</option>
+                  <option value="SERVICE">خدمة</option>
+                  <option value="WORKFLOW">Workflow</option>
+                  <option value="LOCATION">مكان محدد</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-black text-slate-500">
+                  Case ID للاختبار
+                </span>
+                <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+                  <input
+                    value={template.previewCaseId}
+                    onChange={(event) =>
+                      updateTemplate({ previewCaseId: event.target.value })
+                    }
+                    placeholder="اختياري"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={runCaseTest}
+                    disabled={testingCase}
+                    className="rounded-2xl bg-slate-900 px-4 py-3 text-xs font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  >
+                    اختبار
+                  </button>
+                </div>
+              </label>
             </div>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function createPageFromPreset(kind: ReportPageKind): ReportTemplatePage {
-  const preset =
-    pagePresets.find((currentPreset) => currentPreset.kind === kind) ||
-    pagePresets[2];
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_220px_220px]">
+              <label className="block">
+                <span className="text-xs font-black text-slate-500">
+                  وصف القالب
+                </span>
+                <input
+                  value={template.description}
+                  onChange={(event) =>
+                    updateTemplate({ description: event.target.value })
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-emerald-600"
+                />
+              </label>
 
-  return {
-    id: `page-${kind}-${Date.now()}`,
-    kind: preset.kind,
-    title: preset.title,
-    description: preset.description,
-    coverSettings:
-      kind === "cover"
-        ? {
-            showHeader: true,
-            showFooter: true,
-            titlePosition: "center",
-            showDescription: true,
-            showMetaChips: true,
-            visualStyle: "official",
-          }
-        : undefined,
-    blocks: preset.defaultBlockKinds
-      .map((blockKind) => {
-        const block = REPORT_BLOCK_LIBRARY.find(
-          (libraryBlock) => libraryBlock.kind === blockKind,
-        );
+              {template.scope === "SERVICE" || template.scope === "WORKFLOW" ? (
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    الخدمة
+                  </span>
+                  <select
+                    value={template.serviceSlug || ""}
+                    onChange={(event) =>
+                      updateTemplate({ serviceSlug: event.target.value || undefined })
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  >
+                    <option value="">اختر الخدمة</option>
+                    {SERVICE_OPTIONS.map((service) => (
+                      <option key={service.slug} value={service.slug}>
+                        {service.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
 
-        if (!block) {
-          return null;
-        }
+              {template.scope === "WORKFLOW" ? (
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    Workflow
+                  </span>
+                  <input
+                    value={template.workflowSlug || ""}
+                    onChange={(event) =>
+                      updateTemplate({ workflowSlug: event.target.value })
+                    }
+                    placeholder="guardian-summons"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+                </label>
+              ) : null}
 
-        return {
-          ...block,
-          id: `${block.kind}-${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2, 7)}`,
-        };
-      })
-      .filter((block): block is ReportTemplateBlock => Boolean(block)),
-  };
-}
+              {template.scope === "LOCATION" ? (
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    مكان الاستخدام
+                  </span>
+                  <input
+                    value={template.locationKey || ""}
+                    onChange={(event) =>
+                      updateTemplate({ locationKey: event.target.value })
+                    }
+                    placeholder="reports.issue"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+                </label>
+              ) : null}
+            </div>
 
-function TemplatePageCard({
-  template,
-  snippets,
-  page,
-  pageIndex,
-  pages,
-  workflowFields,
-  canMoveUp,
-  canMoveDown,
-  canDeletePage,
-  onMovePage,
-  onRequestDeletePage,
-  onAddBlock,
-  onRemoveBlock,
-  onMoveBlock,
-  onMoveBlockToPage,
-  onUpdatePage,
-}: {
-  template: ReportTemplateBuilderModel;
-  snippets: ReportTextSnippet[];
-  page: ReportTemplatePage;
-  pageIndex: number;
-  pages: ReportTemplatePage[];
-  workflowFields: RuntimeWorkflowFieldOption[];
-  canMoveUp: boolean;
-  canMoveDown: boolean;
-  canDeletePage: boolean;
-  onMovePage: (pageId: string, direction: "up" | "down") => void;
-  onRequestDeletePage: (page: ReportTemplatePage) => void;
-  onAddBlock: (pageId: string, block: ReportTemplateBlock) => void;
-  onRemoveBlock: (pageId: string, blockId: string) => void;
-  onMoveBlock: (
-    pageId: string,
-    blockId: string,
-    direction: "up" | "down",
-  ) => void;
-  onMoveBlockToPage: (
-    blockId: string,
-    fromPageId: string,
-    toPageId: string,
-  ) => void;
-  onUpdatePage: (
-    pageId: string,
-    updater: (page: ReportTemplatePage) => ReportTemplatePage,
-  ) => void;
-}) {
-  const [selectedBlockId, setSelectedBlockId] = useState(
-    REPORT_BLOCK_LIBRARY[0]?.id || "",
-  );
+            
 
-  const selectedBlock = REPORT_BLOCK_LIBRARY.find(
-    (block) => block.id === selectedBlockId,
-  );
 
-  return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-6">
-        <div className="flex flex-1 items-start gap-3">
-          <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-sm font-black text-emerald-800">
-            {pageIndex + 1}
-          </span>
+            {feedback ? (
+              <div
+                className={[
+                  "mt-4 rounded-2xl px-4 py-3 text-sm font-bold leading-7",
+                  feedback.type === "success"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : feedback.type === "error"
+                      ? "bg-red-50 text-red-700"
+                      : "bg-slate-50 text-slate-600",
+                ].join(" ")}
+              >
+                {feedback.message}
+              </div>
+            ) : null}
+          </details>
 
-          <div className="flex-1">
-            <div className="grid gap-3 md:grid-cols-[1fr_180px]">
-              <input
-                value={page.title}
-                onChange={(event) =>
-                  onUpdatePage(page.id, (currentPage) => ({
-                    ...currentPage,
-                    title: event.target.value,
-                  }))
-                }
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-lg font-black text-slate-900 outline-none focus:border-emerald-700"
-              />
+          <WorkflowAwarenessPanel
+            template={template}
+            fields={workflowFields}
+            loading={loadingWorkflow}
+            message={workflowMessage}
+            usedFieldKeys={usedWorkflowFieldKeys}
+            onInsertVariable={insertVariable}
+          />
+
+          
+
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-sm font-black text-emerald-700">
+                  معرض التصاميم الحقيقية
+                </p>
+                <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                  هذه ليست ألوان فقط؛ كل تصميم يرسم الصفحة بطريقة مختلفة. اختر التصميم وستتغير بنية المعاينة مباشرة.
+                </p>
+              </div>
 
               <select
-                value={page.kind}
+                value={template.designTemplateId || "ministry-form"}
                 onChange={(event) =>
-                  onUpdatePage(page.id, (currentPage) => ({
-                    ...currentPage,
-                    kind: event.target.value as ReportPageKind,
-                    coverSettings:
-                      event.target.value === "cover"
-                        ? currentPage.coverSettings || {
-                            showHeader: true,
-                            showFooter: true,
-                            titlePosition: "center",
-                            showDescription: true,
-                            showMetaChips: true,
-                            visualStyle: "official",
-                          }
-                        : undefined,
-                  }))
+                  updateTemplate({
+                    designTemplateId: event.target.value as ReportDesignId,
+                  })
                 }
-                className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold outline-none focus:border-emerald-700"
+                className="min-w-72 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
               >
-                {Object.entries(pageKindLabels).map(([kind, label]) => (
-                  <option key={kind} value={kind}>
-                    {label}
+                {reportDesignTemplates.map((design) => (
+                  <option key={design.id} value={design.id}>
+                    {design.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            <textarea
-              value={page.description}
-              onChange={(event) =>
-                onUpdatePage(page.id, (currentPage) => ({
-                  ...currentPage,
-                  description: event.target.value,
-                }))
-              }
-              rows={2}
-              className="mt-3 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 text-slate-600 outline-none focus:border-emerald-700"
-            />
-          </div>
-        </div>
+            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+              {reportDesignTemplates.map((design) => {
+                const active = (template.designTemplateId || "ministry-form") === design.id;
 
-        <div className="flex shrink-0 flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => onMovePage(page.id, "up")}
-            disabled={!canMoveUp}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600 disabled:opacity-40"
-          >
-            أعلى
-          </button>
+                return (
+                  <button
+                    key={design.id}
+                    type="button"
+                    onClick={() =>
+                      updateTemplate({
+                        designTemplateId: design.id,
+                      })
+                    }
+                    className={[
+                      "rounded-2xl border p-3 text-right transition",
+                      active
+                        ? design.activeCardClass
+                        : design.cardClass,
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <strong className="text-xs font-black text-slate-900">
+                        {design.name}
+                      </strong>
 
-          <button
-            type="button"
-            onClick={() => onMovePage(page.id, "down")}
-            disabled={!canMoveDown}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600 disabled:opacity-40"
-          >
-            أسفل
-          </button>
+                      <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-black text-slate-600">
+                        {design.badge}
+                      </span>
+                    </div>
 
-          <button
-            type="button"
-            onClick={() => onRequestDeletePage(page)}
-            disabled={!canDeletePage}
-            className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-black text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            حذف الصفحة
-          </button>
-        </div>
-      </div>
+                    <p className="mt-2 text-[11px] font-bold leading-5 text-slate-500">
+                      {design.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-      {page.kind === "cover" ? (
-        <CoverSettingsEditor page={page} onUpdatePage={onUpdatePage} />
-      ) : null}
-
-      <div className="mt-5 grid gap-3">
-        {page.blocks.length ? (
-          page.blocks.map((block, blockIndex) => (
-            <BlockEditor
-              key={block.id}
-              template={template}
-              snippets={snippets}
-              page={page}
-              pages={pages}
-              workflowFields={workflowFields}
-              block={block}
-              blockIndex={blockIndex}
-              canMoveUp={blockIndex > 0}
-              canMoveDown={blockIndex < page.blocks.length - 1}
-              onUpdatePage={onUpdatePage}
-              onRemoveBlock={onRemoveBlock}
-              onMoveBlock={onMoveBlock}
-              onMoveBlockToPage={onMoveBlockToPage}
-            />
-          ))
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-            لا توجد بلوكات في هذه الصفحة بعد.
-          </div>
-        )}
-      </div>
-
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
-        <label className="text-xs font-black text-slate-500">
-          إضافة بلوك لهذه الصفحة
-        </label>
-
-        <div className="mt-2 grid grid-cols-[1fr_auto] gap-3">
-          <select
-            value={selectedBlockId}
-            onChange={(event) => setSelectedBlockId(event.target.value)}
-            className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
-          >
-            {REPORT_BLOCK_LIBRARY.map((block) => (
-              <option key={block.id} value={block.id}>
-                {block.title} - {block.source?.label || "مصدر غير محدد"}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
-            onClick={() => selectedBlock && onAddBlock(page.id, selectedBlock)}
-            className="rounded-2xl bg-emerald-800 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-900"
-          >
-            إضافة
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function CoverSettingsEditor({
-  page,
-  onUpdatePage,
-}: {
-  page: ReportTemplatePage;
-  onUpdatePage: (
-    pageId: string,
-    updater: (page: ReportTemplatePage) => ReportTemplatePage,
-  ) => void;
-}) {
-  const settings = page.coverSettings || {};
-
-  return (
-    <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-      <h4 className="text-sm font-black text-emerald-900">إعدادات الغلاف</h4>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
-          <input
-            type="checkbox"
-            checked={settings.showHeader !== false}
-            onChange={(event) =>
-              onUpdatePage(page.id, (currentPage) => ({
-                ...currentPage,
-                coverSettings: {
-                  ...currentPage.coverSettings,
-                  showHeader: event.target.checked,
-                },
-              }))
-            }
+          <OfficialPagePreview
+            template={template}
+            activePage={activePage}
+            activePageId={activePageId}
+            context={runtimeContext}
+            previewCase={previewCase}
+            onActivePageChange={(pageId) => {
+              const page = template.pages.find((item) => item.id === pageId);
+              setActivePageId(pageId);
+              setSelectedBlockId(page?.blocks[0]?.id || "");
+            }}
+            onAddPage={() => addPage("content")}
           />
-          إظهار الهيدر
-        </label>
+        </section>
 
-        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
-          <input
-            type="checkbox"
-            checked={settings.showFooter !== false}
-            onChange={(event) =>
-              onUpdatePage(page.id, (currentPage) => ({
-                ...currentPage,
-                coverSettings: {
-                  ...currentPage.coverSettings,
-                  showFooter: event.target.checked,
-                },
-              }))
-            }
-          />
-          إظهار الفوتر
-        </label>
+        <aside className="space-y-4">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              إعدادات الصفحة
+            </h2>
 
-        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
-          <input
-            type="checkbox"
-            checked={settings.showDescription !== false}
-            onChange={(event) =>
-              onUpdatePage(page.id, (currentPage) => ({
-                ...currentPage,
-                coverSettings: {
-                  ...currentPage.coverSettings,
-                  showDescription: event.target.checked,
-                },
-              }))
-            }
-          />
-          إظهار الوصف
-        </label>
-      </div>
+            {activePage ? (
+              <div className="mt-4 space-y-3">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    اسم الصفحة
+                  </span>
+                  <input
+                    value={activePage.title}
+                    onChange={(event) =>
+                      updatePage(activePage.id, (page) => ({
+                        ...page,
+                        title: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+                </label>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <select
-          value={settings.titlePosition || "center"}
-          onChange={(event) =>
-            onUpdatePage(page.id, (currentPage) => ({
-              ...currentPage,
-              coverSettings: {
-                ...currentPage.coverSettings,
-                titlePosition: event.target.value as "center" | "top",
-              },
-            }))
-          }
-          className="rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-sm font-bold outline-none"
-        >
-          <option value="center">العنوان في المنتصف</option>
-          <option value="top">العنوان أعلى الصفحة</option>
-        </select>
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    نوع الصفحة
+                  </span>
+                  <select
+                    value={activePage.kind}
+                    onChange={(event) =>
+                      updatePage(activePage.id, (page) => ({
+                        ...page,
+                        kind: event.target.value as PageKind,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  >
+                    <option value="content">محتوى</option>
+                    <option value="recommendations">توصيات</option>
+                    <option value="evidence">شواهد</option>
+                    <option value="approval">اعتماد</option>
+                    <option value="custom">مخصصة</option>
+                  </select>
+                </label>
 
-        <select
-          value={settings.visualStyle || "official"}
-          onChange={(event) =>
-            onUpdatePage(page.id, (currentPage) => ({
-              ...currentPage,
-              coverSettings: {
-                ...currentPage.coverSettings,
-                visualStyle: event.target.value as
-                  | "official"
-                  | "minimal"
-                  | "hero",
-              },
-            }))
-          }
-          className="rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-sm font-bold outline-none"
-        >
-          <option value="official">رسمي</option>
-          <option value="minimal">بسيط</option>
-          <option value="hero">بصري</option>
-        </select>
-      </div>
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    وصف الصفحة
+                  </span>
+                  <textarea
+                    value={activePage.description}
+                    onChange={(event) =>
+                      updatePage(activePage.id, (page) => ({
+                        ...page,
+                        description: event.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-600"
+                  />
+                </label>
+              </div>
+            ) : null}
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              إعدادات البلوك
+            </h2>
+
+            {selectedBlock ? (
+              <div className="mt-4 space-y-4">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    عنوان البلوك
+                  </span>
+                  <input
+                    value={selectedBlock.title}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        title: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-3 text-xs font-black text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedBlock.showTitle}
+                      onChange={(event) =>
+                        updateBlock(selectedBlock.id, (block) => ({
+                          ...block,
+                          showTitle: event.target.checked,
+                        }))
+                      }
+                    />
+                    إظهار العنوان
+                  </label>
+
+                  <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-3 text-xs font-black text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedBlock.showMeta}
+                      onChange={(event) =>
+                        updateBlock(selectedBlock.id, (block) => ({
+                          ...block,
+                          showMeta: event.target.checked,
+                        }))
+                      }
+                    />
+                    إظهار معلومات
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    مصدر النص
+                  </span>
+                  <select
+                    value={selectedBlock.source}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        source: event.target.value as TextSource,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  >
+                    <option value="manual">كتابة مباشرة</option>
+                    <option value="library">مكتبة النصوص</option>
+                    <option value="workflow">حقل من Workflow</option>
+                  </select>
+                </label>
+
+                {selectedBlock.source === "library" ? (
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      اختر نصًا من المكتبة
+                    </span>
+                    <select
+                      value={selectedBlock.snippetId || ""}
+                      onChange={(event) => applySnippet(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                    >
+                      <option value="">اختر النص</option>
+                      {textSnippets.map((snippet) => (
+                        <option key={snippet.id} value={snippet.id}>
+                          {snippet.category} - {snippet.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+
+                {workflowFields.length ? (
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                    <p className="text-xs font-black text-emerald-900">
+                      ربط البلوك بحقل Workflow
+                    </p>
+
+                    <p className="mt-1 text-[11px] font-bold leading-6 text-emerald-800">
+                      استخدم هذا الربط إذا كان ظهور البلوك يعتمد على قيمة معينة
+                      من الحالة. مثل: نتيجة التواصل، مؤشر الأداء، سبب الاستدعاء.
+                    </p>
+
+                    <label className="mt-3 block">
+                      <span className="text-xs font-black text-slate-500">
+                        الحقل المسؤول عن هذا البلوك
+                      </span>
+
+                      <select
+                        value={selectedBlock.boundFieldKey || ""}
+                        onChange={(event) => {
+                          const fieldKey = event.target.value;
+
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            boundFieldKey: fieldKey || undefined,
+                            content:
+                              block.source === "workflow" && fieldKey
+                                ? `{{field.${fieldKey}}}`
+                                : block.content,
+                          }));
+                        }}
+                        className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                      >
+                        <option value="">بدون ربط مباشر</option>
+                        {workflowFields.map((field) => (
+                          <option key={field.key} value={field.key}>
+                            {field.stepTitle ? `${field.stepTitle} - ` : ""}
+                            {field.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="mt-3 flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-black text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(selectedBlock.hideWhenMissing)}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            hideWhenMissing: event.target.checked,
+                          }))
+                        }
+                      />
+                      لا تعرض هذا البلوك إذا لم توجد قيمة في الحقل المرتبط
+                    </label>
+                  </div>
+                ) : null}
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    نص البلوك
+                  </span>
+                  <textarea
+                    value={selectedBlock.content}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        content: event.target.value,
+                      }))
+                    }
+                    rows={8}
+                    className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-600"
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      التصميم
+                    </span>
+                    <select
+                      value={selectedBlock.variant}
+                      onChange={(event) =>
+                        updateBlock(selectedBlock.id, (block) => ({
+                          ...block,
+                          variant: event.target.value as BlockVariant,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                    >
+                      <option value="hero">عنوان كبير</option>
+                      <option value="plain">نص عادي</option>
+                      <option value="card">بطاقة</option>
+                      <option value="soft">هادئ</option>
+                      <option value="highlight">مميز</option>
+                      <option value="outline">إطار فقط</option>
+                      <option value="quote">خاتمة</option>
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      المحاذاة
+                    </span>
+                    <select
+                      value={selectedBlock.align}
+                      onChange={(event) =>
+                        updateBlock(selectedBlock.id, (block) => ({
+                          ...block,
+                          align: event.target.value as "right" | "center",
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                    >
+                      <option value="right">يمين</option>
+                      <option value="center">وسط</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    موضع البلوك داخل الصفحة
+                  </span>
+
+                  <select
+                    value={selectedBlock.placement || "flow"}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        placement: event.target.value as BlockPlacement,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                  >
+                    <option value="flow">حسب الترتيب الطبيعي</option>
+
+                    <option value="top">أعلى الصفحة</option>
+                    <option value="middle">وسط الصفحة</option>
+                    <option value="bottom">أسفل الصفحة</option>
+
+                    <option value="top-right">أعلى يمين</option>
+                    <option value="top-center">أعلى وسط</option>
+                    <option value="top-left">أعلى يسار</option>
+
+                    <option value="middle-right">وسط يمين</option>
+                    <option value="middle-center">وسط الصفحة - محدد</option>
+                    <option value="middle-left">وسط يسار</option>
+
+                    <option value="bottom-right">أسفل يمين</option>
+                    <option value="bottom-center">أسفل وسط</option>
+                    <option value="bottom-left">أسفل يسار</option>
+                  </select>
+
+                  <p className="mt-2 text-[11px] font-bold leading-6 text-slate-500">
+                    استخدم الموضع الثابت للعنوان أو الفقرة المهمة. يمكنك اختيار موضع عام مثل أعلى/وسط/أسفل، أو موضع دقيق مثل أعلى يمين أو أسفل وسط. إذا وضعت أكثر من بلوك في نفس المكان قد تتداخل.
+                  </p>
+                </label>
+
+                {selectedBlock.kind === "evidence-gallery" ? (
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                    <p className="text-xs font-black text-emerald-900">
+                      إعدادات عرض الشواهد
+                    </p>
+
+                    <p className="mt-1 text-[11px] font-bold leading-6 text-emerald-800">
+                      القالب هو الذي يقرر كيف تظهر الشواهد. إذا زاد عدد الشواهد
+                      عن سعة الصفحة، يتم إنشاء صفحات شواهد إضافية تلقائيًا.
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <label className="block">
+                        <span className="text-xs font-black text-slate-500">
+                          طريقة العرض
+                        </span>
+
+                        <select
+                          value={selectedBlock.evidenceLayout || "TWO_PER_PAGE"}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceLayout: event.target.value as EvidenceLayout,
+                            }))
+                          }
+                          className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                        >
+                          <option value="ONE_PER_PAGE">شاهد واحد في الصفحة</option>
+                          <option value="TWO_PER_PAGE">شاهدان في الصفحة</option>
+                          <option value="GRID_2X2">4 شواهد في الصفحة</option>
+                          <option value="ATTACHMENT_LIST">قائمة مرفقات فقط</option>
+                        </select>
+                      </label>
+
+                      <label className="block">
+                        <span className="text-xs font-black text-slate-500">
+                          عرض الصورة
+                        </span>
+
+                        <select
+                          value={selectedBlock.evidenceFit || "contain"}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceFit: event.target.value as EvidenceFit,
+                            }))
+                          }
+                          className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                        >
+                          <option value="contain">احتواء كامل</option>
+                          <option value="cover">تعبئة الإطار</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <label className="mt-3 block">
+                      <span className="text-xs font-black text-slate-500">
+                        أبعاد الصورة المتوقعة
+                      </span>
+
+                      <select
+                        value={selectedBlock.evidenceAspectRatio || "LANDSCAPE_4_3"}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            evidenceAspectRatio: event.target.value as EvidenceAspectRatio,
+                          }))
+                        }
+                        className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                      >
+                        <option value="LANDSCAPE_4_3">أفقي 4:3 - تصوير عادي</option>
+                        <option value="LANDSCAPE_16_9">أفقي عريض 16:9</option>
+                        <option value="PORTRAIT_3_4">طولي 3:4</option>
+                        <option value="SQUARE_1_1">مربع 1:1</option>
+                      </select>
+
+                      <p className="mt-2 text-[11px] font-bold leading-6 text-slate-500">
+                        هذا لا يجبر الموجه على قص الصورة، لكنه يحدد مساحة عرض الشاهد داخل التقرير حتى تظهر المعاينة بنفس تصورك.
+                      </p>
+                    </label>
+
+                    <div className="mt-3 grid gap-2">
+                      <label className="flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-black text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={selectedBlock.evidenceAutoCreatePages !== false}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceAutoCreatePages: event.target.checked,
+                            }))
+                          }
+                        />
+                        إنشاء صفحات إضافية تلقائيًا عند زيادة عدد الشواهد
+                      </label>
+
+                      <label className="flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-black text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={selectedBlock.evidenceShowCaptions !== false}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceShowCaptions: event.target.checked,
+                            }))
+                          }
+                        />
+                        إظهار التعليقات وأسماء الشواهد
+                      </label>
+
+                      <label className="block">
+                        <span className="text-xs font-black text-slate-500">
+                          إذا لا توجد شواهد
+                        </span>
+
+                        <select
+                          value={selectedBlock.evidenceEmptyBehavior || "message"}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceEmptyBehavior: event.target.value as EvidenceEmptyBehavior,
+                            }))
+                          }
+                          className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                        >
+                          <option value="message">إظهار رسالة لا توجد شواهد</option>
+                          <option value="hide">إخفاء البلوك بالكامل</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="rounded-2xl bg-emerald-50 p-3 text-xs font-bold leading-6 text-emerald-800">
+                  المتغيرات العامة: {"{{case.title}}"}، {"{{service.name}}"}،{" "}
+                  {"{{student.name}}"}، {"{{identity.counselorName}}"}.
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">
+                اختر بلوكًا من الصفحة الحالية لتعديله.
+              </p>
+            )}
+          </section>
+
+          <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
+            <h3 className="text-sm font-black text-emerald-900">
+              الهوية ثابتة
+            </h3>
+
+            <p className="mt-2 text-xs font-bold leading-7 text-emerald-800">
+              مكان الترويسة، شعار وزارة التعليم، الإطار العام، الحواف، والفوتر
+              جزء من التصميم الرسمي ولا يتم تعديلها من الاستديو.
+            </p>
+
+            <div className="mt-3 rounded-2xl bg-white p-3 text-xs font-black text-emerald-700">
+              التوجيه الحالي: {scopeLabels[template.scope]}
+            </div>
+          </section>
+        </aside>
+      </main>
     </div>
   );
 }
 
-function BlockEditor({
+function WorkflowAwarenessPanel({
   template,
-  snippets,
-  page,
-  pages,
-  workflowFields,
-  block,
-  blockIndex,
-  canMoveUp,
-  canMoveDown,
-  onUpdatePage,
-  onRemoveBlock,
-  onMoveBlock,
-  onMoveBlockToPage,
+  fields,
+  loading,
+  message,
+  usedFieldKeys,
+  onInsertVariable,
 }: {
-  template: ReportTemplateBuilderModel;
-  snippets: ReportTextSnippet[];
-  page: ReportTemplatePage;
-  pages: ReportTemplatePage[];
-  workflowFields: RuntimeWorkflowFieldOption[];
-  block: ReportTemplateBlock;
-  blockIndex: number;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
-  onUpdatePage: (
-    pageId: string,
-    updater: (page: ReportTemplatePage) => ReportTemplatePage,
-  ) => void;
-  onRemoveBlock: (pageId: string, blockId: string) => void;
-  onMoveBlock: (
-    pageId: string,
-    blockId: string,
-    direction: "up" | "down",
-  ) => void;
-  onMoveBlockToPage: (
-    blockId: string,
-    fromPageId: string,
-    toPageId: string,
-  ) => void;
+  template: StudioTemplate;
+  fields: WorkflowFieldOption[];
+  loading: boolean;
+  message: string;
+  usedFieldKeys: Set<string>;
+  onInsertVariable: (variable: string) => void;
 }) {
-  function updateBlock(
-    updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
-  ) {
-    onUpdatePage(page.id, (currentPage) => ({
-      ...currentPage,
-      blocks: currentPage.blocks.map((currentBlock) =>
-        currentBlock.id === block.id ? updater(currentBlock) : currentBlock,
-      ),
-    }));
-  }
+  const groups = groupWorkflowFields(fields);
+  const usedCount = fields.filter((field) => usedFieldKeys.has(field.key)).length;
+  const [expanded, setExpanded] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
 
-  const selectableWorkflowFields = workflowFields.length
-    ? workflowFields
-    : REPORT_WORKFLOW_FIELD_OPTIONS;
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-black text-slate-500">
-              {blockIndex + 1}
-            </span>
-
-            <input
-              value={block.title}
-              onChange={(event) =>
-                updateBlock((currentBlock) => ({
-                  ...currentBlock,
-                  title: event.target.value,
-                }))
-              }
-              className="min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-emerald-700"
-            />
-
-            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
-              {blockKindLabels[block.kind]}
-            </span>
-
-            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-              {block.source?.label || "مصدر غير محدد"}
-            </span>
+  if (!panelOpen) {
+    return (
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setPanelOpen(true)}
+          className="flex w-full items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3 text-right transition hover:bg-emerald-50"
+        >
+          <div>
+            <p className="text-sm font-black text-emerald-700">خريطة الربط مع Workflow</p>
+            <p className="mt-1 text-xs font-bold text-slate-500">
+              مخفية حاليًا حتى لا تزحم المعاينة. اضغط لعرض الحقول والخطوات.
+            </p>
           </div>
 
-          <p className="mt-2 text-xs leading-6 text-slate-500">
-            مصدر البيانات: {block.source?.description}
-          </p>
-        </div>
-
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onMoveBlock(page.id, block.id, "up")}
-            disabled={!canMoveUp}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
-          >
-            أعلى
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onMoveBlock(page.id, block.id, "down")}
-            disabled={!canMoveDown}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
-          >
-            أسفل
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onRemoveBlock(page.id, block.id)}
-            className="rounded-xl border border-red-100 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50"
-          >
-            حذف
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <select
-          value={block.source?.fieldKey || ""}
-          onChange={(event) =>
-            updateBlock((currentBlock) => ({
-              ...currentBlock,
-              source: {
-                ...currentBlock.source,
-                fieldKey: event.target.value || undefined,
-              },
-            }))
-          }
-          className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
-        >
-          <option value="">مصدر عام/غير محدد</option>
-
-          {selectableWorkflowFields.map((field) => (
-            <option key={field.key} value={field.key}>
-              {field.label}
-              {"stepTitle" in field && field.stepTitle
-                ? ` — ${field.stepTitle}`
-                : ""}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={page.id}
-          onChange={(event) =>
-            onMoveBlockToPage(block.id, page.id, event.target.value)
-          }
-          className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none"
-        >
-          {pages.map((currentPage) => (
-            <option key={currentPage.id} value={currentPage.id}>
-              نقل إلى: {currentPage.title}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <BlockSettingsEditor
-        template={template}
-        snippets={snippets}
-        block={block}
-        onUpdateBlock={updateBlock}
-      />
-
-      {block.kind === "custom-paragraph" ? (
-        <div className="mt-4 grid gap-3">
-          <input
-            value={block.customTitle || ""}
-            onChange={(event) =>
-              updateBlock((currentBlock) => ({
-                ...currentBlock,
-                customTitle: event.target.value,
-              }))
-            }
-            placeholder="عنوان الفقرة"
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-700"
-          />
-
-          <textarea
-            value={block.customContent || ""}
-            onChange={(event) =>
-              updateBlock((currentBlock) => ({
-                ...currentBlock,
-                customContent: event.target.value,
-              }))
-            }
-            placeholder="محتوى الفقرة"
-            rows={3}
-            className="resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-700"
-          />
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function BlockSettingsEditor({
-  template,
-  snippets,
-  block,
-  onUpdateBlock,
-}: {
-  template: ReportTemplateBuilderModel;
-  snippets: ReportTextSnippet[];
-  block: ReportTemplateBlock;
-  onUpdateBlock: (
-    updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
-  ) => void;
-}) {
-  const settings = block.settings || {};
-
-  return (
-    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-      <h5 className="text-xs font-black text-slate-500">إعدادات البلوك</h5>
-
-      <div className="mt-3 grid gap-3 md:grid-cols-3">
-        <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
-          <input
-            type="checkbox"
-            checked={settings.showTitle !== false}
-            onChange={(event) =>
-              onUpdateBlock((currentBlock) => ({
-                ...currentBlock,
-                settings: {
-                  ...currentBlock.settings,
-                  showTitle: event.target.checked,
-                },
-              }))
-            }
-          />
-          إظهار العنوان
-        </label>
-
-        <select
-          value={settings.style || "card"}
-          onChange={(event) =>
-            onUpdateBlock((currentBlock) => ({
-              ...currentBlock,
-              settings: {
-                ...currentBlock.settings,
-                style: event.target.value as "plain" | "card" | "highlight",
-              },
-            }))
-          }
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
-        >
-          <option value="card">بطاقة</option>
-          <option value="plain">نص عادي</option>
-          <option value="highlight">تمييز</option>
-        </select>
-
-        <select
-          value={settings.columns || 2}
-          onChange={(event) =>
-            onUpdateBlock((currentBlock) => ({
-              ...currentBlock,
-              settings: {
-                ...currentBlock.settings,
-                columns: Number(event.target.value) as 1 | 2,
-              },
-            }))
-          }
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
-        >
-          <option value={1}>عمود واحد</option>
-          <option value={2}>عمودين</option>
-        </select>
-      </div>
-
-      {block.kind === "evidence-gallery" ? (
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <select
-            value={settings.evidenceLayout || "grid-2x2"}
-            onChange={(event) =>
-              onUpdateBlock((currentBlock) => ({
-                ...currentBlock,
-                settings: {
-                  ...currentBlock.settings,
-                  evidenceLayout: event.target.value as
-                    | "grid-2x2"
-                    | "two-columns"
-                    | "stacked"
-                    | "one-per-page",
-                },
-              }))
-            }
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
-          >
-            <option value="grid-2x2">شبكة 2×2</option>
-            <option value="two-columns">صورتان بجانب بعض</option>
-            <option value="stacked">صور تحت بعض</option>
-            <option value="one-per-page">شاهد لكل صفحة</option>
-          </select>
-
-          <select
-            value={settings.imageFit || "cover"}
-            onChange={(event) =>
-              onUpdateBlock((currentBlock) => ({
-                ...currentBlock,
-                settings: {
-                  ...currentBlock.settings,
-                  imageFit: event.target.value as "cover" | "contain",
-                },
-              }))
-            }
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none"
-          >
-            <option value="cover">ملء الإطار</option>
-            <option value="contain">احتواء كامل</option>
-          </select>
-
-          <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
-            <input
-              type="checkbox"
-              checked={settings.showCaptions !== false}
-              onChange={(event) =>
-                onUpdateBlock((currentBlock) => ({
-                  ...currentBlock,
-                  settings: {
-                    ...currentBlock.settings,
-                    showCaptions: event.target.checked,
-                  },
-                }))
-              }
-            />
-            إظهار التعليقات
-          </label>
-        </div>
-      ) : null}
-
-      {block.kind === "text-library" ? (
-        <TextLibraryBlockSettingsEditor
-          template={template}
-          snippets={snippets}
-          block={block}
-          onUpdateBlock={onUpdateBlock}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function TextLibraryBlockSettingsEditor({
-  template,
-  snippets,
-  block,
-  onUpdateBlock,
-}: {
-  template: ReportTemplateBuilderModel;
-  snippets: ReportTextSnippet[];
-  block: ReportTemplateBlock;
-  onUpdateBlock: (
-    updater: (block: ReportTemplateBlock) => ReportTemplateBlock,
-  ) => void;
-}) {
-  const settings = getTextLibrarySettings(block);
-
-  const matchingSnippets = getMatchingTextSnippets({
-    block,
-    template,
-    snippets,
-  });
-
-  function updateTextLibrarySettings(
-    nextSettings: Partial<TextLibrarySettings>,
-  ) {
-    onUpdateBlock((currentBlock) =>
-      setTextLibrarySettingsOnBlock(currentBlock, nextSettings),
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-100">
+              {fields.length} حقول
+            </span>
+            <span className="rounded-full bg-emerald-700 px-4 py-2 text-xs font-black text-white">
+              عرض
+            </span>
+          </div>
+        </button>
+      </section>
     );
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h5 className="text-sm font-black text-emerald-900">
-            ربط البلوك بمكتبة النصوص
-          </h5>
+          <p className="text-sm font-black text-emerald-700">
+            خريطة الربط مع Workflow
+          </p>
 
-          <p className="mt-1 text-xs leading-6 text-emerald-800">
-            اختر مصدر النص، التصنيف، وطريقة عرض النص داخل التقرير.
+          <h2 className="mt-1 text-xl font-black text-slate-900">
+            اعرف الحقول قبل بناء التقرير
+          </h2>
+
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+            عند ربط القالب بخدمة أو Workflow، تظهر لك خطواته وحقوله. الحقول
+            المستخدمة داخل النصوص تظهر بعلامة مستخدم، والبقية تظل واضحة حتى لا
+            تنساها أثناء بناء التقرير.
           </p>
         </div>
 
-        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-emerald-700">
-          {matchingSnippets.length} نص مطابق
-        </span>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <div>
-          <label className="text-xs font-black text-slate-600">
-            مصدر النصوص
-          </label>
-
-          <select
-            value={settings.textSourceMode}
-            onChange={(event) =>
-              updateTextLibrarySettings({
-                textSourceMode: event.target.value as TextLibrarySourceMode,
-                snippetId: "",
-              })
-            }
-            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
-          >
-            <option value="same-template-service">نفس خدمة القالب</option>
-            <option value="global">النصوص العامة فقط</option>
-            <option value="specific-service">خدمة محددة</option>
-            <option value="all">كل النصوص</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="text-xs font-black text-slate-600">
-            التصنيف المطلوب
-          </label>
-
-          <select
-            value={settings.category}
-            onChange={(event) =>
-              updateTextLibrarySettings({
-                category: event.target.value,
-                snippetId: "",
-              })
-            }
-            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
-          >
-            {snippetCategories.map((category) => (
-              <option key={category} value={category}>
-                {category === "all" ? "كل التصنيفات" : category}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="text-xs font-black text-slate-600">
-            طريقة العرض
-          </label>
-
-          <select
-            value={settings.renderMode}
-            onChange={(event) =>
-              updateTextLibrarySettings({
-                renderMode: event.target.value as TextLibraryRenderMode,
-              })
-            }
-            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
-          >
-            <option value="first">أول نص مطابق</option>
-            <option value="all">كل النصوص المطابقة</option>
-            <option value="selected">نص محدد</option>
-          </select>
+        <div className="grid min-w-64 grid-cols-3 gap-2 text-center">
+          <Metric label="الحقول" value={`${fields.length}`} />
+          <Metric label="المستخدم" value={`${usedCount}`} />
+          <Metric label="الحالة" value={loading ? "جلب" : "جاهز"} />
         </div>
       </div>
 
-      {settings.textSourceMode === "specific-service" ? (
-        <div className="mt-3">
-          <label className="text-xs font-black text-slate-600">
-            الخدمة المحددة
-          </label>
+      <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-slate-50 p-3 text-xs font-bold leading-6 text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        <span>{message}</span>
 
-          <select
-            value={settings.serviceSlug}
-            onChange={(event) =>
-              updateTextLibrarySettings({
-                serviceSlug: event.target.value,
-                snippetId: "",
-              })
-            }
-            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            className="rounded-xl bg-white px-4 py-2 text-xs font-black text-emerald-800 ring-1 ring-emerald-100 transition hover:bg-emerald-50"
           >
-            <option value="">اختر خدمة</option>
-            {REPORT_SERVICE_OPTIONS.map((service) => (
-              <option key={service.slug} value={service.slug}>
-                {service.name}
-              </option>
-            ))}
-          </select>
+            {expanded ? "إخفاء التفاصيل" : "عرض التفاصيل"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPanelOpen(false)}
+            className="rounded-xl bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100"
+          >
+            إخفاء اللوحة
+          </button>
+        </div>
+      </div>
+
+      {expanded && (template.scope === "GLOBAL" || template.scope === "LOCATION") ? (
+        <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm font-bold leading-7 text-amber-800">
+          هذا القالب غير موجه لخدمة أو Workflow حاليًا. إذا أردت ظهور الحقول،
+          اختر التوجيه "خدمة" أو "Workflow" وحدد الخدمة.
         </div>
       ) : null}
 
-      {settings.renderMode === "selected" ? (
-        <div className="mt-3">
-          <label className="text-xs font-black text-slate-600">
-            النص المحدد
-          </label>
+      {expanded && groups.length ? (
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {groups.map((group, groupIndex) => (
+            <div
+              key={group.stepTitle}
+              className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-black text-slate-900">
+                  {groupIndex + 1}. {group.stepTitle}
+                </h3>
 
-          <select
-            value={settings.snippetId}
-            onChange={(event) =>
-              updateTextLibrarySettings({
-                snippetId: event.target.value,
-              })
-            }
-            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
-          >
-            <option value="">اختر نصًا من المكتبة</option>
-            {matchingSnippets.map((snippet) => (
-              <option key={snippet.id} value={snippet.id}>
-                {snippet.title} - {snippet.category}
-              </option>
-            ))}
-          </select>
+                <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-500">
+                  {group.fields.length} حقول
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {group.fields.map((field) => {
+                  const used = usedFieldKeys.has(field.key);
+                  const variable = `{{field.${field.key}}}`;
+
+                  return (
+                    <div
+                      key={field.key}
+                      className="rounded-2xl border border-slate-200 bg-white p-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-black text-slate-900">
+                            {field.label}
+                          </p>
+                          <p className="mt-1 text-[11px] font-bold text-slate-400">
+                            {variable}
+                          </p>
+                        </div>
+
+                        <span
+                          className={[
+                            "rounded-full px-3 py-1 text-[10px] font-black",
+                            used
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-amber-50 text-amber-700",
+                          ].join(" ")}
+                        >
+                          {used ? "مستخدم" : "غير مستخدم"}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onInsertVariable(variable)}
+                        className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-800 transition hover:bg-emerald-100"
+                      >
+                        إدراج المتغير في البلوك المحدد
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       ) : null}
+    </section>
+  );
+}
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <div>
-          <label className="text-xs font-black text-slate-600">
-            عند عدم وجود نص مطابق
-          </label>
-
-          <select
-            value={settings.fallbackBehavior}
-            onChange={(event) =>
-              updateTextLibrarySettings({
-                fallbackBehavior: event.target
-                  .value as TextLibraryFallbackBehavior,
-              })
-            }
-            className="mt-2 w-full rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs font-bold outline-none"
-          >
-            <option value="show-fallback">اعرض نصًا بديلًا</option>
-            <option value="hide">أخفِ البلوك</option>
-          </select>
-        </div>
-
-        <label className="mt-7 flex items-center gap-2 text-xs font-bold text-slate-700">
-          <input
-            type="checkbox"
-            checked={settings.editableByCounselor}
-            onChange={(event) =>
-              updateTextLibrarySettings({
-                editableByCounselor: event.target.checked,
-              })
-            }
-          />
-          يسمح للموجه/الموجهة بتعديل هذا النص لاحقًا
-        </label>
-      </div>
-
-      {settings.fallbackBehavior !== "hide" ? (
-        <div className="mt-3">
-          <label className="text-xs font-black text-slate-600">
-            النص البديل
-          </label>
-
-          <textarea
-            value={settings.fallbackText}
-            onChange={(event) =>
-              updateTextLibrarySettings({
-                fallbackText: event.target.value,
-              })
-            }
-            rows={2}
-            className="mt-2 w-full resize-none rounded-xl border border-emerald-100 bg-white px-3 py-3 text-xs leading-6 outline-none"
-          />
-        </div>
-      ) : null}
-
-      <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-3">
-        <p className="text-xs font-black text-slate-600">
-          النصوص المطابقة الآن
-        </p>
-
-        <div className="mt-2 flex flex-wrap gap-2">
-          {matchingSnippets.length ? (
-            matchingSnippets.slice(0, 8).map((snippet) => (
-              <span
-                key={snippet.id}
-                className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700"
-              >
-                {snippet.title}
-              </span>
-            ))
-          ) : (
-            <span className="text-xs text-slate-500">
-              لا يوجد نص مطابق حسب الإعدادات الحالية.
-            </span>
-          )}
-        </div>
-      </div>
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="text-[10px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-black text-slate-900">{value}</p>
     </div>
   );
 }
 
-function ConfirmModal({
-  title,
-  description,
-  confirmLabel,
-  onCancel,
-  onConfirm,
+function OfficialPagePreview({
+  template,
+  activePage,
+  activePageId,
+  context,
+  previewCase,
+  onActivePageChange,
+  onAddPage,
 }: {
-  title: string;
-  description: ReactNode;
-  confirmLabel: string;
-  onCancel: () => void;
-  onConfirm: () => void;
+  template: StudioTemplate;
+  activePage?: StudioPage;
+  activePageId: string;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  onActivePageChange: (pageId: string) => void;
+  onAddPage: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-2xl font-black text-red-600">
-          !
+    <ReportDesignRenderer
+      designId={template.designTemplateId || "ministry-form"}
+      template={template}
+      activePage={activePage}
+      activePageId={activePageId}
+      context={context}
+      previewCase={previewCase}
+      onActivePageChange={onActivePageChange}
+      onAddPage={onAddPage}
+    />
+  );
+}
+
+function PreviewBlock({
+  block,
+  context,
+  previewCase,
+}: {
+  block: StudioBlock;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+}) {
+  const rendered = renderText(block.content, context);
+  const textAlign = block.align === "center" ? "text-center" : "text-right";
+
+  if (block.hideWhenMissing && block.boundFieldKey) {
+    const fieldValue = String(context[`field.${block.boundFieldKey}`] || "").trim();
+
+    if (!fieldValue) {
+      return null;
+    }
+  }
+
+  if (block.kind === "hero-title") {
+    return (
+      <section className="flex flex-col items-center justify-center py-5 text-center">
+        <p className="text-xs font-black text-emerald-700">
+          {context["service.name"]}
+        </p>
+        <h1 className="mx-auto mt-3 max-w-[145mm] text-3xl font-black leading-[1.7] text-slate-950">
+          {rendered}
+        </h1>
+        {block.showMeta ? (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] font-black text-slate-500">
+            <span className="rounded-full bg-emerald-50 px-3 py-1">
+              {context["case.createdAt"]}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1">
+              {context["identity.counselorName"]}
+            </span>
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
+  if (block.kind === "meta-strip") {
+    return (
+      <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
+        <div className="grid gap-2 md:grid-cols-2">
+          {splitLines(rendered).map((line) => (
+            <div
+              key={line}
+              className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm font-bold text-slate-700"
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "bullet-list") {
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <ul className="space-y-2">
+          {splitLines(rendered).map((line) => (
+            <li key={line} className="flex gap-2 text-sm leading-7 text-slate-700">
+              <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-600" />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+
+  if (block.kind === "multi-paragraph") {
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <div className="space-y-3">
+          {splitParagraphs(rendered).map((paragraph) => (
+            <p key={paragraph} className="text-sm leading-8 text-slate-700">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "dynamic-fields") {
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <div className="grid gap-2 md:grid-cols-2">
+          {[
+            ["الخدمة", context["service.name"]],
+            ["عنوان الحالة", context["case.title"]],
+            ["الطالب/الطالبة", context["student.name"]],
+            ["الصف", context["student.grade"]],
+            ["ولي الأمر", context["student.guardianName"]],
+            ["عدد الشواهد", context["evidence.count"]],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="rounded-2xl border border-slate-100 bg-white px-4 py-3"
+            >
+              <p className="text-[11px] font-black text-slate-400">{label}</p>
+              <p className="mt-1 text-sm font-black text-slate-800">
+                {value || "غير متوفر"}
+              </p>
+            </div>
+          ))}
         </div>
 
-        <div className="mt-4 text-center">
-          <h2 className="text-xl font-black text-slate-900">{title}</h2>
+        {previewCase?.values?.length ? (
+          <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs leading-6 text-slate-500">
+            تم جلب {previewCase.values.length} قيمة من Case ID.
+          </div>
+        ) : null}
+      </section>
+    );
+  }
 
-          <p className="mt-3 text-sm leading-7 text-slate-500">
-            {description}
+  if (block.kind === "evidence-gallery") {
+    const realEvidences = previewCase?.evidences || [];
+    const perPage = getEvidencePerPage(block);
+    const startIndex = block.evidenceStartIndex || 0;
+    const placeholderEvidences = createEvidencePlaceholders(perPage, startIndex);
+    const sourceEvidences = realEvidences.length ? realEvidences : placeholderEvidences;
+
+    if (!realEvidences.length && block.evidenceEmptyBehavior === "hide") {
+      return null;
+    }
+
+    const visibleEvidences = sourceEvidences.slice(startIndex, startIndex + perPage);
+    const hiddenCount = Math.max(realEvidences.length - (startIndex + perPage), 0);
+    const isPlaceholderMode = !realEvidences.length;
+
+    if (block.evidenceLayout === "ATTACHMENT_LIST") {
+      return (
+        <section className={getBlockClass(block.variant, textAlign)}>
+          {block.showTitle ? <BlockTitle title={block.title} /> : null}
+
+          <div className="space-y-2">
+            {visibleEvidences.map((evidence, index) => (
+              <div
+                key={evidence.id || evidence.fileUrl || String(index)}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700"
+              >
+                <span>
+                  {evidence.caption || evidence.title || "مرفق " + (startIndex + index + 1)}
+                </span>
+
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">
+                  {isPlaceholderMode ? "معاينة" : "شاهد"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+
+        <div className={getEvidenceGridClass(block)}>
+          {visibleEvidences.map((evidence, index) => {
+            const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+
+            return (
+              <figure
+                key={evidence.id || imageUrl || String(index)}
+                className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white"
+              >
+                {imageUrl && !isPlaceholderMode ? (
+                  <img
+                    src={imageUrl}
+                    alt={evidence.title || "شاهد " + (startIndex + index + 1)}
+                    className={getEvidenceImageClass(block) + " bg-slate-50"}
+                  />
+                ) : (
+                  <div className={getEvidenceImageHeightClass(block) + " flex w-full flex-col items-center justify-center bg-slate-50 text-center"}>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">
+                      📎
+                    </div>
+                    <p className="mt-3 text-xs font-black text-slate-500">
+                      {isPlaceholderMode ? "مساحة شاهد للمعاينة" : "شاهد بدون صورة"}
+                    </p>
+                  </div>
+                )}
+
+                {block.evidenceShowCaptions !== false ? (
+                  <figcaption className="max-h-12 overflow-hidden border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
+                    {evidence.caption || evidence.title || "شاهد " + (startIndex + index + 1)}
+                  </figcaption>
+                ) : null}
+              </figure>
+            );
+          })}
+        </div>
+
+        {hiddenCount > 0 && block.evidenceAutoCreatePages === false ? (
+          <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
+            يوجد {hiddenCount} شاهد إضافي. سيتم نقله إلى صفحة شواهد إضافية حتى لا يتمدد إطار A4.
           </p>
-        </div>
+        ) : null}
 
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
-          >
-            إلغاء
-          </button>
+        {isPlaceholderMode ? (
+          <p className="mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
+            هذه مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
+          </p>
+        ) : null}
+      </section>
+    );
+  }
 
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-700"
-          >
-            {confirmLabel}
-          </button>
+  if (block.kind === "closing-note") {
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <p className="text-sm leading-8 text-slate-700">{rendered}</p>
+
+        <div className="mt-5 grid grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs font-black text-slate-400">
+              الموجه/الموجهة الطلابية
+            </p>
+            <p className="mt-4 text-sm font-black text-slate-800">
+              {context["identity.counselorName"]}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs font-black text-slate-400">
+              مدير/مديرة المدرسة
+            </p>
+            <p className="mt-4 text-sm font-black text-slate-800">
+              {context["identity.principalName"]}
+            </p>
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className={getBlockClass(block.variant, textAlign)}>
+      {block.showTitle ? <BlockTitle title={block.title} /> : null}
+      <p className="whitespace-pre-line text-sm leading-8 text-slate-700">
+        {rendered}
+      </p>
+    </section>
   );
 }
 
 
+function createEvidencePlaceholders(
+  count: number,
+  startIndex: number,
+): NonNullable<PreviewCaseData["evidences"]> {
+  return Array.from({ length: count }).map((_, index) => {
+    const evidenceNumber = startIndex + index + 1;
+
+    return {
+      id: "placeholder-evidence-" + evidenceNumber,
+      title: "شاهد تجريبي " + evidenceNumber,
+      caption: "مكان الشاهد داخل التقرير",
+      fileUrl: "",
+      imageUrl: "",
+    };
+  });
+}
+
+function getEvidencePerPage(block: any) {
+  return getSmartEvidencePerPage(block);
+}
+
+function getSmartEvidencePerPage(block: any) {
+  const layout = String(block?.evidenceLayout || "TWO_PER_PAGE");
+  const ratio = String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
+  const fit = String(block?.evidenceFit || "contain");
+
+  if (layout === "ATTACHMENT_LIST") return 10;
+  if (layout === "ONE_PER_PAGE") return 1;
+  if (layout === "TWO_PER_PAGE") return 2;
+
+  /*
+    GRID_2X2 is a maximum capacity, not a forced capacity.
+    The system must keep every evidence card inside the A4 frame.
+    Portrait images are tall, so 4 cards can overflow the page.
+  */
+  if (layout === "GRID_2X2") {
+    if (ratio === "PORTRAIT_3_4") return 2;
+    if (ratio === "SQUARE_1_1" && fit === "cover") return 4;
+    if (ratio === "SQUARE_1_1") return 4;
+    if (ratio === "LANDSCAPE_16_9") return 4;
+    return 4;
+  }
+
+  return 2;
+}
+
+function getEvidenceGridClass(block: any) {
+  const perPage = getEvidencePerPage(block);
+
+  if (block.evidenceLayout === "ATTACHMENT_LIST") {
+    return "grid gap-2";
+  }
+
+  if (perPage <= 1) {
+    return "grid gap-3";
+  }
+
+  return "grid gap-3 md:grid-cols-2";
+}
 
 
+function getEvidenceAspectRatioClass(block: StudioBlock) {
+  switch (block.evidenceAspectRatio || "LANDSCAPE_4_3") {
+    case "LANDSCAPE_16_9":
+      return "aspect-video";
+    case "PORTRAIT_3_4":
+      return "aspect-[3/4]";
+    case "SQUARE_1_1":
+      return "aspect-square";
+    case "LANDSCAPE_4_3":
+    default:
+      return "aspect-[4/3]";
+  }
+}
 
+function getEvidenceImageHeightClass(block: any) {
+  const perPage = getEvidencePerPage(block);
+  const ratio = block.evidenceAspectRatio || "LANDSCAPE_4_3";
 
+  /*
+    Fixed heights are intentional:
+    they keep evidence inside the printable A4 area.
+    Extra evidence must go to a new Evidence Page instead of stretching A4.
+  */
+  if (perPage <= 1) {
+    switch (ratio) {
+      case "PORTRAIT_3_4":
+        return "h-[185mm]";
+      case "SQUARE_1_1":
+        return "h-[160mm]";
+      case "LANDSCAPE_16_9":
+        return "h-[122mm]";
+      case "LANDSCAPE_4_3":
+      default:
+        return "h-[138mm]";
+    }
+  }
 
+  if (perPage === 2) {
+    switch (ratio) {
+      case "PORTRAIT_3_4":
+        return "h-[92mm]";
+      case "SQUARE_1_1":
+        return "h-[82mm]";
+      case "LANDSCAPE_16_9":
+        return "h-[58mm]";
+      case "LANDSCAPE_4_3":
+      default:
+        return "h-[66mm]";
+    }
+  }
 
+  switch (ratio) {
+    case "SQUARE_1_1":
+      return "h-[56mm]";
+    case "LANDSCAPE_16_9":
+      return "h-[42mm]";
+    case "PORTRAIT_3_4":
+      return "h-[82mm]";
+    case "LANDSCAPE_4_3":
+    default:
+      return "h-[48mm]";
+  }
+}
 
+function getEvidenceImageClass(block: any) {
+  const fit = block.evidenceFit === "cover" ? "object-cover" : "object-contain";
+  return `${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+}
 
+function EmptyEvidenceMessage() {
+  return (
+    <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50 p-6 text-center">
+      <p className="text-sm font-black text-emerald-800">
+        لا توجد شواهد مرتبطة بالـ Case ID الحالي
+      </p>
+
+      <p className="mt-2 text-xs font-bold leading-6 text-emerald-700">
+        هذا البلوك لن يعرض أي مرفقات في التقرير النهائي إلا إذا كانت الحالة تحتوي على شواهد.
+      </p>
+    </div>
+  );
+}
+
+function BlockTitle({ title }: { title: string }) {
+  return (
+    <h3 className="mb-3 text-base font-black text-slate-950">
+      {title}
+    </h3>
+  );
+}
+
+function getPlacementClass(placement: BlockPlacement) {
+  const fullCenteredBase = "absolute left-0 right-0 w-full";
+  const centeredBase = "absolute left-1/2 w-full max-w-[78%] -translate-x-1/2";
+  const sideBase = "absolute w-full max-w-[58%]";
+
+  const classes: Record<BlockPlacement, string> = {
+    flow: "",
+
+    // الخيارات العامة: تبقى بعرضها الطبيعي الكامل مثل وضع الترتيب الطبيعي
+    top: `${fullCenteredBase} top-0`,
+    middle: `${fullCenteredBase} top-1/2 -translate-y-1/2`,
+    bottom: `${fullCenteredBase} bottom-0`,
+
+    // الخيارات الدقيقة: يمين/وسط/يسار بعرض مخصص حتى لا تملأ الصفحة كاملة
+    "top-right": `${sideBase} right-0 top-0`,
+    "top-center": `${centeredBase} top-0`,
+    "top-left": `${sideBase} left-0 top-0`,
+
+    "middle-right": `${sideBase} right-0 top-1/2 -translate-y-1/2`,
+    "middle-center": `${centeredBase} top-1/2 -translate-y-1/2`,
+    "middle-left": `${sideBase} left-0 top-1/2 -translate-y-1/2`,
+
+    "bottom-right": `${sideBase} bottom-0 right-0`,
+    "bottom-center": `${centeredBase} bottom-0`,
+    "bottom-left": `${sideBase} bottom-0 left-0`,
+  };
+
+  return classes[placement];
+}
+
+function getBlockClass(variant: BlockVariant, textAlign: string) {
+  const base = `break-inside-avoid ${textAlign}`;
+
+  const classes: Record<BlockVariant, string> = {
+    hero: `${base} py-5`,
+    plain: `${base} px-1 py-2`,
+    card: `${base} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm`,
+    soft: `${base} rounded-3xl border border-emerald-100 bg-emerald-50 p-5`,
+    highlight: `${base} rounded-3xl border border-emerald-200 bg-gradient-to-l from-emerald-50 to-white p-5`,
+    outline: `${base} rounded-3xl border border-dashed border-slate-300 bg-white p-5`,
+    quote: `${base} rounded-3xl border border-slate-200 bg-slate-50 p-5`,
+  };
+
+  return classes[variant];
+}
 
 
 

@@ -1,6 +1,4 @@
-﻿"use client";
-
-type ReportPdfGuidanceCardProps = {
+﻿type ReportPdfGuidanceCardProps = {
   reportTitle: string;
   serviceName: string;
   editUrl: string;
@@ -16,65 +14,80 @@ export function ReportPdfGuidanceCard({
   pdfDownloadUrl,
 }: ReportPdfGuidanceCardProps) {
   return (
-    <section className="no-print mx-auto mb-6 max-w-[210mm] rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
-            معاينة تقرير رسمي
-          </p>
+    <section
+      className="no-print mx-auto mb-4 max-w-[210mm] rounded-[1.75rem] border border-slate-200 bg-white/95 p-4 shadow-sm ring-1 ring-white"
+      dir="rtl"
+    >
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
+              معاينة التقرير
+            </span>
 
-          <h2 className="mt-3 text-2xl font-black text-slate-950">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+              جاهز للمراجعة
+            </span>
+
+            <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+              {serviceName}
+            </span>
+          </div>
+
+          <h1 className="mt-3 truncate text-2xl font-black text-slate-950">
             {reportTitle}
-          </h2>
+          </h1>
 
-          <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
-            هذا التقرير مرتبط بخدمة{" "}
-            <span className="font-black text-slate-900">{serviceName}</span>.
-            يمكنك مراجعة الشكل النهائي للتقرير، تعديل المحتوى المسموح به، ثم
-            معاينة نسخة PDF أو تحميلها كنسخة رسمية جاهزة للطباعة.
-          </p>
-
-          <p className="mt-2 text-xs leading-6 text-slate-500">
-            ملاحظة: تعديل التقرير يسمح بتعديل النصوص والشواهد والبيانات القابلة
-            للتحرير فقط، أما تصميم القالب الرسمي فيبقى من صلاحيات الأدمن.
+          <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+            راجع التقرير كما سيظهر للمستفيد. إذا احتجت تعديل النصوص أو الشواهد افتح محرر التقرير، وإذا كان جاهزًا صدّره PDF مباشرة.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold leading-6 text-slate-600 shadow-inner">
-          الخطوات المقترحة:
-          <br />
-          1) راجع التقرير
-          <br />
-          2) عدّل عند الحاجة
-          <br />
-          3) عاين PDF
-          <br />
-          4) حمّل النسخة النهائية
+        <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[440px] lg:grid-cols-4">
+          <a
+            href="/dashboard/reports"
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+          >
+            التقارير
+          </a>
+
+          <a
+            href={editUrl}
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50"
+          >
+            تعديل
+          </a>
+
+          <a
+            href={pdfPreviewUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-2xl bg-blue-700 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-800"
+          >
+            PDF
+          </a>
+
+          <a
+            href={pdfDownloadUrl}
+            className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+          >
+            تحميل
+          </a>
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <a
-          href={editUrl}
-          className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
-        >
-          تعديل التقرير
-        </a>
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 text-xs font-black text-slate-500">
+        <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
+          هذه البطاقة لا تظهر في PDF
+        </span>
 
-        <a
-          href={pdfPreviewUrl}
-          target="_blank"
-          className="rounded-2xl bg-blue-700 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-800"
-        >
-          معاينة PDF
-        </a>
+        <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
+          التعديل لا يغير بيانات الحالة الأصلية
+        </span>
 
-        <a
-          href={pdfDownloadUrl}
-          className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800"
-        >
-          تحميل PDF
-        </a>
+        <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
+          التقرير الرسمي يبدأ بالصفحات أدناه
+        </span>
       </div>
     </section>
   );

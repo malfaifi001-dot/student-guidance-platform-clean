@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ReportStudioEditor } from "@/components/reports/report-studio-editor";
+import { resolveBuilderTemplateForReport } from "@/lib/report-engine/report-builder-template-runtime";
 
 import {
   formatWorkflowDisplayValue,
@@ -12,6 +13,9 @@ import {
 type PageProps = {
   params: Promise<{
     reportId: string;
+  }>;
+  searchParams?: Promise<{
+    template?: string;
   }>;
 };
 
@@ -44,8 +48,9 @@ type ReportFieldLookupItem = {
 };
 
 
-export default async function ReportStudioPage({ params }: PageProps) {
+export default async function ReportStudioPage({ params, searchParams }: PageProps) {
   const { reportId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
 
   const report = await prisma.guidanceReport.findUnique({
     where: {
@@ -117,6 +122,13 @@ export default async function ReportStudioPage({ params }: PageProps) {
     notFound();
   }
 
+  const templateIdOverride =
+    resolvedSearchParams.template || report.templateId || "";
+
+  const builderTemplateForStudio = await resolveBuilderTemplateForReport(report, {
+    templateIdOverride,
+  });
+
   const parsedEditableContent = parseEditableContent(report.editableContent);
   const workflowValueOverrides =
     parsedEditableContent.workflowValueOverrides || [];
@@ -138,9 +150,17 @@ export default async function ReportStudioPage({ params }: PageProps) {
     serviceSlug: report.serviceSlug,
     status: report.status,
     genderMode: report.genderMode,
-    templateId: report.templateId,
-    hasTemplateSnapshot: Boolean(report.templateSnapshot),
+    templateId: templateIdOverride || report.templateId,
+    hasTemplateSnapshot: Boolean(builderTemplateForStudio || report.templateSnapshot),
     hasReportDataSnapshot: Boolean(report.reportDataSnapshot),
+    templateSnapshot: builderTemplateForStudio
+      ? JSON.parse(JSON.stringify(builderTemplateForStudio))
+      : report.templateSnapshot
+        ? JSON.parse(JSON.stringify(report.templateSnapshot))
+        : null,
+    reportDataSnapshot: report.reportDataSnapshot
+      ? JSON.parse(JSON.stringify(report.reportDataSnapshot))
+      : null,
     editableContent: report.editableContent || "",
     renderedContent: report.renderedContent || "",
     generatedAt: report.generatedAt?.toISOString() || null,
@@ -196,20 +216,7 @@ export default async function ReportStudioPage({ params }: PageProps) {
   };
 
   return (
-    <main className="space-y-6" dir="rtl">
-      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-8 text-white shadow-2xl">
-        <div>
-          <p className="text-sm font-bold text-sky-100">Report Live Studio</p>
-
-          <h1 className="mt-3 text-4xl font-black">تحرير التقرير</h1>
-
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-50">
-            عدّل النصوص وقيم التقرير قبل الاعتماد. التعديل هنا لا يغيّر الحالة
-            الأصلية، بل يحفظ نسخة تحريرية داخل التقرير فقط.
-          </p>
-        </div>
-      </section>
-
+    <main className="space-y-0" dir="rtl">
       <ReportStudioEditor report={normalizedReport} />
     </main>
   );

@@ -1,0 +1,1345 @@
+﻿UNIFIED CASES CENTER CURRENT FILES
+Generated: 06/04/2026 08:20:24
+
+
+
+==================== FILE: app\dashboard\cases\page.tsx ====================
+import { CasesSearchTable } from "@/components/cases/cases-search-table";
+import { prisma } from "@/lib/prisma";
+
+export default async function CasesPage() {
+  const cases = await prisma.caseEntry.findMany({
+    include: {
+      student: true,
+      service: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 200,
+  });
+
+  const rows = cases.map((caseItem) => ({
+    id: caseItem.id,
+    title: caseItem.title || "Ø¨Ø¯ÙˆÙ† Ø¹Ù†ÙˆØ§Ù†",
+    status: caseItem.status,
+    createdAt: new Date(caseItem.createdAt).toLocaleDateString("ar-SA"),
+    serviceName: caseItem.service?.name || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+    studentName: caseItem.student?.fullName || "ØºÙŠØ± Ù…Ø±ØªØ¨Ø· Ø¨Ø·Ø§Ù„Ø¨",
+  }));
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
+        <p className="text-sm font-semibold text-sky-100">Cases Center</p>
+
+        <h1 className="mt-3 text-4xl font-black">Ø§Ù„Ø­Ø§Ù„Ø§Øª ÙˆØ§Ù„Ø³Ø¬Ù„Ø§Øª</h1>
+
+        <p className="mt-4 max-w-3xl leading-8 text-sky-50">
+          Ù…Ø±ÙƒØ² Ù…ÙˆØ­Ø¯ Ù„Ø§Ø³ØªØ¹Ø±Ø§Ø¶ Ø³Ø¬Ù„Ø§Øª Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø®Ø¯Ù…Ø§Øª ÙˆØ§Ù„Ø¨Ø­Ø« ÙÙŠÙ‡Ø§.
+        </p>
+      </section>
+
+      <CasesSearchTable cases={rows} />
+    </div>
+  );
+}
+
+
+==================== FILE: app\dashboard\cases\[caseId]\page.tsx ====================
+import { notFound, redirect } from "next/navigation";
+
+import { CaseDetailsView } from "@/components/cases/case-details-view";
+import { getCaseById } from "@/engine/cases/case-runtime-engine";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export default async function CaseDetailsPage({ params }: PageProps) {
+  const { caseId } = await params;
+  const context = await requireDashboardPageContext();
+
+  if (!context.isAdmin && !context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  try {
+    const caseEntry = await getCaseById(caseId, {
+      schoolAccountId: context.schoolAccountId,
+      isAdmin: context.isAdmin,
+    });
+
+    return <CaseDetailsView caseEntry={caseEntry} />;
+  } catch {
+    notFound();
+  }
+}
+
+
+
+==================== FILE: app\dashboard\cases\[caseId]\edit\page.tsx ====================
+import { notFound, redirect } from "next/navigation";
+
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { prisma } from "@/lib/prisma";
+import { sortRuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export default async function EditCasePage({ params }: PageProps) {
+  const { caseId } = await params;
+  const context = await requireDashboardPageContext();
+
+  const schoolAccountId = context.schoolAccountId;
+
+  if (!context.isAdmin && !schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  const caseWhere = context.isAdmin
+    ? { id: caseId }
+    : { id: caseId, schoolAccountId: schoolAccountId as string };
+
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: caseWhere,
+    include: {
+      values: true,
+      evidences: true,
+      service: true,
+      workflow: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!caseEntry || !caseEntry.workflow || !caseEntry.service) {
+    notFound();
+  }
+
+  const initialValues = Object.fromEntries(
+    caseEntry.values.map((value) => [
+      value.fieldKey,
+      value.jsonValue ?? value.value,
+    ])
+  );
+
+  const workflow = sortRuntimeWorkflow({
+    id: caseEntry.workflow.id,
+    name: caseEntry.workflow.name,
+    serviceSlug: caseEntry.service.slug,
+    steps: caseEntry.workflow.steps.map((step) => ({
+      id: step.id,
+      title: step.title,
+      description: step.description,
+      order: step.order,
+      fields: step.fields.map((field) => ({
+        id: field.id,
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        placeholder: field.placeholder,
+        helpText: field.helpText,
+        isRequired: field.isRequired,
+        order: field.order,
+        dependsOnFieldKey: field.dependsOnFieldKey,
+        linkedToValue: field.linkedToValue,
+        allowOther: field.allowOther,
+        options: field.options.map((option) => ({
+          id: option.id,
+          label: option.label,
+          value: option.value,
+          order: option.order,
+          linkedToValue: option.linkedToValue,
+        })),
+      })),
+    })),
+  });
+
+  const evidenceItems = caseEntry.evidences.map((item) => ({
+    id: item.id,
+    fileName: item.fileName || "ملف",
+    fileUrl: item.fileUrl || "#",
+    mimeType: item.mimeType || "application/octet-stream",
+    size: item.size || 0,
+  }));
+
+  return (
+    <DynamicFormRenderer
+      workflow={workflow}
+      serviceId={caseEntry.serviceId}
+      caseId={caseEntry.id}
+      title={caseEntry.title ?? undefined}
+      initialValues={initialValues}
+      initialEvidenceItems={evidenceItems}
+    />
+  );
+}
+
+
+
+==================== FILE: components\cases\cases-list.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: components\cases\case-card.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: components\cases\case-details.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: components\cases\case-form.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: components\cases\case-status-badge.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: app\api\dashboard\cases\route.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: app\api\dashboard\cases\[caseId]\route.ts ====================
+import { NextResponse } from "next/server";
+import {
+  updateRuntimeCase,
+  getCaseById,
+} from "@/engine/cases/case-runtime-engine";
+import { logCaseSavedEvent } from "@/lib/admin/activity-events";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export async function GET(_request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const { caseId } = await context.params;
+
+    const caseEntry = await getCaseById(caseId, {
+      schoolAccountId: authResult.schoolAccountId,
+      isAdmin: authResult.isAdmin,
+    });
+
+    return NextResponse.json({
+      success: true,
+      caseEntry,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء جلب الحالة.",
+      },
+      { status: 404 }
+    );
+  }
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const { caseId } = await context.params;
+    const body = await request.json();
+
+    const result = await updateRuntimeCase({
+      caseId,
+      schoolAccountId: authResult.schoolAccountId,
+      isAdmin: authResult.isAdmin,
+      title: body.title,
+      studentId: body.studentId,
+      values: body.values || {},
+      evidenceItems: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems
+        : [],
+      status: body.status,
+    });
+
+    await logCaseSavedEvent({
+      caseId: result.id,
+      status: result.status === "SUBMITTED" ? "SUBMITTED" : "DRAFT",
+      title: result.title || null,
+      workflowId: result.workflowId || null,
+      serviceId: result.serviceId || null,
+      serviceSlug: result.service?.slug || null,
+      studentId: result.studentId || null,
+      valueCount: Array.isArray(result.values) ? result.values.length : 0,
+      evidenceCount: Array.isArray(result.evidences)
+        ? result.evidences.length
+        : 0,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "تم تحديث الحالة بنجاح.",
+      caseId: result.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تحديث الحالة.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+
+==================== FILE: app\api\dashboard\cases\[caseId]\status\route.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: app\api\dashboard\cases\[caseId]\evidence\route.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: lib\cases\case-service.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: lib\cases\case-status.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: lib\cases\case-permissions.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: prisma\schema.prisma ====================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+
+  users           User[]
+  profile         SchoolProfile?
+  students        Student[]
+  guardians       Guardian[]
+  staff           StaffMember[]
+  services        ServiceAccess[]
+  cases           CaseEntry[]
+  subscription    Subscription?
+  resultsAnalyses ResultsAnalysis[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  officialName String?
+  jobTitle     String?
+  isActive     Boolean  @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases    CaseEntry[]
+  sessions UserSession[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName          String
+  principalName       String?
+  educationDepartment String?
+  educationOffice     String?
+  city                String?
+  district            String?
+  stage               String?
+  academicYear        String?
+  currentSemester     String?
+  logoUrl             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows Workflow[]
+  cases     CaseEntry[]
+  access    ServiceAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name         String
+  version      Int            @default(1)
+  status       WorkflowStatus @default(DRAFT)
+  isActive     Boolean        @default(false)
+  workflowType String         @default("default")
+
+  steps WorkflowStep[]
+  cases CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([serviceId, workflowType, isActive])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId      String?
+  workflow        Workflow?        @relation(fields: [workflowId], references: [id])
+  guidanceReports GuidanceReport[]
+  studentId       String?
+  student         Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values    CaseValue[]
+  evidences Evidence[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String?
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model ResultsAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title      String
+  grade      String?
+  classroom  String?
+  sourceFile String?
+  status     String  @default("COMPLETED")
+
+  totalStudents Int    @default(0)
+  totalSubjects Int    @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+model GuidanceReport {
+  id          String @id @default(cuid())
+  title       String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String
+  renderedContent String?
+
+  evidenceEnabled Boolean @default(true)
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  approvedAt DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([templateId])
+  @@index([generatedAt])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+
+  mimeType String?
+  size     Int?
+
+  sortOrder Int     @default(0)
+  visible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([visible])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  startsAt   DateTime?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
