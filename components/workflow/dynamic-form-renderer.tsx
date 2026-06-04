@@ -407,8 +407,24 @@ export function DynamicFormRenderer({
   const supportsEvidence =
     SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || workflowHasEvidenceStep;
 
+  const workflowStudentPickerMode =
+    typeof (workflow as any).studentPickerMode === "string"
+      ? (workflow as any).studentPickerMode
+      : "SERVICE_DEFAULT";
+
+  const workflowStudentPickerDecision =
+    workflowStudentPickerMode === "REQUIRED"
+      ? true
+      : workflowStudentPickerMode === "DISABLED"
+        ? false
+        : undefined;
+
   const needsStudent =
-    requiresStudent ?? SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+    workflowStudentPickerDecision ??
+    requiresStudent ??
+    SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+
+  // WORKFLOW_STUDENT_PICKER_MODE_RUNTIME_MARKER
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});

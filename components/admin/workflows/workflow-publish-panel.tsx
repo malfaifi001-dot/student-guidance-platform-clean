@@ -8,8 +8,11 @@ import {
   Loader2,
   PencilLine,
   Rocket,
+  UserRoundSearch,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+
+type StudentPickerMode = "SERVICE_DEFAULT" | "REQUIRED" | "DISABLED";
 
 type WorkflowPublishPanelProps = {
   serviceSlug: string;
@@ -20,6 +23,28 @@ type WorkflowPublishPanelProps = {
   draftVersion?: number | null;
   activeWorkflowName?: string | null;
 };
+
+const studentPickerModeOptions: Array<{
+  value: StudentPickerMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "SERVICE_DEFAULT",
+    label: "حسب إعداد الخدمة",
+    description: "يستخدم الإعداد الحالي للخدمة بدون فرض جديد.",
+  },
+  {
+    value: "REQUIRED",
+    label: "يتطلب اختيار طالب",
+    description: "يظهر Smart Picker ويمنع المتابعة بدون طالب.",
+  },
+  {
+    value: "DISABLED",
+    label: "لا يتطلب اختيار طالب",
+    description: "يخفي اختيار الطالب حتى لو كانت الخدمة تدعمه افتراضيًا.",
+  },
+];
 
 export function WorkflowPublishPanel({
   serviceSlug,
@@ -33,13 +58,60 @@ export function WorkflowPublishPanel({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [savingName, setSavingName] = useState(false);
+  const [savingStudentPickerMode, setSavingStudentPickerMode] = useState(false);
   const [draftName, setDraftName] = useState(draftWorkflowName || "");
+  const [studentPickerMode, setStudentPickerMode] =
+    useState<StudentPickerMode>("SERVICE_DEFAULT");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setDraftName(draftWorkflowName || "");
   }, [draftWorkflowName]);
+
+  useEffect(() => {
+    if (!draftWorkflowId || !hasDraft) {
+      setStudentPickerMode("SERVICE_DEFAULT");
+      return;
+    }
+
+    let cancelled = false;
+    const workflowId = draftWorkflowId;
+
+    async function loadStudentPickerMode() {
+      try {
+        const response = await fetch(
+          `/api/dashboard/admin/workflows/${serviceSlug}/student-picker-mode?workflowId=${encodeURIComponent(workflowId)}`,
+          { cache: "no-store" },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          return;
+        }
+
+        const mode = data?.workflow?.studentPickerMode;
+
+        if (
+          !cancelled &&
+          ["SERVICE_DEFAULT", "REQUIRED", "DISABLED"].includes(mode)
+        ) {
+          setStudentPickerMode(mode);
+        }
+      } catch {
+        if (!cancelled) {
+          setStudentPickerMode("SERVICE_DEFAULT");
+        }
+      }
+    }
+
+    loadStudentPickerMode();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [draftWorkflowId, hasDraft, serviceSlug]);
 
   async function saveDraftName() {
     if (!draftWorkflowId || !draftName.trim()) return;
@@ -75,6 +147,43 @@ export function WorkflowPublishPanel({
       setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع.");
     } finally {
       setSavingName(false);
+    }
+  }
+
+  async function saveStudentPickerMode() {
+    if (!draftWorkflowId) return;
+
+    try {
+      setSavingStudentPickerMode(true);
+      setMessage(null);
+      setError(null);
+
+      const response = await fetch(
+        `/api/dashboard/admin/workflows/${serviceSlug}/student-picker-mode`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            workflowId: draftWorkflowId,
+            studentPickerMode,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "تعذر حفظ إعداد اختيار الطالب.");
+      }
+
+      setMessage("تم حفظ إعداد اختيار الطالب للمسودة.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع.");
+    } finally {
+      setSavingStudentPickerMode(false);
     }
   }
 
@@ -162,33 +271,89 @@ export function WorkflowPublishPanel({
 
         <div className="space-y-3">
           {hasDraft ? (
-            <div className="rounded-3xl bg-slate-50 p-3">
-              <label className="text-xs font-black text-slate-500">
-                اسم المسودة قبل النشر
-              </label>
+            <>
+              <div className="rounded-3xl bg-slate-50 p-3">
+                <label className="text-xs font-black text-slate-500">
+                  اسم المسودة قبل النشر
+                </label>
 
-              <div className="mt-2 flex gap-2">
-                <input
-                  value={draftName}
-                  onChange={(event) => setDraftName(event.target.value)}
-                  className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-sky-400"
-                />
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={draftName}
+                    onChange={(event) => setDraftName(event.target.value)}
+                    className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-sky-400"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={saveDraftName}
+                    disabled={savingName || !draftWorkflowId || !draftName.trim()}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {savingName ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <PencilLine className="h-4 w-4" />
+                    )}
+                    حفظ الاسم
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-3xl bg-slate-50 p-3">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                    <UserRoundSearch className="h-5 w-5" />
+                  </span>
+
+                  <div>
+                    <p className="text-xs font-black text-slate-500">
+                      اختيار الطالب الذكي
+                    </p>
+                    <p className="mt-1 text-sm font-bold leading-6 text-slate-600">
+                      حدد هل هذا الـ Workflow يحتاج Smart Picker أم لا.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2">
+                  {studentPickerModeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setStudentPickerMode(option.value)}
+                      className={[
+                        "rounded-2xl border p-3 text-right transition",
+                        studentPickerMode === option.value
+                          ? "border-sky-300 bg-sky-50 ring-2 ring-sky-100"
+                          : "border-slate-200 bg-white hover:bg-slate-50",
+                      ].join(" ")}
+                    >
+                      <p className="text-sm font-black text-slate-900">
+                        {option.label}
+                      </p>
+                      <p className="mt-1 text-xs font-bold leading-5 text-slate-500">
+                        {option.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
 
                 <button
                   type="button"
-                  onClick={saveDraftName}
-                  disabled={savingName || !draftWorkflowId || !draftName.trim()}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  onClick={saveStudentPickerMode}
+                  disabled={savingStudentPickerMode || !draftWorkflowId}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-3 text-xs font-black text-sky-700 transition hover:bg-sky-50 disabled:opacity-50"
                 >
-                  {savingName ? (
+                  {savingStudentPickerMode ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <PencilLine className="h-4 w-4" />
+                    <UserRoundSearch className="h-4 w-4" />
                   )}
-                  حفظ الاسم
+                  حفظ إعداد اختيار الطالب
                 </button>
               </div>
-            </div>
+            </>
           ) : null}
 
           <div className="grid gap-2 sm:grid-cols-2">

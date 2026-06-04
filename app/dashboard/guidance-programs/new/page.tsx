@@ -54,7 +54,8 @@ export default async function NewGuidanceProgramPage() {
     );
   }
 
-const runtimeWorkflow = sortRuntimeWorkflow({
+const runtimeWorkflow = {
+  ...sortRuntimeWorkflow({
   id: workflow.id,
   name: workflow.name,
   serviceSlug: workflow.service.slug,
@@ -85,7 +86,9 @@ const runtimeWorkflow = sortRuntimeWorkflow({
       })),
     })),
   })),
-});
+  }),
+  studentPickerMode: workflow.studentPickerMode || "SERVICE_DEFAULT",
+};
 
   return (
     <main className="space-y-6">

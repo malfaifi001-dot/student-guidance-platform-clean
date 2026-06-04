@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from "next/server";
-import { FieldType } from "@prisma/client";
+import { FieldType, StudentPickerMode } from "@prisma/client";
 
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +12,16 @@ type RouteContext = {
 };
 
 const FIELD_TYPES = new Set(Object.values(FieldType));
+
+const STUDENT_PICKER_MODES = new Set(Object.values(StudentPickerMode));
+
+function normalizeStudentPickerMode(value: unknown): StudentPickerMode {
+  const text = clean(value).toUpperCase();
+
+  return STUDENT_PICKER_MODES.has(text as StudentPickerMode)
+    ? (text as StudentPickerMode)
+    : StudentPickerMode.SERVICE_DEFAULT;
+}
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
@@ -73,6 +83,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const name = clean(body?.name) || `${service.name} Workflow`;
     const workflowType = normalizeWorkflowType(body?.workflowType);
+    const studentPickerMode = normalizeStudentPickerMode(body?.studentPickerMode);
     const steps = Array.isArray(body?.steps) ? body.steps : [];
 
     if (!steps.length) {
@@ -115,6 +126,7 @@ export async function POST(request: Request, context: RouteContext) {
         name,
         version: nextVersion,
         workflowType,
+        studentPickerMode,
         status: "DRAFT",
         isActive: false,
         steps: {

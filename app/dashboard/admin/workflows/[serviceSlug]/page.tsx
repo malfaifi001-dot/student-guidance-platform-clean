@@ -6,6 +6,7 @@ import { WorkflowHealthReport } from "@/components/admin/workflow-health/workflo
 import { WorkflowHistoryActions } from "@/components/admin/workflows/workflow-history-actions";
 import { WorkflowInlineImportWorkbench } from "@/components/admin/workflows/workflow-inline-import-workbench";
 import { WorkflowPublishPanel } from "@/components/admin/workflows/workflow-publish-panel";
+import { WorkflowStudentPickerModeControl } from "@/components/admin/workflows/workflow-student-picker-mode-control";
 import { validateWorkflow } from "@/engine/workflow-validation/workflow-validator";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 import { dashboardServices } from "@/lib/constants/services";
@@ -453,6 +454,15 @@ function WorkflowUploadHistorySection({ serviceSlug, workflows }: { serviceSlug:
                     value={countWorkflowOptions(workflow)}
                   />
                 </div>
+
+                <WorkflowStudentPickerModeControl
+                  serviceSlug={serviceSlug}
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  initialMode={workflow.studentPickerMode || "SERVICE_DEFAULT"}
+                  disabled={workflow.status === "ARCHIVED"}
+                  isActive={workflow.isActive}
+                />
 
                 {(workflow._count?.cases || 0) > 0 ? (
                   <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-black leading-6 text-amber-800 ring-1 ring-amber-100">
