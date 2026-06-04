@@ -1,4 +1,4 @@
-﻿export type WorkflowOptionLike = {
+export type WorkflowOptionLike = {
   label?: string | null;
   value?: string | null;
 };
@@ -33,17 +33,13 @@ export function getWorkflowFieldLabel(item: WorkflowValueLike, index?: number) {
 
 export function formatWorkflowDisplayValue(
   item: WorkflowValueLike,
-  allValues: WorkflowValueLike[] = [],
+  allValues: WorkflowValueLike[] = []
 ) {
   const fieldKey = getWorkflowFieldKey(item);
   const rawValue = getRawWorkflowValue(item);
   const otherValue = getOtherValueForField(fieldKey, allValues);
 
-  return formatValueByFieldOptions(
-    rawValue,
-    item.field?.options || [],
-    otherValue,
-  );
+  return formatValueByFieldOptions(rawValue, item.field?.options || [], otherValue);
 }
 
 export function stringifyWorkflowRawValue(value: unknown): string {
@@ -56,10 +52,7 @@ export function stringifyWorkflowRawValue(value: unknown): string {
   }
 
   if (Array.isArray(value)) {
-    return value
-      .map((item) => stringifyWorkflowRawValue(item))
-      .filter(Boolean)
-      .join("، ");
+    return value.map((item) => stringifyWorkflowRawValue(item)).filter(Boolean).join("، ");
   }
 
   if (typeof value === "object") {
@@ -112,7 +105,7 @@ function normalizeStoredValue(value: unknown): unknown {
 function formatValueByFieldOptions(
   value: unknown,
   options: WorkflowOptionLike[],
-  otherValue?: string,
+  otherValue?: string
 ): string {
   if (value === null || value === undefined || value === "") {
     return "";
@@ -131,7 +124,7 @@ function formatValueByFieldOptions(
 function formatSingleChoice(
   value: unknown,
   options: WorkflowOptionLike[],
-  otherValue?: string,
+  otherValue?: string
 ): string {
   const normalizedValue = stringifyWorkflowRawValue(value).trim();
 
@@ -142,7 +135,7 @@ function formatSingleChoice(
   }
 
   const matchedOption = options.find(
-    (option) => String(option.value ?? "").trim() === normalizedValue,
+    (option) => String(option.value ?? "").trim() === normalizedValue
   );
 
   if (matchedOption?.label) {
@@ -154,7 +147,7 @@ function formatSingleChoice(
 
 function getOtherValueForField(
   fieldKey: string,
-  allValues: WorkflowValueLike[],
+  allValues: WorkflowValueLike[]
 ) {
   if (!fieldKey) return "";
 

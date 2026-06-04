@@ -50,7 +50,6 @@ type Props = {
   caseId?: string;
   initialValues?: RuntimeValues;
   initialEvidenceItems?: EvidenceItem[];
-  previewMode?: boolean;
 };
 
 /**
@@ -368,7 +367,6 @@ export function DynamicFormRenderer({
   caseId,
   initialValues,
   initialEvidenceItems,
-  previewMode = false,
 }: Props) {
   const router = useRouter();
 
@@ -838,7 +836,7 @@ export function DynamicFormRenderer({
             disabled={loading}
             className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {previewMode ? "معاينة فقط" : "حفظ مسودة"}
+            حفظ مسودة
           </button>
 
           <button
@@ -847,7 +845,7 @@ export function DynamicFormRenderer({
             disabled={loading}
             className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {previewMode ? "لا يتم الحفظ في المعاينة" : loading ? "جاري الحفظ..." : caseId ? "تحديث الحالة" : "إرسال"}
+            {loading ? "جاري الحفظ..." : caseId ? "تحديث الحالة" : "إرسال"}
           </button>
         </div>
       </section>

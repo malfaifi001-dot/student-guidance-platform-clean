@@ -368,7 +368,6 @@ export function DynamicFormRenderer({
   caseId,
   initialValues,
   initialEvidenceItems,
-  previewMode = false,
 }: Props) {
   const router = useRouter();
 

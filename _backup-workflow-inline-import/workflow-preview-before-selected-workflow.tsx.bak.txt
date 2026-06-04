@@ -10,20 +10,12 @@ type PageProps = {
   params: Promise<{
     serviceSlug: string;
   }>;
-  searchParams?: Promise<{
-    workflowId?: string;
-  }>;
 };
 
-export default async function WorkflowPreviewPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function WorkflowPreviewPage({ params }: PageProps) {
   await requireAdminPage();
 
   const { serviceSlug } = await params;
-  const query = searchParams ? await searchParams : {};
-  const selectedWorkflowId = String(query?.workflowId || "").trim();
 
   const serviceConfig = dashboardServices.find(
     (service) => service.slug === serviceSlug,
@@ -34,28 +26,13 @@ export default async function WorkflowPreviewPage({
   }
 
   const workflow = await prisma.workflow.findFirst({
-    where: selectedWorkflowId
-      ? {
-          id: selectedWorkflowId,
-          service: {
-            slug: serviceSlug,
-          },
-        }
-      : {
-          service: {
-            slug: serviceSlug,
-          },
-          workflowType: WORKFLOW_TYPES.DEFAULT,
-          OR: [
-            {
-              status: "DRAFT",
-            },
-            {
-              status: "ACTIVE",
-              isActive: true,
-            },
-          ],
-        },
+    where: {
+      service: {
+        slug: serviceSlug,
+      },
+      workflowType: WORKFLOW_TYPES.DEFAULT,
+      status: "DRAFT",
+    },
     include: {
       service: {
         select: {
@@ -84,16 +61,9 @@ export default async function WorkflowPreviewPage({
         },
       },
     },
-    orderBy: selectedWorkflowId
-      ? undefined
-      : [
-          {
-            status: "asc",
-          },
-          {
-            version: "desc",
-          },
-        ],
+    orderBy: {
+      version: "desc",
+    },
   });
 
   if (!workflow) {
@@ -103,11 +73,12 @@ export default async function WorkflowPreviewPage({
           <p className="text-sm font-black">Workflow Preview</p>
 
           <h1 className="mt-2 text-3xl font-black">
-            لا يوجد Workflow للمعاينة
+            لا يوجد Draft Workflow لهذه الخدمة
           </h1>
 
           <p className="mt-3 text-sm font-bold leading-7">
-            ارفع ملف Excel أو اختر نسخة محفوظة من سجل المرفوعات.
+            ارفع ملف Excel أولًا، ثم ارجع لهذه الصفحة لمعاينة النموذج كما سيظهر
+            للموجه.
           </p>
         </section>
       </main>
@@ -161,25 +132,13 @@ export default async function WorkflowPreviewPage({
             </h1>
 
             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              النسخة: {workflow.name} · Version {workflow.version}
+              هذه المعاينة تستخدم نفس DynamicFormRenderer الذي يستخدمه الموجه،
+              لكنها لا تحفظ أي حالة.
             </p>
           </div>
 
-          <span
-            className={[
-              "rounded-full px-4 py-2 text-xs font-black ring-1",
-              workflow.isActive
-                ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                : workflow.status === "DRAFT"
-                  ? "bg-sky-50 text-sky-700 ring-sky-100"
-                  : "bg-slate-50 text-slate-600 ring-slate-200",
-            ].join(" ")}
-          >
-            {workflow.isActive
-              ? "مفعل حاليًا"
-              : workflow.status === "DRAFT"
-                ? "مسودة"
-                : workflow.status}
+          <span className="rounded-full bg-amber-50 px-4 py-2 text-xs font-black text-amber-700 ring-1 ring-amber-100">
+            وضع المعاينة فقط · Version {workflow.version}
           </span>
         </div>
       </section>

@@ -514,7 +514,7 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
           </h2>
 
           <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-            الخدمة: {caseItem.service.name} · آخر تحديث: {caseItem.updatedAtLabel}
+            آخر تحديث: {caseItem.updatedAtLabel}
             {caseItem.workflow?.name ? ` · ${caseItem.workflow.name}` : ""}
           </p>
         </div>

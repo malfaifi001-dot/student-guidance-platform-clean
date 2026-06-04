@@ -1,0 +1,3187 @@
+﻿UNIFIED CASES CENTER MISSING CURRENT FILES
+Generated: 06/04/2026 08:22:41
+
+
+
+==================== FILE: components\cases\cases-search-table.tsx ====================
+"use client";
+
+import Link from "next/link";
+import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
+
+type CaseRow = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  serviceName: string;
+  studentName: string;
+};
+    
+
+
+
+
+export function CasesSearchTable({ cases }: { cases: CaseRow[] }) {
+  const [query, setQuery] = useState("");
+
+  const filteredCases = useMemo(() => {
+    const q = query.trim().toLowerCase();
+
+    if (!q) return cases;
+
+    return cases.filter((item) =>
+      [
+        item.title,
+        item.status,
+        item.serviceName,
+        item.studentName,
+        item.createdAt,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [cases, query]);
+
+  return (
+    <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-6">
+        <div className="relative">
+          <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Ø§Ø¨Ø­Ø« Ø¨Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨ØŒ Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ Ø§Ù„Ø­Ø§Ù„Ø©ØŒ Ø§Ù„Ø¹Ù†ÙˆØ§Ù†..."
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pr-12 pl-4 text-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+          />
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1000px] text-right text-sm">
+          <thead className="bg-slate-50 text-slate-500">
+            <tr>
+              <th className="p-4">Ø§Ù„Ø¹Ù†ÙˆØ§Ù†</th>
+              <th className="p-4">Ø§Ù„Ø®Ø¯Ù…Ø©</th>
+              <th className="p-4">Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©</th>
+              <th className="p-4">Ø§Ù„Ø­Ø§Ù„Ø©</th>
+              <th className="p-4">Ø§Ù„ØªØ§Ø±ÙŠØ®</th>
+              <th className="p-4">Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredCases.map((caseItem) => (
+              <tr key={caseItem.id} className="border-t border-slate-100">
+                <td className="p-4 font-black text-slate-900">
+                  {caseItem.title}
+                </td>
+
+                <td className="p-4 text-slate-500">{caseItem.serviceName}</td>
+                <td className="p-4 text-slate-500">{caseItem.studentName}</td>
+
+                <td className="p-4">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                    {caseItem.status}
+                  </span>
+                </td>
+
+                <td className="p-4 text-slate-500">{caseItem.createdAt}</td>
+
+                <td className="p-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/dashboard/cases/${caseItem.id}`}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                    >
+                      Ø¹Ø±Ø¶
+                    </Link>
+
+                    <Link
+                      href={`/dashboard/cases/${caseItem.id}/edit`}
+                      className="rounded-xl bg-sky-600 px-4 py-2 text-xs font-black text-white hover:bg-sky-700"
+                    >
+                      Ù…ØªØ§Ø¨Ø¹Ø©
+                    </Link>
+                  </div>
+                </td>
+              </tr>
+            ))}
+
+            {filteredCases.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-12 text-center text-slate-400">
+                  Ù„Ø§ ØªÙˆØ¬Ø¯ Ù†ØªØ§Ø¦Ø¬ Ù…Ø·Ø§Ø¨Ù‚Ø© Ù„Ù„Ø¨Ø­Ø«.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+
+==================== FILE: components\cases\case-details-view.tsx ====================
+import { CaseValueRenderer } from "@/components/cases/case-value-renderer";
+import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldLabel,
+  type WorkflowFieldLike,
+  type WorkflowValueLike,
+} from "@/lib/workflow-values/workflow-display-value";
+
+type CaseDetailsViewProps = {
+  caseEntry: any;
+};
+
+type FieldLookupItem = WorkflowFieldLike & {
+  key?: string | null;
+  label?: string | null;
+};
+
+function buildFieldMap(caseEntry: any) {
+  const map = new Map<string, FieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function shouldHideCaseValue(fieldKey: string) {
+  return [
+    "student",
+    "guardian",
+    "metadata",
+    "selectedStudent",
+  ].includes(fieldKey) || fieldKey.endsWith("__other");
+}
+
+function normalizeCaseValue(
+  value: any,
+  fieldMap: Map<string, FieldLookupItem>
+): WorkflowValueLike {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function formatCommitteeRows(value: unknown) {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((row) => {
+    if (!row || typeof row !== "object") return row;
+
+    const item = row as Record<string, unknown>;
+
+    return {
+      "Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø£Ø¹Ù…Ø§Ù„": item.agendaOther || item.agenda || "â€”",
+      "Ù…Ø­ÙˆØ± Ø§Ù„Ù†Ù‚Ø§Ø´": item.discussionOther || item.discussion || "â€”",
+      "Ø§Ù„ØªÙˆØµÙŠØ©": item.recommendationOther || item.recommendation || "â€”",
+    };
+  });
+}
+
+export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
+  const fieldMap = buildFieldMap(caseEntry);
+
+  const workflowValues: WorkflowValueLike[] = caseEntry.values.map((value: any) =>
+    normalizeCaseValue(value, fieldMap)
+  );
+
+  const displayValues = caseEntry.values
+    .map((value: any) => normalizeCaseValue(value, fieldMap))
+    .filter((value: WorkflowValueLike) => {
+      const key = value.field?.key || value.fieldKey || "";
+      return !shouldHideCaseValue(key);
+    });
+
+  const evidenceItems =
+    caseEntry.evidences?.map((item: any) => ({
+      id: item.id,
+      fileName: item.fileName || "Ù…Ù„Ù",
+      fileUrl: item.fileUrl || "#",
+      mimeType: item.mimeType || "application/octet-stream",
+      size: item.size || 0,
+    })) || [];
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
+        <p className="text-sm font-semibold text-sky-100">Case Viewer</p>
+
+        <h1 className="mt-3 text-4xl font-black">
+          {caseEntry.title || "ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø­Ø§Ù„Ø©"}
+        </h1>
+
+        <p className="mt-4 max-w-3xl leading-8 text-sky-50">
+          Ø¹Ø±Ø¶ Ù…ÙˆØ­Ø¯ ÙˆÙ…Ù†Ø¸Ù… Ù„Ù„Ø­Ø§Ù„Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø© Ù…Ù† Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø®Ø¯Ù…Ø§Øª.
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Ø§Ù„Ø®Ø¯Ù…Ø©</p>
+          <p className="mt-2 text-lg font-black text-slate-900">
+            {caseEntry.service?.name || "â€”"}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©</p>
+          <p className="mt-2 text-lg font-black text-slate-900">
+            {caseEntry.student?.fullName || "ØºÙŠØ± Ù…Ø±ØªØ¨Ø· Ø¨Ø·Ø§Ù„Ø¨"}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Ø§Ù„Ø­Ø§Ù„Ø©</p>
+          <p className="mt-2 text-lg font-black text-slate-900">
+            {caseEntry.status}
+          </p>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Ø§Ù„ØªØ§Ø±ÙŠØ®</p>
+          <p className="mt-2 text-lg font-black text-slate-900">
+            {new Date(caseEntry.createdAt).toLocaleDateString("ar-SA")}
+          </p>
+        </div>
+      </section>
+
+      {caseEntry.student ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-900">
+            Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©
+          </h2>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <CaseValueRenderer label="Ø§Ù„Ø§Ø³Ù…" value={caseEntry.student.fullName} />
+            <CaseValueRenderer label="Ø§Ù„Ù…Ø±Ø­Ù„Ø©" value={caseEntry.student.stage} />
+            <CaseValueRenderer label="Ø§Ù„ØµÙ" value={caseEntry.student.grade} />
+            <CaseValueRenderer label="Ø§Ù„ÙØµÙ„" value={caseEntry.student.classroom} />
+            <CaseValueRenderer
+              label="ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±"
+              value={caseEntry.student.guardian?.name}
+            />
+            <CaseValueRenderer
+              label="Ø±Ù‚Ù… Ø§Ù„Ø¬ÙˆØ§Ù„"
+              value={caseEntry.student.guardian?.phone}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-2xl font-black text-slate-900">Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©</h2>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {displayValues.map((value: WorkflowValueLike, index: number) => {
+            const key = value.field?.key || value.fieldKey || "";
+            const label = getWorkflowFieldLabel(value, index);
+
+            const displayValue =
+              key === "committee_items"
+                ? formatCommitteeRows(value.jsonValue ?? value.value)
+                : formatWorkflowDisplayValue(value, workflowValues);
+
+            return (
+              <CaseValueRenderer
+                key={value.id || key}
+                label={label}
+                value={displayValue}
+              />
+            );
+          })}
+
+          {displayValues.length === 0 ? (
+            <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-400 md:col-span-2">
+              Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ù…Ø­ÙÙˆØ¸Ø© Ù„Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {evidenceItems.length > 0 ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-900">
+            Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„Ù…Ø±ÙÙ‚Ø§Øª
+          </h2>
+
+          <div className="mt-6">
+            <EvidencePreviewGrid items={evidenceItems} />
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+
+==================== FILE: engine\cases\case-runtime-engine.ts ====================
+import { prisma } from "@/lib/prisma";
+import { CaseStatus, EvidenceType } from "@prisma/client";
+import {
+  serializeCaseValues,
+  type RuntimeCaseValues,
+} from "@/lib/cases/case-values";
+
+type EvidenceItem = {
+  id?: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
+
+type CaseAccessScope = {
+  schoolAccountId?: string | null;
+  isAdmin?: boolean;
+};
+
+type SaveRuntimeCaseParams = {
+  schoolAccountId: string;
+  createdById?: string | null;
+  workflowId?: string | null;
+  serviceId: string;
+  title?: string | null;
+  studentId?: string | null;
+  values: RuntimeCaseValues;
+  evidenceItems?: EvidenceItem[];
+  status: "DRAFT" | "SUBMITTED";
+};
+
+type UpdateRuntimeCaseParams = CaseAccessScope & {
+  caseId: string;
+  title?: string | null;
+  studentId?: string | null;
+  values: RuntimeCaseValues;
+  evidenceItems?: EvidenceItem[];
+  status?: "DRAFT" | "SUBMITTED";
+};
+
+function toCaseStatus(status?: "DRAFT" | "SUBMITTED") {
+  return status === "SUBMITTED" ? CaseStatus.SUBMITTED : CaseStatus.DRAFT;
+}
+
+function getEvidenceType(mimeType: string, fileUrl?: string) {
+  if (mimeType.startsWith("image/")) {
+    return EvidenceType.IMAGE;
+  }
+
+  if (fileUrl?.startsWith("http") && !mimeType) {
+    return EvidenceType.LINK;
+  }
+
+  return EvidenceType.FILE;
+}
+
+function normalizeEvidenceItems(items: EvidenceItem[]) {
+  return items
+    .filter((item) => item.fileUrl && item.fileName)
+    .map((item) => {
+      const mimeType = item.mimeType || "application/octet-stream";
+
+      return {
+        type: getEvidenceType(mimeType, item.fileUrl),
+        fileName: item.fileName,
+        fileUrl: item.fileUrl,
+        mimeType,
+        size: item.size || 0,
+      };
+    });
+}
+
+function assertSchoolScope(scope: CaseAccessScope) {
+  if (scope.isAdmin) {
+    return;
+  }
+
+  if (!scope.schoolAccountId) {
+    throw new Error("لا يمكن تنفيذ العملية بدون ربط المستخدم بمدرسة.");
+  }
+}
+
+function buildCaseWhere(caseId: string, scope: CaseAccessScope) {
+  if (scope.isAdmin) {
+    return {
+      id: caseId,
+    };
+  }
+
+  const schoolAccountId = scope.schoolAccountId;
+
+  if (!schoolAccountId) {
+    throw new Error("لا يمكن تنفيذ العملية بدون ربط المستخدم بمدرسة.");
+  }
+
+  return {
+    id: caseId,
+    schoolAccountId,
+  };
+}
+
+async function assertServiceExists(serviceId: string) {
+  const service = await prisma.service.findUnique({
+    where: {
+      id: serviceId,
+    },
+    select: {
+      id: true,
+      slug: true,
+      status: true,
+    },
+  });
+
+  if (!service) {
+    throw new Error(`serviceId غير موجود في قاعدة البيانات: ${serviceId}`);
+  }
+
+  return service;
+}
+
+async function findWorkflowOrNull(workflowId?: string | null) {
+  if (!workflowId) {
+    return null;
+  }
+
+  return prisma.workflow.findUnique({
+    where: {
+      id: workflowId,
+    },
+    select: {
+      id: true,
+      serviceId: true,
+      status: true,
+      isActive: true,
+    },
+  });
+}
+
+async function findStudentOrNull(
+  studentId: string | null | undefined,
+  scope: CaseAccessScope
+) {
+  if (!studentId) {
+    return null;
+  }
+
+  assertSchoolScope(scope);
+
+  const schoolAccountId = scope.schoolAccountId;
+
+  return prisma.student.findFirst({
+    where: {
+      id: studentId,
+      ...(scope.isAdmin ? {} : { schoolAccountId: schoolAccountId as string }),
+    },
+    select: {
+      id: true,
+      schoolAccountId: true,
+    },
+  });
+}
+
+export async function saveRuntimeCase({
+  schoolAccountId,
+  createdById,
+  workflowId,
+  serviceId,
+  title,
+  studentId,
+  values,
+  evidenceItems = [],
+  status,
+}: SaveRuntimeCaseParams) {
+  const scope = {
+    schoolAccountId,
+    isAdmin: false,
+  };
+
+  const existingService = await assertServiceExists(serviceId);
+  const existingWorkflow = await findWorkflowOrNull(workflowId);
+  const existingStudent = await findStudentOrNull(studentId, scope);
+
+  if (workflowId && !existingWorkflow) {
+    throw new Error(`workflowId غير موجود في قاعدة البيانات: ${workflowId}`);
+  }
+
+  if (existingWorkflow && existingWorkflow.serviceId !== existingService.id) {
+    throw new Error("الـ workflow لا يتبع الخدمة المحددة.");
+  }
+
+  if (studentId && !existingStudent) {
+    throw new Error("الطالب غير موجود أو لا يتبع مدرستك.");
+  }
+
+  const serializedValues = serializeCaseValues(values);
+  const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
+
+  const caseEntry = await prisma.caseEntry.create({
+    data: {
+      schoolAccountId,
+      serviceId: existingService.id,
+      workflowId: existingWorkflow?.id,
+      studentId: existingStudent?.id,
+      createdById: createdById || null,
+      title: title || undefined,
+      status: toCaseStatus(status),
+      submittedAt: status === "SUBMITTED" ? new Date() : undefined,
+
+      values: {
+        create: serializedValues,
+      },
+
+      evidences: {
+        create: normalizedEvidenceItems,
+      },
+    },
+    include: {
+      service: true,
+      workflow: true,
+      student: true,
+      values: true,
+      evidences: true,
+    },
+  });
+
+  return caseEntry;
+}
+
+export async function updateRuntimeCase({
+  caseId,
+  schoolAccountId,
+  isAdmin = false,
+  title,
+  studentId,
+  values,
+  evidenceItems = [],
+  status,
+}: UpdateRuntimeCaseParams) {
+  const scope = {
+    schoolAccountId,
+    isAdmin,
+  };
+
+  const existingCase = await prisma.caseEntry.findFirst({
+    where: buildCaseWhere(caseId, scope),
+    select: {
+      id: true,
+      schoolAccountId: true,
+    },
+  });
+
+  if (!existingCase) {
+    throw new Error("الحالة غير موجودة أو لا تملك صلاحية الوصول إليها.");
+  }
+
+  const existingStudent = await findStudentOrNull(studentId, {
+    schoolAccountId: existingCase.schoolAccountId,
+    isAdmin,
+  });
+
+  if (studentId && !existingStudent) {
+    throw new Error("الطالب غير موجود أو لا يتبع نفس مدرسة الحالة.");
+  }
+
+  const serializedValues = serializeCaseValues(values);
+  const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
+
+  await prisma.caseValue.deleteMany({
+    where: {
+      caseEntryId: caseId,
+    },
+  });
+
+  await prisma.evidence.deleteMany({
+    where: {
+      caseEntryId: caseId,
+    },
+  });
+
+  const caseEntry = await prisma.caseEntry.update({
+    where: {
+      id: caseId,
+    },
+    data: {
+      title: title || undefined,
+      studentId: studentId ? existingStudent?.id : null,
+      status: status ? toCaseStatus(status) : undefined,
+      submittedAt: status === "SUBMITTED" ? new Date() : undefined,
+
+      values: {
+        create: serializedValues,
+      },
+
+      evidences: {
+        create: normalizedEvidenceItems,
+      },
+    },
+    include: {
+      service: true,
+      workflow: true,
+      student: true,
+      values: true,
+      evidences: true,
+    },
+  });
+
+  return caseEntry;
+}
+
+export async function restoreCaseDraft(
+  caseId: string,
+  scope: CaseAccessScope
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: buildCaseWhere(caseId, scope),
+    include: {
+      values: true,
+      evidences: true,
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      workflow: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
+      service: true,
+    },
+  });
+
+  if (!caseEntry) {
+    throw new Error("الحالة غير موجودة أو لا تملك صلاحية الوصول إليها.");
+  }
+
+  const restoredValues = Object.fromEntries(
+    caseEntry.values.map((value) => [
+      value.fieldKey,
+      value.jsonValue ?? value.value,
+    ])
+  );
+
+  return {
+    caseEntry,
+    restoredValues,
+  };
+}
+
+export async function getCaseById(
+  caseId: string,
+  scope: CaseAccessScope
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: buildCaseWhere(caseId, scope),
+    include: {
+      schoolAccount: true,
+
+      service: true,
+
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+
+      workflow: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
+
+      values: {
+        include: {
+          field: {
+            include: {
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+
+      evidences: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  if (!caseEntry) {
+    throw new Error("لم يتم العثور على الحالة أو لا تملك صلاحية الوصول إليها.");
+  }
+
+  return caseEntry;
+}
+
+
+
+
+==================== FILE: components\workflow\dynamic-form-renderer.tsx ====================
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
+import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+import { WorkflowStepCard } from "@/components/workflow/workflow-step-card";
+
+import type {
+  RuntimeField,
+  RuntimeStep,
+  RuntimeWorkflow,
+} from "@/engine/runtime/runtime-resolver";
+import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+
+type EvidenceItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
+
+type FeedbackState = {
+  open: boolean;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message?: string;
+};
+
+type SmartStudent = {
+  id: string;
+  fullName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  stage?: string | null;
+  guardianName?: string | null;
+  guardianPhone?: string | null;
+};
+
+type Props = {
+  workflow: RuntimeWorkflow;
+  serviceId: string;
+  requiresStudent?: boolean;
+  title?: string | null;
+  caseId?: string;
+  initialValues?: RuntimeValues;
+  initialEvidenceItems?: EvidenceItem[];
+};
+
+/**
+ * خدمات تسمح بالشواهد على مستوى النظام.
+ * الظهور الفعلي للشواهد لا يكون هنا فقط؛ بل لازم تكون الخطوة الحالية خطوة شواهد.
+ */
+const SERVICES_WITH_EVIDENCE = new Set([
+  "guidance-programs",
+  "student-follow-up",
+  "family-school-communication",
+  "student-guidance-services",
+  "committees-meetings",
+]);
+
+/**
+ * خدمات تحتاج اختيار طالب/طالبة افتراضيًا.
+ * يمكن تجاوزها من الصفحة عبر requiresStudent={false}.
+ */
+const SERVICES_REQUIRING_STUDENT = new Set([
+  "student-follow-up",
+  "family-school-communication",
+  "student-guidance-services",
+]);
+
+function normalizeRuntimeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stepSearchText(step?: RuntimeStep | null) {
+  if (!step) return "";
+
+  return normalizeRuntimeText(
+    [
+      step.title,
+      step.description ?? "",
+      ...step.fields.map((field) =>
+        [
+          field.key,
+          field.label,
+          field.type,
+          field.placeholder ?? "",
+          field.helpText ?? "",
+        ].join(" ")
+      ),
+    ].join(" ")
+  );
+}
+
+function isEvidenceField(field: RuntimeField) {
+  const text = normalizeRuntimeText(
+    [
+      field.key,
+      field.label,
+      field.type,
+      field.placeholder ?? "",
+      field.helpText ?? "",
+    ].join(" ")
+  );
+
+  return (
+    field.type === "FILE_UPLOAD" ||
+    field.type === "IMAGE_UPLOAD" ||
+    text.includes("evidence") ||
+    text.includes("attachment") ||
+    text.includes("attachments") ||
+    text.includes("file_upload") ||
+    text.includes("image_upload") ||
+    text.includes("شواهد") ||
+    text.includes("الشواهد") ||
+    text.includes("مرفقات") ||
+    text.includes("المرفقات") ||
+    text.includes("ملف") ||
+    text.includes("صوره") ||
+    text.includes("صورة")
+  );
+}
+
+function isEvidenceStep(step?: RuntimeStep | null) {
+  if (!step) return false;
+
+  const text = stepSearchText(step);
+
+  return (
+    step.fields.some(isEvidenceField) ||
+    text.includes("evidence") ||
+    text.includes("attachment") ||
+    text.includes("attachments") ||
+    text.includes("شواهد") ||
+    text.includes("الشواهد") ||
+    text.includes("مرفقات") ||
+    text.includes("المرفقات")
+  );
+}
+
+function isStudentPickerField(field: RuntimeField) {
+  const text = normalizeRuntimeText(
+    [field.key, field.label, field.type, field.helpText ?? ""].join(" ")
+  );
+
+  return (
+    field.type === "STUDENT_PICKER" ||
+    text.includes("student_picker") ||
+    text.includes("student picker") ||
+    text.includes("اختيار طالب") ||
+    text.includes("اختيار الطالبه") ||
+    text.includes("اختيار الطالبة") ||
+    text.includes("الطالب المستهدف") ||
+    text.includes("الطالبه المستهدفه") ||
+    text.includes("الطالبة المستهدفة")
+  );
+}
+
+function isStudentPickerStep(step?: RuntimeStep | null) {
+  if (!step) return false;
+
+  const text = stepSearchText(step);
+
+  return (
+    step.fields.some(isStudentPickerField) ||
+    text.includes("student_picker") ||
+    text.includes("student picker") ||
+    text.includes("اختيار طالب") ||
+    text.includes("اختيار الطالبة") ||
+    text.includes("الطالب المستهدف")
+  );
+}
+
+function hasEvidenceStep(workflow: RuntimeWorkflow) {
+  return workflow.steps.some(isEvidenceStep);
+}
+
+function hasStudentPickerStep(workflow: RuntimeWorkflow) {
+  return workflow.steps.some(isStudentPickerStep);
+}
+
+function isEmptyValue(value: unknown) {
+  return (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+export function DynamicFormRenderer({
+  workflow,
+  serviceId,
+  requiresStudent,
+  title,
+  caseId,
+  initialValues,
+  initialEvidenceItems,
+}: Props) {
+  const router = useRouter();
+
+  const steps = useMemo(() => {
+    return [...workflow.steps]
+      .sort((a, b) => a.order - b.order)
+      .map((step) => ({
+        ...step,
+        fields: [...step.fields]
+          .sort((a, b) => a.order - b.order)
+          .map((field) => ({
+            ...field,
+            options: [...field.options].sort((a, b) => a.order - b.order),
+          })),
+      }));
+  }, [workflow.steps]);
+
+  const normalizedWorkflow: RuntimeWorkflow = useMemo(
+    () => ({
+      ...workflow,
+      steps,
+    }),
+    [workflow, steps]
+  );
+
+  const workflowHasEvidenceStep = useMemo(
+    () => hasEvidenceStep(normalizedWorkflow),
+    [normalizedWorkflow]
+  );
+
+  const workflowHasStudentPickerStep = useMemo(
+    () => hasStudentPickerStep(normalizedWorkflow),
+    [normalizedWorkflow]
+  );
+
+  const supportsEvidence =
+    SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || workflowHasEvidenceStep;
+
+  const needsStudent =
+    requiresStudent ?? SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});
+  const [selectedStudent, setSelectedStudent] = useState<SmartStudent | null>(
+    () => extractInitialStudent(initialValues)
+  );
+
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>(
+    initialEvidenceItems ?? []
+  );
+
+  const [loading, setLoading] = useState(false);
+
+  const [feedback, setFeedback] = useState<FeedbackState>({
+    open: false,
+    type: "info",
+    title: "",
+  });
+
+  const currentStep = steps[currentStepIndex];
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === steps.length - 1;
+
+  const showEvidenceCard = supportsEvidence && isEvidenceStep(currentStep);
+
+  const showStudentPickerCard =
+    needsStudent &&
+    (isStudentPickerStep(currentStep) ||
+      (!workflowHasStudentPickerStep && isFirstStep));
+
+  const showStudentSummaryCard =
+    needsStudent && !showStudentPickerCard && Boolean(selectedStudent);
+
+  function showFeedback(
+    type: FeedbackState["type"],
+    titleText: string,
+    message?: string
+  ) {
+    setFeedback({
+      open: true,
+      type,
+      title: titleText,
+      message,
+    });
+  }
+
+  /**
+   * يمسح القيم التابعة عند تغيير القيمة الأب.
+   * مثال:
+   * البرنامج تغيّر → يمسح الإجراء التنفيذي والآلية والمؤشر المرتبط بها.
+   */
+  function updateValue(fieldKey: string, value: unknown) {
+    setValues((current) => {
+      const next: RuntimeValues = {
+        ...current,
+        [fieldKey]: value,
+      };
+
+      const dependentKeys = new Set<string>();
+      const changedKeys = new Set<string>([fieldKey]);
+
+      let keepSearching = true;
+
+      while (keepSearching) {
+        keepSearching = false;
+
+        for (const step of steps) {
+          for (const field of step.fields) {
+            if (!field.dependsOnFieldKey) continue;
+
+            if (
+              changedKeys.has(field.dependsOnFieldKey) &&
+              !dependentKeys.has(field.key)
+            ) {
+              dependentKeys.add(field.key);
+              changedKeys.add(field.key);
+              keepSearching = true;
+            }
+          }
+        }
+      }
+
+      for (const key of dependentKeys) {
+        delete next[key];
+        delete next[`${key}__other`];
+      }
+
+      return next;
+    });
+  }
+
+  function handleStudentSelected(student: SmartStudent | null) {
+    setSelectedStudent(student);
+
+    setValues((current) => ({
+      ...current,
+      selectedStudent: student
+        ? {
+            id: student.id,
+            fullName: student.fullName,
+            nationalId: student.nationalId,
+            grade: student.grade,
+            classroom: student.classroom,
+            stage: student.stage,
+            guardianName: student.guardianName,
+            guardianPhone: student.guardianPhone,
+          }
+        : null,
+    }));
+  }
+
+  function validateStudentSelection() {
+    if (!needsStudent) return true;
+
+    if (selectedStudent?.id) return true;
+
+    showFeedback(
+      "warning",
+      "اختيار الطالب/الطالبة مطلوب",
+      "اختر الطالب/الطالبة أولًا قبل حفظ أو إرسال الحالة."
+    );
+
+    return false;
+  }
+
+  function shouldShowFieldInCurrentValues(field: RuntimeField) {
+    if (!field.dependsOnFieldKey) return true;
+
+    const parentValue = values[field.dependsOnFieldKey];
+
+    if (isEmptyValue(parentValue)) return false;
+
+    if (!field.linkedToValue) return true;
+
+    if (Array.isArray(parentValue)) {
+      return parentValue.map(String).includes(String(field.linkedToValue));
+    }
+
+    return String(parentValue) === String(field.linkedToValue);
+  }
+
+  function validateCurrentStep() {
+    if (!validateStudentSelection()) return false;
+
+    if (!currentStep) return true;
+
+    const visibleFields = currentStep.fields.filter(shouldShowFieldInCurrentValues);
+
+    for (const field of visibleFields) {
+      if (!field.isRequired) continue;
+
+      const value = values[field.key];
+
+      if (isEmptyValue(value)) {
+        showFeedback(
+          "warning",
+          "حقل مطلوب",
+          `يرجى تعبئة الحقل: ${field.label}`
+        );
+
+        return false;
+      }
+
+      if (value === "__OTHER__" && isEmptyValue(values[`${field.key}__other`])) {
+        showFeedback(
+          "warning",
+          "تفصيل خيار أخرى مطلوب",
+          `يرجى كتابة قيمة خيار أخرى في الحقل: ${field.label}`
+        );
+
+        return false;
+      }
+
+      if (
+        Array.isArray(value) &&
+        value.includes("__OTHER__") &&
+        isEmptyValue(values[`${field.key}__other`])
+      ) {
+        showFeedback(
+          "warning",
+          "تفصيل خيار أخرى مطلوب",
+          `يرجى كتابة قيمة خيار أخرى في الحقل: ${field.label}`
+        );
+
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  async function handleSave(type: "draft" | "submit") {
+    if (!validateStudentSelection()) return;
+    if (type === "submit" && !validateCurrentStep()) return;
+
+    try {
+      setLoading(true);
+
+      const endpoint = caseId
+        ? `/api/dashboard/cases/${caseId}`
+        : type === "submit"
+          ? "/api/dashboard/cases/submit"
+          : "/api/dashboard/cases/save-draft";
+
+      const response = await fetch(endpoint, {
+        method: caseId ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          workflowId: workflow.id,
+          serviceId,
+          title: title || workflow.name,
+          studentId: selectedStudent?.id ?? null,
+
+          values: {
+            ...values,
+            selectedStudent: selectedStudent
+              ? {
+                  id: selectedStudent.id,
+                  fullName: selectedStudent.fullName,
+                  nationalId: selectedStudent.nationalId,
+                  grade: selectedStudent.grade,
+                  classroom: selectedStudent.classroom,
+                  stage: selectedStudent.stage,
+                  guardianName: selectedStudent.guardianName,
+                  guardianPhone: selectedStudent.guardianPhone,
+                }
+              : null,
+          },
+
+          status: type === "submit" ? "SUBMITTED" : "DRAFT",
+          evidenceItems: supportsEvidence ? evidenceItems : [],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "حدث خطأ أثناء حفظ الحالة.");
+      }
+
+      showFeedback(
+        "success",
+        type === "submit" ? "تم إرسال الحالة" : "تم حفظ المسودة",
+        "تم حفظ البيانات بنجاح."
+      );
+
+      setTimeout(() => {
+        router.push(`/dashboard/cases/${data.caseId}`);
+        router.refresh();
+      }, 700);
+    } catch (error) {
+      showFeedback(
+        "error",
+        "تعذر الحفظ",
+        error instanceof Error ? error.message : "حدث خطأ غير متوقع."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function goNext() {
+    if (!validateCurrentStep()) return;
+
+    setCurrentStepIndex((current) => Math.min(current + 1, steps.length - 1));
+  }
+
+  function goPrevious() {
+    setCurrentStepIndex((current) => Math.max(current - 1, 0));
+  }
+
+  function handleEvidenceUploaded(items: EvidenceItem[]) {
+    setEvidenceItems((current) => [...current, ...items]);
+
+    showFeedback(
+      "success",
+      "تم رفع الشواهد",
+      "تمت إضافة الشواهد إلى الحالة بنجاح."
+    );
+  }
+
+  function handleDeleteEvidence(id: string) {
+    setEvidenceItems((current) => current.filter((item) => item.id !== id));
+
+    showFeedback("info", "تم حذف الشاهد", "تم حذف الشاهد من قائمة الشواهد.");
+  }
+
+  if (!currentStep) {
+    return (
+      <main className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
+        <h1 className="text-2xl font-black text-amber-900">
+          لا توجد خطوات في هذا النموذج
+        </h1>
+
+        <p className="mt-2 text-sm leading-7 text-amber-800">
+          لم يتم العثور على خطوات Workflow لهذه الخدمة. راجع ملف Excel أو إعدادات
+          النشر من لوحة الأدمن.
+        </p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="space-y-8">
+      <SmartFeedbackModal
+        open={feedback.open}
+        type={feedback.type}
+        title={feedback.title}
+        description={feedback.message}
+        onOpenChange={(open) => setFeedback((current) => ({ ...current, open }))}
+      />
+
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-10 text-white shadow-2xl">
+        <p className="text-sm font-bold text-sky-100">Workflow Runtime</p>
+
+        <h1 className="mt-4 text-4xl font-black">{title || workflow.name}</h1>
+
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-50">
+          نموذج ديناميكي مبني على Workflow منشور. الحقول والخيارات والتبعيات
+          تظهر حسب إعدادات الخدمة والبيانات المرفوعة من لوحة الأدمن.
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+            الخطوة {currentStepIndex + 1} من {steps.length}
+          </span>
+
+          {needsStudent ? (
+            <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+              يتطلب اختيار طالب/طالبة
+            </span>
+          ) : null}
+
+          {supportsEvidence ? (
+            <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+              يدعم الشواهد
+            </span>
+          ) : null}
+        </div>
+      </section>
+
+      {showStudentPickerCard ? (
+        <SmartStudentPickerCard
+          selectedStudent={selectedStudent}
+          onStudentSelected={handleStudentSelected}
+        />
+      ) : null}
+
+      {showStudentSummaryCard && selectedStudent ? (
+        <StudentContextSummary
+          student={selectedStudent}
+          onEdit={() => {
+            const pickerIndex = steps.findIndex(isStudentPickerStep);
+            setCurrentStepIndex(pickerIndex >= 0 ? pickerIndex : 0);
+          }}
+        />
+      ) : null}
+
+      <StepProgress currentStepIndex={currentStepIndex} steps={steps} />
+
+      <WorkflowStepCard
+        step={currentStep}
+        values={values}
+        serviceSlug={workflow.serviceSlug}
+        onChange={updateValue}
+      />
+
+      {showEvidenceCard ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mb-6">
+            <p className="text-sm font-black text-sky-600">شواهد الحالة</p>
+
+            <h2 className="mt-2 text-3xl font-black text-slate-900">
+              الشواهد والمرفقات
+            </h2>
+
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              أضف الصور أو الملفات الداعمة لهذه الحالة. تظهر هذه البطاقة فقط في
+              خطوة الشواهد، ولا تظهر في باقي الخطوات.
+            </p>
+          </div>
+
+          <EvidenceUploadCard onUploaded={handleEvidenceUploaded} />
+
+          <div className="mt-6">
+            <EvidencePreviewGrid
+              items={evidenceItems}
+              onDelete={handleDeleteEvidence}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={goPrevious}
+            disabled={isFirstStep || loading}
+            className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            السابق
+          </button>
+
+          {!isLastStep ? (
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={loading}
+              className="rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              التالي
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => handleSave("draft")}
+            disabled={loading}
+            className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            حفظ مسودة
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSave("submit")}
+            disabled={loading}
+            className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "جاري الحفظ..." : caseId ? "تحديث الحالة" : "إرسال"}
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function extractInitialStudent(
+  initialValues: RuntimeValues | undefined
+): SmartStudent | null {
+  const value = initialValues?.selectedStudent;
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null;
+  }
+
+  return {
+    id: value.id,
+    fullName:
+      "fullName" in value && typeof value.fullName === "string"
+        ? value.fullName
+        : "طالب/طالبة",
+    nationalId:
+      "nationalId" in value && typeof value.nationalId === "string"
+        ? value.nationalId
+        : null,
+    grade:
+      "grade" in value && typeof value.grade === "string"
+        ? value.grade
+        : null,
+    classroom:
+      "classroom" in value && typeof value.classroom === "string"
+        ? value.classroom
+        : null,
+    stage:
+      "stage" in value && typeof value.stage === "string" ? value.stage : null,
+    guardianName:
+      "guardianName" in value && typeof value.guardianName === "string"
+        ? value.guardianName
+        : null,
+    guardianPhone:
+      "guardianPhone" in value && typeof value.guardianPhone === "string"
+        ? value.guardianPhone
+        : null,
+  };
+}
+
+function StepProgress({
+  currentStepIndex,
+  steps,
+}: {
+  currentStepIndex: number;
+  steps: RuntimeStep[];
+}) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap gap-2">
+        {steps.map((step, index) => {
+          const isActive = index === currentStepIndex;
+          const isDone = index < currentStepIndex;
+
+          return (
+            <div
+              key={step.id}
+              className={[
+                "flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-black",
+                isActive
+                  ? "border-sky-200 bg-sky-50 text-sky-700"
+                  : isDone
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-slate-50 text-slate-500",
+              ].join(" ")}
+            >
+              <span>{index + 1}</span>
+              <span>{step.title}</span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SmartStudentPickerCard({
+  selectedStudent,
+  onStudentSelected,
+}: {
+  selectedStudent: SmartStudent | null;
+  onStudentSelected: (student: SmartStudent | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [students, setStudents] = useState<SmartStudent[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery.length < 2) {
+      setStudents([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function searchStudents() {
+      try {
+        setLoading(true);
+
+        const response = await fetch(
+          `/api/dashboard/students/search?q=${encodeURIComponent(trimmedQuery)}`,
+          {
+            signal: controller.signal,
+          }
+        );
+
+        const data = await response.json();
+        const normalizedStudents = normalizeStudentsResponse(data);
+
+        setStudents(normalizedStudents);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const timer = window.setTimeout(searchStudents, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  return (
+    <section className="rounded-[2rem] border border-sky-200 bg-sky-50/70 p-6 shadow-sm">
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <div>
+          <p className="text-sm font-black text-sky-700">
+            اختيار الطالب/الطالبة
+          </p>
+
+          <h2 className="mt-2 text-2xl font-black text-slate-900">
+            اختر الطالب/الطالبة المرتبط بهذه الحالة
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-slate-600">
+            ابحث باسم الطالب/الطالبة أو رقم الهوية. بعد الاختيار سيتم ربط
+            الحالة بسجل الطالب/الطالبة وبيانات ولي الأمر.
+          </p>
+
+          <div className="relative mt-5">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="اكتب اسم الطالب/الطالبة أو رقم الهوية..."
+              className="h-14 w-full rounded-2xl border border-sky-200 bg-white px-5 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+            />
+
+            {query.trim().length >= 2 ? (
+              <div className="absolute z-30 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                {loading ? (
+                  <div className="p-4 text-sm font-bold text-slate-500">
+                    جاري البحث...
+                  </div>
+                ) : students.length ? (
+                  students.map((student) => (
+                    <button
+                      key={student.id}
+                      type="button"
+                      onClick={() => {
+                        onStudentSelected(student);
+                        setQuery("");
+                        setStudents([]);
+                      }}
+                      className="w-full rounded-xl p-3 text-right transition hover:bg-sky-50"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <strong className="text-sm text-slate-900">
+                          {student.fullName}
+                        </strong>
+
+                        <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500">
+                          {student.nationalId || "بدون هوية"}
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {[
+                          student.stage,
+                          student.grade,
+                          student.classroom
+                            ? `فصل ${student.classroom}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" - ") || "لا توجد بيانات صفية"}
+                      </p>
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-4 text-sm font-bold text-slate-500">
+                    لا توجد نتائج مطابقة.
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-sky-100 bg-white p-5">
+          {selectedStudent ? (
+            <StudentSelectedCard
+              student={selectedStudent}
+              onClear={() => onStudentSelected(null)}
+            />
+          ) : (
+            <div className="flex h-full min-h-44 flex-col justify-center rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-5 text-center">
+              <p className="text-sm font-black text-sky-700">
+                لم يتم اختيار طالب/طالبة
+              </p>
+
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                اختيار الطالب/الطالبة يساعد في التقارير والتصدير وتتبع الحالات.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StudentContextSummary({
+  student,
+  onEdit,
+}: {
+  student: SmartStudent;
+  onEdit: () => void;
+}) {
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div>
+        <p className="text-xs font-black text-slate-500">
+          الطالب/الطالبة المرتبط بالحالة
+        </p>
+
+        <h3 className="mt-1 text-lg font-black text-slate-900">
+          {student.fullName}
+        </h3>
+
+        <p className="mt-1 text-xs text-slate-500">
+          {[
+            student.stage,
+            student.grade,
+            student.classroom ? `فصل ${student.classroom}` : null,
+            student.guardianName ? `ولي الأمر: ${student.guardianName}` : null,
+          ]
+            .filter(Boolean)
+            .join(" - ")}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+      >
+        تعديل الاختيار
+      </button>
+    </section>
+  );
+}
+
+function StudentSelectedCard({
+  student,
+  onClear,
+}: {
+  student: SmartStudent;
+  onClear: () => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-emerald-700">
+            تم اختيار الطالب/الطالبة
+          </p>
+
+          <h3 className="mt-1 text-lg font-black text-slate-900">
+            {student.fullName}
+          </h3>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-100"
+        >
+          مسح
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-2 text-xs">
+        <InfoRow label="رقم الهوية" value={student.nationalId || "غير متاح"} />
+        <InfoRow label="المرحلة" value={student.stage || "غير متاح"} />
+        <InfoRow label="الصف" value={student.grade || "غير متاح"} />
+        <InfoRow label="الفصل" value={student.classroom || "غير متاح"} />
+        <InfoRow label="ولي الأمر" value={student.guardianName || "غير متاح"} />
+        <InfoRow
+          label="جوال ولي الأمر"
+          value={student.guardianPhone || "غير متاح"}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2">
+      <span className="font-bold text-slate-500">{label}</span>
+      <strong className="text-slate-800">{value}</strong>
+    </div>
+  );
+}
+
+function normalizeStudentsResponse(data: unknown): SmartStudent[] {
+  const source = Array.isArray(data)
+    ? data
+    : data &&
+        typeof data === "object" &&
+        "students" in data &&
+        Array.isArray(data.students)
+      ? data.students
+      : data &&
+          typeof data === "object" &&
+          "items" in data &&
+          Array.isArray(data.items)
+        ? data.items
+        : [];
+
+  return source
+    .map((item) => normalizeStudent(item))
+    .filter((student): student is SmartStudent => Boolean(student));
+}
+
+function normalizeStudent(item: unknown): SmartStudent | null {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const record = item as Record<string, unknown>;
+
+  const id = safeString(record.id);
+  const fullName =
+    safeString(record.fullName) ||
+    safeString(record.name) ||
+    safeString(record.studentName);
+
+  if (!id || !fullName) {
+    return null;
+  }
+
+  const guardian =
+    record.guardian && typeof record.guardian === "object"
+      ? (record.guardian as Record<string, unknown>)
+      : null;
+
+  return {
+    id,
+    fullName,
+    nationalId: safeString(record.nationalId),
+    grade: safeString(record.grade),
+    classroom: safeString(record.classroom),
+    stage: safeString(record.stage),
+    guardianName:
+      safeString(record.guardianName) ||
+      safeString(guardian?.name) ||
+      safeString(guardian?.fullName),
+    guardianPhone:
+      safeString(record.guardianPhone) ||
+      safeString(guardian?.phone) ||
+      safeString(guardian?.mobile),
+  };
+}
+
+function safeString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+
+==================== FILE: app\dashboard\reports\new\page.tsx ====================
+import { prisma } from "@/lib/prisma";
+import { NewReportCasePicker } from "@/components/reports/new-report-case-picker";
+
+type NewReportPageProps = {
+  searchParams?: Promise<{
+    caseId?: string;
+  }>;
+};
+
+function parseTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+export default async function NewReportPage({
+  searchParams,
+}: NewReportPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const selectedCaseId = params.caseId?.trim() || "";
+
+  const [cases, reportTemplates] = await Promise.all([
+    prisma.caseEntry.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 100,
+      include: {
+        service: true,
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+        values: {
+          include: {
+            field: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    }),
+
+    prisma.reportTemplate.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    }),
+  ]);
+
+  const normalizedCases = cases.map((caseEntry) => ({
+    id: caseEntry.id,
+    title: caseEntry.title || caseEntry.service.name,
+    status: caseEntry.status,
+    createdAt: caseEntry.createdAt.toISOString(),
+    updatedAt: caseEntry.updatedAt.toISOString(),
+    submittedAt: caseEntry.submittedAt?.toISOString() || null,
+
+    service: {
+      id: caseEntry.service.id,
+      name: caseEntry.service.name,
+      slug: caseEntry.service.slug,
+    },
+
+    student: caseEntry.student
+      ? {
+          id: caseEntry.student.id,
+          fullName: caseEntry.student.fullName,
+          nationalId: caseEntry.student.nationalId,
+          stage: caseEntry.student.stage,
+          grade: caseEntry.student.grade,
+          classroom: caseEntry.student.classroom,
+          guardianName: caseEntry.student.guardian?.name || null,
+          guardianPhone: caseEntry.student.guardian?.phone || null,
+        }
+      : null,
+
+    valuesCount: caseEntry.values.length,
+    evidencesCount: caseEntry.evidences.length,
+  }));
+
+  const publishedTemplates = reportTemplates
+    .map((template) => {
+      const templateJson = parseTemplateJson(template.templateJson) || parseTemplateJson(template.content);
+
+      const status =
+        templateJson?.status === "PUBLISHED"
+          ? "PUBLISHED"
+          : templateJson?.status || "DRAFT";
+
+      return {
+        id: template.id,
+        name: template.name,
+        description:
+          template.description ||
+          templateJson?.description ||
+          "Ù‚Ø§Ù„Ø¨ ØªÙ‚Ø±ÙŠØ± Ù…Ù†Ø´ÙˆØ± Ù…Ù† ØµØ§Ù†Ø¹ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨.",
+        serviceSlug: template.serviceSlug || templateJson?.serviceSlug || null,
+        scope:
+          templateJson?.scope === "SERVICE" || template.serviceSlug
+            ? ("SERVICE" as const)
+            : ("GLOBAL" as const),
+        status,
+        pagesCount: Array.isArray(templateJson?.pages)
+          ? templateJson.pages.length
+          : 0,
+      };
+    })
+    .filter((template) => template.status === "PUBLISHED");
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <NewReportCasePicker
+        cases={normalizedCases}
+        initialCaseId={selectedCaseId}
+        publishedTemplates={publishedTemplates}
+      />
+    </main>
+  );
+}
+
+
+
+==================== FILE: components\reports\new-report-case-picker.tsx ====================
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+
+type ReportCaseListItem = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt?: string | null;
+
+  service: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  student?: {
+    id: string;
+    fullName: string;
+    nationalId?: string | null;
+    stage?: string | null;
+    grade?: string | null;
+    classroom?: string | null;
+    guardianName?: string | null;
+    guardianPhone?: string | null;
+  } | null;
+
+  valuesCount: number;
+  evidencesCount: number;
+};
+
+type PreparedReportData = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt?: string | null;
+
+  service: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  student?: {
+    id?: string;
+    fullName: string;
+    nationalId?: string | null;
+    stage?: string | null;
+    grade?: string | null;
+    classroom?: string | null;
+    guardianName?: string | null;
+    guardianPhone?: string | null;
+  } | null;
+
+  values: Array<{
+    fieldKey: string;
+    fieldLabel: string;
+    value: string;
+  }>;
+
+  evidences: Array<{
+    id: string;
+    title: string;
+    fileName: string;
+    fileUrl: string;
+    mimeType?: string | null;
+    size?: number | null;
+    note?: string | null;
+    imageUrl?: string;
+  }>;
+};
+
+type PrepareApiResponse =
+  | {
+      ok: true;
+      reportData: PreparedReportData;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+type CreateReportApiResponse =
+  | {
+      success: true;
+      reportId: string;
+      previewUrl?: string;
+    }
+  | {
+      success?: false;
+      error: string;
+    };
+
+type ReportTemplateChoice = {
+  id: string;
+  name: string;
+  description: string;
+  bestFor: string;
+  badge: string;
+  serviceSlug?: string | null;
+  pagesCount?: number;
+  isBuilderTemplate?: boolean;
+};
+
+type PublishedReportTemplateOption = {
+  id: string;
+  name: string;
+  description: string;
+  serviceSlug: string | null;
+  scope: "GLOBAL" | "SERVICE";
+  status: "PUBLISHED" | string;
+  pagesCount: number;
+};
+
+const REPORT_TEMPLATE_CHOICES: ReportTemplateChoice[] = [
+  {
+    id: "official-long",
+    name: "Ù‚Ø§Ù„Ø¨ Ù…Ù†Ø´ÙˆØ±",
+    description: "Ù‚Ø§Ù„Ø¨ A4 Ø±Ø³Ù…ÙŠ Ù…Ù†Ø§Ø³Ø¨ Ù„Ù„Ø­ÙØ¸ ÙˆØ§Ù„Ø·Ø¨Ø§Ø¹Ø© ÙˆØ§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯.",
+    bestFor: "Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø±Ø³Ù…ÙŠØ© ÙˆØ§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…Ø¹ØªÙ…Ø¯Ø©",
+    badge: "Ø±Ø³Ù…ÙŠ",
+  },
+  {
+    id: "visual-activity",
+    name: "Ù‚Ø§Ù„Ø¨ Ù…Ù†Ø´ÙˆØ±",
+    description: "Ù‚Ø§Ù„Ø¨ ÙŠØ¨Ø±Ø² Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯ ÙˆØ§Ù„ØµÙˆØ± ÙˆØ§Ù„Ø£Ù†Ø´Ø·Ø© Ø¨Ø´ÙƒÙ„ Ø£ÙˆØ¶Ø­.",
+    bestFor: "Ø§Ù„Ø¨Ø±Ø§Ù…Ø¬ ÙˆØ§Ù„ÙØ¹Ø§Ù„ÙŠØ§Øª ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…ØµÙˆØ±Ø©",
+    badge: "Ø¨ØµØ±ÙŠ",
+  },
+  {
+    id: "executive-brief",
+    name: "Ù‚Ø§Ù„Ø¨ Ù…Ù†Ø´ÙˆØ±",
+    description: "Ù‚Ø§Ù„Ø¨ Ø³Ø±ÙŠØ¹ ÙŠØ±ÙƒØ² Ø¹Ù„Ù‰ Ø£Ù‡Ù… Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª ÙˆØ§Ù„Ù†ØªØ§Ø¦Ø¬.",
+    bestFor: "Ø§Ù„Ù…Ù„Ø®ØµØ§Øª ÙˆØ§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø³Ø±ÙŠØ¹Ø©",
+    badge: "Ù…Ø®ØªØµØ±",
+  },
+];
+
+type NewReportCasePickerProps = {
+  cases: ReportCaseListItem[];
+  initialCaseId?: string;
+  publishedTemplates?: PublishedReportTemplateOption[];
+};
+
+export function NewReportCasePicker({
+  cases,
+  initialCaseId = "",
+  publishedTemplates = [],
+}: NewReportCasePickerProps) {
+  const router = useRouter();
+
+  const [selectedCaseId, setSelectedCaseId] = useState(initialCaseId);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+
+  const [query, setQuery] = useState("");
+  const [preparedReportData, setPreparedReportData] =
+    useState<PreparedReportData | null>(null);
+
+  const [loadingPrepare, setLoadingPrepare] = useState(false);
+  const [prepareError, setPrepareError] = useState("");
+
+  const [creatingReport, setCreatingReport] = useState(false);
+  const [createReportError, setCreateReportError] = useState("");
+
+  const filteredCases = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+
+    if (!keyword) {
+      return cases;
+    }
+
+    return cases.filter((caseEntry) => {
+      const searchableText = [
+        caseEntry.title,
+        caseEntry.status,
+        caseEntry.service.name,
+        caseEntry.service.slug,
+        caseEntry.student?.fullName,
+        caseEntry.student?.nationalId,
+        caseEntry.student?.grade,
+        caseEntry.student?.classroom,
+        caseEntry.student?.guardianName,
+        caseEntry.student?.guardianPhone,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(keyword);
+    });
+  }, [cases, query]);
+
+  const selectedCase = useMemo(() => {
+    return cases.find((caseEntry) => caseEntry.id === selectedCaseId) || null;
+  }, [cases, selectedCaseId]);
+
+  const templateChoices = useMemo<ReportTemplateChoice[]>(() => {
+    return publishedTemplates.map((template) => ({
+      id: template.id,
+      name: template.name,
+      description:
+        template.description || "Ù‚Ø§Ù„Ø¨ Ù…Ù†Ø´ÙˆØ± Ù…Ù† ØµØ§Ù†Ø¹ Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±.",
+      bestFor:
+        template.scope === "SERVICE"
+          ? "Ù‡Ø°Ø§ Ø§Ù„Ù‚Ø§Ù„Ø¨ Ù…Ø®ØµØµ Ù„Ø®Ø¯Ù…Ø© Ù…Ø­Ø¯Ø¯Ø©."
+          : "Ù‚Ø§Ù„Ø¨ Ø¹Ø§Ù… Ù…Ù†Ø§Ø³Ø¨ Ù„Ø£ÙƒØ«Ø± Ù…Ù† Ø®Ø¯Ù…Ø©.",
+      badge: template.scope === "SERVICE" ? "Ø®Ø¯Ù…Ø©" : "Ø¹Ø§Ù…",
+      serviceSlug: template.serviceSlug,
+      pagesCount: template.pagesCount,
+      isBuilderTemplate: true,
+    }));
+  }, [publishedTemplates]);
+
+  const selectedTemplate = useMemo(() => {
+    return (
+      templateChoices.find((template) => template.id === selectedTemplateId) ||
+      templateChoices[0] ||
+      REPORT_TEMPLATE_CHOICES[0]
+    );
+  }, [templateChoices, selectedTemplateId]);
+
+  useEffect(() => {
+    if (!templateChoices.length) {
+      return;
+    }
+
+    if (!templateChoices.some((template) => template.id === selectedTemplateId)) {
+      setSelectedTemplateId(templateChoices[0].id);
+    }
+  }, [templateChoices, selectedTemplateId]);
+
+  useEffect(() => {
+    if (!selectedCaseId) {
+      setPreparedReportData(null);
+      setPrepareError("");
+      setCreateReportError("");
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function prepareReportData() {
+      try {
+        setLoadingPrepare(true);
+        setPrepareError("");
+        setCreateReportError("");
+        setPreparedReportData(null);
+
+        const response = await fetch(
+          `/api/dashboard/reports/prepare?caseId=${encodeURIComponent(
+            selectedCaseId
+          )}`,
+          {
+            signal: controller.signal,
+          }
+        );
+
+        const data = (await response.json()) as PrepareApiResponse;
+
+        if (!response.ok || !data.ok) {
+          throw new Error(
+            "error" in data ? data.error : "ØªØ¹Ø°Ø± ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±."
+          );
+        }
+
+        setPreparedReportData(data.reportData);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        setPreparedReportData(null);
+        setPrepareError(
+          error instanceof Error
+            ? error.message
+            : "ØªØ¹Ø°Ø± ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±."
+        );
+      } finally {
+        setLoadingPrepare(false);
+      }
+    }
+
+    prepareReportData();
+
+    return () => {
+      controller.abort();
+    };
+  }, [selectedCaseId]);
+
+  async function handleCreateReport() {
+    if (!selectedCaseId) {
+      setCreateReportError("Ø§Ø®ØªØ± Ø­Ø§Ù„Ø© Ø£ÙˆÙ„Ù‹Ø§ Ù„Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.");
+      return;
+    }
+
+    if (!preparedReportData) {
+      setCreateReportError("Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ± ØºÙŠØ± Ø¬Ø§Ù‡Ø²Ø© Ø¨Ø¹Ø¯.");
+      return;
+    }
+
+    try {
+      setCreatingReport(true);
+      setCreateReportError("");
+
+      const response = await fetch("/api/dashboard/reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          caseEntryId: selectedCaseId,
+          title: `ØªÙ‚Ø±ÙŠØ± - ${preparedReportData.title}`,
+          templateId: selectedTemplateId,
+        }),
+      });
+
+      const data = (await response.json()) as CreateReportApiResponse;
+
+      if (!response.ok || !("success" in data) || !data.success) {
+        throw new Error("error" in data ? data.error : "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.");
+      }
+
+      router.push(
+        data.previewUrl ||
+          `/dashboard/reports/${data.reportId}/preview?template=${selectedTemplateId}`
+      );
+      router.refresh();
+    } catch (error) {
+      setCreateReportError(
+        error instanceof Error ? error.message : "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±."
+      );
+    } finally {
+      setCreatingReport(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 px-6 py-6" dir="rtl">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <header className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-8 text-white shadow-2xl">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-sky-100">Ù…Ø­Ø±Ùƒ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±</p>
+
+              <h1 className="mt-3 text-3xl font-black">
+                Ø¥ØµØ¯Ø§Ø± ØªÙ‚Ø±ÙŠØ± Ù…Ù† Ø­Ø§Ù„Ø© Ù…ÙˆØ¬ÙˆØ¯Ø©
+              </h1>
+
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-sky-50">
+                Ø§Ø®ØªØ± Ø§Ù„Ø­Ø§Ù„Ø©ØŒ Ø±Ø§Ø¬Ø¹ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§ØªØŒ Ø§Ø®ØªØ± Ø§Ù„Ù‚Ø§Ù„Ø¨ØŒ Ø«Ù… Ø£Ù†Ø´Ø¦ Ø§Ù„ØªÙ‚Ø±ÙŠØ±. Ø³ÙŠØªÙ…
+                Ø­ÙØ¸ Snapshot Ù„Ù„Ø¨ÙŠØ§Ù†Ø§Øª ÙˆØ§Ù„Ù‚Ø§Ù„Ø¨ Ø­ØªÙ‰ ÙŠØ¨Ù‚Ù‰ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø«Ø§Ø¨ØªÙ‹Ø§ Ù„Ø§Ø­Ù‚Ù‹Ø§.
+              </p>
+            </div>
+
+            <Link
+              href="/dashboard/reports"
+              className="rounded-2xl bg-white/15 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
+            >
+              Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„ØªÙ‚Ø§Ø±ÙŠØ±
+            </Link>
+          </div>
+        </header>
+
+        <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
+          <aside className="space-y-4">
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div>
+                <h2 className="text-lg font-black text-slate-900">
+                  Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ø­Ø§Ù„Ø©
+                </h2>
+
+                <p className="mt-1 text-sm leading-7 text-slate-500">
+                  Ø§Ø¨Ø­Ø« Ø¨Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø© Ø£Ùˆ Ø§Ù„Ø®Ø¯Ù…Ø© Ø£Ùˆ Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø­Ø§Ù„Ø©.
+                </p>
+              </div>
+
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ø­Ø§Ù„Ø§Øª..."
+                className="mt-4 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+              />
+
+              <div className="mt-4 flex items-center justify-between text-xs font-bold text-slate-500">
+                <span>Ø¹Ø¯Ø¯ Ø§Ù„Ø­Ø§Ù„Ø§Øª</span>
+                <span>{filteredCases.length}</span>
+              </div>
+
+              <div className="mt-4 max-h-[620px] space-y-3 overflow-auto pr-1">
+                {filteredCases.length ? (
+                  filteredCases.map((caseEntry) => (
+                    <CaseSelectionButton
+                      key={caseEntry.id}
+                      caseEntry={caseEntry}
+                      active={caseEntry.id === selectedCaseId}
+                      onSelect={() => setSelectedCaseId(caseEntry.id)}
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
+                    Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­Ø§Ù„Ø§Øª Ù…Ø·Ø§Ø¨Ù‚Ø© Ù„Ù„Ø¨Ø­Ø«.
+                  </div>
+                )}
+              </div>
+            </section>
+          </aside>
+
+          <section className="space-y-4">
+            {!selectedCase ? (
+              <EmptyState />
+            ) : (
+              <>
+                <CaseOverviewCard caseEntry={selectedCase} />
+
+                <PreparedReportPreview
+                  loading={loadingPrepare}
+                  error={prepareError}
+                  reportData={preparedReportData}
+                />
+
+                <ReportCreationCard
+                  selectedTemplate={selectedTemplate}
+                  selectedTemplateId={selectedTemplateId}
+                  templates={templateChoices}
+                  onTemplateChange={setSelectedTemplateId}
+                  reportDataReady={Boolean(preparedReportData)}
+                  creatingReport={creatingReport}
+                  createReportError={createReportError}
+                  onCreateReport={handleCreateReport}
+                />
+              </>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CaseSelectionButton({
+  caseEntry,
+  active,
+  onSelect,
+}: {
+  caseEntry: ReportCaseListItem;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={[
+        "w-full rounded-2xl border p-4 text-right transition",
+        active
+          ? "border-sky-400 bg-sky-50"
+          : "border-slate-200 bg-white hover:bg-slate-50",
+      ].join(" ")}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <strong className="line-clamp-1 text-sm text-slate-900">
+            {caseEntry.title}
+          </strong>
+
+          <p className="mt-1 text-xs font-bold text-sky-700">
+            {caseEntry.service.name}
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+          {caseEntry.status}
+        </span>
+      </div>
+
+      {caseEntry.student ? (
+        <p className="mt-3 text-xs leading-6 text-slate-500">
+          {caseEntry.student.fullName}
+          {caseEntry.student.grade ? ` - ${caseEntry.student.grade}` : ""}
+          {caseEntry.student.classroom
+            ? ` - ÙØµÙ„ ${caseEntry.student.classroom}`
+            : ""}
+        </p>
+      ) : (
+        <p className="mt-3 text-xs text-amber-600">
+          Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø·Ø§Ù„Ø¨ Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©
+        </p>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
+        <span className="rounded-full bg-slate-100 px-2 py-1">
+          {caseEntry.valuesCount} Ù‚ÙŠÙ…Ø©
+        </span>
+
+        <span className="rounded-full bg-slate-100 px-2 py-1">
+          {caseEntry.evidencesCount} Ø´Ø§Ù‡Ø¯
+        </span>
+
+        <span className="rounded-full bg-slate-100 px-2 py-1">
+          {formatDate(caseEntry.createdAt)}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function EmptyState() {
+  return (
+    <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+      <h2 className="text-xl font-black text-slate-900">
+        Ø§Ø®ØªØ± Ø­Ø§Ù„Ø© Ù„Ø¥ØµØ¯Ø§Ø± Ø§Ù„ØªÙ‚Ø±ÙŠØ±
+      </h2>
+
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-slate-500">
+        Ø¹Ù†Ø¯ Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ø­Ø§Ù„Ø© Ø³ÙŠÙ‚ÙˆÙ… Ø§Ù„Ù†Ø¸Ø§Ù… Ø¨ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ± ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ù…Ù†
+        Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø© Ù…Ø³Ø¨Ù‚Ù‹Ø§.
+      </p>
+    </section>
+  );
+}
+
+function CaseOverviewCard({ caseEntry }: { caseEntry: ReportCaseListItem }) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-black text-sky-700">Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©</p>
+
+          <h2 className="mt-2 text-2xl font-black text-slate-900">
+            {caseEntry.title}
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            {caseEntry.service.name}
+          </p>
+        </div>
+
+        <Link
+          href={`/dashboard/cases/${caseEntry.id}`}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+        >
+          Ø¹Ø±Ø¶ Ø§Ù„Ø­Ø§Ù„Ø©
+        </Link>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-4">
+        <InfoBox label="Ø§Ù„Ø­Ø§Ù„Ø©" value={caseEntry.status} />
+        <InfoBox label="ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡" value={formatDate(caseEntry.createdAt)} />
+        <InfoBox label="Ø¹Ø¯Ø¯ Ø§Ù„Ù‚ÙŠÙ…" value={`${caseEntry.valuesCount}`} />
+        <InfoBox label="Ø¹Ø¯Ø¯ Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯" value={`${caseEntry.evidencesCount}`} />
+      </div>
+
+      {caseEntry.student ? (
+        <div className="mt-5 rounded-3xl border border-sky-100 bg-sky-50 p-5">
+          <p className="text-sm font-black text-sky-700">
+            Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©
+          </p>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <InfoBox label="Ø§Ù„Ø§Ø³Ù…" value={caseEntry.student.fullName} />
+            <InfoBox
+              label="Ø§Ù„ØµÙ"
+              value={caseEntry.student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}
+            />
+            <InfoBox
+              label="Ø§Ù„ÙØµÙ„"
+              value={caseEntry.student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}
+            />
+            <InfoBox
+              label="Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©"
+              value={caseEntry.student.nationalId || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}
+            />
+            <InfoBox
+              label="ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±"
+              value={caseEntry.student.guardianName || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}
+            />
+            <InfoBox
+              label="Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±"
+              value={caseEntry.student.guardianPhone || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="mt-5 rounded-3xl border border-amber-200 bg-amber-50 p-5">
+          <p className="text-sm font-black text-amber-800">
+            ØªÙ†Ø¨ÙŠÙ‡: Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø·Ø§Ù„Ø¨/Ø·Ø§Ù„Ø¨Ø© Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.
+          </p>
+
+          <p className="mt-1 text-xs leading-6 text-amber-700">
+            ÙŠÙ…ÙƒÙ† Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±ØŒ Ù„ÙƒÙ† Ø¨Ø¹Ø¶ Ø¨Ù„ÙˆÙƒØ§Øª Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨ ÙÙŠ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨
+            Ø§Ù„Ø±Ø³Ù…ÙŠØ© Ù‚Ø¯ ØªØ¸Ù‡Ø± ÙØ§Ø±ØºØ©.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PreparedReportPreview({
+  loading,
+  error,
+  reportData,
+}: {
+  loading: boolean;
+  error: string;
+  reportData: PreparedReportData | null;
+}) {
+  if (loading) {
+    return (
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-black text-slate-700">
+          Ø¬Ø§Ø±Ù ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±...
+        </p>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="rounded-[2rem] border border-red-200 bg-red-50 p-6 shadow-sm">
+        <h2 className="text-lg font-black text-red-800">
+          ØªØ¹Ø°Ø± ØªØ¬Ù‡ÙŠØ² Ø§Ù„ØªÙ‚Ø±ÙŠØ±
+        </h2>
+
+        <p className="mt-2 text-sm leading-7 text-red-700">{error}</p>
+      </section>
+    );
+  }
+
+  if (!reportData) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-black text-emerald-700">
+            Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¬Ø§Ù‡Ø²Ø©
+          </p>
+
+          <h2 className="mt-2 text-2xl font-black text-slate-900">
+            {reportData.title}
+          </h2>
+
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            ØªÙ… ØªØ¬Ù‡ÙŠØ² Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ù…Ù† Ø§Ù„Ø­Ø§Ù„Ø©. Ù‡Ø°Ù‡ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø³ØªÙƒÙˆÙ† Ù…ØµØ¯Ø± Ø§Ù„ØªÙ‚Ø±ÙŠØ±ØŒ ÙˆÙ„Ù†
+            ÙŠØ­ØªØ§Ø¬ Ø§Ù„Ù…ÙˆØ¬Ù‡/Ø§Ù„Ù…ÙˆØ¬Ù‡Ø© Ù„Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø¯Ø®Ø§Ù„Ù‡Ø§.
+          </p>
+        </div>
+
+        <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">
+          Ø¬Ø§Ù‡Ø²
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <InfoBox label="Ø§Ù„Ø®Ø¯Ù…Ø©" value={reportData.service.name} />
+        <InfoBox label="Ø¹Ø¯Ø¯ Ø§Ù„Ù‚ÙŠÙ…" value={`${reportData.values.length}`} />
+        <InfoBox label="Ø¹Ø¯Ø¯ Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯" value={`${reportData.evidences.length}`} />
+      </div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <ReportValuesSample values={reportData.values} />
+        <ReportEvidenceSample evidences={reportData.evidences} />
+      </div>
+    </section>
+  );
+}
+
+function ReportValuesSample({
+  values,
+}: {
+  values: PreparedReportData["values"];
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+      <h3 className="text-sm font-black text-slate-900">Ø¹ÙŠÙ†Ø© Ù…Ù† Ø§Ù„Ù‚ÙŠÙ…</h3>
+
+      <div className="mt-3 space-y-2">
+        {values.slice(0, 6).map((item) => (
+          <div
+            key={`${item.fieldKey}-${item.fieldLabel}`}
+            className="rounded-2xl bg-white px-4 py-3"
+          >
+            <p className="text-xs font-black text-slate-500">
+              {item.fieldLabel}
+            </p>
+
+            <p className="mt-1 line-clamp-2 text-sm leading-7 text-slate-800">
+              {item.value || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}
+            </p>
+          </div>
+        ))}
+
+        {!values.length ? (
+          <p className="text-sm text-slate-500">Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ù…Ø­ÙÙˆØ¸Ø©.</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ReportEvidenceSample({
+  evidences,
+}: {
+  evidences: PreparedReportData["evidences"];
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+      <h3 className="text-sm font-black text-slate-900">Ø¹ÙŠÙ†Ø© Ù…Ù† Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯</h3>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        {evidences.slice(0, 4).map((evidence) => (
+          <div
+            key={evidence.id}
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+          >
+            {evidence.imageUrl ? (
+              <img
+                src={evidence.imageUrl}
+                alt={evidence.title}
+                className="h-32 w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-32 items-center justify-center bg-slate-100 text-xs font-bold text-slate-500">
+                Ù…Ù„Ù
+              </div>
+            )}
+
+            <div className="p-3">
+              <p className="line-clamp-1 text-xs font-black text-slate-800">
+                {evidence.title}
+              </p>
+            </div>
+          </div>
+        ))}
+
+        {!evidences.length ? (
+          <p className="text-sm text-slate-500">Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´ÙˆØ§Ù‡Ø¯.</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ReportCreationCard({
+  selectedTemplate,
+  selectedTemplateId,
+  templates,
+  onTemplateChange,
+  reportDataReady,
+  creatingReport,
+  createReportError,
+  onCreateReport,
+}: {
+  selectedTemplate: ReportTemplateChoice;
+  selectedTemplateId: string;
+  templates: ReportTemplateChoice[];
+  onTemplateChange: (templateId: string) => void;
+  reportDataReady: boolean;
+  creatingReport: boolean;
+  createReportError: string;
+  onCreateReport: () => void;
+}) {
+  return (
+    <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-sm">
+      <h2 className="text-lg font-black text-amber-900">
+        Ø§Ø®ØªÙŠØ§Ø± Ù‚Ø§Ù„Ø¨ Ø§Ù„ØªÙ‚Ø±ÙŠØ±
+      </h2>
+
+      <p className="mt-2 text-sm leading-7 text-amber-800">
+        Ø§Ø®ØªØ± Ø§Ù„Ù‚Ø§Ù„Ø¨ Ø§Ù„Ù…Ù†Ø§Ø³Ø¨ Ù‚Ø¨Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±. Ø³ÙŠØªÙ… Ø­ÙØ¸ Ù†Ø³Ø®Ø© Snapshot Ù…Ù† Ø§Ù„Ù‚Ø§Ù„Ø¨
+        ÙˆØ§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø­ØªÙ‰ ÙŠØ¨Ù‚Ù‰ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø«Ø§Ø¨ØªÙ‹Ø§ Ø­ØªÙ‰ Ù„Ùˆ ØªØºÙŠØ±Øª Ø§Ù„Ø­Ø§Ù„Ø© Ø£Ùˆ Ø§Ù„Ù‚Ø§Ù„Ø¨ Ù„Ø§Ø­Ù‚Ù‹Ø§.
+      </p>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        {templates.map((template) => {
+          const active = template.id === selectedTemplateId;
+
+          return (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => onTemplateChange(template.id)}
+              className={[
+                "rounded-3xl border p-4 text-right transition",
+                active
+                  ? "border-slate-900 bg-white shadow-sm"
+                  : "border-amber-200 bg-amber-50 hover:bg-white",
+              ].join(" ")}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <strong className="text-sm font-black text-slate-900">
+                  {template.name}
+                </strong>
+
+                <span
+                  className={[
+                    "rounded-full px-2 py-1 text-[11px] font-black",
+                    active
+                      ? "bg-slate-900 text-white"
+                      : "bg-white text-slate-500",
+                  ].join(" ")}
+                >
+                  {active ? "Ù…Ø®ØªØ§Ø±" : template.badge}
+                </span>
+              </div>
+
+              <p className="mt-2 text-xs leading-6 text-slate-600">
+                {template.description}
+              </p>
+
+              <p className="mt-3 rounded-2xl bg-white/70 px-3 py-2 text-[11px] font-bold text-amber-800">
+                Ø§Ù„Ø£Ù†Ø³Ø¨: {template.bestFor}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-amber-200 bg-white p-4">
+        <p className="text-xs font-black text-slate-500">
+          Ø§Ù„Ù‚Ø§Ù„Ø¨ Ø§Ù„Ø°ÙŠ Ø³ÙŠØªÙ… Ø­ÙØ¸Ù‡ ÙÙŠ Ø§Ù„ØªÙ‚Ø±ÙŠØ±
+        </p>
+
+        <p className="mt-1 text-sm font-black text-slate-900">
+          {selectedTemplate.name}
+        </p>
+      </div>
+
+      {createReportError ? (
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+          {createReportError}
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        disabled={!reportDataReady || creatingReport}
+        onClick={onCreateReport}
+        className="mt-5 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {creatingReport
+          ? "Ø¬Ø§Ø±Ù Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±..."
+          : "Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙˆÙØªØ­ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©"}
+      </button>
+    </section>
+  );
+}
+
+function InfoBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-black text-slate-500">{label}</p>
+      <p className="mt-1 line-clamp-1 text-sm font-black text-slate-900">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function formatDate(value: string) {
+  try {
+    return new Date(value).toLocaleDateString("ar-SA");
+  } catch {
+    return value;
+  }
+}
+
+
+==================== FILE: app\api\dashboard\reports\route.ts ====================
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { logReportCreatedEvent } from "@/lib/admin/activity-events";
+import {
+  mapCaseEntryToReportData,
+  type ReportMappedCase,
+} from "@/lib/report-engine/report-case-data-mapper";
+import {
+  createDefaultTemplateSnapshot,
+  createReportDataSnapshot,
+} from "@/lib/report-engine/report-snapshot";
+
+type CreateReportBody = {
+  caseEntryId?: string;
+  caseId?: string;
+  title?: string;
+  templateId?: string;
+};
+
+function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+function isPublishedBuilderTemplate(templateJson: Record<string, any> | null) {
+  return templateJson?.status === "PUBLISHED" && Array.isArray(templateJson?.pages);
+}
+
+async function createTemplateSnapshotFromDatabase(templateId: string) {
+  const builderTemplate = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  const templateJson =
+    parseBuilderTemplateJson(builderTemplate?.templateJson) ||
+    parseBuilderTemplateJson(builderTemplate?.content);
+
+  if (!builderTemplate || !isPublishedBuilderTemplate(templateJson)) {
+    return createDefaultTemplateSnapshot(templateId);
+  }
+
+  const safeTemplateJson = templateJson as Record<string, any>;
+
+  return {
+    templateId: builderTemplate.id,
+    templateName: builderTemplate.name,
+    version: 1,
+    capturedAt: new Date().toISOString(),
+    source: "TEMPLATE_BUILDER",
+    settings: {
+      showCover: true,
+      defaultTemplate: builderTemplate.id,
+      defaultEvidenceLayout: "grid-2x2",
+      pageSize: "A4",
+      direction: "rtl",
+    },
+    builderTemplate: {
+      ...safeTemplateJson,
+      id: builderTemplate.id,
+      name: builderTemplate.name || safeTemplateJson.name,
+      description:
+        builderTemplate.description ||
+        safeTemplateJson.description ||
+        "Ù‚Ø§Ù„Ø¨ ØªÙ‚Ø±ÙŠØ± Ù…Ø­ÙÙˆØ¸ Ù…Ù† ØµØ§Ù†Ø¹ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨.",
+      serviceSlug:
+        builderTemplate.serviceSlug || safeTemplateJson.serviceSlug || null,
+      status: "PUBLISHED",
+    },
+  };
+}
+
+function buildReportContent(reportData: ReportMappedCase) {
+  const studentLines = reportData.student
+    ? [
+        `Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©: ${reportData.student.fullName}`,
+        `Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©: ${reportData.student.nationalId || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø§Ù„Ù…Ø±Ø­Ù„Ø©: ${reportData.student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ØµÙ: ${reportData.student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ÙØµÙ„: ${reportData.student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianName || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianPhone || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+      ].join("\n")
+    : "Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø·Ø§Ù„Ø¨/Ø·Ø§Ù„Ø¨Ø© Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const valuesLines = reportData.values.length
+    ? reportData.values
+        .map((item, index) => {
+          return `${index + 1}. ${item.fieldLabel}: ${item.value || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ù…Ø­ÙÙˆØ¸Ø© ÙÙŠ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const evidencesLines = reportData.evidences.length
+    ? reportData.evidences
+        .map((item, index) => {
+          return `${index + 1}. ${item.title || item.fileName || "Ø´Ø§Ù‡Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´ÙˆØ§Ù‡Ø¯ Ù…Ø±ÙÙ‚Ø©.";
+
+  return `
+ØªÙ‚Ø±ÙŠØ±: ${reportData.title}
+
+Ø§Ù„Ø®Ø¯Ù…Ø©:
+${reportData.service.name}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©:
+${studentLines}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©:
+Ø±Ù‚Ù… Ø§Ù„Ø­Ø§Ù„Ø©: ${reportData.id}
+Ø­Ø§Ù„Ø© Ø§Ù„Ø³Ø¬Ù„: ${reportData.status}
+ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡: ${new Date(reportData.createdAt).toLocaleDateString("ar-SA")}
+
+Ø§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø³Ø¬Ù„Ø©:
+${valuesLines}
+
+Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯:
+${evidencesLines}
+
+Ù…Ù„Ø®Øµ Ø§Ù„ØªÙ‚Ø±ÙŠØ±:
+ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ù‡Ø°Ø§ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³Ø¬Ù„Ø© ÙÙŠ Ù…Ù†ØµØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØŒ ÙˆÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©ØŒ ÙˆØ§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø¯Ø®Ù„Ø©ØŒ ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…Ø±ÙÙ‚Ø©.
+`.trim();
+}
+
+export async function POST(request: Request) {
+  // subscription-api-guard:POST:requireActiveSubscriptionApi()
+  const subscriptionGuard = await requireActiveSubscriptionApi();
+  if (subscriptionGuard) return subscriptionGuard;
+
+  try {
+    const body = (await request.json()) as CreateReportBody;
+
+    const caseEntryId = body.caseEntryId || body.caseId;
+
+    if (!caseEntryId) {
+      return NextResponse.json(
+        {
+          error: "caseEntryId Ù…Ø·Ù„ÙˆØ¨ Ù„Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const templateId = body.templateId || "official-long";
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: caseEntryId,
+      },
+      include: {
+        service: true,
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+        values: {
+          include: {
+            field: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        caseEvidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const serviceGuard = await requireServiceAccessApi(caseEntry.service.slug);
+    if (serviceGuard) return serviceGuard;
+
+    const reportData = mapCaseEntryToReportData(caseEntry);
+
+    const reportTitle =
+      body.title?.trim() ||
+      `ØªÙ‚Ø±ÙŠØ± - ${reportData.title || reportData.service.name}`;
+
+    const initialContent = buildReportContent(reportData);
+
+    const templateSnapshot = await createTemplateSnapshotFromDatabase(templateId);
+    const reportDataSnapshot = createReportDataSnapshot(reportData);
+
+    const report = await prisma.guidanceReport.create({
+      data: {
+        title: reportTitle,
+        serviceSlug: reportData.service.slug,
+        caseEntryId: reportData.id,
+        genderMode: caseEntry.student?.gender === "FEMALE" ? "FEMALE" : "MALE",
+
+        editableContent: initialContent,
+        renderedContent: initialContent,
+
+        templateId,
+        templateSnapshot,
+        reportDataSnapshot,
+        generatedAt: new Date(),
+
+        evidenceItems: {
+          create: reportData.evidences.map((item, index) => ({
+            fileName: item.fileName || `evidence-${index + 1}`,
+            fileUrl: item.fileUrl,
+            caption: item.note || item.title || item.fileName || null,
+            sortOrder: index,
+            visible: true,
+          })),
+        },
+      },
+      include: {
+        evidenceItems: true,
+      },
+    });
+
+    
+    // audit-log:report-created
+    await logReportCreatedEvent({
+      reportId: report.id,
+      caseEntryId: reportData.id,
+      title: report.title,
+      templateId,
+      serviceSlug: reportData.service.slug,
+      evidenceCount: Array.isArray(report.evidenceItems)
+        ? report.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
+      success: true,
+      reportId: report.id,
+      previewUrl: `/dashboard/reports/${report.id}/preview?template=${templateId}`,
+    });
+  } catch (error) {
+    console.error("create report error:", error);
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 400 }
+    );
+  }
+}
+

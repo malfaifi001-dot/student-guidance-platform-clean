@@ -29,11 +29,6 @@ function normalizeArabicText(value: string) {
     .trim();
 }
 
-const CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
-  positive_behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
-  behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
-};
-
 function cleanTitleText(value: unknown) {
   const text = String(value ?? "").trim();
 
@@ -103,84 +98,6 @@ function stringifyTitleCandidate(value: unknown): string {
   return "";
 }
 
-function extractTitleSelectedValues(value: unknown): string[] {
-  if (value === null || value === undefined) {
-    return [];
-  }
-
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return [String(value)];
-  }
-
-  if (Array.isArray(value)) {
-    return value.flatMap((item) => extractTitleSelectedValues(item));
-  }
-
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-
-    return [
-      ...extractTitleSelectedValues(record.value),
-      ...extractTitleSelectedValues(record.id),
-      ...extractTitleSelectedValues(record.key),
-      ...extractTitleSelectedValues(record.slug),
-      ...extractTitleSelectedValues(record.label),
-      ...extractTitleSelectedValues(record.name),
-    ];
-  }
-
-  return [];
-}
-
-function getArabicOptionLabelFromCaseValue(value: any) {
-  const selectedValues = extractTitleSelectedValues(
-    value?.jsonValue ?? value?.value,
-  );
-
-  if (!selectedValues.length) {
-    return "";
-  }
-
-  const options = Array.isArray(value?.field?.options)
-    ? value.field.options
-    : [];
-
-  for (const selectedValue of selectedValues) {
-    const cleanSelected = String(selectedValue).trim();
-
-    if (!cleanSelected) {
-      continue;
-    }
-
-    const fallbackLabel = CASE_TITLE_FALLBACK_LABELS[cleanSelected];
-
-    if (fallbackLabel) {
-      return fallbackLabel;
-    }
-
-    const option = options.find((item: any) => {
-      return (
-        String(item?.value || "").trim() === cleanSelected ||
-        String(item?.label || "").trim() === cleanSelected
-      );
-    });
-
-    if (option?.label) {
-      return cleanTitleText(option.label);
-    }
-  }
-
-  return "";
-}
-
-function getCaseValueText(value: any) {
-  return (
-    getArabicOptionLabelFromCaseValue(value) ||
-    stringifyTitleCandidate(value?.jsonValue) ||
-    stringifyTitleCandidate(value?.value)
-  );
-}
-
 function isGenericCaseTitle(title: string) {
   const normalized = normalizeArabicText(title);
 
@@ -215,6 +132,13 @@ function isTitleLikeField(value: any) {
     fieldText.includes("النشاط") ||
     fieldText.includes("عنوان") ||
     fieldText.includes("موضوع")
+  );
+}
+
+function getCaseValueText(value: any) {
+  return (
+    stringifyTitleCandidate(value?.jsonValue) ||
+    stringifyTitleCandidate(value?.value)
   );
 }
 
@@ -334,16 +258,6 @@ export default async function CasesPage() {
             select: {
               key: true,
               label: true,
-              options: {
-                orderBy: {
-                  order: "asc",
-                },
-                select: {
-                  label: true,
-                  value: true,
-                  order: true,
-                },
-              },
             },
           },
         },

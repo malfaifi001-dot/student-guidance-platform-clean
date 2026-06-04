@@ -372,12 +372,11 @@ model CaseEntry {
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id])
 
-  workflowId       String?
-  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
-  workflowSnapshot Json?
-  guidanceReports  GuidanceReport[]
-  studentId        String?
-  student          Student?         @relation(fields: [studentId], references: [id])
+  workflowId      String?
+  workflow        Workflow?        @relation(fields: [workflowId], references: [id])
+  guidanceReports GuidanceReport[]
+  studentId       String?
+  student         Student?         @relation(fields: [studentId], references: [id])
 
   createdById String?
   createdBy   User?   @relation(fields: [createdById], references: [id])

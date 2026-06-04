@@ -1,3 +1,378 @@
+﻿UNIFIED CASES CENTER CURRENT FILES
+Generated: 06/04/2026 08:20:24
+
+
+
+==================== FILE: app\dashboard\cases\page.tsx ====================
+import { CasesSearchTable } from "@/components/cases/cases-search-table";
+import { prisma } from "@/lib/prisma";
+
+export default async function CasesPage() {
+  const cases = await prisma.caseEntry.findMany({
+    include: {
+      student: true,
+      service: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 200,
+  });
+
+  const rows = cases.map((caseItem) => ({
+    id: caseItem.id,
+    title: caseItem.title || "Ø¨Ø¯ÙˆÙ† Ø¹Ù†ÙˆØ§Ù†",
+    status: caseItem.status,
+    createdAt: new Date(caseItem.createdAt).toLocaleDateString("ar-SA"),
+    serviceName: caseItem.service?.name || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+    studentName: caseItem.student?.fullName || "ØºÙŠØ± Ù…Ø±ØªØ¨Ø· Ø¨Ø·Ø§Ù„Ø¨",
+  }));
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
+        <p className="text-sm font-semibold text-sky-100">Cases Center</p>
+
+        <h1 className="mt-3 text-4xl font-black">Ø§Ù„Ø­Ø§Ù„Ø§Øª ÙˆØ§Ù„Ø³Ø¬Ù„Ø§Øª</h1>
+
+        <p className="mt-4 max-w-3xl leading-8 text-sky-50">
+          Ù…Ø±ÙƒØ² Ù…ÙˆØ­Ø¯ Ù„Ø§Ø³ØªØ¹Ø±Ø§Ø¶ Ø³Ø¬Ù„Ø§Øª Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø®Ø¯Ù…Ø§Øª ÙˆØ§Ù„Ø¨Ø­Ø« ÙÙŠÙ‡Ø§.
+        </p>
+      </section>
+
+      <CasesSearchTable cases={rows} />
+    </div>
+  );
+}
+
+
+==================== FILE: app\dashboard\cases\[caseId]\page.tsx ====================
+import { notFound, redirect } from "next/navigation";
+
+import { CaseDetailsView } from "@/components/cases/case-details-view";
+import { getCaseById } from "@/engine/cases/case-runtime-engine";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export default async function CaseDetailsPage({ params }: PageProps) {
+  const { caseId } = await params;
+  const context = await requireDashboardPageContext();
+
+  if (!context.isAdmin && !context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  try {
+    const caseEntry = await getCaseById(caseId, {
+      schoolAccountId: context.schoolAccountId,
+      isAdmin: context.isAdmin,
+    });
+
+    return <CaseDetailsView caseEntry={caseEntry} />;
+  } catch {
+    notFound();
+  }
+}
+
+
+
+==================== FILE: app\dashboard\cases\[caseId]\edit\page.tsx ====================
+import { notFound, redirect } from "next/navigation";
+
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { prisma } from "@/lib/prisma";
+import { sortRuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export default async function EditCasePage({ params }: PageProps) {
+  const { caseId } = await params;
+  const context = await requireDashboardPageContext();
+
+  const schoolAccountId = context.schoolAccountId;
+
+  if (!context.isAdmin && !schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  const caseWhere = context.isAdmin
+    ? { id: caseId }
+    : { id: caseId, schoolAccountId: schoolAccountId as string };
+
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: caseWhere,
+    include: {
+      values: true,
+      evidences: true,
+      service: true,
+      workflow: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!caseEntry || !caseEntry.workflow || !caseEntry.service) {
+    notFound();
+  }
+
+  const initialValues = Object.fromEntries(
+    caseEntry.values.map((value) => [
+      value.fieldKey,
+      value.jsonValue ?? value.value,
+    ])
+  );
+
+  const workflow = sortRuntimeWorkflow({
+    id: caseEntry.workflow.id,
+    name: caseEntry.workflow.name,
+    serviceSlug: caseEntry.service.slug,
+    steps: caseEntry.workflow.steps.map((step) => ({
+      id: step.id,
+      title: step.title,
+      description: step.description,
+      order: step.order,
+      fields: step.fields.map((field) => ({
+        id: field.id,
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        placeholder: field.placeholder,
+        helpText: field.helpText,
+        isRequired: field.isRequired,
+        order: field.order,
+        dependsOnFieldKey: field.dependsOnFieldKey,
+        linkedToValue: field.linkedToValue,
+        allowOther: field.allowOther,
+        options: field.options.map((option) => ({
+          id: option.id,
+          label: option.label,
+          value: option.value,
+          order: option.order,
+          linkedToValue: option.linkedToValue,
+        })),
+      })),
+    })),
+  });
+
+  const evidenceItems = caseEntry.evidences.map((item) => ({
+    id: item.id,
+    fileName: item.fileName || "ملف",
+    fileUrl: item.fileUrl || "#",
+    mimeType: item.mimeType || "application/octet-stream",
+    size: item.size || 0,
+  }));
+
+  return (
+    <DynamicFormRenderer
+      workflow={workflow}
+      serviceId={caseEntry.serviceId}
+      caseId={caseEntry.id}
+      title={caseEntry.title ?? undefined}
+      initialValues={initialValues}
+      initialEvidenceItems={evidenceItems}
+    />
+  );
+}
+
+
+
+==================== FILE: components\cases\cases-list.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: components\cases\case-card.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: components\cases\case-details.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: components\cases\case-form.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: components\cases\case-status-badge.tsx ====================
+FILE NOT FOUND
+
+
+==================== FILE: app\api\dashboard\cases\route.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: app\api\dashboard\cases\[caseId]\route.ts ====================
+import { NextResponse } from "next/server";
+import {
+  updateRuntimeCase,
+  getCaseById,
+} from "@/engine/cases/case-runtime-engine";
+import { logCaseSavedEvent } from "@/lib/admin/activity-events";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export async function GET(_request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const { caseId } = await context.params;
+
+    const caseEntry = await getCaseById(caseId, {
+      schoolAccountId: authResult.schoolAccountId,
+      isAdmin: authResult.isAdmin,
+    });
+
+    return NextResponse.json({
+      success: true,
+      caseEntry,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء جلب الحالة.",
+      },
+      { status: 404 }
+    );
+  }
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const { caseId } = await context.params;
+    const body = await request.json();
+
+    const result = await updateRuntimeCase({
+      caseId,
+      schoolAccountId: authResult.schoolAccountId,
+      isAdmin: authResult.isAdmin,
+      title: body.title,
+      studentId: body.studentId,
+      values: body.values || {},
+      evidenceItems: Array.isArray(body.evidenceItems)
+        ? body.evidenceItems
+        : [],
+      status: body.status,
+    });
+
+    await logCaseSavedEvent({
+      caseId: result.id,
+      status: result.status === "SUBMITTED" ? "SUBMITTED" : "DRAFT",
+      title: result.title || null,
+      workflowId: result.workflowId || null,
+      serviceId: result.serviceId || null,
+      serviceSlug: result.service?.slug || null,
+      studentId: result.studentId || null,
+      valueCount: Array.isArray(result.values) ? result.values.length : 0,
+      evidenceCount: Array.isArray(result.evidences)
+        ? result.evidences.length
+        : 0,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "تم تحديث الحالة بنجاح.",
+      caseId: result.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تحديث الحالة.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+
+==================== FILE: app\api\dashboard\cases\[caseId]\status\route.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: app\api\dashboard\cases\[caseId]\evidence\route.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: lib\cases\case-service.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: lib\cases\case-status.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: lib\cases\case-permissions.ts ====================
+FILE NOT FOUND
+
+
+==================== FILE: prisma\schema.prisma ====================
 generator client {
   provider = "prisma-client-js"
 }
@@ -372,12 +747,11 @@ model CaseEntry {
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id])
 
-  workflowId       String?
-  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
-  workflowSnapshot Json?
-  guidanceReports  GuidanceReport[]
-  studentId        String?
-  student          Student?         @relation(fields: [studentId], references: [id])
+  workflowId      String?
+  workflow        Workflow?        @relation(fields: [workflowId], references: [id])
+  guidanceReports GuidanceReport[]
+  studentId       String?
+  student         Student?         @relation(fields: [studentId], references: [id])
 
   createdById String?
   createdBy   User?   @relation(fields: [createdById], references: [id])
@@ -968,3 +1342,4 @@ model PlatformActivityLog {
   @@index([action])
   @@index([createdAt])
 }
+

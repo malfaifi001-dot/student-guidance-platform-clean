@@ -28,11 +28,6 @@ function parseTemplateJson(value: unknown) {
 }
 
 
-const REPORT_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
-  positive_behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
-  behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
-};
-
 function normalizeReportCaseTitleText(value: string) {
   return value
     .toLowerCase()
@@ -138,80 +133,6 @@ function isReportCaseTitleField(value: any) {
   );
 }
 
-function extractReportCaseTitleSelectedValues(value: unknown): string[] {
-  if (value === null || value === undefined) {
-    return [];
-  }
-
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return [String(value)];
-  }
-
-  if (Array.isArray(value)) {
-    return value.flatMap((item) => extractReportCaseTitleSelectedValues(item));
-  }
-
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-
-    return [
-      ...extractReportCaseTitleSelectedValues(record.value),
-      ...extractReportCaseTitleSelectedValues(record.id),
-      ...extractReportCaseTitleSelectedValues(record.key),
-      ...extractReportCaseTitleSelectedValues(record.slug),
-      ...extractReportCaseTitleSelectedValues(record.label),
-      ...extractReportCaseTitleSelectedValues(record.name),
-    ];
-  }
-
-  return [];
-}
-
-function getReportCaseOptionLabel(value: any) {
-  const selectedValues = extractReportCaseTitleSelectedValues(
-    value?.jsonValue ?? value?.value,
-  );
-
-  const options = Array.isArray(value?.field?.options)
-    ? value.field.options
-    : [];
-
-  for (const selectedValue of selectedValues) {
-    const cleanSelected = String(selectedValue).trim();
-
-    if (!cleanSelected) {
-      continue;
-    }
-
-    const fallbackLabel = REPORT_CASE_TITLE_FALLBACK_LABELS[cleanSelected];
-
-    if (fallbackLabel) {
-      return fallbackLabel;
-    }
-
-    const option = options.find((item: any) => {
-      return (
-        String(item?.value || "").trim() === cleanSelected ||
-        String(item?.label || "").trim() === cleanSelected
-      );
-    });
-
-    if (option?.label) {
-      return cleanReportCaseTitle(option.label);
-    }
-  }
-
-  return "";
-}
-
-function getReportCaseValueTitle(value: any) {
-  return (
-    getReportCaseOptionLabel(value) ||
-    stringifyReportCaseTitleCandidate(value?.jsonValue) ||
-    stringifyReportCaseTitleCandidate(value?.value)
-  );
-}
-
 function getSmartReportCaseTitle(caseEntry: any) {
   const values = Array.isArray(caseEntry.values) ? caseEntry.values : [];
 
@@ -220,7 +141,9 @@ function getSmartReportCaseTitle(caseEntry: any) {
       continue;
     }
 
-    const candidate = getReportCaseValueTitle(value);
+    const candidate =
+      stringifyReportCaseTitleCandidate(value?.jsonValue) ||
+      stringifyReportCaseTitleCandidate(value?.value);
 
     if (candidate && !isGenericReportCaseTitle(candidate)) {
       return candidate;
@@ -258,15 +181,7 @@ export default async function NewReportPage({
         },
         values: {
           include: {
-            field: {
-              include: {
-                options: {
-                  orderBy: {
-                    order: "asc",
-                  },
-                },
-              },
-            },
+            field: true,
           },
           orderBy: {
             createdAt: "asc",

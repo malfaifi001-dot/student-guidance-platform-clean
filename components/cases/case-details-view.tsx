@@ -1,3 +1,14 @@
+﻿import Link from "next/link";
+import {
+  ArrowRight,
+  CalendarDays,
+  ClipboardList,
+  FileText,
+  ImageIcon,
+  PencilLine,
+  UserRound,
+} from "lucide-react";
+
 import { CaseValueRenderer } from "@/components/cases/case-value-renderer";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
 import {
@@ -14,6 +25,12 @@ type CaseDetailsViewProps = {
 type FieldLookupItem = WorkflowFieldLike & {
   key?: string | null;
   label?: string | null;
+};
+
+const SMART_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
+  positive_behavior_discipline:
+    "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+  behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
 };
 
 function buildFieldMap(caseEntry: any) {
@@ -36,20 +53,17 @@ function buildFieldMap(caseEntry: any) {
 }
 
 function shouldHideCaseValue(fieldKey: string) {
-  return [
-    "student",
-    "guardian",
-    "metadata",
-    "selectedStudent",
-  ].includes(fieldKey) || fieldKey.endsWith("__other");
+  return (
+    ["student", "guardian", "metadata", "selectedStudent"].includes(fieldKey) ||
+    fieldKey.endsWith("__other")
+  );
 }
 
 function normalizeCaseValue(
   value: any,
-  fieldMap: Map<string, FieldLookupItem>
+  fieldMap: Map<string, FieldLookupItem>,
 ): WorkflowValueLike {
   const fieldKey = value.field?.key || value.fieldKey || "";
-
   const fieldFromWorkflow = fieldMap.get(fieldKey);
 
   return {
@@ -85,16 +99,274 @@ function formatCommitteeRows(value: unknown) {
     return {
       "جدول الأعمال": item.agendaOther || item.agenda || "—",
       "محور النقاش": item.discussionOther || item.discussion || "—",
-      "التوصية": item.recommendationOther || item.recommendation || "—",
+      التوصية: item.recommendationOther || item.recommendation || "—",
     };
   });
 }
 
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function getCaseStatusLabel(status: string) {
+  if (status === "DRAFT") return "مسودة";
+  if (status === "SUBMITTED") return "مرسلة";
+  if (status === "ARCHIVED") return "مؤرشفة";
+
+  return status || "غير محدد";
+}
+
+function getReportStatusLabel(status?: string | null) {
+  if (status === "DRAFT") return "مسودة";
+  if (status === "GENERATED") return "مولد";
+  if (status === "APPROVED") return "معتمد";
+  if (status === "ARCHIVED") return "مؤرشف";
+
+  return status || "غير محدد";
+}
+
+function normalizeSmartCaseTitleText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanSmartCaseTitle(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  if (!text || text === "null" || text === "undefined" || text.length > 140) {
+    return "";
+  }
+
+  return text;
+}
+
+function stringifySmartCaseTitleCandidate(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return cleanSmartCaseTitle(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const candidate = stringifySmartCaseTitleCandidate(item);
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    for (const key of [
+      "program_name",
+      "programName",
+      "program",
+      "guidanceProgram",
+      "guidance_program",
+      "selectedProgram",
+      "activityName",
+      "activity_name",
+      "title",
+      "name",
+      "label",
+      "value",
+    ]) {
+      const candidate = stringifySmartCaseTitleCandidate(record[key]);
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+  }
+
+  return "";
+}
+
+function isGenericSmartCaseTitle(title: string) {
+  const normalized = normalizeSmartCaseTitleText(title);
+
+  return (
+    !normalized ||
+    normalized === "بدون عنوان" ||
+    normalized === "حاله بدون عنوان" ||
+    normalized === "حالة بدون عنوان" ||
+    normalized === "حاله جديده" ||
+    normalized === "حالة جديدة" ||
+    normalized.includes("برنامج ارشادي جديد") ||
+    normalized.includes("positive_behavior_discipline")
+  );
+}
+
+function extractSmartCaseTitleSelectedValues(value: unknown): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return [String(value)];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractSmartCaseTitleSelectedValues(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return [
+      ...extractSmartCaseTitleSelectedValues(record.value),
+      ...extractSmartCaseTitleSelectedValues(record.id),
+      ...extractSmartCaseTitleSelectedValues(record.key),
+      ...extractSmartCaseTitleSelectedValues(record.slug),
+      ...extractSmartCaseTitleSelectedValues(record.label),
+      ...extractSmartCaseTitleSelectedValues(record.name),
+    ];
+  }
+
+  return [];
+}
+
+function isSmartTitleLikeCaseField(value: any) {
+  const text = normalizeSmartCaseTitleText(
+    [value?.fieldKey, value?.field?.key, value?.field?.label]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  return (
+    text.includes("program") ||
+    text.includes("activity") ||
+    text.includes("title") ||
+    text.includes("برنامج") ||
+    text.includes("النشاط") ||
+    text.includes("عنوان") ||
+    text.includes("موضوع")
+  );
+}
+
+function getSmartCaseOptionLabel(value: any) {
+  const selectedValues = extractSmartCaseTitleSelectedValues(
+    value?.jsonValue ?? value?.value,
+  );
+
+  const options = Array.isArray(value?.field?.options)
+    ? value.field.options
+    : [];
+
+  for (const selectedValue of selectedValues) {
+    const cleanSelected = String(selectedValue).trim();
+
+    if (!cleanSelected) {
+      continue;
+    }
+
+    const fallbackLabel = SMART_CASE_TITLE_FALLBACK_LABELS[cleanSelected];
+
+    if (fallbackLabel) {
+      return fallbackLabel;
+    }
+
+    const option = options.find((item: any) => {
+      return (
+        String(item?.value || "").trim() === cleanSelected ||
+        String(item?.label || "").trim() === cleanSelected
+      );
+    });
+
+    if (option?.label) {
+      return cleanSmartCaseTitle(option.label);
+    }
+  }
+
+  return "";
+}
+
+function getSmartCaseValueTitle(value: any) {
+  return (
+    getSmartCaseOptionLabel(value) ||
+    stringifySmartCaseTitleCandidate(value?.jsonValue) ||
+    stringifySmartCaseTitleCandidate(value?.value)
+  );
+}
+
+function getSmartCaseDisplayTitle(caseEntry: any) {
+  const values = Array.isArray(caseEntry.values) ? caseEntry.values : [];
+
+  for (const value of values) {
+    if (!isSmartTitleLikeCaseField(value)) {
+      continue;
+    }
+
+    const candidate = getSmartCaseValueTitle(value);
+
+    if (candidate && !isGenericSmartCaseTitle(candidate)) {
+      return candidate;
+    }
+  }
+
+  const savedTitle = cleanSmartCaseTitle(caseEntry.title);
+
+  if (savedTitle && !isGenericSmartCaseTitle(savedTitle)) {
+    return savedTitle;
+  }
+
+  return caseEntry.service?.name || "تفاصيل الحالة";
+}
+
+function getLatestReport(caseEntry: any) {
+  return Array.isArray(caseEntry.guidanceReports)
+    ? caseEntry.guidanceReports[0] || null
+    : null;
+}
+
+function getReportPreviewUrl(report: any) {
+  if (!report?.id) {
+    return "";
+  }
+
+  return `/dashboard/reports/${report.id}/preview${
+    report.templateId ? `?template=${encodeURIComponent(report.templateId)}` : ""
+  }`;
+}
+
 export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
+  const displayTitle = getSmartCaseDisplayTitle(caseEntry);
   const fieldMap = buildFieldMap(caseEntry);
+  const latestReport = getLatestReport(caseEntry);
+  const latestReportUrl = getReportPreviewUrl(latestReport);
 
   const workflowValues: WorkflowValueLike[] = caseEntry.values.map((value: any) =>
-    normalizeCaseValue(value, fieldMap)
+    normalizeCaseValue(value, fieldMap),
   );
 
   const displayValues = caseEntry.values
@@ -113,57 +385,128 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
       size: item.size || 0,
     })) || [];
 
+  const primaryReportHref =
+    latestReportUrl || `/dashboard/reports/new?caseId=${caseEntry.id}`;
+
   return (
-    <div className="space-y-8">
-      <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-8 text-white shadow-xl">
-        <p className="text-sm font-semibold text-sky-100">Case Viewer</p>
+    <div className="space-y-5" dir="rtl">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-start">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
+                ملف الحالة
+              </span>
 
-        <h1 className="mt-3 text-4xl font-black">
-          {caseEntry.title || "تفاصيل الحالة"}
-        </h1>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                {getCaseStatusLabel(caseEntry.status)}
+              </span>
 
-        <p className="mt-4 max-w-3xl leading-8 text-sky-50">
-          عرض موحد ومنظم للحالات المحفوظة من جميع الخدمات.
-        </p>
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                {caseEntry.service?.name || "خدمة غير محددة"}
+              </span>
+
+              {latestReport ? (
+                <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+                  تقرير: {getReportStatusLabel(latestReport.status)}
+                </span>
+              ) : null}
+
+              {evidenceItems.length > 0 ? (
+                <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                  {evidenceItems.length} شواهد
+                </span>
+              ) : null}
+            </div>
+
+            <h1 className="mt-4 text-3xl font-black leading-10 text-slate-950">
+              {displayTitle}
+            </h1>
+
+            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              راجع بيانات الحالة، ثم استكملها أو أصدر التقرير من نفس الصفحة.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 xl:justify-end">
+            <Link
+              href="/dashboard/cases"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              <ArrowRight className="h-4 w-4" />
+              مركز الحالات
+            </Link>
+
+            <Link
+              href={`/dashboard/cases/${caseEntry.id}/edit`}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              <PencilLine className="h-4 w-4" />
+              متابعة الحالة
+            </Link>
+
+            <Link
+              href={primaryReportHref}
+              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
+            >
+              <FileText className="h-4 w-4" />
+              {latestReport ? "فتح التقرير" : "إصدار تقرير"}
+            </Link>
+          </div>
+        </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">الخدمة</p>
-          <p className="mt-2 text-lg font-black text-slate-900">
-            {caseEntry.service?.name || "—"}
-          </p>
-        </div>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard
+          icon={<ClipboardList className="h-5 w-5" />}
+          label="الخدمة"
+          value={caseEntry.service?.name || "غير محددة"}
+        />
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">الطالب/الطالبة</p>
-          <p className="mt-2 text-lg font-black text-slate-900">
-            {caseEntry.student?.fullName || "غير مرتبط بطالب"}
-          </p>
-        </div>
+        {caseEntry.student ? (
+          <SummaryCard
+            icon={<UserRound className="h-5 w-5" />}
+            label="الطالب/الطالبة"
+            value={caseEntry.student.fullName}
+            helper={[
+              caseEntry.student.stage,
+              caseEntry.student.grade,
+              caseEntry.student.classroom
+                ? `فصل ${caseEntry.student.classroom}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          />
+        ) : null}
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">الحالة</p>
-          <p className="mt-2 text-lg font-black text-slate-900">
-            {caseEntry.status}
-          </p>
-        </div>
+        <SummaryCard
+          icon={<CalendarDays className="h-5 w-5" />}
+          label="آخر تحديث"
+          value={formatDate(caseEntry.updatedAt || caseEntry.createdAt)}
+        />
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">التاريخ</p>
-          <p className="mt-2 text-lg font-black text-slate-900">
-            {new Date(caseEntry.createdAt).toLocaleDateString("ar-SA")}
-          </p>
-        </div>
+        {evidenceItems.length > 0 ? (
+          <SummaryCard
+            icon={<ImageIcon className="h-5 w-5" />}
+            label="الشواهد"
+            value={`${evidenceItems.length} شاهد`}
+          />
+        ) : null}
       </section>
 
       {caseEntry.student ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-black text-slate-900">
-            بيانات الطالب/الطالبة
-          </h2>
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black text-sky-600">سياق الطالب</p>
+              <h2 className="mt-1 text-xl font-black text-slate-950">
+                بيانات الطالب/الطالبة
+              </h2>
+            </div>
+          </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
             <CaseValueRenderer label="الاسم" value={caseEntry.student.fullName} />
             <CaseValueRenderer label="المرحلة" value={caseEntry.student.stage} />
             <CaseValueRenderer label="الصف" value={caseEntry.student.grade} />
@@ -180,10 +523,18 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
         </section>
       ) : null}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-black text-slate-900">بيانات الحالة</h2>
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <div>
+          <p className="text-xs font-black text-sky-600">بيانات Workflow</p>
+          <h2 className="mt-1 text-xl font-black text-slate-950">
+            بيانات الحالة
+          </h2>
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            القيم المحفوظة من نموذج الخدمة.
+          </p>
+        </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
           {displayValues.map((value: WorkflowValueLike, index: number) => {
             const key = value.field?.key || value.fieldKey || "";
             const label = getWorkflowFieldLabel(value, index);
@@ -211,16 +562,53 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
       </section>
 
       {evidenceItems.length > 0 ? (
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-black text-slate-900">
-            الشواهد والمرفقات
-          </h2>
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <p className="text-xs font-black text-violet-600">
+              الشواهد والمرفقات
+            </p>
+            <h2 className="mt-1 text-xl font-black text-slate-950">
+              شواهد الحالة
+            </h2>
+          </div>
 
-          <div className="mt-6">
+          <div className="mt-5">
             <EvidencePreviewGrid items={evidenceItems} />
           </div>
         </section>
       ) : null}
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+  helper,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  helper?: string | null;
+}) {
+  return (
+    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-sky-700">
+          {icon}
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-xs font-black text-slate-400">{label}</p>
+          <p className="mt-1 text-sm font-black leading-6 text-slate-950">
+            {value || "غير محدد"}
+          </p>
+          {helper ? (
+            <p className="mt-1 text-xs font-bold text-slate-500">{helper}</p>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }

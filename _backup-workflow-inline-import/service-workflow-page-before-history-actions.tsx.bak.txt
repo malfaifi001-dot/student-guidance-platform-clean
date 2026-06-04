@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { ArrowUpLeft } from "lucide-react";
 
 import { WorkflowHealthReport } from "@/components/admin/workflow-health/workflow-health-report";
-import { WorkflowHistoryActions } from "@/components/admin/workflows/workflow-history-actions";
 import { WorkflowInlineImportWorkbench } from "@/components/admin/workflows/workflow-inline-import-workbench";
 import { WorkflowPublishPanel } from "@/components/admin/workflows/workflow-publish-panel";
 import { validateWorkflow } from "@/engine/workflow-validation/workflow-validator";
@@ -81,10 +80,6 @@ function countWorkflowOptions(workflow: any) {
   );
 }
 
-function formatCasesUsageCount(count: number) {
-  return new Intl.NumberFormat("ar-SA").format(count);
-}
-
 export default async function ServiceWorkflowPage({ params }: PageProps) {
   await requireAdminPage();
 
@@ -112,11 +107,6 @@ export default async function ServiceWorkflowPage({ params }: PageProps) {
                   options: true,
                 },
               },
-            },
-          },
-          _count: {
-            select: {
-              cases: true,
             },
           },
         },
@@ -218,7 +208,7 @@ export default async function ServiceWorkflowPage({ params }: PageProps) {
         activeWorkflowName={activeWorkflow?.name}
       />
 
-      <WorkflowUploadHistorySection serviceSlug={serviceSlug} workflows={workflows} />
+      <WorkflowUploadHistorySection workflows={workflows} />
 
       {healthReport ? <WorkflowHealthReport report={healthReport} /> : null}
 
@@ -345,7 +335,7 @@ export default async function ServiceWorkflowPage({ params }: PageProps) {
 }
 
 
-function WorkflowUploadHistorySection({ serviceSlug, workflows }: { serviceSlug: string; workflows: any[] }) {
+function WorkflowUploadHistorySection({ workflows }: { workflows: any[] }) {
   const sortedWorkflows = [...workflows].sort((a, b) => {
     if (a.isActive && !b.isActive) return -1;
     if (!a.isActive && b.isActive) return 1;
@@ -426,17 +416,6 @@ function WorkflowUploadHistorySection({ serviceSlug, workflows }: { serviceSlug:
                   ) : null}
                 </div>
 
-                <div className="mt-4 flex justify-end">
-                  <WorkflowHistoryActions
-                    serviceSlug={serviceSlug}
-                    workflowId={workflow.id}
-                    workflowName={workflow.name}
-                    previewHref={`/dashboard/admin/workflows/${serviceSlug}/preview?workflowId=${workflow.id}`}
-                    isActive={workflow.isActive}
-                    casesCount={workflow._count?.cases || 0}
-                  />
-                </div>
-
                 <div className="mt-5 grid gap-2 sm:grid-cols-3">
                   <WorkflowHistoryMetric
                     label="الخطوات"
@@ -453,12 +432,6 @@ function WorkflowUploadHistorySection({ serviceSlug, workflows }: { serviceSlug:
                     value={countWorkflowOptions(workflow)}
                   />
                 </div>
-
-                {(workflow._count?.cases || 0) > 0 ? (
-                  <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-black leading-6 text-amber-800 ring-1 ring-amber-100">
-                    مستخدم في {formatCasesUsageCount(workflow._count?.cases || 0)} حالات — لا يمكن حذفه أو تعديله حفاظًا على الحالات السابقة.
-                  </div>
-                ) : null}
 
                 <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold leading-6 text-slate-500">
                   {workflow.status === "DRAFT"

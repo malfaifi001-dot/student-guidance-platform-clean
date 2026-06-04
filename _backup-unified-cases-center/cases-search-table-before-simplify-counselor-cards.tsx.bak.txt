@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ClipboardList,
@@ -8,9 +7,9 @@ import {
   Eye,
   FileText,
   Filter,
-  ImageIcon,
   PencilLine,
   Search,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -79,6 +78,7 @@ type CasesSearchTableProps = {
 };
 
 type CaseTab =
+  | "my"
   | "all"
   | "drafts"
   | "readyForReport"
@@ -108,10 +108,9 @@ function getReportUrl(caseItem: CaseRow) {
 function getCasePrimaryAction(caseItem: CaseRow) {
   if (caseItem.status === "DRAFT") {
     return {
-      label: "استكمال",
+      label: "استكمال المسودة",
       href: `/dashboard/cases/${caseItem.id}/edit`,
       className: "bg-slate-950 text-white hover:bg-slate-800",
-      icon: <PencilLine className="h-4 w-4" />,
     };
   }
 
@@ -120,7 +119,6 @@ function getCasePrimaryAction(caseItem: CaseRow) {
       label: "فتح التقرير",
       href: caseItem.latestReport.previewUrl,
       className: "bg-emerald-700 text-white hover:bg-emerald-800",
-      icon: <FileText className="h-4 w-4" />,
     };
   }
 
@@ -128,24 +126,23 @@ function getCasePrimaryAction(caseItem: CaseRow) {
     label: "إصدار تقرير",
     href: getReportUrl(caseItem),
     className: "bg-sky-700 text-white hover:bg-sky-800",
-    icon: <FileText className="h-4 w-4" />,
   };
 }
 
 function getNextActionText(caseItem: CaseRow) {
   if (caseItem.status === "DRAFT") {
-    return "استكمال المسودة";
+    return "تحتاج استكمال قبل التقرير";
   }
 
   if (caseItem.reportsCount > 0) {
-    return "مراجعة التقرير";
+    return "لها تقرير جاهز للمراجعة";
   }
 
   if (caseItem.status === "SUBMITTED") {
-    return "إصدار تقرير";
+    return "جاهزة لإصدار تقرير";
   }
 
-  return "متابعة";
+  return "متابعة الحالة";
 }
 
 function statLabel(value: number) {
@@ -155,22 +152,28 @@ function statLabel(value: number) {
 export function CasesSearchTable({
   cases,
   viewerName = "الموجه/الموجهة",
+  isAdmin = false,
 }: CasesSearchTableProps) {
   const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<CaseTab>("all");
+  const [activeTab, setActiveTab] = useState<CaseTab>(() =>
+    cases.some((item) => item.isMine) ? "my" : "all",
+  );
   const [selectedService, setSelectedService] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedReportState, setSelectedReportState] = useState("all");
 
   const stats = useMemo(() => {
+    const myCases = cases.filter((item) => item.isMine);
+    const source = myCases.length ? myCases : cases;
+
     return {
-      total: cases.length,
-      drafts: cases.filter((item) => item.status === "DRAFT").length,
-      readyForReport: cases.filter(
+      total: source.length,
+      drafts: source.filter((item) => item.status === "DRAFT").length,
+      readyForReport: source.filter(
         (item) => item.status === "SUBMITTED" && item.reportsCount === 0,
       ).length,
-      withReports: cases.filter((item) => item.reportsCount > 0).length,
-      withEvidence: cases.filter((item) => item.evidencesCount > 0).length,
+      withReports: source.filter((item) => item.reportsCount > 0).length,
+      withEvidence: source.filter((item) => item.evidencesCount > 0).length,
     };
   }, [cases]);
 
@@ -191,19 +194,17 @@ export function CasesSearchTable({
     const keyword = normalizeText(query);
 
     return cases.filter((caseItem) => {
+      if (activeTab === "my" && !caseItem.isMine) return false;
       if (activeTab === "drafts" && caseItem.status !== "DRAFT") return false;
-
       if (
         activeTab === "readyForReport" &&
         !(caseItem.status === "SUBMITTED" && caseItem.reportsCount === 0)
       ) {
         return false;
       }
-
       if (activeTab === "withReports" && caseItem.reportsCount === 0) {
         return false;
       }
-
       if (activeTab === "withEvidence" && caseItem.evidencesCount === 0) {
         return false;
       }
@@ -271,41 +272,49 @@ export function CasesSearchTable({
     count: number;
   }> = [
     {
+      id: "my",
+      label: "حالاتي",
+      helper: "الحالات التي أنشأتها أو تعمل عليها.",
+      count: cases.filter((item) => item.isMine).length,
+    },
+    {
       id: "all",
-      label: "كل الحالات",
-      helper: "كل ما يحتاج متابعة.",
+      label: isAdmin ? "كل الحالات" : "كل حالات مدرستي",
+      helper: "سياق المدرسة عند الحاجة.",
       count: cases.length,
     },
     {
       id: "drafts",
       label: "المسودات",
-      helper: "لم تكتمل بعد.",
-      count: stats.drafts,
+      helper: "تحتاج استكمال.",
+      count: cases.filter((item) => item.status === "DRAFT").length,
     },
     {
       id: "readyForReport",
       label: "جاهزة للتقرير",
-      helper: "مرسلة بلا تقرير.",
-      count: stats.readyForReport,
+      helper: "مرسلة ولا تملك تقريرًا.",
+      count: cases.filter(
+        (item) => item.status === "SUBMITTED" && item.reportsCount === 0,
+      ).length,
     },
     {
       id: "withReports",
       label: "لها تقارير",
-      helper: "تم إصدار تقرير.",
-      count: stats.withReports,
+      helper: "صدرت لها تقارير.",
+      count: cases.filter((item) => item.reportsCount > 0).length,
     },
     {
       id: "withEvidence",
       label: "لها شواهد",
-      helper: "تحتوي مرفقات.",
-      count: stats.withEvidence,
+      helper: "تحتوي مرفقات داعمة.",
+      count: cases.filter((item) => item.evidencesCount > 0).length,
     },
   ];
 
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-5 xl:grid-cols-[1fr_360px] xl:items-center">
+      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-sky-50 to-emerald-50 p-5 shadow-sm">
+        <div className="grid gap-5 xl:grid-cols-[1fr_420px] xl:items-center">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
@@ -313,8 +322,8 @@ export function CasesSearchTable({
                 مركز متابعة الحالات
               </span>
 
-              <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
-                واجهة عمل الموجه
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                مخصص لعمل الموجه اليومي
               </span>
             </div>
 
@@ -322,17 +331,33 @@ export function CasesSearchTable({
               أهلاً {viewerName}
             </h1>
 
-            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
-              ركّز على ما يحتاج إجراء: استكمال مسودة، إصدار تقرير، أو مراجعة
-              حالة مرتبطة بطالب أو شواهد.
+            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-600">
+              تابع الحالات، استكمل المسودات، راقب الشواهد، وأصدر التقارير من
+              مكان واحد بدون الرجوع بين صفحات كثيرة.
             </p>
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
-            <MiniStat label="كل الحالات" value={statLabel(stats.total)} />
-            <MiniStat label="مسودات" value={statLabel(stats.drafts)} />
-            <MiniStat label="جاهزة للتقرير" value={statLabel(stats.readyForReport)} />
-            <MiniStat label="تقارير" value={statLabel(stats.withReports)} />
+            <MiniStat
+              label="حالات المتابعة"
+              value={statLabel(stats.total)}
+              tone="slate"
+            />
+            <MiniStat
+              label="مسودات تحتاج استكمال"
+              value={statLabel(stats.drafts)}
+              tone="amber"
+            />
+            <MiniStat
+              label="جاهزة للتقرير"
+              value={statLabel(stats.readyForReport)}
+              tone="sky"
+            />
+            <MiniStat
+              label="تقارير صادرة"
+              value={statLabel(stats.withReports)}
+              tone="emerald"
+            />
           </div>
         </div>
       </section>
@@ -345,8 +370,8 @@ export function CasesSearchTable({
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="ابحث باسم الطالب، الخدمة، ولي الأمر، أو عنوان الحالة..."
-              className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pr-12 pl-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+              placeholder="ابحث باسم الطالب، الخدمة، ولي الأمر، العنوان، أو حالة المتابعة..."
+              className="h-13 w-full rounded-2xl border border-slate-200 bg-slate-50 pr-12 pl-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
             />
           </div>
 
@@ -399,7 +424,7 @@ export function CasesSearchTable({
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={[
-                  "min-w-[145px] rounded-2xl border px-4 py-3 text-right transition",
+                  "min-w-[150px] rounded-2xl border px-4 py-3 text-right transition",
                   active
                     ? "border-sky-300 bg-sky-50 shadow-sm"
                     : "border-slate-200 bg-slate-50 hover:bg-white",
@@ -452,8 +477,8 @@ export function CasesSearchTable({
             </h2>
 
             <p className="mx-auto mt-2 max-w-xl text-sm font-bold leading-7 text-slate-500">
-              جرّب تخفيف الفلاتر أو البحث باسم الطالب أو الخدمة. الحالات
-              الجديدة ستظهر هنا بعد حفظها.
+              جرّب تخفيف الفلاتر أو البحث باسم الطالب/الطالبة أو الخدمة. عند
+              حفظ حالات جديدة ستظهر هنا مباشرة.
             </p>
           </div>
         ) : null}
@@ -462,11 +487,26 @@ export function CasesSearchTable({
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function MiniStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "slate" | "amber" | "sky" | "emerald";
+}) {
+  const tones = {
+    slate: "bg-white text-slate-950 ring-slate-200",
+    amber: "bg-amber-50 text-amber-900 ring-amber-100",
+    sky: "bg-sky-50 text-sky-900 ring-sky-100",
+    emerald: "bg-emerald-50 text-emerald-900 ring-emerald-100",
+  };
+
   return (
-    <div className="rounded-3xl bg-slate-50 p-4 ring-1 ring-slate-100">
-      <p className="text-xs font-black text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-black text-slate-950">{value}</p>
+    <div className={["rounded-3xl p-4 ring-1", tones[tone]].join(" ")}>
+      <p className="text-xs font-black opacity-70">{label}</p>
+      <p className="mt-2 text-2xl font-black">{value}</p>
     </div>
   );
 }
@@ -478,7 +518,7 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
     "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
 
   return (
-    <article className="flex h-full flex-col rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md">
+    <article className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -488,25 +528,17 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
 
             {caseItem.isMine ? (
               <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
-                من إنشائك
+                من حالاتي
               </span>
-            ) : null}
+            ) : (
+              <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-100">
+                ضمن المدرسة
+              </span>
+            )}
 
             <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
               {caseItem.service.name}
             </span>
-
-            {caseItem.latestReport ? (
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
-                تقرير: {caseItem.latestReport.statusLabel}
-              </span>
-            ) : null}
-
-            {caseItem.evidencesCount > 0 ? (
-              <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
-                {statLabel(caseItem.evidencesCount)} شواهد
-              </span>
-            ) : null}
           </div>
 
           <h2 className="mt-3 text-xl font-black leading-8 text-slate-950">
@@ -514,18 +546,23 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
           </h2>
 
           <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-            الخدمة: {caseItem.service.name} · آخر تحديث: {caseItem.updatedAtLabel}
-            {caseItem.workflow?.name ? ` · ${caseItem.workflow.name}` : ""}
+            آخر تحديث: {caseItem.updatedAtLabel}
+            {caseItem.workflow?.name ? ` · النموذج: ${caseItem.workflow.name}` : ""}
           </p>
         </div>
 
-
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
+          <p className="text-[11px] font-black text-slate-400">الإجراء المقترح</p>
+          <p className="mt-1 text-xs font-black text-slate-700">
+            {getNextActionText(caseItem)}
+          </p>
+        </div>
       </div>
 
-      {caseItem.student ? (
-        <section className="mt-4 rounded-3xl border border-slate-100 bg-slate-50 p-4">
+      <div className="mt-5 grid gap-3 md:grid-cols-[1.2fr_1fr]">
+        <section className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-slate-100">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-slate-100">
               <UserRound className="h-5 w-5" />
             </div>
 
@@ -535,26 +572,75 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
               </p>
 
               <p className="mt-1 text-sm font-black text-slate-900">
-                {caseItem.student.fullName}
+                {caseItem.student?.fullName || "غير مرتبطة بطالب"}
               </p>
 
               <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                {caseItem.student.meta}
+                {caseItem.student?.meta || "هذه الحالة قد تكون لفئة أو نشاط عام."}
               </p>
+
+              {caseItem.student?.guardianName || caseItem.student?.guardianPhone ? (
+                <p className="mt-2 rounded-2xl bg-white px-3 py-2 text-[11px] font-bold text-slate-500">
+                  ولي الأمر: {caseItem.student.guardianName || "غير محدد"}
+                  {caseItem.student.guardianPhone
+                    ? ` · ${caseItem.student.guardianPhone}`
+                    : ""}
+                </p>
+              ) : null}
             </div>
           </div>
         </section>
-      ) : null}
 
-      <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-2 text-xs font-black text-slate-500">
-        الإجراء التالي: {getNextActionText(caseItem)}
+        <section className="grid gap-2 sm:grid-cols-3 md:grid-cols-1">
+          <SmallMetric
+            icon={<ClipboardList className="h-4 w-4" />}
+            label="القيم المسجلة"
+            value={statLabel(caseItem.valuesCount)}
+          />
+
+          <SmallMetric
+            icon={<Sparkles className="h-4 w-4" />}
+            label="الشواهد"
+            value={statLabel(caseItem.evidencesCount)}
+          />
+
+          <SmallMetric
+            icon={<FileText className="h-4 w-4" />}
+            label="التقارير"
+            value={statLabel(caseItem.reportsCount)}
+          />
+        </section>
       </div>
 
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+      {caseItem.latestReport ? (
+        <div className="mt-4 rounded-3xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black text-emerald-800">
+                آخر تقرير: {caseItem.latestReport.statusLabel}
+              </p>
+              <p className="mt-1 text-[11px] font-bold text-emerald-700">
+                آخر تحديث للتقرير: {caseItem.latestReport.updatedAtLabel}
+              </p>
+            </div>
+
+            {caseItem.latestReport.previewUrl ? (
+              <Link
+                href={caseItem.latestReport.previewUrl}
+                className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+              >
+                فتح التقرير
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/dashboard/cases/${caseItem.id}`}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
           >
             <Eye className="h-4 w-4" />
             عرض
@@ -562,7 +648,7 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
 
           <Link
             href={`/dashboard/cases/${caseItem.id}/edit`}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
           >
             <PencilLine className="h-4 w-4" />
             متابعة
@@ -576,7 +662,7 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
             primaryAction.className,
           ].join(" ")}
         >
-          {primaryAction.icon}
+          <Clock3 className="h-4 w-4" />
           {primaryAction.label}
         </Link>
       </div>
@@ -589,7 +675,7 @@ function SmallMetric({
   label,
   value,
 }: {
-  icon: ReactNode;
+  icon: React.ReactNode;
   label: string;
   value: string;
 }) {
