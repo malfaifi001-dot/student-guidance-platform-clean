@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 
@@ -8,7 +8,12 @@ export async function GET(request: Request) {
   try {
     const context = await resolveCurrentSchoolContext();
     const url = new URL(request.url);
-    const q = (url.searchParams.get("q") || "").trim();
+
+    const q = (
+      url.searchParams.get("q") ||
+      url.searchParams.get("query") ||
+      ""
+    ).trim();
 
     const where: any = {
       schoolAccountId: context.schoolAccountId,
@@ -21,6 +26,24 @@ export async function GET(request: Request) {
         { nationalId: { contains: q } },
         { grade: { contains: q } },
         { classroom: { contains: q } },
+        {
+          guardian: {
+            is: {
+              name: {
+                contains: q,
+              },
+            },
+          },
+        },
+        {
+          guardian: {
+            is: {
+              phone: {
+                contains: q,
+              },
+            },
+          },
+        },
       ];
     }
 
@@ -46,6 +69,8 @@ export async function GET(request: Request) {
         stage: student.stage,
         grade: student.grade,
         classroom: student.classroom,
+        guardianName: student.guardian?.name ?? null,
+        guardianPhone: student.guardian?.phone ?? null,
         guardian: student.guardian
           ? {
               id: student.guardian.id,

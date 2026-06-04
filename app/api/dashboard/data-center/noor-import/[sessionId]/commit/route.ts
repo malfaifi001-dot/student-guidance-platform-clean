@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
@@ -13,10 +14,35 @@ async function getParams(context: RouteContext) {
   return await context.params;
 }
 
-export async function POST(_request: Request, context: RouteContext) {
+function compactStudentSnapshot(student: any): Prisma.InputJsonValue {
+  return {
+    id: student.id,
+    fullName: student.fullName,
+    nationalId: student.nationalId,
+    gender: student.gender,
+    stage: student.stage,
+    grade: student.grade,
+    classroom: student.classroom,
+    guardianId: student.guardianId,
+    isActive: student.isActive,
+  };
+}
+
+async function readRequestBody(request: Request) {
+  try {
+    return await request.json();
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(request: Request, context: RouteContext) {
   try {
     const current = await resolveCurrentSchoolContext();
     const params = await getParams(context);
+    const body = await readRequestBody(request);
+
+    const deactivateMissing = body?.deactivateMissing === true;
     const sessionId = params.sessionId;
 
     const session = await prisma.studentImportSession.findFirst({
@@ -61,6 +87,11 @@ export async function POST(_request: Request, context: RouteContext) {
       let createdCount = 0;
       let updatedCount = 0;
       let skippedCount = 0;
+      let deactivatedCount = 0;
+
+      const incomingNationalIds = session.rows
+        .map((row) => row.nationalId)
+        .filter(Boolean) as string[];
 
       for (const row of session.rows) {
         if (!row.fullName?.trim()) {
@@ -139,7 +170,34 @@ export async function POST(_request: Request, context: RouteContext) {
           isActive: true,
         };
 
+        if (existingStudent && row.planAction === "UNCHANGED") {
+          skippedCount += 1;
+
+          await tx.studentImportRow.update({
+            where: { id: row.id },
+            data: {
+              status: "SKIPPED",
+              matchedStudentId: existingStudent.id,
+            },
+          });
+
+          await tx.studentImportChange.create({
+            data: {
+              sessionId: session.id,
+              rowId: row.id,
+              studentId: existingStudent.id,
+              action: "UNCHANGED",
+              beforeJson: compactStudentSnapshot(existingStudent),
+              afterJson: compactStudentSnapshot(existingStudent),
+            },
+          });
+
+          continue;
+        }
+
         if (existingStudent) {
+          const beforeJson = compactStudentSnapshot(existingStudent);
+
           const updated = await tx.student.update({
             where: { id: existingStudent.id },
             data: studentData,
@@ -152,6 +210,17 @@ export async function POST(_request: Request, context: RouteContext) {
             data: {
               status: "UPDATED",
               matchedStudentId: updated.id,
+            },
+          });
+
+          await tx.studentImportChange.create({
+            data: {
+              sessionId: session.id,
+              rowId: row.id,
+              studentId: updated.id,
+              action: "UPDATED",
+              beforeJson,
+              afterJson: compactStudentSnapshot(updated),
             },
           });
         } else {
@@ -171,6 +240,56 @@ export async function POST(_request: Request, context: RouteContext) {
               matchedStudentId: created.id,
             },
           });
+
+          await tx.studentImportChange.create({
+            data: {
+              sessionId: session.id,
+              rowId: row.id,
+              studentId: created.id,
+              action: "CREATED",
+              beforeJson: Prisma.JsonNull,
+              afterJson: compactStudentSnapshot(created),
+            },
+          });
+        }
+      }
+
+      if (deactivateMissing && incomingNationalIds.length > 0) {
+        const activeStudents = await tx.student.findMany({
+          where: {
+            schoolAccountId: current.schoolAccountId,
+            isActive: true,
+          },
+        });
+
+        const incomingSet = new Set(incomingNationalIds);
+
+        const missingStudents = activeStudents.filter((student) => {
+          return student.nationalId && !incomingSet.has(student.nationalId);
+        });
+
+        for (const student of missingStudents) {
+          const beforeJson = compactStudentSnapshot(student);
+
+          const updated = await tx.student.update({
+            where: { id: student.id },
+            data: {
+              isActive: false,
+            },
+          });
+
+          deactivatedCount += 1;
+
+          await tx.studentImportChange.create({
+            data: {
+              sessionId: session.id,
+              rowId: null,
+              studentId: student.id,
+              action: "DEACTIVATED_MISSING_FROM_IMPORT",
+              beforeJson,
+              afterJson: compactStudentSnapshot(updated),
+            },
+          });
         }
       }
 
@@ -182,6 +301,7 @@ export async function POST(_request: Request, context: RouteContext) {
           updatedCount,
           skippedCount,
           committedAt: new Date(),
+          committedByUserId: current.user.id,
         },
         include: {
           files: true,
@@ -200,6 +320,7 @@ export async function POST(_request: Request, context: RouteContext) {
         createdCount,
         updatedCount,
         skippedCount,
+        deactivatedCount,
       };
     });
 
@@ -208,17 +329,20 @@ export async function POST(_request: Request, context: RouteContext) {
       userId: current.user.id,
       event: "NOOR_IMPORT_COMMITTED",
       title: "تم اعتماد استيراد بيانات نور",
-      description: `تم إنشاء ${result.createdCount} طالب/طالبة وتحديث ${result.updatedCount} من بيانات الطلاب.`,
+      description: `تم إنشاء ${result.createdCount} طالب/طالبة وتحديث ${result.updatedCount} وتعطيل ${result.deactivatedCount} غير موجودين في الملف الجديد.`,
       metadata: {
         sessionId,
         createdCount: result.createdCount,
         updatedCount: result.updatedCount,
         skippedCount: result.skippedCount,
+        deactivatedCount: result.deactivatedCount,
+        deactivateMissing,
       },
     });
 
     return NextResponse.json({
       message: "تم اعتماد بيانات نور وربط الطلاب وأولياء الأمور بالمدرسة.",
+      deactivatedCount: result.deactivatedCount,
       session: {
         ...result.session,
         rowCount: result.session._count.rows,

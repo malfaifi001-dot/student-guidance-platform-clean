@@ -1,15 +1,15 @@
 ﻿import { redirect } from "next/navigation";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
-import { NoorImportCyclesClient } from "@/components/data-center/noor-import/noor-import-cycles-client";
+import { StudentsCenterClient } from "@/components/data-center/students/students-center-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function NoorImportCenterPage() {
+export default async function StudentsCenterPage() {
   const context = await resolveCurrentSchoolContext().catch(() => null);
 
   if (!context) {
     redirect("/login");
   }
 
-  return <NoorImportCyclesClient schoolName={context.schoolName} />;
+  return <StudentsCenterClient schoolName={context.schoolName} />;
 }
