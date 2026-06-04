@@ -191,18 +191,18 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   );
 
   const template = useMemo(() => normalizeTemplateSnapshot(report), [report]);
-  const pages = template.pages as TemplatePage[];
+  const pages = template.pages;
 
   const [activePageId, setActivePageId] = useState(
-    pages[0]?.id || "missing-template-pages",
+    pages[0]?.id || "fallback-page",
   );
   const [title, setTitle] = useState(report.title);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
   const [previewVersion, setPreviewVersion] = useState(1);
-  const [blockOverrides, setBlockOverrides] = useState<Record<string, string>>(() =>
-    sanitizeInitialBlockOverrides(pages, parsed.blocks || {}),
+  const [blockOverrides, setBlockOverrides] = useState<Record<string, string>>(
+    parsed.blocks || {},
   );
   const [suggestionBlock, setSuggestionBlock] = useState<{
     page: TemplatePage;
@@ -222,19 +222,17 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   const runtimeContext = useMemo(() => buildRuntimeContext(report), [report]);
 
   const activePage =
-    pages.find((page: TemplatePage) => page.id === activePageId) || pages[0];
+    pages.find((page) => page.id === activePageId) || pages[0];
 
   const editableBlocks = useMemo(() => {
     return (activePage?.blocks || []).filter(isEditableTextBlock);
   }, [activePage]);
 
   const activePageHasEvidence = useMemo(() => {
-    const pageHasEvidenceBlock = (activePage?.blocks || []).some(
+    return (activePage?.blocks || []).some(
       (block) => normalizeBlockKind(block) === "evidence-gallery",
     );
-
-    return pageHasEvidenceBlock || report.evidenceItems.length > 0;
-  }, [activePage, report.evidenceItems.length]);
+  }, [activePage]);
 
   const evidenceChanged =
     JSON.stringify(
@@ -255,19 +253,18 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
     );
 
   const cleanBlockOverrides = useMemo(() => {
-    const sanitized = sanitizeInitialBlockOverrides(pages, blockOverrides);
     const clean: Record<string, string> = {};
 
-    for (const [key, value] of Object.entries(sanitized)) {
+    for (const [key, value] of Object.entries(blockOverrides)) {
       const text = value.trim();
 
-      if (text && !isLegacyRenderedReportDump(text)) {
+      if (text) {
         clean[key] = value;
       }
     }
 
     return clean;
-  }, [pages, blockOverrides]);
+  }, [blockOverrides]);
 
   const hasChanges =
     title !== report.title ||
@@ -515,8 +512,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   }
 
   function rotateSuggestion(page: TemplatePage, block: TemplateBlock) {
-    const blockIndex = page.blocks.findIndex((item) => item === block);
-    const blockKey = getBlockKey(page, block, blockIndex >= 0 ? blockIndex : 0);
+    const blockKey = getBlockKey(page, block, 0);
     const suggestions = buildSuggestionsForBlock({
       block,
       context: runtimeContext,
@@ -754,10 +750,9 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                   editableBlocks.map((block, index) => {
                     const blockKey = getBlockKey(activePage, block, index);
                     const automaticText = getAutomaticBlockText(block, runtimeContext);
-                    const overrideText = blockOverrides[blockKey];
                     const currentText =
-                      overrideText !== undefined && !isLegacyRenderedReportDump(overrideText)
-                        ? overrideText
+                      blockOverrides[blockKey] !== undefined
+                        ? blockOverrides[blockKey]
                         : automaticText;
 
                     return (
@@ -1172,91 +1167,51 @@ function EvidenceEditor({
   );
 }
 
-function pickReportTemplateSnapshot(source: any) {
-  if (!source) {
-    return null;
-  }
-
-  if (Array.isArray(source.pages)) {
-    return source;
-  }
-
-  if (Array.isArray(source.smartStudio?.pages)) {
-    return source.smartStudio;
-  }
-
-  if (Array.isArray(source.templateJson?.pages)) {
-    return source.templateJson;
-  }
-
-  if (Array.isArray(source.templateJson?.smartStudio?.pages)) {
-    return source.templateJson.smartStudio;
-  }
-
-  if (Array.isArray(source.builderTemplate?.pages)) {
-    return source.builderTemplate;
-  }
-
-  if (Array.isArray(source.snapshot?.pages)) {
-    return source.snapshot;
-  }
-
-  return source;
-}
-
-function extractReportTemplatePages(snapshot: any): TemplatePage[] {
-  const candidates = [
-    snapshot?.pages,
-    snapshot?.smartStudio?.pages,
-    snapshot?.templateJson?.pages,
-    snapshot?.templateJson?.smartStudio?.pages,
-    snapshot?.builderTemplate?.pages,
-    snapshot?.snapshot?.pages,
-  ];
-
-  const pagesCandidate = candidates.find((item) => Array.isArray(item));
-
-  if (!Array.isArray(pagesCandidate)) {
-    return [];
-  }
-
-  return pagesCandidate.map((page: any, index: number) => ({
-    ...page,
-    id: String(page?.id || "page-" + (index + 1)),
-    title: String(page?.title || "صفحة " + (index + 1)),
-    kind: page?.kind || "content",
-    blocks: Array.isArray(page?.blocks) ? page.blocks : [],
-  }));
-}
-
 function normalizeTemplateSnapshot(report: StudioReport) {
-  const source =
+  const snapshot =
     report.templateSnapshot?.builderTemplate ||
     report.templateSnapshot?.templateJson ||
     report.templateSnapshot?.smartStudio ||
     report.templateSnapshot ||
     null;
 
-  const snapshot = pickReportTemplateSnapshot(source);
-  const pages = extractReportTemplatePages(snapshot);
+  const pages = Array.isArray(snapshot?.pages)
+    ? snapshot.pages.map((page: any, index: number) => ({
+        id: String(page.id || `page-${index + 1}`),
+        title: String(page.title || `صفحة ${index + 1}`),
+        kind: page.kind || "content",
+        blocks: Array.isArray(page.blocks) ? page.blocks : [],
+      }))
+    : [];
 
   if (pages.length) {
     return {
-      ...(snapshot || {}),
+      ...snapshot,
       pages,
     };
   }
 
   return {
-    id: "missing-template-pages",
+    id: "fallback-template",
     name: report.title,
-    designTemplateId: "ministry-form",
     pages: [
       {
-        id: "missing-template-pages",
-        title: "لم يتم العثور على صفحات القالب",
+        id: "fallback-page",
+        title: "صفحة التقرير",
         kind: "content",
-        blocks: [],
+        blocks: [
+          {
+            id: "fallback-intro",
+            kind: "multi-paragraph",
+            title: "نص التقرير",
+            content:
+              report.renderedContent ||
+              "تم إعداد هذا التقرير بناءً على بيانات الحالة والشواهد المرتبطة بها.",
+            variant: "card",
+            align: "right",
+            showTitle: true,
+          },
+        ],
       },
     ],
   };
@@ -1264,7 +1219,7 @@ function normalizeTemplateSnapshot(report: StudioReport) {
 
 function parseEditableContent(
   editableContent?: string | null,
-  _renderedContent?: string | null,
+  renderedContent?: string | null,
 ): EditableContentPayload {
   const content = editableContent?.trim();
 
@@ -1278,15 +1233,10 @@ function parseEditableContent(
 
   try {
     const parsed = JSON.parse(content) as EditableContentPayload;
-    const pageBlocks = flattenEditablePageOverrides(parsed.pageOverrides || {});
-    const rawBlocks = parsed.blocks || {};
 
     return {
       ...parsed,
-      blocks: {
-        ...rawBlocks,
-        ...pageBlocks,
-      },
+      blocks: parsed.blocks || {},
       pageOverrides: parsed.pageOverrides || {},
       workflowValueOverrides: Array.isArray(parsed.workflowValueOverrides)
         ? parsed.workflowValueOverrides
@@ -1772,14 +1722,20 @@ function buildPageOverrides(
       const blockKey = getBlockKey(page, block, index);
       const content = blocks[blockKey];
 
-      if (!content?.trim() || isLegacyRenderedReportDump(content)) {
-        return;
-      }
+      if (!content?.trim()) return;
 
       pageOverrides[page.id] ||= {};
       pageOverrides[page.id][blockKey] = {
         content,
       };
+
+      if (block.title) {
+        blocks[block.title] = content;
+      }
+
+      if (block.id) {
+        blocks[block.id] = content;
+      }
     });
   }
 
@@ -1802,9 +1758,7 @@ function buildRenderedContentFromPages({
           const blockKey = getBlockKey(page, block, index);
           const value = blocks[blockKey]?.trim();
 
-          if (!value || isLegacyRenderedReportDump(value)) {
-            return "";
-          }
+          if (!value) return "";
 
           return `${page.title} - ${getBlockTitle(block)}\n${renderText(
             value,
@@ -1819,6 +1773,7 @@ function buildRenderedContentFromPages({
     .filter(Boolean)
     .join("\n\n");
 }
+
 
 function buildLivePreviewPage({
   page,
@@ -1917,96 +1872,6 @@ function repairArabicMojibake(value: string) {
   } catch {
     return text;
   }
-}
-
-
-
-function sanitizeInitialBlockOverrides(
-  pages: TemplatePage[],
-  blocks: Record<string, string>,
-) {
-  const allowedKeys = new Set<string>();
-
-  for (const page of pages) {
-    page.blocks.forEach((block, index) => {
-      if (!isEditableTextBlock(block)) {
-        return;
-      }
-
-      allowedKeys.add(getBlockKey(page, block, index));
-
-      if (block.id) {
-        allowedKeys.add(String(block.id));
-      }
-    });
-  }
-
-  const clean: Record<string, string> = {};
-
-  for (const [key, value] of Object.entries(blocks || {})) {
-    if (!allowedKeys.has(key)) {
-      continue;
-    }
-
-    if (isLegacyRenderedReportDump(value)) {
-      continue;
-    }
-
-    clean[key] = repairArabicMojibake(value);
-  }
-
-  return clean;
-}
-
-function flattenEditablePageOverrides(
-  pageOverrides: EditableContentPayload["pageOverrides"],
-) {
-  const blocks: Record<string, string> = {};
-
-  for (const page of Object.values(pageOverrides || {})) {
-    for (const [blockKey, override] of Object.entries(page || {})) {
-      const content = override?.content || "";
-
-      if (!content.trim() || isLegacyRenderedReportDump(content)) {
-        continue;
-      }
-
-      blocks[blockKey] = repairArabicMojibake(content);
-    }
-  }
-
-  return blocks;
-}
-
-function isLegacyRenderedReportDump(value: string) {
-  const text = String(value || "");
-
-  if (!text.trim()) {
-    return false;
-  }
-
-  const hasReplacementChars = /�/.test(text);
-  const hasMojibakeMarks = /[ØÙÃ]/.test(text);
-  const hasReportDumpLabels =
-    /program_name\s*:|semester\s*:|gregorian_date\s*:|beneficiaries\s*:|execution_action\s*:|execution_mechanism\s*:|performance_indicator\s*:|selectedStudent\s*:/.test(
-      text,
-    );
-
-  const hasOldArabicDump =
-    text.includes("ملخص التقرير") ||
-    text.includes("بيانات الحالة") ||
-    text.includes("القيم المسجلة") ||
-    text.includes("الشواهد:") ||
-    text.includes("تقرير:");
-
-  const tooLongForBlock = text.length > 1800;
-
-  return (
-    hasReplacementChars ||
-    hasMojibakeMarks ||
-    hasReportDumpLabels ||
-    (hasOldArabicDump && tooLongForBlock)
-  );
 }
 
 

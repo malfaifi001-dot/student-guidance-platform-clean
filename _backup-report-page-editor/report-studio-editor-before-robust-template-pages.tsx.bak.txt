@@ -194,7 +194,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   const pages = template.pages as TemplatePage[];
 
   const [activePageId, setActivePageId] = useState(
-    pages[0]?.id || "missing-template-pages",
+    pages[0]?.id || "fallback-page",
   );
   const [title, setTitle] = useState(report.title);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -229,12 +229,10 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   }, [activePage]);
 
   const activePageHasEvidence = useMemo(() => {
-    const pageHasEvidenceBlock = (activePage?.blocks || []).some(
+    return (activePage?.blocks || []).some(
       (block) => normalizeBlockKind(block) === "evidence-gallery",
     );
-
-    return pageHasEvidenceBlock || report.evidenceItems.length > 0;
-  }, [activePage, report.evidenceItems.length]);
+  }, [activePage]);
 
   const evidenceChanged =
     JSON.stringify(
@@ -1172,91 +1170,52 @@ function EvidenceEditor({
   );
 }
 
-function pickReportTemplateSnapshot(source: any) {
-  if (!source) {
-    return null;
-  }
-
-  if (Array.isArray(source.pages)) {
-    return source;
-  }
-
-  if (Array.isArray(source.smartStudio?.pages)) {
-    return source.smartStudio;
-  }
-
-  if (Array.isArray(source.templateJson?.pages)) {
-    return source.templateJson;
-  }
-
-  if (Array.isArray(source.templateJson?.smartStudio?.pages)) {
-    return source.templateJson.smartStudio;
-  }
-
-  if (Array.isArray(source.builderTemplate?.pages)) {
-    return source.builderTemplate;
-  }
-
-  if (Array.isArray(source.snapshot?.pages)) {
-    return source.snapshot;
-  }
-
-  return source;
-}
-
-function extractReportTemplatePages(snapshot: any): TemplatePage[] {
-  const candidates = [
-    snapshot?.pages,
-    snapshot?.smartStudio?.pages,
-    snapshot?.templateJson?.pages,
-    snapshot?.templateJson?.smartStudio?.pages,
-    snapshot?.builderTemplate?.pages,
-    snapshot?.snapshot?.pages,
-  ];
-
-  const pagesCandidate = candidates.find((item) => Array.isArray(item));
-
-  if (!Array.isArray(pagesCandidate)) {
-    return [];
-  }
-
-  return pagesCandidate.map((page: any, index: number) => ({
-    ...page,
-    id: String(page?.id || "page-" + (index + 1)),
-    title: String(page?.title || "صفحة " + (index + 1)),
-    kind: page?.kind || "content",
-    blocks: Array.isArray(page?.blocks) ? page.blocks : [],
-  }));
-}
-
 function normalizeTemplateSnapshot(report: StudioReport) {
-  const source =
+  const snapshot =
     report.templateSnapshot?.builderTemplate ||
     report.templateSnapshot?.templateJson ||
     report.templateSnapshot?.smartStudio ||
     report.templateSnapshot ||
     null;
 
-  const snapshot = pickReportTemplateSnapshot(source);
-  const pages = extractReportTemplatePages(snapshot);
+  const pages = Array.isArray(snapshot?.pages)
+    ? snapshot.pages.map((page: any, index: number) => ({
+        ...page,
+        id: String(page.id || `page-${index + 1}`),
+        title: String(page.title || `صفحة ${index + 1}`),
+        kind: page.kind || "content",
+        blocks: Array.isArray(page.blocks) ? page.blocks : [],
+      }))
+    : [];
 
   if (pages.length) {
     return {
-      ...(snapshot || {}),
+      ...snapshot,
       pages,
     };
   }
 
   return {
-    id: "missing-template-pages",
+    id: "fallback-template",
     name: report.title,
     designTemplateId: "ministry-form",
     pages: [
       {
-        id: "missing-template-pages",
-        title: "لم يتم العثور على صفحات القالب",
+        id: "fallback-page",
+        title: "صفحة التقرير",
         kind: "content",
-        blocks: [],
+        blocks: [
+          {
+            id: "fallback-empty",
+            kind: "section-text",
+            title: "لا توجد صفحات محفوظة",
+            content:
+              "لم يتم العثور على صفحات القالب داخل نسخة التقرير. أعد إنشاء التقرير من قالب منشور.",
+            variant: "soft",
+            align: "right",
+            showTitle: true,
+          },
+        ],
       },
     ],
   };

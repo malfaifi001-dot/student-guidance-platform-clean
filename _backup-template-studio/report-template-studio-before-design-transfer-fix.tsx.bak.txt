@@ -2497,7 +2497,7 @@ function PreviewBlock({
             return (
               <figure
                 key={evidence.id || imageUrl || String(index)}
-                className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
               >
                 {imageUrl && !isPlaceholderMode ? (
                   <img
@@ -2517,7 +2517,7 @@ function PreviewBlock({
                 )}
 
                 {block.evidenceShowCaptions !== false ? (
-                  <figcaption className="max-h-12 overflow-hidden border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
+                  <figcaption className="border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
                     {evidence.caption || evidence.title || "شاهد " + (startIndex + index + 1)}
                   </figcaption>
                 ) : null}
@@ -2528,7 +2528,7 @@ function PreviewBlock({
 
         {hiddenCount > 0 && block.evidenceAutoCreatePages === false ? (
           <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
-            يوجد {hiddenCount} شاهد إضافي. سيتم نقله إلى صفحة شواهد إضافية حتى لا يتمدد إطار A4.
+            يوجد {hiddenCount} شاهد إضافي لم يظهر لأن إنشاء الصفحات التلقائية غير مفعل.
           </p>
         ) : null}
 
@@ -2598,43 +2598,16 @@ function createEvidencePlaceholders(
   });
 }
 
-function getEvidencePerPage(block: any) {
-  return getSmartEvidencePerPage(block);
-}
-
-function getSmartEvidencePerPage(block: any) {
-  const layout = String(block?.evidenceLayout || "TWO_PER_PAGE");
-  const ratio = String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
-  const fit = String(block?.evidenceFit || "contain");
-
-  if (layout === "ATTACHMENT_LIST") return 10;
-  if (layout === "ONE_PER_PAGE") return 1;
-  if (layout === "TWO_PER_PAGE") return 2;
-
-  /*
-    GRID_2X2 is a maximum capacity, not a forced capacity.
-    The system must keep every evidence card inside the A4 frame.
-    Portrait images are tall, so 4 cards can overflow the page.
-  */
-  if (layout === "GRID_2X2") {
-    if (ratio === "PORTRAIT_3_4") return 2;
-    if (ratio === "SQUARE_1_1" && fit === "cover") return 4;
-    if (ratio === "SQUARE_1_1") return 4;
-    if (ratio === "LANDSCAPE_16_9") return 4;
-    return 4;
-  }
+function getEvidencePerPage(block: StudioBlock) {
+  if (block.evidenceLayout === "ONE_PER_PAGE") return 1;
+  if (block.evidenceLayout === "GRID_2X2") return 4;
+  if (block.evidenceLayout === "ATTACHMENT_LIST") return 8;
 
   return 2;
 }
 
-function getEvidenceGridClass(block: any) {
-  const perPage = getEvidencePerPage(block);
-
-  if (block.evidenceLayout === "ATTACHMENT_LIST") {
-    return "grid gap-2";
-  }
-
-  if (perPage <= 1) {
+function getEvidenceGridClass(block: StudioBlock) {
+  if (block.evidenceLayout === "ONE_PER_PAGE") {
     return "grid gap-3";
   }
 
@@ -2656,59 +2629,14 @@ function getEvidenceAspectRatioClass(block: StudioBlock) {
   }
 }
 
-function getEvidenceImageHeightClass(block: any) {
-  const perPage = getEvidencePerPage(block);
-  const ratio = block.evidenceAspectRatio || "LANDSCAPE_4_3";
-
-  /*
-    Fixed heights are intentional:
-    they keep evidence inside the printable A4 area.
-    Extra evidence must go to a new Evidence Page instead of stretching A4.
-  */
-  if (perPage <= 1) {
-    switch (ratio) {
-      case "PORTRAIT_3_4":
-        return "h-[185mm]";
-      case "SQUARE_1_1":
-        return "h-[160mm]";
-      case "LANDSCAPE_16_9":
-        return "h-[122mm]";
-      case "LANDSCAPE_4_3":
-      default:
-        return "h-[138mm]";
-    }
-  }
-
-  if (perPage === 2) {
-    switch (ratio) {
-      case "PORTRAIT_3_4":
-        return "h-[92mm]";
-      case "SQUARE_1_1":
-        return "h-[82mm]";
-      case "LANDSCAPE_16_9":
-        return "h-[58mm]";
-      case "LANDSCAPE_4_3":
-      default:
-        return "h-[66mm]";
-    }
-  }
-
-  switch (ratio) {
-    case "SQUARE_1_1":
-      return "h-[56mm]";
-    case "LANDSCAPE_16_9":
-      return "h-[42mm]";
-    case "PORTRAIT_3_4":
-      return "h-[82mm]";
-    case "LANDSCAPE_4_3":
-    default:
-      return "h-[48mm]";
-  }
+function getEvidenceImageHeightClass(block: StudioBlock) {
+  return getEvidenceAspectRatioClass(block);
 }
 
-function getEvidenceImageClass(block: any) {
+function getEvidenceImageClass(block: StudioBlock) {
   const fit = block.evidenceFit === "cover" ? "object-cover" : "object-contain";
-  return `${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+
+  return getEvidenceImageHeightClass(block) + " w-full " + fit;
 }
 
 function EmptyEvidenceMessage() {

@@ -9,6 +9,7 @@ import type { ReportViewMode } from "@/components/reports/report-preview-toolbar
 
 import { ReportDocumentRenderer } from "@/components/report-engine/report-document-renderer";
 import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
 import { ReportPdfGuidanceCard } from "@/components/reports/report-pdf-guidance-card";
 
 import type {
@@ -298,7 +299,7 @@ export default async function ReportRealPreviewPage({
 
   const pdfPreviewUrl = `${pdfExportUrl}&inline=true`;
 
-  const editReportUrl = `/dashboard/reports/${report.id}/studio?template=${encodeURIComponent(resolvedSearchParams.template || report.templateId || "")}`;
+  const editReportUrl = `/dashboard/reports/${report.id}/studio`;
 
   const backToReportsUrl = "/dashboard/reports";
 

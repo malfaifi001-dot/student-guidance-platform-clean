@@ -12,12 +12,6 @@ export type ReportDesignId =
   | "girls-lilac-elegant"
   | "girls-pearl-calm";
 
-type FinalReportValueItem = {
-  fieldKey: string;
-  fieldLabel: string;
-  value: string;
-};
-
 type PreviewCaseData = {
   evidences?: Array<{
     id?: string;
@@ -370,11 +364,11 @@ function normalizeFinalReportBlock(
 
   const blockId = block?.id || "final-block-" + (index + 1);
 
-  const editedContent = getFinalEditedBlockContent(
-    block,
-    blockId,
-    editorialBlocks,
-  );
+  const editedContent =
+    editorialBlocks[blockId] ||
+    editorialBlocks[rawKind] ||
+    editorialBlocks[block?.title] ||
+    "";
 
   const normalizedKind = normalizeFinalBlockKind(rawKind);
 
@@ -637,66 +631,6 @@ function getDefaultFinalBlockTitle(kind: string) {
   return "بلوك التقرير";
 }
 
-
-function getFinalEditedBlockContent(
-  block: any,
-  blockId: string,
-  editorialBlocks: Record<string, string>,
-) {
-  const candidateKeys = [
-    blockId,
-    block?.id ? String(block.id) : "",
-  ].filter(Boolean);
-
-  for (const key of candidateKeys) {
-    const value = editorialBlocks[key];
-
-    if (!value || !String(value).trim()) {
-      continue;
-    }
-
-    if (isFinalLegacyRenderedReportDump(value)) {
-      continue;
-    }
-
-    return value;
-  }
-
-  return "";
-}
-
-function isFinalLegacyRenderedReportDump(value: string) {
-  const text = String(value || "");
-
-  if (!text.trim()) {
-    return false;
-  }
-
-  const hasReplacementChars = /�/.test(text);
-  const hasMojibakeMarks = /[ØÙÃ]/.test(text);
-  const hasReportDumpLabels =
-    /program_name\s*:|semester\s*:|gregorian_date\s*:|beneficiaries\s*:|execution_action\s*:|execution_mechanism\s*:|performance_indicator\s*:|selectedStudent\s*:/.test(
-      text,
-    );
-
-  const hasOldArabicDump =
-    text.includes("ملخص التقرير") ||
-    text.includes("بيانات الحالة") ||
-    text.includes("القيم المسجلة") ||
-    text.includes("الشواهد:") ||
-    text.includes("تقرير:");
-
-  const tooLongForBlock = text.length > 1800;
-
-  return (
-    hasReplacementChars ||
-    hasMojibakeMarks ||
-    hasReportDumpLabels ||
-    (hasOldArabicDump && tooLongForBlock)
-  );
-}
-
-
 function resolveFinalBlockContent({
   template,
   block,
@@ -726,16 +660,13 @@ function resolveFinalBlockContent({
     return resolveFinalTextLibraryContent(template, block, settings, textLibrary);
   }
 
-  const candidateContent =
+  return (
     block?.content ||
     settings?.content ||
     block?.customContent ||
     block?.defaultContent ||
-    "";
-
-  return isFinalLegacyRenderedReportDump(candidateContent)
-    ? ""
-    : candidateContent;
+    ""
+  );
 }
 
 function resolveFinalTextLibraryContent(
@@ -834,7 +765,7 @@ function getFinalTextLibraryFallback(category: string) {
   return "تم إعداد هذا التقرير لخدمة {{service.name}} بناءً على بيانات الحالة {{case.title}} والشواهد المرتبطة بها.";
 }
 
-function collectFinalValues(data: any): FinalReportValueItem[] {
+function collectFinalValues(data: any) {
   if (Array.isArray(data?.values)) {
     return data.values.map((item: any) => ({
       fieldKey: item.fieldKey || item.key || "",
@@ -952,7 +883,7 @@ function getFinalFieldListItems(block: any, previewCaseData: PreviewCaseData | n
 
   if (selectedKeys.length) {
     return values
-      .filter((item: FinalReportValueItem) =>
+      .filter((item) =>
         selectedKeys.some(
           (key: string) =>
             key === item.fieldKey ||
@@ -960,14 +891,14 @@ function getFinalFieldListItems(block: any, previewCaseData: PreviewCaseData | n
             "field." + key === item.fieldKey,
         ),
       )
-      .map((item: FinalReportValueItem) => ({
+      .map((item) => ({
         key: item.fieldKey,
         label: item.fieldLabel || item.fieldKey,
         value: item.value,
       }));
   }
 
-  return values.slice(0, 10).map((item: FinalReportValueItem) => ({
+  return values.slice(0, 10).map((item) => ({
     key: item.fieldKey,
     label: item.fieldLabel || item.fieldKey,
     value: item.value,
@@ -1505,7 +1436,7 @@ function EvidenceBlock({
           const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
 
           return (
-            <figure key={evidence.id || imageUrl || String(index)} className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <figure key={evidence.id || imageUrl || String(index)} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               {imageUrl && !isPlaceholderMode ? (
                 <img src={imageUrl} alt={evidence.title || `شاهد ${startIndex + index + 1}`} className={`${getEvidenceImageClass(block)} bg-slate-50`} />
               ) : (
@@ -1516,7 +1447,7 @@ function EvidenceBlock({
               )}
 
               {block.evidenceShowCaptions !== false ? (
-                <figcaption className="max-h-12 overflow-hidden border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
+                <figcaption className="border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
                   {evidence.caption || evidence.title || `شاهد ${startIndex + index + 1}`}
                 </figcaption>
               ) : null}
@@ -1527,7 +1458,7 @@ function EvidenceBlock({
 
       {hiddenCount > 0 && block.evidenceAutoCreatePages === false ? (
         <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
-          يوجد {hiddenCount} شاهد إضافي. سيتم نقله إلى صفحة شواهد إضافية حتى لا يتمدد إطار A4.
+          يوجد {hiddenCount} شاهد إضافي لم يظهر لأن إنشاء الصفحات التلقائية غير مفعل.
         </p>
       ) : null}
 
@@ -1653,6 +1584,10 @@ function renderText(text: string, context: Record<string, string>) {
   return source
     .replace(/\{\{\s*([^}]+?)\s*\}\}/g, replaceVariable)
     .replace(/\{([A-Za-z0-9_.\-\u0600-\u06FF ]+)\}/g, replaceVariable);
+}/g, (_, key: string) => {
+    const cleanKey = key.trim();
+    return context[cleanKey] || `{{${cleanKey}}}`;
+  });
 }
 
 function splitLines(text: string) {
@@ -1880,31 +1815,9 @@ function getPlacementClass(placement: string) {
 }
 
 function getEvidencePerPage(block: any) {
-  return getSmartEvidencePerPage(block);
-}
-
-function getSmartEvidencePerPage(block: any) {
-  const layout = String(block?.evidenceLayout || "TWO_PER_PAGE");
-  const ratio = String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
-  const fit = String(block?.evidenceFit || "contain");
-
-  if (layout === "ATTACHMENT_LIST") return 10;
-  if (layout === "ONE_PER_PAGE") return 1;
-  if (layout === "TWO_PER_PAGE") return 2;
-
-  /*
-    GRID_2X2 is a maximum capacity, not a forced capacity.
-    The system must keep every evidence card inside the A4 frame.
-    Portrait images are tall, so 4 cards can overflow the page.
-  */
-  if (layout === "GRID_2X2") {
-    if (ratio === "PORTRAIT_3_4") return 2;
-    if (ratio === "SQUARE_1_1" && fit === "cover") return 4;
-    if (ratio === "SQUARE_1_1") return 4;
-    if (ratio === "LANDSCAPE_16_9") return 4;
-    return 4;
-  }
-
+  if (block.evidenceLayout === "ONE_PER_PAGE") return 1;
+  if (block.evidenceLayout === "GRID_2X2") return 4;
+  if (block.evidenceLayout === "ATTACHMENT_LIST") return 8;
   return 2;
 }
 
@@ -1919,66 +1832,21 @@ function createEvidencePlaceholders(count: number, startIndex: number) {
 }
 
 function getEvidenceGridClass(block: any) {
-  const perPage = getEvidencePerPage(block);
-
-  if (block.evidenceLayout === "ATTACHMENT_LIST") {
-    return "grid gap-2";
-  }
-
-  if (perPage <= 1) {
-    return "grid gap-3";
-  }
-
+  if (block.evidenceLayout === "ONE_PER_PAGE") return "grid gap-3";
   return "grid gap-3 md:grid-cols-2";
 }
 
 function getEvidenceImageHeightClass(block: any) {
-  const perPage = getEvidencePerPage(block);
-  const ratio = block.evidenceAspectRatio || "LANDSCAPE_4_3";
-
-  /*
-    Fixed heights are intentional:
-    they keep evidence inside the printable A4 area.
-    Extra evidence must go to a new Evidence Page instead of stretching A4.
-  */
-  if (perPage <= 1) {
-    switch (ratio) {
-      case "PORTRAIT_3_4":
-        return "h-[185mm]";
-      case "SQUARE_1_1":
-        return "h-[160mm]";
-      case "LANDSCAPE_16_9":
-        return "h-[122mm]";
-      case "LANDSCAPE_4_3":
-      default:
-        return "h-[138mm]";
-    }
-  }
-
-  if (perPage === 2) {
-    switch (ratio) {
-      case "PORTRAIT_3_4":
-        return "h-[92mm]";
-      case "SQUARE_1_1":
-        return "h-[82mm]";
-      case "LANDSCAPE_16_9":
-        return "h-[58mm]";
-      case "LANDSCAPE_4_3":
-      default:
-        return "h-[66mm]";
-    }
-  }
-
-  switch (ratio) {
-    case "SQUARE_1_1":
-      return "h-[56mm]";
+  switch (block.evidenceAspectRatio || "LANDSCAPE_4_3") {
     case "LANDSCAPE_16_9":
-      return "h-[42mm]";
+      return "aspect-video";
     case "PORTRAIT_3_4":
-      return "h-[82mm]";
+      return "aspect-[3/4]";
+    case "SQUARE_1_1":
+      return "aspect-square";
     case "LANDSCAPE_4_3":
     default:
-      return "h-[48mm]";
+      return "aspect-[4/3]";
   }
 }
 

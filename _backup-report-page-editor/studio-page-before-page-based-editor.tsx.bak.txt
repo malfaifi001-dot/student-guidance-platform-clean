@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ReportStudioEditor } from "@/components/reports/report-studio-editor";
-import { resolveBuilderTemplateForReport } from "@/lib/report-engine/report-builder-template-runtime";
 
 import {
   formatWorkflowDisplayValue,
@@ -13,9 +12,6 @@ import {
 type PageProps = {
   params: Promise<{
     reportId: string;
-  }>;
-  searchParams?: Promise<{
-    template?: string;
   }>;
 };
 
@@ -48,9 +44,8 @@ type ReportFieldLookupItem = {
 };
 
 
-export default async function ReportStudioPage({ params, searchParams }: PageProps) {
+export default async function ReportStudioPage({ params }: PageProps) {
   const { reportId } = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : {};
 
   const report = await prisma.guidanceReport.findUnique({
     where: {
@@ -122,13 +117,6 @@ export default async function ReportStudioPage({ params, searchParams }: PagePro
     notFound();
   }
 
-  const templateIdOverride =
-    resolvedSearchParams.template || report.templateId || "";
-
-  const builderTemplateForStudio = await resolveBuilderTemplateForReport(report, {
-    templateIdOverride,
-  });
-
   const parsedEditableContent = parseEditableContent(report.editableContent);
   const workflowValueOverrides =
     parsedEditableContent.workflowValueOverrides || [];
@@ -150,17 +138,9 @@ export default async function ReportStudioPage({ params, searchParams }: PagePro
     serviceSlug: report.serviceSlug,
     status: report.status,
     genderMode: report.genderMode,
-    templateId: templateIdOverride || report.templateId,
-    hasTemplateSnapshot: Boolean(builderTemplateForStudio || report.templateSnapshot),
+    templateId: report.templateId,
+    hasTemplateSnapshot: Boolean(report.templateSnapshot),
     hasReportDataSnapshot: Boolean(report.reportDataSnapshot),
-    templateSnapshot: builderTemplateForStudio
-      ? JSON.parse(JSON.stringify(builderTemplateForStudio))
-      : report.templateSnapshot
-        ? JSON.parse(JSON.stringify(report.templateSnapshot))
-        : null,
-    reportDataSnapshot: report.reportDataSnapshot
-      ? JSON.parse(JSON.stringify(report.reportDataSnapshot))
-      : null,
     editableContent: report.editableContent || "",
     renderedContent: report.renderedContent || "",
     generatedAt: report.generatedAt?.toISOString() || null,

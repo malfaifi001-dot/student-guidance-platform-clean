@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
 
 type StudioReportStatus =
   | "DRAFT"
@@ -191,18 +190,18 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   );
 
   const template = useMemo(() => normalizeTemplateSnapshot(report), [report]);
-  const pages = template.pages as TemplatePage[];
+  const pages = template.pages;
 
   const [activePageId, setActivePageId] = useState(
-    pages[0]?.id || "missing-template-pages",
+    pages[0]?.id || "fallback-page",
   );
   const [title, setTitle] = useState(report.title);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
   const [previewVersion, setPreviewVersion] = useState(1);
-  const [blockOverrides, setBlockOverrides] = useState<Record<string, string>>(() =>
-    sanitizeInitialBlockOverrides(pages, parsed.blocks || {}),
+  const [blockOverrides, setBlockOverrides] = useState<Record<string, string>>(
+    parsed.blocks || {},
   );
   const [suggestionBlock, setSuggestionBlock] = useState<{
     page: TemplatePage;
@@ -222,19 +221,17 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   const runtimeContext = useMemo(() => buildRuntimeContext(report), [report]);
 
   const activePage =
-    pages.find((page: TemplatePage) => page.id === activePageId) || pages[0];
+    pages.find((page) => page.id === activePageId) || pages[0];
 
   const editableBlocks = useMemo(() => {
     return (activePage?.blocks || []).filter(isEditableTextBlock);
   }, [activePage]);
 
   const activePageHasEvidence = useMemo(() => {
-    const pageHasEvidenceBlock = (activePage?.blocks || []).some(
+    return (activePage?.blocks || []).some(
       (block) => normalizeBlockKind(block) === "evidence-gallery",
     );
-
-    return pageHasEvidenceBlock || report.evidenceItems.length > 0;
-  }, [activePage, report.evidenceItems.length]);
+  }, [activePage]);
 
   const evidenceChanged =
     JSON.stringify(
@@ -255,19 +252,18 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
     );
 
   const cleanBlockOverrides = useMemo(() => {
-    const sanitized = sanitizeInitialBlockOverrides(pages, blockOverrides);
     const clean: Record<string, string> = {};
 
-    for (const [key, value] of Object.entries(sanitized)) {
+    for (const [key, value] of Object.entries(blockOverrides)) {
       const text = value.trim();
 
-      if (text && !isLegacyRenderedReportDump(text)) {
+      if (text) {
         clean[key] = value;
       }
     }
 
     return clean;
-  }, [pages, blockOverrides]);
+  }, [blockOverrides]);
 
   const hasChanges =
     title !== report.title ||
@@ -290,24 +286,6 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   const pdfDownloadUrl = `/api/dashboard/reports/${report.id}/export/pdf?template=${encodeURIComponent(
     report.templateId || "",
   )}&v=${previewVersion}`;
-
-  const livePreviewTemplate = useMemo(() => {
-    const livePage = buildLivePreviewPage({
-      page: activePage,
-      blocks: cleanBlockOverrides,
-      context: runtimeContext,
-    });
-
-    return {
-      ...template,
-      pages: livePage ? [livePage] : [],
-    };
-  }, [activePage, cleanBlockOverrides, runtimeContext, template]);
-
-  const livePreviewCaseData = useMemo(
-    () => buildPreviewCaseDataForRenderer(report),
-    [report],
-  );
 
   const editableContent = useMemo(() => {
     return JSON.stringify(
@@ -515,8 +493,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   }
 
   function rotateSuggestion(page: TemplatePage, block: TemplateBlock) {
-    const blockIndex = page.blocks.findIndex((item) => item === block);
-    const blockKey = getBlockKey(page, block, blockIndex >= 0 ? blockIndex : 0);
+    const blockKey = getBlockKey(page, block, 0);
     const suggestions = buildSuggestionsForBlock({
       block,
       context: runtimeContext,
@@ -754,10 +731,9 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                   editableBlocks.map((block, index) => {
                     const blockKey = getBlockKey(activePage, block, index);
                     const automaticText = getAutomaticBlockText(block, runtimeContext);
-                    const overrideText = blockOverrides[blockKey];
                     const currentText =
-                      overrideText !== undefined && !isLegacyRenderedReportDump(overrideText)
-                        ? overrideText
+                      blockOverrides[blockKey] !== undefined
+                        ? blockOverrides[blockKey]
                         : automaticText;
 
                     return (
@@ -822,13 +798,10 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                           className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold leading-8 text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
                         />
 
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white px-3 py-2 text-[11px] font-bold leading-6 text-slate-500">
-                          <span>
-                            يتم عرض هذا النص داخل البلوك المحدد فقط.
-                          </span>
-
-                          <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">
-                            {currentText.trim() ? "جاهز للمعاينة" : "يستخدم النص التلقائي"}
+                        <div className="mt-3 rounded-2xl bg-white px-3 py-2 text-[11px] font-bold leading-6 text-slate-500">
+                          المعاينة بالقيم الحالية:{" "}
+                          <span className="text-slate-800">
+                            {renderText(currentText, runtimeContext).slice(0, 220)}
                           </span>
                         </div>
                       </article>
@@ -857,55 +830,25 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-slate-950">
-                    المعاينة الرسمية للصفحة الحالية
+                    المعاينة الرسمية
                   </h2>
 
                   <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                    مثل معاينة الأدمن: اختر الصفحة وشاهدها مباشرة بدون تمرير طويل بين كل الصفحات.
+                    بعد الحفظ يتم تحديث المعاينة بنفس التصميم النهائي.
                   </p>
                 </div>
 
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                  تحديث مباشر قبل الحفظ
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-500">
+                  يتم التحديث بعد الحفظ
                 </span>
               </div>
 
-              <div className="mb-4 flex flex-wrap gap-2">
-                {pages.map((page, index) => {
-                  const active = page.id === activePageId;
-
-                  return (
-                    <button
-                      key={page.id}
-                      type="button"
-                      onClick={() => setActivePageId(page.id)}
-                      className={[
-                        "rounded-2xl border px-4 py-2 text-xs font-black transition",
-                        active
-                          ? "border-emerald-600 bg-emerald-700 text-white"
-                          : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-white",
-                      ].join(" ")}
-                    >
-                      {index + 1}. {page.title}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="overflow-hidden rounded-3xl border border-slate-100 bg-slate-50 p-4">
-                {livePreviewTemplate.pages.length ? (
-                  <FinalReportDesignRenderer
-                    template={livePreviewTemplate}
-                    previewCaseData={livePreviewCaseData as any}
-                    editorialBlocks={cleanBlockOverrides}
-                    identity={{}}
-                  />
-                ) : (
-                  <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm font-bold text-slate-500">
-                    لا توجد صفحة نشطة للمعاينة.
-                  </div>
-                )}
-              </div>
+              <iframe
+                key={previewUrl}
+                src={previewUrl}
+                className="h-[calc(100vh-280px)] min-h-[760px] w-full rounded-2xl border border-slate-200 bg-white shadow-sm"
+                title="معاينة التقرير"
+              />
             </section>
           </section>
         </div>
@@ -1172,91 +1115,51 @@ function EvidenceEditor({
   );
 }
 
-function pickReportTemplateSnapshot(source: any) {
-  if (!source) {
-    return null;
-  }
-
-  if (Array.isArray(source.pages)) {
-    return source;
-  }
-
-  if (Array.isArray(source.smartStudio?.pages)) {
-    return source.smartStudio;
-  }
-
-  if (Array.isArray(source.templateJson?.pages)) {
-    return source.templateJson;
-  }
-
-  if (Array.isArray(source.templateJson?.smartStudio?.pages)) {
-    return source.templateJson.smartStudio;
-  }
-
-  if (Array.isArray(source.builderTemplate?.pages)) {
-    return source.builderTemplate;
-  }
-
-  if (Array.isArray(source.snapshot?.pages)) {
-    return source.snapshot;
-  }
-
-  return source;
-}
-
-function extractReportTemplatePages(snapshot: any): TemplatePage[] {
-  const candidates = [
-    snapshot?.pages,
-    snapshot?.smartStudio?.pages,
-    snapshot?.templateJson?.pages,
-    snapshot?.templateJson?.smartStudio?.pages,
-    snapshot?.builderTemplate?.pages,
-    snapshot?.snapshot?.pages,
-  ];
-
-  const pagesCandidate = candidates.find((item) => Array.isArray(item));
-
-  if (!Array.isArray(pagesCandidate)) {
-    return [];
-  }
-
-  return pagesCandidate.map((page: any, index: number) => ({
-    ...page,
-    id: String(page?.id || "page-" + (index + 1)),
-    title: String(page?.title || "صفحة " + (index + 1)),
-    kind: page?.kind || "content",
-    blocks: Array.isArray(page?.blocks) ? page.blocks : [],
-  }));
-}
-
 function normalizeTemplateSnapshot(report: StudioReport) {
-  const source =
+  const snapshot =
     report.templateSnapshot?.builderTemplate ||
     report.templateSnapshot?.templateJson ||
     report.templateSnapshot?.smartStudio ||
     report.templateSnapshot ||
     null;
 
-  const snapshot = pickReportTemplateSnapshot(source);
-  const pages = extractReportTemplatePages(snapshot);
+  const pages = Array.isArray(snapshot?.pages)
+    ? snapshot.pages.map((page: any, index: number) => ({
+        id: String(page.id || `page-${index + 1}`),
+        title: String(page.title || `صفحة ${index + 1}`),
+        kind: page.kind || "content",
+        blocks: Array.isArray(page.blocks) ? page.blocks : [],
+      }))
+    : [];
 
   if (pages.length) {
     return {
-      ...(snapshot || {}),
+      ...snapshot,
       pages,
     };
   }
 
   return {
-    id: "missing-template-pages",
+    id: "fallback-template",
     name: report.title,
-    designTemplateId: "ministry-form",
     pages: [
       {
-        id: "missing-template-pages",
-        title: "لم يتم العثور على صفحات القالب",
+        id: "fallback-page",
+        title: "صفحة التقرير",
         kind: "content",
-        blocks: [],
+        blocks: [
+          {
+            id: "fallback-intro",
+            kind: "multi-paragraph",
+            title: "نص التقرير",
+            content:
+              report.renderedContent ||
+              "تم إعداد هذا التقرير بناءً على بيانات الحالة والشواهد المرتبطة بها.",
+            variant: "card",
+            align: "right",
+            showTitle: true,
+          },
+        ],
       },
     ],
   };
@@ -1264,13 +1167,13 @@ function normalizeTemplateSnapshot(report: StudioReport) {
 
 function parseEditableContent(
   editableContent?: string | null,
-  _renderedContent?: string | null,
+  renderedContent?: string | null,
 ): EditableContentPayload {
   const content = editableContent?.trim();
 
   if (!content) {
     return {
-      blocks: {},
+      blocks: renderedContent ? { fallbackIntro: renderedContent } : {},
       workflowValueOverrides: [],
       evidenceLayoutMode: "two-per-page",
     };
@@ -1278,15 +1181,10 @@ function parseEditableContent(
 
   try {
     const parsed = JSON.parse(content) as EditableContentPayload;
-    const pageBlocks = flattenEditablePageOverrides(parsed.pageOverrides || {});
-    const rawBlocks = parsed.blocks || {};
 
     return {
       ...parsed,
-      blocks: {
-        ...rawBlocks,
-        ...pageBlocks,
-      },
+      blocks: parsed.blocks || {},
       pageOverrides: parsed.pageOverrides || {},
       workflowValueOverrides: Array.isArray(parsed.workflowValueOverrides)
         ? parsed.workflowValueOverrides
@@ -1295,7 +1193,7 @@ function parseEditableContent(
     };
   } catch {
     return {
-      blocks: {},
+      blocks: renderedContent ? { fallbackIntro: renderedContent } : {},
       workflowValueOverrides: [],
       evidenceLayoutMode: "two-per-page",
     };
@@ -1449,17 +1347,7 @@ function normalizeBlockKind(block: TemplateBlock) {
 }
 
 function getBlockKey(page: TemplatePage, block: TemplateBlock, index: number) {
-  if (block.id) {
-    return String(block.id);
-  }
-
-  const title = getBlockTitle(block)
-    .replace(/\s+/g, "_")
-    .replace(/[^A-Za-z0-9_\u0600-\u06FF-]/g, "");
-
-  const kind = normalizeBlockKind(block);
-
-  return String(`${page.id}__${kind}__${title || index + 1}`);
+  return String(block.id || `${page.id}__block_${index + 1}`);
 }
 
 function getBlockTitle(block: TemplateBlock) {
@@ -1489,14 +1377,11 @@ function getAutomaticBlockText(block: TemplateBlock, context: Record<string, str
   const settings = block.settings || {};
 
   if (kind === "cover-title" || kind === "hero-title") {
-    return renderText(
-      repairArabicMojibake(block.content || settings.content || "{{case.title}}"),
-      context,
-    );
+    return renderText(block.content || settings.content || "{{case.title}}", context);
   }
 
   if (kind === "text-library") {
-    return renderText(repairArabicMojibake(resolveTextLibraryFallback(block)), context);
+    return renderText(resolveTextLibraryFallback(block), context);
   }
 
   const content =
@@ -1506,7 +1391,7 @@ function getAutomaticBlockText(block: TemplateBlock, context: Record<string, str
     block.defaultContent ||
     "";
 
-  return renderText(repairArabicMojibake(content), context);
+  return renderText(content, context);
 }
 
 function resolveTextLibraryFallback(block: TemplateBlock) {
@@ -1721,7 +1606,7 @@ function safeValue(value: string | undefined, fallback: string) {
 }
 
 function renderText(text: string, context: Record<string, string>) {
-  return repairArabicMojibake(String(text || ""))
+  return String(text || "")
     .replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, key: string) =>
       resolveContextVariable(key, context),
     )
@@ -1772,14 +1657,20 @@ function buildPageOverrides(
       const blockKey = getBlockKey(page, block, index);
       const content = blocks[blockKey];
 
-      if (!content?.trim() || isLegacyRenderedReportDump(content)) {
-        return;
-      }
+      if (!content?.trim()) return;
 
       pageOverrides[page.id] ||= {};
       pageOverrides[page.id][blockKey] = {
         content,
       };
+
+      if (block.title) {
+        blocks[block.title] = content;
+      }
+
+      if (block.id) {
+        blocks[block.id] = content;
+      }
     });
   }
 
@@ -1802,9 +1693,7 @@ function buildRenderedContentFromPages({
           const blockKey = getBlockKey(page, block, index);
           const value = blocks[blockKey]?.trim();
 
-          if (!value || isLegacyRenderedReportDump(value)) {
-            return "";
-          }
+          if (!value) return "";
 
           return `${page.title} - ${getBlockTitle(block)}\n${renderText(
             value,
@@ -1819,196 +1708,6 @@ function buildRenderedContentFromPages({
     .filter(Boolean)
     .join("\n\n");
 }
-
-function buildLivePreviewPage({
-  page,
-  blocks,
-  context,
-}: {
-  page?: TemplatePage;
-  blocks: Record<string, string>;
-  context: Record<string, string>;
-}) {
-  if (!page) {
-    return null;
-  }
-
-  return {
-    ...page,
-    blocks: page.blocks.map((block, index) => {
-      const blockKey = getBlockKey(page, block, index);
-      const override = blocks[blockKey];
-      const automaticText = getAutomaticBlockText(block, context);
-      const content =
-        override !== undefined
-          ? repairArabicMojibake(override)
-          : automaticText;
-
-      return {
-        ...block,
-        content,
-        customContent: content,
-        settings: {
-          ...(block.settings || {}),
-          content,
-        },
-      };
-    }),
-  };
-}
-
-function buildPreviewCaseDataForRenderer(report: StudioReport) {
-  const student = report.caseEntry.student;
-  const snapshot = report.reportDataSnapshot || {};
-
-  return {
-    caseId: report.caseEntry.id,
-    id: report.caseEntry.id,
-    title: report.caseEntry.title || report.title,
-    status: report.caseEntry.status,
-    createdAt: report.caseEntry.createdAt,
-    updatedAt: report.updatedAt,
-    serviceName: report.caseEntry.service.name,
-    serviceSlug: report.caseEntry.service.slug,
-    student: {
-      name: student?.fullName || "",
-      fullName: student?.fullName || "",
-      grade: student?.grade || "",
-      classroom: student?.classroom || "",
-      stage: student?.stage || "",
-      guardianName: student?.guardianName || "",
-      guardianPhone: student?.guardianPhone || "",
-    },
-    values: report.reportValues.map((item) => ({
-      fieldKey: item.fieldKey,
-      fieldLabel: item.fieldLabel,
-      value: item.value,
-    })),
-    evidences: report.evidenceItems
-      .filter((item) => item.visible)
-      .map((item) => ({
-        id: item.id,
-        title: item.caption || item.fileName,
-        caption: item.caption || item.fileName,
-        fileUrl: item.fileUrl,
-        imageUrl: item.fileUrl,
-      })),
-    snapshot,
-  };
-}
-
-function repairArabicMojibake(value: string) {
-  const text = String(value || "");
-
-  if (!/[ØÙÃ]/.test(text)) {
-    return text;
-  }
-
-  try {
-    const bytes = new Uint8Array(
-      Array.from(text).map((char) => char.charCodeAt(0) & 255),
-    );
-
-    const decoded = new TextDecoder("utf-8").decode(bytes);
-    const originalArabic = (text.match(/[\\u0600-\\u06FF]/g) || []).length;
-    const decodedArabic = (decoded.match(/[\\u0600-\\u06FF]/g) || []).length;
-
-    return decodedArabic > originalArabic ? decoded : text;
-  } catch {
-    return text;
-  }
-}
-
-
-
-function sanitizeInitialBlockOverrides(
-  pages: TemplatePage[],
-  blocks: Record<string, string>,
-) {
-  const allowedKeys = new Set<string>();
-
-  for (const page of pages) {
-    page.blocks.forEach((block, index) => {
-      if (!isEditableTextBlock(block)) {
-        return;
-      }
-
-      allowedKeys.add(getBlockKey(page, block, index));
-
-      if (block.id) {
-        allowedKeys.add(String(block.id));
-      }
-    });
-  }
-
-  const clean: Record<string, string> = {};
-
-  for (const [key, value] of Object.entries(blocks || {})) {
-    if (!allowedKeys.has(key)) {
-      continue;
-    }
-
-    if (isLegacyRenderedReportDump(value)) {
-      continue;
-    }
-
-    clean[key] = repairArabicMojibake(value);
-  }
-
-  return clean;
-}
-
-function flattenEditablePageOverrides(
-  pageOverrides: EditableContentPayload["pageOverrides"],
-) {
-  const blocks: Record<string, string> = {};
-
-  for (const page of Object.values(pageOverrides || {})) {
-    for (const [blockKey, override] of Object.entries(page || {})) {
-      const content = override?.content || "";
-
-      if (!content.trim() || isLegacyRenderedReportDump(content)) {
-        continue;
-      }
-
-      blocks[blockKey] = repairArabicMojibake(content);
-    }
-  }
-
-  return blocks;
-}
-
-function isLegacyRenderedReportDump(value: string) {
-  const text = String(value || "");
-
-  if (!text.trim()) {
-    return false;
-  }
-
-  const hasReplacementChars = /�/.test(text);
-  const hasMojibakeMarks = /[ØÙÃ]/.test(text);
-  const hasReportDumpLabels =
-    /program_name\s*:|semester\s*:|gregorian_date\s*:|beneficiaries\s*:|execution_action\s*:|execution_mechanism\s*:|performance_indicator\s*:|selectedStudent\s*:/.test(
-      text,
-    );
-
-  const hasOldArabicDump =
-    text.includes("ملخص التقرير") ||
-    text.includes("بيانات الحالة") ||
-    text.includes("القيم المسجلة") ||
-    text.includes("الشواهد:") ||
-    text.includes("تقرير:");
-
-  const tooLongForBlock = text.length > 1800;
-
-  return (
-    hasReplacementChars ||
-    hasMojibakeMarks ||
-    hasReportDumpLabels ||
-    (hasOldArabicDump && tooLongForBlock)
-  );
-}
-
 
 function formatDate(value: string | null | undefined) {
   if (!value) return new Date().toLocaleDateString("ar-SA");

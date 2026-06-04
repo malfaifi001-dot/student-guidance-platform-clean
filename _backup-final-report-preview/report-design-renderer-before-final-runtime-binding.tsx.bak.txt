@@ -12,12 +12,6 @@ export type ReportDesignId =
   | "girls-lilac-elegant"
   | "girls-pearl-calm";
 
-type FinalReportValueItem = {
-  fieldKey: string;
-  fieldLabel: string;
-  value: string;
-};
-
 type PreviewCaseData = {
   evidences?: Array<{
     id?: string;
@@ -315,7 +309,7 @@ function normalizeFinalReportTemplate(
       const pageBlocks = Array.isArray(page?.blocks) ? page.blocks : [];
 
       const normalizedBlocks = pageBlocks.map((block: any, blockIndex: number) =>
-        normalizeFinalReportBlock(template, block, blockIndex, editorialBlocks),
+        normalizeFinalReportBlock(block, blockIndex, editorialBlocks),
       );
 
       const shouldAddEvidenceBlock =
@@ -354,52 +348,36 @@ function normalizeFinalReportTemplate(
 }
 
 function normalizeFinalReportBlock(
-  template: any,
   block: any,
   index: number,
   editorialBlocks: Record<string, string>,
 ) {
   const settings = block?.settings || {};
-  const textLibrary = settings.textLibrary || {};
-
-  const rawKind =
+  const smartKind =
     settings.smartBlockKind ||
     block?.smartBlockKind ||
     block?.kind ||
-    "paragraph";
+    "section-text";
 
   const blockId = block?.id || "final-block-" + (index + 1);
 
-  const editedContent = getFinalEditedBlockContent(
-    block,
-    blockId,
-    editorialBlocks,
-  );
-
-  const normalizedKind = normalizeFinalBlockKind(rawKind);
-
-  const resolvedContent =
-    editedContent ||
-    resolveFinalBlockContent({
-      template,
-      block,
-      settings,
-      textLibrary,
-      rawKind,
-    });
+  const editedContent =
+    editorialBlocks[blockId] ||
+    editorialBlocks[smartKind] ||
+    editorialBlocks[block?.title] ||
+    "";
 
   return {
     ...block,
     id: blockId,
-    originalKind: rawKind,
-    kind: normalizedKind,
-    finalFieldGroup: settings.fieldGroup || rawKind,
-    title:
-      block?.customTitle ||
-      block?.title ||
-      settings.title ||
-      getDefaultFinalBlockTitle(rawKind),
-    content: resolvedContent,
+    kind: smartKind,
+    title: block?.title || settings.title || "بلوك التقرير",
+    content:
+      editedContent ||
+      block?.content ||
+      settings.content ||
+      block?.defaultContent ||
+      "",
     variant: block?.variant || settings.style || "card",
     align: block?.align || settings.align || "right",
     showTitle:
@@ -411,18 +389,7 @@ function normalizeFinalReportBlock(
         ? block.showMeta
         : settings.showMeta !== false,
     placement: block?.placement || settings.placement || "flow",
-    snippetId:
-      block?.snippetId ||
-      settings.snippetId ||
-      textLibrary.snippetId ||
-      null,
-
-    fieldKeys:
-      block?.fieldKeys ||
-      settings.fieldKeys ||
-      settings.selectedFieldKeys ||
-      settings.workflowFieldKeys ||
-      [],
+    snippetId: block?.snippetId || settings.snippetId || null,
 
     evidenceLayout:
       block?.evidenceLayout || settings.evidenceLayout || "GRID_2X2",
@@ -450,539 +417,50 @@ function buildFinalReportContext(
   previewCaseData: PreviewCaseData | null,
   identity: Record<string, any>,
 ) {
-  const data = (previewCaseData || {}) as any;
-  const student = data.student || data.caseEntry?.student || {};
-  const service = data.service || data.caseEntry?.service || {};
-
-  const caseTitle =
-    data.title ||
-    data.caseEntry?.title ||
-    data.values?.reportTitle ||
-    data.values?.caseTitle ||
-    "تقرير رسمي";
-
-  const serviceName =
-    data.serviceName ||
-    service.name ||
-    data.caseEntry?.service?.name ||
-    "";
-
-  const studentName =
-    student.name ||
-    student.fullName ||
-    data.studentName ||
-    "";
-
   const context: Record<string, string> = {
-    "case.id": data.caseId || data.id || data.caseEntry?.id || "",
-    "case.title": caseTitle,
-    "case.status": data.status || data.caseEntry?.status || "",
-    "case.createdAt": formatFinalDate(data.createdAt || data.caseEntry?.createdAt),
-    "case.updatedAt": formatFinalDate(data.updatedAt),
+    "case.id": previewCaseData?.caseId || "",
+    "case.title": previewCaseData?.title || "تقرير رسمي",
+    "case.status": previewCaseData?.status || "",
+    "case.createdAt": formatFinalDate(previewCaseData?.createdAt),
+    "case.updatedAt": formatFinalDate(previewCaseData?.updatedAt),
 
-    caseId: data.caseId || data.id || data.caseEntry?.id || "",
-    caseTitle,
-    reportTitle: caseTitle,
+    "service.name": previewCaseData?.serviceName || "",
+    "service.slug": previewCaseData?.serviceSlug || "",
 
-    "service.name": serviceName,
-    "service.slug": data.serviceSlug || service.slug || data.caseEntry?.service?.slug || "",
-    serviceName,
-    serviceSlug: data.serviceSlug || service.slug || "",
+    "student.name": previewCaseData?.student?.name || "",
+    "student.grade": previewCaseData?.student?.grade || "",
+    "student.classroom": previewCaseData?.student?.classroom || "",
+    "student.stage": previewCaseData?.student?.stage || "",
+    "student.guardianName": previewCaseData?.student?.guardianName || "",
+    "student.guardianPhone": previewCaseData?.student?.guardianPhone || "",
 
-    "student.name": studentName,
-    "student.grade": student.grade || data.studentGrade || "",
-    "student.classroom": student.classroom || data.studentClassroom || "",
-    "student.stage": student.stage || "",
-    "student.guardianName": student.guardianName || data.guardianName || "",
-    "student.guardianPhone": student.guardianPhone || data.guardianPhone || "",
-
-    studentName,
-    studentGrade: student.grade || "",
-    studentClassroom: student.classroom || "",
-    studentStage: student.stage || "",
-    guardianName: student.guardianName || "",
-    guardianPhone: student.guardianPhone || "",
-
-    "identity.schoolName": identity.schoolName || identity.school?.name || "",
-    "identity.ministryName": identity.ministryName || "وزارة التعليم",
-    "identity.counselorName": identity.counselorName || identity.counselor?.name || "",
+    "identity.schoolName": identity.schoolName || "",
+    "identity.counselorName": identity.counselorName || "",
     "identity.principalName":
-      identity.principalName ||
-      identity.schoolLeaderName ||
-      identity.school?.principalName ||
-      "",
+      identity.principalName || identity.schoolLeaderName || "",
     "identity.educationDepartment": identity.educationDepartment || "",
     "identity.educationOffice": identity.educationOffice || "",
     "identity.academicYear": identity.academicYear || "",
     "identity.semester": identity.semester || "",
 
-    schoolName: identity.schoolName || identity.school?.name || "",
-    ministryName: identity.ministryName || "وزارة التعليم",
-    counselorName: identity.counselorName || identity.counselor?.name || "",
-    principalName:
-      identity.principalName ||
-      identity.schoolLeaderName ||
-      identity.school?.principalName ||
-      "",
-
-    "evidence.count": String(data.evidences?.length || 0),
-    evidenceCount: String(data.evidences?.length || 0),
-    evidenceCountText: formatFinalEvidenceCount(data.evidences?.length || 0),
+    "evidence.count": String(previewCaseData?.evidences?.length || 0),
   };
 
-  for (const value of collectFinalValues(data)) {
+  for (const value of previewCaseData?.values || []) {
     const key = value.fieldKey || "";
     const label = value.fieldLabel || "";
-    const itemValue = value.value || "";
 
     if (key) {
-      context["field." + key] = itemValue;
-      context[key] = itemValue;
+      context["field." + key] = value.value || "";
     }
 
     if (label) {
-      context["field." + label] = itemValue;
-      context[label] = itemValue;
+      context["field." + label] = value.value || "";
     }
-  }
-
-  if (!context.programTitle) {
-    context.programTitle =
-      context.program_name ||
-      context["field.program_name"] ||
-      context["عنوان البرنامج"] ||
-      caseTitle;
-  }
-
-  if (!context.executionDate) {
-    context.executionDate =
-      context.gregorian_date ||
-      context.execution_date ||
-      context["تاريخ التنفيذ"] ||
-      context["case.createdAt"];
-  }
-
-  if (!context.dayText) {
-    context.dayText = context.day || context["اليوم"] || "";
-  }
-
-  if (!context.targetGroup) {
-    context.targetGroup =
-      context.beneficiaries ||
-      context.target_group ||
-      context["الفئة المستهدفة"] ||
-      context["student.grade"] ||
-      "";
-  }
-
-  if (!context.executionAction) {
-    context.executionAction =
-      context.execution_action ||
-      context["الإجراء التنفيذي"] ||
-      "";
-  }
-
-  if (!context.executionMechanism) {
-    context.executionMechanism =
-      context.execution_mechanism ||
-      context["آلية التنفيذ"] ||
-      "";
-  }
-
-  if (!context.performanceIndicator) {
-    context.performanceIndicator =
-      context.performance_indicator ||
-      context["مؤشر الأداء"] ||
-      "";
-  }
-
-  if (!context.evidenceSuggestion) {
-    context.evidenceSuggestion =
-      context.evidence_suggestion ||
-      context["الشاهد المقترح"] ||
-      context["الشواهد"] ||
-      "";
   }
 
   return context;
 }
-
-
-function normalizeFinalBlockKind(kind: string) {
-  if (kind === "cover-title") return "hero-title";
-  if (kind === "paragraph") return "multi-paragraph";
-  if (kind === "custom-paragraph") return "multi-paragraph";
-  if (kind === "text-library") return "multi-paragraph";
-  if (kind === "case-meta") return "field-list";
-  if (kind === "student-summary") return "field-list";
-  if (kind === "service-summary") return "field-list";
-  if (kind === "field-list") return "field-list";
-  if (kind === "approval-signature") return "closing-note";
-  if (kind === "identity-header") return "section-text";
-
-  return kind;
-}
-
-function getDefaultFinalBlockTitle(kind: string) {
-  if (kind === "cover-title") return "عنوان التقرير";
-  if (kind === "case-meta") return "بيانات الحالة";
-  if (kind === "student-summary") return "بيانات الطالب/الطالبة";
-  if (kind === "service-summary") return "بيانات الخدمة";
-  if (kind === "field-list") return "حقول من الحالة";
-  if (kind === "text-library") return "نص من مكتبة النصوص";
-  if (kind === "custom-paragraph") return "فقرة مخصصة";
-  if (kind === "evidence-gallery") return "الشواهد والمرفقات";
-  if (kind === "approval-signature") return "الاعتماد";
-
-  return "بلوك التقرير";
-}
-
-
-function getFinalEditedBlockContent(
-  block: any,
-  blockId: string,
-  editorialBlocks: Record<string, string>,
-) {
-  const candidateKeys = [
-    blockId,
-    block?.id ? String(block.id) : "",
-  ].filter(Boolean);
-
-  for (const key of candidateKeys) {
-    const value = editorialBlocks[key];
-
-    if (!value || !String(value).trim()) {
-      continue;
-    }
-
-    if (isFinalLegacyRenderedReportDump(value)) {
-      continue;
-    }
-
-    return value;
-  }
-
-  return "";
-}
-
-function isFinalLegacyRenderedReportDump(value: string) {
-  const text = String(value || "");
-
-  if (!text.trim()) {
-    return false;
-  }
-
-  const hasReplacementChars = /�/.test(text);
-  const hasMojibakeMarks = /[ØÙÃ]/.test(text);
-  const hasReportDumpLabels =
-    /program_name\s*:|semester\s*:|gregorian_date\s*:|beneficiaries\s*:|execution_action\s*:|execution_mechanism\s*:|performance_indicator\s*:|selectedStudent\s*:/.test(
-      text,
-    );
-
-  const hasOldArabicDump =
-    text.includes("ملخص التقرير") ||
-    text.includes("بيانات الحالة") ||
-    text.includes("القيم المسجلة") ||
-    text.includes("الشواهد:") ||
-    text.includes("تقرير:");
-
-  const tooLongForBlock = text.length > 1800;
-
-  return (
-    hasReplacementChars ||
-    hasMojibakeMarks ||
-    hasReportDumpLabels ||
-    (hasOldArabicDump && tooLongForBlock)
-  );
-}
-
-
-function resolveFinalBlockContent({
-  template,
-  block,
-  settings,
-  textLibrary,
-  rawKind,
-}: {
-  template: any;
-  block: any;
-  settings: any;
-  textLibrary: any;
-  rawKind: string;
-}) {
-  if (rawKind === "cover-title") {
-    return block?.content || settings?.content || "{{case.title}}";
-  }
-
-  if (rawKind === "custom-paragraph") {
-    return block?.customContent || block?.content || settings?.content || "";
-  }
-
-  if (rawKind === "paragraph") {
-    return block?.content || settings?.content || "";
-  }
-
-  if (rawKind === "text-library") {
-    return resolveFinalTextLibraryContent(template, block, settings, textLibrary);
-  }
-
-  const candidateContent =
-    block?.content ||
-    settings?.content ||
-    block?.customContent ||
-    block?.defaultContent ||
-    "";
-
-  return isFinalLegacyRenderedReportDump(candidateContent)
-    ? ""
-    : candidateContent;
-}
-
-function resolveFinalTextLibraryContent(
-  template: any,
-  block: any,
-  settings: any,
-  textLibrary: any,
-) {
-  const snippets = collectFinalTextSnippets(template);
-  const snippetId =
-    textLibrary?.snippetId ||
-    settings?.snippetId ||
-    block?.snippetId ||
-    "";
-
-  if (snippetId) {
-    const selected = snippets.find((snippet: any) => snippet.id === snippetId);
-
-    if (selected) {
-      return selected.content || selected.text || selected.body || "";
-    }
-  }
-
-  const category =
-    textLibrary?.category ||
-    settings?.category ||
-    block?.category ||
-    "مقدمة";
-
-  const serviceSlug =
-    textLibrary?.serviceSlug ||
-    settings?.serviceSlug ||
-    template?.serviceSlug ||
-    "";
-
-  const matching = snippets.find((snippet: any) => {
-    const matchesCategory =
-      !category ||
-      category === "all" ||
-      snippet.category === category;
-
-    const matchesService =
-      !serviceSlug ||
-      !snippet.serviceSlug ||
-      snippet.serviceSlug === serviceSlug;
-
-    return matchesCategory && matchesService;
-  });
-
-  if (matching) {
-    return matching.content || matching.text || matching.body || "";
-  }
-
-  return getFinalTextLibraryFallback(category);
-}
-
-function collectFinalTextSnippets(template: any) {
-  const candidates = [
-    template?.snippets,
-    template?.textSnippets,
-    template?.textLibrary,
-    template?.library?.snippets,
-    template?.settings?.snippets,
-  ];
-
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) {
-      return candidate;
-    }
-  }
-
-  return [];
-}
-
-function getFinalTextLibraryFallback(category: string) {
-  if (category === "هدف") {
-    return "يهدف هذا التقرير إلى توثيق {{service.name}} للحالة {{case.title}}، وبيان أبرز البيانات والإجراءات المرتبطة بها.";
-  }
-
-  if (category === "إجراء") {
-    return "تم تنفيذ الإجراءات المرتبطة بالحالة وفق البيانات المدخلة في النظام، مع توثيق ما يلزم من شواهد ومرفقات.";
-  }
-
-  if (category === "نتيجة") {
-    return "تشير البيانات المدخلة إلى أن الحالة تم التعامل معها ضمن خدمة {{service.name}}، مع حفظ النتائج والتوصيات داخل التقرير.";
-  }
-
-  if (category === "توصية") {
-    return "يوصى بمتابعة الحالة حسب الحاجة، وتحديث السجل عند وجود مستجدات، وربط الشواهد الداعمة بالتقرير.";
-  }
-
-  if (category === "خاتمة") {
-    return "تم إعداد هذا التقرير من منصة التوجيه الطلابي اعتمادًا على بيانات الحالة والشواهد المرتبطة بها.";
-  }
-
-  return "تم إعداد هذا التقرير لخدمة {{service.name}} بناءً على بيانات الحالة {{case.title}} والشواهد المرتبطة بها.";
-}
-
-function collectFinalValues(data: any): FinalReportValueItem[] {
-  if (Array.isArray(data?.values)) {
-    return data.values.map((item: any) => ({
-      fieldKey: item.fieldKey || item.key || "",
-      fieldLabel: item.fieldLabel || item.label || item.fieldKey || "",
-      value:
-        item.value === undefined || item.value === null
-          ? ""
-          : String(item.value),
-    }));
-  }
-
-  if (data?.values && typeof data.values === "object") {
-    return Object.entries(data.values).map(([key, value]) => ({
-      fieldKey: key,
-      fieldLabel: key,
-      value:
-        value === undefined || value === null
-          ? ""
-          : String(value),
-    }));
-  }
-
-  return [];
-}
-
-function resolveContextVariable(key: string, context: Record<string, string>) {
-  const aliases: Record<string, string[]> = {
-    reportTitle: ["reportTitle", "case.title", "caseTitle"],
-    caseTitle: ["case.title", "caseTitle", "reportTitle"],
-    serviceName: ["service.name", "serviceName"],
-    studentName: ["student.name", "studentName"],
-    studentGrade: ["student.grade", "studentGrade"],
-    studentClassroom: ["student.classroom", "studentClassroom"],
-    guardianName: ["student.guardianName", "guardianName"],
-    guardianPhone: ["student.guardianPhone", "guardianPhone"],
-    schoolName: ["identity.schoolName", "schoolName"],
-    counselorName: ["identity.counselorName", "counselorName"],
-    principalName: ["identity.principalName", "principalName"],
-  };
-
-  const lookupKeys = [
-    key,
-    ...(aliases[key] || []),
-    key.startsWith("field.") ? key : "field." + key,
-  ];
-
-  for (const lookupKey of lookupKeys) {
-    const value = context[lookupKey];
-
-    if (value !== undefined && value !== null && String(value).trim() !== "") {
-      return String(value);
-    }
-  }
-
-  return "";
-}
-
-function getFinalFieldListItems(block: any, previewCaseData: PreviewCaseData | null) {
-  const data = (previewCaseData || {}) as any;
-  const values = collectFinalValues(data);
-  const group = block.finalFieldGroup || block.originalKind || "";
-  const selectedKeys = Array.isArray(block.fieldKeys) ? block.fieldKeys : [];
-
-  if (group === "case-meta") {
-    return [
-      {
-        key: "service",
-        label: "الخدمة",
-        value: data.serviceName || data.service?.name || data.caseEntry?.service?.name || "",
-      },
-      {
-        key: "case-title",
-        label: "الحالة",
-        value: data.title || data.caseEntry?.title || "",
-      },
-      {
-        key: "status",
-        label: "الحالة الحالية",
-        value: data.status || data.caseEntry?.status || "",
-      },
-      {
-        key: "created-at",
-        label: "تاريخ الإنشاء",
-        value: formatFinalDate(data.createdAt || data.caseEntry?.createdAt),
-      },
-    ];
-  }
-
-  if (group === "student-summary") {
-    const student = data.student || data.caseEntry?.student || {};
-
-    return [
-      {
-        key: "student-name",
-        label: "الطالب/الطالبة",
-        value: student.name || student.fullName || "",
-      },
-      {
-        key: "grade",
-        label: "الصف",
-        value: student.grade || "",
-      },
-      {
-        key: "classroom",
-        label: "الفصل",
-        value: student.classroom || "",
-      },
-      {
-        key: "guardian",
-        label: "ولي الأمر",
-        value: student.guardianName || "",
-      },
-    ];
-  }
-
-  if (selectedKeys.length) {
-    return values
-      .filter((item: FinalReportValueItem) =>
-        selectedKeys.some(
-          (key: string) =>
-            key === item.fieldKey ||
-            key === item.fieldLabel ||
-            "field." + key === item.fieldKey,
-        ),
-      )
-      .map((item: FinalReportValueItem) => ({
-        key: item.fieldKey,
-        label: item.fieldLabel || item.fieldKey,
-        value: item.value,
-      }));
-  }
-
-  return values.slice(0, 10).map((item: FinalReportValueItem) => ({
-    key: item.fieldKey,
-    label: item.fieldLabel || item.fieldKey,
-    value: item.value,
-  }));
-}
-
-function formatFinalEvidenceCount(count: number) {
-  if (count <= 0) return "0 شاهد";
-  if (count === 1) return "شاهد واحد";
-  if (count === 2) return "شاهدان";
-  if (count >= 3 && count <= 10) return count + " شواهد";
-
-  return count + " شاهد";
-}
-
 
 function formatFinalDate(value?: string | null) {
   if (!value) {
@@ -1408,32 +886,6 @@ function DesignBlock({
     );
   }
 
-  if (block.kind === "field-list") {
-    const values = getFinalFieldListItems(block, previewCase);
-
-    return (
-      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
-        {block.showTitle ? <BlockTitle title={block.title} /> : null}
-
-        {values.length ? (
-          <div className="grid gap-2 md:grid-cols-2">
-            {values.map((item) => (
-              <MetaCard
-                key={item.key || item.label}
-                label={item.label}
-                value={item.value || "غير متوفر"}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
-            لا توجد قيم مرتبطة بهذا البلوك.
-          </p>
-        )}
-      </section>
-    );
-  }
-
   if (block.kind === "evidence-gallery") {
     return <EvidenceBlock block={block} previewCase={previewCase} designId={designId} textAlign={textAlign} />;
   }
@@ -1505,7 +957,7 @@ function EvidenceBlock({
           const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
 
           return (
-            <figure key={evidence.id || imageUrl || String(index)} className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <figure key={evidence.id || imageUrl || String(index)} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               {imageUrl && !isPlaceholderMode ? (
                 <img src={imageUrl} alt={evidence.title || `شاهد ${startIndex + index + 1}`} className={`${getEvidenceImageClass(block)} bg-slate-50`} />
               ) : (
@@ -1516,7 +968,7 @@ function EvidenceBlock({
               )}
 
               {block.evidenceShowCaptions !== false ? (
-                <figcaption className="max-h-12 overflow-hidden border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
+                <figcaption className="border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
                   {evidence.caption || evidence.title || `شاهد ${startIndex + index + 1}`}
                 </figcaption>
               ) : null}
@@ -1527,7 +979,7 @@ function EvidenceBlock({
 
       {hiddenCount > 0 && block.evidenceAutoCreatePages === false ? (
         <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
-          يوجد {hiddenCount} شاهد إضافي. سيتم نقله إلى صفحة شواهد إضافية حتى لا يتمدد إطار A4.
+          يوجد {hiddenCount} شاهد إضافي لم يظهر لأن إنشاء الصفحات التلقائية غير مفعل.
         </p>
       ) : null}
 
@@ -1638,21 +1090,10 @@ function BlockTitle({ title }: { title: string }) {
 }
 
 function renderText(text: string, context: Record<string, string>) {
-  const source = String(text || "");
-
-  const replaceVariable = (_match: string, key: string) => {
-    const cleanKey = String(key || "").trim();
-
-    if (!cleanKey) {
-      return "";
-    }
-
-    return resolveContextVariable(cleanKey, context);
-  };
-
-  return source
-    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, replaceVariable)
-    .replace(/\{([A-Za-z0-9_.\-\u0600-\u06FF ]+)\}/g, replaceVariable);
+  return String(text || "").replace(/{{\s*([^}]+)\s*}}/g, (_, key: string) => {
+    const cleanKey = key.trim();
+    return context[cleanKey] || `{{${cleanKey}}}`;
+  });
 }
 
 function splitLines(text: string) {
@@ -1880,31 +1321,9 @@ function getPlacementClass(placement: string) {
 }
 
 function getEvidencePerPage(block: any) {
-  return getSmartEvidencePerPage(block);
-}
-
-function getSmartEvidencePerPage(block: any) {
-  const layout = String(block?.evidenceLayout || "TWO_PER_PAGE");
-  const ratio = String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
-  const fit = String(block?.evidenceFit || "contain");
-
-  if (layout === "ATTACHMENT_LIST") return 10;
-  if (layout === "ONE_PER_PAGE") return 1;
-  if (layout === "TWO_PER_PAGE") return 2;
-
-  /*
-    GRID_2X2 is a maximum capacity, not a forced capacity.
-    The system must keep every evidence card inside the A4 frame.
-    Portrait images are tall, so 4 cards can overflow the page.
-  */
-  if (layout === "GRID_2X2") {
-    if (ratio === "PORTRAIT_3_4") return 2;
-    if (ratio === "SQUARE_1_1" && fit === "cover") return 4;
-    if (ratio === "SQUARE_1_1") return 4;
-    if (ratio === "LANDSCAPE_16_9") return 4;
-    return 4;
-  }
-
+  if (block.evidenceLayout === "ONE_PER_PAGE") return 1;
+  if (block.evidenceLayout === "GRID_2X2") return 4;
+  if (block.evidenceLayout === "ATTACHMENT_LIST") return 8;
   return 2;
 }
 
@@ -1919,66 +1338,21 @@ function createEvidencePlaceholders(count: number, startIndex: number) {
 }
 
 function getEvidenceGridClass(block: any) {
-  const perPage = getEvidencePerPage(block);
-
-  if (block.evidenceLayout === "ATTACHMENT_LIST") {
-    return "grid gap-2";
-  }
-
-  if (perPage <= 1) {
-    return "grid gap-3";
-  }
-
+  if (block.evidenceLayout === "ONE_PER_PAGE") return "grid gap-3";
   return "grid gap-3 md:grid-cols-2";
 }
 
 function getEvidenceImageHeightClass(block: any) {
-  const perPage = getEvidencePerPage(block);
-  const ratio = block.evidenceAspectRatio || "LANDSCAPE_4_3";
-
-  /*
-    Fixed heights are intentional:
-    they keep evidence inside the printable A4 area.
-    Extra evidence must go to a new Evidence Page instead of stretching A4.
-  */
-  if (perPage <= 1) {
-    switch (ratio) {
-      case "PORTRAIT_3_4":
-        return "h-[185mm]";
-      case "SQUARE_1_1":
-        return "h-[160mm]";
-      case "LANDSCAPE_16_9":
-        return "h-[122mm]";
-      case "LANDSCAPE_4_3":
-      default:
-        return "h-[138mm]";
-    }
-  }
-
-  if (perPage === 2) {
-    switch (ratio) {
-      case "PORTRAIT_3_4":
-        return "h-[92mm]";
-      case "SQUARE_1_1":
-        return "h-[82mm]";
-      case "LANDSCAPE_16_9":
-        return "h-[58mm]";
-      case "LANDSCAPE_4_3":
-      default:
-        return "h-[66mm]";
-    }
-  }
-
-  switch (ratio) {
-    case "SQUARE_1_1":
-      return "h-[56mm]";
+  switch (block.evidenceAspectRatio || "LANDSCAPE_4_3") {
     case "LANDSCAPE_16_9":
-      return "h-[42mm]";
+      return "aspect-video";
     case "PORTRAIT_3_4":
-      return "h-[82mm]";
+      return "aspect-[3/4]";
+    case "SQUARE_1_1":
+      return "aspect-square";
     case "LANDSCAPE_4_3":
     default:
-      return "h-[48mm]";
+      return "aspect-[4/3]";
   }
 }
 

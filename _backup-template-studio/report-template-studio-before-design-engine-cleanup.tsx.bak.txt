@@ -11,6 +11,11 @@ type TemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 type TemplateScope = "GLOBAL" | "SERVICE" | "WORKFLOW" | "LOCATION";
 type PageKind = "content" | "recommendations" | "evidence" | "approval" | "custom";
 
+type StudioDesignTheme =
+  | "MINISTRY_CLASSIC"
+  | "DEEP_NAVY"
+  | "WARM_SAND"
+  | "MODERN_VIOLET";
 
 type BlockKind =
   | "hero-title"
@@ -97,6 +102,7 @@ type StudioTemplate = {
   name: string;
   description: string;
   status: TemplateStatus;
+  designTheme?: StudioDesignTheme;
   designTemplateId?: ReportDesignId;
   scope: TemplateScope;
   serviceSlug?: string;
@@ -173,6 +179,33 @@ const scopeLabels: Record<TemplateScope, string> = {
   WORKFLOW: "موجه لـ Workflow",
   LOCATION: "موجه لمكان محدد",
 };
+
+const designThemeOptions: Array<{
+  value: StudioDesignTheme;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "MINISTRY_CLASSIC",
+    label: "تصميم الوزارة الكلاسيكي",
+    description: "قريب من نموذج الوزارة: شريط علوي داكن، حضور رسمي واضح، وفوتر أخضر.",
+  },
+  {
+    value: "DEEP_NAVY",
+    label: "الأزرق الأكاديمي",
+    description: "تصميم رسمي أزرق هادئ مناسب للتقارير التفصيلية واللجان.",
+  },
+  {
+    value: "WARM_SAND",
+    label: "الرملي الدافئ",
+    description: "تصميم مختلف بألوان رملية وذهبية مناسب للتقارير الإنسانية والمتابعات.",
+  },
+  {
+    value: "MODERN_VIOLET",
+    label: "البنفسجي الحديث",
+    description: "تصميم عصري مختلف مناسب للتقارير المختصرة والعروض البصرية.",
+  },
+];
 
 const pageKindLabels: Record<PageKind, string> = {
   content: "محتوى",
@@ -398,6 +431,7 @@ function createInitialTemplate(): StudioTemplate {
     description:
       "قالب رسمي متعدد الصفحات بهوية ثابتة، يتم بناء محتواه من بلوكات نصية ذكية ومتغيرات ديناميكية.",
     status: "DRAFT",
+    designTheme: "MINISTRY_CLASSIC",
     designTemplateId: "ministry-form",
     scope: "GLOBAL",
     previewCaseId: "",
@@ -450,6 +484,124 @@ function buildRuntimeContext(template: StudioTemplate, previewCase: PreviewCaseD
 }
 
 
+function getDesignThemePalette(theme?: StudioDesignTheme) {
+  switch (theme || "MINISTRY_CLASSIC") {
+    case "DEEP_NAVY":
+      return {
+        previewShellClass:
+          "mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[18px] border border-sky-100 bg-sky-50 p-[8mm] shadow-xl",
+        pageClass:
+          "relative min-h-[279mm] rounded-[16px] border border-sky-100 bg-white p-[12mm]",
+        innerFrameClass:
+          "pointer-events-none absolute inset-4 rounded-[14px] border border-sky-50",
+        headerClass:
+          "relative z-10 rounded-[18px] border border-sky-200 bg-gradient-to-l from-slate-900 via-sky-900 to-slate-800 p-5 text-white",
+        logoWrapClass:
+          "flex h-20 w-28 items-center justify-center p-0",
+        logoImageClass:
+          "h-16 w-auto object-contain brightness-0 invert",
+        headerTitleClass:
+          "text-sm font-black text-white",
+        headerSubtitleClass:
+          "mt-1 text-xs font-bold text-sky-100",
+        badgeClass:
+          "rounded-2xl border border-sky-200/40 bg-white/10 p-3 text-center backdrop-blur",
+        badgeLabelClass:
+          "text-[10px] font-black text-sky-100",
+        badgeValueClass:
+          "mt-1 text-sm font-black text-white",
+        footerBarClass:
+          "h-1 rounded-full bg-gradient-to-l from-sky-700 to-sky-200",
+      };
+
+    case "WARM_SAND":
+      return {
+        previewShellClass:
+          "mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[30px] border border-amber-100 bg-[#fbf4e8] p-[9mm] shadow-xl",
+        pageClass:
+          "relative min-h-[279mm] rounded-[24px] border border-amber-100 bg-[#fffdf7] p-[12mm]",
+        innerFrameClass:
+          "pointer-events-none absolute inset-4 rounded-[22px] border border-amber-100/70",
+        headerClass:
+          "relative z-10 rounded-[24px] border border-amber-200 bg-gradient-to-l from-amber-100 via-white to-orange-50 p-5",
+        logoWrapClass:
+          "flex h-20 w-28 items-center justify-center p-0",
+        logoImageClass:
+          "h-16 w-auto object-contain",
+        headerTitleClass:
+          "text-sm font-black text-amber-950",
+        headerSubtitleClass:
+          "mt-1 text-xs font-bold text-amber-800",
+        badgeClass:
+          "rounded-2xl border border-amber-200 bg-white p-3 text-center",
+        badgeLabelClass:
+          "text-[10px] font-black text-amber-500",
+        badgeValueClass:
+          "mt-1 text-sm font-black text-amber-900",
+        footerBarClass:
+          "h-1 rounded-full bg-gradient-to-l from-amber-700 to-orange-200",
+      };
+
+    case "MODERN_VIOLET":
+      return {
+        previewShellClass:
+          "mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[32px] border border-violet-100 bg-violet-50 p-[9mm] shadow-xl",
+        pageClass:
+          "relative min-h-[279mm] rounded-[26px] border border-violet-100 bg-white p-[12mm]",
+        innerFrameClass:
+          "pointer-events-none absolute inset-4 rounded-[24px] border border-violet-50",
+        headerClass:
+          "relative z-10 rounded-[26px] border border-violet-100 bg-gradient-to-l from-violet-700 via-indigo-700 to-slate-900 p-5 text-white",
+        logoWrapClass:
+          "flex h-20 w-28 items-center justify-center p-0",
+        logoImageClass:
+          "h-16 w-auto object-contain brightness-0 invert",
+        headerTitleClass:
+          "text-sm font-black text-white",
+        headerSubtitleClass:
+          "mt-1 text-xs font-bold text-violet-100",
+        badgeClass:
+          "rounded-2xl border border-white/20 bg-white/10 p-3 text-center backdrop-blur",
+        badgeLabelClass:
+          "text-[10px] font-black text-violet-100",
+        badgeValueClass:
+          "mt-1 text-sm font-black text-white",
+        footerBarClass:
+          "h-1 rounded-full bg-gradient-to-l from-violet-700 to-fuchsia-200",
+      };
+
+    case "MINISTRY_CLASSIC":
+    default:
+      return {
+        previewShellClass:
+          "mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-xl",
+        pageClass:
+          "relative min-h-[297mm] bg-white p-[12mm] pt-[48mm]",
+        innerFrameClass:
+          "pointer-events-none absolute inset-0 border border-slate-100",
+        headerClass:
+          "absolute left-0 right-0 top-0 z-10 rounded-b-[42px] bg-[#1d343f] px-[18mm] py-[10mm] text-white",
+        logoWrapClass:
+          "mx-auto flex h-20 w-32 items-center justify-center p-0",
+        logoImageClass:
+          "h-18 w-auto object-contain brightness-0 invert",
+        headerTitleClass:
+          "text-sm font-black text-white",
+        headerSubtitleClass:
+          "mt-1 text-xs font-bold text-slate-100",
+        badgeClass:
+          "rounded-none border-0 bg-transparent p-0 text-center",
+        badgeLabelClass:
+          "text-[10px] font-black text-slate-200",
+        badgeValueClass:
+          "mt-1 text-sm font-black text-white",
+        footerBarClass:
+          "h-1 rounded-none bg-gradient-to-l from-[#1d343f] via-emerald-700 to-emerald-200",
+      };
+  }
+}
+
+const theme = getDesignThemePalette("MINISTRY_CLASSIC");
 
 function getServiceName(slug?: string) {
   return SERVICE_OPTIONS.find((service) => service.slug === slug)?.name || "";
@@ -619,6 +771,7 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
         : item?.isActive === false
           ? "ARCHIVED"
           : "DRAFT",
+    designTheme: templateJson.designTheme || smartStudio.designTheme || "MINISTRY_CLASSIC",
     scope:
       templateJson.scope ||
       templateJson?.workflowBinding?.scope ||
@@ -1007,6 +1160,7 @@ export function ReportTemplateStudio() {
       status,
       documentType: template.documentType,
       designTemplateId: template.designTemplateId || "ministry-form",
+      designTheme: template.designTheme || "MINISTRY_CLASSIC",
       designPreset: "official-smart-multi-page",
       previewCaseId: template.previewCaseId,
       updatedAt: new Date().toISOString().slice(0, 10),
@@ -1063,6 +1217,7 @@ export function ReportTemplateStudio() {
       smartStudio: {
         version: 2,
         mode: "multi-page-workflow-aware",
+        designTheme: template.designTheme || "MINISTRY_CLASSIC",
         designTemplateId: template.designTemplateId || "ministry-form",
         pages: template.pages,
       },
@@ -1168,13 +1323,6 @@ export function ReportTemplateStudio() {
             <span className="rounded-full bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
               {statusLabels[template.status]}
             </span>
-
-            <a
-              href="/dashboard/admin/report-templates/designs"
-              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-100"
-            >
-              معرض التصاميم
-            </a>
 
             <a
               href="/dashboard/admin/report-templates/library"
@@ -1514,8 +1662,66 @@ export function ReportTemplateStudio() {
               ) : null}
             </div>
 
-            
+            <section className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-sm font-black text-slate-900">
+                    تصميم الصفحة الرسمي
+                  </p>
+                  <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                    اختر هوية التصميم. التغيير يظهر مباشرة في معاينة A4 ولا يغيّر البلوكات أو النصوص.
+                  </p>
+                </div>
 
+                <select
+                  value={template.designTheme || "MINISTRY_CLASSIC"}
+                  onChange={(event) =>
+                    updateTemplate({
+                      designTheme: event.target.value as StudioDesignTheme,
+                    })
+                  }
+                  className="min-w-64 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                >
+                  {designThemeOptions.map((theme) => (
+                    <option key={theme.value} value={theme.value}>
+                      {theme.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                {designThemeOptions.map((theme) => {
+                  const active = (template.designTheme || "MINISTRY_CLASSIC") === theme.value;
+
+                  return (
+                    <button
+                      key={theme.value}
+                      type="button"
+                      onClick={() =>
+                        updateTemplate({
+                          designTheme: theme.value,
+                        })
+                      }
+                      className={[
+                        "rounded-2xl border p-3 text-right transition",
+                        active
+                          ? "border-emerald-600 bg-white shadow-sm"
+                          : "border-slate-200 bg-white/70 hover:bg-white",
+                      ].join(" ")}
+                    >
+                      <strong className="text-xs font-black text-slate-900">
+                        {theme.label}
+                      </strong>
+
+                      <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                        {theme.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
             {feedback ? (
               <div
@@ -1542,8 +1748,66 @@ export function ReportTemplateStudio() {
             onInsertVariable={insertVariable}
           />
 
-          
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-sm font-black text-emerald-700">
+                  شريط التصاميم السريع
+                </p>
+                <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                  هذه تصاميم لنفس القالب، وليست قوالب منفصلة. اختر التصميم وستتغير المعاينة مباشرة.
+                </p>
+              </div>
 
+              <select
+                value={template.designTheme || "MINISTRY_CLASSIC"}
+                onChange={(event) =>
+                  updateTemplate({
+                    designTheme: event.target.value as StudioDesignTheme,
+                  })
+                }
+                className="min-w-72 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+              >
+                {designThemeOptions.map((theme) => (
+                  <option key={theme.value} value={theme.value}>
+                    {theme.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+              {designThemeOptions.map((theme) => {
+                const active = (template.designTheme || "MINISTRY_CLASSIC") === theme.value;
+
+                return (
+                  <button
+                    key={theme.value}
+                    type="button"
+                    onClick={() =>
+                      updateTemplate({
+                        designTheme: theme.value,
+                      })
+                    }
+                    className={[
+                      "rounded-2xl border p-3 text-right transition",
+                      active
+                        ? "border-emerald-600 bg-emerald-50 shadow-sm"
+                        : "border-slate-200 bg-slate-50 hover:bg-white",
+                    ].join(" ")}
+                  >
+                    <strong className="text-xs font-black text-slate-900">
+                      {theme.label}
+                    </strong>
+
+                    <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                      {theme.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -2497,7 +2761,7 @@ function PreviewBlock({
             return (
               <figure
                 key={evidence.id || imageUrl || String(index)}
-                className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
               >
                 {imageUrl && !isPlaceholderMode ? (
                   <img
@@ -2517,7 +2781,7 @@ function PreviewBlock({
                 )}
 
                 {block.evidenceShowCaptions !== false ? (
-                  <figcaption className="max-h-12 overflow-hidden border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
+                  <figcaption className="border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
                     {evidence.caption || evidence.title || "شاهد " + (startIndex + index + 1)}
                   </figcaption>
                 ) : null}
@@ -2528,7 +2792,7 @@ function PreviewBlock({
 
         {hiddenCount > 0 && block.evidenceAutoCreatePages === false ? (
           <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
-            يوجد {hiddenCount} شاهد إضافي. سيتم نقله إلى صفحة شواهد إضافية حتى لا يتمدد إطار A4.
+            يوجد {hiddenCount} شاهد إضافي لم يظهر لأن إنشاء الصفحات التلقائية غير مفعل.
           </p>
         ) : null}
 
@@ -2598,43 +2862,16 @@ function createEvidencePlaceholders(
   });
 }
 
-function getEvidencePerPage(block: any) {
-  return getSmartEvidencePerPage(block);
-}
-
-function getSmartEvidencePerPage(block: any) {
-  const layout = String(block?.evidenceLayout || "TWO_PER_PAGE");
-  const ratio = String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
-  const fit = String(block?.evidenceFit || "contain");
-
-  if (layout === "ATTACHMENT_LIST") return 10;
-  if (layout === "ONE_PER_PAGE") return 1;
-  if (layout === "TWO_PER_PAGE") return 2;
-
-  /*
-    GRID_2X2 is a maximum capacity, not a forced capacity.
-    The system must keep every evidence card inside the A4 frame.
-    Portrait images are tall, so 4 cards can overflow the page.
-  */
-  if (layout === "GRID_2X2") {
-    if (ratio === "PORTRAIT_3_4") return 2;
-    if (ratio === "SQUARE_1_1" && fit === "cover") return 4;
-    if (ratio === "SQUARE_1_1") return 4;
-    if (ratio === "LANDSCAPE_16_9") return 4;
-    return 4;
-  }
+function getEvidencePerPage(block: StudioBlock) {
+  if (block.evidenceLayout === "ONE_PER_PAGE") return 1;
+  if (block.evidenceLayout === "GRID_2X2") return 4;
+  if (block.evidenceLayout === "ATTACHMENT_LIST") return 8;
 
   return 2;
 }
 
-function getEvidenceGridClass(block: any) {
-  const perPage = getEvidencePerPage(block);
-
-  if (block.evidenceLayout === "ATTACHMENT_LIST") {
-    return "grid gap-2";
-  }
-
-  if (perPage <= 1) {
+function getEvidenceGridClass(block: StudioBlock) {
+  if (block.evidenceLayout === "ONE_PER_PAGE") {
     return "grid gap-3";
   }
 
@@ -2656,59 +2893,14 @@ function getEvidenceAspectRatioClass(block: StudioBlock) {
   }
 }
 
-function getEvidenceImageHeightClass(block: any) {
-  const perPage = getEvidencePerPage(block);
-  const ratio = block.evidenceAspectRatio || "LANDSCAPE_4_3";
-
-  /*
-    Fixed heights are intentional:
-    they keep evidence inside the printable A4 area.
-    Extra evidence must go to a new Evidence Page instead of stretching A4.
-  */
-  if (perPage <= 1) {
-    switch (ratio) {
-      case "PORTRAIT_3_4":
-        return "h-[185mm]";
-      case "SQUARE_1_1":
-        return "h-[160mm]";
-      case "LANDSCAPE_16_9":
-        return "h-[122mm]";
-      case "LANDSCAPE_4_3":
-      default:
-        return "h-[138mm]";
-    }
-  }
-
-  if (perPage === 2) {
-    switch (ratio) {
-      case "PORTRAIT_3_4":
-        return "h-[92mm]";
-      case "SQUARE_1_1":
-        return "h-[82mm]";
-      case "LANDSCAPE_16_9":
-        return "h-[58mm]";
-      case "LANDSCAPE_4_3":
-      default:
-        return "h-[66mm]";
-    }
-  }
-
-  switch (ratio) {
-    case "SQUARE_1_1":
-      return "h-[56mm]";
-    case "LANDSCAPE_16_9":
-      return "h-[42mm]";
-    case "PORTRAIT_3_4":
-      return "h-[82mm]";
-    case "LANDSCAPE_4_3":
-    default:
-      return "h-[48mm]";
-  }
+function getEvidenceImageHeightClass(block: StudioBlock) {
+  return getEvidenceAspectRatioClass(block);
 }
 
-function getEvidenceImageClass(block: any) {
+function getEvidenceImageClass(block: StudioBlock) {
   const fit = block.evidenceFit === "cover" ? "object-cover" : "object-contain";
-  return `${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+
+  return getEvidenceImageHeightClass(block) + " w-full " + fit;
 }
 
 function EmptyEvidenceMessage() {
