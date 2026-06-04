@@ -1,59 +1,70 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+
+export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const authResult = await requireSchoolDashboardApiContext();
+  try {
+    const context = await resolveCurrentSchoolContext();
+    const url = new URL(request.url);
+    const q = (url.searchParams.get("q") || "").trim();
 
-  if (authResult instanceof Response) {
-    return authResult;
-  }
+    const where: any = {
+      schoolAccountId: context.schoolAccountId,
+      isActive: true,
+    };
 
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get("query")?.trim() || "";
+    if (q) {
+      where.OR = [
+        { fullName: { contains: q } },
+        { nationalId: { contains: q } },
+        { grade: { contains: q } },
+        { classroom: { contains: q } },
+      ];
+    }
 
-  if (query.length > 80) {
+    const students = await prisma.student.findMany({
+      where,
+      include: {
+        guardian: true,
+      },
+      orderBy: [
+        { grade: "asc" },
+        { classroom: "asc" },
+        { fullName: "asc" },
+      ],
+      take: 40,
+    });
+
+    return NextResponse.json({
+      students: students.map((student) => ({
+        id: student.id,
+        fullName: student.fullName,
+        nationalId: student.nationalId,
+        gender: student.gender,
+        stage: student.stage,
+        grade: student.grade,
+        classroom: student.classroom,
+        guardian: student.guardian
+          ? {
+              id: student.guardian.id,
+              name: student.guardian.name,
+              phone: student.guardian.phone,
+              relation: student.guardian.relation,
+            }
+          : null,
+      })),
+    });
+  } catch (error) {
     return NextResponse.json(
       {
-        success: false,
-        error: "عبارة البحث طويلة جدًا.",
+        error:
+          error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
+            ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
+            : "تعذر البحث في الطلاب.",
       },
-      { status: 400 }
+      { status: 500 },
     );
   }
-
-  const students = await prisma.student.findMany({
-    where: {
-      schoolAccountId: authResult.schoolAccountId,
-      isActive: true,
-      ...(query
-        ? {
-            OR: [
-              {
-                fullName: {
-                  contains: query,
-                },
-              },
-              {
-                nationalId: {
-                  contains: query,
-                },
-              },
-            ],
-          }
-        : {}),
-    },
-    include: {
-      guardian: true,
-    },
-    orderBy: {
-      fullName: "asc",
-    },
-    take: 20,
-  });
-
-  return NextResponse.json({
-    success: true,
-    students,
-  });
 }

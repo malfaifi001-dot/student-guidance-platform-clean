@@ -114,8 +114,8 @@ model SchoolAccount {
   slug                  String                 @unique
   isActive              Boolean                @default(true)
   studentImportSessions StudentImportSession[]
-  users                 User[]
 
+  users           User[]
   profile         SchoolProfile?
   students        Student[]
   guardians       Guardian[]
