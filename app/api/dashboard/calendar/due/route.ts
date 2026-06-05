@@ -5,6 +5,12 @@ import { prisma } from "@/lib/prisma";
 
 const MAX_REMIND_BEFORE_MINUTES = 10080;
 
+function priorityWeight(priority: string) {
+  if (priority === "URGENT") return 0;
+  if (priority === "IMPORTANT") return 1;
+  return 2;
+}
+
 export async function GET() {
   const authResult = await requireSchoolDashboardApiContext();
 
@@ -80,7 +86,16 @@ export async function GET() {
       };
     })
     .filter((reminder) => new Date(reminder.showAt).getTime() <= now.getTime())
-    .slice(0, 5);
+    .sort((a, b) => {
+      const priorityDiff = priorityWeight(a.priority) - priorityWeight(b.priority);
+
+      if (priorityDiff !== 0) return priorityDiff;
+
+      return (
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+      );
+    })
+    .slice(0, 8);
 
   return NextResponse.json({
     success: true,

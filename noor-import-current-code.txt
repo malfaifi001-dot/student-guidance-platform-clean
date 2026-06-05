@@ -1,0 +1,2602 @@
+﻿EXPORT: Noor Import Current Code
+GeneratedAt: 2026-06-05 16:35:50
+
+
+============================================================
+FILE: app\dashboard\data-center\noor-import\page.tsx
+============================================================
+
+import { redirect } from "next/navigation";
+
+export default function DataCenterNoorImportPage() {
+  redirect("/dashboard/student-import");
+}
+
+
+
+============================================================
+FILE: app\dashboard\data-center\page.tsx
+============================================================
+
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import {
+  ArrowLeft,
+  BarChart3,
+  Database,
+  FileSpreadsheet,
+  UploadCloud,
+} from "lucide-react";
+
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+
+export default async function DataCenterPage() {
+  const context = await requireDashboardPageContext();
+
+  if (!context.isAdmin && !context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-7 shadow-sm">
+        <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+              <Database className="h-4 w-4" />
+              Data Center
+            </div>
+
+            <h1 className="mt-4 text-4xl font-black leading-[1.25] text-slate-950">
+              مركز بيانات المدرسة
+            </h1>
+
+            <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              هنا نجمع الرفع والاستيراد والمعالجة، مثل رفع نور وتحليل النتائج، بدل توزيعها في أكثر من مكان.
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] bg-slate-950 p-5 text-white">
+            <p className="text-xs font-black text-slate-300">المرحلة الحالية</p>
+            <p className="mt-2 text-2xl font-black">تجميع المسارات</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <CenterCard
+          href="/dashboard/data-center/noor-import"
+          icon={<UploadCloud className="h-6 w-6" />}
+          title="رفع بيانات نور"
+          helper="رفع وتحديث بيانات الطلاب من نور."
+          action="فتح الرفع"
+        />
+
+        <CenterCard
+          href="/dashboard/results-analysis"
+          icon={<BarChart3 className="h-6 w-6" />}
+          title="تحليل النتائج"
+          helper="تحليل ملفات النتائج وربطها بالطلاب."
+          action="فتح التحليل"
+        />
+
+        <article className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-6 shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-slate-100">
+            <FileSpreadsheet className="h-6 w-6" />
+          </div>
+
+          <h2 className="mt-5 text-xl font-black text-slate-950">
+            رفع موحد لاحقًا
+          </h2>
+
+          <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+            المرحلة القادمة: ننقل واجهة رفع نور والمعالجة لتكون داخل Data Center مباشرة.
+          </p>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function CenterCard({
+  href,
+  icon,
+  title,
+  helper,
+  action,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  title: string;
+  helper: string;
+  action: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:border-sky-200 hover:shadow-md"
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+        {icon}
+      </div>
+
+      <h2 className="mt-5 text-xl font-black text-slate-950">{title}</h2>
+
+      <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+        {helper}
+      </p>
+
+      <span className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white">
+        {action}
+        <ArrowLeft className="h-4 w-4" />
+      </span>
+    </Link>
+  );
+}
+
+
+
+============================================================
+FILE: app\dashboard\student-import\page.tsx
+============================================================
+
+import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+
+export default function LegacyStudentImportPage() {
+  redirect("/dashboard/data-center/noor-import");
+}
+
+
+
+============================================================
+FILE: components\layout\dashboard-sidebar.tsx
+============================================================
+
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import type { ComponentType, ReactNode } from "react";
+import {
+  Activity,
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Crown,
+  Database,
+  FilePlus2,
+  FileText,
+  FolderKanban,
+  GitBranch,
+  Home,
+  KeyRound,
+  LayoutDashboard,
+  MessageCircle,
+  PenTool,
+  School,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  UserRound,
+  Users,
+  WalletCards,
+} from "lucide-react";
+
+type SidebarUser = {
+  role?: string | null;
+  name?: string | null;
+  officialName?: string | null;
+};
+
+type SidebarLinkItem = {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+};
+
+const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
+
+const counselorImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard", icon: Home },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+  { label: "الحالات", href: "/dashboard/cases", icon: FolderKanban },
+];
+
+const counselorServiceLinks: SidebarLinkItem[] = [
+  {
+    label: "البرامج الإرشادية",
+    href: "/dashboard/guidance-programs",
+    icon: ClipboardList,
+  },
+  {
+    label: "اللجان والاجتماعات",
+    href: "/dashboard/committees-meetings",
+    icon: ShieldCheck,
+  },
+  {
+    label: "متابعة الطلاب",
+    href: "/dashboard/student-follow-up",
+    icon: Users,
+  },
+  {
+    label: "الخدمات الإرشادية المقدمة للطلاب",
+    href: "/dashboard/student-guidance-services",
+    icon: FileText,
+  },
+  {
+    label: "التقارير",
+    href: "/dashboard/reports",
+    icon: FileText,
+  },
+  {
+    label: "المرجع الشامل للموجه الطلابي",
+    href: "/dashboard/comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "تحليل النتائج",
+    href: "/dashboard/results-analysis",
+    icon: BarChart3,
+  },
+  {
+    label: "التواصل بين الأسرة والمدرسة",
+    href: "/dashboard/family-school-communication",
+    icon: MessageCircle,
+  },
+];
+
+const counselorInformationLinks: SidebarLinkItem[] = [
+  {
+    label: "Data Center",
+    href: "/dashboard/data-center",
+    icon: Database,
+  },
+];
+
+const counselorAccountLinks: SidebarLinkItem[] = [
+  { label: "التفعيل", href: "/dashboard/subscription", icon: ShieldCheck },
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const adminMainLinks: SidebarLinkItem[] = [
+  { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
+  { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
+  { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
+  { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
+  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
+  { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
+  { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
+];
+
+const adminBuilderLinks: SidebarLinkItem[] = [
+  {
+    label: "مصمم Workflow",
+    href: "/dashboard/admin/workflow-builder",
+    icon: PenTool,
+  },
+  {
+    label: "قوالب التقارير",
+    href: "/dashboard/admin/report-templates",
+    icon: FileText,
+  },
+  {
+    label: "قالب تقرير جديد",
+    href: "/dashboard/admin/report-templates/new",
+    icon: FilePlus2,
+  },
+];
+
+const adminAccountLinks: SidebarLinkItem[] = [
+  { label: "حساب الأدمن", href: "/dashboard/account", icon: UserRound },
+  { label: "هوية المنصة", href: "/dashboard/settings/school", icon: Settings },
+];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function hasActive(pathname: string, items: SidebarLinkItem[]) {
+  return items.some((item) => isActivePath(pathname, item.href));
+}
+
+export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+
+  useEffect(() => {
+    const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    setCollapsed(savedValue === "true");
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  }, [collapsed, ready]);
+
+  return (
+    <aside
+      className={[
+        "sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 overflow-hidden rounded-[2.25rem] border border-slate-200/80 bg-white/90 p-3 shadow-xl shadow-slate-200/60 backdrop-blur-xl transition-all duration-300 xl:block",
+        collapsed ? "w-[86px]" : "w-[252px]",
+      ].join(" ")}
+    >
+      <div className="flex h-full flex-col">
+        <div
+          className={[
+            "rounded-[1.6rem] border transition",
+            collapsed
+              ? "border-slate-100 bg-slate-50/70 p-2"
+              : "border-transparent bg-transparent p-0",
+          ].join(" ")}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <Link
+              href={isAdmin ? "/dashboard/admin" : "/dashboard"}
+              className={[
+                "flex min-w-0 items-center gap-3 rounded-[1.35rem] px-2 py-2 transition",
+                collapsed ? "justify-center" : "flex-1",
+                isAdmin ? "hover:bg-slate-50" : "hover:bg-sky-50/60",
+              ].join(" ")}
+              title={isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+            >
+              <div
+                className={[
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1",
+                  isAdmin
+                    ? "bg-slate-950 text-white ring-slate-900"
+                    : "bg-sky-50 text-sky-600 ring-sky-100",
+                ].join(" ")}
+              >
+                {isAdmin ? (
+                  <ShieldCheck className="h-5 w-5" />
+                ) : (
+                  <Sparkles className="h-5 w-5" />
+                )}
+              </div>
+
+              {!collapsed ? (
+                <div className="min-w-0">
+                  <h1 className="truncate text-[15px] font-black text-slate-950">
+                    {isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+                  </h1>
+                  <p className="mt-1 truncate text-[11px] font-black text-slate-400">
+                    {isAdmin ? "Admin Center" : "Counselor"}
+                  </p>
+                </div>
+              ) : null}
+            </Link>
+
+            {!collapsed ? (
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="تصغير القائمة"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              className="mx-auto mt-3 grid h-9 w-9 place-items-center rounded-2xl bg-white text-slate-400 shadow-sm transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="توسيع القائمة"
+              title="توسيع القائمة"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+
+        {!collapsed ? (
+          <div
+            className={[
+              "mx-2 mt-4 h-px",
+              isAdmin ? "bg-slate-200" : "bg-sky-100",
+            ].join(" ")}
+          />
+        ) : null}
+
+        {isAdmin ? (
+          <AdminSidebar pathname={pathname} collapsed={collapsed} />
+        ) : (
+          <CounselorSidebar pathname={pathname} collapsed={collapsed} />
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function AdminSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1 pl-1">
+        <SidebarSection title="الرئيسية" collapsed={collapsed}>
+          {adminMainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="البناء والقوالب"
+          defaultOpen={
+            pathname.includes("/workflow-builder") ||
+            pathname.includes("/report-templates")
+          }
+          admin
+          collapsed={collapsed}
+        >
+          {adminBuilderLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والإعدادات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          admin
+          collapsed={collapsed}
+        >
+          {adminAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] bg-slate-950 p-4 text-white shadow-sm">
+          <p className="text-xs font-black text-slate-300">Admin Mode</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-slate-300">
+            إدارة التفعيل، الاشتراكات، النماذج، والتقارير.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function CounselorSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1 pl-1">
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {counselorImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="الخدمات" collapsed={collapsed}>
+          {counselorServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="Data Center" collapsed={collapsed}>
+          {counselorInformationLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="الحساب والتفعيل"
+          defaultOpen={
+            pathname.startsWith("/dashboard/subscription") ||
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {counselorAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50/80 p-4">
+          <p className="text-xs font-black text-sky-700">اقتراح سريع</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80">
+            ابدأ بالتقويم، ثم افتح الحالة أو المرجع الشامل عند الحاجة.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function SidebarSection({
+  title,
+  children,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  collapsed: boolean;
+}) {
+  return (
+    <section>
+      {!collapsed ? (
+        <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400">
+          {title}
+        </p>
+      ) : null}
+
+      <div className="space-y-1">{children}</div>
+    </section>
+  );
+}
+
+function SidebarDropdown({
+  title,
+  children,
+  defaultOpen = false,
+  admin,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  admin?: boolean;
+  collapsed: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (collapsed) {
+    return <div className="space-y-1">{children}</div>;
+  }
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={[
+          "mb-2 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black tracking-wide transition",
+          admin
+            ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+            : "text-slate-400 hover:bg-sky-50 hover:text-sky-700",
+        ].join(" ")}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={["h-4 w-4 transition", open ? "rotate-180" : ""].join(
+            " ",
+          )}
+        />
+      </button>
+
+      {open ? <div className="space-y-1">{children}</div> : null}
+    </section>
+  );
+}
+
+function SidebarLink({
+  item,
+  active,
+  admin,
+  compact,
+  collapsed,
+}: {
+  item: SidebarLinkItem;
+  active: boolean;
+  admin?: boolean;
+  compact?: boolean;
+  collapsed: boolean;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      className={[
+        "group relative flex items-center rounded-2xl transition",
+        collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3",
+        compact && !collapsed ? "py-2" : "py-2.5",
+        active
+          ? admin
+            ? "bg-slate-950 text-white shadow-sm"
+            : "bg-sky-50 text-sky-700 shadow-sm"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950",
+      ].join(" ")}
+    >
+      {active ? (
+        <span
+          className={[
+            "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
+            admin ? "bg-white" : "bg-sky-500",
+          ].join(" ")}
+        />
+      ) : null}
+
+      <div
+        className={[
+          "flex shrink-0 items-center justify-center rounded-xl transition",
+          compact ? "h-8 w-8" : "h-9 w-9",
+          active
+            ? admin
+              ? "bg-white/10 text-white"
+              : "bg-white text-sky-600"
+            : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600",
+        ].join(" ")}
+      >
+        <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
+      </div>
+
+      {!collapsed ? (
+        <span className="min-w-0 truncate text-[14px] font-black">
+          {item.label}
+        </span>
+      ) : (
+        <span className="pointer-events-none absolute right-[72px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">
+          {item.label}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+
+
+============================================================
+FILE: prisma\schema.prisma
+============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum StudentPickerMode {
+  SERVICE_DEFAULT
+  REQUIRED
+  DISABLED
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum CalendarReminderStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+enum CalendarReminderPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum CalendarReminderLinkType {
+  GENERAL
+  SERVICE
+  CASE
+  STUDENT
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+  users                 User[]
+
+  profile           SchoolProfile?
+  students          Student[]
+  guardians         Guardian[]
+  staff             StaffMember[]
+  services          ServiceAccess[]
+  cases             CaseEntry[]
+  subscription      Subscription?
+  resultsAnalyses   ResultsAnalysis[]
+  calendarReminders CalendarReminder[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  officialName String?
+  jobTitle     String?
+  isActive     Boolean  @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases             CaseEntry[]
+  sessions          UserSession[]
+  calendarReminders CalendarReminder[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName          String
+  principalName       String?
+  educationDepartment String?
+  educationOffice     String?
+  city                String?
+  district            String?
+  stage               String?
+  academicYear        String?
+  currentSemester     String?
+  logoUrl             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases             CaseEntry[]
+  calendarReminders CalendarReminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows         Workflow[]
+  cases             CaseEntry[]
+  access            ServiceAccess[]
+  calendarReminders CalendarReminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name         String
+  version      Int            @default(1)
+  status       WorkflowStatus @default(DRAFT)
+  isActive     Boolean        @default(false)
+  workflowType String         @default("default")
+
+  studentPickerMode StudentPickerMode @default(SERVICE_DEFAULT)
+  steps             WorkflowStep[]
+  cases             CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([serviceId, workflowType, isActive])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId       String?
+  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+  workflowSnapshot Json?
+  guidanceReports  GuidanceReport[]
+  studentId        String?
+  student          Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values            CaseValue[]
+  evidences         Evidence[]
+  calendarReminders CalendarReminder[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String?
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model CalendarReminder {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title String
+  note  String?
+
+  status   CalendarReminderStatus   @default(PENDING)
+  priority CalendarReminderPriority @default(NORMAL)
+  linkType CalendarReminderLinkType @default(GENERAL)
+
+  scheduledAt         DateTime
+  remindBeforeMinutes Int?
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  completedAt   DateTime?
+  completedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledAt])
+  @@index([serviceId])
+  @@index([caseEntryId])
+  @@index([studentId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model ResultsAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title      String
+  grade      String?
+  classroom  String?
+  sourceFile String?
+  status     String  @default("COMPLETED")
+
+  totalStudents Int    @default(0)
+  totalSubjects Int    @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+model GuidanceReport {
+  id          String @id @default(cuid())
+  title       String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String
+  renderedContent String?
+
+  evidenceEnabled Boolean @default(true)
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  approvedAt DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([templateId])
+  @@index([generatedAt])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+
+  mimeType String?
+  size     Int?
+
+  sortOrder Int     @default(0)
+  visible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([visible])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  academicYear      String?
+  term              String?
+  importMode        String    @default("FULL_SYNC")
+  committedByUserId String?
+  isArchived        Boolean   @default(false)
+  archivedAt        DateTime?
+  archivedByUserId  String?
+  cycleId           String?
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  planAction String?
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  startsAt   DateTime?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model StudentImportChange {
+  id String @id @default(cuid())
+
+  sessionId String
+  rowId     String?
+  studentId String?
+
+  action String
+
+  beforeJson Json?
+  afterJson  Json?
+
+  rolledBackAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([studentId])
+  @@index([action])
+}
+
+model NoorImportCycle {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  academicYear    String
+  term            String
+  title           String
+  status          String @default("DRAFT")
+
+  totalStudents     Int @default(0)
+  totalSessions     Int @default(0)
+  pendingSessions   Int @default(0)
+  committedSessions Int @default(0)
+
+  latestSessionId   String?
+  latestCommittedAt DateTime?
+
+  isArchived       Boolean   @default(false)
+  archivedAt       DateTime?
+  archivedByUserId String?
+  createdByUserId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([schoolAccountId, academicYear, term])
+  @@index([status])
+}
+
+
+
+============================================================
+FILE: lib\prisma.ts
+============================================================
+
+import { PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not defined");
+}
+
+const adapter = new PrismaBetterSqlite3({
+  url: databaseUrl,
+});
+
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
+
+
+============================================================
+FILE: package.json
+============================================================
+
+{
+  "name": "student-guidance-platform-clean",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.10.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.3.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.16.0",
+    "next": "16.2.6",
+    "playwright": "^1.60.0",
+    "prisma": "^7.8.0",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.76.1",
+    "recharts": "^3.8.1",
+    "shadcn": "^4.8.2",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
+
+
+============================================================
+SEARCH: noor/import/student-import/upload/excel related files
+============================================================
+
+
+FOUND: .\app\about\page.tsx
+
+FOUND: .\app\api\admin\report-templates\preview-case\route.ts
+
+FOUND: .\app\api\admin\report-templates\workflow-fields\route.ts
+
+FOUND: .\app\api\admin\workflows\guardian-summons\route.ts
+
+FOUND: .\app\api\auth\login\route.ts
+
+FOUND: .\app\api\auth\logout\route.ts
+
+FOUND: .\app\api\auth\register\route.ts
+
+FOUND: .\app\api\dashboard\account\password\route.ts
+
+FOUND: .\app\api\dashboard\account\route.ts
+
+FOUND: .\app\api\dashboard\account\sessions\logout-others\route.ts
+
+FOUND: .\app\api\dashboard\admin\activations\cancel\route.ts
+
+FOUND: .\app\api\dashboard\admin\activations\codes\route.ts
+
+FOUND: .\app\api\dashboard\admin\activations\manual\route.ts
+
+FOUND: .\app\api\dashboard\admin\activity\metrics\route.ts
+
+FOUND: .\app\api\dashboard\admin\activity\route.ts
+
+FOUND: .\app\api\dashboard\admin\operational-alerts\route.ts
+
+FOUND: .\app\api\dashboard\admin\subscribers\route.ts
+
+FOUND: .\app\api\dashboard\admin\subscriptions\route.ts
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\admin\users\route.ts
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\admin\workflows\upload\route.ts
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\calendar\due\route.ts
+
+FOUND: .\app\api\dashboard\calendar\route.ts
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\cases\autosave\route.ts
+
+FOUND: .\app\api\dashboard\cases\save-draft\route.ts
+
+FOUND: .\app\api\dashboard\cases\submit\route.ts
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\data-center\noor-import\cycles\route.ts
+
+FOUND: .\app\api\dashboard\data-center\noor-import\preview\route.ts
+
+FOUND: .\app\api\dashboard\data-center\noor-import\sessions\route.ts
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\data-center\students\route.ts
+
+FOUND: .\app\api\dashboard\evidence\route.ts
+
+FOUND: .\app\api\dashboard\family-school-communication\guardian-summons\export\pdf\route.ts
+
+FOUND: .\app\api\dashboard\onboarding\route.ts
+
+FOUND: .\app\api\dashboard\onboarding\skip\route.ts
+
+FOUND: .\app\api\dashboard\plans\route.ts
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\reports\prepare\route.ts
+
+FOUND: .\app\api\dashboard\reports\route.ts
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\report-templates\route.ts
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\results-analysis\route.ts
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\api\dashboard\school-data\student-import-sessions\route.ts
+
+FOUND: .\app\api\dashboard\school-data\students\route.ts
+
+FOUND: .\app\api\dashboard\settings\school\logo\route.ts
+
+FOUND: .\app\api\dashboard\settings\school\route.ts
+
+FOUND: .\app\api\dashboard\student-follow-up\appreciation-certificates\export\pdf\route.ts
+
+FOUND: .\app\api\dashboard\student-follow-up\appreciation-certificates\identity\route.ts
+
+FOUND: .\app\api\dashboard\students\search\route.ts
+
+FOUND: .\app\api\dashboard\subscription\bank-transfer\route.ts
+
+FOUND: .\app\api\dashboard\subscription\redeem-code\route.ts
+
+FOUND: .\app\api\dashboard\subscription\route.ts
+
+FOUND: .\app\api\dashboard\workflow-builder\create-field\route.ts
+
+FOUND: .\app\api\dashboard\workflow-builder\create-step\route.ts
+
+FOUND: .\app\contact\page.tsx
+
+FOUND: .\app\dashboard\admin\activations\page.tsx
+
+FOUND: .\app\dashboard\admin\activity\page.tsx
+
+FOUND: .\app\dashboard\admin\document-designs\appreciation-certificate\page.tsx
+
+FOUND: .\app\dashboard\admin\document-designs\evidence-rich-report\page.tsx
+
+FOUND: .\app\dashboard\admin\document-designs\guardian-summons\page.tsx
+
+FOUND: .\app\dashboard\admin\document-designs\minimal-guidance-report\page.tsx
+
+FOUND: .\app\dashboard\admin\document-designs\official-school-report\page.tsx
+
+FOUND: .\app\dashboard\admin\document-designs\page.tsx
+
+FOUND: .\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+
+FOUND: .\app\dashboard\admin\page.tsx
+
+FOUND: .\app\dashboard\admin\report-templates\designs\page.tsx
+
+FOUND: .\app\dashboard\admin\report-templates\library\page.tsx
+
+FOUND: .\app\dashboard\admin\report-templates\new\page.tsx
+
+FOUND: .\app\dashboard\admin\report-templates\page.tsx
+
+FOUND: .\app\dashboard\admin\report-texts\page.tsx
+
+FOUND: .\app\dashboard\admin\subscribers\page.tsx
+
+FOUND: .\app\dashboard\admin\subscriptions\page.tsx
+
+FOUND: 
+
+FOUND: .\app\dashboard\admin\users\manage\page.tsx
+
+FOUND: .\app\dashboard\admin\users\page.tsx
+
+FOUND: 
+
+FOUND: .\app\dashboard\admin\workflow-builder\page.tsx
+
+FOUND: 
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\dashboard\admin\workflows\page.tsx
+
+FOUND: .\app\dashboard\calendar\page.tsx
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\dashboard\cases\page.tsx
+
+FOUND: .\app\dashboard\committees-meetings\layout.tsx
+
+FOUND: .\app\dashboard\committees-meetings\new\page.tsx
+
+FOUND: .\app\dashboard\committees-meetings\page.tsx
+
+FOUND: .\app\dashboard\comprehensive-reference\demo\page.tsx
+
+FOUND: .\app\dashboard\comprehensive-reference\layout.tsx
+
+FOUND: .\app\dashboard\comprehensive-reference\page.tsx
+
+FOUND: 
+
+FOUND: .\app\dashboard\data-center\noor-import\page.tsx
+
+FOUND: 
+
+FOUND: .\app\dashboard\data-center\noor-import\sessions\page.tsx
+
+FOUND: .\app\dashboard\data-center\page.tsx
+
+FOUND: .\app\dashboard\data-center\students\page.tsx
+
+FOUND: .\app\dashboard\family-school-communication\guardian-summons\new\page.tsx
+
+FOUND: .\app\dashboard\family-school-communication\guardian-summons\page.tsx
+
+FOUND: .\app\dashboard\family-school-communication\layout.tsx
+
+FOUND: .\app\dashboard\family-school-communication\new\page.tsx
+
+FOUND: .\app\dashboard\family-school-communication\page.tsx
+
+FOUND: .\app\dashboard\guardian-summons\official-preview\page.tsx
+
+FOUND: .\app\dashboard\guidance-programs\layout.tsx
+
+FOUND: .\app\dashboard\guidance-programs\new\page.tsx
+
+FOUND: .\app\dashboard\guidance-programs\page.tsx
+
+FOUND: .\app\dashboard\information-center\page.tsx
+
+FOUND: .\app\dashboard\layout.tsx
+
+FOUND: .\app\dashboard\onboarding\page.tsx
+
+FOUND: .\app\dashboard\page.tsx
+
+FOUND: .\app\dashboard\plans\page.tsx
+
+FOUND: .\app\dashboard\report-preview\page.tsx
+
+FOUND: 
+
+FOUND: 
+
+FOUND: .\app\dashboard\reports\new\layout.tsx
+
+FOUND: .\app\dashboard\reports\new\page.tsx
+
+FOUND: .\app\dashboard\reports\page.tsx
+
+FOUND: 
+
+FOUND: .\app\dashboard\results-analysis\compare\page.tsx
+
+FOUND: .\app\dashboard\results-analysis\layout.tsx
+
+FOUND: .\app\dashboard\results-analysis\new\page.tsx
+
+FOUND: .\app\dashboard\results-analysis\page.tsx
+
+FOUND: .\app\dashboard\runtime-lab\page.tsx
+
+FOUND: .\app\dashboard\settings\school\page.tsx
+
+FOUND: .\app\dashboard\student-follow-up\appreciation-certificates\layout.tsx
+
+FOUND: .\app\dashboard\student-follow-up\appreciation-certificates\page.tsx
+
+FOUND: .\app\dashboard\student-follow-up\layout.tsx
+
+FOUND: .\app\dashboard\student-follow-up\new\page.tsx
+
+FOUND: .\app\dashboard\student-follow-up\page.tsx
+
+FOUND: .\app\dashboard\student-guidance-services\layout.tsx
+
+FOUND: .\app\dashboard\student-guidance-services\new\page.tsx
+
+FOUND: .\app\dashboard\student-guidance-services\page.tsx
+
+FOUND: .\app\dashboard\student-import\page.tsx
+
+FOUND: 
+
+FOUND: .\app\dashboard\subscription\page.tsx
+
+FOUND: .\app\features\page.tsx
+
+FOUND: .\app\forgot-password\page.tsx
+
+FOUND: .\app\layout.tsx
+
+FOUND: .\app\login\page.tsx
+
+FOUND: .\app\page.tsx
+
+FOUND: .\app\pdf-preview\appreciation-certificate\page.tsx
+
+FOUND: .\app\pdf-preview\guardian-summons\page.tsx
+
+FOUND: .\app\pricing\page.tsx
+
+FOUND: .\app\privacy\page.tsx
+
+FOUND: .\app\register\page.tsx
+
+FOUND: .\app\reset-password\page.tsx
+
+FOUND: .\app\services\page.tsx
+
+FOUND: .\app\terms\page.tsx
+
+FOUND: .\components\account\account-profile-client.tsx
+
+FOUND: .\components\activation\admin-activations-center.tsx
+
+FOUND: .\components\activation\counselor-activation-center.tsx
+
+FOUND: .\components\admin\admin-activity-center.tsx
+
+FOUND: .\components\admin\admin-activity-metrics-panel.tsx
+
+FOUND: .\components\admin\admin-impersonation-return-button.tsx
+
+FOUND: .\components\admin\admin-operational-alerts-panel.tsx
+
+FOUND: .\components\admin\admin-user-profile-manager.tsx
+
+FOUND: .\components\admin\admin-users-command-center.tsx
+
+FOUND: .\components\admin\report-text-library-admin.tsx
+
+FOUND: .\components\admin\report-text-template-studio.tsx
+
+FOUND: .\components\admin\workflow-builder-sidebar.tsx
+
+FOUND: .\components\admin\workflow-field-editor.tsx
+
+FOUND: .\components\admin\workflow-health\workflow-health-report.tsx
+
+FOUND: .\components\admin\workflow-publish-button.tsx
+
+FOUND: .\components\admin\workflows\guardian-summons-workflow-admin-card.tsx
+
+FOUND: .\components\admin\workflows\workflow-history-actions.tsx
+
+FOUND: .\components\admin\workflows\workflow-inline-import-workbench.tsx
+
+FOUND: .\components\admin\workflows\workflow-publish-panel.tsx
+
+FOUND: .\components\admin\workflows\workflow-student-picker-mode-control.tsx
+
+FOUND: .\components\admin\workflow-step-editor.tsx
+
+FOUND: .\components\admin\workflow-upload-card.tsx
+
+FOUND: .\components\auth\auth-card.tsx
+
+FOUND: .\components\auth\dashboard-onboarding-reminder.tsx
+
+FOUND: .\components\auth\official-feature-required-page.tsx
+
+FOUND: .\components\calendar\calendar-center-client.tsx
+
+FOUND: .\components\calendar\calendar-login-popup.tsx
+
+FOUND: .\components\cases\case-details-view.tsx
+
+FOUND: .\components\cases\cases-search-table.tsx
+
+FOUND: .\components\dashboard\creative-dashboard.tsx
+
+FOUND: .\components\dashboard\dashboard-attention-mini-card.tsx
+
+FOUND: .\components\dashboard\dashboard-attention-panel.tsx
+
+FOUND: .\components\dashboard\soft-blue-dashboard.tsx
+
+FOUND: .\components\dashboard\student-guidance-dashboard.tsx
+
+FOUND: .\components\data-center\noor-import\noor-import-client.tsx
+
+FOUND: .\components\data-center\noor-import\noor-import-cycle-detail-client.tsx
+
+FOUND: .\components\data-center\noor-import\noor-import-cycles-client.tsx
+
+FOUND: .\components\data-center\noor-import\noor-import-session-detail-client.tsx
+
+FOUND: .\components\data-center\students\students-center-client.tsx
+
+FOUND: .\components\document-export\appreciation-certificate-pdf-button.tsx
+
+FOUND: .\components\document-export\document-pdf-download-button.tsx
+
+FOUND: .\components\document-export\guardian-summons-report-engine-pdf-button.tsx
+
+FOUND: .\components\evidence\evidence-item-card.tsx
+
+FOUND: .\components\evidence\evidence-preview-grid.tsx
+
+FOUND: .\components\evidence\evidence-upload-card.tsx
+
+FOUND: .\components\family-school-communication\guardian-summons-client.tsx
+
+FOUND: .\components\family-school-communication\guardian-summons-new-client.tsx
+
+FOUND: .\components\family-school-communication\guardian-summons-official-pdf-page.tsx
+
+FOUND: .\components\guardian-summons\guardian-summons-official-document.tsx
+
+FOUND: .\components\layout\dashboard-header.tsx
+
+FOUND: .\components\layout\dashboard-sidebar.tsx
+
+FOUND: .\components\marketing\marketing-footer.tsx
+
+FOUND: .\components\marketing\marketing-navbar.tsx
+
+FOUND: .\components\report-engine\appreciation-certificate-preview.tsx
+
+FOUND: .\components\report-engine\design-renderers\report-design-gallery-preview.tsx
+
+FOUND: .\components\report-engine\design-renderers\report-design-renderer.tsx
+
+FOUND: .\components\report-engine\guardian-summons-letter-preview.tsx
+
+FOUND: .\components\report-engine\official-report-document.tsx
+
+FOUND: .\components\report-engine\report-builder-pdf-renderer.tsx
+
+FOUND: .\components\report-engine\report-document-renderer.tsx
+
+FOUND: .\components\report-engine\report-template-admin-tools.tsx
+
+FOUND: .\components\report-engine\report-template-command-center.tsx
+
+FOUND: .\components\report-engine\report-template-library.tsx
+
+FOUND: .\components\report-engine\report-template-live-preview.tsx
+
+FOUND: .\components\report-engine\report-template-publish-tools.tsx
+
+FOUND: .\components\report-engine\report-template-studio.tsx
+
+FOUND: .\components\report-engine\text-library-block-settings-editor.tsx
+
+FOUND: .\components\reports\new-report-case-picker.tsx
+
+FOUND: .\components\reports\new-report-case-picker.tsx.tsx
+
+FOUND: .\components\reports\report-actions.tsx
+
+FOUND: .\components\reports\report-list.tsx
+
+FOUND: .\components\reports\report-preview-a4.tsx
+
+FOUND: .\components\reports\report-preview-toolbar.tsx
+
+FOUND: .\components\reports\reports-dashboard.tsx
+
+FOUND: .\components\reports\report-studio-editor.tsx
+
+FOUND: .\components\reports\studio\report-studio-shell.tsx
+
+FOUND: .\components\results-analysis\delete-results-analysis-button.tsx
+
+FOUND: .\components\results-analysis\results-analysis-dashboard.tsx
+
+FOUND: .\components\results-analysis\results-analysis-list.tsx
+
+FOUND: .\components\results-analysis\results-analysis-upload-card.tsx
+
+FOUND: .\components\services\workflow-service-home-page.tsx
+
+FOUND: .\components\service-ui\service-workspace.tsx
+
+FOUND: .\components\service-ui\smart-feedback-modal.tsx
+
+FOUND: .\components\service-ui\student-context-card.tsx
+
+FOUND: .\components\settings\school-settings-form.tsx
+
+FOUND: .\components\student-follow-up\appreciation-certificates-client.tsx
+
+FOUND: .\components\student-follow-up\appreciation-certificates-tabs.tsx
+
+FOUND: .\components\student-follow-up\appreciation-certificate-statistics-client.tsx
+
+FOUND: .\components\students\smart-student-picker.tsx
+
+FOUND: .\components\students\student-import-card.tsx
+
+FOUND: .\components\students\student-import-session-details.tsx
+
+FOUND: .\components\students\student-import-sessions-table.tsx
+
+FOUND: .\components\students\student-record-search-client.tsx
+
+FOUND: .\components\students\student-record-summary-cards.tsx
+
+FOUND: .\components\students\student-record-timeline.tsx
+
+FOUND: .\components\students\student-table.tsx
+
+FOUND: .\components\subscription\admin-subscribers-center.tsx
+
+FOUND: .\components\subscription\admin-subscriptions-control-center.tsx
+
+FOUND: .\components\subscription\counselor-plans-page.tsx
+
+FOUND: .\components\theme\theme-provider.tsx
+
+FOUND: .\components\theme\theme-toggle-button.tsx
+
+FOUND: .\components\ui\button.tsx
+
+FOUND: .\components\workflow\dynamic-field-renderer.tsx
+
+FOUND: .\components\workflow\dynamic-form-renderer.tsx
+
+FOUND: .\components\workflow\dynamic-form-resume.tsx
+
+FOUND: .\components\workflow\workflow-step-card.tsx
+
+FOUND: .\lib\activation\activation-service.ts
+
+FOUND: .\lib\admin\activity-events.ts
+
+FOUND: .\lib\admin\activity-log.ts
+
+FOUND: .\lib\admin\admin-api-guard.ts
+
+FOUND: .\lib\admin\admin-page-guard.ts
+
+FOUND: .\lib\admin\workflows\ensure-dashboard-workflow-services.ts
+
+FOUND: .\lib\auth\auth-rate-limit.ts
+
+FOUND: .\lib\auth\current-user.ts
+
+FOUND: .\lib\auth\dashboard-context.ts
+
+FOUND: .\lib\auth\official-feature-guard.ts
+
+FOUND: .\lib\auth\password.ts
+
+FOUND: .\lib\auth\require-auth.ts
+
+FOUND: .\lib\auth\session.ts
+
+FOUND: .\lib\cases\case-values.ts
+
+FOUND: .\lib\data-center\data-center-auth.ts
+
+FOUND: .\lib\data-center\noor-import-audit.ts
+
+FOUND: .\lib\noor\excel-parser.ts
+
+FOUND: .\lib\noor-import\noor-import-cycle-sync.ts
+
+FOUND: .\lib\noor-import\noor-student-data-list-parser.ts
+
+FOUND: .\lib\prisma.ts
+
+FOUND: .\lib\report-engine\extra-official-template-presets.ts
+
+FOUND: .\lib\report-engine\guardian-summons-template-runtime.ts
+
+FOUND: .\lib\report-engine\report-builder-template-runtime.ts
+
+FOUND: .\lib\report-engine\report-data-mapper.ts
+
+FOUND: .\lib\report-engine\report-identity-runtime.ts
+
+FOUND: .\lib\report-engine\report-smart-text-engine.ts
+
+FOUND: .\lib\report-engine\report-snapshot.ts
+
+FOUND: .\lib\report-engine\report-template-builder-presets.ts
+
+FOUND: .\lib\report-engine\report-template-builder-types.ts
+
+FOUND: .\lib\report-engine\report-template-portability.ts
+
+FOUND: .\lib\report-engine\report-templates.ts
+
+FOUND: .\lib\report-engine\report-template-validation.ts
+
+FOUND: .\lib\report-engine\report-text-library-runtime.ts
+
+FOUND: .\lib\report-engine\report-text-studio-presets.ts
+
+FOUND: .\lib\report-engine\sample-report-data.ts
+
+FOUND: .\lib\reports\report-access.ts
+
+FOUND: .\lib\results-analysis\results-analysis-access.ts
+
+FOUND: .\lib\results-analysis\results-analysis-parser.ts
+
+FOUND: .\lib\results-analysis\results-analysis-types.ts
+
+FOUND: .\lib\school-identity-readiness.ts
+
+FOUND: .\lib\security\audit.ts
+
+FOUND: .\lib\security\auth.ts
+
+FOUND: .\lib\security\guards.ts
+
+FOUND: .\lib\security\permissions.ts
+
+FOUND: .\lib\security\rate-limit.ts
+
+FOUND: .\lib\security\tenant.ts
+
+FOUND: .\lib\security\validation.ts
+
+FOUND: .\lib\services\service-runtime-policy.ts
+
+FOUND: .\lib\subscription\subscription-api-guard.ts
+
+FOUND: .\lib\subscription\subscription-guard.ts
+
+FOUND: .\lib\subscription\subscription-service.ts
+
+FOUND: .\lib\utils.ts
+
+FOUND: .\lib\workflow-builder\workflow-builder-types.ts
+
+FOUND: .\lib\workflows\guardian-summons-workflow-template.ts
+
+FOUND: .\lib\workflow-upload\workflow-excel-parser.ts
+
+FOUND: .\engine\cases\case-runtime-engine.ts
+
+FOUND: .\engine\results-analysis\results-analysis-engine.ts
+
+FOUND: .\engine\runtime\runtime-resolver.ts
+
+FOUND: .\engine\services\service-workspace-engine.ts
+
+FOUND: .\engine\students\student-import-engine.ts
+
+FOUND: .\engine\workflow-builder\workflow-builder-engine.ts
+
+FOUND: .\engine\workflow-upload\workflow-upload-engine.ts

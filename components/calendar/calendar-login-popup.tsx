@@ -43,8 +43,26 @@ type DueReminder = {
   } | null;
 };
 
-const SESSION_DISMISSED_KEY = "calendar-login-popup-dismissed";
-const SNOOZE_UNTIL_KEY = "calendar-login-popup-snooze-until";
+const SESSION_DISMISSED_KEY = "calendar-login-popup-v2-dismissed";
+const SNOOZE_UNTIL_KEY = "calendar-login-popup-v2-snooze-until";
+
+function priorityWeight(priority: DueReminder["priority"]) {
+  if (priority === "URGENT") return 0;
+  if (priority === "IMPORTANT") return 1;
+  return 2;
+}
+
+function sortReminders(items: DueReminder[]) {
+  return [...items].sort((a, b) => {
+    const priorityDiff = priorityWeight(a.priority) - priorityWeight(b.priority);
+
+    if (priorityDiff !== 0) return priorityDiff;
+
+    return (
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+    );
+  });
+}
 
 function formatDateTime(value: string) {
   try {
@@ -60,22 +78,34 @@ function formatDateTime(value: string) {
   }
 }
 
-function getPriorityLabel(priority: DueReminder["priority"]) {
-  if (priority === "URGENT") return "عاجل";
-  if (priority === "IMPORTANT") return "مهم";
-  return "عادي";
-}
-
-function getPriorityClass(priority: DueReminder["priority"]) {
+function getPriorityMeta(priority: DueReminder["priority"]) {
   if (priority === "URGENT") {
-    return "bg-rose-50 text-rose-700 ring-1 ring-rose-100";
+    return {
+      label: "عاجل",
+      icon: <AlertCircle className="h-4 w-4" />,
+      badgeClassName: "bg-rose-50 text-rose-700 ring-1 ring-rose-100",
+      cardClassName: "border-rose-100 bg-rose-50/45",
+      dotClassName: "bg-rose-500",
+    };
   }
 
   if (priority === "IMPORTANT") {
-    return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+    return {
+      label: "مهم",
+      icon: <Bell className="h-4 w-4" />,
+      badgeClassName: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+      cardClassName: "border-amber-100 bg-amber-50/45",
+      dotClassName: "bg-amber-500",
+    };
   }
 
-  return "bg-sky-50 text-sky-700 ring-1 ring-sky-100";
+  return {
+    label: "عادي",
+    icon: <Clock3 className="h-4 w-4" />,
+    badgeClassName: "bg-slate-50 text-slate-600 ring-1 ring-slate-100",
+    cardClassName: "border-slate-100 bg-slate-50",
+    dotClassName: "bg-slate-400",
+  };
 }
 
 function getLinkLabel(reminder: DueReminder) {
@@ -136,8 +166,15 @@ export function CalendarLoginPopup() {
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
-  const lateCount = useMemo(
-    () => reminders.filter((item) => item.isLate).length,
+  const sortedReminders = useMemo(() => sortReminders(reminders), [reminders]);
+
+  const urgentCount = useMemo(
+    () => reminders.filter((item) => item.priority === "URGENT").length,
+    [reminders],
+  );
+
+  const importantCount = useMemo(
+    () => reminders.filter((item) => item.priority === "IMPORTANT").length,
     [reminders],
   );
 
@@ -220,17 +257,18 @@ export function CalendarLoginPopup() {
 
   useEffect(() => {
     if (!open) return;
+
     if (reminders.length === 0 && !loading) {
       setOpen(false);
     }
   }, [open, reminders.length, loading]);
 
-  if (!open || reminders.length === 0) {
+  if (!open || sortedReminders.length === 0) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-[80] bg-slate-950/45 px-3 py-6 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[90] bg-slate-950/45 px-3 py-6 backdrop-blur-sm">
       <div className="mx-auto flex min-h-full max-w-3xl items-center justify-center">
         <section className="w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
           <div className="bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-6 text-white">
@@ -238,7 +276,7 @@ export function CalendarLoginPopup() {
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-black text-sky-50 ring-1 ring-white/10">
                   <Bell className="h-4 w-4" />
-                  تنبيهات تحتاج انتباهك
+                  تنبيهات الدخول
                 </div>
 
                 <h2 className="mt-4 text-3xl font-black">
@@ -246,8 +284,9 @@ export function CalendarLoginPopup() {
                 </h2>
 
                 <p className="mt-2 text-sm font-bold leading-7 text-sky-50">
-                  عندك {reminders.length} تنبيه ظاهر الآن
-                  {lateCount > 0 ? `، منها ${lateCount} متأخر` : ""}.
+                  عندك {sortedReminders.length} تنبيه ظاهر الآن
+                  {urgentCount > 0 ? `، منها ${urgentCount} عاجل` : ""}
+                  {importantCount > 0 ? `، و${importantCount} مهم` : ""}.
                 </p>
               </div>
 
@@ -263,15 +302,35 @@ export function CalendarLoginPopup() {
           </div>
 
           <div className="max-h-[62vh] space-y-3 overflow-y-auto p-5">
-            {reminders.map((reminder) => {
+            {sortedReminders.map((reminder) => {
               const href = getLinkHref(reminder);
+              const priority = getPriorityMeta(reminder.priority);
 
               return (
                 <article
                   key={reminder.id}
-                  className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4"
+                  className={[
+                    "rounded-[1.5rem] border p-4",
+                    priority.cardClassName,
+                  ].join(" ")}
                 >
                   <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={[
+                        "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-black",
+                        priority.badgeClassName,
+                      ].join(" ")}
+                    >
+                      <span
+                        className={[
+                          "h-2 w-2 rounded-full",
+                          priority.dotClassName,
+                        ].join(" ")}
+                      />
+                      {priority.icon}
+                      {priority.label}
+                    </span>
+
                     <span
                       className={[
                         "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-black",
@@ -286,15 +345,6 @@ export function CalendarLoginPopup() {
                         <Clock3 className="h-4 w-4" />
                       )}
                       {reminder.isLate ? "متأخر" : "حان وقته"}
-                    </span>
-
-                    <span
-                      className={[
-                        "rounded-full px-3 py-1 text-xs font-black",
-                        getPriorityClass(reminder.priority),
-                      ].join(" ")}
-                    >
-                      {getPriorityLabel(reminder.priority)}
                     </span>
 
                     <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-100">

@@ -41,18 +41,58 @@ type Props = {
   reminders?: DashboardAttentionMiniReminder[];
 };
 
+function priorityWeight(priority: string) {
+  if (priority === "URGENT") return 0;
+  if (priority === "IMPORTANT") return 1;
+  return 2;
+}
+
+function sortReminders(items: DashboardAttentionMiniReminder[]) {
+  return [...items].sort((a, b) => {
+    const priorityDiff = priorityWeight(a.priority) - priorityWeight(b.priority);
+
+    if (priorityDiff !== 0) return priorityDiff;
+
+    return (
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+    );
+  });
+}
+
 function formatDateTime(value: Date | string) {
   try {
     return new Date(value).toLocaleString("ar-SA", {
       weekday: "short",
-      month: "short",
-      day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
   } catch {
     return String(value);
   }
+}
+
+function getPriorityMeta(priority: string) {
+  if (priority === "URGENT") {
+    return {
+      label: "عاجل",
+      className: "bg-rose-50 text-rose-700 ring-1 ring-rose-100",
+      dotClassName: "bg-rose-500",
+    };
+  }
+
+  if (priority === "IMPORTANT") {
+    return {
+      label: "مهم",
+      className: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+      dotClassName: "bg-amber-500",
+    };
+  }
+
+  return {
+    label: "عادي",
+    className: "bg-slate-50 text-slate-600 ring-1 ring-slate-100",
+    dotClassName: "bg-slate-400",
+  };
 }
 
 function getReminderState(reminder: DashboardAttentionMiniReminder) {
@@ -76,21 +116,15 @@ function getReminderState(reminder: DashboardAttentionMiniReminder) {
     return {
       label: "اليوم",
       icon: <Clock3 className="h-4 w-4" />,
-      className: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+      className: "bg-sky-50 text-sky-700 ring-1 ring-sky-100",
     };
   }
 
   return {
     label: "قادم",
     icon: <CalendarDays className="h-4 w-4" />,
-    className: "bg-sky-50 text-sky-700 ring-1 ring-sky-100",
+    className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
   };
-}
-
-function getPriorityLabel(priority: string) {
-  if (priority === "URGENT") return "عاجل";
-  if (priority === "IMPORTANT") return "مهم";
-  return "عادي";
 }
 
 function getLinkLabel(reminder: DashboardAttentionMiniReminder) {
@@ -128,40 +162,58 @@ function getLinkHref(reminder: DashboardAttentionMiniReminder) {
 }
 
 export function DashboardAttentionMiniCard({ reminders = [] }: Props) {
-  const shownReminders = reminders.slice(0, 3);
+  const shownReminders = sortReminders(reminders).slice(0, 12);
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-black text-sky-700">التقويم والتنبيهات</p>
+    <section className="flex h-full min-h-0 flex-col rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+          <Bell className="h-5 w-5" />
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-xs font-black text-sky-700">
+            التقويم والتنبيهات
+          </p>
 
           <h2 className="mt-1 text-2xl font-black text-slate-950">
             اقتراحات الآن
           </h2>
 
-          <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
-            أهم ما يحتاج انتباهك.
+          <p className="mt-1 text-sm font-bold text-slate-500">
+            الأهم أولًا.
           </p>
-        </div>
-
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
-          <Bell className="h-6 w-6" />
         </div>
       </div>
 
       {shownReminders.length ? (
-        <div className="mt-5 space-y-3">
+        <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pl-1 pr-0">
           {shownReminders.map((reminder) => {
             const state = getReminderState(reminder);
+            const priority = getPriorityMeta(reminder.priority);
             const href = getLinkHref(reminder);
 
             return (
               <article
                 key={reminder.id}
-                className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100"
+                className="rounded-[1.4rem] bg-slate-50 p-4 ring-1 ring-slate-100"
               >
                 <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={[
+                      "inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black",
+                      priority.className,
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "h-2 w-2 rounded-full",
+                        priority.dotClassName,
+                      ].join(" ")}
+                    />
+                    {priority.label}
+                  </span>
+
                   <span
                     className={[
                       "inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black",
@@ -170,10 +222,6 @@ export function DashboardAttentionMiniCard({ reminders = [] }: Props) {
                   >
                     {state.icon}
                     {state.label}
-                  </span>
-
-                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-500 ring-1 ring-slate-100">
-                    {getPriorityLabel(reminder.priority)}
                   </span>
                 </div>
 
@@ -212,28 +260,22 @@ export function DashboardAttentionMiniCard({ reminders = [] }: Props) {
           })}
         </div>
       ) : (
-        <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-emerald-600 ring-1 ring-slate-100">
-            <CheckCircle2 className="h-6 w-6" />
+        <div className="mt-4 flex flex-1 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 p-5 text-center">
+          <div>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-emerald-600 ring-1 ring-slate-100">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+
+            <h3 className="mt-3 text-base font-black text-slate-800">
+              لا يوجد شيء عاجل الآن
+            </h3>
+
+            <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+              ستظهر التنبيهات هنا.
+            </p>
           </div>
-
-          <h3 className="mt-3 text-base font-black text-slate-800">
-            لا يوجد شيء عاجل الآن
-          </h3>
-
-          <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-            عند إضافة تنبيهات قريبة ستظهر هنا.
-          </p>
         </div>
       )}
-
-      <Link
-        href="/dashboard/calendar"
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
-      >
-        <CalendarDays className="h-4 w-4" />
-        فتح التقويم
-      </Link>
     </section>
   );
 }

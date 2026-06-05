@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ClipboardList,
   Crown,
+  Database,
   FilePlus2,
   FileText,
   FolderKanban,
@@ -96,8 +97,12 @@ const counselorServiceLinks: SidebarLinkItem[] = [
   },
 ];
 
-const counselorToolsLinks: SidebarLinkItem[] = [
-  { label: "رفع بيانات نور", href: "/dashboard/student-import", icon: UploadCloud },
+const counselorInformationLinks: SidebarLinkItem[] = [
+  {
+    label: "Data Center",
+    href: "/dashboard/data-center",
+    icon: Database,
+  },
 ];
 
 const counselorAccountLinks: SidebarLinkItem[] = [
@@ -351,7 +356,7 @@ function CounselorSidebar({
 }) {
   return (
     <>
-      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1">
+      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1 pl-1">
         <SidebarSection title="الأهم" collapsed={collapsed}>
           {counselorImportantLinks.map((item) => (
             <SidebarLink
@@ -374,21 +379,16 @@ function CounselorSidebar({
           ))}
         </SidebarSection>
 
-        <SidebarDropdown
-          title="أدوات إضافية"
-          defaultOpen={hasActive(pathname, counselorToolsLinks)}
-          collapsed={collapsed}
-        >
-          {counselorToolsLinks.map((item) => (
+        <SidebarSection title="Data Center" collapsed={collapsed}>
+          {counselorInformationLinks.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}
               active={isActivePath(pathname, item.href)}
-              compact
               collapsed={collapsed}
             />
           ))}
-        </SidebarDropdown>
+        </SidebarSection>
 
         <SidebarDropdown
           title="الحساب والتفعيل"
@@ -480,7 +480,7 @@ function SidebarDropdown({
         <span>{title}</span>
         <ChevronDown
           className={["h-4 w-4 transition", open ? "rotate-180" : ""].join(
-            " "
+            " ",
           )}
         />
       </button>

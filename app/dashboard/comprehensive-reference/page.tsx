@@ -11,10 +11,14 @@ export default async function ComprehensiveReferencePage() {
     redirect("/dashboard/onboarding?required=true");
   }
 
+  const where = context.isAdmin
+    ? {}
+    : {
+        schoolAccountId: context.schoolAccountId as string,
+      };
+
   const students = await prisma.student.findMany({
-    where: {
-      ...(context.isAdmin ? {} : { schoolAccountId: context.schoolAccountId }),
-    },
+    where,
     orderBy: {
       fullName: "asc",
     },
