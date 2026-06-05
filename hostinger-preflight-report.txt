@@ -1,0 +1,255 @@
+﻿Hostinger Preflight Report
+Project: D:\student-guidance-platform-clean
+Date: 2026-06-05 22:41:47
+
+Recommended Hostinger settings:
+- Framework preset: Next.js
+- Branch: main
+- Node version: 22.x
+- Root directory: ./
+- Build command: npm run build
+- Package manager: npm
+- Output directory: .next
+- Start command: npm start
+
+[PASS] package.json exists.
+[PASS] app directory exists.
+[PASS] prisma/schema.prisma exists.
+[PASS] No old app/(dashboard) path found.
+[PASS] app/dashboard exists.
+[PASS] app/api/dashboard exists.
+[PASS] package.json has build script.
+[PASS] package.json has start script.
+[PASS] package-lock.json exists.
+[PASS] Node version detected locally: v24.16.0
+[WARN] Local Node is not v22.x. Hostinger is using Node 22.x.
+[PASS] npm version detected locally: 11.13.0
+[PASS] Environment file found with 3 keys.
+[WARN] These env keys are used in code but not found locally: NEXT_PUBLIC_APP_URL, APP_URL, HEALTHCHECK_TOKEN, NEXTAUTH_SECRET
+[WARN] Add them in Hostinger Environment Variables if needed.
+[PASS] DATABASE_URL exists locally.
+[PASS] public/uploads is writable locally.
+[PASS] Route exists: app\api\health\route.ts
+[PASS] Route exists: app\api\dashboard\evidence\route.ts
+[PASS] Route exists: app\api\dashboard\data-center\noor-import\preview\route.ts
+[PASS] Route exists: app\api\dashboard\admin\subscribers\route.ts
+[PASS] Route exists: app\api\dashboard\admin\subscriptions\route.ts
+[PASS] Route exists: app\api\dashboard\admin\operational-alerts\route.ts
+
+===== Prisma generate =====
+Command: npx prisma generate
+  Loaded Prisma config from prisma.config.ts.
+  
+  Prisma schema loaded from prisma\schema.prisma.
+  
+  âœ” Generated Prisma Client (v7.8.0) to .\node_modules\@prisma\client in 509ms
+  
+  Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+  
+  
+[PASS] Prisma generate completed.
+
+===== Next production build =====
+Command: npm run build
+  
+  > student-guidance-platform-clean@0.1.0 build
+  > next build
+  
+  â–² Next.js 16.2.6 (Turbopack)
+  - Environments: .env
+  
+    Creating an optimized production build ...
+  âœ“ Compiled successfully in 8.0s
+    Running TypeScript ...
+    Finished TypeScript in 16.4s ...
+    Collecting page data using 15 workers ...
+    Generating static pages using 15 workers (0/114) ...
+    Generating static pages using 15 workers (28/114) 
+    Generating static pages using 15 workers (56/114) 
+    Generating static pages using 15 workers (85/114) 
+  âœ“ Generating static pages using 15 workers (114/114) in 877ms
+    Finalizing page optimization ...
+  
+  Route (app)
+  â”Œ â—‹ /
+  â”œ â—‹ /_not-found
+  â”œ â—‹ /about
+  â”œ Æ’ /api/admin/report-templates/preview-case
+  â”œ Æ’ /api/admin/report-templates/workflow-fields
+  â”œ Æ’ /api/admin/workflows/guardian-summons
+  â”œ Æ’ /api/auth/login
+  â”œ Æ’ /api/auth/logout
+  â”œ Æ’ /api/auth/register
+  â”œ Æ’ /api/dashboard/account
+  â”œ Æ’ /api/dashboard/account/password
+  â”œ Æ’ /api/dashboard/account/sessions/logout-others
+  â”œ Æ’ /api/dashboard/admin/activations/cancel
+  â”œ Æ’ /api/dashboard/admin/activations/codes
+  â”œ Æ’ /api/dashboard/admin/activations/manual
+  â”œ Æ’ /api/dashboard/admin/activity
+  â”œ Æ’ /api/dashboard/admin/activity/metrics
+  â”œ Æ’ /api/dashboard/admin/operational-alerts
+  â”œ Æ’ /api/dashboard/admin/subscribers
+  â”œ Æ’ /api/dashboard/admin/subscriptions
+  â”œ Æ’ /api/dashboard/admin/users
+  â”œ Æ’ /api/dashboard/admin/users/[userId]
+  â”œ Æ’ /api/dashboard/admin/users/[userId]/impersonate
+  â”œ Æ’ /api/dashboard/admin/users/[userId]/password
+  â”œ Æ’ /api/dashboard/admin/workflows/[serviceSlug]/activate
+  â”œ Æ’ /api/dashboard/admin/workflows/[serviceSlug]/delete
+  â”œ Æ’ /api/dashboard/admin/workflows/[serviceSlug]/draft
+  â”œ Æ’ /api/dashboard/admin/workflows/[serviceSlug]/draft-name
+  â”œ Æ’ /api/dashboard/admin/workflows/[serviceSlug]/publish
+  â”œ Æ’ /api/dashboard/admin/workflows/[serviceSlug]/student-picker-mode
+  â”œ Æ’ /api/dashboard/admin/workflows/upload
+  â”œ Æ’ /api/dashboard/calendar
+  â”œ Æ’ /api/dashboard/calendar/[reminderId]
+  â”œ Æ’ /api/dashboard/calendar/due
+  â”œ Æ’ /api/dashboard/cases/[caseId]
+  â”œ Æ’ /api/dashboard/cases/autosave
+  â”œ Æ’ /api/dashboard/cases/save-draft
+  â”œ Æ’ /api/dashboard/cases/submit
+  â”œ Æ’ /api/dashboard/data-center/noor-import/[sessionId]
+  â”œ Æ’ /api/dashboard/data-center/noor-import/[sessionId]/archive
+  â”œ Æ’ /api/dashboard/data-center/noor-import/[sessionId]/commit
+  â”œ Æ’ /api/dashboard/data-center/noor-import/[sessionId]/rows
+  â”œ Æ’ /api/dashboard/data-center/noor-import/cycles
+  â”œ Æ’ /api/dashboard/data-center/noor-import/cycles/[cycleId]
+  â”œ Æ’ /api/dashboard/data-center/noor-import/preview
+  â”œ Æ’ /api/dashboard/data-center/noor-import/sessions
+  â”œ Æ’ /api/dashboard/data-center/students
+  â”œ Æ’ /api/dashboard/data-center/students/[studentId]
+  â”œ Æ’ /api/dashboard/evidence
+  â”œ Æ’ /api/dashboard/family-school-communication/guardian-summons/export/pdf
+  â”œ Æ’ /api/dashboard/onboarding
+  â”œ Æ’ /api/dashboard/onboarding/skip
+  â”œ Æ’ /api/dashboard/plans
+  â”œ Æ’ /api/dashboard/report-templates
+  â”œ Æ’ /api/dashboard/report-templates/[templateId]
+  â”œ Æ’ /api/dashboard/report-templates/[templateId]/use
+  â”œ Æ’ /api/dashboard/reports
+  â”œ Æ’ /api/dashboard/reports/[reportId]
+  â”œ Æ’ /api/dashboard/reports/[reportId]/approve
+  â”œ Æ’ /api/dashboard/reports/[reportId]/delete
+  â”œ Æ’ /api/dashboard/reports/[reportId]/duplicate
+  â”œ Æ’ /api/dashboard/reports/[reportId]/evidence
+  â”œ Æ’ /api/dashboard/reports/[reportId]/export/pdf
+  â”œ Æ’ /api/dashboard/reports/prepare
+  â”œ Æ’ /api/dashboard/results-analysis
+  â”œ Æ’ /api/dashboard/results-analysis/[analysisId]/delete
+  â”œ Æ’ /api/dashboard/results-analysis/[analysisId]/export
+  â”œ Æ’ /api/dashboard/school-data/student-import-sessions
+  â”œ Æ’ /api/dashboard/school-data/student-import-sessions/[sessionId]
+  â”œ Æ’ /api/dashboard/school-data/student-import-sessions/[sessionId]/commit
+  â”œ Æ’ /api/dashboard/school-data/students
+  â”œ Æ’ /api/dashboard/settings/school
+  â”œ Æ’ /api/dashboard/settings/school/logo
+  â”œ Æ’ /api/dashboard/student-follow-up/appreciation-certificates/export/pdf
+  â”œ Æ’ /api/dashboard/student-follow-up/appreciation-certificates/identity
+  â”œ Æ’ /api/dashboard/students/search
+  â”œ Æ’ /api/dashboard/subscription
+  â”œ Æ’ /api/dashboard/subscription/bank-transfer
+  â”œ Æ’ /api/dashboard/subscription/redeem-code
+  â”œ Æ’ /api/dashboard/workflow-builder/create-field
+  â”œ Æ’ /api/dashboard/workflow-builder/create-step
+  â”œ Æ’ /api/health
+  â”œ â—‹ /contact
+  â”œ Æ’ /dashboard
+  â”œ Æ’ /dashboard/admin
+  â”œ Æ’ /dashboard/admin/activations
+  â”œ Æ’ /dashboard/admin/activity
+  â”œ Æ’ /dashboard/admin/document-designs
+  â”œ Æ’ /dashboard/admin/document-designs/appreciation-certificate
+  â”œ Æ’ /dashboard/admin/document-designs/evidence-rich-report
+  â”œ Æ’ /dashboard/admin/document-designs/guardian-summons
+  â”œ Æ’ /dashboard/admin/document-designs/minimal-guidance-report
+  â”œ Æ’ /dashboard/admin/document-designs/official-school-report
+  â”œ Æ’ /dashboard/admin/document-designs/visual-program-report
+  â”œ Æ’ /dashboard/admin/report-templates
+  â”œ Æ’ /dashboard/admin/report-templates/designs
+  â”œ Æ’ /dashboard/admin/report-templates/library
+  â”œ Æ’ /dashboard/admin/report-templates/new
+  â”œ Æ’ /dashboard/admin/report-texts
+  â”œ Æ’ /dashboard/admin/subscribers
+  â”œ Æ’ /dashboard/admin/subscriptions
+  â”œ Æ’ /dashboard/admin/users
+  â”œ Æ’ /dashboard/admin/users/[userId]
+  â”œ Æ’ /dashboard/admin/users/manage
+  â”œ Æ’ /dashboard/admin/workflow-builder
+  â”œ Æ’ /dashboard/admin/workflow-builder/[workflowId]
+  â”œ Æ’ /dashboard/admin/workflows
+  â”œ Æ’ /dashboard/admin/workflows/[serviceSlug]
+  â”œ Æ’ /dashboard/admin/workflows/[serviceSlug]/preview
+  â”œ Æ’ /dashboard/admin/workflows/[serviceSlug]/upload
+  â”œ Æ’ /dashboard/calendar
+  â”œ Æ’ /dashboard/cases
+  â”œ Æ’ /dashboard/cases/[caseId]
+  â”œ Æ’ /dashboard/cases/[caseId]/edit
+  â”œ Æ’ /dashboard/committees-meetings
+  â”œ Æ’ /dashboard/committees-meetings/new
+  â”œ Æ’ /dashboard/comprehensive-reference
+  â”œ Æ’ /dashboard/comprehensive-reference/demo
+  â”œ Æ’ /dashboard/data-center/noor-import
+  â”œ Æ’ /dashboard/data-center/noor-import/cycles/[cycleId]
+  â”œ Æ’ /dashboard/data-center/noor-import/sessions
+  â”œ Æ’ /dashboard/data-center/noor-import/sessions/[sessionId]
+  â”œ Æ’ /dashboard/data-center/students
+  â”œ Æ’ /dashboard/family-school-communication
+  â”œ Æ’ /dashboard/family-school-communication/guardian-summons
+  â”œ Æ’ /dashboard/family-school-communication/guardian-summons/new
+  â”œ Æ’ /dashboard/family-school-communication/new
+  â”œ Æ’ /dashboard/guardian-summons/official-preview
+  â”œ Æ’ /dashboard/guidance-programs
+  â”œ Æ’ /dashboard/guidance-programs/new
+  â”œ Æ’ /dashboard/onboarding
+  â”œ Æ’ /dashboard/plans
+  â”œ Æ’ /dashboard/report-preview
+  â”œ Æ’ /dashboard/reports
+  â”œ Æ’ /dashboard/reports/[reportId]/preview
+  â”œ Æ’ /dashboard/reports/[reportId]/studio
+  â”œ Æ’ /dashboard/reports/new
+  â”œ Æ’ /dashboard/results-analysis
+  â”œ Æ’ /dashboard/results-analysis/[analysisId]
+  â”œ Æ’ /dashboard/results-analysis/compare
+  â”œ Æ’ /dashboard/results-analysis/new
+  â”œ Æ’ /dashboard/runtime-lab
+  â”œ Æ’ /dashboard/settings/school
+  â”œ Æ’ /dashboard/student-follow-up
+  â”œ Æ’ /dashboard/student-follow-up/appreciation-certificates
+  â”œ Æ’ /dashboard/student-follow-up/new
+  â”œ Æ’ /dashboard/student-guidance-services
+  â”œ Æ’ /dashboard/student-guidance-services/new
+  â”œ Æ’ /dashboard/student-import
+  â”œ Æ’ /dashboard/student-import/sessions/[sessionId]
+  â”œ Æ’ /dashboard/subscription
+  â”œ â—‹ /features
+  â”œ â—‹ /forgot-password
+  â”œ â—‹ /login
+  â”œ Æ’ /pdf-preview/appreciation-certificate
+  â”œ Æ’ /pdf-preview/guardian-summons
+  â”œ â—‹ /pricing
+  â”œ â—‹ /privacy
+  â”œ â—‹ /register
+  â”œ â—‹ /reset-password
+  â”œ â—‹ /services
+  â”” â—‹ /terms
+  
+  
+  Æ’ Proxy (Middleware)
+  
+  â—‹  (Static)   prerendered as static content
+  Æ’  (Dynamic)  server-rendered on demand
+  
+[PASS] Next production build completed.
+[PASS] .next output exists after build.
+
+===== Local start smoke test =====
+[PASS] Local production server started on port 3000.
+[PASS] Endpoint / responded with status 200.
+[PASS] Endpoint /login responded with status 200.
+[PASS] Endpoint /api/health responded with status 200.
+
+===== Summary =====
+Failures: 0
+Warnings: 3
+FINAL RESULT: READY FOR HOSTINGER DEPLOY.
