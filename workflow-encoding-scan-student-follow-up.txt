@@ -1,0 +1,198 @@
+﻿EXPORT: Workflow Encoding Scan
+ServiceSlug: student-follow-up
+GeneratedAt: 2026-06-04 23:17:47
+
+================ RESULT ================
+
+{
+  "ok": true,
+  "serviceSlug": "student-follow-up",
+  "serviceName": "┘à╪¬╪º╪¿╪╣╪⌐ ╪º┘ä╪╖┘ä╪º╪¿",
+  "workflowsSummary": [
+    {
+      "id": "cmpzxl8l9005rrwno81nrxpt3",
+      "name": "┘å┘à∩┐╜╦å╪░╪¼ ┘à╪¬╪º╪¿╪╣╪⌐ ╪º┘ä╪╖┘ä╪º╪¿",
+      "workflowType": "default",
+      "version": 1,
+      "status": "ACTIVE",
+      "isActive": true,
+      "stepsCount": 2,
+      "fieldsCount": 7,
+      "optionsCount": 10
+    }
+  ],
+  "badItemsCount": 15,
+  "badItems": [
+    {
+      "label": "service.description",
+      "value": "┘à╪¬╪º╪¿╪╣╪⌐ ╪¡╪º┘ä╪º╪¬ ╪º┘ä╪╖┘ä╪º╪¿ ├Ö╦å╪º┘ä╪╖╪º┘ä╪¿╪º╪¬."
+    },
+    {
+      "label": "workflow.cmpzxl8l9005rrwno81nrxpt3.name",
+      "value": "┘å┘à∩┐╜╦å╪░╪¼ ┘à╪¬╪º╪¿╪╣╪⌐ ╪º┘ä╪╖┘ä╪º╪¿"
+    },
+    {
+      "label": "step.1.title",
+      "value": "╪¬╪╡┘å┘è∩┐╜┬ü ╪º┘ä╪¡╪º┘ä╪⌐"
+    },
+    {
+      "label": "step.1.description",
+      "value": "╪º╪«╪¬╪▒ ┘å∩┐╜╦å╪╣ ╪º┘ä┘à╪┤∩┐╜╞Æ┘ä╪⌐ ├Ö╦å╪º┘ä╪¬╪╡┘å┘è∩┐╜┬ü ╪º┘ä┘à╪▒╪¬╪¿╪╖ ╪¿┘ç╪º."
+    },
+    {
+      "label": "field.problem_type.label",
+      "value": "┘å∩┐╜╦å╪╣ ╪º┘ä┘à╪┤∩┐╜╞Æ┘ä╪⌐"
+    },
+    {
+      "label": "option.problem_type.1.label",
+      "value": "╪│┘ä∩┐╜╦å├Ö╞Æ┘è╪⌐"
+    },
+    {
+      "label": "option.problem_type.2.label",
+      "value": "╪ú∩┐╜╞Æ╪º╪»┘è┘à┘è╪⌐"
+    },
+    {
+      "label": "option.problem_type.3.label",
+      "value": "┘å∩┐╜┬ü╪│┘è╪⌐"
+    },
+    {
+      "label": "field.academic_classification.label",
+      "value": "╪º┘ä╪¬╪╡┘å┘è∩┐╜┬ü ╪º┘ä╪ú∩┐╜╞Æ╪º╪»┘è┘à┘è"
+    },
+    {
+      "label": "option.academic_classification.1.label",
+      "value": "╪╢╪╣∩┐╜┬ü ╪¬╪¡╪╡┘è┘ä┘è"
+    },
+    {
+      "label": "option.academic_classification.3.label",
+      "value": "╪║┘è╪º╪¿ ┘à╪¬∩┐╜╞Æ╪▒╪▒"
+    },
+    {
+      "label": "field.visible_traits.label",
+      "value": "╪º┘ä╪╡∩┐╜┬ü╪º╪¬ ╪º┘ä╪╕╪º┘ç╪▒╪⌐"
+    },
+    {
+      "label": "field.visible_traits.placeholder",
+      "value": "╪º∩┐╜╞Æ╪¬╪¿ ╪º┘ä╪╡∩┐╜┬ü╪º╪¬ ╪ú∩┐╜╦å ╪º┘ä┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä╪╕╪º┘ç╪▒╪⌐ ╪╣┘ä┘ë ╪º┘ä╪╖╪º┘ä╪¿/╪º┘ä╪╖╪º┘ä╪¿╪⌐..."
+    },
+    {
+      "label": "step.2.title",
+      "value": "╪º┘ä╪Ñ╪¼╪▒╪º╪í ├Ö╦å╪º┘ä┘å╪¬┘è╪¼╪⌐"
+    },
+    {
+      "label": "step.2.description",
+      "value": "├Ö╦å╪½∩┐╜ΓÇÿ┘é ╪º┘ä╪Ñ╪¼╪▒╪º╪í ╪º┘ä┘à╪¬╪«╪░ ├Ö╦å╪º┘ä┘å╪¬┘è╪¼╪⌐."
+    }
+  ],
+  "activeWorkflowPreview": {
+    "id": "cmpzxl8l9005rrwno81nrxpt3",
+    "name": "┘å┘à∩┐╜╦å╪░╪¼ ┘à╪¬╪º╪¿╪╣╪⌐ ╪º┘ä╪╖┘ä╪º╪¿",
+    "steps": [
+      {
+        "title": "╪¬╪╡┘å┘è∩┐╜┬ü ╪º┘ä╪¡╪º┘ä╪⌐",
+        "fields": [
+          {
+            "key": "problem_type",
+            "label": "┘å∩┐╜╦å╪╣ ╪º┘ä┘à╪┤∩┐╜╞Æ┘ä╪⌐",
+            "type": "SELECT",
+            "options": [
+              {
+                "label": "╪│┘ä∩┐╜╦å├Ö╞Æ┘è╪⌐",
+                "value": "behavioral",
+                "linkedToValue": null
+              },
+              {
+                "label": "╪ú∩┐╜╞Æ╪º╪»┘è┘à┘è╪⌐",
+                "value": "academic",
+                "linkedToValue": null
+              },
+              {
+                "label": "┘å∩┐╜┬ü╪│┘è╪⌐",
+                "value": "psychological",
+                "linkedToValue": null
+              },
+              {
+                "label": "╪º╪¼╪¬┘à╪º╪╣┘è╪⌐",
+                "value": "social",
+                "linkedToValue": null
+              }
+            ]
+          },
+          {
+            "key": "academic_classification",
+            "label": "╪º┘ä╪¬╪╡┘å┘è∩┐╜┬ü ╪º┘ä╪ú∩┐╜╞Æ╪º╪»┘è┘à┘è",
+            "type": "SELECT",
+            "options": [
+              {
+                "label": "╪╢╪╣∩┐╜┬ü ╪¬╪¡╪╡┘è┘ä┘è",
+                "value": "low_achievement",
+                "linkedToValue": null
+              },
+              {
+                "label": "╪¬╪ú╪«╪▒ ╪»╪▒╪º╪│┘è",
+                "value": "late_learning",
+                "linkedToValue": null
+              },
+              {
+                "label": "╪║┘è╪º╪¿ ┘à╪¬∩┐╜╞Æ╪▒╪▒",
+                "value": "absence",
+                "linkedToValue": null
+              }
+            ]
+          },
+          {
+            "key": "visible_traits",
+            "label": "╪º┘ä╪╡∩┐╜┬ü╪º╪¬ ╪º┘ä╪╕╪º┘ç╪▒╪⌐",
+            "type": "TEXTAREA",
+            "options": []
+          }
+        ]
+      },
+      {
+        "title": "╪º┘ä╪Ñ╪¼╪▒╪º╪í ├Ö╦å╪º┘ä┘å╪¬┘è╪¼╪⌐",
+        "fields": [
+          {
+            "key": "reasons",
+            "label": "╪º┘ä╪ú╪│╪¿╪º╪¿",
+            "type": "TEXTAREA",
+            "options": []
+          },
+          {
+            "key": "action_taken",
+            "label": "╪º┘ä╪Ñ╪¼╪▒╪º╪í ╪º┘ä┘à╪¬╪«╪░",
+            "type": "TEXTAREA",
+            "options": []
+          },
+          {
+            "key": "result",
+            "label": "╪º┘ä┘å╪¬┘è╪¼╪⌐",
+            "type": "SELECT",
+            "options": [
+              {
+                "label": "╪¬╪¡╪│┘å",
+                "value": "improved",
+                "linkedToValue": null
+              },
+              {
+                "label": "┘è╪¡╪¬╪º╪¼ ┘à╪¬╪º╪¿╪╣╪⌐",
+                "value": "needs_followup",
+                "linkedToValue": null
+              },
+              {
+                "label": "╪Ñ╪¡╪º┘ä╪⌐",
+                "value": "referral",
+                "linkedToValue": null
+              }
+            ]
+          },
+          {
+            "key": "notes",
+            "label": "┘à┘ä╪º╪¡╪╕╪º╪¬",
+            "type": "TEXTAREA",
+            "options": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -240,7 +240,7 @@ async function runReportAction() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="بحث باسم الطالب، عنوان التقرير، الخدمة..."
+            placeholder="بحث باسم الطالب، عنوان التقارير، الخدمة..."
             className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
           />
 
@@ -470,14 +470,14 @@ function ReportCard({
             href={`/dashboard/reports/${report.id}/preview`}
             className="rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
           >
-            معاينة التقرير
+            معاينة التقارير
           </Link>
 {report.status !== "APPROVED" && report.status !== "ARCHIVED" ? (
   <Link
     href={`/dashboard/reports/${report.id}/studio`}
     className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-center text-sm font-black text-sky-700 transition hover:bg-sky-100"
   >
-    تعديل التقرير
+    تعديل التقارير
   </Link>
 ) : null}
           <Link
@@ -493,7 +493,7 @@ function ReportCard({
               onClick={onApprove}
               className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100"
             >
-              اعتماد التقرير
+              اعتماد التقارير
             </button>
           ) : null}
 
@@ -502,7 +502,7 @@ function ReportCard({
   onClick={onDuplicate}
   className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100"
 >
-  نسخ التقرير
+  نسخ التقارير
 </button>
 
           {canArchive ? (
@@ -511,7 +511,7 @@ function ReportCard({
               onClick={onArchive}
               className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-700 transition hover:bg-amber-100"
             >
-              أرشفة التقرير
+              أرشفة التقارير
             </button>
           ) : null}
 
@@ -572,18 +572,18 @@ return (
       <div className="mt-4 text-center">
         <h2 className="text-xl font-black text-slate-900">
           {isApprove
-            ? "اعتماد التقرير؟"
+            ? "اعتماد التقارير؟"
             : isArchive
-              ? "أرشفة التقرير؟"
-              : "نسخ التقرير؟"}
+              ? "أرشفة التقارير؟"
+              : "نسخ التقارير؟"}
         </h2>
 
         <p className="mt-3 text-sm leading-7 text-slate-500">
           {isApprove
-            ? "سيتم تغيير حالة التقرير إلى معتمد وتسجيل تاريخ الاعتماد."
+            ? "سيتم تغيير حالة التقارير إلى معتمد وتسجيل تاريخ الاعتماد."
             : isArchive
-              ? "سيتم نقل التقرير إلى الأرشيف بدل حذفه نهائيًا، حفاظًا على السجلات الرسمية."
-              : "سيتم إنشاء نسخة جديدة من التقرير بنفس القالب والـ Snapshot والشواهد، دون التأثير على التقرير الأصلي."}
+              ? "سيتم نقل التقارير إلى الأرشيف بدل حذفه نهائيًا، حفاظًا على السجلات الرسمية."
+              : "سيتم إنشاء نسخة جديدة من التقارير بنفس القالب والـ Snapshot والشواهد، دون التأثير على التقارير الأصلي."}
         </p>
 
         <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-900">
@@ -623,10 +623,10 @@ return (
           {loading
             ? "جارٍ التنفيذ..."
             : isApprove
-              ? "نعم، اعتمد التقرير"
+              ? "نعم، اعتمد التقارير"
               : isArchive
-                ? "نعم، أرشف التقرير"
-                : "نعم، انسخ التقرير"}
+                ? "نعم، أرشف التقارير"
+                : "نعم، انسخ التقارير"}
         </button>
       </div>
     </div>

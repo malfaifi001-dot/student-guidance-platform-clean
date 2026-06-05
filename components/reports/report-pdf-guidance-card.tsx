@@ -22,7 +22,7 @@ export function ReportPdfGuidanceCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
-              معاينة التقرير
+              معاينة التقارير
             </span>
 
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
@@ -39,7 +39,7 @@ export function ReportPdfGuidanceCard({
           </h1>
 
           <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
-            راجع التقرير كما سيظهر للمستفيد. إذا احتجت تعديل النصوص أو الشواهد افتح محرر التقرير، وإذا كان جاهزًا صدّره PDF مباشرة.
+            راجع التقارير كما سيظهر للمستفيد. إذا احتجت تعديل النصوص أو الشواهد افتح محرر التقارير، وإذا كان جاهزًا صدّره PDF مباشرة.
           </p>
         </div>
 
@@ -86,7 +86,7 @@ export function ReportPdfGuidanceCard({
         </span>
 
         <span className="rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
-          التقرير الرسمي يبدأ بالصفحات أدناه
+          التقارير الرسمي يبدأ بالصفحات أدناه
         </span>
       </div>
     </section>

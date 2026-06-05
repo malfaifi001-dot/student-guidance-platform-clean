@@ -26,7 +26,7 @@ async function archiveReport(reportId: string, scope: {
     return {
       ok: false,
       status: 404,
-      error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
+      error: "التقارير غير موجود أو لا تملك صلاحية الوصول إليه.",
     };
   }
 
@@ -107,7 +107,7 @@ export async function POST(_request: Request, context: RouteContext) {
       {
         success: false,
         error:
-          error instanceof Error ? error.message : "تعذر أرشفة التقرير.",
+          error instanceof Error ? error.message : "تعذر أرشفة التقارير.",
       },
       { status: 500 }
     );

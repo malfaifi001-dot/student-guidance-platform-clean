@@ -1,19 +1,25 @@
-type CaseValueRendererProps = {
+﻿type CaseValueRendererProps = {
   label: string;
   value: unknown;
 };
 
+function isEmpty(value: unknown) {
+  return value === null || value === undefined || value === "";
+}
+
+function stringifySimple(value: unknown) {
+  if (isEmpty(value)) return "—";
+  if (typeof value === "boolean") return value ? "نعم" : "لا";
+  if (typeof value === "string" || typeof value === "number") return String(value);
+
+  return "";
+}
+
 function renderValue(value: unknown) {
-  if (value === null || value === undefined || value === "") {
-    return "—";
-  }
+  const simple = stringifySimple(value);
 
-  if (typeof value === "boolean") {
-    return value ? "نعم" : "لا";
-  }
-
-  if (typeof value === "string" || typeof value === "number") {
-    return String(value);
+  if (simple) {
+    return simple;
   }
 
   if (Array.isArray(value)) {
@@ -35,7 +41,7 @@ function renderValue(value: unknown) {
                   .map(([key, itemValue]) => (
                     <p key={key} className="text-sm leading-7 text-slate-700">
                       <span className="font-black text-slate-900">{key}: </span>
-                      {String(itemValue || "—")}
+                      {stringifySimple(itemValue) || "بيانات محفوظة"}
                     </p>
                   ))}
               </div>
@@ -47,7 +53,7 @@ function renderValue(value: unknown) {
               key={index}
               className="inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700"
             >
-              {String(item)}
+              {stringifySimple(item) || String(item)}
             </span>
           );
         })}
@@ -60,6 +66,8 @@ function renderValue(value: unknown) {
 
     if (typeof objectValue.fullName === "string") return objectValue.fullName;
     if (typeof objectValue.name === "string") return objectValue.name;
+    if (typeof objectValue.label === "string") return objectValue.label;
+    if (typeof objectValue.value === "string") return objectValue.value;
 
     return "بيانات محفوظة";
   }

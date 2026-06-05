@@ -1,335 +1,581 @@
+﻿"use client";
 
-"use client";
+type OptionLike = {
+  id?: string;
+  label: string;
+  value: string;
+  order: number;
+  linkedToValue?: string | null;
+};
 
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
-import type { RuntimeField } from "@/engine/runtime/runtime-resolver";
+type FieldLike = {
+  key: string;
+  label: string;
+  allowOther?: boolean;
+  options?: OptionLike[];
+};
 
 export type CommitteeChainRow = {
   id: string;
   agenda: string;
+  agendaLabel?: string;
   agendaOther?: string;
   discussion: string;
+  discussionLabel?: string;
   discussionOther?: string;
   recommendation: string;
+  recommendationLabel?: string;
   recommendationOther?: string;
 };
 
-type CommitteeChainRepeaterProps = {
-  fields: RuntimeField[];
-  value: CommitteeChainRow[] | undefined;
+type Props = {
+  fields: FieldLike[];
+  value?: CommitteeChainRow[];
   onChange: (rows: CommitteeChainRow[]) => void;
 };
 
-function createEmptyRow(): CommitteeChainRow {
+const OTHER_VALUE = "__OTHER__";
+const MAX_ROWS = 30;
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_\s]+/g, " ")
+    .trim();
+}
+
+function createId() {
+  if (
+    typeof globalThis !== "undefined" &&
+    globalThis.crypto &&
+    "randomUUID" in globalThis.crypto
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `committee-row-${Date.now()}-${Math.random()}`;
+}
+
+function createRow(): CommitteeChainRow {
   return {
-    id: crypto.randomUUID(),
+    id: createId(),
     agenda: "",
+    agendaLabel: "",
     agendaOther: "",
     discussion: "",
+    discussionLabel: "",
     discussionOther: "",
     recommendation: "",
+    recommendationLabel: "",
     recommendationOther: "",
   };
 }
 
-function fieldText(field: RuntimeField) {
-  return `${field.key} ${field.label}`.trim().toLowerCase();
+function fieldText(field: FieldLike) {
+  return normalizeText(`${field.key} ${field.label}`);
 }
 
-function findAgendaField(fields: RuntimeField[]) {
+function findAgendaField(fields: FieldLike[]) {
   return fields.find((field) => {
     const text = fieldText(field);
-    return text.includes("agenda") || text.includes("committee_agenda") || text.includes("جدول");
-  });
-}
-
-function findDiscussionField(fields: RuntimeField[]) {
-  return fields.find((field) => {
-    const text = fieldText(field);
-    return text.includes("discussion") || text.includes("committee_discussion") || text.includes("محور") || text.includes("نقاش");
-  });
-}
-
-function findRecommendationField(fields: RuntimeField[]) {
-  return fields.find((field) => {
-    const text = fieldText(field);
-    return text.includes("recommendation") || text.includes("committee_recommendation") || text.includes("توصية");
-  });
-}
-
-function getOptions(field?: RuntimeField, linkedToValue?: string) {
-  if (!field) return [];
-
-  if (!linkedToValue || linkedToValue === "__OTHER__") {
-    return field.options;
-  }
-
-  const linkedOptions = field.options.filter(
-    (option) => String(option.linkedToValue ?? "") === String(linkedToValue)
-  );
-
-  return linkedOptions.length > 0 ? linkedOptions : field.options;
-}
-
-function hasValidValue(value?: string, other?: string) {
-  if (value === "__OTHER__") {
-    return Boolean(other?.trim());
-  }
-
-  return Boolean(value?.trim());
-}
-
-export function isCommitteeRowsValid(rows: unknown) {
-  if (!Array.isArray(rows)) {
-    return false;
-  }
-
-  return rows.some((item) => {
-    if (!item || typeof item !== "object") {
-      return false;
-    }
-
-    const row = item as CommitteeChainRow;
 
     return (
-      hasValidValue(row.agenda, row.agendaOther) &&
-      hasValidValue(row.discussion, row.discussionOther) &&
-      hasValidValue(row.recommendation, row.recommendationOther)
+      text.includes("agenda") ||
+      text.includes("agenda item") ||
+      text.includes("committee agenda") ||
+      text.includes("جدول") ||
+      text.includes("الاعمال") ||
+      text.includes("الأعمال")
     );
   });
 }
 
-export function CommitteeChainRepeater({
-  fields,
-  value,
-  onChange,
-}: CommitteeChainRepeaterProps) {
-  const agendaField = useMemo(() => findAgendaField(fields), [fields]);
-  const discussionField = useMemo(() => findDiscussionField(fields), [fields]);
-  const recommendationField = useMemo(() => findRecommendationField(fields), [fields]);
+function findDiscussionField(fields: FieldLike[]) {
+  return fields.find((field) => {
+    const text = fieldText(field);
 
-  const [rows, setRows] = useState<CommitteeChainRow[]>(
-    value && value.length > 0 ? value : [createEmptyRow()]
+    return (
+      text.includes("discussion") ||
+      text.includes("discussion axis") ||
+      text.includes("committee discussion") ||
+      text.includes("محور") ||
+      text.includes("نقاش")
+    );
+  });
+}
+
+function findRecommendationField(fields: FieldLike[]) {
+  return fields.find((field) => {
+    const text = fieldText(field);
+
+    return (
+      text.includes("recommendation") ||
+      text.includes("committee recommendation") ||
+      text.includes("توصية") ||
+      text.includes("التوصية") ||
+      text.includes("التوصيات")
+    );
+  });
+}
+
+function sortOptions(field?: FieldLike | null) {
+  const options = Array.isArray(field?.options) ? field.options : [];
+
+  return [...options].sort(
+    (a, b) => Number(a.order || 0) - Number(b.order || 0),
+  );
+}
+
+function cleanValue(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function sameValue(a: unknown, b: unknown) {
+  const left = cleanValue(a);
+  const right = cleanValue(b);
+
+  return Boolean(left && right && left === right);
+}
+
+function isOther(value: unknown) {
+  return cleanValue(value) === OTHER_VALUE;
+}
+
+function hasText(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function findOptionByValue(options: OptionLike[], value: string) {
+  return options.find((option) => sameValue(option.value, value)) || null;
+}
+
+function findStrictChildOption(
+  childOptions: OptionLike[],
+  parentValue?: string | null,
+  parentOrder?: number | null,
+) {
+  const linkedOptions = childOptions.filter((option) =>
+    sameValue(option.linkedToValue, parentValue),
   );
 
-  useEffect(() => {
-    if (!value || value.length === 0) {
-      return;
-    }
-
-    if (JSON.stringify(value) !== JSON.stringify(rows)) {
-      setRows(value);
-    }
-  }, [value]);
-
-  function commit(nextRows: CommitteeChainRow[]) {
-    setRows(nextRows);
-    onChange(nextRows);
+  if (linkedOptions.length) {
+    return linkedOptions[0] || null;
   }
 
-  function updateRow(rowId: string, patch: Partial<CommitteeChainRow>) {
-    commit(
+  if (parentOrder !== undefined && parentOrder !== null) {
+    const byOrder = childOptions.find(
+      (option) => Number(option.order) === Number(parentOrder),
+    );
+
+    if (byOrder) return byOrder;
+  }
+
+  return null;
+}
+
+function getStrictChildOptions(
+  childOptions: OptionLike[],
+  parentValue?: string | null,
+  parentOrder?: number | null,
+) {
+  const strictOption = findStrictChildOption(
+    childOptions,
+    parentValue,
+    parentOrder,
+  );
+
+  return strictOption ? [strictOption] : [];
+}
+
+function isRowUsed(row: Partial<CommitteeChainRow>) {
+  return Boolean(
+    row.agenda ||
+      row.agendaOther ||
+      row.discussion ||
+      row.discussionOther ||
+      row.recommendation ||
+      row.recommendationOther,
+  );
+}
+
+function isRowComplete(row: Partial<CommitteeChainRow>) {
+  const agendaReady = isOther(row.agenda)
+    ? hasText(row.agendaOther)
+    : hasText(row.agenda);
+
+  const discussionReady = isOther(row.discussion)
+    ? hasText(row.discussionOther)
+    : hasText(row.discussion);
+
+  const recommendationReady = isOther(row.recommendation)
+    ? hasText(row.recommendationOther)
+    : hasText(row.recommendation);
+
+  return agendaReady && discussionReady && recommendationReady;
+}
+
+export function isCommitteeRowsValid(value: unknown) {
+  if (!Array.isArray(value)) return false;
+
+  const usedRows = value.filter(
+    (row) => row && typeof row === "object" && isRowUsed(row),
+  );
+
+  if (!usedRows.length) return false;
+
+  return usedRows.every((row) => isRowComplete(row));
+}
+
+function normalizeRows(value?: CommitteeChainRow[]) {
+  if (!Array.isArray(value) || !value.length) {
+    return [createRow()];
+  }
+
+  return value.map((row) => ({
+    ...createRow(),
+    ...row,
+    id: row.id || createId(),
+  }));
+}
+
+export function CommitteeChainRepeater({ fields, value, onChange }: Props) {
+  const agendaField = findAgendaField(fields);
+  const discussionField = findDiscussionField(fields);
+  const recommendationField = findRecommendationField(fields);
+
+  const agendaOptions = sortOptions(agendaField);
+  const discussionOptions = sortOptions(discussionField);
+  const recommendationOptions = sortOptions(recommendationField);
+
+  const rows = normalizeRows(value);
+
+  function updateRows(nextRows: CommitteeChainRow[]) {
+    onChange(nextRows.slice(0, MAX_ROWS));
+  }
+
+  function buildLinkedRow(row: CommitteeChainRow, agendaValue: string) {
+    if (!agendaValue) {
+      return {
+        ...row,
+        agenda: "",
+        agendaLabel: "",
+        agendaOther: "",
+        discussion: "",
+        discussionLabel: "",
+        discussionOther: "",
+        recommendation: "",
+        recommendationLabel: "",
+        recommendationOther: "",
+      };
+    }
+
+    if (agendaValue === OTHER_VALUE) {
+      return {
+        ...row,
+        agenda: OTHER_VALUE,
+        agendaLabel: "أخرى",
+        discussion: OTHER_VALUE,
+        discussionLabel: "أخرى",
+        recommendation: OTHER_VALUE,
+        recommendationLabel: "أخرى",
+      };
+    }
+
+    const selectedAgenda = findOptionByValue(agendaOptions, agendaValue);
+
+    if (!selectedAgenda) {
+      return {
+        ...row,
+        agenda: "",
+        agendaLabel: "",
+        discussion: "",
+        discussionLabel: "",
+        recommendation: "",
+        recommendationLabel: "",
+      };
+    }
+
+    const selectedDiscussion = findStrictChildOption(
+      discussionOptions,
+      selectedAgenda.value,
+      selectedAgenda.order,
+    );
+
+    const selectedRecommendation =
+      findStrictChildOption(
+        recommendationOptions,
+        selectedDiscussion?.value,
+        selectedDiscussion?.order,
+      ) ||
+      findStrictChildOption(
+        recommendationOptions,
+        selectedAgenda.value,
+        selectedAgenda.order,
+      );
+
+    return {
+      ...row,
+      agenda: selectedAgenda.value,
+      agendaLabel: selectedAgenda.label,
+      agendaOther: "",
+      discussion: selectedDiscussion?.value || "",
+      discussionLabel: selectedDiscussion?.label || "",
+      discussionOther: "",
+      recommendation: selectedRecommendation?.value || "",
+      recommendationLabel: selectedRecommendation?.label || "",
+      recommendationOther: "",
+    };
+  }
+
+  function setAgenda(rowId: string, agendaValue: string) {
+    updateRows(
+      rows.map((row) =>
+        row.id === rowId ? buildLinkedRow(row, agendaValue) : row,
+      ),
+    );
+  }
+
+  function setOtherValue(
+    rowId: string,
+    key: "agendaOther" | "discussionOther" | "recommendationOther",
+    text: string,
+  ) {
+    updateRows(
       rows.map((row) =>
         row.id === rowId
           ? {
               ...row,
-              ...patch,
+              [key]: text,
             }
-          : row
-      )
+          : row,
+      ),
     );
   }
 
   function addRow() {
-    commit([...rows, createEmptyRow()]);
+    if (rows.length >= MAX_ROWS) return;
+
+    updateRows([...rows, createRow()]);
   }
 
   function removeRow(rowId: string) {
     const nextRows = rows.filter((row) => row.id !== rowId);
-    commit(nextRows.length > 0 ? nextRows : [createEmptyRow()]);
+
+    updateRows(nextRows.length ? nextRows : [createRow()]);
   }
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:col-span-2">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <section className="rounded-[2rem] border border-sky-100 bg-sky-50/60 p-5">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-sky-700">اللجان والاجتماعات</p>
+          <p className="text-sm font-black text-sky-700">
+            اللجان والاجتماعات
+          </p>
 
-          <h3 className="mt-2 text-2xl font-black text-slate-900">
+          <h3 className="mt-1 text-2xl font-black text-slate-900">
             جدول الأعمال ومحور النقاش والتوصية
           </h3>
 
-          <p className="mt-2 text-sm leading-7 text-slate-500">
-            أضف أكثر من صف. كل صف مستقل: جدول أعمال ← محور نقاش ← توصية.
+          <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-600">
+            اختر بند جدول الأعمال فقط، وسيتم ربط محور النقاش والتوصية المقابلة
+            له تلقائيًا. لا يمكن اختيار محور أو توصية من صف مختلف.
           </p>
         </div>
 
         <button
           type="button"
           onClick={addRow}
-          className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white hover:bg-sky-700"
+          disabled={rows.length >= MAX_ROWS}
+          className="rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <Plus className="h-4 w-4" />
-          إضافة جدول أعمال
+          + إضافة جدول أعمال
         </button>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         {rows.map((row, index) => {
-          const agendaOptions = getOptions(agendaField);
-          const discussionOptions = getOptions(discussionField, row.agenda);
-          const recommendationOptions = getOptions(recommendationField, row.discussion);
+          const selectedAgenda = findOptionByValue(agendaOptions, row.agenda);
+
+          const allowedDiscussionOptions = isOther(row.agenda)
+            ? []
+            : getStrictChildOptions(
+                discussionOptions,
+                selectedAgenda?.value,
+                selectedAgenda?.order,
+              );
+
+          const selectedDiscussion =
+            findOptionByValue(discussionOptions, row.discussion) ||
+            allowedDiscussionOptions[0] ||
+            null;
+
+          const allowedRecommendationOptions = isOther(row.agenda)
+            ? []
+            : getStrictChildOptions(
+                recommendationOptions,
+                selectedDiscussion?.value,
+                selectedDiscussion?.order,
+              ).length
+              ? getStrictChildOptions(
+                  recommendationOptions,
+                  selectedDiscussion?.value,
+                  selectedDiscussion?.order,
+                )
+              : getStrictChildOptions(
+                  recommendationOptions,
+                  selectedAgenda?.value,
+                  selectedAgenda?.order,
+                );
 
           return (
-            <div
+            <article
               key={row.id}
-              className="rounded-3xl border border-slate-100 bg-slate-50 p-5"
+              className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm"
             >
-              <div className="mb-5 flex items-center justify-between">
-                <p className="text-sm font-black text-slate-700">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <strong className="rounded-full bg-sky-100 px-3 py-1 text-xs font-black text-sky-700">
                   جدول {index + 1} - نقاش {index + 1} - توصية {index + 1}
-                </p>
+                </strong>
 
                 <button
                   type="button"
                   onClick={() => removeRow(row.id)}
-                  className="rounded-xl border border-rose-200 p-2 text-rose-600 hover:bg-rose-50"
+                  className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-100"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  حذف
                 </button>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-3">
                 <div>
-                  <label className="mb-2 block text-sm font-black text-slate-800">
+                  <label className="mb-2 block text-sm font-black text-slate-700">
                     جدول الأعمال
                   </label>
 
                   <select
-                    value={row.agenda}
-                    onChange={(event) =>
-                      updateRow(row.id, {
-                        agenda: event.target.value,
-                        agendaOther: "",
-                        discussion: "",
-                        discussionOther: "",
-                        recommendation: "",
-                        recommendationOther: "",
-                      })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                    value={row.agenda || ""}
+                    onChange={(event) => setAgenda(row.id, event.target.value)}
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                   >
                     <option value="">اختر جدول الأعمال...</option>
 
                     {agendaOptions.map((option) => (
-                      <option key={option.id} value={option.value}>
-                        {option.label}
+                      <option key={option.value} value={option.value}>
+                        {option.order}. {option.label}
                       </option>
                     ))}
 
-                    <option value="__OTHER__">أخرى</option>
+                    {agendaField?.allowOther ? (
+                      <option value={OTHER_VALUE}>أخرى</option>
+                    ) : null}
                   </select>
 
-                  {row.agenda === "__OTHER__" ? (
+                  {isOther(row.agenda) ? (
                     <input
-                      value={row.agendaOther ?? ""}
+                      value={row.agendaOther || ""}
                       onChange={(event) =>
-                        updateRow(row.id, {
-                          agendaOther: event.target.value,
-                        })
+                        setOtherValue(row.id, "agendaOther", event.target.value)
                       }
-                      placeholder="اكتب جدول الأعمال..."
-                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                      placeholder="اكتب بند جدول الأعمال..."
+                      className="mt-3 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                     />
                   ) : null}
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-black text-slate-800">
+                  <label className="mb-2 block text-sm font-black text-slate-700">
                     محور النقاش
                   </label>
 
-                  <select
-                    value={row.discussion}
-                    disabled={!row.agenda}
-                    onChange={(event) =>
-                      updateRow(row.id, {
-                        discussion: event.target.value,
-                        discussionOther: "",
-                        recommendation: "",
-                        recommendationOther: "",
-                      })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100"
-                  >
-                    <option value="">اختر محور النقاش...</option>
-
-                    {discussionOptions.map((option) => (
-                      <option key={option.id} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-
-                    <option value="__OTHER__">أخرى</option>
-                  </select>
-
-                  {row.discussion === "__OTHER__" ? (
+                  {isOther(row.agenda) ? (
                     <input
-                      value={row.discussionOther ?? ""}
+                      value={row.discussionOther || ""}
                       onChange={(event) =>
-                        updateRow(row.id, {
-                          discussionOther: event.target.value,
-                        })
+                        setOtherValue(
+                          row.id,
+                          "discussionOther",
+                          event.target.value,
+                        )
                       }
                       placeholder="اكتب محور النقاش..."
-                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                     />
+                  ) : (
+                    <select
+                      value={row.discussion || ""}
+                      disabled
+                      className="h-12 w-full cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 outline-none"
+                    >
+                      <option value="">
+                        {row.agenda
+                          ? "لا يوجد محور مرتبط بهذا البند"
+                          : "اختر جدول الأعمال أولًا"}
+                      </option>
+
+                      {allowedDiscussionOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.order}. {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {!isOther(row.agenda) && row.discussion ? (
+                    <p className="mt-2 text-xs font-bold text-emerald-700">
+                      تم ربط محور النقاش تلقائيًا بنفس صف جدول الأعمال.
+                    </p>
                   ) : null}
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-black text-slate-800">
+                  <label className="mb-2 block text-sm font-black text-slate-700">
                     التوصية
                   </label>
 
-                  <select
-                    value={row.recommendation}
-                    disabled={!row.discussion}
-                    onChange={(event) =>
-                      updateRow(row.id, {
-                        recommendation: event.target.value,
-                        recommendationOther: "",
-                      })
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100"
-                  >
-                    <option value="">اختر التوصية...</option>
-
-                    {recommendationOptions.map((option) => (
-                      <option key={option.id} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-
-                    <option value="__OTHER__">أخرى</option>
-                  </select>
-
-                  {row.recommendation === "__OTHER__" ? (
+                  {isOther(row.agenda) ? (
                     <input
-                      value={row.recommendationOther ?? ""}
+                      value={row.recommendationOther || ""}
                       onChange={(event) =>
-                        updateRow(row.id, {
-                          recommendationOther: event.target.value,
-                        })
+                        setOtherValue(
+                          row.id,
+                          "recommendationOther",
+                          event.target.value,
+                        )
                       }
                       placeholder="اكتب التوصية..."
-                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                     />
+                  ) : (
+                    <select
+                      value={row.recommendation || ""}
+                      disabled
+                      className="h-12 w-full cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 outline-none"
+                    >
+                      <option value="">
+                        {row.discussion
+                          ? "لا توجد توصية مرتبطة بهذا المحور"
+                          : "اختر جدول الأعمال أولًا"}
+                      </option>
+
+                      {allowedRecommendationOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.order}. {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {!isOther(row.agenda) && row.recommendation ? (
+                    <p className="mt-2 text-xs font-bold text-emerald-700">
+                      تم ربط التوصية تلقائيًا بنفس صف محور النقاش.
+                    </p>
                   ) : null}
                 </div>
               </div>
-            </div>
+            </article>
           );
         })}
       </div>

@@ -2,6 +2,7 @@
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboarding-reminder";
+import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 
 export default async function DashboardLayout({
@@ -22,6 +23,8 @@ export default async function DashboardLayout({
           <DashboardOnboardingReminder
             onboardingCompleted={current.user.onboardingCompleted}
           />
+
+          <CalendarLoginPopup />
 
           <div className="mx-auto w-full max-w-[1680px] px-3 py-4 md:px-4 xl:px-5">
             {children}

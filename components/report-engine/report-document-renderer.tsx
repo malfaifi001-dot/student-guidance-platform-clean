@@ -162,7 +162,7 @@ function OfficialLongReport({
         <OfficialHeader identity={identity} compact />
 
         <div className="page-body">
-          <SectionTitle title="ملخص التقرير" />
+          <SectionTitle title="ملخص التقارير" />
 
           <div className="meta-grid">
             <InfoRow label="اسم المدرسة" value={identity.schoolName} />
@@ -174,7 +174,7 @@ function OfficialLongReport({
           </div>
 
           <div className="summary-highlight">
-            <span>الغرض من التقرير</span>
+            <span>الغرض من التقارير</span>
             <p>
               توثيق تنفيذ البرنامج/الخدمة مع حفظ البيانات والشواهد بطريقة
               رسمية قابلة للطباعة والأرشفة.
@@ -237,9 +237,9 @@ function OfficialLongReport({
           <SectionTitle title="الاعتماد والتوقيع" />
 
           <div className="approval-intro">
-            <h2>اعتماد التقرير</h2>
+            <h2>اعتماد التقارير</h2>
             <p>
-              تم إعداد هذا التقرير بناءً على البيانات والشواهد الموثقة في
+              تم إعداد هذا التقارير بناءً على البيانات والشواهد الموثقة في
               المنصة، ويعد مرجعًا رسميًا لتنفيذ البرنامج/الخدمة.
             </p>
           </div>

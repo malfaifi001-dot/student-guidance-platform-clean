@@ -1,0 +1,2552 @@
+﻿EXPORT: Case Details Current UI Code
+GeneratedAt: 2026-06-05 02:21:48
+
+
+============================================================
+FILE: components\cases\case-details-view.tsx
+============================================================
+
+import Link from "next/link";
+import {
+  ArrowRight,
+  CalendarDays,
+  ClipboardList,
+  FileText,
+  ImageIcon,
+  PencilLine,
+  UserRound,
+} from "lucide-react";
+
+import { CaseValueRenderer } from "@/components/cases/case-value-renderer";
+import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldLabel,
+  type WorkflowFieldLike,
+  type WorkflowValueLike,
+} from "@/lib/workflow-values/workflow-display-value";
+
+type CaseDetailsViewProps = {
+  caseEntry: any;
+};
+
+type FieldLookupItem = WorkflowFieldLike & {
+  key?: string | null;
+  label?: string | null;
+};
+
+const SMART_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
+  positive_behavior_discipline:
+    "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+  behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+};
+
+function buildFieldMap(caseEntry: any) {
+  const map = new Map<string, FieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function shouldHideCaseValue(fieldKey: string) {
+  return (
+    ["student", "guardian", "metadata", "selectedStudent"].includes(fieldKey) ||
+    fieldKey.endsWith("__other")
+  );
+}
+
+function normalizeCaseValue(
+  value: any,
+  fieldMap: Map<string, FieldLookupItem>,
+): WorkflowValueLike {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function formatCommitteeRows(value: unknown) {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((row) => {
+    if (!row || typeof row !== "object") return row;
+
+    const item = row as Record<string, unknown>;
+
+    return {
+      "جدول الأعمال": item.agendaOther || item.agenda || "—",
+      "محور النقاش": item.discussionOther || item.discussion || "—",
+      التوصية: item.recommendationOther || item.recommendation || "—",
+    };
+  });
+}
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function getCaseStatusLabel(status: string) {
+  if (status === "DRAFT") return "مسودة";
+  if (status === "SUBMITTED") return "مرسلة";
+  if (status === "ARCHIVED") return "مؤرشفة";
+
+  return status || "غير محدد";
+}
+
+function getReportStatusLabel(status?: string | null) {
+  if (status === "DRAFT") return "مسودة";
+  if (status === "GENERATED") return "مولد";
+  if (status === "APPROVED") return "معتمد";
+  if (status === "ARCHIVED") return "مؤرشف";
+
+  return status || "غير محدد";
+}
+
+function normalizeSmartCaseTitleText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanSmartCaseTitle(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  if (!text || text === "null" || text === "undefined" || text.length > 140) {
+    return "";
+  }
+
+  return text;
+}
+
+function stringifySmartCaseTitleCandidate(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return cleanSmartCaseTitle(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const candidate = stringifySmartCaseTitleCandidate(item);
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    for (const key of [
+      "program_name",
+      "programName",
+      "program",
+      "guidanceProgram",
+      "guidance_program",
+      "selectedProgram",
+      "activityName",
+      "activity_name",
+      "title",
+      "name",
+      "label",
+      "value",
+    ]) {
+      const candidate = stringifySmartCaseTitleCandidate(record[key]);
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+  }
+
+  return "";
+}
+
+function isGenericSmartCaseTitle(title: string) {
+  const normalized = normalizeSmartCaseTitleText(title);
+
+  return (
+    !normalized ||
+    normalized === "بدون عنوان" ||
+    normalized === "حاله بدون عنوان" ||
+    normalized === "حالة بدون عنوان" ||
+    normalized === "حاله جديده" ||
+    normalized === "حالة جديدة" ||
+    normalized.includes("برنامج ارشادي جديد") ||
+    normalized.includes("positive_behavior_discipline")
+  );
+}
+
+function extractSmartCaseTitleSelectedValues(value: unknown): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return [String(value)];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractSmartCaseTitleSelectedValues(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return [
+      ...extractSmartCaseTitleSelectedValues(record.value),
+      ...extractSmartCaseTitleSelectedValues(record.id),
+      ...extractSmartCaseTitleSelectedValues(record.key),
+      ...extractSmartCaseTitleSelectedValues(record.slug),
+      ...extractSmartCaseTitleSelectedValues(record.label),
+      ...extractSmartCaseTitleSelectedValues(record.name),
+    ];
+  }
+
+  return [];
+}
+
+function isSmartTitleLikeCaseField(value: any) {
+  const text = normalizeSmartCaseTitleText(
+    [value?.fieldKey, value?.field?.key, value?.field?.label]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  return (
+    text.includes("program") ||
+    text.includes("activity") ||
+    text.includes("title") ||
+    text.includes("برنامج") ||
+    text.includes("النشاط") ||
+    text.includes("عنوان") ||
+    text.includes("موضوع")
+  );
+}
+
+function getSmartCaseOptionLabel(value: any) {
+  const selectedValues = extractSmartCaseTitleSelectedValues(
+    value?.jsonValue ?? value?.value,
+  );
+
+  const options = Array.isArray(value?.field?.options)
+    ? value.field.options
+    : [];
+
+  for (const selectedValue of selectedValues) {
+    const cleanSelected = String(selectedValue).trim();
+
+    if (!cleanSelected) {
+      continue;
+    }
+
+    const fallbackLabel = SMART_CASE_TITLE_FALLBACK_LABELS[cleanSelected];
+
+    if (fallbackLabel) {
+      return fallbackLabel;
+    }
+
+    const option = options.find((item: any) => {
+      return (
+        String(item?.value || "").trim() === cleanSelected ||
+        String(item?.label || "").trim() === cleanSelected
+      );
+    });
+
+    if (option?.label) {
+      return cleanSmartCaseTitle(option.label);
+    }
+  }
+
+  return "";
+}
+
+function getSmartCaseValueTitle(value: any) {
+  return (
+    getSmartCaseOptionLabel(value) ||
+    stringifySmartCaseTitleCandidate(value?.jsonValue) ||
+    stringifySmartCaseTitleCandidate(value?.value)
+  );
+}
+
+function getSmartCaseDisplayTitle(caseEntry: any) {
+  const values = Array.isArray(caseEntry.values) ? caseEntry.values : [];
+
+  for (const value of values) {
+    if (!isSmartTitleLikeCaseField(value)) {
+      continue;
+    }
+
+    const candidate = getSmartCaseValueTitle(value);
+
+    if (candidate && !isGenericSmartCaseTitle(candidate)) {
+      return candidate;
+    }
+  }
+
+  const savedTitle = cleanSmartCaseTitle(caseEntry.title);
+
+  if (savedTitle && !isGenericSmartCaseTitle(savedTitle)) {
+    return savedTitle;
+  }
+
+  return caseEntry.service?.name || "تفاصيل الحالة";
+}
+
+function getLatestReport(caseEntry: any) {
+  return Array.isArray(caseEntry.guidanceReports)
+    ? caseEntry.guidanceReports[0] || null
+    : null;
+}
+
+function getReportPreviewUrl(report: any) {
+  if (!report?.id) {
+    return "";
+  }
+
+  return `/dashboard/reports/${report.id}/preview${
+    report.templateId ? `?template=${encodeURIComponent(report.templateId)}` : ""
+  }`;
+}
+
+export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
+  const displayTitle = getSmartCaseDisplayTitle(caseEntry);
+  const fieldMap = buildFieldMap(caseEntry);
+  const latestReport = getLatestReport(caseEntry);
+  const latestReportUrl = getReportPreviewUrl(latestReport);
+
+  const workflowValues: WorkflowValueLike[] = caseEntry.values.map((value: any) =>
+    normalizeCaseValue(value, fieldMap),
+  );
+
+  const displayValues = caseEntry.values
+    .map((value: any) => normalizeCaseValue(value, fieldMap))
+    .filter((value: WorkflowValueLike) => {
+      const key = value.field?.key || value.fieldKey || "";
+      return !shouldHideCaseValue(key);
+    });
+
+  const evidenceItems =
+    caseEntry.evidences?.map((item: any) => ({
+      id: item.id,
+      fileName: item.fileName || "ملف",
+      fileUrl: item.fileUrl || "#",
+      mimeType: item.mimeType || "application/octet-stream",
+      size: item.size || 0,
+    })) || [];
+
+  const primaryReportHref =
+    latestReportUrl || `/dashboard/reports/new?caseId=${caseEntry.id}`;
+
+  return (
+    <div className="space-y-5" dir="rtl">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-start">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
+                ملف الحالة
+              </span>
+
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                {getCaseStatusLabel(caseEntry.status)}
+              </span>
+
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                {caseEntry.service?.name || "خدمة غير محددة"}
+              </span>
+
+              {latestReport ? (
+                <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+                  تقرير: {getReportStatusLabel(latestReport.status)}
+                </span>
+              ) : null}
+
+              {evidenceItems.length > 0 ? (
+                <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                  {evidenceItems.length} شواهد
+                </span>
+              ) : null}
+            </div>
+
+            <h1 className="mt-4 text-3xl font-black leading-10 text-slate-950">
+              {displayTitle}
+            </h1>
+
+            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              راجع بيانات الحالة، ثم استكملها أو أصدر التقرير من نفس الصفحة.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 xl:justify-end">
+            <Link
+              href="/dashboard/cases"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              <ArrowRight className="h-4 w-4" />
+              مركز الحالات
+            </Link>
+
+            <Link
+              href={`/dashboard/cases/${caseEntry.id}/edit`}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              <PencilLine className="h-4 w-4" />
+              متابعة الحالة
+            </Link>
+
+            <Link
+              href={primaryReportHref}
+              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
+            >
+              <FileText className="h-4 w-4" />
+              {latestReport ? "فتح التقرير" : "إصدار تقرير"}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard
+          icon={<ClipboardList className="h-5 w-5" />}
+          label="الخدمة"
+          value={caseEntry.service?.name || "غير محددة"}
+        />
+
+        {caseEntry.student ? (
+          <SummaryCard
+            icon={<UserRound className="h-5 w-5" />}
+            label="الطالب/الطالبة"
+            value={caseEntry.student.fullName}
+            helper={[
+              caseEntry.student.stage,
+              caseEntry.student.grade,
+              caseEntry.student.classroom
+                ? `فصل ${caseEntry.student.classroom}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          />
+        ) : null}
+
+        <SummaryCard
+          icon={<CalendarDays className="h-5 w-5" />}
+          label="آخر تحديث"
+          value={formatDate(caseEntry.updatedAt || caseEntry.createdAt)}
+        />
+
+        {evidenceItems.length > 0 ? (
+          <SummaryCard
+            icon={<ImageIcon className="h-5 w-5" />}
+            label="الشواهد"
+            value={`${evidenceItems.length} شاهد`}
+          />
+        ) : null}
+      </section>
+
+      {caseEntry.student ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black text-sky-600">سياق الطالب</p>
+              <h2 className="mt-1 text-xl font-black text-slate-950">
+                بيانات الطالب/الطالبة
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <CaseValueRenderer label="الاسم" value={caseEntry.student.fullName} />
+            <CaseValueRenderer label="المرحلة" value={caseEntry.student.stage} />
+            <CaseValueRenderer label="الصف" value={caseEntry.student.grade} />
+            <CaseValueRenderer label="الفصل" value={caseEntry.student.classroom} />
+            <CaseValueRenderer
+              label="ولي الأمر"
+              value={caseEntry.student.guardian?.name}
+            />
+            <CaseValueRenderer
+              label="رقم الجوال"
+              value={caseEntry.student.guardian?.phone}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <div>
+          <p className="text-xs font-black text-sky-600">بيانات Workflow</p>
+          <h2 className="mt-1 text-xl font-black text-slate-950">
+            بيانات الحالة
+          </h2>
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            القيم المحفوظة من نموذج الخدمة.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {displayValues.map((value: WorkflowValueLike, index: number) => {
+            const key = value.field?.key || value.fieldKey || "";
+            const label = getWorkflowFieldLabel(value, index);
+
+            const displayValue =
+              key === "committee_items"
+                ? formatCommitteeRows(value.jsonValue ?? value.value)
+                : formatWorkflowDisplayValue(value, workflowValues);
+
+            return (
+              <CaseValueRenderer
+                key={value.id || key}
+                label={label}
+                value={displayValue}
+              />
+            );
+          })}
+
+          {displayValues.length === 0 ? (
+            <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-400 md:col-span-2">
+              لا توجد قيم محفوظة لهذه الحالة.
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {evidenceItems.length > 0 ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div>
+            <p className="text-xs font-black text-violet-600">
+              الشواهد والمرفقات
+            </p>
+            <h2 className="mt-1 text-xl font-black text-slate-950">
+              شواهد الحالة
+            </h2>
+          </div>
+
+          <div className="mt-5">
+            <EvidencePreviewGrid items={evidenceItems} />
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+  helper,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  helper?: string | null;
+}) {
+  return (
+    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-sky-700">
+          {icon}
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-xs font-black text-slate-400">{label}</p>
+          <p className="mt-1 text-sm font-black leading-6 text-slate-950">
+            {value || "غير محدد"}
+          </p>
+          {helper ? (
+            <p className="mt-1 text-xs font-bold text-slate-500">{helper}</p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+============================================================
+FILE: components\cases\case-value-renderer.tsx
+============================================================
+
+type CaseValueRendererProps = {
+  label: string;
+  value: unknown;
+};
+
+function renderValue(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return "â€”";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Ù†Ø¹Ù…" : "Ù„Ø§";
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "â€”";
+
+    return (
+      <div className="space-y-3">
+        {value.map((item, index) => {
+          if (item && typeof item === "object") {
+            const row = item as Record<string, unknown>;
+
+            return (
+              <div
+                key={index}
+                className="rounded-2xl border border-slate-200 bg-white p-4"
+              >
+                {Object.entries(row)
+                  .filter(([key]) => key !== "id")
+                  .map(([key, itemValue]) => (
+                    <p key={key} className="text-sm leading-7 text-slate-700">
+                      <span className="font-black text-slate-900">{key}: </span>
+                      {String(itemValue || "â€”")}
+                    </p>
+                  ))}
+              </div>
+            );
+          }
+
+          return (
+            <span
+              key={index}
+              className="inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700"
+            >
+              {String(item)}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (typeof value === "object") {
+    const objectValue = value as Record<string, unknown>;
+
+    if (typeof objectValue.fullName === "string") return objectValue.fullName;
+    if (typeof objectValue.name === "string") return objectValue.name;
+
+    return "Ø¨ÙŠØ§Ù†Ø§Øª Ù…Ø­ÙÙˆØ¸Ø©";
+  }
+
+  return String(value);
+}
+
+export function CaseValueRenderer({ label, value }: CaseValueRendererProps) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+      <p className="text-xs font-black text-slate-400">{label}</p>
+      <div className="mt-3 text-sm font-bold leading-7 text-slate-800">
+        {renderValue(value)}
+      </div>
+    </div>
+  );
+}
+
+
+============================================================
+FILE: engine\cases\case-runtime-engine.ts
+============================================================
+
+import { prisma } from "@/lib/prisma";
+import { CaseStatus, EvidenceType } from "@prisma/client";
+import {
+  serializeCaseValues,
+  type RuntimeCaseValues,
+} from "@/lib/cases/case-values";
+
+type EvidenceItem = {
+  id?: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+};
+
+type CaseAccessScope = {
+  schoolAccountId?: string | null;
+  isAdmin?: boolean;
+};
+
+type SaveRuntimeCaseParams = {
+  schoolAccountId: string;
+  createdById?: string | null;
+  workflowId?: string | null;
+  serviceId: string;
+  title?: string | null;
+  studentId?: string | null;
+  values: RuntimeCaseValues;
+  evidenceItems?: EvidenceItem[];
+  status: "DRAFT" | "SUBMITTED";
+};
+
+type UpdateRuntimeCaseParams = CaseAccessScope & {
+  caseId: string;
+  title?: string | null;
+  studentId?: string | null;
+  values: RuntimeCaseValues;
+  evidenceItems?: EvidenceItem[];
+  status?: "DRAFT" | "SUBMITTED";
+};
+
+function toCaseStatus(status?: "DRAFT" | "SUBMITTED") {
+  return status === "SUBMITTED" ? CaseStatus.SUBMITTED : CaseStatus.DRAFT;
+}
+
+function getEvidenceType(mimeType: string, fileUrl?: string) {
+  if (mimeType.startsWith("image/")) {
+    return EvidenceType.IMAGE;
+  }
+
+  if (fileUrl?.startsWith("http") && !mimeType) {
+    return EvidenceType.LINK;
+  }
+
+  return EvidenceType.FILE;
+}
+
+function normalizeEvidenceItems(items: EvidenceItem[]) {
+  return items
+    .filter((item) => item.fileUrl && item.fileName)
+    .map((item) => {
+      const mimeType = item.mimeType || "application/octet-stream";
+
+      return {
+        type: getEvidenceType(mimeType, item.fileUrl),
+        fileName: item.fileName,
+        fileUrl: item.fileUrl,
+        mimeType,
+        size: item.size || 0,
+      };
+    });
+}
+
+function assertSchoolScope(scope: CaseAccessScope) {
+  if (scope.isAdmin) {
+    return;
+  }
+
+  if (!scope.schoolAccountId) {
+    throw new Error("لا يمكن تنفيذ العملية بدون ربط المستخدم بمدرسة.");
+  }
+}
+
+function buildCaseWhere(caseId: string, scope: CaseAccessScope) {
+  if (scope.isAdmin) {
+    return {
+      id: caseId,
+    };
+  }
+
+  const schoolAccountId = scope.schoolAccountId;
+
+  if (!schoolAccountId) {
+    throw new Error("لا يمكن تنفيذ العملية بدون ربط المستخدم بمدرسة.");
+  }
+
+  return {
+    id: caseId,
+    schoolAccountId,
+  };
+}
+
+async function assertServiceExists(serviceId: string) {
+  const service = await prisma.service.findUnique({
+    where: {
+      id: serviceId,
+    },
+    select: {
+      id: true,
+      slug: true,
+      status: true,
+    },
+  });
+
+  if (!service) {
+    throw new Error(`serviceId غير موجود في قاعدة البيانات: ${serviceId}`);
+  }
+
+  return service;
+}
+
+async function findWorkflowOrNull(workflowId?: string | null) {
+  if (!workflowId) {
+    return null;
+  }
+
+  return prisma.workflow.findUnique({
+    where: {
+      id: workflowId,
+    },
+    select: {
+      id: true,
+      serviceId: true,
+      status: true,
+      isActive: true,
+    },
+  });
+}
+
+async function buildWorkflowSnapshotForCase(workflowId?: string | null) {
+  if (!workflowId) {
+    return null;
+  }
+
+  const workflow = await prisma.workflow.findUnique({
+    where: {
+      id: workflowId,
+    },
+    include: {
+      service: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+        },
+      },
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+        orderBy: {
+          order: "asc",
+        },
+      },
+    },
+  });
+
+  if (!workflow) {
+    return null;
+  }
+
+  return {
+    capturedAt: new Date().toISOString(),
+    id: workflow.id,
+    name: workflow.name,
+    version: workflow.version,
+    status: workflow.status,
+    isActive: workflow.isActive,
+    workflowType: workflow.workflowType,
+    service: workflow.service,
+    steps: workflow.steps.map((step) => ({
+      id: step.id,
+      title: step.title,
+      description: step.description,
+      order: step.order,
+      fields: step.fields.map((field) => ({
+        id: field.id,
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        placeholder: field.placeholder,
+        helpText: field.helpText,
+        isRequired: field.isRequired,
+        order: field.order,
+        dependsOnFieldKey: field.dependsOnFieldKey,
+        linkedToValue: field.linkedToValue,
+        allowOther: field.allowOther,
+        options: field.options.map((option) => ({
+          id: option.id,
+          label: option.label,
+          value: option.value,
+          order: option.order,
+          linkedToValue: option.linkedToValue,
+        })),
+      })),
+    })),
+  };
+}
+
+
+type RuntimeStudentSnapshotSource = {
+  id: string;
+  schoolAccountId: string;
+  fullName: string;
+  nationalId: string | null;
+  gender: string | null;
+  stage: string | null;
+  grade: string | null;
+  classroom: string | null;
+  isActive: boolean;
+  guardian: {
+    id: string;
+    name: string;
+    phone: string | null;
+    relation: string | null;
+  } | null;
+};
+
+function buildStudentSnapshots(student: RuntimeStudentSnapshotSource) {
+  const studentSnapshot = {
+    id: student.id,
+    fullName: student.fullName,
+    nationalId: student.nationalId,
+    gender: student.gender,
+    stage: student.stage,
+    grade: student.grade,
+    classroom: student.classroom,
+    isActive: student.isActive,
+    capturedAt: new Date().toISOString(),
+  };
+
+  const guardianSnapshot = student.guardian
+    ? {
+        id: student.guardian.id,
+        name: student.guardian.name,
+        phone: student.guardian.phone,
+        relation: student.guardian.relation,
+        capturedAt: new Date().toISOString(),
+      }
+    : null;
+
+  return {
+    studentSnapshot,
+    guardianSnapshot,
+    selectedStudent: {
+      ...studentSnapshot,
+      guardian: guardianSnapshot,
+      guardianName: guardianSnapshot?.name ?? null,
+      guardianPhone: guardianSnapshot?.phone ?? null,
+    },
+  };
+}
+
+function mergeStudentSnapshotsIntoValues(
+  values: RuntimeCaseValues,
+  student: RuntimeStudentSnapshotSource | null
+): RuntimeCaseValues {
+  const nextValues = { ...(values || {}) } as Record<string, unknown>;
+
+  if (!student) {
+    delete nextValues.selectedStudent;
+    delete nextValues.studentSnapshot;
+    delete nextValues.guardianSnapshot;
+
+    return nextValues as unknown as RuntimeCaseValues;
+  }
+
+  const snapshots = buildStudentSnapshots(student);
+
+  nextValues.selectedStudent = snapshots.selectedStudent;
+  nextValues.studentSnapshot = snapshots.studentSnapshot;
+  nextValues.guardianSnapshot = snapshots.guardianSnapshot;
+
+  return nextValues as unknown as RuntimeCaseValues;
+}
+
+// SMART_STUDENT_SERVER_SNAPSHOT_MARKER
+
+async function findStudentOrNull(
+  studentId: string | null | undefined,
+  scope: CaseAccessScope
+) {
+  if (!studentId) {
+    return null;
+  }
+
+  assertSchoolScope(scope);
+
+  const schoolAccountId = scope.schoolAccountId;
+
+  return prisma.student.findFirst({
+    where: {
+      id: studentId,
+      ...(scope.isAdmin ? {} : { schoolAccountId: schoolAccountId as string }),
+    },
+    select: {
+      id: true,
+      schoolAccountId: true,
+      fullName: true,
+      nationalId: true,
+      gender: true,
+      stage: true,
+      grade: true,
+      classroom: true,
+      isActive: true,
+      guardian: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          relation: true,
+        },
+      },
+    },
+  });
+}
+
+export async function saveRuntimeCase({
+  schoolAccountId,
+  createdById,
+  workflowId,
+  serviceId,
+  title,
+  studentId,
+  values,
+  evidenceItems = [],
+  status,
+}: SaveRuntimeCaseParams) {
+  const scope = {
+    schoolAccountId,
+    isAdmin: false,
+  };
+
+  const existingService = await assertServiceExists(serviceId);
+  const existingWorkflow = await findWorkflowOrNull(workflowId);
+  const existingStudent = await findStudentOrNull(studentId, scope);
+
+  if (workflowId && !existingWorkflow) {
+    throw new Error(`workflowId غير موجود في قاعدة البيانات: ${workflowId}`);
+  }
+
+  if (existingWorkflow && existingWorkflow.serviceId !== existingService.id) {
+    throw new Error("الـ workflow لا يتبع الخدمة المحددة.");
+  }
+
+  if (studentId && !existingStudent) {
+    throw new Error("الطالب غير موجود أو لا يتبع مدرستك.");
+  }
+
+  const valuesWithStudentSnapshot = mergeStudentSnapshotsIntoValues(
+    values,
+    existingStudent
+  );
+  const serializedValues = serializeCaseValues(valuesWithStudentSnapshot);
+  const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
+  const workflowSnapshot = await buildWorkflowSnapshotForCase(existingWorkflow?.id);
+
+  const caseEntry = await prisma.caseEntry.create({
+    data: {
+      schoolAccountId,
+      serviceId: existingService.id,
+      workflowId: existingWorkflow?.id,
+      workflowSnapshot: workflowSnapshot || undefined,
+      studentId: existingStudent?.id,
+      createdById: createdById || null,
+      title: title || undefined,
+      status: toCaseStatus(status),
+      submittedAt: status === "SUBMITTED" ? new Date() : undefined,
+
+      values: {
+        create: serializedValues,
+      },
+
+      evidences: {
+        create: normalizedEvidenceItems,
+      },
+    },
+    include: {
+      service: true,
+      workflow: true,
+      student: true,
+      values: true,
+      evidences: true,
+    },
+  });
+
+  return caseEntry;
+}
+
+export async function updateRuntimeCase({
+  caseId,
+  schoolAccountId,
+  isAdmin = false,
+  title,
+  studentId,
+  values,
+  evidenceItems = [],
+  status,
+}: UpdateRuntimeCaseParams) {
+  const scope = {
+    schoolAccountId,
+    isAdmin,
+  };
+
+  const existingCase = await prisma.caseEntry.findFirst({
+    where: buildCaseWhere(caseId, scope),
+    select: {
+      id: true,
+      schoolAccountId: true,
+    },
+  });
+
+  if (!existingCase) {
+    throw new Error("الحالة غير موجودة أو لا تملك صلاحية الوصول إليها.");
+  }
+
+  const existingStudent = await findStudentOrNull(studentId, {
+    schoolAccountId: existingCase.schoolAccountId,
+    isAdmin,
+  });
+
+  if (studentId && !existingStudent) {
+    throw new Error("الطالب غير موجود أو لا يتبع نفس مدرسة الحالة.");
+  }
+
+  const valuesWithStudentSnapshot = mergeStudentSnapshotsIntoValues(
+    values,
+    existingStudent
+  );
+  const serializedValues = serializeCaseValues(valuesWithStudentSnapshot);
+  const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
+
+  await prisma.caseValue.deleteMany({
+    where: {
+      caseEntryId: caseId,
+    },
+  });
+
+  await prisma.evidence.deleteMany({
+    where: {
+      caseEntryId: caseId,
+    },
+  });
+
+  const caseEntry = await prisma.caseEntry.update({
+    where: {
+      id: caseId,
+    },
+    data: {
+      title: title || undefined,
+      studentId: studentId ? existingStudent?.id : null,
+      status: status ? toCaseStatus(status) : undefined,
+      submittedAt: status === "SUBMITTED" ? new Date() : undefined,
+
+      values: {
+        create: serializedValues,
+      },
+
+      evidences: {
+        create: normalizedEvidenceItems,
+      },
+    },
+    include: {
+      service: true,
+      workflow: true,
+      student: true,
+      values: true,
+      evidences: true,
+    },
+  });
+
+  return caseEntry;
+}
+
+export async function restoreCaseDraft(
+  caseId: string,
+  scope: CaseAccessScope
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: buildCaseWhere(caseId, scope),
+    include: {
+      values: true,
+      evidences: true,
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      workflow: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
+      service: true,
+    },
+  });
+
+  if (!caseEntry) {
+    throw new Error("الحالة غير موجودة أو لا تملك صلاحية الوصول إليها.");
+  }
+
+  const restoredValues = Object.fromEntries(
+    caseEntry.values.map((value) => [
+      value.fieldKey,
+      value.jsonValue ?? value.value,
+    ])
+  );
+
+  return {
+    caseEntry,
+    restoredValues,
+  };
+}
+
+export async function getCaseById(
+  caseId: string,
+  scope: CaseAccessScope
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: buildCaseWhere(caseId, scope),
+    include: {
+      schoolAccount: true,
+
+      service: true,
+
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+
+      workflow: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
+
+      values: {
+        include: {
+          field: {
+            include: {
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+
+      evidences: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+
+      guidanceReports: {
+        orderBy: {
+          updatedAt: "desc",
+        },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          templateId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+    },
+  });
+
+  if (!caseEntry) {
+    throw new Error("لم يتم العثور على الحالة أو لا تملك صلاحية الوصول إليها.");
+  }
+
+  return caseEntry;
+}
+
+
+
+
+============================================================
+FILE: components\cases\cases-search-table.tsx
+============================================================
+
+"use client";
+
+import type { ReactNode } from "react";
+import Link from "next/link";
+import {
+  ClipboardList,
+  Clock3,
+  Eye,
+  FileText,
+  Filter,
+  ImageIcon,
+  PencilLine,
+  Search,
+  UserRound,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+
+type CaseRow = {
+  id: string;
+  title: string;
+  status: string;
+  statusLabel: string;
+  createdAt: string;
+  createdAtLabel: string;
+  updatedAt: string;
+  updatedAtLabel: string;
+  submittedAt?: string | null;
+  submittedAtLabel?: string | null;
+
+  service: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  workflow?: {
+    id: string;
+    name: string;
+    workflowType?: string | null;
+  } | null;
+
+  student?: {
+    id: string;
+    fullName: string;
+    nationalId?: string | null;
+    stage?: string | null;
+    grade?: string | null;
+    classroom?: string | null;
+    guardianName?: string | null;
+    guardianPhone?: string | null;
+    meta: string;
+  } | null;
+
+  createdBy?: {
+    id: string;
+    name: string;
+  } | null;
+
+  isMine: boolean;
+  valuesCount: number;
+  evidencesCount: number;
+  reportsCount: number;
+
+  latestReport?: {
+    id: string;
+    status: string;
+    statusLabel: string;
+    templateId?: string | null;
+    updatedAt: string;
+    updatedAtLabel: string;
+    previewUrl: string | null;
+  } | null;
+};
+
+type CasesSearchTableProps = {
+  cases: CaseRow[];
+  viewerName?: string;
+  isAdmin?: boolean;
+};
+
+type CaseTab =
+  | "all"
+  | "drafts"
+  | "readyForReport"
+  | "withReports"
+  | "withEvidence";
+
+const STATUS_STYLES: Record<string, string> = {
+  DRAFT: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+  SUBMITTED: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
+  ARCHIVED: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+};
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getReportUrl(caseItem: CaseRow) {
+  return `/dashboard/reports/new?caseId=${encodeURIComponent(caseItem.id)}`;
+}
+
+function getCasePrimaryAction(caseItem: CaseRow) {
+  if (caseItem.status === "DRAFT") {
+    return {
+      label: "استكمال",
+      href: `/dashboard/cases/${caseItem.id}/edit`,
+      className: "bg-slate-950 text-white hover:bg-slate-800",
+      icon: <PencilLine className="h-4 w-4" />,
+    };
+  }
+
+  if (caseItem.latestReport?.previewUrl) {
+    return {
+      label: "فتح التقرير",
+      href: caseItem.latestReport.previewUrl,
+      className: "bg-emerald-700 text-white hover:bg-emerald-800",
+      icon: <FileText className="h-4 w-4" />,
+    };
+  }
+
+  return {
+    label: "إصدار تقرير",
+    href: getReportUrl(caseItem),
+    className: "bg-sky-700 text-white hover:bg-sky-800",
+    icon: <FileText className="h-4 w-4" />,
+  };
+}
+
+function getNextActionText(caseItem: CaseRow) {
+  if (caseItem.status === "DRAFT") {
+    return "استكمال المسودة";
+  }
+
+  if (caseItem.reportsCount > 0) {
+    return "مراجعة التقرير";
+  }
+
+  if (caseItem.status === "SUBMITTED") {
+    return "إصدار تقرير";
+  }
+
+  return "متابعة";
+}
+
+function statLabel(value: number) {
+  return new Intl.NumberFormat("ar-SA").format(value);
+}
+
+export function CasesSearchTable({
+  cases,
+  viewerName = "الموجه/الموجهة",
+}: CasesSearchTableProps) {
+  const [query, setQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<CaseTab>("all");
+  const [selectedService, setSelectedService] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedReportState, setSelectedReportState] = useState("all");
+
+  const stats = useMemo(() => {
+    return {
+      total: cases.length,
+      drafts: cases.filter((item) => item.status === "DRAFT").length,
+      readyForReport: cases.filter(
+        (item) => item.status === "SUBMITTED" && item.reportsCount === 0,
+      ).length,
+      withReports: cases.filter((item) => item.reportsCount > 0).length,
+      withEvidence: cases.filter((item) => item.evidencesCount > 0).length,
+    };
+  }, [cases]);
+
+  const services = useMemo(() => {
+    const map = new Map<string, string>();
+
+    for (const caseItem of cases) {
+      map.set(caseItem.service.slug, caseItem.service.name);
+    }
+
+    return Array.from(map.entries()).map(([slug, name]) => ({
+      slug,
+      name,
+    }));
+  }, [cases]);
+
+  const filteredCases = useMemo(() => {
+    const keyword = normalizeText(query);
+
+    return cases.filter((caseItem) => {
+      if (activeTab === "drafts" && caseItem.status !== "DRAFT") return false;
+
+      if (
+        activeTab === "readyForReport" &&
+        !(caseItem.status === "SUBMITTED" && caseItem.reportsCount === 0)
+      ) {
+        return false;
+      }
+
+      if (activeTab === "withReports" && caseItem.reportsCount === 0) {
+        return false;
+      }
+
+      if (activeTab === "withEvidence" && caseItem.evidencesCount === 0) {
+        return false;
+      }
+
+      if (
+        selectedService !== "all" &&
+        caseItem.service.slug !== selectedService
+      ) {
+        return false;
+      }
+
+      if (selectedStatus !== "all" && caseItem.status !== selectedStatus) {
+        return false;
+      }
+
+      if (
+        selectedReportState === "hasReport" &&
+        caseItem.reportsCount === 0
+      ) {
+        return false;
+      }
+
+      if (
+        selectedReportState === "missingReport" &&
+        caseItem.reportsCount > 0
+      ) {
+        return false;
+      }
+
+      if (!keyword) return true;
+
+      const searchableText = normalizeText(
+        [
+          caseItem.title,
+          caseItem.statusLabel,
+          caseItem.service.name,
+          caseItem.workflow?.name,
+          caseItem.student?.fullName,
+          caseItem.student?.nationalId,
+          caseItem.student?.meta,
+          caseItem.student?.guardianName,
+          caseItem.createdBy?.name,
+          caseItem.createdAtLabel,
+          caseItem.updatedAtLabel,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
+
+      return searchableText.includes(keyword);
+    });
+  }, [
+    activeTab,
+    cases,
+    query,
+    selectedReportState,
+    selectedService,
+    selectedStatus,
+  ]);
+
+  const tabItems: Array<{
+    id: CaseTab;
+    label: string;
+    helper: string;
+    count: number;
+  }> = [
+    {
+      id: "all",
+      label: "كل الحالات",
+      helper: "كل ما يحتاج متابعة.",
+      count: cases.length,
+    },
+    {
+      id: "drafts",
+      label: "المسودات",
+      helper: "لم تكتمل بعد.",
+      count: stats.drafts,
+    },
+    {
+      id: "readyForReport",
+      label: "جاهزة للتقرير",
+      helper: "مرسلة بلا تقرير.",
+      count: stats.readyForReport,
+    },
+    {
+      id: "withReports",
+      label: "لها تقارير",
+      helper: "تم إصدار تقرير.",
+      count: stats.withReports,
+    },
+    {
+      id: "withEvidence",
+      label: "لها شواهد",
+      helper: "تحتوي مرفقات.",
+      count: stats.withEvidence,
+    },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-5 xl:grid-cols-[1fr_360px] xl:items-center">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
+                <ClipboardList className="h-4 w-4" />
+                مركز متابعة الحالات
+              </span>
+
+              <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                واجهة عمل الموجه
+              </span>
+            </div>
+
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950">
+              أهلاً {viewerName}
+            </h1>
+
+            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              ركّز على ما يحتاج إجراء: استكمال مسودة، إصدار تقرير، أو مراجعة
+              حالة مرتبطة بطالب أو شواهد.
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <MiniStat label="كل الحالات" value={statLabel(stats.total)} />
+            <MiniStat label="مسودات" value={statLabel(stats.drafts)} />
+            <MiniStat label="جاهزة للتقرير" value={statLabel(stats.readyForReport)} />
+            <MiniStat label="تقارير" value={statLabel(stats.withReports)} />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="grid gap-3 xl:grid-cols-[1fr_auto] xl:items-center">
+          <div className="relative">
+            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="ابحث باسم الطالب، الخدمة، ولي الأمر، أو عنوان الحالة..."
+              className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pr-12 pl-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter className="h-4 w-4 text-slate-400" />
+
+            <select
+              value={selectedService}
+              onChange={(event) => setSelectedService(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 outline-none focus:border-sky-400"
+            >
+              <option value="all">كل الخدمات</option>
+              {services.map((service) => (
+                <option key={service.slug} value={service.slug}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedStatus}
+              onChange={(event) => setSelectedStatus(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 outline-none focus:border-sky-400"
+            >
+              <option value="all">كل الحالات</option>
+              <option value="DRAFT">مسودة</option>
+              <option value="SUBMITTED">مرسلة</option>
+              <option value="ARCHIVED">مؤرشفة</option>
+            </select>
+
+            <select
+              value={selectedReportState}
+              onChange={(event) => setSelectedReportState(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 outline-none focus:border-sky-400"
+            >
+              <option value="all">كل التقارير</option>
+              <option value="hasReport">لها تقرير</option>
+              <option value="missingReport">بدون تقرير</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+          {tabItems.map((tab) => {
+            const active = activeTab === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={[
+                  "min-w-[145px] rounded-2xl border px-4 py-3 text-right transition",
+                  active
+                    ? "border-sky-300 bg-sky-50 shadow-sm"
+                    : "border-slate-200 bg-slate-50 hover:bg-white",
+                ].join(" ")}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <strong
+                    className={[
+                      "text-sm font-black",
+                      active ? "text-sky-800" : "text-slate-800",
+                    ].join(" ")}
+                  >
+                    {tab.label}
+                  </strong>
+
+                  <span
+                    className={[
+                      "rounded-full px-2 py-1 text-[11px] font-black",
+                      active
+                        ? "bg-white text-sky-700"
+                        : "bg-white text-slate-500",
+                    ].join(" ")}
+                  >
+                    {statLabel(tab.count)}
+                  </span>
+                </div>
+
+                <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                  {tab.helper}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="grid gap-4 2xl:grid-cols-2">
+        {filteredCases.map((caseItem) => (
+          <CaseFollowUpCard key={caseItem.id} caseItem={caseItem} />
+        ))}
+
+        {filteredCases.length === 0 ? (
+          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm 2xl:col-span-2">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
+              <Search className="h-7 w-7" />
+            </div>
+
+            <h2 className="mt-4 text-xl font-black text-slate-800">
+              لا توجد حالات مطابقة
+            </h2>
+
+            <p className="mx-auto mt-2 max-w-xl text-sm font-bold leading-7 text-slate-500">
+              جرّب تخفيف الفلاتر أو البحث باسم الطالب أو الخدمة. الحالات
+              الجديدة ستظهر هنا بعد حفظها.
+            </p>
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-3xl bg-slate-50 p-4 ring-1 ring-slate-100">
+      <p className="text-xs font-black text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-black text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
+  const primaryAction = getCasePrimaryAction(caseItem);
+  const statusClass =
+    STATUS_STYLES[caseItem.status] ||
+    "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+
+  return (
+    <article className="flex h-full flex-col rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={["rounded-full px-3 py-1 text-xs font-black", statusClass].join(" ")}>
+              {caseItem.statusLabel}
+            </span>
+
+            {caseItem.isMine ? (
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                من إنشائك
+              </span>
+            ) : null}
+
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+              {caseItem.service.name}
+            </span>
+
+            {caseItem.latestReport ? (
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                تقرير: {caseItem.latestReport.statusLabel}
+              </span>
+            ) : null}
+
+            {caseItem.evidencesCount > 0 ? (
+              <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
+                {statLabel(caseItem.evidencesCount)} شواهد
+              </span>
+            ) : null}
+          </div>
+
+          <h2 className="mt-3 text-xl font-black leading-8 text-slate-950">
+            {caseItem.title}
+          </h2>
+
+          <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+            الخدمة: {caseItem.service.name} · آخر تحديث: {caseItem.updatedAtLabel}
+            {caseItem.workflow?.name ? ` · ${caseItem.workflow.name}` : ""}
+          </p>
+        </div>
+
+
+      </div>
+
+      {caseItem.student ? (
+        <section className="mt-4 rounded-3xl border border-slate-100 bg-slate-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-slate-100">
+              <UserRound className="h-5 w-5" />
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-[11px] font-black text-slate-400">
+                الطالب/الطالبة
+              </p>
+
+              <p className="mt-1 text-sm font-black text-slate-900">
+                {caseItem.student.fullName}
+              </p>
+
+              <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                {caseItem.student.meta}
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-2 text-xs font-black text-slate-500">
+        الإجراء التالي: {getNextActionText(caseItem)}
+      </div>
+
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/dashboard/cases/${caseItem.id}`}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50"
+          >
+            <Eye className="h-4 w-4" />
+            عرض
+          </Link>
+
+          <Link
+            href={`/dashboard/cases/${caseItem.id}/edit`}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50"
+          >
+            <PencilLine className="h-4 w-4" />
+            متابعة
+          </Link>
+        </div>
+
+        <Link
+          href={primaryAction.href}
+          className={[
+            "inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-xs font-black transition",
+            primaryAction.className,
+          ].join(" ")}
+        >
+          {primaryAction.icon}
+          {primaryAction.label}
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function SmallMetric({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3">
+      <div className="flex items-center gap-2 text-slate-500">
+        {icon}
+        <span className="text-xs font-black">{label}</span>
+      </div>
+
+      <strong className="text-sm font-black text-slate-950">{value}</strong>
+    </div>
+  );
+}
+
+
+
+============================================================
+FILE: components\committees\committee-chain-repeater.tsx
+============================================================
+
+"use client";
+
+type OptionLike = {
+  id?: string;
+  label: string;
+  value: string;
+  order: number;
+  linkedToValue?: string | null;
+};
+
+type FieldLike = {
+  key: string;
+  label: string;
+  allowOther?: boolean;
+  options?: OptionLike[];
+};
+
+export type CommitteeChainRow = {
+  id: string;
+  agenda: string;
+  agendaLabel?: string;
+  agendaOther?: string;
+  discussion: string;
+  discussionLabel?: string;
+  discussionOther?: string;
+  recommendation: string;
+  recommendationLabel?: string;
+  recommendationOther?: string;
+};
+
+type Props = {
+  fields: FieldLike[];
+  value?: CommitteeChainRow[];
+  onChange: (rows: CommitteeChainRow[]) => void;
+};
+
+const OTHER_VALUE = "__OTHER__";
+const MAX_ROWS = 30;
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_\s]+/g, " ")
+    .trim();
+}
+
+function createId() {
+  if (
+    typeof globalThis !== "undefined" &&
+    globalThis.crypto &&
+    "randomUUID" in globalThis.crypto
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `committee-row-${Date.now()}-${Math.random()}`;
+}
+
+function createRow(): CommitteeChainRow {
+  return {
+    id: createId(),
+    agenda: "",
+    agendaLabel: "",
+    agendaOther: "",
+    discussion: "",
+    discussionLabel: "",
+    discussionOther: "",
+    recommendation: "",
+    recommendationLabel: "",
+    recommendationOther: "",
+  };
+}
+
+function fieldText(field: FieldLike) {
+  return normalizeText(`${field.key} ${field.label}`);
+}
+
+function findAgendaField(fields: FieldLike[]) {
+  return fields.find((field) => {
+    const text = fieldText(field);
+
+    return (
+      text.includes("agenda") ||
+      text.includes("agenda item") ||
+      text.includes("committee agenda") ||
+      text.includes("جدول") ||
+      text.includes("الاعمال") ||
+      text.includes("الأعمال")
+    );
+  });
+}
+
+function findDiscussionField(fields: FieldLike[]) {
+  return fields.find((field) => {
+    const text = fieldText(field);
+
+    return (
+      text.includes("discussion") ||
+      text.includes("discussion axis") ||
+      text.includes("committee discussion") ||
+      text.includes("محور") ||
+      text.includes("نقاش")
+    );
+  });
+}
+
+function findRecommendationField(fields: FieldLike[]) {
+  return fields.find((field) => {
+    const text = fieldText(field);
+
+    return (
+      text.includes("recommendation") ||
+      text.includes("committee recommendation") ||
+      text.includes("توصية") ||
+      text.includes("التوصية") ||
+      text.includes("التوصيات")
+    );
+  });
+}
+
+function sortOptions(field?: FieldLike | null) {
+  const options = Array.isArray(field?.options) ? field.options : [];
+
+  return [...options].sort(
+    (a, b) => Number(a.order || 0) - Number(b.order || 0),
+  );
+}
+
+function cleanValue(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function sameValue(a: unknown, b: unknown) {
+  const left = cleanValue(a);
+  const right = cleanValue(b);
+
+  return Boolean(left && right && left === right);
+}
+
+function isOther(value: unknown) {
+  return cleanValue(value) === OTHER_VALUE;
+}
+
+function hasText(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function findOptionByValue(options: OptionLike[], value: string) {
+  return options.find((option) => sameValue(option.value, value)) || null;
+}
+
+function findStrictChildOption(
+  childOptions: OptionLike[],
+  parentValue?: string | null,
+  parentOrder?: number | null,
+) {
+  const linkedOptions = childOptions.filter((option) =>
+    sameValue(option.linkedToValue, parentValue),
+  );
+
+  if (linkedOptions.length) {
+    return linkedOptions[0] || null;
+  }
+
+  if (parentOrder !== undefined && parentOrder !== null) {
+    const byOrder = childOptions.find(
+      (option) => Number(option.order) === Number(parentOrder),
+    );
+
+    if (byOrder) return byOrder;
+  }
+
+  return null;
+}
+
+function getStrictChildOptions(
+  childOptions: OptionLike[],
+  parentValue?: string | null,
+  parentOrder?: number | null,
+) {
+  const strictOption = findStrictChildOption(
+    childOptions,
+    parentValue,
+    parentOrder,
+  );
+
+  return strictOption ? [strictOption] : [];
+}
+
+function isRowUsed(row: Partial<CommitteeChainRow>) {
+  return Boolean(
+    row.agenda ||
+      row.agendaOther ||
+      row.discussion ||
+      row.discussionOther ||
+      row.recommendation ||
+      row.recommendationOther,
+  );
+}
+
+function isRowComplete(row: Partial<CommitteeChainRow>) {
+  const agendaReady = isOther(row.agenda)
+    ? hasText(row.agendaOther)
+    : hasText(row.agenda);
+
+  const discussionReady = isOther(row.discussion)
+    ? hasText(row.discussionOther)
+    : hasText(row.discussion);
+
+  const recommendationReady = isOther(row.recommendation)
+    ? hasText(row.recommendationOther)
+    : hasText(row.recommendation);
+
+  return agendaReady && discussionReady && recommendationReady;
+}
+
+export function isCommitteeRowsValid(value: unknown) {
+  if (!Array.isArray(value)) return false;
+
+  const usedRows = value.filter(
+    (row) => row && typeof row === "object" && isRowUsed(row),
+  );
+
+  if (!usedRows.length) return false;
+
+  return usedRows.every((row) => isRowComplete(row));
+}
+
+function normalizeRows(value?: CommitteeChainRow[]) {
+  if (!Array.isArray(value) || !value.length) {
+    return [createRow()];
+  }
+
+  return value.map((row) => ({
+    ...createRow(),
+    ...row,
+    id: row.id || createId(),
+  }));
+}
+
+export function CommitteeChainRepeater({ fields, value, onChange }: Props) {
+  const agendaField = findAgendaField(fields);
+  const discussionField = findDiscussionField(fields);
+  const recommendationField = findRecommendationField(fields);
+
+  const agendaOptions = sortOptions(agendaField);
+  const discussionOptions = sortOptions(discussionField);
+  const recommendationOptions = sortOptions(recommendationField);
+
+  const rows = normalizeRows(value);
+
+  function updateRows(nextRows: CommitteeChainRow[]) {
+    onChange(nextRows.slice(0, MAX_ROWS));
+  }
+
+  function buildLinkedRow(row: CommitteeChainRow, agendaValue: string) {
+    if (!agendaValue) {
+      return {
+        ...row,
+        agenda: "",
+        agendaLabel: "",
+        agendaOther: "",
+        discussion: "",
+        discussionLabel: "",
+        discussionOther: "",
+        recommendation: "",
+        recommendationLabel: "",
+        recommendationOther: "",
+      };
+    }
+
+    if (agendaValue === OTHER_VALUE) {
+      return {
+        ...row,
+        agenda: OTHER_VALUE,
+        agendaLabel: "أخرى",
+        discussion: OTHER_VALUE,
+        discussionLabel: "أخرى",
+        recommendation: OTHER_VALUE,
+        recommendationLabel: "أخرى",
+      };
+    }
+
+    const selectedAgenda = findOptionByValue(agendaOptions, agendaValue);
+
+    if (!selectedAgenda) {
+      return {
+        ...row,
+        agenda: "",
+        agendaLabel: "",
+        discussion: "",
+        discussionLabel: "",
+        recommendation: "",
+        recommendationLabel: "",
+      };
+    }
+
+    const selectedDiscussion = findStrictChildOption(
+      discussionOptions,
+      selectedAgenda.value,
+      selectedAgenda.order,
+    );
+
+    const selectedRecommendation =
+      findStrictChildOption(
+        recommendationOptions,
+        selectedDiscussion?.value,
+        selectedDiscussion?.order,
+      ) ||
+      findStrictChildOption(
+        recommendationOptions,
+        selectedAgenda.value,
+        selectedAgenda.order,
+      );
+
+    return {
+      ...row,
+      agenda: selectedAgenda.value,
+      agendaLabel: selectedAgenda.label,
+      agendaOther: "",
+      discussion: selectedDiscussion?.value || "",
+      discussionLabel: selectedDiscussion?.label || "",
+      discussionOther: "",
+      recommendation: selectedRecommendation?.value || "",
+      recommendationLabel: selectedRecommendation?.label || "",
+      recommendationOther: "",
+    };
+  }
+
+  function setAgenda(rowId: string, agendaValue: string) {
+    updateRows(
+      rows.map((row) =>
+        row.id === rowId ? buildLinkedRow(row, agendaValue) : row,
+      ),
+    );
+  }
+
+  function setOtherValue(
+    rowId: string,
+    key: "agendaOther" | "discussionOther" | "recommendationOther",
+    text: string,
+  ) {
+    updateRows(
+      rows.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              [key]: text,
+            }
+          : row,
+      ),
+    );
+  }
+
+  function addRow() {
+    if (rows.length >= MAX_ROWS) return;
+
+    updateRows([...rows, createRow()]);
+  }
+
+  function removeRow(rowId: string) {
+    const nextRows = rows.filter((row) => row.id !== rowId);
+
+    updateRows(nextRows.length ? nextRows : [createRow()]);
+  }
+
+  return (
+    <section className="rounded-[2rem] border border-sky-100 bg-sky-50/60 p-5">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-black text-sky-700">
+            اللجان والاجتماعات
+          </p>
+
+          <h3 className="mt-1 text-2xl font-black text-slate-900">
+            جدول الأعمال ومحور النقاش والتوصية
+          </h3>
+
+          <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-600">
+            اختر بند جدول الأعمال فقط، وسيتم ربط محور النقاش والتوصية المقابلة
+            له تلقائيًا. لا يمكن اختيار محور أو توصية من صف مختلف.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={addRow}
+          disabled={rows.length >= MAX_ROWS}
+          className="rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          + إضافة جدول أعمال
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {rows.map((row, index) => {
+          const selectedAgenda = findOptionByValue(agendaOptions, row.agenda);
+
+          const allowedDiscussionOptions = isOther(row.agenda)
+            ? []
+            : getStrictChildOptions(
+                discussionOptions,
+                selectedAgenda?.value,
+                selectedAgenda?.order,
+              );
+
+          const selectedDiscussion =
+            findOptionByValue(discussionOptions, row.discussion) ||
+            allowedDiscussionOptions[0] ||
+            null;
+
+          const allowedRecommendationOptions = isOther(row.agenda)
+            ? []
+            : getStrictChildOptions(
+                recommendationOptions,
+                selectedDiscussion?.value,
+                selectedDiscussion?.order,
+              ).length
+              ? getStrictChildOptions(
+                  recommendationOptions,
+                  selectedDiscussion?.value,
+                  selectedDiscussion?.order,
+                )
+              : getStrictChildOptions(
+                  recommendationOptions,
+                  selectedAgenda?.value,
+                  selectedAgenda?.order,
+                );
+
+          return (
+            <article
+              key={row.id}
+              className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <strong className="rounded-full bg-sky-100 px-3 py-1 text-xs font-black text-sky-700">
+                  جدول {index + 1} - نقاش {index + 1} - توصية {index + 1}
+                </strong>
+
+                <button
+                  type="button"
+                  onClick={() => removeRow(row.id)}
+                  className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-100"
+                >
+                  حذف
+                </button>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    جدول الأعمال
+                  </label>
+
+                  <select
+                    value={row.agenda || ""}
+                    onChange={(event) => setAgenda(row.id, event.target.value)}
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                  >
+                    <option value="">اختر جدول الأعمال...</option>
+
+                    {agendaOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.order}. {option.label}
+                      </option>
+                    ))}
+
+                    {agendaField?.allowOther ? (
+                      <option value={OTHER_VALUE}>أخرى</option>
+                    ) : null}
+                  </select>
+
+                  {isOther(row.agenda) ? (
+                    <input
+                      value={row.agendaOther || ""}
+                      onChange={(event) =>
+                        setOtherValue(row.id, "agendaOther", event.target.value)
+                      }
+                      placeholder="اكتب بند جدول الأعمال..."
+                      className="mt-3 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    />
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    محور النقاش
+                  </label>
+
+                  {isOther(row.agenda) ? (
+                    <input
+                      value={row.discussionOther || ""}
+                      onChange={(event) =>
+                        setOtherValue(
+                          row.id,
+                          "discussionOther",
+                          event.target.value,
+                        )
+                      }
+                      placeholder="اكتب محور النقاش..."
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    />
+                  ) : (
+                    <select
+                      value={row.discussion || ""}
+                      disabled
+                      className="h-12 w-full cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 outline-none"
+                    >
+                      <option value="">
+                        {row.agenda
+                          ? "لا يوجد محور مرتبط بهذا البند"
+                          : "اختر جدول الأعمال أولًا"}
+                      </option>
+
+                      {allowedDiscussionOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.order}. {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {!isOther(row.agenda) && row.discussion ? (
+                    <p className="mt-2 text-xs font-bold text-emerald-700">
+                      تم ربط محور النقاش تلقائيًا بنفس صف جدول الأعمال.
+                    </p>
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-black text-slate-700">
+                    التوصية
+                  </label>
+
+                  {isOther(row.agenda) ? (
+                    <input
+                      value={row.recommendationOther || ""}
+                      onChange={(event) =>
+                        setOtherValue(
+                          row.id,
+                          "recommendationOther",
+                          event.target.value,
+                        )
+                      }
+                      placeholder="اكتب التوصية..."
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    />
+                  ) : (
+                    <select
+                      value={row.recommendation || ""}
+                      disabled
+                      className="h-12 w-full cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 outline-none"
+                    >
+                      <option value="">
+                        {row.discussion
+                          ? "لا توجد توصية مرتبطة بهذا المحور"
+                          : "اختر جدول الأعمال أولًا"}
+                      </option>
+
+                      {allowedRecommendationOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.order}. {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {!isOther(row.agenda) && row.recommendation ? (
+                    <p className="mt-2 text-xs font-bold text-emerald-700">
+                      تم ربط التوصية تلقائيًا بنفس صف محور النقاش.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+

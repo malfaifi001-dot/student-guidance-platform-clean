@@ -15,7 +15,7 @@ export default async function NewStudentGuidanceServicePage() {
           </h1>
 
           <p className="mt-3 text-sm leading-7 text-amber-700">
-            قم برفع Workflow لخدمة الخدمات التوجيهية المقدمة للطلاب من لوحة
+            قم برفع Workflow لخدمة الخدمات الإرشادية المقدمة للطلاب المقدمة للطلاب من لوحة
             الأدمن أولًا، ثم اعتمده حتى يظهر للموجه/الموجهة.
           </p>
         </section>
@@ -29,7 +29,7 @@ export default async function NewStudentGuidanceServicePage() {
         workflow={runtime.workflow}
         serviceId={runtime.service.id}
         requiresStudent={true}
-        title="الخدمات التوجيهية المقدمة للطلاب"
+        title="الخدمات الإرشادية المقدمة للطلاب المقدمة للطلاب"
       />
     </main>
   );

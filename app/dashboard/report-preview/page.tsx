@@ -55,14 +55,14 @@ export default function ReportPreviewPage() {
     <div className="report-preview-shell" dir="rtl">
       <aside className="report-sidebar">
         <div>
-          <h1>تجهيز التقرير</h1>
+          <h1>تجهيز التقارير</h1>
           <p>
             اختر القالب وتخطيط الشواهد فقط. باقي البيانات يتم سحبها تلقائيًا من الخدمة.
           </p>
         </div>
 
         <section className="control-section">
-          <label>قالب التقرير</label>
+          <label>قالب التقارير</label>
 
           <div className="template-list">
             {reportTemplates.map((templateItem) => (
@@ -117,7 +117,7 @@ export default function ReportPreviewPage() {
 
           {missingFields.length ? (
             <div className="missing-box">
-              <strong>ينقص التقرير:</strong>
+              <strong>ينقص التقارير:</strong>
               <ul>
                 {missingFields.map((field) => (
                   <li key={field}>{field}</li>
@@ -126,7 +126,7 @@ export default function ReportPreviewPage() {
             </div>
           ) : (
             <div className="ready-box">
-              التقرير جاهز. لا توجد بيانات أساسية ناقصة.
+              التقارير جاهز. لا توجد بيانات أساسية ناقصة.
             </div>
           )}
         </section>

@@ -90,7 +90,7 @@ const serviceCards = [
   },
   {
     title: "البرامج الإرشادية",
-    description: "نفّذ برنامجًا إرشاديًا واربط الشواهد والتقرير.",
+    description: "نفّذ برنامجًا إرشاديًا واربط الشواهد والتقارير.",
     href: "/dashboard/guidance-programs",
     icon: HeartHandshake,
   },
@@ -360,7 +360,7 @@ export function CreativeDashboard({ user, stats }: CreativeDashboardProps) {
         />
 
         <QuickPathCard
-          title="ابدأ من التقرير"
+          title="ابدأ من التقارير"
           description="راجع التقارير واعتمد النسخة الرسمية."
           href="/dashboard/reports"
           icon={<FileText className="h-5 w-5" />}

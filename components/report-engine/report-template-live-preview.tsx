@@ -306,7 +306,7 @@ function PreviewBlock({
     return (
       <BlockShell block={block}>
         <p className="text-sm leading-8 text-slate-700">
-          هذا بلوك نصي افتراضي يمكن استخدامه لعرض محتوى وصفي داخل التقرير. يمكن
+          هذا بلوك نصي افتراضي يمكن استخدامه لعرض محتوى وصفي داخل التقارير. يمكن
           لاحقًا ربطه ببيانات الحالة أو جعله فقرة ثابتة داخل القالب.
         </p>
       </BlockShell>
@@ -679,7 +679,7 @@ function buildRuntimeReportDataForTextLibrary(
   const evidences = getRuntimeEvidences(previewCaseData);
 
   return {
-    reportTitle: template.name || "عنوان التقرير",
+    reportTitle: template.name || "عنوان التقارير",
     createdAt: new Date().toISOString(),
     values: {
       ...valueMap,

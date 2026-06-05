@@ -69,7 +69,7 @@ export async function GET(request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
+          error: "التقارير غير موجود أو لا تملك صلاحية الوصول إليه.",
         },
         { status: 404 }
       );
@@ -156,7 +156,7 @@ export async function GET(request: Request, context: RouteContext) {
 
       throw new Error(
         [
-          "لم يتم العثور على صفحة التقرير داخل المعاينة.",
+          "لم يتم العثور على صفحة التقارير داخل المعاينة.",
           `Current URL: ${currentUrl}`,
           `Title: ${title || "بدون عنوان"}`,
           `Body: ${bodyText.slice(0, 300)}`,

@@ -25,7 +25,7 @@ export function ReportList({ reports }: Props) {
       <div className="border-b border-slate-100 px-8 py-6">
         <h2 className="text-3xl font-black text-slate-900">التقارير المحفوظة</h2>
         <p className="mt-2 text-sm text-slate-500">
-          يمكنك فتح التقرير، تعديله، معاينته، اعتماده أو حذفه.
+          يمكنك فتح التقارير، تعديله، معاينته، اعتماده أو حذفه.
         </p>
       </div>
 

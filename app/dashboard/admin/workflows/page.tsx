@@ -1,75 +1,435 @@
 ﻿import Link from "next/link";
-import { ArrowUpLeft } from "lucide-react";
-import { dashboardServices } from "@/lib/constants/services";
+import {
+  ArrowUpLeft,
+  CheckCircle2,
+  Clock3,
+  FileSpreadsheet,
+  Layers3,
+  ShieldCheck,
+  UploadCloud,
+  Workflow,
+} from "lucide-react";
+
+import {
+  ensureDashboardWorkflowServices,
+  getWorkflowUploadServices,
+} from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import { prisma } from "@/lib/prisma";
-import { GuardianSummonsWorkflowAdminCard } from "@/components/admin/workflows/guardian-summons-workflow-admin-card";
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return "لم يتم الرفع بعد";
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function getWorkflowStatusLabel(status: string | null | undefined, isActive: boolean) {
+  if (isActive) return "منشور للموجهين";
+  if (status === "DRAFT") return "مسودة جاهزة للمراجعة";
+  if (status === "ACTIVE") return "منشور غير مفعل";
+  if (status === "ARCHIVED") return "مؤرشف";
+  return "غير مهيأ";
+}
+
+function countWorkflowFields(workflow: any) {
+  return workflow.steps.reduce(
+    (total: number, step: any) => total + step.fields.length,
+    0,
+  );
+}
+
+function countWorkflowOptions(workflow: any) {
+  return workflow.steps.reduce(
+    (total: number, step: any) =>
+      total +
+      step.fields.reduce(
+        (fieldTotal: number, field: any) => fieldTotal + field.options.length,
+        0,
+      ),
+    0,
+  );
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("ar-SA").format(value);
+}
 
 export default async function AdminWorkflowsPage() {
+  await ensureDashboardWorkflowServices();
+
+  const workflowUploadServices = getWorkflowUploadServices();
+  const serviceSlugs = workflowUploadServices.map((service) => service.slug);
+
   const workflows = await prisma.workflow.findMany({
     where: {
-      isActive: true,
+      service: {
+        slug: {
+          in: serviceSlugs,
+        },
+      },
     },
     include: {
       service: true,
-      steps: true,
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          cases: true,
+        },
+      },
+    },
+    orderBy: {
+      updatedAt: "desc",
     },
   });
 
+  const activeWorkflows = workflows.filter((workflow) => workflow.isActive);
+  const draftWorkflows = workflows.filter((workflow) => workflow.status === "DRAFT");
+  const linkedCasesCount = workflows.reduce(
+    (total, workflow) => total + (workflow._count?.cases || 0),
+    0,
+  );
+
+  const totalFields = workflows.reduce(
+    (total, workflow) => total + countWorkflowFields(workflow),
+    0,
+  );
+
+  const totalOptions = workflows.reduce(
+    (total, workflow) => total + countWorkflowOptions(workflow),
+    0,
+  );
+
+  const latestWorkflow = workflows[0] || null;
+
   return (
-    <div className="space-y-8">
-      <section className="rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white shadow-2xl">
-        <p className="text-sm font-bold text-sky-300">Admin Workflows</p>
-        <h1 className="mt-3 text-4xl font-black">إدارة Workflows الخدمات</h1>
-        <p className="mt-4 max-w-3xl leading-8 text-slate-300">
-          كل Workflow يتم ربطه بخدمة محددة. النماذج الفرعية مثل استدعاء ولي أمر تظهر داخل الخدمة الأم، لكنها تعمل كـ Workflow مستقل.
-        </p>
+    <main className="space-y-8" dir="rtl">
+      <section className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-slate-950 p-8 text-white shadow-2xl">
+        <div className="grid gap-8 xl:grid-cols-[1fr_360px] xl:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black text-sky-100">
+              <ShieldCheck className="h-4 w-4" />
+              مركز التحكم الرسمي في نماذج الخدمات
+            </div>
+
+            <h1 className="mt-6 text-4xl font-black leading-tight md:text-5xl">
+              إدارة Workflows الخدمات
+            </h1>
+
+            <p className="mt-5 max-w-4xl text-sm font-bold leading-8 text-slate-300">
+              هذه الصفحة هي نقطة التحكم الأساسية في نماذج الخدمات. من هنا يتم رفع
+              ملفات Excel، مراجعة النموذج قبل اعتماده، حفظه كمسودة، ثم نشره
+              للموجهين والموجهات بدون التأثير على الحالات السابقة.
+            </p>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a
+                href="#workflow-services"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-50"
+              >
+                <UploadCloud className="h-4 w-4" />
+                اختيار خدمة للرفع
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/10 p-5 backdrop-blur">
+            <p className="text-xs font-black text-sky-100">حالة المركز الآن</p>
+
+            <div className="mt-4 grid gap-3">
+              <WorkflowHeroMetric
+                label="الخدمات القابلة للرفع"
+                value={workflowUploadServices.length}
+              />
+              <WorkflowHeroMetric
+                label="Workflows منشورة"
+                value={activeWorkflows.length}
+              />
+              <WorkflowHeroMetric
+                label="مسودات تنتظر المراجعة"
+                value={draftWorkflows.length}
+              />
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-slate-950/50 px-4 py-3">
+              <p className="text-[11px] font-black text-slate-400">
+                آخر نشاط Workflow
+              </p>
+              <p className="mt-1 text-sm font-black text-white">
+                {latestWorkflow
+                  ? `${latestWorkflow.service.name} · ${formatDate(latestWorkflow.updatedAt)}`
+                  : "لم يتم رفع أي Workflow بعد"}
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <GuardianSummonsWorkflowAdminCard />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminWorkflowMetricCard
+          icon={<Workflow className="h-5 w-5" />}
+          label="النماذج المحفوظة"
+          value={workflows.length}
+          hint="تشمل المسودات والمنشور والمؤرشف."
+        />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {dashboardServices.map((service) => {
-          const activeWorkflow = workflows.find(
-            (workflow) => workflow.service.slug === service.slug
-          );
+        <AdminWorkflowMetricCard
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          label="النماذج المنشورة"
+          value={activeWorkflows.length}
+          hint="هذه هي النسخ التي تظهر للموجهين."
+        />
 
-          return (
-            <Link
-              key={service.slug}
-              href={`/dashboard/admin/workflows/${service.slug}`}
-              className="group rounded-[2rem] border border-slate-200 bg-white p-6 card-shadow transition hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900"
-            >
-              <div className="flex items-start justify-between gap-4">
+        <AdminWorkflowMetricCard
+          icon={<Clock3 className="h-5 w-5" />}
+          label="مسودات قيد المراجعة"
+          value={draftWorkflows.length}
+          hint="راجعها ثم انشرها عند اكتمالها."
+        />
+
+        <AdminWorkflowMetricCard
+          icon={<Layers3 className="h-5 w-5" />}
+          label="حقول وخيارات"
+          value={`${formatNumber(totalFields)} / ${formatNumber(totalOptions)}`}
+          hint="إجمالي الحقول والخيارات في النماذج."
+        />
+      </section>
+
+      <section
+        id="workflow-services"
+        className="space-y-5 rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-black text-emerald-700">
+              الخدمات التي تستقبل Workflow
+            </p>
+
+            <h2 className="mt-2 text-3xl font-black text-slate-950">
+              اختر الخدمة وابدأ الرفع
+            </h2>
+
+            <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              تم استبعاد الخدمات التي لا تعتمد على Workflow من Excel مثل السجل
+              الشامل، التقارير، وتحليل النتائج.
+            </p>
+          </div>
+
+          <span className="rounded-full bg-slate-50 px-4 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+            {workflowUploadServices.length} خدمة جاهزة
+          </span>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {workflowUploadServices.map((service) => {
+            const serviceWorkflows = workflows.filter(
+              (workflow) => workflow.service.slug === service.slug,
+            );
+
+            const activeWorkflow = serviceWorkflows.find(
+              (workflow) => workflow.isActive,
+            );
+
+            const latestServiceWorkflow = serviceWorkflows[0] || null;
+
+            const draftCount = serviceWorkflows.filter(
+              (workflow) => workflow.status === "DRAFT",
+            ).length;
+
+            const fieldsCount = latestServiceWorkflow
+              ? countWorkflowFields(latestServiceWorkflow)
+              : 0;
+
+            const optionsCount = latestServiceWorkflow
+              ? countWorkflowOptions(latestServiceWorkflow)
+              : 0;
+
+            return (
+              <Link
+                key={service.slug}
+                href={`/dashboard/admin/workflows/${service.slug}`}
+                className={[
+                  "group flex min-h-[270px] flex-col justify-between rounded-[2rem] border p-6 transition hover:-translate-y-1 hover:shadow-xl",
+                  activeWorkflow
+                    ? "border-emerald-200 bg-emerald-50/40"
+                    : draftCount > 0
+                      ? "border-sky-200 bg-sky-50/40"
+                      : "border-slate-200 bg-white",
+                ].join(" ")}
+              >
                 <div>
-                  <p className="text-xs font-bold text-sky-700 dark:text-sky-300">
-                    {service.kind === "workflow" ? "Workflow Service" : "Standalone"}
-                  </p>
-                  <h2 className="mt-2 text-xl font-black text-slate-900 dark:text-white">
-                    {service.title}
-                  </h2>
-                  <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-400">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-black text-sky-700 ring-1 ring-slate-100">
+                        <FileSpreadsheet className="h-3.5 w-3.5" />
+                        Workflow Service
+                      </p>
+
+                      <h3 className="mt-4 text-2xl font-black leading-8 text-slate-950">
+                        {service.title}
+                      </h3>
+                    </div>
+
+                    <ArrowUpLeft className="h-5 w-5 text-slate-400 transition group-hover:text-sky-600" />
+                  </div>
+
+                  <p className="mt-3 text-sm font-bold leading-7 text-slate-500">
                     {service.description}
                   </p>
                 </div>
 
-                <ArrowUpLeft className="h-5 w-5 text-slate-400 group-hover:text-sky-600" />
-              </div>
+                <div className="mt-6 space-y-4">
+                  <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-black text-slate-400">
+                        الحالة
+                      </span>
 
-              <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm dark:bg-slate-800">
-                {activeWorkflow ? (
-                  <p className="font-bold text-emerald-700 dark:text-emerald-300">
-                    مفعل: {activeWorkflow.name} · {activeWorkflow.steps.length} خطوات
-                  </p>
-                ) : (
-                  <p className="font-bold text-slate-400">
-                    لا يوجد Workflow مفعل
-                  </p>
-                )}
-              </div>
-            </Link>
-          );
-        })}
+                      <span
+                        className={[
+                          "rounded-full px-3 py-1 text-[11px] font-black",
+                          activeWorkflow
+                            ? "bg-emerald-50 text-emerald-700"
+                            : draftCount > 0
+                              ? "bg-sky-50 text-sky-700"
+                              : "bg-slate-100 text-slate-500",
+                        ].join(" ")}
+                      >
+                        {activeWorkflow
+                          ? getWorkflowStatusLabel(
+                              activeWorkflow.status,
+                              activeWorkflow.isActive,
+                            )
+                          : draftCount > 0
+                            ? `${draftCount} مسودة`
+                            : "جاهز لاستقبال الرفع"}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-sm font-black text-slate-900">
+                      {activeWorkflow?.name ||
+                        latestServiceWorkflow?.name ||
+                        "لا يوجد Workflow مرفوع"}
+                    </p>
+
+                    <p className="mt-1 text-xs font-bold text-slate-400">
+                      آخر تحديث: {formatDate(latestServiceWorkflow?.updatedAt)}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <SmallWorkflowStat
+                      label="النسخ"
+                      value={serviceWorkflows.length}
+                    />
+                    <SmallWorkflowStat label="الحقول" value={fieldsCount} />
+                    <SmallWorkflowStat label="الخيارات" value={optionsCount} />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </section>
+
+      <section className="rounded-[2rem] border border-amber-100 bg-amber-50 p-5">
+        <div className="flex flex-wrap items-start gap-3">
+          <ShieldCheck className="mt-1 h-5 w-5 text-amber-700" />
+
+          <div>
+            <h3 className="font-black text-amber-950">تنبيه تشغيلي مهم</h3>
+            <p className="mt-2 text-sm font-bold leading-7 text-amber-800">
+              حذف أو أرشفة Workflow مستخدم في حالات سابقة قد يؤثر على التحرير أو
+              التقارير. استخدم النشر للنسخ الجديدة بدل تعديل النسخ القديمة
+              المستخدمة.
+            </p>
+
+            {linkedCasesCount > 0 ? (
+              <p className="mt-2 text-xs font-black text-amber-700">
+                يوجد حاليًا {formatNumber(linkedCasesCount)} حالة مرتبطة بنماذج
+                Workflow محفوظة.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function WorkflowHeroMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
+      <span className="text-xs font-black text-slate-300">{label}</span>
+      <strong className="text-2xl font-black text-white">
+        {formatNumber(value)}
+      </strong>
+    </div>
+  );
+}
+
+function AdminWorkflowMetricCard({
+  icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+  hint: string;
+}) {
+  return (
+    <article className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+        {icon}
+      </div>
+
+      <p className="mt-4 text-sm font-black text-slate-500">{label}</p>
+
+      <strong className="mt-2 block text-3xl font-black text-slate-950">
+        {typeof value === "number" ? formatNumber(value) : value}
+      </strong>
+
+      <p className="mt-2 text-xs font-bold leading-6 text-slate-400">{hint}</p>
+    </article>
+  );
+}
+
+
+function SmallWorkflowStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-2xl bg-slate-50 px-3 py-3 text-center ring-1 ring-slate-100">
+      <p className="text-[11px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 text-lg font-black text-slate-950">
+        {formatNumber(value)}
+      </p>
     </div>
   );
 }

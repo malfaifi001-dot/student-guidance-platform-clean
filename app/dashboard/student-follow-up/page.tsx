@@ -1,13 +1,16 @@
-import { ServiceWorkspace } from "@/components/service-ui/service-workspace";
-import { getServiceWorkspace } from "@/engine/services/service-workspace-engine";
+﻿import { WorkflowServiceHomePage } from "@/components/services/workflow-service-home-page";
 
-export default async function StudentFollowUpPage() {
-  const workspace = await getServiceWorkspace({
-    slug: "student-follow-up",
-    name: "متابعة الطلاب",
-    description:
-      "متابعة حالات الطلاب والطالبات وربطها ببيانات نور والمسودات والسجلات السابقة.",
-  });
-
-  return <ServiceWorkspace {...workspace} />;
+export default function StudentFollowUpPage() {
+  return (
+    <WorkflowServiceHomePage
+      serviceSlug="student-follow-up"
+      title="متابعة الطلاب"
+      description="تابع الحالات الطلابية، واستكمل المسودات، وأصدر تقارير للحالات المرسلة."
+      newButtonLabel="إنشاء متابعة جديدة"
+      caseSingularName="متابعة"
+      casePluralName="متابعات"
+      emptyTitle="لا توجد متابعات بعد"
+      emptyDescription="ابدأ بإنشاء أول متابعة. بعد الحفظ ستظهر هنا كبطاقة سهلة."
+    />
+  );
 }

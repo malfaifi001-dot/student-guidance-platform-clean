@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: "تم إنشاء قالب التقرير بنجاح.",
+        message: "تم إنشاء قالب التقارير بنجاح.",
         template,
       },
       { status: 201 },
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "تعذر إنشاء قالب التقرير.",
+        message: "تعذر إنشاء قالب التقارير.",
       },
       { status: 500 },
     );

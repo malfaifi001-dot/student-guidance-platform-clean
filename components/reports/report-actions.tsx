@@ -14,7 +14,7 @@ export function ReportActions({ reportId, status }: Props) {
   const [loading, setLoading] = useState(false);
 
   async function deleteReport() {
-    const confirmed = confirm("هل أنت متأكد من حذف التقرير؟");
+    const confirmed = confirm("هل أنت متأكد من حذف التقارير؟");
     if (!confirmed) return;
 
     setLoading(true);
@@ -26,7 +26,7 @@ export function ReportActions({ reportId, status }: Props) {
     setLoading(false);
 
     if (!response.ok) {
-      alert("فشل حذف التقرير.");
+      alert("فشل حذف التقارير.");
       return;
     }
 

@@ -81,7 +81,7 @@ export function validateReportTemplateForPublishing({
       severity: "error",
       title: "القالب لا يسحب بيانات من الحالة",
       description:
-        "أضف بلوكًا مرتبطًا بالحالة مثل بيانات التقرير أو فقرة من بيانات الحالة.",
+        "أضف بلوكًا مرتبطًا بالحالة مثل بيانات التقارير أو فقرة من بيانات الحالة.",
     });
   }
 
@@ -118,7 +118,7 @@ export function validateReportTemplateForPublishing({
         id: `page-${page.id}-empty`,
         severity: "warning",
         title: `صفحة ${page.title || pageIndex + 1} فارغة`,
-        description: "الصفحات الفارغة ستظهر بلا محتوى في التقرير.",
+        description: "الصفحات الفارغة ستظهر بلا محتوى في التقارير.",
       });
     }
 
@@ -164,7 +164,7 @@ export function validateReportTemplateForPublishing({
       id: "identity-school-name",
       severity: "error",
       title: "اسم المدرسة مفقود",
-      description: "أدخل اسم المدرسة في إعدادات هوية التقرير.",
+      description: "أدخل اسم المدرسة في إعدادات هوية التقارير.",
     });
   }
 

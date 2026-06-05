@@ -75,7 +75,7 @@ export async function GET(_request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
+          error: "التقارير غير موجود أو لا تملك صلاحية الوصول إليه.",
         },
         { status: 404 }
       );
@@ -92,7 +92,7 @@ export async function GET(_request: Request, context: RouteContext) {
       {
         success: false,
         error:
-          error instanceof Error ? error.message : "تعذر جلب بيانات التقرير.",
+          error instanceof Error ? error.message : "تعذر جلب بيانات التقارير.",
       },
       { status: 500 }
     );
@@ -128,7 +128,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
+          error: "التقارير غير موجود أو لا تملك صلاحية الوصول إليه.",
         },
         { status: 404 }
       );
@@ -139,7 +139,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         {
           success: false,
           error:
-            "لا يمكن تعديل تقرير معتمد. يمكنك نسخ التقرير لإنشاء نسخة قابلة للتعديل.",
+            "لا يمكن تعديل تقرير معتمد. يمكنك نسخ التقارير لإنشاء نسخة قابلة للتعديل.",
         },
         { status: 403 }
       );
@@ -163,7 +163,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "عنوان التقرير مطلوب.",
+          error: "عنوان التقارير مطلوب.",
         },
         { status: 400 }
       );
@@ -173,7 +173,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "محتوى التقرير لا يمكن أن يكون فارغًا.",
+          error: "محتوى التقارير لا يمكن أن يكون فارغًا.",
         },
         { status: 400 }
       );
@@ -212,7 +212,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       {
         success: false,
         error:
-          error instanceof Error ? error.message : "تعذر تحديث التقرير.",
+          error instanceof Error ? error.message : "تعذر تحديث التقارير.",
       },
       { status: 500 }
     );

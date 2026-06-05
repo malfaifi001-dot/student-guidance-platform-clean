@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+﻿import * as XLSX from "xlsx";
 
 export type ParsedWorkflowRow = {
   stepTitle: string;
@@ -14,29 +14,12 @@ export type ParsedWorkflowRow = {
 
   dependsOnFieldKey?: string;
 
-  /**
-   * Legacy/global linked value.
-   * نتركه للتوافق مع الملفات القديمة، لكن الأفضل مستقبلاً استخدام:
-   * fieldLinkedToValue للحقل كاملًا
-   * optionLinkedToValue لخيار داخل الحقل
-   */
   linkedToValue?: string;
-
-  /**
-   * يستخدم لإخفاء/إظهار الحقل كاملًا بناءً على قيمة حقل سابق.
-   */
   fieldLinkedToValue?: string;
 
   optionLabel?: string;
   optionValue?: string;
   optionOrder?: number;
-
-  /**
-   * هذا هو المهم للربط الحالي:
-   * البرنامج → خيارات الإجراء
-   * الإجراء → خيارات آلية التنفيذ
-   * آلية التنفيذ → خيارات الشاهد أو غيره
-   */
   optionLinkedToValue?: string;
 };
 
@@ -47,14 +30,24 @@ function normalize(value: unknown) {
 function normalizeHeader(value: unknown) {
   return normalize(value)
     .toLowerCase()
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه");
+    .replace(/[\u0623\u0625\u0622]/g, "\u0627")
+    .replace(/\u0649/g, "\u064a")
+    .replace(/\u0629/g, "\u0647");
 }
 
 function bool(value: unknown) {
   const v = normalize(value).toLowerCase();
-  return ["true", "yes", "1", "نعم", "صح", "مطلوب"].includes(v);
+
+  return [
+    "true",
+    "yes",
+    "y",
+    "1",
+    "required",
+    "\u0646\u0639\u0645",
+    "\u0635\u062d",
+    "\u0645\u0637\u0644\u0648\u0628",
+  ].includes(v);
 }
 
 function numberOrUndefined(value: unknown) {
@@ -70,53 +63,54 @@ const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
     "steptitle",
     "step_title",
     "step title",
-    "عنوان الخطوه",
-    "عنوان الخطوة",
-    "الخطوه",
-    "الخطوة",
-    "القسم",
+    "\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u062e\u0637\u0648\u0647",
+    "\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u062e\u0637\u0648\u0629",
+    "\u0627\u0644\u062e\u0637\u0648\u0647",
+    "\u0627\u0644\u062e\u0637\u0648\u0629",
+    "\u0627\u0644\u0642\u0633\u0645",
   ],
 
   stepDescription: [
     "stepdescription",
     "step_description",
     "step description",
-    "وصف الخطوه",
-    "وصف الخطوة",
-    "وصف القسم",
+    "\u0648\u0635\u0641 \u0627\u0644\u062e\u0637\u0648\u0647",
+    "\u0648\u0635\u0641 \u0627\u0644\u062e\u0637\u0648\u0629",
+    "\u0648\u0635\u0641 \u0627\u0644\u0642\u0633\u0645",
   ],
 
   stepOrder: [
     "steporder",
     "step_order",
     "step order",
-    "ترتيب الخطوه",
-    "ترتيب الخطوة",
-    "ترتيب القسم",
+    "\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062e\u0637\u0648\u0647",
+    "\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062e\u0637\u0648\u0629",
+    "\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u0642\u0633\u0645",
   ],
 
   fieldKey: [
     "fieldkey",
     "field_key",
     "field key",
-    "مفتاح الحقل",
     "key",
+    "\u0645\u0641\u062a\u0627\u062d \u0627\u0644\u062d\u0642\u0644",
   ],
 
   fieldLabel: [
     "fieldlabel",
     "field_label",
     "field label",
-    "اسم الحقل",
-    "الحقل",
+    "\u0627\u0633\u0645 \u0627\u0644\u062d\u0642\u0644",
+    "\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u062d\u0642\u0644",
+    "\u0627\u0644\u062d\u0642\u0644",
   ],
 
   fieldType: [
     "fieldtype",
     "field_type",
     "field type",
-    "نوع الحقل",
     "type",
+    "\u0646\u0648\u0639 \u0627\u0644\u062d\u0642\u0644",
   ],
 
   fieldRequired: [
@@ -124,23 +118,27 @@ const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
     "required",
     "isrequired",
     "is_required",
-    "مطلوب",
+    "\u0645\u0637\u0644\u0648\u0628",
   ],
 
   fieldOrder: [
     "fieldorder",
     "field_order",
     "field order",
-    "ترتيب الحقل",
+    "\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062d\u0642\u0644",
   ],
 
   allowOther: [
     "allowother",
     "allow_other",
     "allow other",
-    "اخرى",
-    "يسمح اخرى",
-    "السماح باخرى",
+    "other",
+    "\u0627\u062e\u0631\u0649",
+    "\u0623\u062e\u0631\u0649",
+    "\u064a\u0633\u0645\u062d \u0627\u062e\u0631\u0649",
+    "\u064a\u0633\u0645\u062d \u0623\u062e\u0631\u0649",
+    "\u0627\u0644\u0633\u0645\u0627\u062d \u0628\u0627\u062e\u0631\u0649",
+    "\u0627\u0644\u0633\u0645\u0627\u062d \u0628\u0623\u062e\u0631\u0649",
   ],
 
   dependsOnFieldKey: [
@@ -150,20 +148,20 @@ const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
     "depends on",
     "parentfieldkey",
     "parent_field_key",
-    "يعتمد على",
-    "يعتمد علي",
-    "الحقل الاب",
-    "الحقل الأب",
+    "\u064a\u0639\u062a\u0645\u062f \u0639\u0644\u0649",
+    "\u064a\u0639\u062a\u0645\u062f \u0639\u0644\u064a",
+    "\u0627\u0644\u062d\u0642\u0644 \u0627\u0644\u0627\u0628",
+    "\u0627\u0644\u062d\u0642\u0644 \u0627\u0644\u0623\u0628",
   ],
 
   linkedToValue: [
     "linkedtovalue",
     "linked_to_value",
     "linked to value",
-    "القيمه المرتبطه",
-    "القيمة المرتبطة",
-    "يرتبط بالقيمه",
-    "يرتبط بالقيمة",
+    "\u0627\u0644\u0642\u064a\u0645\u0647 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0647",
+    "\u0627\u0644\u0642\u064a\u0645\u0629 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629",
+    "\u064a\u0631\u062a\u0628\u0637 \u0628\u0627\u0644\u0642\u064a\u0645\u0647",
+    "\u064a\u0631\u062a\u0628\u0637 \u0628\u0627\u0644\u0642\u064a\u0645\u0629",
   ],
 
   fieldLinkedToValue: [
@@ -172,32 +170,32 @@ const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
     "field linked to value",
     "fieldlinkedvalue",
     "field_linked_value",
-    "قيمة ربط الحقل",
-    "القيمه المرتبطه بالحقل",
-    "القيمة المرتبطة بالحقل",
+    "\u0642\u064a\u0645\u0629 \u0631\u0628\u0637 \u0627\u0644\u062d\u0642\u0644",
+    "\u0627\u0644\u0642\u064a\u0645\u0647 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0647 \u0628\u0627\u0644\u062d\u0642\u0644",
+    "\u0627\u0644\u0642\u064a\u0645\u0629 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629 \u0628\u0627\u0644\u062d\u0642\u0644",
   ],
 
   optionLabel: [
     "optionlabel",
     "option_label",
     "option label",
-    "الخيار",
-    "اسم الخيار",
+    "\u0627\u0644\u062e\u064a\u0627\u0631",
+    "\u0627\u0633\u0645 \u0627\u0644\u062e\u064a\u0627\u0631",
   ],
 
   optionValue: [
     "optionvalue",
     "option_value",
     "option value",
-    "قيمة الخيار",
-    "قيمه الخيار",
+    "\u0642\u064a\u0645\u0629 \u0627\u0644\u062e\u064a\u0627\u0631",
+    "\u0642\u064a\u0645\u0647 \u0627\u0644\u062e\u064a\u0627\u0631",
   ],
 
   optionOrder: [
     "optionorder",
     "option_order",
     "option order",
-    "ترتيب الخيار",
+    "\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u062e\u064a\u0627\u0631",
   ],
 
   optionLinkedToValue: [
@@ -212,14 +210,14 @@ const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
     "depends_on_value",
     "optionparentvalue",
     "option_parent_value",
-    "قيمة ربط الخيار",
-    "قيمه ربط الخيار",
-    "القيمة المرتبطة بالخيار",
-    "القيمه المرتبطه بالخيار",
-    "قيمة الاب",
-    "قيمة الأب",
-    "القيمة الاب",
-    "القيمة الأب",
+    "\u0642\u064a\u0645\u0629 \u0631\u0628\u0637 \u0627\u0644\u062e\u064a\u0627\u0631",
+    "\u0642\u064a\u0645\u0647 \u0631\u0628\u0637 \u0627\u0644\u062e\u064a\u0627\u0631",
+    "\u0627\u0644\u0642\u064a\u0645\u0629 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629 \u0628\u0627\u0644\u062e\u064a\u0627\u0631",
+    "\u0627\u0644\u0642\u064a\u0645\u0647 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0647 \u0628\u0627\u0644\u062e\u064a\u0627\u0631",
+    "\u0642\u064a\u0645\u0629 \u0627\u0644\u0627\u0628",
+    "\u0642\u064a\u0645\u0629 \u0627\u0644\u0623\u0628",
+    "\u0627\u0644\u0642\u064a\u0645\u0629 \u0627\u0644\u0627\u0628",
+    "\u0627\u0644\u0642\u064a\u0645\u0629 \u0627\u0644\u0623\u0628",
   ],
 };
 
@@ -236,7 +234,7 @@ function detectHeaderIndex(rows: unknown[][]) {
 
       if (
         normalizedAliases.some((alias) =>
-          cells.some((cell) => cell === alias || cell.includes(alias))
+          cells.some((cell) => cell === alias || cell.includes(alias)),
         )
       ) {
         score++;
@@ -261,8 +259,8 @@ function mapHeaders(headers: string[]) {
 
     const index = normalizedHeaders.findIndex((header) =>
       normalizedAliases.some(
-        (alias) => header === alias || header.includes(alias)
-      )
+        (alias) => header === alias || header.includes(alias),
+      ),
     );
 
     if (index >= 0) {

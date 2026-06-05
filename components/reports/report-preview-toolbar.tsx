@@ -121,7 +121,7 @@ export function ReportPreviewToolbar({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
-            معاينة التقرير الحقيقية A4
+            معاينة التقارير الحقيقية A4
           </div>
 
           <h1 className="mt-3 max-w-3xl truncate text-2xl font-black text-slate-900">
@@ -148,7 +148,7 @@ export function ReportPreviewToolbar({
             href={`/dashboard/reports/${reportId}/studio`}
             className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800"
           >
-            تعديل التقرير
+            تعديل التقارير
           </Link>
 
           <Link
@@ -161,7 +161,7 @@ export function ReportPreviewToolbar({
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1fr_1.4fr]">
-        <ToolbarGroup title="القالب" subtitle="شكل التقرير العام">
+        <ToolbarGroup title="القالب" subtitle="شكل التقارير العام">
           {templateOptions.map((template) => (
             <ToolbarChoice
               key={template.id}

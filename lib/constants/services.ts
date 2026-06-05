@@ -17,7 +17,7 @@ export const workflowServices: AppService[] = [
   {
     slug: "student-follow-up",
     title: "متابعة الطلاب",
-    description: "متابعة الحالات الطلابية عبر Workflow ديناميكي.",
+    description: "متابعة الطلاب والحالات الطلابية.",
     href: "/dashboard/student-follow-up",
     kind: "workflow",
   },
@@ -31,14 +31,14 @@ export const workflowServices: AppService[] = [
   {
     slug: "family-school-communication",
     title: "التواصل بين الأسرة والمدرسة",
-    description: "توثيق التواصل مع ولي الأمر ونتائج التواصل.",
+    description: "توثيق التواصل بين الأسرة والمدرسة.",
     href: "/dashboard/family-school-communication",
     kind: "workflow",
   },
   {
     slug: "student-guidance-services",
-    title: "الخدمات التوجيهية المقدمة للطلاب",
-    description: "إدارة الخدمات التوجيهية عبر Workflow ديناميكي.",
+    title: "الخدمات الإرشادية المقدمة للطلاب",
+    description: "إدارة الخدمات الإرشادية المقدمة للطلاب.",
     href: "/dashboard/student-guidance-services",
     kind: "workflow",
   },
@@ -47,22 +47,22 @@ export const workflowServices: AppService[] = [
 export const standaloneServices: AppService[] = [
   {
     slug: "comprehensive-reference",
-    title: "السجل الشامل للطالب",
-    description: "عرض بيانات الطالب وسجلاته التربوية.",
+    title: "المرجع الشامل للموجه الطلابي",
+    description: "مرجع شامل للموجه الطلابي لمتابعة بيانات الطلاب وسجلاتهم.",
     href: "/dashboard/comprehensive-reference",
     kind: "standalone",
   },
   {
     slug: "results-analysis",
     title: "تحليل النتائج",
-    description: "رفع وتحليل نتائج الطلاب من ملفات Excel.",
+    description: "رفع وتحليل نتائج الطلاب.",
     href: "/dashboard/results-analysis",
     kind: "standalone",
   },
   {
     slug: "reports",
     title: "التقارير",
-    description: "إنشاء ومعاينة واعتماد التقارير الإرشادية.",
+    description: "إنشاء ومعاينة واعتماد التقارير.",
     href: "/dashboard/reports",
     kind: "standalone",
   },

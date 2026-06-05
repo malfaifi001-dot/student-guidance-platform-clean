@@ -92,7 +92,7 @@ export function NewReportCasePicker({ cases }: Props) {
     setLoading(false);
 
     if (!response.ok) {
-      alert(data.error || "فشل إنشاء التقرير.");
+      alert(data.error || "فشل إنشاء التقارير.");
       return;
     }
 
@@ -171,7 +171,7 @@ export function NewReportCasePicker({ cases }: Props) {
             disabled={loading}
             className="mt-8 rounded-2xl bg-slate-900 px-8 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50"
           >
-            {loading ? "جارٍ الإنشاء..." : "إنشاء التقرير وفتح الاستوديو"}
+            {loading ? "جارٍ الإنشاء..." : "إنشاء التقارير وفتح الاستوديو"}
           </button>
         </div>
 
@@ -182,7 +182,7 @@ export function NewReportCasePicker({ cases }: Props) {
 
           {!selectedCase ? (
             <p className="mt-5 text-sm leading-7 text-slate-500">
-              اختر سجلًا لعرض بيانات الخدمة قبل إنشاء التقرير.
+              اختر سجلًا لعرض بيانات الخدمة قبل إنشاء التقارير.
             </p>
           ) : (
             <div className="mt-5 space-y-3">

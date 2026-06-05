@@ -15,7 +15,7 @@ const fallbackFields: RuntimeWorkflowFieldOption[] = [
   },
   {
     key: "intro",
-    label: "مقدمة التقرير",
+    label: "مقدمة التقارير",
     source: "fallback",
   },
   {

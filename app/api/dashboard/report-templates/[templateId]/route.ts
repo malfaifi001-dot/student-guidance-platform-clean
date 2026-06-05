@@ -58,7 +58,7 @@ export async function GET(_request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          message: "قالب التقرير غير موجود.",
+          message: "قالب التقارير غير موجود.",
         },
         { status: 404 },
       );
@@ -77,7 +77,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         success: false,
-        message: "تعذر جلب قالب التقرير.",
+        message: "تعذر جلب قالب التقارير.",
       },
       { status: 500 },
     );
@@ -103,7 +103,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          message: "قالب التقرير غير موجود.",
+          message: "قالب التقارير غير موجود.",
         },
         { status: 404 },
       );
@@ -158,7 +158,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     return NextResponse.json({
       success: true,
-      message: "تم تحديث قالب التقرير بنجاح.",
+      message: "تم تحديث قالب التقارير بنجاح.",
       template,
     });
   } catch (error) {
@@ -170,7 +170,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         success: false,
-        message: "تعذر تحديث قالب التقرير.",
+        message: "تعذر تحديث قالب التقارير.",
       },
       { status: 500 },
     );
@@ -192,7 +192,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
     return NextResponse.json({
       success: true,
-      message: "تم أرشفة قالب التقرير بنجاح.",
+      message: "تم أرشفة قالب التقارير بنجاح.",
       template,
     });
   } catch (error) {
@@ -204,7 +204,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         success: false,
-        message: "تعذر أرشفة قالب التقرير.",
+        message: "تعذر أرشفة قالب التقارير.",
       },
       { status: 500 },
     );

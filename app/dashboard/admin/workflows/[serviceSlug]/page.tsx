@@ -12,6 +12,10 @@ import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 import { dashboardServices } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";
 import {
+  ensureDashboardWorkflowService,
+  isWorkflowUploadEligibleService,
+} from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
+import {
   WORKFLOW_TYPES,
   getWorkflowPlacementLabel,
   isSecondaryWorkflow,
@@ -95,9 +99,11 @@ export default async function ServiceWorkflowPage({ params }: PageProps) {
     (service) => service.slug === serviceSlug,
   );
 
-  if (!serviceConfig) {
+  if (!serviceConfig || !isWorkflowUploadEligibleService(serviceConfig)) {
     notFound();
   }
+
+  await ensureDashboardWorkflowService(serviceSlug);
 
   const service = await prisma.service.findUnique({
     where: {

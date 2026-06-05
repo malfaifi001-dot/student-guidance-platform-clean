@@ -8,6 +8,7 @@ import {
   Activity,
   BarChart3,
   BookOpen,
+  CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -20,7 +21,6 @@ import {
   Home,
   KeyRound,
   LayoutDashboard,
-  LayoutGrid,
   MessageCircle,
   PenTool,
   School,
@@ -32,8 +32,6 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
-
-import { dashboardServices } from "@/lib/constants/services";
 
 type SidebarUser = {
   role?: string | null;
@@ -49,30 +47,17 @@ type SidebarLinkItem = {
 
 const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
 
-const serviceIconMap: Record<string, ComponentType<{ className?: string }>> = {
-  "guidance-programs": ClipboardList,
-  "student-follow-up": Users,
-  "committees-meetings": ShieldCheck,
-  "family-school-communication": MessageCircle,
-  "student-guidance-services": FileText,
-  "comprehensive-reference": BookOpen,
-  "results-analysis": BarChart3,
-  reports: FileText,
-};
-
-const counselorDailyLinks: SidebarLinkItem[] = [
+const counselorImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard", icon: Home },
-  { label: "متابعة الطلاب", href: "/dashboard/student-follow-up", icon: Users },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
   { label: "الحالات", href: "/dashboard/cases", icon: FolderKanban },
-  { label: "التقارير", href: "/dashboard/reports", icon: FileText },
-  { label: "رفع بيانات نور", href: "/dashboard/student-import", icon: UploadCloud },
 ];
 
-const counselorCoreLinks: SidebarLinkItem[] = [
+const counselorServiceLinks: SidebarLinkItem[] = [
   {
-    label: "التواصل الأسري",
-    href: "/dashboard/family-school-communication",
-    icon: MessageCircle,
+    label: "البرامج الإرشادية",
+    href: "/dashboard/guidance-programs",
+    icon: ClipboardList,
   },
   {
     label: "اللجان والاجتماعات",
@@ -80,10 +65,39 @@ const counselorCoreLinks: SidebarLinkItem[] = [
     icon: ShieldCheck,
   },
   {
-    label: "البرامج الإرشادية",
-    href: "/dashboard/guidance-programs",
-    icon: ClipboardList,
+    label: "متابعة الطلاب",
+    href: "/dashboard/student-follow-up",
+    icon: Users,
   },
+  {
+    label: "الخدمات الإرشادية المقدمة للطلاب",
+    href: "/dashboard/student-guidance-services",
+    icon: FileText,
+  },
+  {
+    label: "التقارير",
+    href: "/dashboard/reports",
+    icon: FileText,
+  },
+  {
+    label: "المرجع الشامل للموجه الطلابي",
+    href: "/dashboard/comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "تحليل النتائج",
+    href: "/dashboard/results-analysis",
+    icon: BarChart3,
+  },
+  {
+    label: "التواصل بين الأسرة والمدرسة",
+    href: "/dashboard/family-school-communication",
+    icon: MessageCircle,
+  },
+];
+
+const counselorToolsLinks: SidebarLinkItem[] = [
+  { label: "رفع بيانات نور", href: "/dashboard/student-import", icon: UploadCloud },
 ];
 
 const counselorAccountLinks: SidebarLinkItem[] = [
@@ -131,6 +145,10 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function hasActive(pathname: string, items: SidebarLinkItem[]) {
+  return items.some((item) => isActivePath(pathname, item.href));
+}
+
 export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -149,26 +167,6 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
     if (!ready) return;
     window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
   }, [collapsed, ready]);
-
-  const extraServices: SidebarLinkItem[] = dashboardServices
-    .filter(
-      (service) =>
-        ![
-          "student-follow-up",
-          "family-school-communication",
-          "committees-meetings",
-          "guidance-programs",
-        ].includes(service.slug)
-    )
-    .map((service) => {
-      const Icon = serviceIconMap[service.slug] ?? LayoutGrid;
-
-      return {
-        label: service.title,
-        href: service.href,
-        icon: Icon,
-      };
-    });
 
   return (
     <aside
@@ -260,11 +258,7 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
         {isAdmin ? (
           <AdminSidebar pathname={pathname} collapsed={collapsed} />
         ) : (
-          <CounselorSidebar
-            pathname={pathname}
-            extraServices={extraServices}
-            collapsed={collapsed}
-          />
+          <CounselorSidebar pathname={pathname} collapsed={collapsed} />
         )}
       </div>
     </aside>
@@ -350,18 +344,16 @@ function AdminSidebar({
 
 function CounselorSidebar({
   pathname,
-  extraServices,
   collapsed,
 }: {
   pathname: string;
-  extraServices: SidebarLinkItem[];
   collapsed: boolean;
 }) {
   return (
     <>
       <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1">
         <SidebarSection title="الأهم" collapsed={collapsed}>
-          {counselorDailyLinks.map((item) => (
+          {counselorImportantLinks.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}
@@ -372,7 +364,7 @@ function CounselorSidebar({
         </SidebarSection>
 
         <SidebarSection title="الخدمات" collapsed={collapsed}>
-          {counselorCoreLinks.map((item) => (
+          {counselorServiceLinks.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}
@@ -382,25 +374,21 @@ function CounselorSidebar({
           ))}
         </SidebarSection>
 
-        {extraServices.length > 0 ? (
-          <SidebarDropdown
-            title="خدمات إضافية"
-            defaultOpen={extraServices.some((item) =>
-              isActivePath(pathname, item.href)
-            )}
-            collapsed={collapsed}
-          >
-            {extraServices.map((item) => (
-              <SidebarLink
-                key={item.href}
-                item={item}
-                active={isActivePath(pathname, item.href)}
-                compact
-                collapsed={collapsed}
-              />
-            ))}
-          </SidebarDropdown>
-        ) : null}
+        <SidebarDropdown
+          title="أدوات إضافية"
+          defaultOpen={hasActive(pathname, counselorToolsLinks)}
+          collapsed={collapsed}
+        >
+          {counselorToolsLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
 
         <SidebarDropdown
           title="الحساب والتفعيل"
@@ -428,7 +416,7 @@ function CounselorSidebar({
         <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4">
           <p className="text-xs font-black text-sky-700">اقتراح سريع</p>
           <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80">
-            ابدأ بالمتابعة، ثم أضف الشواهد، وبعدها أصدر التقرير.
+            ابدأ بالتقويم، ثم افتح الحالة أو المرجع الشامل عند الحاجة.
           </p>
         </div>
       ) : null}
