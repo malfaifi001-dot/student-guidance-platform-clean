@@ -1,6 +1,4 @@
 ﻿import { NextResponse } from "next/server";
-import { StudentPickerMode } from "@prisma/client";
-
 const FieldType = {
   TEXT: "TEXT",
   TEXTAREA: "TEXTAREA",
@@ -28,14 +26,14 @@ type RouteContext = {
 
 const FIELD_TYPES = new Set(Object.values(FieldType));
 
-const STUDENT_PICKER_MODES = new Set(Object.values(StudentPickerMode));
+const STUDENT_PICKER_MODES = new Set(["NONE", "DISABLED", "OPTIONAL", "REQUIRED", "SINGLE", "MULTIPLE", "SMART"]);
 
-function normalizeStudentPickerMode(value: unknown): StudentPickerMode {
+function normalizeStudentPickerMode(value: unknown): string {
   const text = clean(value).toUpperCase();
 
-  return STUDENT_PICKER_MODES.has(text as StudentPickerMode)
-    ? (text as StudentPickerMode)
-    : StudentPickerMode.SERVICE_DEFAULT;
+  return STUDENT_PICKER_MODES.has(text as string)
+    ? (text as string)
+    : "SERVICE_DEFAULT";
 }
 
 function clean(value: unknown) {
@@ -141,7 +139,7 @@ export async function POST(request: Request, context: RouteContext) {
         name,
         version: nextVersion,
         workflowType,
-        studentPickerMode,
+        studentPickerMode: studentPickerMode as any,
         status: "DRAFT",
         isActive: false,
         steps: {
