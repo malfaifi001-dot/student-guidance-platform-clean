@@ -41,8 +41,8 @@ async function syncSchoolServicesFromPlan(input: {
   });
 
   const enabledServiceSlugs = planFeatures
-    .filter((feature) => feature.value === "enabled")
-    .map((feature) => feature.key.replace("service:", ""));
+    .filter((feature: any) => feature.value === "enabled")
+    .map((feature: any) => feature.key.replace("service:", ""));
 
   const services = await prisma.service.findMany({
     where: {
@@ -490,5 +490,6 @@ export async function POST(request: Request) {
     { status: 400 }
   );
 }
+
 
 
