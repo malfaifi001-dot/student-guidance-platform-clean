@@ -328,7 +328,7 @@ export async function POST(request: Request) {
     }
 
     const durationFeature = plan.features.find(
-      (feature) => feature.key === "durationDays"
+      (feature: any) => feature.key === "durationDays"
     );
 
     const durationDays =
