@@ -8,10 +8,12 @@ export const dynamic = "force-dynamic";
 function splitSqlStatements(sql: string) {
   return sql
     .replace(/\r\n/g, "\n")
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("--"))
+    .join("\n")
     .split(/;\s*(?:\n|$)/g)
     .map((statement) => statement.trim())
-    .filter(Boolean)
-    .filter((statement) => !statement.startsWith("--"));
+    .filter(Boolean);
 }
 
 function errorMessage(error: unknown) {
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
     for (const statement of statements) {
       try {
         await prisma.$executeRawUnsafe(statement);
-        executed.push(statement.slice(0, 120));
+        executed.push(statement.slice(0, 160));
       } catch (error) {
         const message = errorMessage(error);
 
@@ -47,9 +49,10 @@ export async function GET(request: Request) {
             {
               success: false,
               message: "فشل تنفيذ أحد أوامر إنشاء الجداول.",
-              failedStatement: statement.slice(0, 500),
+              failedStatement: statement.slice(0, 800),
               errorMessage: message,
               executedCount: executed.length,
+              statementsCount: statements.length,
             },
             { status: 500 }
           );
