@@ -1,4 +1,13 @@
-﻿type ActivityMetricLog = {
+﻿
+type ActivityMetricUser = {
+  id: string;
+  officialName?: string | null;
+  name?: string | null;
+  email?: string | null;
+  role?: string | null;
+  schoolAccountId?: string | null;
+};
+type ActivityMetricLog = {
   action: string | null;
   actorUserId: string | null;
   serviceSlug?: string | null;
@@ -174,7 +183,7 @@ export async function GET() {
       })
     : [];
 
-  const userMap = new Map(users.map((user) => [user.id, user]));
+  const userMap = new Map<string, ActivityMetricUser>(users.map((user: ActivityMetricUser) => [user.id, user]));
 
   const metrics = {
     rangeDays: 30,
@@ -249,6 +258,8 @@ export async function GET() {
 
   return NextResponse.json(metrics);
 }
+
+
 
 
 
