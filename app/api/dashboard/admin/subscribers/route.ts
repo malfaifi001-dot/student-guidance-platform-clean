@@ -106,7 +106,7 @@ export async function GET() {
     );
   }
 
-  const subscribers = schoolAccounts.map((account) => {
+  const subscribers = schoolAccounts.map((account: any) => {
     const subscription = account.subscription;
     const computedStatus = getComputedStatus({
       subscriptionStatus: subscription?.status,
@@ -120,7 +120,7 @@ export async function GET() {
     );
 
     const owner =
-      account.users.find((user) => user.role !== "ADMIN") || account.users[0];
+      account.users.find((user: any) => user.role !== "ADMIN") || account.users[0];
 
     return {
       schoolAccountId: account.id,
@@ -186,6 +186,8 @@ export async function GET() {
     subscribers,
   });
 }
+
+
 
 
 
