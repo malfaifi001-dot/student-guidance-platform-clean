@@ -91,7 +91,7 @@ function percentageChange(current: number, previous: number) {
 function serviceLabel(slug: string) {
   const labels: Record<string, string> = {
     "student-follow-up": "متابعة الطلاب",
-    "family-school-communication": "التواصل الأسري",
+    "family-school-communication": "التواصل بين الأسرة والمدرسة",
     "committees-meetings": "اللجان والاجتماعات",
     "guidance-programs": "البرامج الإرشادية",
     "results-analysis": "تحليل النتائج",

@@ -2,11 +2,31 @@
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
 
+function getAttentionWindow() {
+  const now = new Date();
+  const nextSevenDays = new Date(now);
+
+  nextSevenDays.setDate(now.getDate() + 7);
+
+  return {
+    nextSevenDays,
+  };
+}
+
 export default async function DashboardPage() {
   const current = await requireDashboardUser();
   const schoolAccountId = current.user.schoolAccountId;
+  const { nextSevenDays } = getAttentionWindow();
 
-  const [students, cases, reports, evidences] = await Promise.all([
+  const [
+    students,
+    cases,
+    reports,
+    evidences,
+    draftCases,
+    readyForReport,
+    reminders,
+  ] = await Promise.all([
     schoolAccountId
       ? prisma.student.count({
           where: {
@@ -23,27 +43,94 @@ export default async function DashboardPage() {
         })
       : 0,
 
-    prisma.guidanceReport.count({
-      where: {
-        caseEntry: schoolAccountId
-          ? {
+    schoolAccountId
+      ? prisma.guidanceReport.count({
+          where: {
+            caseEntry: {
               schoolAccountId,
-            }
-          : undefined,
-      },
-    }),
+            },
+          },
+        })
+      : prisma.guidanceReport.count(),
 
-    prisma.reportEvidence.count({
-      where: {
-        report: {
-          caseEntry: schoolAccountId
-            ? {
+    schoolAccountId
+      ? prisma.reportEvidence.count({
+          where: {
+            report: {
+              caseEntry: {
                 schoolAccountId,
-              }
-            : undefined,
-        },
-      },
-    }),
+              },
+            },
+          },
+        })
+      : prisma.reportEvidence.count(),
+
+    schoolAccountId
+      ? prisma.caseEntry.count({
+          where: {
+            schoolAccountId,
+            status: "DRAFT",
+          },
+        })
+      : 0,
+
+    schoolAccountId
+      ? prisma.caseEntry.count({
+          where: {
+            schoolAccountId,
+            status: "SUBMITTED",
+            guidanceReports: {
+              none: {},
+            },
+          },
+        })
+      : 0,
+
+    schoolAccountId
+      ? prisma.calendarReminder.findMany({
+          where: {
+            schoolAccountId,
+            status: "PENDING",
+            scheduledAt: {
+              lte: nextSevenDays,
+            },
+          },
+          orderBy: {
+            scheduledAt: "asc",
+          },
+          take: 3,
+          include: {
+            service: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            caseEntry: {
+              select: {
+                id: true,
+                title: true,
+                status: true,
+                service: {
+                  select: {
+                    name: true,
+                    slug: true,
+                  },
+                },
+              },
+            },
+            student: {
+              select: {
+                id: true,
+                fullName: true,
+                grade: true,
+                classroom: true,
+              },
+            },
+          },
+        })
+      : [],
   ]);
 
   return (
@@ -54,7 +141,10 @@ export default async function DashboardPage() {
         cases,
         reports,
         evidences,
+        draftCases,
+        readyForReport,
       }}
+      attentionReminders={reminders}
     />
   );
 }

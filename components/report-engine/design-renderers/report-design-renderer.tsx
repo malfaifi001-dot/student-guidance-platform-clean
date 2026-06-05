@@ -252,13 +252,13 @@ export function FinalReportDesignRenderer({
     : [
         {
           id: "final-preview-fallback",
-          title: normalizedTemplate.name || "التقرير",
+          title: normalizedTemplate.name || "التقارير",
           kind: "content",
           blocks: [
             {
               id: "fallback-title",
               kind: "hero-title",
-              title: "عنوان التقرير",
+              title: "عنوان التقارير",
               content: "{{case.title}}",
               variant: "hero",
               align: "center",
@@ -288,7 +288,7 @@ export function FinalReportDesignRenderer({
             page={page}
             context={context}
             previewCase={previewCaseData}
-            pageLabel={page.title || normalizedTemplate.name || "التقرير"}
+            pageLabel={page.title || normalizedTemplate.name || "التقارير"}
           />
 
           <AutoEvidencePages
@@ -624,7 +624,7 @@ function normalizeFinalBlockKind(kind: string) {
 }
 
 function getDefaultFinalBlockTitle(kind: string) {
-  if (kind === "cover-title") return "عنوان التقرير";
+  if (kind === "cover-title") return "عنوان التقارير";
   if (kind === "case-meta") return "بيانات الحالة";
   if (kind === "student-summary") return "بيانات الطالب/الطالبة";
   if (kind === "service-summary") return "بيانات الخدمة";
@@ -634,7 +634,7 @@ function getDefaultFinalBlockTitle(kind: string) {
   if (kind === "evidence-gallery") return "الشواهد والمرفقات";
   if (kind === "approval-signature") return "الاعتماد";
 
-  return "بلوك التقرير";
+  return "بلوك التقارير";
 }
 
 
@@ -680,7 +680,7 @@ function isFinalLegacyRenderedReportDump(value: string) {
     );
 
   const hasOldArabicDump =
-    text.includes("ملخص التقرير") ||
+    text.includes("ملخص التقارير") ||
     text.includes("بيانات الحالة") ||
     text.includes("القيم المسجلة") ||
     text.includes("الشواهد:") ||
@@ -812,7 +812,7 @@ function collectFinalTextSnippets(template: any) {
 
 function getFinalTextLibraryFallback(category: string) {
   if (category === "هدف") {
-    return "يهدف هذا التقرير إلى توثيق {{service.name}} للحالة {{case.title}}، وبيان أبرز البيانات والإجراءات المرتبطة بها.";
+    return "يهدف هذا التقارير إلى توثيق {{service.name}} للحالة {{case.title}}، وبيان أبرز البيانات والإجراءات المرتبطة بها.";
   }
 
   if (category === "إجراء") {
@@ -820,18 +820,18 @@ function getFinalTextLibraryFallback(category: string) {
   }
 
   if (category === "نتيجة") {
-    return "تشير البيانات المدخلة إلى أن الحالة تم التعامل معها ضمن خدمة {{service.name}}، مع حفظ النتائج والتوصيات داخل التقرير.";
+    return "تشير البيانات المدخلة إلى أن الحالة تم التعامل معها ضمن خدمة {{service.name}}، مع حفظ النتائج والتوصيات داخل التقارير.";
   }
 
   if (category === "توصية") {
-    return "يوصى بمتابعة الحالة حسب الحاجة، وتحديث السجل عند وجود مستجدات، وربط الشواهد الداعمة بالتقرير.";
+    return "يوصى بمتابعة الحالة حسب الحاجة، وتحديث السجل عند وجود مستجدات، وربط الشواهد الداعمة بالتقارير.";
   }
 
   if (category === "خاتمة") {
-    return "تم إعداد هذا التقرير من منصة التوجيه الطلابي اعتمادًا على بيانات الحالة والشواهد المرتبطة بها.";
+    return "تم إعداد هذا التقارير من منصة التوجيه الطلابي اعتمادًا على بيانات الحالة والشواهد المرتبطة بها.";
   }
 
-  return "تم إعداد هذا التقرير لخدمة {{service.name}} بناءً على بيانات الحالة {{case.title}} والشواهد المرتبطة بها.";
+  return "تم إعداد هذا التقارير لخدمة {{service.name}} بناءً على بيانات الحالة {{case.title}} والشواهد المرتبطة بها.";
 }
 
 function collectFinalValues(data: any): FinalReportValueItem[] {
@@ -1912,7 +1912,7 @@ function createEvidencePlaceholders(count: number, startIndex: number) {
   return Array.from({ length: count }).map((_, index) => ({
     id: `placeholder-evidence-${startIndex + index + 1}`,
     title: `شاهد تجريبي ${startIndex + index + 1}`,
-    caption: "مكان الشاهد داخل التقرير",
+    caption: "مكان الشاهد داخل التقارير",
     fileUrl: "",
     imageUrl: "",
   }));

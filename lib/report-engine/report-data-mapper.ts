@@ -102,7 +102,7 @@ export function buildOfficialReportDataFromCase({
     caseEntry.title ||
     getValueByPossibleLabels(caseEntry.values, [
       "عنوان البرنامج",
-      "عنوان التقرير",
+      "عنوان التقارير",
       "اسم البرنامج",
       "الموضوع",
     ]) ||
@@ -111,7 +111,7 @@ export function buildOfficialReportDataFromCase({
   const executionDate =
     getValueByPossibleLabels(caseEntry.values, [
       "تاريخ التنفيذ",
-      "تاريخ التقرير",
+      "تاريخ التقارير",
       "تاريخ الجلسة",
       "تاريخ الاجتماع",
     ]) || formatArabicDate(caseEntry.createdAt);
@@ -131,7 +131,7 @@ export function buildOfficialReportDataFromCase({
       "مقدمة",
       "وصف البرنامج",
       "تفاصيل التنفيذ",
-    ]) || "تم إعداد هذا التقرير بناءً على البيانات المدخلة في المنصة والشواهد المرفقة.";
+    ]) || "تم إعداد هذا التقارير بناءً على البيانات المدخلة في المنصة والشواهد المرفقة.";
 
   const sections = buildReportSections(caseEntry.values);
 
@@ -208,7 +208,7 @@ function buildReportSections(values?: CaseValueLike[]): ReportSection[] {
   const sections: ReportSection[] = [
     {
       id: "intro",
-      title: "مقدمة التقرير",
+      title: "مقدمة التقارير",
       content: intro,
     },
   ];

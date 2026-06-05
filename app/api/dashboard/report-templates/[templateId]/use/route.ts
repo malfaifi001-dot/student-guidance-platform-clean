@@ -21,7 +21,7 @@ export async function POST(_request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          message: "قالب التقرير غير موجود أو غير مفعّل.",
+          message: "قالب التقارير غير موجود أو غير مفعّل.",
         },
         { status: 404 },
       );
@@ -40,7 +40,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
     return NextResponse.json({
       success: true,
-      message: "تم تسجيل استخدام قالب التقرير.",
+      message: "تم تسجيل استخدام قالب التقارير.",
       template,
     });
   } catch (error) {
@@ -49,7 +49,7 @@ export async function POST(_request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         success: false,
-        message: "تعذر تسجيل استخدام قالب التقرير.",
+        message: "تعذر تسجيل استخدام قالب التقارير.",
       },
       { status: 500 },
     );

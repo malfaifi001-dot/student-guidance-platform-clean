@@ -57,7 +57,7 @@ export function ReportBuilderPdfRenderer({
     : [
         {
           id: "fallback-cover",
-          title: "غلاف التقرير",
+          title: "غلاف التقارير",
           description: "",
           kind: "cover",
           blocks: [],
@@ -171,7 +171,7 @@ function OfficialPageFrame({
       <main className="min-h-0 flex-1 overflow-hidden pt-6">{children}</main>
 
       <footer className="mt-6 border-t border-slate-200 pt-3 text-center text-[11px] text-slate-500">
-        تم إنشاء التقرير من منصة التوجيه الطلابي
+        تم إنشاء التقارير من منصة التوجيه الطلابي
       </footer>
     </div>
   );
@@ -227,7 +227,7 @@ function OfficialCoverPage({
         <InfoLine label="العام الدراسي" value={identity.academicYear || "العام الدراسي"} />
         <InfoLine label="الفصل الدراسي" value={identity.semester || "الفصل الدراسي"} />
         <InfoLine label="الموجه/الموجهة" value={identity.counselorName || "الموجه/الموجهة الطلابية"} />
-        <InfoLine label="نوع التقرير" value="تقرير إرشادي رسمي" />
+        <InfoLine label="نوع التقارير" value="تقرير إرشادي رسمي" />
       </div>
     </div>
   );
@@ -281,7 +281,7 @@ function OfficialContentPage({
             block={{
               id: "case-meta-fallback",
               kind: "case-meta",
-              title: "بيانات التقرير",
+              title: "بيانات التقارير",
               settings: {},
             } as ReportTemplateBlock}
             template={template}
@@ -322,7 +322,7 @@ function getEditorialSectionsForPage(
     normalizedTitle.includes("محتوى") ||
     normalizedTitle.includes("تقرير")
   ) {
-    add("intro", "مقدمة التقرير");
+    add("intro", "مقدمة التقارير");
     add("goals", "الأهداف");
     add("procedures", "الإجراءات");
   }
@@ -363,7 +363,7 @@ function OfficialBlock({
 
   if (block.kind === "case-meta") {
     return (
-      <OfficialSection title={block.title || "بيانات التقرير"}>
+      <OfficialSection title={block.title || "بيانات التقارير"}>
         <div className="grid grid-cols-2 gap-3">
           <InfoBox label="عنوان الحالة" value={getCaseTitle(previewCaseData)} />
           <InfoBox label="الخدمة" value={getServiceName(template, previewCaseData)} />
@@ -411,7 +411,7 @@ function OfficialBlock({
 
   if (block.kind === "custom-paragraph") {
     return (
-      <OfficialSection title={block.customTitle || block.title || "نص التقرير"}>
+      <OfficialSection title={block.customTitle || block.title || "نص التقارير"}>
         <p className="whitespace-pre-line text-sm leading-8 text-slate-700">
           {block.customContent || "لم يتم إدخال محتوى مخصص بعد."}
         </p>
@@ -421,9 +421,9 @@ function OfficialBlock({
 
   if (block.kind === "paragraph") {
     return (
-      <OfficialSection title={block.title || "نص التقرير"}>
+      <OfficialSection title={block.title || "نص التقارير"}>
         <p className="text-sm leading-8 text-slate-700">
-          يتم عرض هذا القسم ضمن التقرير الرسمي بناءً على إعدادات القالب وبيانات الحالة.
+          يتم عرض هذا القسم ضمن التقارير الرسمي بناءً على إعدادات القالب وبيانات الحالة.
         </p>
       </OfficialSection>
     );
@@ -514,7 +514,7 @@ function OfficialEvidencePage({
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
-          لا توجد شواهد مرتبطة بهذا التقرير.
+          لا توجد شواهد مرتبطة بهذا التقارير.
         </div>
       )}
     </OfficialPageFrame>
@@ -523,7 +523,7 @@ function OfficialEvidencePage({
 
 function OfficialApprovalPage({ identity }: { identity: ReportIdentity }) {
   return (
-    <OfficialPageFrame title="الاعتماد والتوقيع" eyebrow="اعتماد التقرير">
+    <OfficialPageFrame title="الاعتماد والتوقيع" eyebrow="اعتماد التقارير">
       <div className="mt-16 grid grid-cols-2 gap-8">
         <SignatureBox
           title="الموجه/الموجهة الطلابية"

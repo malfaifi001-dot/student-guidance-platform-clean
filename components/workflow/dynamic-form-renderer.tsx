@@ -7,7 +7,12 @@ import { useRouter } from "next/navigation";
 import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
 import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
-import { WorkflowStepCard } from "@/components/workflow/workflow-step-card";
+import {
+  WorkflowStepCard,
+  isCommitteeChainStep,
+} from "@/components/workflow/workflow-step-card";
+
+import { isCommitteeRowsValid } from "@/components/committees/committee-chain-repeater";
 
 import type {
   RuntimeField,
@@ -184,10 +189,39 @@ function isStudentPickerStep(step?: RuntimeStep | null) {
   );
 }
 
+
+function isCommitteeChainRuntimeField(field: RuntimeField) {
+  const text = normalizeRuntimeText(
+    [
+      field.key,
+      field.label,
+      field.type,
+      field.placeholder ?? "",
+      field.helpText ?? "",
+    ].join(" ")
+  );
+
+  return (
+    text.includes("agenda") ||
+    text.includes("agendaitem") ||
+    text.includes("committee_agenda") ||
+    text.includes("جدول") ||
+    text.includes("الاعمال") ||
+    text.includes("discussion") ||
+    text.includes("discussionaxis") ||
+    text.includes("committee_discussion") ||
+    text.includes("محور") ||
+    text.includes("نقاش") ||
+    text.includes("recommendation") ||
+    text.includes("committee_recommendation") ||
+    text.includes("توصي")
+  );
+}
+
 const RUNTIME_SERVICE_LABELS: Record<string, string> = {
   "guidance-programs": "البرامج الإرشادية",
   "student-follow-up": "متابعة الطلاب",
-  "family-school-communication": "التواصل الأسري",
+  "family-school-communication": "التواصل بين الأسرة والمدرسة",
   "student-guidance-services": "الخدمات الإرشادية",
   "committees-meetings": "اللجان والاجتماعات",
 };
@@ -571,7 +605,30 @@ export function DynamicFormRenderer({
 
     if (!currentStep) return true;
 
-    const visibleFields = currentStep.fields.filter(shouldShowFieldInCurrentValues);
+    const isCommitteeChainCurrentStep =
+      workflow.serviceSlug === "committees-meetings" &&
+      isCommitteeChainStep(currentStep);
+
+    if (
+      isCommitteeChainCurrentStep &&
+      !isCommitteeRowsValid(values.committee_items)
+    ) {
+      showFeedback(
+        "warning",
+        "جدول الاجتماع غير مكتمل",
+        "أكمل صفًا واحدًا على الأقل: جدول الأعمال، محور النقاش، والتوصية."
+      );
+
+      return false;
+    }
+
+    const visibleFields = currentStep.fields
+      .filter(shouldShowFieldInCurrentValues)
+      .filter((field) =>
+        isCommitteeChainCurrentStep
+          ? !isCommitteeChainRuntimeField(field)
+          : true
+      );
 
     for (const field of visibleFields) {
       if (!field.isRequired) continue;

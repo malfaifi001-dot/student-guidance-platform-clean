@@ -54,7 +54,7 @@ export const initialReportTemplateBuilderPresets: ReportTemplateBuilderModel[] =
           kind: "cover",
           title: "صفحة الغلاف",
           description:
-            "تعرض عنوان التقرير والهوية الأساسية بدون تكرار التفاصيل.",
+            "تعرض عنوان التقارير والهوية الأساسية بدون تكرار التفاصيل.",
           coverSettings: {
             showHeader: true,
             showFooter: true,
@@ -78,11 +78,11 @@ export const initialReportTemplateBuilderPresets: ReportTemplateBuilderModel[] =
             {
               id: "cover-title",
               kind: "cover-title",
-              title: "عنوان التقرير",
+              title: "عنوان التقارير",
               source: {
                 source: "caseEntry",
                 label: "بيانات الحالة",
-                description: "عنوان التقرير واسم الخدمة من CaseEntry.",
+                description: "عنوان التقارير واسم الخدمة من CaseEntry.",
                 fieldKey: "programTitle",
               },
               required: false,
@@ -96,18 +96,18 @@ export const initialReportTemplateBuilderPresets: ReportTemplateBuilderModel[] =
         {
           id: "page-summary",
           kind: "summary",
-          title: "ملخص التقرير",
+          title: "ملخص التقارير",
           description: "يعرض بيانات مختصرة للقارئ قبل التفاصيل.",
           blocks: [
             {
               id: "summary-case-meta",
               kind: "case-meta",
-              title: "بيانات التقرير",
+              title: "بيانات التقارير",
               source: {
                 source: "caseEntry",
                 label: "ملخص الحالة",
                 description:
-                  "التاريخ، الخدمة، الفئة المستهدفة، وحالة التقرير.",
+                  "التاريخ، الخدمة، الفئة المستهدفة، وحالة التقارير.",
               },
               required: false,
               settings: {

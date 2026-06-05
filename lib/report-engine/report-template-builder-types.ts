@@ -189,7 +189,7 @@ export const REPORT_WORKFLOW_FIELD_OPTIONS = [
   },
   {
     key: "intro",
-    label: "مقدمة التقرير",
+    label: "مقدمة التقارير",
     source: "caseValues" as const,
   },
   {
@@ -304,7 +304,7 @@ export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
     source: {
       source: "caseEntry",
       label: "بيانات الحالة",
-      description: "عنوان التقرير واسم الخدمة وتاريخ التنفيذ من CaseEntry.",
+      description: "عنوان التقارير واسم الخدمة وتاريخ التنفيذ من CaseEntry.",
       fieldKey: "programTitle",
     },
     required: false,
@@ -316,7 +316,7 @@ export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
   {
     id: "block-case-meta",
     kind: "case-meta",
-    title: "بيانات التقرير",
+    title: "بيانات التقارير",
     source: {
       source: "caseEntry",
       label: "ملخص الحالة",
@@ -351,7 +351,7 @@ export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
     source: {
       source: "service",
       label: "بيانات الخدمة",
-      description: "اسم الخدمة ونوعها وربطها بالتقرير.",
+      description: "اسم الخدمة ونوعها وربطها بالتقارير.",
     },
     required: false,
     settings: {

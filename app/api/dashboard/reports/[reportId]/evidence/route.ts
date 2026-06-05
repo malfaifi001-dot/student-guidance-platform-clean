@@ -57,7 +57,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json(
         {
           success: false,
-          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
+          error: "التقارير غير موجود أو لا تملك صلاحية الوصول إليه.",
         },
         { status: 404 }
       );
@@ -150,7 +150,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         success: false,
-        error: "حدث خطأ أثناء تحديث شواهد التقرير.",
+        error: "حدث خطأ أثناء تحديث شواهد التقارير.",
       },
       { status: 500 }
     );

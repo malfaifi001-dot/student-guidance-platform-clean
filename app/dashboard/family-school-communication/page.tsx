@@ -1,13 +1,16 @@
-import { ServiceWorkspace } from "@/components/service-ui/service-workspace";
-import { getServiceWorkspace } from "@/engine/services/service-workspace-engine";
+﻿import { WorkflowServiceHomePage } from "@/components/services/workflow-service-home-page";
 
-export default async function FamilySchoolCommunicationPage() {
-  const workspace = await getServiceWorkspace({
-    slug: "family-school-communication",
-    name: "التواصل بين الأسرة والمدرسة",
-    description:
-      "توثيق التواصل مع الأسرة، سبب التواصل، ما تم مناقشته، والنتيجة ضمن سجلات الخدمة.",
-  });
-
-  return <ServiceWorkspace {...workspace} />;
+export default function FamilySchoolCommunicationPage() {
+  return (
+    <WorkflowServiceHomePage
+      serviceSlug="family-school-communication"
+      title="التواصل بين الأسرة والمدرسة"
+      description="وثّق التواصل مع ولي الأمر، واستكمل المسودات، وأصدر التقارير عند الحاجة."
+      newButtonLabel="إنشاء تواصل جديد"
+      caseSingularName="تواصل"
+      casePluralName="تواصلات"
+      emptyTitle="لا توجد تواصلات بعد"
+      emptyDescription="ابدأ بتوثيق أول تواصل. بعد الحفظ سيظهر هنا كبطاقة سهلة."
+    />
+  );
 }

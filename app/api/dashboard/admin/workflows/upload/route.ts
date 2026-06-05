@@ -3,6 +3,10 @@ import { StudentPickerMode } from "@prisma/client";
 import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
 import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
 import { dashboardServices } from "@/lib/constants/services";
+import {
+  ensureDashboardWorkflowService,
+  isWorkflowUploadEligibleService,
+} from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
@@ -113,15 +117,17 @@ export async function POST(request: Request) {
       (service) => service.slug === serviceSlug
     );
 
-    if (!serviceConfig) {
+    if (!serviceConfig || !isWorkflowUploadEligibleService(serviceConfig)) {
       return NextResponse.json(
         {
           success: false,
-          error: "الخدمة غير معروفة.",
+          error: "هذه الخدمة لا تستخدم Workflow من Excel.",
         },
         { status: 400 }
       );
     }
+
+    await ensureDashboardWorkflowService(serviceSlug);
 
     const buffer = await file.arrayBuffer();
     const rows = await parseWorkflowExcel(buffer);

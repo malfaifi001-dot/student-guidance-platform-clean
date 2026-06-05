@@ -779,10 +779,10 @@ function LivePreview({ template }: { template: ReportTextTemplatePreset }) {
 
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-black text-slate-900">معاينة التقرير</h2>
+      <h2 className="text-lg font-black text-slate-900">معاينة التقارير</h2>
 
       <p className="mt-1 text-sm leading-7 text-slate-500">
-        شكل النصوص كما ستظهر للموجه داخل التقرير.
+        شكل النصوص كما ستظهر للموجه داخل التقارير.
       </p>
 
       <div className="mt-4 space-y-3">

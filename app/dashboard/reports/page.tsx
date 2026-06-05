@@ -97,7 +97,7 @@ export default async function ReportsPage() {
 
             <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-100">
               إدارة التقارير الرسمية الصادرة من الحالات، مع دعم القوالب،
-              الشواهد، الاعتماد، وحفظ Snapshot لضمان ثبات التقرير بعد إصداره.
+              الشواهد، الاعتماد، وحفظ Snapshot لضمان ثبات التقارير بعد إصداره.
             </p>
           </div>
 

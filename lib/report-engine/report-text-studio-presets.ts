@@ -15,7 +15,7 @@ export const REPORT_TEXT_VARIABLES: ReportTextVariable[] = [
   {
     key: "counselorName",
     label: "اسم الموجه/الموجهة",
-    description: "اسم الموجه أو الموجهة الذي أنشأ الحالة أو التقرير.",
+    description: "اسم الموجه أو الموجهة الذي أنشأ الحالة أو التقارير.",
     example: "الموجه الطلابي",
     group: "school",
   },
@@ -29,21 +29,21 @@ export const REPORT_TEXT_VARIABLES: ReportTextVariable[] = [
   {
     key: "semester",
     label: "الفصل الدراسي",
-    description: "الفصل الدراسي المرتبط بالتقرير.",
+    description: "الفصل الدراسي المرتبط بالتقارير.",
     example: "الفصل الدراسي الأول",
     group: "school",
   },
   {
     key: "serviceName",
     label: "اسم الخدمة",
-    description: "الخدمة التي صدر منها التقرير.",
+    description: "الخدمة التي صدر منها التقارير.",
     example: "البرامج الإرشادية",
     group: "service",
   },
   {
     key: "reportTitle",
-    label: "عنوان التقرير",
-    description: "عنوان التقرير النهائي.",
+    label: "عنوان التقارير",
+    description: "عنوان التقارير النهائي.",
     example: "تقرير برنامج تعزيز السلوك الإيجابي",
     group: "case",
   },
@@ -127,7 +127,7 @@ export const REPORT_TEXT_VARIABLES: ReportTextVariable[] = [
   {
     key: "evidenceSuggestion",
     label: "الشواهد المقترحة",
-    description: "الشواهد المناسبة لهذا النوع من التقرير.",
+    description: "الشواهد المناسبة لهذا النوع من التقارير.",
     example: "صور البرنامج، كشف الحضور، نموذج التقييم",
     group: "evidence",
   },
@@ -177,13 +177,13 @@ export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
     blocks: [
       {
         id: "intro",
-        title: "وصف التقرير",
+        title: "وصف التقارير",
         type: "intro",
         isRequired: true,
         isLockedForCounselor: true,
         order: 1,
         body:
-          'تم إعداد هذا التقرير لتوثيق تنفيذ برنامج إرشادي بعنوان "{programTitle}" ضمن خدمة {serviceName}. وقد تم تنفيذ البرنامج بتاريخ {executionDate}{dayText}، مستهدفًا {targetGroup}.',
+          'تم إعداد هذا التقارير لتوثيق تنفيذ برنامج إرشادي بعنوان "{programTitle}" ضمن خدمة {serviceName}. وقد تم تنفيذ البرنامج بتاريخ {executionDate}{dayText}، مستهدفًا {targetGroup}.',
       },
       {
         id: "purpose",
@@ -224,7 +224,7 @@ export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
         isLockedForCounselor: false,
         order: 5,
         body:
-          'تم توثيق تنفيذ البرنامج من خلال الشواهد والمرفقات المرتبطة بالحالة. وتشمل الشواهد المقترحة أو المستخدمة: "{evidenceSuggestion}". ويبلغ عدد الشواهد المرفقة في التقرير {evidenceCountText}.',
+          'تم توثيق تنفيذ البرنامج من خلال الشواهد والمرفقات المرتبطة بالحالة. وتشمل الشواهد المقترحة أو المستخدمة: "{evidenceSuggestion}". ويبلغ عدد الشواهد المرفقة في التقارير {evidenceCountText}.',
       },
       {
         id: "recommendations",
@@ -252,13 +252,13 @@ export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
     blocks: [
       {
         id: "intro",
-        title: "وصف التقرير",
+        title: "وصف التقارير",
         type: "intro",
         isRequired: true,
         isLockedForCounselor: true,
         order: 1,
         body:
-          'تم إعداد هذا التقرير لتوثيق إجراء تواصل ضمن خدمة {serviceName} بخصوص الطالب/الطالبة "{studentName}" من الصف {studentGrade}، وذلك بتاريخ {executionDate}.',
+          'تم إعداد هذا التقارير لتوثيق إجراء تواصل ضمن خدمة {serviceName} بخصوص الطالب/الطالبة "{studentName}" من الصف {studentGrade}، وذلك بتاريخ {executionDate}.',
       },
       {
         id: "execution",
@@ -268,7 +268,7 @@ export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
         isLockedForCounselor: false,
         order: 2,
         body:
-          "يوضح التقرير ملخص التواصل الذي تم بين المدرسة وولي الأمر، وما تم مناقشته من موضوعات مرتبطة بالحالة، مع توثيق نتيجة التواصل والإجراء اللاحق عند الحاجة.",
+          "يوضح التقارير ملخص التواصل الذي تم بين المدرسة وولي الأمر، وما تم مناقشته من موضوعات مرتبطة بالحالة، مع توثيق نتيجة التواصل والإجراء اللاحق عند الحاجة.",
       },
       {
         id: "recommendations",
@@ -339,13 +339,13 @@ export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
     blocks: [
       {
         id: "intro",
-        title: "وصف التقرير",
+        title: "وصف التقارير",
         type: "intro",
         isRequired: true,
         isLockedForCounselor: true,
         order: 1,
         body:
-          'تم إعداد هذا التقرير لتوثيق حالة مرتبطة بخدمة {serviceName} بعنوان "{reportTitle}". وقد تم إعداد التقرير بتاريخ {executionDate}.',
+          'تم إعداد هذا التقارير لتوثيق حالة مرتبطة بخدمة {serviceName} بعنوان "{reportTitle}". وقد تم إعداد التقارير بتاريخ {executionDate}.',
       },
       {
         id: "execution",
@@ -355,7 +355,7 @@ export const REPORT_TEXT_TEMPLATE_PRESETS: ReportTextTemplatePreset[] = [
         isLockedForCounselor: false,
         order: 2,
         body:
-          "يعرض هذا التقرير البيانات الأساسية المرتبطة بالحالة، وما تم توثيقه من إجراءات وملاحظات وشواهد، بهدف دعم المتابعة واتخاذ القرار المناسب.",
+          "يعرض هذا التقارير البيانات الأساسية المرتبطة بالحالة، وما تم توثيقه من إجراءات وملاحظات وشواهد، بهدف دعم المتابعة واتخاذ القرار المناسب.",
       },
       {
         id: "recommendations",

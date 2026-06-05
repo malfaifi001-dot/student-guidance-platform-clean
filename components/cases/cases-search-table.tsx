@@ -117,7 +117,7 @@ function getCasePrimaryAction(caseItem: CaseRow) {
 
   if (caseItem.latestReport?.previewUrl) {
     return {
-      label: "فتح التقرير",
+      label: "فتح التقارير",
       href: caseItem.latestReport.previewUrl,
       className: "bg-emerald-700 text-white hover:bg-emerald-800",
       icon: <FileText className="h-4 w-4" />,
@@ -138,7 +138,7 @@ function getNextActionText(caseItem: CaseRow) {
   }
 
   if (caseItem.reportsCount > 0) {
-    return "مراجعة التقرير";
+    return "مراجعة التقارير";
   }
 
   if (caseItem.status === "SUBMITTED") {

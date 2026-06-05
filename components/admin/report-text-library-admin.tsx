@@ -248,7 +248,7 @@ function TemplatesPreview({
           </h2>
 
           <p className="mt-1 text-sm leading-7 text-slate-500">
-            هذه المعاينة توضّح للأدمن كيف سيظهر النص داخل التقرير بعد استبدال
+            هذه المعاينة توضّح للأدمن كيف سيظهر النص داخل التقارير بعد استبدال
             المتغيرات.
           </p>
         </div>
@@ -292,7 +292,7 @@ function TemplatesPreview({
 
                 {shouldShow ? (
                   <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
-                    يظهر في التقرير
+                    يظهر في التقارير
                   </span>
                 ) : (
                   <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black text-amber-700">

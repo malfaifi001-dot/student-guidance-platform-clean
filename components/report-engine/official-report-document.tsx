@@ -49,7 +49,7 @@ export function OfficialReportDocument({ identity, report }: Props) {
         <ReportHeader identity={identity} />
 
         <div className="content">
-          <SectionTitle title="بيانات التقرير" />
+          <SectionTitle title="بيانات التقارير" />
 
           <div className="meta-grid">
             <InfoRow label="اسم المدرسة" value={identity.schoolName} />
@@ -57,7 +57,7 @@ export function OfficialReportDocument({ identity, report }: Props) {
             <InfoRow label="إدارة التعليم" value={identity.educationDepartment} />
             <InfoRow label="اسم الموجه/الموجهة" value={identity.counselorName} />
             <InfoRow label="الصفة" value={identity.counselorTitle} />
-            <InfoRow label="تاريخ التقرير" value={report.reportDate} />
+            <InfoRow label="تاريخ التقارير" value={report.reportDate} />
           </div>
 
           {report.sections.map((section) => (

@@ -265,7 +265,7 @@ export function NewReportCasePicker({
 
         if (!response.ok || !data.ok) {
           throw new Error(
-            "error" in data ? data.error : "تعذر تجهيز بيانات التقرير."
+            "error" in data ? data.error : "تعذر تجهيز بيانات التقارير."
           );
         }
 
@@ -279,7 +279,7 @@ export function NewReportCasePicker({
         setPrepareError(
           error instanceof Error
             ? error.message
-            : "تعذر تجهيز بيانات التقرير."
+            : "تعذر تجهيز بيانات التقارير."
         );
       } finally {
         setLoadingPrepare(false);
@@ -295,12 +295,12 @@ export function NewReportCasePicker({
 
   async function handleCreateReport() {
     if (!selectedCaseId) {
-      setCreateReportError("اختر حالة أولًا لإنشاء التقرير.");
+      setCreateReportError("اختر حالة أولًا لإنشاء التقارير.");
       return;
     }
 
     if (!preparedReportData) {
-      setCreateReportError("بيانات التقرير غير جاهزة بعد.");
+      setCreateReportError("بيانات التقارير غير جاهزة بعد.");
       return;
     }
 
@@ -323,7 +323,7 @@ export function NewReportCasePicker({
       const data = (await response.json()) as CreateReportApiResponse;
 
       if (!response.ok || !("success" in data) || !data.success) {
-        throw new Error("error" in data ? data.error : "تعذر إنشاء التقرير.");
+        throw new Error("error" in data ? data.error : "تعذر إنشاء التقارير.");
       }
 
       router.push(
@@ -333,7 +333,7 @@ export function NewReportCasePicker({
       router.refresh();
     } catch (error) {
       setCreateReportError(
-        error instanceof Error ? error.message : "تعذر إنشاء التقرير."
+        error instanceof Error ? error.message : "تعذر إنشاء التقارير."
       );
     } finally {
       setCreatingReport(false);
@@ -353,8 +353,8 @@ export function NewReportCasePicker({
               </h1>
 
               <p className="mt-3 max-w-3xl text-sm leading-7 text-sky-50">
-                اختر الحالة، راجع البيانات، اختر القالب، ثم أنشئ التقرير. سيتم
-                حفظ Snapshot للبيانات والقالب حتى يبقى التقرير ثابتًا لاحقًا.
+                اختر الحالة، راجع البيانات، اختر القالب، ثم أنشئ التقارير. سيتم
+                حفظ Snapshot للبيانات والقالب حتى يبقى التقارير ثابتًا لاحقًا.
               </p>
             </div>
 
@@ -514,11 +514,11 @@ function EmptyState() {
   return (
     <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
       <h2 className="text-xl font-black text-slate-900">
-        اختر حالة لإصدار التقرير
+        اختر حالة لإصدار التقارير
       </h2>
 
       <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-slate-500">
-        عند اختيار الحالة سيقوم النظام بتجهيز بيانات التقرير تلقائيًا من
+        عند اختيار الحالة سيقوم النظام بتجهيز بيانات التقارير تلقائيًا من
         البيانات المحفوظة مسبقًا.
       </p>
     </section>
@@ -593,7 +593,7 @@ function CaseOverviewCard({ caseEntry }: { caseEntry: ReportCaseListItem }) {
           </p>
 
           <p className="mt-1 text-xs leading-6 text-amber-700">
-            يمكن إنشاء التقرير، لكن بعض بلوكات بيانات الطالب في القوالب
+            يمكن إنشاء التقارير، لكن بعض بلوكات بيانات الطالب في القوالب
             الرسمية قد تظهر فارغة.
           </p>
         </div>
@@ -615,7 +615,7 @@ function PreparedReportPreview({
     return (
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-black text-slate-700">
-          جارٍ تجهيز بيانات التقرير...
+          جارٍ تجهيز بيانات التقارير...
         </p>
       </section>
     );
@@ -625,7 +625,7 @@ function PreparedReportPreview({
     return (
       <section className="rounded-[2rem] border border-red-200 bg-red-50 p-6 shadow-sm">
         <h2 className="text-lg font-black text-red-800">
-          تعذر تجهيز التقرير
+          تعذر تجهيز التقارير
         </h2>
 
         <p className="mt-2 text-sm leading-7 text-red-700">{error}</p>
@@ -642,7 +642,7 @@ function PreparedReportPreview({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-black text-emerald-700">
-            بيانات التقرير جاهزة
+            بيانات التقارير جاهزة
           </p>
 
           <h2 className="mt-2 text-2xl font-black text-slate-900">
@@ -650,7 +650,7 @@ function PreparedReportPreview({
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-slate-500">
-            تم تجهيز البيانات من الحالة. هذه البيانات ستكون مصدر التقرير، ولن
+            تم تجهيز البيانات من الحالة. هذه البيانات ستكون مصدر التقارير، ولن
             يحتاج الموجه/الموجهة لإعادة إدخالها.
           </p>
         </div>
@@ -772,12 +772,12 @@ function ReportCreationCard({
   return (
     <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-sm">
       <h2 className="text-lg font-black text-amber-900">
-        اختيار قالب التقرير
+        اختيار قالب التقارير
       </h2>
 
       <p className="mt-2 text-sm leading-7 text-amber-800">
-        اختر القالب المناسب قبل إنشاء التقرير. سيتم حفظ نسخة Snapshot من القالب
-        والبيانات حتى يبقى التقرير ثابتًا حتى لو تغيرت الحالة أو القالب لاحقًا.
+        اختر القالب المناسب قبل إنشاء التقارير. سيتم حفظ نسخة Snapshot من القالب
+        والبيانات حتى يبقى التقارير ثابتًا حتى لو تغيرت الحالة أو القالب لاحقًا.
       </p>
 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
@@ -827,7 +827,7 @@ function ReportCreationCard({
 
       <div className="mt-5 rounded-2xl border border-amber-200 bg-white p-4">
         <p className="text-xs font-black text-slate-500">
-          القالب الذي سيتم حفظه في التقرير
+          القالب الذي سيتم حفظه في التقارير
         </p>
 
         <p className="mt-1 text-sm font-black text-slate-900">
@@ -848,8 +848,8 @@ function ReportCreationCard({
         className="mt-5 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {creatingReport
-          ? "جارٍ إنشاء التقرير..."
-          : "إنشاء التقرير وفتح المعاينة"}
+          ? "جارٍ إنشاء التقارير..."
+          : "إنشاء التقارير وفتح المعاينة"}
       </button>
     </section>
   );

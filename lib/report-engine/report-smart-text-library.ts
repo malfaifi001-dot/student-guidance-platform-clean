@@ -27,12 +27,12 @@ export const SMART_TEXT_VARIABLES: SmartTextVariableDefinition[] = [
   {
     key: "serviceName",
     label: "اسم الخدمة",
-    description: "اسم الخدمة الإرشادية التي صدر منها التقرير.",
+    description: "اسم الخدمة الإرشادية التي صدر منها التقارير.",
     example: "البرامج الإرشادية",
   },
   {
     key: "reportTitle",
-    label: "عنوان التقرير",
+    label: "عنوان التقارير",
     description: "العنوان المحفوظ للتقرير.",
     example: "تقرير برنامج تعزيز السلوك الإيجابي",
   },
@@ -45,7 +45,7 @@ export const SMART_TEXT_VARIABLES: SmartTextVariableDefinition[] = [
   {
     key: "executionDate",
     label: "تاريخ التنفيذ",
-    description: "تاريخ تنفيذ البرنامج أو تاريخ التقرير عند عدم توفره.",
+    description: "تاريخ تنفيذ البرنامج أو تاريخ التقارير عند عدم توفره.",
     example: "2026-05-26",
   },
   {
@@ -87,7 +87,7 @@ export const SMART_TEXT_VARIABLES: SmartTextVariableDefinition[] = [
   {
     key: "evidenceSuggestion",
     label: "الشواهد",
-    description: "الشواهد المقترحة أو المستخدمة في التقرير.",
+    description: "الشواهد المقترحة أو المستخدمة في التقارير.",
     example: "صور البرنامج، كشف الحضور، نموذج التقييم",
   },
   {
@@ -107,9 +107,9 @@ export const GUIDANCE_PROGRAM_TEXT_LIBRARY: SmartTextTemplateSet = {
   sections: [
     {
       id: "smart-intro",
-      title: "وصف التقرير",
+      title: "وصف التقارير",
       body:
-        'تم إعداد هذا التقرير لتوثيق تنفيذ برنامج إرشادي بعنوان "{programTitle}" ضمن خدمة {serviceName}. وقد تم تنفيذ البرنامج بتاريخ {executionDate}{dayText}، مستهدفًا {targetGroup}. ويأتي هذا البرنامج ضمن {semesterWeekText}.',
+        'تم إعداد هذا التقارير لتوثيق تنفيذ برنامج إرشادي بعنوان "{programTitle}" ضمن خدمة {serviceName}. وقد تم تنفيذ البرنامج بتاريخ {executionDate}{dayText}، مستهدفًا {targetGroup}. ويأتي هذا البرنامج ضمن {semesterWeekText}.',
     },
     {
       id: "smart-purpose",
@@ -134,7 +134,7 @@ export const GUIDANCE_PROGRAM_TEXT_LIBRARY: SmartTextTemplateSet = {
       id: "smart-evidence",
       title: "توثيق الشواهد",
       body:
-        'تم توثيق تنفيذ البرنامج من خلال الشواهد والمرفقات المرتبطة بالحالة. وتشمل الشواهد المقترحة أو المستخدمة: "{evidenceSuggestion}". ويبلغ عدد الشواهد المرفقة في التقرير {evidenceCountText}.',
+        'تم توثيق تنفيذ البرنامج من خلال الشواهد والمرفقات المرتبطة بالحالة. وتشمل الشواهد المقترحة أو المستخدمة: "{evidenceSuggestion}". ويبلغ عدد الشواهد المرفقة في التقارير {evidenceCountText}.',
     },
     {
       id: "smart-recommendation",
@@ -153,21 +153,21 @@ export const GENERAL_REPORT_TEXT_LIBRARY: SmartTextTemplateSet = {
   sections: [
     {
       id: "smart-general-intro",
-      title: "وصف التقرير",
+      title: "وصف التقارير",
       body:
-        'تم إعداد هذا التقرير لتوثيق حالة مرتبطة بخدمة {serviceName} بعنوان "{programTitle}". وقد تم إعداد التقرير بتاريخ {executionDate}، مستهدفًا {targetGroup}.',
+        'تم إعداد هذا التقارير لتوثيق حالة مرتبطة بخدمة {serviceName} بعنوان "{programTitle}". وقد تم إعداد التقارير بتاريخ {executionDate}، مستهدفًا {targetGroup}.',
     },
     {
       id: "smart-general-summary",
       title: "ملخص الحالة",
       body:
-        "يعرض هذا التقرير البيانات الأساسية المرتبطة بالحالة، وما تم توثيقه من إجراءات وملاحظات وشواهد، بهدف دعم المتابعة واتخاذ القرار المناسب.",
+        "يعرض هذا التقارير البيانات الأساسية المرتبطة بالحالة، وما تم توثيقه من إجراءات وملاحظات وشواهد، بهدف دعم المتابعة واتخاذ القرار المناسب.",
     },
     {
       id: "smart-general-evidence",
       title: "الشواهد والمرفقات",
       body:
-        "تم ربط التقرير بالشواهد المتاحة في الحالة، ويبلغ عدد الشواهد المرفقة {evidenceCountText}.",
+        "تم ربط التقارير بالشواهد المتاحة في الحالة، ويبلغ عدد الشواهد المرفقة {evidenceCountText}.",
     },
     {
       id: "smart-general-recommendation",

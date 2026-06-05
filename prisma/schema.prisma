@@ -86,6 +86,25 @@ enum EvidenceType {
   LINK
 }
 
+enum CalendarReminderStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+enum CalendarReminderPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum CalendarReminderLinkType {
+  GENERAL
+  SERVICE
+  CASE
+  STUDENT
+}
+
 enum SubscriptionStatus {
   TRIAL
   ACTIVE
@@ -122,16 +141,17 @@ model SchoolAccount {
   studentImportSessions StudentImportSession[]
   users                 User[]
 
-  profile         SchoolProfile?
-  students        Student[]
-  guardians       Guardian[]
-  staff           StaffMember[]
-  services        ServiceAccess[]
-  cases           CaseEntry[]
-  subscription    Subscription?
-  resultsAnalyses ResultsAnalysis[]
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  profile           SchoolProfile?
+  students          Student[]
+  guardians         Guardian[]
+  staff             StaffMember[]
+  services          ServiceAccess[]
+  cases             CaseEntry[]
+  subscription      Subscription?
+  resultsAnalyses   ResultsAnalysis[]
+  calendarReminders CalendarReminder[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 model User {
@@ -153,8 +173,9 @@ model User {
   onboardingCompletedAt DateTime?
   onboardingSkippedAt   DateTime?
 
-  cases    CaseEntry[]
-  sessions UserSession[]
+  cases             CaseEntry[]
+  sessions          UserSession[]
+  calendarReminders CalendarReminder[]
 
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -242,7 +263,8 @@ model Student {
   phone      String?
   isActive   Boolean @default(true)
 
-  cases CaseEntry[]
+  cases             CaseEntry[]
+  calendarReminders CalendarReminder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -276,9 +298,10 @@ model Service {
   description String?
   status      ServiceStatus @default(ACTIVE)
 
-  workflows Workflow[]
-  cases     CaseEntry[]
-  access    ServiceAccess[]
+  workflows         Workflow[]
+  cases             CaseEntry[]
+  access            ServiceAccess[]
+  calendarReminders CalendarReminder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -393,8 +416,9 @@ model CaseEntry {
   status      CaseStatus @default(DRAFT)
   submittedAt DateTime?
 
-  values    CaseValue[]
-  evidences Evidence[]
+  values            CaseValue[]
+  evidences         Evidence[]
+  calendarReminders CalendarReminder[]
 
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -445,6 +469,50 @@ model Evidence {
   updatedAt DateTime @updatedAt
 
   @@index([caseEntryId])
+}
+
+model CalendarReminder {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title String
+  note  String?
+
+  status   CalendarReminderStatus   @default(PENDING)
+  priority CalendarReminderPriority @default(NORMAL)
+  linkType CalendarReminderLinkType @default(GENERAL)
+
+  scheduledAt         DateTime
+  remindBeforeMinutes Int?
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  completedAt   DateTime?
+  completedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledAt])
+  @@index([serviceId])
+  @@index([caseEntryId])
+  @@index([studentId])
 }
 
 model ExportTemplate {

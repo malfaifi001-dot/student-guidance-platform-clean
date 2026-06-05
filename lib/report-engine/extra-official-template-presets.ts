@@ -66,7 +66,7 @@ export const extraOfficialReportTemplatePresets: ReportTemplateBuilderModel[] = 
         "غلاف A4 رسمي بترويسة ثابتة وشعار وزارة التعليم فقط.",
         [
           block("minimal-identity", "identity-header", "الترويسة الرسمية", "هوية الوزارة والمدرسة والموجه.", "schoolName"),
-          block("minimal-title", "cover-title", "عنوان التقرير", "عنوان التقرير واسم الخدمة.", "title"),
+          block("minimal-title", "cover-title", "عنوان التقارير", "عنوان التقارير واسم الخدمة.", "title"),
         ],
         {
           showHeader: true,
@@ -83,7 +83,7 @@ export const extraOfficialReportTemplatePresets: ReportTemplateBuilderModel[] = 
         "المحتوى الرئيسي",
         "فقرة رسمية ذكية قابلة للتحرير من الاستديو وتدعم المتغيرات.",
         [
-          block("minimal-paragraph", "custom-paragraph", "نص التقرير", "نص ثابت مع متغيرات ديناميكية من Case وWorkflow.", "summary"),
+          block("minimal-paragraph", "custom-paragraph", "نص التقارير", "نص ثابت مع متغيرات ديناميكية من Case وWorkflow.", "summary"),
           block("minimal-fields", "field-list", "البيانات المختصرة", "أهم القيم القادمة من الحالة.", "title"),
         ],
       ),
@@ -122,10 +122,10 @@ export const extraOfficialReportTemplatePresets: ReportTemplateBuilderModel[] = 
         "evidence-cover",
         "cover",
         "غلاف تقرير الشواهد",
-        "غلاف رسمي مختصر يوضح نوع التقرير وعدد الشواهد.",
+        "غلاف رسمي مختصر يوضح نوع التقارير وعدد الشواهد.",
         [
           block("evidence-identity", "identity-header", "الترويسة الرسمية", "هوية وزارة التعليم والمدرسة.", "schoolName"),
-          block("evidence-title", "cover-title", "عنوان التقرير", "عنوان التقرير المرتبط بالحالة.", "title"),
+          block("evidence-title", "cover-title", "عنوان التقارير", "عنوان التقارير المرتبط بالحالة.", "title"),
         ],
         {
           showHeader: true,
@@ -152,16 +152,16 @@ export const extraOfficialReportTemplatePresets: ReportTemplateBuilderModel[] = 
         "الشواهد والمرفقات",
         "صفحات شواهد مستقلة. يمكن لاحقًا ضبطها شاهد لكل صفحة أو شاهدين أو أربعة.",
         [
-          block("evidence-gallery", "evidence-gallery", "معرض الشواهد", "عرض الصور والمرفقات المرتبطة بالتقرير.", "evidence"),
+          block("evidence-gallery", "evidence-gallery", "معرض الشواهد", "عرض الصور والمرفقات المرتبطة بالتقارير.", "evidence"),
         ],
       ),
       page(
         "evidence-approval",
         "approval",
-        "اعتماد التقرير",
-        "توقيع واعتماد التقرير.",
+        "اعتماد التقارير",
+        "توقيع واعتماد التقارير.",
         [
-          block("evidence-signature", "approval-signature", "الاعتماد والتوقيع", "اعتماد التقرير بعد مراجعة الشواهد.", "counselorName"),
+          block("evidence-signature", "approval-signature", "الاعتماد والتوقيع", "اعتماد التقارير بعد مراجعة الشواهد.", "counselorName"),
         ],
       ),
     ],
@@ -186,7 +186,7 @@ export const extraOfficialReportTemplatePresets: ReportTemplateBuilderModel[] = 
         "غلاف الجلسة الإرشادية",
         "غلاف رسمي لجلسة إرشادية.",
         [
-          block("session-identity", "identity-header", "الترويسة الرسمية", "هوية التقرير.", "schoolName"),
+          block("session-identity", "identity-header", "الترويسة الرسمية", "هوية التقارير.", "schoolName"),
           block("session-title", "cover-title", "عنوان الجلسة", "عنوان الجلسة ونوع الخدمة.", "sessionTitle"),
         ],
         {

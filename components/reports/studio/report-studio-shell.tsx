@@ -90,8 +90,8 @@ export function ReportStudioShell({
       setFeedback({
         open: true,
         type: "error",
-        title: "تعذر حفظ التقرير",
-        description: data.error || "حدث خطأ أثناء حفظ التقرير.",
+        title: "تعذر حفظ التقارير",
+        description: data.error || "حدث خطأ أثناء حفظ التقارير.",
       });
       return;
     }
@@ -105,7 +105,7 @@ export function ReportStudioShell({
         open: true,
         type: "warning",
         title: "لا يوجد نص",
-        description: "اكتب نصًا في محرر التقرير قبل حفظه كتامبلت.",
+        description: "اكتب نصًا في محرر التقارير قبل حفظه كتامبلت.",
       });
       return;
     }

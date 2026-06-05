@@ -175,7 +175,7 @@ const EVIDENCE_LAYOUT_OPTIONS: Array<{
   {
     id: "compact",
     label: "مختصر",
-    helper: "يعرض الشواهد بشكل مضغوط داخل التقرير.",
+    helper: "يعرض الشواهد بشكل مضغوط داخل التقارير.",
   },
 ];
 
@@ -393,8 +393,8 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
     if (locked) {
       setFeedback({
         type: "warning",
-        title: "التقرير مغلق",
-        message: "لا يمكن تعديل التقرير بعد الاعتماد أو الأرشفة.",
+        title: "التقارير مغلق",
+        message: "لا يمكن تعديل التقارير بعد الاعتماد أو الأرشفة.",
       });
       return;
     }
@@ -418,7 +418,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "تعذر حفظ التقرير.");
+        throw new Error(data.error || "تعذر حفظ التقارير.");
       }
 
       if (evidenceChanged) {
@@ -431,7 +431,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
         type: "success",
         title: "تم حفظ التعديلات",
         message:
-          "تم حفظ تعديلات التقرير فقط. بيانات الحالة الأصلية لم تتغير.",
+          "تم حفظ تعديلات التقارير فقط. بيانات الحالة الأصلية لم تتغير.",
       });
 
       setPreviewVersion((current) => current + 1);
@@ -446,7 +446,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
         message:
           error instanceof Error
             ? error.message
-            : "حدث خطأ أثناء حفظ التقرير.",
+            : "حدث خطأ أثناء حفظ التقارير.",
       });
     } finally {
       setSaving(false);
@@ -473,13 +473,13 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "تعذر اعتماد التقرير.");
+        throw new Error(data.error || "تعذر اعتماد التقارير.");
       }
 
       setFeedback({
         type: "success",
-        title: "تم اعتماد التقرير",
-        message: "تم اعتماد التقرير وإغلاقه من التعديل.",
+        title: "تم اعتماد التقارير",
+        message: "تم اعتماد التقارير وإغلاقه من التعديل.",
       });
 
       startTransition(() => {
@@ -492,7 +492,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
         message:
           error instanceof Error
             ? error.message
-            : "حدث خطأ أثناء اعتماد التقرير.",
+            : "حدث خطأ أثناء اعتماد التقارير.",
       });
     } finally {
       setApproving(false);
@@ -575,7 +575,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="inline-flex rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
-                محرر التقرير
+                محرر التقارير
               </p>
 
               <h1 className="mt-3 text-3xl font-black text-slate-950">
@@ -636,7 +636,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600">
-                    {activePage?.title || "صفحة التقرير"}
+                    {activePage?.title || "صفحة التقارير"}
                   </span>
 
                   <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
@@ -746,7 +746,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
 
 <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-black text-slate-900">
-                عنوان التقرير
+                عنوان التقارير
               </h2>
 
               <input
@@ -773,7 +773,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                 disabled={locked || approving}
                 className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
               >
-                {approving ? "جاري الاعتماد..." : "اعتماد التقرير"}
+                {approving ? "جاري الاعتماد..." : "اعتماد التقارير"}
               </button>
             </div>
           </aside>
@@ -808,11 +808,11 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                 <div className="mt-4 space-y-4">
                   <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
                     <h3 className="text-sm font-black text-emerald-950">
-                      إعدادات عرض الشواهد داخل التقرير
+                      إعدادات عرض الشواهد داخل التقارير
                     </h3>
 
                     <p className="mt-1 text-xs font-bold leading-6 text-emerald-800">
-                      هذا الخيار يحفظ داخل التقرير فقط، ومحرك الشواهد سيحافظ على كل شاهد داخل إطار الصفحة وينشئ صفحات إضافية عند الحاجة.
+                      هذا الخيار يحفظ داخل التقارير فقط، ومحرك الشواهد سيحافظ على كل شاهد داخل إطار الصفحة وينشئ صفحات إضافية عند الحاجة.
                     </p>
 
                     <select
@@ -956,7 +956,7 @@ function StatusPanel({
     <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-black text-slate-500">حالة التقرير</p>
+          <p className="text-xs font-black text-slate-500">حالة التقارير</p>
           <h2 className="mt-1 text-lg font-black text-slate-950">
             {getStatusName(status)}
           </h2>
@@ -1105,7 +1105,7 @@ function EvidenceEditor({
             الشواهد في هذه الصفحة
           </h2>
           <p className="mt-1 text-xs font-bold text-slate-500">
-            إظهار/إخفاء الشواهد أو تعديل التعليق داخل التقرير فقط.
+            إظهار/إخفاء الشواهد أو تعديل التعليق داخل التقارير فقط.
           </p>
         </div>
 
@@ -1170,14 +1170,14 @@ function EvidenceEditor({
                 onChange={(event) =>
                   onUpdate(item.id, { caption: event.target.value })
                 }
-                placeholder="تعليق الشاهد داخل التقرير..."
+                placeholder="تعليق الشاهد داخل التقارير..."
                 className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
               />
             </article>
           ))
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
-            لا توجد شواهد مرتبطة بهذا التقرير.
+            لا توجد شواهد مرتبطة بهذا التقارير.
           </div>
         )}
       </div>
@@ -1530,7 +1530,7 @@ function resolveTextLibraryFallback(block: TemplateBlock) {
     getBlockTitle(block);
 
   if (String(category).includes("هدف")) {
-    return "يهدف هذا التقرير إلى توثيق {serviceName} وبيان أبرز البيانات والإجراءات المرتبطة بالحالة {caseTitle}.";
+    return "يهدف هذا التقارير إلى توثيق {serviceName} وبيان أبرز البيانات والإجراءات المرتبطة بالحالة {caseTitle}.";
   }
 
   if (String(category).includes("إجراء")) {
@@ -1538,18 +1538,18 @@ function resolveTextLibraryFallback(block: TemplateBlock) {
   }
 
   if (String(category).includes("نتيجة")) {
-    return "توضح البيانات الحالية أن خدمة {serviceName} تم التعامل معها وفق ما ورد في الحالة، مع حفظ النتائج داخل التقرير.";
+    return "توضح البيانات الحالية أن خدمة {serviceName} تم التعامل معها وفق ما ورد في الحالة، مع حفظ النتائج داخل التقارير.";
   }
 
   if (String(category).includes("توصية")) {
-    return "يوصى بمتابعة الحالة عند الحاجة وتحديث السجل عند وجود مستجدات، مع الاستفادة من الشواهد المرتبطة بالتقرير.";
+    return "يوصى بمتابعة الحالة عند الحاجة وتحديث السجل عند وجود مستجدات، مع الاستفادة من الشواهد المرتبطة بالتقارير.";
   }
 
   if (String(category).includes("خاتمة")) {
-    return "تم إعداد هذا التقرير من منصة التوجيه الطلابي اعتمادًا على بيانات الحالة والشواهد المرتبطة بها.";
+    return "تم إعداد هذا التقارير من منصة التوجيه الطلابي اعتمادًا على بيانات الحالة والشواهد المرتبطة بها.";
   }
 
-  return "تم إعداد هذا التقرير لخدمة {serviceName} بناءً على بيانات الحالة {caseTitle} والشواهد المرتبطة بها.";
+  return "تم إعداد هذا التقارير لخدمة {serviceName} بناءً على بيانات الحالة {caseTitle} والشواهد المرتبطة بها.";
 }
 
 function buildSuggestionsForBlock({
@@ -1578,19 +1578,19 @@ function buildSuggestionsForBlock({
         id: "goals-1",
         title: "هدف رسمي مختصر",
         helper: "مناسب للتقارير المختصرة.",
-        body: `يهدف هذا التقرير إلى توثيق ${serviceName} المرتبطة بـ ${caseTitle}، وبيان أبرز البيانات والإجراءات والشواهد التي تم تسجيلها في المنصة.`,
+        body: `يهدف هذا التقارير إلى توثيق ${serviceName} المرتبطة بـ ${caseTitle}، وبيان أبرز البيانات والإجراءات والشواهد التي تم تسجيلها في المنصة.`,
       },
       {
         id: "goals-2",
         title: "هدف تربوي",
         helper: "صياغة تربوية مناسبة للإدارة.",
-        body: `يسعى التقرير إلى إبراز الجهود التربوية والإرشادية المقدمة ضمن ${serviceName}، ومتابعة أثرها على ${studentName} أو الفئة المستهدفة، وفق البيانات المعتمدة.`,
+        body: `يسعى التقارير إلى إبراز الجهود التربوية والإرشادية المقدمة ضمن ${serviceName}، ومتابعة أثرها على ${studentName} أو الفئة المستهدفة، وفق البيانات المعتمدة.`,
       },
       {
         id: "goals-3",
         title: "هدف تفصيلي",
         helper: "مناسب للتقارير الطويلة.",
-        body: `يهدف التقرير إلى جمع بيانات ${caseTitle} في صورة منظمة، تشمل الخدمة المقدمة، القيم المسجلة، الشواهد الداعمة، والتوصيات المناسبة لضمان جودة المتابعة.`,
+        body: `يهدف التقارير إلى جمع بيانات ${caseTitle} في صورة منظمة، تشمل الخدمة المقدمة، القيم المسجلة، الشواهد الداعمة، والتوصيات المناسبة لضمان جودة المتابعة.`,
       },
     ];
   }
@@ -1607,13 +1607,13 @@ function buildSuggestionsForBlock({
         id: "procedures-2",
         title: "إجراء منظم",
         helper: "يركز على التوثيق.",
-        body: `تمت مراجعة بيانات ${caseTitle}، وتنظيم القيم المرتبطة بالخدمة، وربط الشواهد الداعمة وعددها ${evidenceCount}، تمهيدًا لإصدار التقرير الرسمي.`,
+        body: `تمت مراجعة بيانات ${caseTitle}، وتنظيم القيم المرتبطة بالخدمة، وربط الشواهد الداعمة وعددها ${evidenceCount}، تمهيدًا لإصدار التقارير الرسمي.`,
       },
       {
         id: "procedures-3",
         title: "إجراء تربوي",
         helper: "مناسب للبرامج والمتابعات.",
-        body: `جرى التعامل مع ${caseTitle} بما يتناسب مع طبيعة ${serviceName}، مع مراعاة احتياج ${studentName} أو ${targetGroup}، وتوثيق ما تم تنفيذه داخل التقرير.`,
+        body: `جرى التعامل مع ${caseTitle} بما يتناسب مع طبيعة ${serviceName}، مع مراعاة احتياج ${studentName} أو ${targetGroup}، وتوثيق ما تم تنفيذه داخل التقارير.`,
       },
     ];
   }
@@ -1624,13 +1624,13 @@ function buildSuggestionsForBlock({
         id: "results-1",
         title: "نتيجة مختصرة",
         helper: "تصلح للنتائج العامة.",
-        body: `أظهرت البيانات المسجلة أن ${serviceName} تم تنفيذها وتوثيقها بنجاح، مع توفر الشواهد والبيانات اللازمة لدعم التقرير.`,
+        body: `أظهرت البيانات المسجلة أن ${serviceName} تم تنفيذها وتوثيقها بنجاح، مع توفر الشواهد والبيانات اللازمة لدعم التقارير.`,
       },
       {
         id: "results-2",
         title: "نتيجة تحليلية",
-        helper: "تعطي التقرير طابعًا أكثر مهنية.",
-        body: `تشير المعطيات المرتبطة بـ ${caseTitle} إلى اكتمال عناصر التقرير الأساسية، بما في ذلك البيانات، القيم، والشواهد، مما يعزز موثوقية التقرير النهائي.`,
+        helper: "تعطي التقارير طابعًا أكثر مهنية.",
+        body: `تشير المعطيات المرتبطة بـ ${caseTitle} إلى اكتمال عناصر التقارير الأساسية، بما في ذلك البيانات، القيم، والشواهد، مما يعزز موثوقية التقارير النهائي.`,
       },
       {
         id: "results-3",
@@ -1653,13 +1653,13 @@ function buildSuggestionsForBlock({
         id: "recommendations-2",
         title: "توصيات للإدارة",
         helper: "مناسبة للرفع الرسمي.",
-        body: `يوصى بالاطلاع على هذا التقرير واعتماد ما ورد فيه من بيانات وشواهد، مع دعم الإجراءات التي تعزز جودة تنفيذ ${serviceName}.`,
+        body: `يوصى بالاطلاع على هذا التقارير واعتماد ما ورد فيه من بيانات وشواهد، مع دعم الإجراءات التي تعزز جودة تنفيذ ${serviceName}.`,
       },
       {
         id: "recommendations-3",
         title: "توصيات تربوية",
         helper: "صياغة تربوية مرنة.",
-        body: `يوصى بتعزيز التواصل والمتابعة بما يخدم مصلحة ${studentName} أو ${targetGroup}، والاستفادة من نتائج التقرير في تحسين التدخلات اللاحقة.`,
+        body: `يوصى بتعزيز التواصل والمتابعة بما يخدم مصلحة ${studentName} أو ${targetGroup}، والاستفادة من نتائج التقارير في تحسين التدخلات اللاحقة.`,
       },
     ];
   }
@@ -1670,19 +1670,19 @@ function buildSuggestionsForBlock({
         id: "closing-1",
         title: "خاتمة رسمية",
         helper: "مناسبة للتقارير الرسمية.",
-        body: `وبذلك تم إعداد هذا التقرير لخدمة ${serviceName} اعتمادًا على البيانات المسجلة والشواهد المرتبطة بالحالة، ليكون مرجعًا رسميًا عند الحاجة.`,
+        body: `وبذلك تم إعداد هذا التقارير لخدمة ${serviceName} اعتمادًا على البيانات المسجلة والشواهد المرتبطة بالحالة، ليكون مرجعًا رسميًا عند الحاجة.`,
       },
       {
         id: "closing-2",
         title: "خاتمة مختصرة",
         helper: "مناسبة لتقرير سريع.",
-        body: `تم توثيق بيانات ${caseTitle} وشواهدها في هذا التقرير، مع حفظ نسخة قابلة للمراجعة والاعتماد.`,
+        body: `تم توثيق بيانات ${caseTitle} وشواهدها في هذا التقارير، مع حفظ نسخة قابلة للمراجعة والاعتماد.`,
       },
       {
         id: "closing-3",
         title: "خاتمة تربوية",
         helper: "مناسبة للموجهين.",
-        body: `يعكس هذا التقرير الجهود المبذولة في متابعة ${caseTitle} ضمن ${serviceName}، ويؤكد أهمية استمرار التوثيق والمتابعة عند الحاجة.`,
+        body: `يعكس هذا التقارير الجهود المبذولة في متابعة ${caseTitle} ضمن ${serviceName}، ويؤكد أهمية استمرار التوثيق والمتابعة عند الحاجة.`,
       },
     ];
   }
@@ -1692,25 +1692,25 @@ function buildSuggestionsForBlock({
       id: "intro-1",
       title: "مقدمة رسمية",
       helper: "صياغة مناسبة لمعظم التقارير.",
-      body: `بناءً على بيانات ${caseTitle} المرتبطة بخدمة ${serviceName}، تم إعداد هذا التقرير لعرض أبرز المعلومات والقيم والشواهد المسجلة في المنصة.`,
+      body: `بناءً على بيانات ${caseTitle} المرتبطة بخدمة ${serviceName}، تم إعداد هذا التقارير لعرض أبرز المعلومات والقيم والشواهد المسجلة في المنصة.`,
     },
     {
       id: "intro-2",
       title: "مقدمة تربوية",
       helper: "صياغة إنسانية للموجه.",
-      body: `يأتي هذا التقرير ضمن جهود التوجيه الطلابي في متابعة ${caseTitle}، وتوثيق ما يرتبط بها من إجراءات ونتائج تخدم ${studentName} أو ${targetGroup}.`,
+      body: `يأتي هذا التقارير ضمن جهود التوجيه الطلابي في متابعة ${caseTitle}، وتوثيق ما يرتبط بها من إجراءات ونتائج تخدم ${studentName} أو ${targetGroup}.`,
     },
     {
       id: "intro-3",
       title: "مقدمة مختصرة",
       helper: "مناسبة للتقارير السريعة.",
-      body: `يوثق هذا التقرير خدمة ${serviceName} للحالة ${caseTitle}، مع عرض البيانات والشواهد الداعمة بصورة منظمة.`,
+      body: `يوثق هذا التقارير خدمة ${serviceName} للحالة ${caseTitle}، مع عرض البيانات والشواهد الداعمة بصورة منظمة.`,
     },
     {
       id: "intro-4",
       title: "مقدمة تفصيلية",
       helper: "تضيف سياقًا أكثر للتقرير.",
-      body: `تم إنشاء هذا التقرير بعد مراجعة بيانات الحالة وربطها بالقيم والشواهد المتاحة، بهدف تقديم صورة واضحة عن ${serviceName} وما تم توثيقه بشأن ${caseTitle}.`,
+      body: `تم إنشاء هذا التقارير بعد مراجعة بيانات الحالة وربطها بالقيم والشواهد المتاحة، بهدف تقديم صورة واضحة عن ${serviceName} وما تم توثيقه بشأن ${caseTitle}.`,
     },
   ];
 }
@@ -2006,7 +2006,7 @@ function isLegacyRenderedReportDump(value: string) {
     );
 
   const hasOldArabicDump =
-    text.includes("ملخص التقرير") ||
+    text.includes("ملخص التقارير") ||
     text.includes("بيانات الحالة") ||
     text.includes("القيم المسجلة") ||
     text.includes("الشواهد:") ||

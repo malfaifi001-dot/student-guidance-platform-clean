@@ -291,7 +291,7 @@ export function ReportTemplateCommandCenter({
             <div>
               <h3 className="text-sm font-black text-slate-900">إعدادات الشواهد</h3>
               <p className="mt-1 text-xs leading-6 text-slate-500">
-                يتحكم القالب في طريقة عرض الشواهد داخل التقرير الرسمي.
+                يتحكم القالب في طريقة عرض الشواهد داخل التقارير الرسمي.
               </p>
             </div>
 
@@ -319,8 +319,8 @@ export function ReportTemplateCommandCenter({
                 }
                 className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-50"
               >
-                <option value="END_PAGES">صفحات مستقلة آخر التقرير</option>
-                <option value="INLINE">داخل محتوى التقرير</option>
+                <option value="END_PAGES">صفحات مستقلة آخر التقارير</option>
+                <option value="INLINE">داخل محتوى التقارير</option>
               </select>
             </FieldLabel>
 
@@ -373,7 +373,7 @@ export function ReportTemplateCommandCenter({
           <div className="mt-4 rounded-2xl bg-emerald-50 p-3 text-xs font-bold leading-6 text-emerald-700">
             الوضع الحالي: {evidence.enabled ? evidenceLayoutLabels[evidence.layout] : "الشواهد مخفية"}.
             {evidence.enabled && evidence.placement === "END_PAGES"
-              ? " سيتم فصل الشواهد في صفحات A4 مستقلة حتى لا تتمدد صفحة التقرير."
+              ? " سيتم فصل الشواهد في صفحات A4 مستقلة حتى لا تتمدد صفحة التقارير."
               : ""}
           </div>
         </div>

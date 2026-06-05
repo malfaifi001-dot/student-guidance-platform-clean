@@ -188,7 +188,7 @@ const textSnippets: StudioTextSnippet[] = [
     title: "مقدمة رسمية مختصرة",
     category: "مقدمة",
     content:
-      "بناءً على ما تم رصده في {{service.name}}، تم إعداد هذا التقرير لتوثيق الإجراء المتخذ وبيان أبرز النتائج والتوصيات.",
+      "بناءً على ما تم رصده في {{service.name}}، تم إعداد هذا التقارير لتوثيق الإجراء المتخذ وبيان أبرز النتائج والتوصيات.",
   },
   {
     id: "meeting-summary",
@@ -223,7 +223,7 @@ const textSnippets: StudioTextSnippet[] = [
     title: "خاتمة رسمية",
     category: "خاتمة",
     content:
-      "جرى إعداد هذا التقرير من خلال منصة التوجيه الطلابي، وفق البيانات المدخلة والمعتمدة في الحالة.",
+      "جرى إعداد هذا التقارير من خلال منصة التوجيه الطلابي، وفق البيانات المدخلة والمعتمدة في الحالة.",
   },
 ];
 
@@ -238,7 +238,7 @@ const blockLibrary: Array<{
   {
     kind: "hero-title",
     title: "عنوان رئيسي في المنتصف",
-    description: "عنوان كبير للتقرير أو النموذج، مع تاريخ ومعد التقرير اختياريًا.",
+    description: "عنوان كبير للتقرير أو النموذج، مع تاريخ ومعد التقارير اختياريًا.",
     defaultContent: "{{case.title}}",
     defaultVariant: "hero",
     defaultAlign: "center",
@@ -246,7 +246,7 @@ const blockLibrary: Array<{
   {
     kind: "meta-strip",
     title: "بيانات مختصرة تحت العنوان",
-    description: "تاريخ، معد التقرير، الخدمة، رقم الحالة.",
+    description: "تاريخ، معد التقارير، الخدمة، رقم الحالة.",
     defaultContent:
       "التاريخ: {{case.createdAt}}\nالمعد: {{identity.counselorName}}\nالخدمة: {{service.name}}\nرقم الحالة: {{case.id}}",
     defaultVariant: "soft",
@@ -254,7 +254,7 @@ const blockLibrary: Array<{
   {
     kind: "plain-text",
     title: "فقرة بدون عنوان",
-    description: "نص عادي داخل التقرير بدون عنوان ظاهر.",
+    description: "نص عادي داخل التقارير بدون عنوان ظاهر.",
     defaultContent:
       "اكتب هنا نصًا رسميًا، أو اختر نصًا من مكتبة النصوص. يمكنك استخدام متغيرات مثل {{case.title}} و {{student.name}}.",
     defaultVariant: "plain",
@@ -312,7 +312,7 @@ const blockLibrary: Array<{
     title: "خاتمة واعتماد",
     description: "خاتمة رسمية ومساحة اعتماد خفيفة.",
     defaultContent:
-      "تم إعداد التقرير واعتماده وفق البيانات المتاحة في منصة التوجيه الطلابي.",
+      "تم إعداد التقارير واعتماده وفق البيانات المتاحة في منصة التوجيه الطلابي.",
     defaultVariant: "quote",
   },
 ];
@@ -428,7 +428,7 @@ function buildRuntimeContext(template: StudioTemplate, previewCase: PreviewCaseD
     "template.description": template.description,
 
     "case.id": previewCase?.caseId || "CASE-ID",
-    "case.title": previewCase?.title || "عنوان التقرير",
+    "case.title": previewCase?.title || "عنوان التقارير",
     "case.status": previewCase?.status || "مسودة",
     "case.createdAt": formatDate(previewCase?.createdAt) || "1447/01/01 هـ",
     "case.updatedAt": formatDate(previewCase?.updatedAt) || "1447/01/01 هـ",
@@ -1160,7 +1160,7 @@ export function ReportTemplateStudio() {
             <p className="mt-2 max-w-4xl text-sm leading-7 text-slate-500">
               الهوية ثابتة، والصفحات والبلوكات هي منطقة التحكم. عند ربط القالب
               بخدمة أو Workflow ستظهر خريطة الحقول المتاحة حتى تعرف ماذا تستخدم
-              داخل التقرير.
+              داخل التقارير.
             </p>
           </div>
 
@@ -2022,7 +2022,7 @@ export function ReportTemplateStudio() {
                       </select>
 
                       <p className="mt-2 text-[11px] font-bold leading-6 text-slate-500">
-                        هذا لا يجبر الموجه على قص الصورة، لكنه يحدد مساحة عرض الشاهد داخل التقرير حتى تظهر المعاينة بنفس تصورك.
+                        هذا لا يجبر الموجه على قص الصورة، لكنه يحدد مساحة عرض الشاهد داخل التقارير حتى تظهر المعاينة بنفس تصورك.
                       </p>
                     </label>
 
@@ -2167,13 +2167,13 @@ function WorkflowAwarenessPanel({
           </p>
 
           <h2 className="mt-1 text-xl font-black text-slate-900">
-            اعرف الحقول قبل بناء التقرير
+            اعرف الحقول قبل بناء التقارير
           </h2>
 
           <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
             عند ربط القالب بخدمة أو Workflow، تظهر لك خطواته وحقوله. الحقول
             المستخدمة داخل النصوص تظهر بعلامة مستخدم، والبقية تظل واضحة حتى لا
-            تنساها أثناء بناء التقرير.
+            تنساها أثناء بناء التقارير.
           </p>
         </div>
 
@@ -2591,7 +2591,7 @@ function createEvidencePlaceholders(
     return {
       id: "placeholder-evidence-" + evidenceNumber,
       title: "شاهد تجريبي " + evidenceNumber,
-      caption: "مكان الشاهد داخل التقرير",
+      caption: "مكان الشاهد داخل التقارير",
       fileUrl: "",
       imageUrl: "",
     };
@@ -2719,7 +2719,7 @@ function EmptyEvidenceMessage() {
       </p>
 
       <p className="mt-2 text-xs font-bold leading-6 text-emerald-700">
-        هذا البلوك لن يعرض أي مرفقات في التقرير النهائي إلا إذا كانت الحالة تحتوي على شواهد.
+        هذا البلوك لن يعرض أي مرفقات في التقارير النهائي إلا إذا كانت الحالة تحتوي على شواهد.
       </p>
     </div>
   );
