@@ -2,6 +2,8 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 
+type OperationalAlertItem = Record<string, any>;
+
 type OperationalAlertSeverity = "CRITICAL" | "WARNING" | "INFO";
 type OperationalAlertCategory =
   | "SUBSCRIPTION"
@@ -224,7 +226,7 @@ export async function GET() {
       href: "/dashboard/admin/subscriptions",
       actionLabel: "إدارة الاشتراكات",
       meta: {
-        items: expiringSubscriptions.map((subscription) => ({
+        items: expiringSubscriptions.map((subscription: OperationalAlertItem) => ({
           id: subscription.id,
           schoolAccountId: subscription.schoolAccountId,
           schoolName:
@@ -273,7 +275,7 @@ export async function GET() {
       href: "/dashboard/admin/activations",
       actionLabel: "مراجعة التحويلات",
       meta: {
-        items: pendingTransfers.map((request) => ({
+        items: pendingTransfers.map((request: OperationalAlertItem) => ({
           id: request.id,
           schoolAccountId: request.schoolAccountId,
           amount: request.amount,
@@ -363,4 +365,5 @@ export async function GET() {
     alerts: sortedAlerts,
   });
 }
+
 
