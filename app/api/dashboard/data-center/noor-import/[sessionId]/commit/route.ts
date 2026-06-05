@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from "next/server";
-import { Prisma} from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
@@ -14,7 +14,7 @@ async function getParams(context: RouteContext) {
   return await context.params;
 }
 
-function compactStudentSnapshot(student: any): Prisma.InputJsonValue {
+function compactStudentSnapshot(student: any): any {
   return {
     id: student.id,
     fullName: student.fullName,
@@ -247,7 +247,7 @@ export async function POST(request: Request, context: RouteContext) {
               rowId: row.id,
               studentId: created.id,
               action: "CREATED",
-              beforeJson: Prisma.JsonNull,
+              beforeJson: null as any,
               afterJson: compactStudentSnapshot(created),
             },
           });
