@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from "next/server";
-import { StudentPickerMode } from "@prisma/client";
+
 import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
 import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
 import { dashboardServices } from "@/lib/constants/services";
@@ -15,14 +15,14 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
-const STUDENT_PICKER_MODES = new Set(Object.values(StudentPickerMode));
+const STUDENT_PICKER_MODES = new Set(["NONE", "DISABLED", "OPTIONAL", "REQUIRED", "SINGLE", "MULTIPLE", "SMART"]);
 
-function normalizeStudentPickerMode(value: unknown): StudentPickerMode {
+function normalizeStudentPickerMode(value: unknown): string {
   const text = String(value ?? "").trim().toUpperCase();
 
-  return STUDENT_PICKER_MODES.has(text as StudentPickerMode)
-    ? (text as StudentPickerMode)
-    : StudentPickerMode.SERVICE_DEFAULT;
+  return STUDENT_PICKER_MODES.has(text as string)
+    ? (text as string)
+    : "SERVICE_DEFAULT";
 }
 
 const MAX_WORKFLOW_FILE_SIZE = 5 * 1024 * 1024;
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
           id: uploadedWorkflow.id,
         },
         data: {
-          studentPickerMode,
+          studentPickerMode: studentPickerMode as any,
         },
       });
     }

@@ -24,7 +24,7 @@ type RouteContext = {
   }>;
 };
 
-const FIELD_TYPES = new Set(Object.values(FieldType));
+const FIELD_TYPES = new Set(["TEXT", "TEXTAREA", "NUMBER", "DATE", "SELECT", "MULTI_SELECT", "CHECKBOX", "RADIO", "FILE", "STUDENT_PICKER"]);
 
 const STUDENT_PICKER_MODES = new Set(["NONE", "DISABLED", "OPTIONAL", "REQUIRED", "SINGLE", "MULTIPLE", "SMART"]);
 
@@ -40,12 +40,12 @@ function clean(value: unknown) {
   return String(value ?? "").trim();
 }
 
-function normalizeFieldType(value: unknown): FieldType {
+function normalizeFieldType(value: unknown): string {
   const text = clean(value).toUpperCase();
 
-  return FIELD_TYPES.has(text as FieldType)
-    ? (text as FieldType)
-    : FieldType.TEXT;
+  return FIELD_TYPES.has(text as string)
+    ? (text as string)
+    : "TEXT";
 }
 
 function toBoolean(value: unknown) {

@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from "next/server";
-import { Prisma, type ReportTemplateType } from "@prisma/client";
+import { Prisma, type ReportTemplateType} from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {

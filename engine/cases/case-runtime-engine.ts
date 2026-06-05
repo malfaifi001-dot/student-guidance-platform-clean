@@ -1,5 +1,5 @@
 ﻿import { prisma } from "@/lib/prisma";
-import { CaseStatus, EvidenceType } from "@prisma/client";
+import { CaseStatus, EvidenceType} from "@prisma/client";
 import {
   serializeCaseValues,
   type RuntimeCaseValues,

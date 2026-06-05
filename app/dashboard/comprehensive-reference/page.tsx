@@ -1,4 +1,4 @@
-﻿import type { Prisma } from "@prisma/client";
+﻿import type { Prisma} from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import { StudentRecordSearchClient } from "@/components/students/student-record-search-client";

@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma, ReportStatus } from "@prisma/client";
+import { Prisma, ReportStatus} from "@prisma/client";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { buildReportAccessWhere } from "@/lib/reports/report-access";
 

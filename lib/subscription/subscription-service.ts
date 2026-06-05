@@ -1,5 +1,5 @@
 ﻿import { prisma } from "@/lib/prisma";
-import type { SubscriptionStatus } from "@prisma/client";
+import type { SubscriptionStatus} from "@prisma/client";
 
 export function addDays(date: Date, days: number) {
   const next = new Date(date);

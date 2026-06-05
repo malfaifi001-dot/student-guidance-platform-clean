@@ -1,5 +1,5 @@
 ﻿import { prisma } from "@/lib/prisma";
-import type { PaymentStatus, SubscriptionStatus } from "@prisma/client";
+import type { PaymentStatus, SubscriptionStatus} from "@prisma/client";
 
 const TRIAL_DAYS = 14;
 const DEFAULT_ACTIVATION_DAYS = 30;
