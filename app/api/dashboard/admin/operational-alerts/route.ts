@@ -2,9 +2,10 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 
-type OperationalAlertItem = Record<string, any>;
+export const runtime = "nodejs";
 
 type OperationalAlertSeverity = "CRITICAL" | "WARNING" | "INFO";
+
 type OperationalAlertCategory =
   | "SUBSCRIPTION"
   | "PAYMENT"
@@ -25,16 +26,25 @@ type OperationalAlert = {
   meta?: Record<string, unknown>;
 };
 
-function addDays(date: Date, days: number) {
+function addDays(date: Date, days: number): Date {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
 }
 
-function getSeverityRank(severity: OperationalAlertSeverity) {
+function getSeverityRank(severity: OperationalAlertSeverity): number {
   if (severity === "CRITICAL") return 1;
   if (severity === "WARNING") return 2;
   return 3;
+}
+
+function buildSummary(alerts: OperationalAlert[]) {
+  return {
+    total: alerts.length,
+    critical: alerts.filter((alert) => alert.severity === "CRITICAL").length,
+    warning: alerts.filter((alert) => alert.severity === "WARNING").length,
+    info: alerts.filter((alert) => alert.severity === "INFO").length,
+  };
 }
 
 export async function GET() {
@@ -65,7 +75,7 @@ export async function GET() {
       },
     }),
 
-    prisma.subscription.findMany({
+    prisma.subscription.count({
       where: {
         status: {
           in: ["TRIAL", "ACTIVE", "PAST_DUE"],
@@ -75,32 +85,9 @@ export async function GET() {
           lte: next7Days,
         },
       },
-      include: {
-        schoolAccount: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            profile: {
-              select: {
-                schoolName: true,
-              },
-            },
-          },
-        },
-        plan: {
-          select: {
-            name: true,
-          },
-        },
-      },
-      orderBy: {
-        endsAt: "asc",
-      },
-      take: 10,
     }),
 
-    prisma.user.findMany({
+    prisma.user.count({
       where: {
         role: "COUNSELOR",
         isActive: true,
@@ -121,42 +108,12 @@ export async function GET() {
           },
         ],
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        schoolAccountId: true,
-        schoolAccount: {
-          select: {
-            name: true,
-            profile: {
-              select: {
-                schoolName: true,
-              },
-            },
-          },
-        },
-        sessions: {
-          orderBy: {
-            lastSeenAt: "desc",
-          },
-          take: 1,
-          select: {
-            lastSeenAt: true,
-          },
-        },
-      },
-      take: 15,
     }),
 
-    prisma.bankTransferRequest.findMany({
+    prisma.bankTransferRequest.count({
       where: {
         status: "PENDING",
       },
-      orderBy: {
-        createdAt: "asc",
-      },
-      take: 15,
     }),
 
     prisma.user.count({
@@ -165,7 +122,7 @@ export async function GET() {
       },
     }),
 
-    prisma.platformActivityLog.findMany({
+    prisma.platformActivityLog.count({
       where: {
         severity: {
           in: ["WARNING", "ERROR", "CRITICAL"],
@@ -174,29 +131,15 @@ export async function GET() {
           gte: last24Hours,
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 20,
     }),
 
-    prisma.caseEntry.groupBy({
-      by: ["schoolAccountId"],
+    prisma.caseEntry.count({
       where: {
         status: "SUBMITTED",
         guidanceReports: {
           none: {},
         },
       },
-      _count: {
-        _all: true,
-      },
-      orderBy: {
-        _count: {
-          schoolAccountId: "desc",
-        },
-      },
-      take: 10,
     }),
   ]);
 
@@ -215,75 +158,42 @@ export async function GET() {
     });
   }
 
-  if (expiringSubscriptions.length > 0) {
+  if (expiringSubscriptions > 0) {
     alerts.push({
       id: "subscriptions-expiring-soon",
       category: "SUBSCRIPTION",
       severity: "WARNING",
       title: "اشتراكات قاربت على الانتهاء",
-      description: "توجد اشتراكات تنتهي خلال 7 أيام وتحتاج متابعة قبل توقف الخدمات.",
-      count: expiringSubscriptions.length,
+      description: "توجد اشتراكات تنتهي خلال 7 أيام وتحتاج متابعة.",
+      count: expiringSubscriptions,
       href: "/dashboard/admin/subscriptions",
       actionLabel: "إدارة الاشتراكات",
-      meta: {
-        items: expiringSubscriptions.map((subscription: OperationalAlertItem) => ({
-          id: subscription.id,
-          schoolAccountId: subscription.schoolAccountId,
-          schoolName:
-            subscription.schoolAccount.profile?.schoolName || "هوية المدرسة غير مكتملة",
-          planName: subscription.plan.name,
-          endsAt: subscription.endsAt,
-          status: subscription.status,
-        })),
-      },
     });
   }
 
-  if (inactiveCounselors.length > 0) {
+  if (inactiveCounselors > 0) {
     alerts.push({
       id: "inactive-counselors",
       category: "USER",
       severity: "INFO",
       title: "موجهون لم يدخلوا منذ 14 يومًا",
-      description: "يوجد مستخدمون نشطون بدور موجه/موجهة لم يظهر لهم نشاط دخول حديث.",
-      count: inactiveCounselors.length,
+      description: "يوجد موجهون أو موجهات لم يظهر لهم نشاط دخول حديث.",
+      count: inactiveCounselors,
       href: "/dashboard/admin/users",
       actionLabel: "مراجعة المستخدمين",
-      meta: {
-        items: inactiveCounselors.map((user) => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          schoolName:
-            user.schoolAccount?.profile?.schoolName ||
-            user.schoolAccount?.name ||
-            "بدون حساب مدرسة",
-          lastSeenAt: user.sessions[0]?.lastSeenAt || null,
-        })),
-      },
     });
   }
 
-  if (pendingTransfers.length > 0) {
+  if (pendingTransfers > 0) {
     alerts.push({
       id: "pending-bank-transfers",
       category: "PAYMENT",
       severity: "CRITICAL",
       title: "طلبات تحويل بنكي معلقة",
-      description: "توجد طلبات تحويل بنكي بانتظار مراجعة الأدمن قبولًا أو رفضًا.",
-      count: pendingTransfers.length,
+      description: "توجد طلبات تحويل بنكي بانتظار مراجعة الأدمن.",
+      count: pendingTransfers,
       href: "/dashboard/admin/activations",
       actionLabel: "مراجعة التحويلات",
-      meta: {
-        items: pendingTransfers.map((request: OperationalAlertItem) => ({
-          id: request.id,
-          schoolAccountId: request.schoolAccountId,
-          amount: request.amount,
-          currency: request.currency,
-          senderName: request.senderName,
-          createdAt: request.createdAt,
-        })),
-      },
     });
   }
 
@@ -293,77 +203,52 @@ export async function GET() {
       category: "USER",
       severity: "INFO",
       title: "مستخدمون موقوفون",
-      description: "يوجد مستخدمون تم إيقافهم. راجع القائمة إذا كان الإيقاف مؤقتًا أو يحتاج إجراء.",
+      description: "يوجد مستخدمون تم إيقافهم داخل المنصة.",
       count: disabledUsers,
       href: "/dashboard/admin/users",
       actionLabel: "إدارة المستخدمين",
     });
   }
 
-  if (warningLogs.length > 0) {
+  if (warningLogs > 0) {
     alerts.push({
       id: "recent-warning-logs",
       category: "ACTIVITY",
       severity: "WARNING",
       title: "تحذيرات حديثة في سجل العمليات",
       description: "ظهرت عمليات ذات مستوى تحذير أو خطأ خلال آخر 24 ساعة.",
-      count: warningLogs.length,
+      count: warningLogs,
       href: "/dashboard/admin/activity",
       actionLabel: "فتح سجل العمليات",
-      meta: {
-        items: warningLogs.slice(0, 8).map((log) => ({
-          id: log.id,
-          category: log.category,
-          action: log.action,
-          severity: log.severity,
-          title: log.title,
-          createdAt: log.createdAt,
-        })),
-      },
     });
   }
 
-  const highCaseAccounts = submittedCasesWithoutReports.filter(
-    (item) => item._count._all >= 5
-  );
-
-  if (highCaseAccounts.length > 0) {
+  if (submittedCasesWithoutReports >= 5) {
     alerts.push({
       id: "submitted-cases-without-reports",
       category: "CASE",
       severity: "WARNING",
       title: "حالات مرسلة بدون تقارير",
-      description: "توجد حسابات لديها عدد ملحوظ من الحالات المرسلة التي لم يصدر لها تقرير.",
-      count: highCaseAccounts.reduce((sum, item) => sum + item._count._all, 0),
+      description: "توجد حالات مرسلة لم يتم إصدار تقارير لها بعد.",
+      count: submittedCasesWithoutReports,
       href: "/dashboard/admin/users",
-      actionLabel: "متابعة الحسابات",
-      meta: {
-        items: highCaseAccounts.map((item) => ({
-          schoolAccountId: item.schoolAccountId,
-          casesWithoutReports: item._count._all,
-        })),
-      },
+      actionLabel: "متابعة الحالات",
     });
   }
 
   const sortedAlerts = alerts.sort((a, b) => {
     const severityDiff = getSeverityRank(a.severity) - getSeverityRank(b.severity);
 
-    if (severityDiff !== 0) return severityDiff;
+    if (severityDiff !== 0) {
+      return severityDiff;
+    }
 
     return b.count - a.count;
   });
 
   return NextResponse.json({
     generatedAt: now,
-    summary: {
-      total: sortedAlerts.length,
-      critical: sortedAlerts.filter((alert) => alert.severity === "CRITICAL").length,
-      warning: sortedAlerts.filter((alert) => alert.severity === "WARNING").length,
-      info: sortedAlerts.filter((alert) => alert.severity === "INFO").length,
-    },
+    summary: buildSummary(sortedAlerts),
     alerts: sortedAlerts,
   });
 }
-
-
