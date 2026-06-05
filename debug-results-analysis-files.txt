@@ -1,0 +1,1041 @@
+﻿
+
+==============================
+FILE: app\dashboard\results-analysis\page.tsx
+==============================
+
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { buildResultsAnalysisAccessWhere, buildResultsAnalysisListWhere } from "@/lib/results-analysis/results-analysis-access";
+import { ResultsAnalysisList } from "@/components/results-analysis/results-analysis-list";
+
+export default async function ResultsAnalysisPage() {
+  const context = await requireDashboardPageContext();
+  const analyses = await prisma.resultsAnalysis.findMany({ where: buildResultsAnalysisListWhere({ schoolAccountId: context.schoolAccountId, isAdmin: context.isAdmin }), orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return (
+    <main className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-indigo-600 to-blue-500 p-10 text-white shadow-2xl">
+        <p className="text-sm font-bold text-blue-100">
+          Academic Results Analytics
+        </p>
+
+        <h1 className="mt-4 text-5xl font-black">ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù†ØªØ§Ø¦Ø¬</h1>
+
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-blue-50">
+          Ø±ÙØ¹ ÙˆØªØ­Ù„ÙŠÙ„ Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ø·Ù„Ø§Ø¨ Ù…Ù† Ù…Ù„ÙØ§Øª Excel Ù…Ø¹ Ù…Ø¤Ø´Ø±Ø§Øª Ø£Ø¯Ø§Ø¡ ÙˆØ±Ø³ÙˆÙ… ÙˆØªØ­Ù„ÙŠÙ„Ø§Øª Ù…Ø­ÙÙˆØ¸Ø©.
+        </p>
+
+        <div className="mt-8">
+          <Link
+            href="/dashboard/results-analysis/new"
+            className="rounded-2xl bg-white px-6 py-3 text-sm font-black text-blue-700 transition hover:bg-blue-50"
+          >
+            ØªØ­Ù„ÙŠÙ„ Ø¬Ø¯ÙŠØ¯
+          </Link>
+        </div>
+      </section>
+
+      <ResultsAnalysisList analyses={analyses} />
+    </main>
+  );
+}
+
+
+
+
+==============================
+FILE: app\api\dashboard\results-analysis\route.ts
+==============================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { parseResultsExcel } from "@/lib/results-analysis/results-analysis-parser";
+import { analyzeStudentResults } from "@/engine/results-analysis/results-analysis-engine";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+
+export const runtime = "nodejs";
+
+const MAX_RESULTS_FILE_SIZE = 8 * 1024 * 1024;
+const MAX_RESULTS_FILES = 5;
+
+const ALLOWED_RESULTS_FILE_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/octet-stream",
+  "",
+]);
+
+type ResultRowWithSource = {
+  id: string;
+  studentId?: string | null;
+  studentName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  semester?: string | null;
+  subject?: string | null;
+  score?: number | null;
+  maxScore?: number | null;
+  percentage?: number | null;
+  status?: "PASS" | "FAIL" | "NEEDS_SUPPORT" | "UNKNOWN";
+  sourceFile?: string | null;
+};
+
+function hasExcelExtension(fileName: string) {
+  return /\.(xlsx|xls|csv)$/i.test(fileName);
+}
+
+function validateResultsFile(file: File) {
+  if (file.size <= 0) {
+    return "ملف النتائج فارغ.";
+  }
+
+  if (file.size > MAX_RESULTS_FILE_SIZE) {
+    return "حجم ملف النتائج أكبر من الحد المسموح 8MB.";
+  }
+
+  if (!hasExcelExtension(file.name)) {
+    return "صيغة ملف النتائج غير مدعومة. ارفع ملف xlsx أو xls أو csv.";
+  }
+
+  if (!ALLOWED_RESULTS_FILE_TYPES.has(file.type)) {
+    return "نوع ملف النتائج غير مسموح.";
+  }
+
+  return null;
+}
+
+export async function POST(request: Request) {
+  const authResult = await requireSchoolDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  const serviceGuard = await requireServiceAccessApi("results-analysis");
+  if (serviceGuard) return serviceGuard;
+
+  try {
+    const formData = await request.formData();
+
+    const uploadedFiles = formData.getAll("files");
+    const fallbackFile = formData.get("file");
+
+    const files =
+      uploadedFiles.length > 0
+        ? uploadedFiles
+        : fallbackFile
+          ? [fallbackFile]
+          : [];
+
+    const title = String(formData.get("title") || "").trim();
+    const grade = String(formData.get("grade") || "").trim();
+    const classroom = String(formData.get("classroom") || "").trim();
+    const semester = String(formData.get("semester") || "").trim();
+
+    const excelFiles = files.filter(
+      (file): file is File => file instanceof File
+    );
+
+    if (excelFiles.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "ملف Excel مطلوب.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (excelFiles.length > MAX_RESULTS_FILES) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `يمكن رفع ${MAX_RESULTS_FILES} ملفات كحد أقصى في كل تحليل.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    for (const file of excelFiles) {
+      const validationError = validateResultsFile(file);
+
+      if (validationError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: validationError,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const allRows: ResultRowWithSource[] = [];
+
+    for (const file of excelFiles) {
+      const buffer = await file.arrayBuffer();
+      const rows = await parseResultsExcel(buffer);
+
+      allRows.push(
+        ...rows.map((row): ResultRowWithSource => ({
+          ...row,
+          semester: row.semester ?? (semester || null),
+          sourceFile: file.name,
+        }))
+      );
+    }
+
+    if (!allRows.length) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لم يتم العثور على بيانات نتائج صالحة داخل الملف.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const analysisOutput = analyzeStudentResults(allRows);
+    const summary = analysisOutput.summary;
+
+    const analysis = await prisma.resultsAnalysis.create({
+      data: {
+        schoolAccountId: authResult.schoolAccountId,
+        title:
+          title ||
+          `تحليل نتائج - ${new Date().toLocaleDateString("ar-SA")}`,
+        grade: grade || null,
+        classroom: classroom || null,
+        sourceFile: excelFiles.map((file) => file.name).join("، "),
+        totalStudents: summary.totalStudents,
+        totalSubjects: new Set(allRows.map((row) => row.subject).filter(Boolean))
+          .size,
+        averageScore: summary.averagePercentage,
+        summaryJson: analysisOutput,
+        rowsJson: allRows,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      analysisId: analysis.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تحليل النتائج.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+
+==============================
+FILE: components\layout\dashboard-sidebar.tsx
+==============================
+
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import type { ComponentType, ReactNode } from "react";
+import {
+  Activity,
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Crown,
+  Database,
+  FilePlus2,
+  FileText,
+  FolderKanban,
+  GitBranch,
+  Home,
+  KeyRound,
+  LayoutDashboard,
+  MessageCircle,
+  PenTool,
+  School,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  UserRound,
+  Users,
+  WalletCards,
+} from "lucide-react";
+
+type SidebarUser = {
+  role?: string | null;
+  name?: string | null;
+  officialName?: string | null;
+};
+
+type SidebarLinkItem = {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+};
+
+const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
+
+const counselorImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard", icon: Home },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+  { label: "الحالات", href: "/dashboard/cases", icon: FolderKanban },
+];
+
+const counselorServiceLinks: SidebarLinkItem[] = [
+  {
+    label: "البرامج الإرشادية",
+    href: "/dashboard/guidance-programs",
+    icon: ClipboardList,
+  },
+  {
+    label: "اللجان والاجتماعات",
+    href: "/dashboard/committees-meetings",
+    icon: ShieldCheck,
+  },
+  {
+    label: "متابعة الطلاب",
+    href: "/dashboard/student-follow-up",
+    icon: Users,
+  },
+  {
+    label: "الخدمات الإرشادية المقدمة للطلاب",
+    href: "/dashboard/student-guidance-services",
+    icon: FileText,
+  },
+  {
+    label: "التقارير",
+    href: "/dashboard/reports",
+    icon: FileText,
+  },
+  {
+    label: "المرجع الشامل للموجه الطلابي",
+    href: "/dashboard/comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "تحليل النتائج",
+    href: "/dashboard/results-analysis",
+    icon: BarChart3,
+  },
+  {
+    label: "التواصل بين الأسرة والمدرسة",
+    href: "/dashboard/family-school-communication",
+    icon: MessageCircle,
+  },
+];
+
+const counselorInformationLinks: SidebarLinkItem[] = [
+  {
+    label: "Data Center",
+    href: "/dashboard/data-center",
+    icon: Database,
+  },
+];
+
+const counselorAccountLinks: SidebarLinkItem[] = [
+  { label: "التفعيل", href: "/dashboard/subscription", icon: ShieldCheck },
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const adminMainLinks: SidebarLinkItem[] = [
+  { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
+  { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
+  { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
+  { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
+  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
+  { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
+  { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
+];
+
+const adminBuilderLinks: SidebarLinkItem[] = [
+  {
+    label: "مصمم Workflow",
+    href: "/dashboard/admin/workflow-builder",
+    icon: PenTool,
+  },
+  {
+    label: "قوالب التقارير",
+    href: "/dashboard/admin/report-templates",
+    icon: FileText,
+  },
+  {
+    label: "قالب تقرير جديد",
+    href: "/dashboard/admin/report-templates/new",
+    icon: FilePlus2,
+  },
+];
+
+const adminAccountLinks: SidebarLinkItem[] = [
+  { label: "حساب الأدمن", href: "/dashboard/account", icon: UserRound },
+  { label: "هوية المنصة", href: "/dashboard/settings/school", icon: Settings },
+];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function hasActive(pathname: string, items: SidebarLinkItem[]) {
+  return items.some((item) => isActivePath(pathname, item.href));
+}
+
+export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+
+  useEffect(() => {
+    const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    setCollapsed(savedValue === "true");
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  }, [collapsed, ready]);
+
+  return (
+    <aside
+      className={[
+        "sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 overflow-hidden rounded-[2.25rem] border border-slate-200/80 bg-white/90 p-3 shadow-xl shadow-slate-200/60 backdrop-blur-xl transition-all duration-300 xl:block",
+        collapsed ? "w-[86px]" : "w-[252px]",
+      ].join(" ")}
+    >
+      <div className="flex h-full flex-col">
+        <div
+          className={[
+            "rounded-[1.6rem] border transition",
+            collapsed
+              ? "border-slate-100 bg-slate-50/70 p-2"
+              : "border-transparent bg-transparent p-0",
+          ].join(" ")}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <Link
+              href={isAdmin ? "/dashboard/admin" : "/dashboard"}
+              className={[
+                "flex min-w-0 items-center gap-3 rounded-[1.35rem] px-2 py-2 transition",
+                collapsed ? "justify-center" : "flex-1",
+                isAdmin ? "hover:bg-slate-50" : "hover:bg-sky-50/60",
+              ].join(" ")}
+              title={isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+            >
+              <div
+                className={[
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1",
+                  isAdmin
+                    ? "bg-slate-950 text-white ring-slate-900"
+                    : "bg-sky-50 text-sky-600 ring-sky-100",
+                ].join(" ")}
+              >
+                {isAdmin ? (
+                  <ShieldCheck className="h-5 w-5" />
+                ) : (
+                  <Sparkles className="h-5 w-5" />
+                )}
+              </div>
+
+              {!collapsed ? (
+                <div className="min-w-0">
+                  <h1 className="truncate text-[15px] font-black text-slate-950">
+                    {isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+                  </h1>
+                  <p className="mt-1 truncate text-[11px] font-black text-slate-400">
+                    {isAdmin ? "Admin Center" : "Counselor"}
+                  </p>
+                </div>
+              ) : null}
+            </Link>
+
+            {!collapsed ? (
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="تصغير القائمة"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              className="mx-auto mt-3 grid h-9 w-9 place-items-center rounded-2xl bg-white text-slate-400 shadow-sm transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="توسيع القائمة"
+              title="توسيع القائمة"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+
+        {!collapsed ? (
+          <div
+            className={[
+              "mx-2 mt-4 h-px",
+              isAdmin ? "bg-slate-200" : "bg-sky-100",
+            ].join(" ")}
+          />
+        ) : null}
+
+        {isAdmin ? (
+          <AdminSidebar pathname={pathname} collapsed={collapsed} />
+        ) : (
+          <CounselorSidebar pathname={pathname} collapsed={collapsed} />
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function AdminSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1 pl-1">
+        <SidebarSection title="الرئيسية" collapsed={collapsed}>
+          {adminMainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="البناء والقوالب"
+          defaultOpen={
+            pathname.includes("/workflow-builder") ||
+            pathname.includes("/report-templates")
+          }
+          admin
+          collapsed={collapsed}
+        >
+          {adminBuilderLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والإعدادات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          admin
+          collapsed={collapsed}
+        >
+          {adminAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] bg-slate-950 p-4 text-white shadow-sm">
+          <p className="text-xs font-black text-slate-300">Admin Mode</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-slate-300">
+            إدارة التفعيل، الاشتراكات، النماذج، والتقارير.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function CounselorSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1 pl-1">
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {counselorImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="الخدمات" collapsed={collapsed}>
+          {counselorServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="Data Center" collapsed={collapsed}>
+          {counselorInformationLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="الحساب والتفعيل"
+          defaultOpen={
+            pathname.startsWith("/dashboard/subscription") ||
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {counselorAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50/80 p-4">
+          <p className="text-xs font-black text-sky-700">اقتراح سريع</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80">
+            ابدأ بالتقويم، ثم افتح الحالة أو المرجع الشامل عند الحاجة.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function SidebarSection({
+  title,
+  children,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  collapsed: boolean;
+}) {
+  return (
+    <section>
+      {!collapsed ? (
+        <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400">
+          {title}
+        </p>
+      ) : null}
+
+      <div className="space-y-1">{children}</div>
+    </section>
+  );
+}
+
+function SidebarDropdown({
+  title,
+  children,
+  defaultOpen = false,
+  admin,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  admin?: boolean;
+  collapsed: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (collapsed) {
+    return <div className="space-y-1">{children}</div>;
+  }
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={[
+          "mb-2 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black tracking-wide transition",
+          admin
+            ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+            : "text-slate-400 hover:bg-sky-50 hover:text-sky-700",
+        ].join(" ")}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={["h-4 w-4 transition", open ? "rotate-180" : ""].join(
+            " ",
+          )}
+        />
+      </button>
+
+      {open ? <div className="space-y-1">{children}</div> : null}
+    </section>
+  );
+}
+
+function SidebarLink({
+  item,
+  active,
+  admin,
+  compact,
+  collapsed,
+}: {
+  item: SidebarLinkItem;
+  active: boolean;
+  admin?: boolean;
+  compact?: boolean;
+  collapsed: boolean;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      className={[
+        "group relative flex items-center rounded-2xl transition",
+        collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3",
+        compact && !collapsed ? "py-2" : "py-2.5",
+        active
+          ? admin
+            ? "bg-slate-950 text-white shadow-sm"
+            : "bg-sky-50 text-sky-700 shadow-sm"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950",
+      ].join(" ")}
+    >
+      {active ? (
+        <span
+          className={[
+            "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
+            admin ? "bg-white" : "bg-sky-500",
+          ].join(" ")}
+        />
+      ) : null}
+
+      <div
+        className={[
+          "flex shrink-0 items-center justify-center rounded-xl transition",
+          compact ? "h-8 w-8" : "h-9 w-9",
+          active
+            ? admin
+              ? "bg-white/10 text-white"
+              : "bg-white text-sky-600"
+            : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600",
+        ].join(" ")}
+      >
+        <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
+      </div>
+
+      {!collapsed ? (
+        <span className="min-w-0 truncate text-[14px] font-black">
+          {item.label}
+        </span>
+      ) : (
+        <span className="pointer-events-none absolute right-[72px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">
+          {item.label}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+
+
+==============================
+FILE: app\layout.tsx
+==============================
+
+import type { Metadata } from "next";
+import { Cairo } from "next/font/google";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import "./globals.css";
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  variable: "--font-cairo",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "منصة التوجيه الطلابي",
+  description:
+    "منصة ذكية للموجه والموجهة الطلابية لإدارة الخدمات والحالات والتقارير المدرسية.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ar" dir="rtl" className={cairo.variable} suppressHydrationWarning>
+      <body className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
+    </html>
+  );
+}
+
+
+
+==============================
+FILE: app\globals.css
+==============================
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+--font-sans: var(--font-cairo);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-border: var(--border);
+
+  --radius-sm: calc(var(--radius) * 0.7);
+  --radius-md: calc(var(--radius) * 0.9);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.3);
+  --radius-2xl: calc(var(--radius) * 1.7);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  --primary: #0284c7;
+  --primary-foreground: #ffffff;
+
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+
+  --border: #e2e8f0;
+
+  --radius: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .container-app {
+    @apply mx-auto w-full max-w-7xl px-4 md:px-6;
+  }
+
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl;
+  }
+
+  .card-shadow {
+    box-shadow:
+      0 10px 30px rgba(15, 23, 42, 0.06),
+      0 2px 10px rgba(15, 23, 42, 0.04);
+  }
+}
+/* Student Guidance Platform: Dark mode surface compatibility */
+.dark .bg-white {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .bg-\[\#f5f8fc\],
+.dark .bg-\[\#f7faff\] {
+  background-color: rgb(2 6 23) !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-200\/70 {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800 {
+  color: rgb(248 250 252) !important;
+}
+
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .text-slate-400 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(248 250 252) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(100 116 139) !important;
+}
+
+.dark table thead {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark tr,
+.dark tbody {
+  border-color: rgb(51 65 85) !important;
+}
+
+
+
+==============================
+FILE: package.json
+==============================
+
+{
+  "name": "student-guidance-platform-clean",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.10.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.3.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.16.0",
+    "next": "16.2.6",
+    "playwright": "^1.60.0",
+    "prisma": "^7.8.0",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.76.1",
+    "recharts": "^3.8.1",
+    "shadcn": "^4.8.2",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
