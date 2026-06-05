@@ -62,10 +62,10 @@ export async function GET() {
   ]);
 
   const countAction = (action: string) =>
-    logs.filter((log) => log.action === action).length;
+    logs.filter((log: { action: string | null }) => log.action === action).length;
 
   const previousCountAction = (action: string) =>
-    previousLogs.filter((log) => log.action === action).length;
+    previousLogs.filter((log: { action: string | null }) => log.action === action).length;
 
   const activeUserIds = new Set(
     logs.map((log) => log.actorUserId).filter(Boolean)
@@ -242,3 +242,5 @@ export async function GET() {
 
   return NextResponse.json(metrics);
 }
+
+
