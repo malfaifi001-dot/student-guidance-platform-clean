@@ -1,5 +1,10 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+type AppTransactionClient = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { logAdminActivity } from "@/lib/admin/activity-log";
@@ -111,7 +116,7 @@ export async function POST(request: Request) {
 
   const currentTokenId = current.tokenId || null;
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: AppTransactionClient) => {
     await tx.user.update({
       where: {
         id: user.id,
@@ -167,3 +172,4 @@ export async function POST(request: Request) {
     revokedSessionsCount: result.revokedSessionsCount,
   });
 }
+

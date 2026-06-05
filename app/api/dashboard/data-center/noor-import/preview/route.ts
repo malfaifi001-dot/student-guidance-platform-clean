@@ -1,5 +1,10 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+type AppTransactionClient = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
 import {
@@ -248,7 +253,7 @@ export async function POST(request: Request) {
     const invalidRows = rowsWithPlan.filter((row) => row.status === "INVALID").length;
     const conflictCount = rowsWithPlan.filter((row) => row.status === "CONFLICT").length;
 
-    const session = await prisma.$transaction(async (tx) => {
+    const session = await prisma.$transaction(async (tx: AppTransactionClient) => {
       const createdSession = await tx.studentImportSession.create({
         data: {
           schoolAccountId: context.schoolAccountId,
@@ -361,3 +366,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

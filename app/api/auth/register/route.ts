@@ -1,5 +1,10 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+type AppTransactionClient = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
 import { hashPassword } from "@/lib/auth/password";
 import { getRequestDeviceInfo } from "@/lib/auth/current-user";
 import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
@@ -92,7 +97,7 @@ export async function POST(request: Request) {
     const tokenId = createTokenId();
     const expiresAt = getSessionExpiryDate();
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: AppTransactionClient) => {
       const schoolAccount = await tx.schoolAccount.create({
         data: {
           name: `مدرسة ${name}`,
@@ -169,3 +174,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
