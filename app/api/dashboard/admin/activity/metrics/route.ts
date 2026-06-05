@@ -1,4 +1,11 @@
-﻿import { NextResponse } from "next/server";
+﻿type ActivityMetricLog = {
+  action: string | null;
+  actorUserId: string | null;
+  serviceSlug?: string | null;
+  severity?: string | null;
+  createdAt?: Date | string | null;
+};
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 
@@ -68,7 +75,7 @@ export async function GET() {
     previousLogs.filter((log: { action: string | null }) => log.action === action).length;
 
   const activeUserIds = new Set(
-    logs.map((log) => log.actorUserId).filter(Boolean)
+    logs.map((log: ActivityMetricLog) => log.actorUserId).filter(Boolean)
   );
 
   const actionCounts = new Map<string, number>();
@@ -242,5 +249,7 @@ export async function GET() {
 
   return NextResponse.json(metrics);
 }
+
+
 
 
