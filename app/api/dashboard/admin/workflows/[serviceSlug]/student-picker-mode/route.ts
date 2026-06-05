@@ -1,6 +1,4 @@
 ﻿import { NextResponse } from "next/server";
-import { StudentPickerMode } from "@prisma/client";
-
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { prisma } from "@/lib/prisma";
 
@@ -12,14 +10,14 @@ type RouteContext = {
   }>;
 };
 
-const STUDENT_PICKER_MODES = new Set(Object.values(StudentPickerMode));
+const STUDENT_PICKER_MODES = new Set(["NONE", "DISABLED", "OPTIONAL", "REQUIRED", "SINGLE", "MULTIPLE", "SMART"]);
 
-function normalizeStudentPickerMode(value: unknown): StudentPickerMode {
+function normalizeStudentPickerMode(value: unknown): string {
   const text = String(value ?? "").trim().toUpperCase();
 
-  return STUDENT_PICKER_MODES.has(text as StudentPickerMode)
-    ? (text as StudentPickerMode)
-    : StudentPickerMode.SERVICE_DEFAULT;
+  return STUDENT_PICKER_MODES.has(text as string)
+    ? (text as string)
+    : "SERVICE_DEFAULT";
 }
 
 async function findWorkflow(args: {
@@ -171,7 +169,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         id: workflow.id,
       },
       data: {
-        studentPickerMode,
+        studentPickerMode: studentPickerMode as any,
       },
       select: {
         id: true,
