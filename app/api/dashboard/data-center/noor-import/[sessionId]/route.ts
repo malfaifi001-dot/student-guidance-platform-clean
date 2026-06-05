@@ -56,7 +56,7 @@ export async function GET(_request: Request, context: RouteContext) {
         ...session,
         rowCount: session._count.rows,
         planSummary: planGroups.reduce(
-          (summary, item) => {
+          (summary: any, item: any) => {
             summary[item.planAction || "NEEDS_REVIEW"] = item._count._all;
             return summary;
           },
@@ -106,7 +106,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
       );
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       await tx.studentImportSession.delete({
         where: {
           id: session.id,

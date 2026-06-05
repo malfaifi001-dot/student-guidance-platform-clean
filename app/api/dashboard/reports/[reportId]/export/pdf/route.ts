@@ -100,7 +100,7 @@ export async function GET(request: Request, context: RouteContext) {
 
     const page = await browserContext.newPage();
 
-    page.on("console", (message) => {
+    page.on("console", (message: any) => {
       const text = message.text();
 
       if (message.type() === "error") {
@@ -108,7 +108,7 @@ export async function GET(request: Request, context: RouteContext) {
       }
     });
 
-    page.on("pageerror", (error) => {
+    page.on("pageerror", (error: any) => {
       console.error("PDF_PREVIEW_PAGE_ERROR", error);
     });
 
@@ -176,7 +176,7 @@ export async function GET(request: Request, context: RouteContext) {
       root.style.padding = "0";
       root.style.background = "white";
 
-      pages.forEach((reportPage) => {
+      pages.forEach((reportPage: any) => {
         root.appendChild(reportPage.cloneNode(true));
       });
 

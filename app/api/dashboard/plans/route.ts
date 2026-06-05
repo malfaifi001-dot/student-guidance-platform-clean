@@ -53,9 +53,9 @@ export async function GET() {
     }),
   ]);
 
-  const mappedPlans = plans.map((plan) => {
+  const mappedPlans = plans.map((plan: any) => {
     const serviceSlugs = getPlanServiceSlugs(plan.features);
-    const planServices = services.filter((service) =>
+    const planServices = services.filter((service: any) =>
       serviceSlugs.includes(service.slug)
     );
 
@@ -69,7 +69,7 @@ export async function GET() {
       maxStudents: getPlanFeatureValue(plan.features, "maxStudents", "0"),
       maxUsers: getPlanFeatureValue(plan.features, "maxUsers", "0"),
       maxReports: getPlanFeatureValue(plan.features, "maxReports", "0"),
-      services: planServices.map((service) => ({
+      services: planServices.map((service: any) => ({
         id: service.id,
         slug: service.slug,
         name: service.name,

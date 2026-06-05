@@ -89,7 +89,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       );
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       await tx.workflow.delete({
         where: {
           id: workflow.id,

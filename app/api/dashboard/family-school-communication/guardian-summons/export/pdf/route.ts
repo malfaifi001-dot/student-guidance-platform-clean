@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
     const page = await context.newPage();
 
-    page.on("console", (message) => {
+    page.on("console", (message: any) => {
       if (message.type() === "error") {
         console.error(
           "GUARDIAN_SUMMONS_PDF_PREVIEW_CONSOLE_ERROR",
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       }
     });
 
-    page.on("pageerror", (error) => {
+    page.on("pageerror", (error: any) => {
       console.error("GUARDIAN_SUMMONS_PDF_PREVIEW_PAGE_ERROR", error);
     });
 
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       ];
 
       for (const selector of forbiddenSelectors) {
-        document.querySelectorAll(selector).forEach((node) => {
+        document.querySelectorAll(selector).forEach((node: any) => {
           const element = node as HTMLElement;
           element.style.display = "none";
         });

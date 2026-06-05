@@ -14,11 +14,11 @@ function computeCycleStatus(sessions: Array<{ status: string }>, isArchived?: bo
     return "ARCHIVED";
   }
 
-  if (sessions.some((session) => session.status !== "COMMITTED")) {
+  if (sessions.some((session: any) => session.status !== "COMMITTED")) {
     return "REVIEW_PENDING";
   }
 
-  if (sessions.some((session) => session.status === "COMMITTED")) {
+  if (sessions.some((session: any) => session.status === "COMMITTED")) {
     return "COMMITTED";
   }
 
@@ -38,7 +38,7 @@ export async function GET() {
       ],
     });
 
-    const cycleIds = cycles.map((cycle) => cycle.id);
+    const cycleIds = cycles.map((cycle: any) => cycle.id);
 
     const sessions = cycleIds.length
       ? await prisma.studentImportSession.findMany({
@@ -68,12 +68,12 @@ export async function GET() {
       sessionsByCycle.set(session.cycleId, list);
     }
 
-    const responseCycles = cycles.map((cycle) => {
+    const responseCycles = cycles.map((cycle: any) => {
       const cycleSessions = sessionsByCycle.get(cycle.id) ?? [];
       const latestSession = cycleSessions[0] ?? null;
       const status = computeCycleStatus(cycleSessions, cycle.isArchived);
-      const committedSessions = cycleSessions.filter((session) => session.status === "COMMITTED");
-      const pendingSessions = cycleSessions.filter((session) => session.status !== "COMMITTED");
+      const committedSessions = cycleSessions.filter((session: any) => session.status === "COMMITTED");
+      const pendingSessions = cycleSessions.filter((session: any) => session.status !== "COMMITTED");
       const latestCommitted = committedSessions[0] ?? null;
 
       return {

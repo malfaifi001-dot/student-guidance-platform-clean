@@ -103,7 +103,7 @@ function buildReportContent(reportData: ReportMappedCase) {
 
   const valuesLines = reportData.values.length
     ? reportData.values
-        .map((item, index) => {
+        .map((item: any, index: any) => {
           return `${index + 1}. ${item.fieldLabel}: ${item.value || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`;
         })
         .join("\n")
@@ -111,7 +111,7 @@ function buildReportContent(reportData: ReportMappedCase) {
 
   const evidencesLines = reportData.evidences.length
     ? reportData.evidences
-        .map((item, index) => {
+        .map((item: any, index: any) => {
           return `${index + 1}. ${item.title || item.fileName || "Ø´Ø§Ù‡Ø¯"}`;
         })
         .join("\n")
@@ -234,7 +234,7 @@ export async function POST(request: Request) {
         generatedAt: new Date(),
 
         evidenceItems: {
-          create: reportData.evidences.map((item, index) => ({
+          create: reportData.evidences.map((item: any, index: any) => ({
             fileName: item.fileName || `evidence-${index + 1}`,
             fileUrl: item.fileUrl,
             caption: item.note || item.title || item.fileName || null,

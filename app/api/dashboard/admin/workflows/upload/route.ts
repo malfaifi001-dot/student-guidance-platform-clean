@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     }
 
     const serviceConfig = dashboardServices.find(
-      (service) => service.slug === serviceSlug
+      (service: any) => service.slug === serviceSlug
     );
 
     if (!serviceConfig || !isWorkflowUploadEligibleService(serviceConfig)) {

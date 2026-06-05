@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 
@@ -29,7 +29,7 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      sessions: sessions.map((session) => ({
+      sessions: sessions.map((session: any) => ({
         ...session,
         rowCount: session._count.rows,
       })),

@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 
     const page = await context.newPage();
 
-    page.on("console", (message) => {
+    page.on("console", (message: any) => {
       if (message.type() === "error") {
         console.error(
           "APPRECIATION_CERTIFICATE_PDF_CONSOLE_ERROR",
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       }
     });
 
-    page.on("pageerror", (error) =>
+    page.on("pageerror", (error: any) =>
       console.error("APPRECIATION_CERTIFICATE_PDF_PAGE_ERROR", error)
     );
 
@@ -97,11 +97,11 @@ export async function POST(request: Request) {
 
       document
         .querySelectorAll("header, nav, aside, .no-print, .fixed, .sticky")
-        .forEach((node) => {
+        .forEach((node: any) => {
           (node as HTMLElement).style.display = "none";
         });
 
-      document.querySelectorAll(".pdf-certificate-page").forEach((node) => {
+      document.querySelectorAll(".pdf-certificate-page").forEach((node: any) => {
         const element = node as HTMLElement;
         element.style.boxShadow = "none";
         element.style.border = "0";

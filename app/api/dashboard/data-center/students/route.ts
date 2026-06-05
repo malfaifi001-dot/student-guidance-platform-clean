@@ -84,18 +84,18 @@ export async function GET(request: Request) {
     ]);
 
     const grades = Array.from(
-      new Set(filterSource.map((item) => item.grade).filter(Boolean)),
+      new Set(filterSource.map((item: any) => item.grade).filter(Boolean)),
     ).sort();
 
     const classrooms = Array.from(
-      new Set(filterSource.map((item) => item.classroom).filter(Boolean)),
+      new Set(filterSource.map((item: any) => item.classroom).filter(Boolean)),
     ).sort();
 
-    const activeCount = filterSource.filter((item) => item.isActive).length;
-    const inactiveCount = filterSource.filter((item) => !item.isActive).length;
+    const activeCount = filterSource.filter((item: any) => item.isActive).length;
+    const inactiveCount = filterSource.filter((item: any) => !item.isActive).length;
 
     return NextResponse.json({
-      students: students.map((student) => ({
+      students: students.map((student: any) => ({
         id: student.id,
         fullName: student.fullName,
         nationalId: student.nationalId,

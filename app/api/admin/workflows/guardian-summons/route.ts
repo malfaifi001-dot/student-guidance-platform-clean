@@ -55,12 +55,12 @@ export async function POST() {
         status: "ACTIVE",
         isActive: true,
         steps: {
-          create: GUARDIAN_SUMMONS_WORKFLOW.steps.map((step) => ({
+          create: GUARDIAN_SUMMONS_WORKFLOW.steps.map((step: any) => ({
             title: step.title,
             description: step.description,
             order: step.order,
             fields: {
-              create: step.fields.map((field) => ({
+              create: step.fields.map((field: any) => ({
                 key: field.key,
                 label: field.label,
                 type: field.type as any,
@@ -74,7 +74,7 @@ export async function POST() {
                   "linkedToValue" in field ? field.linkedToValue : null,
                 allowOther: "allowOther" in field ? Boolean(field.allowOther) : false,
                 options: {
-                  create: field.options.map((option, index) => ({
+                  create: field.options.map((option: any, index: any) => ({
                     value: option[0],
                     label: option[1],
                     order: index + 1,

@@ -41,9 +41,9 @@ function getSeverityRank(severity: OperationalAlertSeverity): number {
 function buildSummary(alerts: OperationalAlert[]) {
   return {
     total: alerts.length,
-    critical: alerts.filter((alert) => alert.severity === "CRITICAL").length,
-    warning: alerts.filter((alert) => alert.severity === "WARNING").length,
-    info: alerts.filter((alert) => alert.severity === "INFO").length,
+    critical: alerts.filter((alert: any) => alert.severity === "CRITICAL").length,
+    warning: alerts.filter((alert: any) => alert.severity === "WARNING").length,
+    info: alerts.filter((alert: any) => alert.severity === "INFO").length,
   };
 }
 
@@ -236,7 +236,7 @@ export async function GET() {
     });
   }
 
-  const sortedAlerts = alerts.sort((a, b) => {
+  const sortedAlerts = alerts.sort((a: any, b: any) => {
     const severityDiff = getSeverityRank(a.severity) - getSeverityRank(b.severity);
 
     if (severityDiff !== 0) {

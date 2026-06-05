@@ -162,7 +162,7 @@ export async function GET() {
   }
 
   const topActorIds = Array.from(actorCounts.entries())
-    .sort((a, b) => b[1] - a[1])
+    .sort((a: any, b: any) => b[1] - a[1])
     .slice(0, 8)
     .map(([id]) => id);
 
@@ -220,24 +220,24 @@ export async function GET() {
         category,
         count,
       }))
-      .sort((a, b) => b.count - a.count),
+      .sort((a: any, b: any) => b.count - a.count),
 
     byAction: Array.from(actionCounts.entries())
       .map(([action, count]) => ({
         action,
         count,
       }))
-      .sort((a, b) => b.count - a.count),
+      .sort((a: any, b: any) => b.count - a.count),
 
     byService: Array.from(serviceCounts.entries())
       .map(([serviceSlug, count]) => ({
         serviceSlug,
         count,
       }))
-      .sort((a, b) => b.count - a.count),
+      .sort((a: any, b: any) => b.count - a.count),
 
     topUsers: Array.from(actorCounts.entries())
-      .sort((a, b) => b[1] - a[1])
+      .sort((a: any, b: any) => b[1] - a[1])
       .slice(0, 8)
       .map(([userId, count]) => {
         const user = userMap.get(userId);
@@ -251,7 +251,7 @@ export async function GET() {
         };
       }),
 
-    daily: Array.from(dailyMap.values()).sort((a, b) =>
+    daily: Array.from(dailyMap.values()).sort((a: any, b: any) =>
       a.date.localeCompare(b.date)
     ),
   };

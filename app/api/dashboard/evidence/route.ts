@@ -111,7 +111,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+    const totalSize = files.reduce((sum: any, file: any) => sum + file.size, 0);
 
     if (totalSize > MAX_TOTAL_SIZE) {
       return NextResponse.json(
@@ -222,10 +222,10 @@ export async function POST(request: Request) {
     await logEvidenceUploadedEvent({
       itemsCount: uploadedItems.length,
       totalSizeBytes: uploadedItems.reduce(
-        (sum, item) => sum + (Number(item.size) || 0),
+        (sum: any, item: any) => sum + (Number(item.size) || 0),
         0
       ),
-      fileNames: uploadedItems.map((item) => item.fileName),
+      fileNames: uploadedItems.map((item: any) => item.fileName),
       source: verifiedCase
         ? "case-linked-evidence-upload"
         : "dashboard-evidence-upload",

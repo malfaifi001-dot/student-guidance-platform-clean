@@ -62,7 +62,7 @@ export async function GET() {
   });
 
   const dueReminders = reminders
-    .map((reminder) => {
+    .map((reminder: any) => {
       const remindBeforeMinutes = Math.max(
         0,
         Number(reminder.remindBeforeMinutes || 0),
@@ -79,7 +79,7 @@ export async function GET() {
         isLate: reminder.scheduledAt.getTime() < now.getTime(),
       };
     })
-    .filter((reminder) => new Date(reminder.showAt).getTime() <= now.getTime())
+    .filter((reminder: any) => new Date(reminder.showAt).getTime() <= now.getTime())
     .slice(0, 5);
 
   return NextResponse.json({

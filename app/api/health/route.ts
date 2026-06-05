@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
   }
 
   const checks = await Promise.all([checkDatabase(), checkUploads()]);
-  const ok = checks.every((check) => check.ok);
+  const ok = checks.every((check: any) => check.ok);
 
   return NextResponse.json(
     {

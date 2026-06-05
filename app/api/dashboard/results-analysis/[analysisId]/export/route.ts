@@ -49,7 +49,7 @@ function buildCsv(rows: ExportRow[]) {
 
   const lines = [
     headers.map(csvCell).join(","),
-    ...rows.map((row) =>
+    ...rows.map((row: any) =>
       [
         row.studentName,
         row.nationalId,

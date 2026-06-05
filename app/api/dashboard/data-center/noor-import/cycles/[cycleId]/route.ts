@@ -17,11 +17,11 @@ function computeCycleStatus(sessions: Array<{ status: string }>, isArchived?: bo
     return "ARCHIVED";
   }
 
-  if (sessions.some((session) => session.status !== "COMMITTED")) {
+  if (sessions.some((session: any) => session.status !== "COMMITTED")) {
     return "REVIEW_PENDING";
   }
 
-  if (sessions.some((session) => session.status === "COMMITTED")) {
+  if (sessions.some((session: any) => session.status === "COMMITTED")) {
     return "COMMITTED";
   }
 
@@ -61,8 +61,8 @@ export async function GET(_request: Request, context: RouteContext) {
     });
 
     const latestSession = sessions[0] ?? null;
-    const committedSessions = sessions.filter((session) => session.status === "COMMITTED");
-    const pendingSessions = sessions.filter((session) => session.status !== "COMMITTED");
+    const committedSessions = sessions.filter((session: any) => session.status === "COMMITTED");
+    const pendingSessions = sessions.filter((session: any) => session.status !== "COMMITTED");
     const latestCommitted = committedSessions[0] ?? null;
 
     const planGroups = latestSession
@@ -78,7 +78,7 @@ export async function GET(_request: Request, context: RouteContext) {
       : [];
 
     const planSummary = planGroups.reduce(
-      (summary, item) => {
+      (summary: any, item: any) => {
         summary[item.planAction || "NEEDS_REVIEW"] = item._count._all;
         return summary;
       },

@@ -103,7 +103,7 @@ export async function POST(_request: Request, context: RouteContext) {
         archivedAt: null,
 
         evidenceItems: {
-          create: sourceReport.evidenceItems.map((item) => ({
+          create: sourceReport.evidenceItems.map((item: any) => ({
             fileName: item.fileName,
             fileUrl: item.fileUrl,
             caption: item.caption,

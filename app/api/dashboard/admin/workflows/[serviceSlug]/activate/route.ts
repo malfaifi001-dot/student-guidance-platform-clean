@@ -70,7 +70,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       await tx.workflow.updateMany({
         where: {
           serviceId: workflow.serviceId,

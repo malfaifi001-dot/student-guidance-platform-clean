@@ -88,7 +88,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const normalizedItems = items
-      .map((item, index) => ({
+      .map((item: any, index: any) => ({
         id: typeof item.id === "string" ? item.id : "",
         caption:
           typeof item.caption === "string"
@@ -103,7 +103,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             ? item.sortOrder
             : index,
       }))
-      .filter((item) => item.id);
+      .filter((item: any) => item.id);
 
     if (!normalizedItems.length) {
       return NextResponse.json(
@@ -116,7 +116,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     await prisma.$transaction(
-      normalizedItems.map((item, index) =>
+      normalizedItems.map((item: any, index: any) =>
         prisma.reportEvidence.updateMany({
           where: {
             id: item.id,

@@ -159,9 +159,9 @@ export async function POST(request: Request) {
           `تحليل نتائج - ${new Date().toLocaleDateString("ar-SA")}`,
         grade: grade || null,
         classroom: classroom || null,
-        sourceFile: excelFiles.map((file) => file.name).join("، "),
+        sourceFile: excelFiles.map((file: any) => file.name).join("، "),
         totalStudents: summary.totalStudents,
-        totalSubjects: new Set(allRows.map((row) => row.subject).filter(Boolean))
+        totalSubjects: new Set(allRows.map((row: any) => row.subject).filter(Boolean))
           .size,
         averageScore: summary.averagePercentage,
         summaryJson: analysisOutput,

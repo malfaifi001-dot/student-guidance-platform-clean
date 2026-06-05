@@ -83,14 +83,14 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       let createdCount = 0;
       let updatedCount = 0;
       let skippedCount = 0;
       let deactivatedCount = 0;
 
       const incomingNationalIds = session.rows
-        .map((row) => row.nationalId)
+        .map((row: any) => row.nationalId)
         .filter(Boolean) as string[];
 
       for (const row of session.rows) {
@@ -264,7 +264,7 @@ export async function POST(request: Request, context: RouteContext) {
 
         const incomingSet = new Set(incomingNationalIds);
 
-        const missingStudents = activeStudents.filter((student) => {
+        const missingStudents = activeStudents.filter((student: any) => {
           return student.nationalId && !incomingSet.has(student.nationalId);
         });
 

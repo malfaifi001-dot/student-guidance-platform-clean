@@ -54,7 +54,7 @@ export async function GET() {
   const userIds = Array.from(
     new Set(
       logs
-        .flatMap((log) => [log.actorUserId, log.targetUserId])
+        .flatMap((log: any) => [log.actorUserId, log.targetUserId])
         .filter((id): id is string => Boolean(id))
     )
   );
@@ -62,7 +62,7 @@ export async function GET() {
   const schoolAccountIds = Array.from(
     new Set(
       logs
-        .map((log) => log.schoolAccountId)
+        .map((log: any) => log.schoolAccountId)
         .filter((id): id is string => Boolean(id))
     )
   );
@@ -110,14 +110,14 @@ export async function GET() {
   const typedSchools = schools as AdminActivitySchoolItem[];
 
   const userMap = new Map<string, AdminActivityUserItem>(
-    typedUsers.map((user) => [user.id, user])
+    typedUsers.map((user: any) => [user.id, user])
   );
 
   const schoolMap = new Map<string, AdminActivitySchoolItem>(
-    typedSchools.map((school) => [school.id, school])
+    typedSchools.map((school: any) => [school.id, school])
   );
 
-  const enrichedLogs = logs.map((log) => {
+  const enrichedLogs = logs.map((log: any) => {
     const actor = log.actorUserId ? userMap.get(log.actorUserId) : null;
     const target = log.targetUserId ? userMap.get(log.targetUserId) : null;
     const school = log.schoolAccountId ? schoolMap.get(log.schoolAccountId) : null;
@@ -166,20 +166,20 @@ export async function GET() {
 
   const stats = {
     total: logs.length,
-    today: logs.filter((log) => log.createdAt >= todayStart).length,
-    success: logs.filter((log) => log.severity === "SUCCESS").length,
-    warnings: logs.filter((log) => log.severity === "WARNING").length,
-    errors: logs.filter((log) => log.severity === "ERROR").length,
+    today: logs.filter((log: any) => log.createdAt >= todayStart).length,
+    success: logs.filter((log: any) => log.severity === "SUCCESS").length,
+    warnings: logs.filter((log: any) => log.severity === "WARNING").length,
+    errors: logs.filter((log: any) => log.severity === "ERROR").length,
     security: logs.filter(
-      (log) => log.category === "SECURITY" || log.category === "AUTH"
+      (log: any) => log.category === "SECURITY" || log.category === "AUTH"
     ).length,
     subscriptions: logs.filter(
-      (log) =>
+      (log: any) =>
         log.category === "SUBSCRIPTION" ||
         log.category === "ACTIVATION" ||
         log.category === "PAYMENT"
     ).length,
-    users: logs.filter((log) => log.category === "USER").length,
+    users: logs.filter((log: any) => log.category === "USER").length,
   };
 
   return NextResponse.json({

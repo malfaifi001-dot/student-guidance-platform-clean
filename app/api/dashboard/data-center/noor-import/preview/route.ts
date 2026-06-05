@@ -62,7 +62,7 @@ function isDifferent(
 
 function buildPlanSummary(rows: Array<{ planAction: string | null }>) {
   return rows.reduce(
-    (summary, row) => {
+    (summary: any, row: any) => {
       const action = row.planAction || "NEEDS_REVIEW";
       summary[action] = (summary[action] || 0) + 1;
       return summary;
@@ -82,7 +82,7 @@ function chunkArray<T>(items: T[], size: number): T[][] {
 }
 
 function toImportRowCreateManyData(sessionId: string, rows: PlannedRow[]) {
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     sessionId,
     rowIndex: row.rowIndex,
     status: row.status,
@@ -215,11 +215,11 @@ export async function POST(request: Request) {
 
     const existingByNationalId = new Map(
       existingStudents
-        .filter((student) => student.nationalId)
-        .map((student) => [student.nationalId as string, student]),
+        .filter((student: any) => student.nationalId)
+        .map((student: any) => [student.nationalId as string, student]),
     );
 
-    const rowsWithPlan: PlannedRow[] = parsed.rows.map((row) => {
+    const rowsWithPlan: PlannedRow[] = parsed.rows.map((row: any) => {
       let planAction: PlanAction = "NEW";
       let rowStatus: "VALID" | "INVALID" | "CONFLICT" = row.status;
 
@@ -249,9 +249,9 @@ export async function POST(request: Request) {
     });
 
     const planSummary = buildPlanSummary(rowsWithPlan);
-    const validRows = rowsWithPlan.filter((row) => row.status === "VALID").length;
-    const invalidRows = rowsWithPlan.filter((row) => row.status === "INVALID").length;
-    const conflictCount = rowsWithPlan.filter((row) => row.status === "CONFLICT").length;
+    const validRows = rowsWithPlan.filter((row: any) => row.status === "VALID").length;
+    const invalidRows = rowsWithPlan.filter((row: any) => row.status === "INVALID").length;
+    const conflictCount = rowsWithPlan.filter((row: any) => row.status === "CONFLICT").length;
 
     const session = await prisma.$transaction(async (tx: AppTransactionClient) => {
       const createdSession = await tx.studentImportSession.create({

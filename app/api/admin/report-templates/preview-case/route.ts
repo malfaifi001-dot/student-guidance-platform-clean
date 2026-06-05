@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type {
   RuntimePreviewCaseData,
@@ -37,7 +37,7 @@ function normalizeCaseValues(caseEntry: {
     } | null;
   }>;
 }): RuntimePreviewCaseValue[] {
-  return (caseEntry.values || []).map((item) => ({
+  return (caseEntry.values || []).map((item: any) => ({
     fieldKey: item.field?.key || item.fieldKey || "unknown",
     fieldLabel: item.field?.label || item.fieldKey || "حقل بدون اسم",
     value: stringifyValue(item.value ?? item.jsonValue),
@@ -58,8 +58,8 @@ function normalizeEvidences(caseEntry: {
   }>;
 }): RuntimePreviewEvidence[] {
   const normalEvidences: RuntimePreviewEvidence[] = (caseEntry.evidences || [])
-    .filter((item) => Boolean(item.fileUrl))
-    .map((item) => ({
+    .filter((item: any) => Boolean(item.fileUrl))
+    .map((item: any) => ({
       id: item.id,
       title: item.fileName || item.note || "شاهد",
       fileUrl: item.fileUrl || undefined,
@@ -70,8 +70,8 @@ function normalizeEvidences(caseEntry: {
   const caseEvidences: RuntimePreviewEvidence[] = (
     caseEntry.caseEvidences || []
   )
-    .filter((item) => Boolean(item.fileUrl))
-    .map((item) => ({
+    .filter((item: any) => Boolean(item.fileUrl))
+    .map((item: any) => ({
       id: item.id,
       title: item.fileName || "شاهد",
       fileUrl: item.fileUrl,

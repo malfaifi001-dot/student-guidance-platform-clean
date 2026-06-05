@@ -205,7 +205,7 @@ export async function GET() {
     }
   }
 
-  const mappedUsers = users.map((user) => {
+  const mappedUsers = users.map((user: any) => {
     const subscription = user.schoolAccount?.subscription;
     const computedSubscriptionStatus = getSubscriptionStatusLabel(
       subscription?.status,
@@ -313,23 +313,23 @@ export async function GET() {
 
   const stats = {
     totalUsers: mappedUsers.length,
-    counselors: mappedUsers.filter((user) => user.role === "COUNSELOR").length,
-    admins: mappedUsers.filter((user) => user.role === "ADMIN").length,
-    activeUsers: mappedUsers.filter((user) => user.isActive).length,
-    disabledUsers: mappedUsers.filter((user) => !user.isActive).length,
-    subscribedUsers: mappedUsers.filter((user) => user.subscription?.usable).length,
-    withoutSubscription: mappedUsers.filter((user) => !user.subscription).length,
-    needsAttention: mappedUsers.filter((user) => user.riskLevel !== "OK").length,
+    counselors: mappedUsers.filter((user: any) => user.role === "COUNSELOR").length,
+    admins: mappedUsers.filter((user: any) => user.role === "ADMIN").length,
+    activeUsers: mappedUsers.filter((user: any) => user.isActive).length,
+    disabledUsers: mappedUsers.filter((user: any) => !user.isActive).length,
+    subscribedUsers: mappedUsers.filter((user: any) => user.subscription?.usable).length,
+    withoutSubscription: mappedUsers.filter((user: any) => !user.subscription).length,
+    needsAttention: mappedUsers.filter((user: any) => user.riskLevel !== "OK").length,
     pendingTransfers: mappedUsers.reduce(
-      (sum, user) => sum + user.pendingTransfersCount,
+      (sum: any, user: any) => sum + user.pendingTransfersCount,
       0
     ),
-    inactiveCounselors: mappedUsers.filter((user) => user.flags.inactive).length,
-    veryActiveCounselors: mappedUsers.filter((user) => user.flags.veryActive).length,
-    incompleteOnboarding: mappedUsers.filter((user) => user.flags.incompleteOnboarding).length,
-    casesLast30Days: mappedUsers.reduce((sum, user) => sum + user.casesLast30Days, 0),
-    reportsLast30Days: mappedUsers.reduce((sum, user) => sum + user.reportsLast30Days, 0),
-    evidencesLast30Days: mappedUsers.reduce((sum, user) => sum + user.evidencesLast30Days, 0),
+    inactiveCounselors: mappedUsers.filter((user: any) => user.flags.inactive).length,
+    veryActiveCounselors: mappedUsers.filter((user: any) => user.flags.veryActive).length,
+    incompleteOnboarding: mappedUsers.filter((user: any) => user.flags.incompleteOnboarding).length,
+    casesLast30Days: mappedUsers.reduce((sum: any, user: any) => sum + user.casesLast30Days, 0),
+    reportsLast30Days: mappedUsers.reduce((sum: any, user: any) => sum + user.reportsLast30Days, 0),
+    evidencesLast30Days: mappedUsers.reduce((sum: any, user: any) => sum + user.evidencesLast30Days, 0),
   };
 
   return NextResponse.json({

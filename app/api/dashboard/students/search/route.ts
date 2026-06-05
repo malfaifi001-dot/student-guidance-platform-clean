@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({
-      students: students.map((student) => ({
+      students: students.map((student: any) => ({
         id: student.id,
         fullName: student.fullName,
         nationalId: student.nationalId,
