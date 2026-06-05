@@ -1,92 +1,61 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { mkdir, unlink, writeFile } from "fs/promises";
-import path from "path";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type HealthCheck = {
+type Check = {
   name: string;
   ok: boolean;
   message: string;
+  value?: number;
 };
 
-async function checkDatabase(): Promise<HealthCheck> {
-  if (!process.env.DATABASE_URL) {
-    return {
-      name: "database",
-      ok: false,
-      message: "DATABASE_URL is missing.",
-    };
-  }
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
+async function runCheck(name: string, fn: () => Promise<number | void>): Promise<Check> {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    const value = await fn();
 
     return {
-      name: "database",
+      name,
       ok: true,
-      message: "Database connection is working.",
+      message: "OK",
+      value: typeof value === "number" ? value : undefined,
     };
   } catch (error) {
     return {
-      name: "database",
+      name,
       ok: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Database connection failed.",
+      message: errorMessage(error),
     };
   }
 }
 
-async function checkUploads(): Promise<HealthCheck> {
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  const testFile = path.join(uploadDir, ".healthcheck-write-test.txt");
+export async function GET() {
+  const checks = await Promise.all([
+    runCheck("database-select-1", async () => {
+      await prisma.$queryRaw`SELECT 1`;
+    }),
 
-  try {
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(testFile, `ok-${Date.now()}`, "utf8");
-    await unlink(testFile);
+    runCheck("table-user-count", async () => {
+      return prisma.user.count();
+    }),
 
-    return {
-      name: "uploads",
-      ok: true,
-      message: "Upload directory is writable.",
-    };
-  } catch (error) {
-    return {
-      name: "uploads",
-      ok: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Upload directory is not writable.",
-    };
-  }
-}
+    runCheck("table-school-account-count", async () => {
+      return prisma.schoolAccount.count();
+    }),
 
-export async function GET(request: NextRequest) {
-  const token = process.env.HEALTHCHECK_TOKEN;
-  const providedToken = request.nextUrl.searchParams.get("token");
-
-  if (token && providedToken !== token) {
-    return NextResponse.json(
-      {
-        ok: false,
-        message: "Healthcheck token is required.",
-      },
-      { status: 401 }
-    );
-  }
-
-  const checks = await Promise.all([checkDatabase(), checkUploads()]);
-  const ok = checks.every((check: any) => check.ok);
+    runCheck("table-user-session-count", async () => {
+      return prisma.userSession.count();
+    }),
+  ]);
 
   return NextResponse.json(
     {
-      ok,
+      ok: checks.every((check) => check.ok),
       app: "student-guidance-platform",
       nodeEnv: process.env.NODE_ENV || "unknown",
       databaseUrlConfigured: Boolean(process.env.DATABASE_URL),
