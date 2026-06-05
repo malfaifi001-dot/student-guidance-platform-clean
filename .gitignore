@@ -3,3 +3,11 @@
 .env
 .env.local
 *.log
+
+# Local database and local backups
+dev.db
+dev.db-journal
+_local-backups/
+_backups/
+debug-*.txt
+

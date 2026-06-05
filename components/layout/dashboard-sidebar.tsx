@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -99,7 +99,7 @@ const counselorServiceLinks: SidebarLinkItem[] = [
 
 const counselorInformationLinks: SidebarLinkItem[] = [
   {
-    label: "Data Center",
+    label: "مركز البيانات",
     href: "/dashboard/data-center",
     icon: Database,
   },
@@ -379,7 +379,7 @@ function CounselorSidebar({
           ))}
         </SidebarSection>
 
-        <SidebarSection title="Data Center" collapsed={collapsed}>
+        <SidebarSection title="مركز البيانات" collapsed={collapsed}>
           {counselorInformationLinks.map((item) => (
             <SidebarLink
               key={item.href}
