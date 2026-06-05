@@ -84,7 +84,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     );
   }
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     await tx.user.update({
       where: {
         id: targetUser.id,
