@@ -171,8 +171,8 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
   return (
     <aside
       className={[
-        "hidden min-h-screen shrink-0 border-l border-slate-200 bg-white px-3 py-4 transition-all duration-300 xl:block",
-        collapsed ? "w-[82px]" : "w-[236px]",
+        "sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 overflow-hidden rounded-[2.25rem] border border-slate-200/80 bg-white/90 p-3 shadow-xl shadow-slate-200/60 backdrop-blur-xl transition-all duration-300 xl:block",
+        collapsed ? "w-[86px]" : "w-[252px]",
       ].join(" ")}
     >
       <div className="flex h-full flex-col">
@@ -274,7 +274,7 @@ function AdminSidebar({
 }) {
   return (
     <>
-      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1">
+      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1 pl-1">
         <SidebarSection title="الرئيسية" collapsed={collapsed}>
           {adminMainLinks.map((item) => (
             <SidebarLink
@@ -413,7 +413,7 @@ function CounselorSidebar({
       </nav>
 
       {!collapsed ? (
-        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4">
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50/80 p-4">
           <p className="text-xs font-black text-sky-700">اقتراح سريع</p>
           <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80">
             ابدأ بالتقويم، ثم افتح الحالة أو المرجع الشامل عند الحاجة.

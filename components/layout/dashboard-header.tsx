@@ -60,8 +60,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7faff]/85 px-4 py-2.5 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4">
+    <header className="sticky top-3 z-30 px-0">
+      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4 rounded-[2rem] border border-slate-200/80 bg-white/90 px-4 py-3 shadow-lg shadow-slate-200/60 backdrop-blur-xl">
         <div className="hidden min-w-[360px] max-w-2xl flex-1 lg:block">
           <div className="relative">
             <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -73,7 +73,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                   ? "ابحث عن حساب، باقة، طلب تفعيل، Workflow..."
                   : "ابحث عن طالب، خدمة، حالة أو تقرير..."
               }
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-12 text-[15px] font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/80 px-12 text-[15px] font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:bg-white focus:ring-4 focus:ring-sky-50"
             />
           </div>
         </div>

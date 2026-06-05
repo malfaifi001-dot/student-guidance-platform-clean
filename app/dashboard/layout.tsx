@@ -14,7 +14,7 @@ export default async function DashboardLayout({
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen gap-4 p-3 md:p-4">
         <DashboardSidebar user={current.user} />
 
         <main className="min-w-0 flex-1 text-[15.5px] leading-relaxed">
@@ -26,7 +26,7 @@ export default async function DashboardLayout({
 
           <CalendarLoginPopup />
 
-          <div className="mx-auto w-full max-w-[1680px] px-3 py-4 md:px-4 xl:px-5">
+          <div className="mx-auto w-full max-w-[1680px] py-4">
             {children}
           </div>
         </main>
