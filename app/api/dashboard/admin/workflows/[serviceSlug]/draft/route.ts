@@ -1,5 +1,20 @@
 ﻿import { NextResponse } from "next/server";
-import { FieldType, StudentPickerMode } from "@prisma/client";
+import { StudentPickerMode } from "@prisma/client";
+
+const FieldType = {
+  TEXT: "TEXT",
+  TEXTAREA: "TEXTAREA",
+  NUMBER: "NUMBER",
+  DATE: "DATE",
+  SELECT: "SELECT",
+  MULTI_SELECT: "MULTI_SELECT",
+  CHECKBOX: "CHECKBOX",
+  RADIO: "RADIO",
+  FILE: "FILE",
+  STUDENT_PICKER: "STUDENT_PICKER",
+} as const;
+
+type FieldType = (typeof FieldType)[keyof typeof FieldType];
 
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { prisma } from "@/lib/prisma";
