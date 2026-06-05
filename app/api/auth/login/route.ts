@@ -1,6 +1,6 @@
-﻿import type { Prisma } from '@prisma/client';
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+type LoginTransactionClient = Pick<typeof prisma, "user" | "userSession">;
 import { verifyPassword } from "@/lib/auth/password";
 import { getRequestDeviceInfo } from "@/lib/auth/current-user";
 import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const tokenId = createTokenId();
     const expiresAt = getSessionExpiryDate();
 
-    const session = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const session = await prisma.$transaction(async (tx: LoginTransactionClient) => {
       if (shouldLimitActiveSessions()) {
         await tx.userSession.updateMany({
           where: {
@@ -126,4 +126,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
 
