@@ -1,4 +1,5 @@
-﻿import { redirect } from "next/navigation";
+﻿import type { Prisma } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 import { StudentRecordSearchClient } from "@/components/students/student-record-search-client";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
@@ -10,11 +11,14 @@ export default async function ComprehensiveReferencePage() {
   if (!context.isAdmin && !context.schoolAccountId) {
     redirect("/dashboard/onboarding?required=true");
   }
+  const studentWhere: Prisma.StudentWhereInput = context.isAdmin
+    ? {}
+    : context.schoolAccountId
+      ? { schoolAccountId: context.schoolAccountId }
+      : { id: "__no-school-account__" };
 
   const students = await prisma.student.findMany({
-    where: {
-      ...(context.isAdmin ? {} : { schoolAccountId: context.schoolAccountId }),
-    },
+    where: studentWhere,
     orderBy: {
       fullName: "asc",
     },
@@ -47,3 +51,4 @@ export default async function ComprehensiveReferencePage() {
     </main>
   );
 }
+

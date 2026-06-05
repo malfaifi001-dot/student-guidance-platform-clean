@@ -1,4 +1,5 @@
-﻿import { NextResponse } from "next/server";
+﻿import type { Prisma } from '@prisma/client';
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 import { getRequestDeviceInfo } from "@/lib/auth/current-user";
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
     const tokenId = createTokenId();
     const expiresAt = getSessionExpiryDate();
 
-    const session = await prisma.$transaction(async (tx) => {
+    const session = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (shouldLimitActiveSessions()) {
         await tx.userSession.updateMany({
           where: {
@@ -125,3 +126,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
