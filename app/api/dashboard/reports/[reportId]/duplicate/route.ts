@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma, ReportStatus} from "@prisma/client";
+import { ReportStatus} from "@prisma/client";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { buildReportAccessWhere } from "@/lib/reports/report-access";
 
@@ -11,13 +11,13 @@ type RouteContext = {
 };
 
 function cloneJsonValue(
-  value: Prisma.JsonValue | null
-): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  value: any | null
+): any {
   if (value === null) {
-    return Prisma.JsonNull;
+    return null as any;
   }
 
-  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  return JSON.parse(JSON.stringify(value)) as any;
 }
 
 function buildDuplicatedTitle(title: string) {
