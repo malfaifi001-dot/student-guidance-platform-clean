@@ -1,8 +1,8 @@
-﻿import { CounselorActivationCenter } from "@/components/activation/counselor-activation-center";
+import { redirect } from "next/navigation";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 
 export default async function SubscriptionPage() {
   await requireDashboardUser();
 
-  return <CounselorActivationCenter />;
+  redirect("/dashboard/plans");
 }

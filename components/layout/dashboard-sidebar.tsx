@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -391,7 +391,7 @@ function CounselorSidebar({
         </SidebarDropdown>
 
         <SidebarDropdown
-          title="الحساب والتفعيل"
+          title="الحساب والباقات"
           defaultOpen={
             pathname.startsWith("/dashboard/subscription") ||
             pathname.startsWith("/dashboard/plans") ||

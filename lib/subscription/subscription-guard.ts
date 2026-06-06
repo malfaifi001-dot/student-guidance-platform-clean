@@ -50,7 +50,7 @@ export async function requireServiceAccessForCurrentUser(serviceSlug: string) {
         : "service-not-in-plan";
 
     redirect(
-      `/dashboard/subscription?reason=${reason}&service=${encodeURIComponent(
+      `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
         serviceSlug
       )}`
     );

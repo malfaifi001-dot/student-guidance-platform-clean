@@ -82,7 +82,7 @@ export async function requireServiceAccessApi(serviceSlug: string) {
             : "هذه الخدمة غير مشمولة في باقتك الحالية.",
         code: result.reason,
         serviceSlug,
-        redirectTo: `/dashboard/subscription?reason=${reason}&service=${encodeURIComponent(
+        redirectTo: `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
           serviceSlug
         )}`,
       },
