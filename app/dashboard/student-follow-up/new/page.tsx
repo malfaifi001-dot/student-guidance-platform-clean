@@ -2,11 +2,12 @@
 import { prisma } from "@/lib/prisma";
 import { ensureServiceBySlug } from "@/engine/services/service-workspace-engine";
 import { getServiceRuntimePolicy } from "@/lib/services/service-runtime-policy";
+
 async function ensureStudentFollowUpWorkflow() {
   const service = await ensureServiceBySlug({
     slug: "student-follow-up",
     name: "متابعة الطلاب",
-    description: "متابعة حالات الطلاب Ùˆالطالبات.",
+    description: "متابعة حالات الطلاب والطالبات.",
   });
 
   const existingWorkflow = await prisma.workflow.findFirst({
@@ -32,37 +33,37 @@ async function ensureStudentFollowUpWorkflow() {
   const workflow = await prisma.workflow.create({
     data: {
       serviceId: service.id,
-      name: "نم�ˆذج متابعة الطلاب",
+      name: "نموذج متابعة الطلاب",
       version: 1,
       status: "ACTIVE",
       isActive: true,
       steps: {
         create: [
           {
-            title: "تصني� الحالة",
-            description: "اختر ن�ˆع المش�ƒلة Ùˆالتصني� المرتبط بها.",
+            title: "تصنيف الحالة",
+            description: "اختر نوع المشكلة والتصنيف المرتبط بها.",
             order: 1,
             fields: {
               create: [
                 {
                   key: "problem_type",
-                  label: "ن�ˆع المش�ƒلة",
+                  label: "نوع المشكلة",
                   type: "SELECT",
                   isRequired: true,
                   order: 1,
                   allowOther: true,
                   options: {
                     create: [
-                      { label: "سل�ˆÙƒية", value: "behavioral", order: 1 },
-                      { label: "أ�ƒاديمية", value: "academic", order: 2 },
-                      { label: "ن�سية", value: "psychological", order: 3 },
+                      { label: "سلوكية", value: "behavioral", order: 1 },
+                      { label: "أكاديمية", value: "academic", order: 2 },
+                      { label: "نفسية", value: "psychological", order: 3 },
                       { label: "اجتماعية", value: "social", order: 4 },
                     ],
                   },
                 },
                 {
                   key: "academic_classification",
-                  label: "التصني� الأ�ƒاديمي",
+                  label: "التصنيف الأكاديمي",
                   type: "SELECT",
                   isRequired: false,
                   order: 2,
@@ -71,26 +72,26 @@ async function ensureStudentFollowUpWorkflow() {
                   allowOther: true,
                   options: {
                     create: [
-                      { label: "ضع� تحصيلي", value: "low_achievement", order: 1 },
+                      { label: "ضعف تحصيلي", value: "low_achievement", order: 1 },
                       { label: "تأخر دراسي", value: "late_learning", order: 2 },
-                      { label: "غياب مت�ƒرر", value: "absence", order: 3 },
+                      { label: "غياب متكرر", value: "absence", order: 3 },
                     ],
                   },
                 },
                 {
                   key: "visible_traits",
-                  label: "الص�ات الظاهرة",
+                  label: "الصفات الظاهرة",
                   type: "TEXTAREA",
                   isRequired: false,
                   order: 3,
-                  placeholder: "ا�ƒتب الص�ات أ�ˆ المؤشرات الظاهرة على الطالب/الطالبة...",
+                  placeholder: "اكتب الصفات أو المؤشرات الظاهرة على الطالب/الطالبة...",
                 },
               ],
             },
           },
           {
-            title: "الإجراء Ùˆالنتيجة",
-            description: "Ùˆث�‘ق الإجراء المتخذ Ùˆالنتيجة.",
+            title: "الإجراء والنتيجة",
+            description: "وثّق الإجراء المتخذ والنتيجة.",
             order: 2,
             fields: {
               create: [
@@ -193,7 +194,8 @@ export default async function NewStudentFollowUpPage() {
       })),
   };
 
-  const runtimePolicy = getServiceRuntimePolicy(service.slug);
+  getServiceRuntimePolicy(service.slug);
+
   return (
     <DynamicFormRenderer
       workflow={runtimeWorkflow}
@@ -203,4 +205,3 @@ export default async function NewStudentFollowUpPage() {
     />
   );
 }
-

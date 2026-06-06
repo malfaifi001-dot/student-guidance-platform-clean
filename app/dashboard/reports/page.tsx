@@ -1,9 +1,19 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ReportsDashboard } from "@/components/reports/reports-dashboard";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { buildReportListWhere } from "@/lib/reports/report-access";
 
 export default async function ReportsPage() {
+  const context = await requireDashboardPageContext();
+
   const reports = await prisma.guidanceReport.findMany({
+    where: buildReportListWhere({
+      schoolAccountId: context.schoolAccountId,
+      isAdmin: context.isAdmin,
+      userId: context.user.id,
+      userRole: context.user.role,
+    }),
     orderBy: {
       createdAt: "desc",
     },
@@ -68,22 +78,12 @@ export default async function ReportsPage() {
 
   const stats = {
     total: normalizedReports.length,
-    approved: normalizedReports.filter((report) => report.status === "APPROVED")
-      .length,
-    draft: normalizedReports.filter((report) => report.status === "DRAFT")
-      .length,
-    generated: normalizedReports.filter(
-      (report) => report.status === "GENERATED"
-    ).length,
-    archived: normalizedReports.filter(
-      (report) => report.status === "ARCHIVED"
-    ).length,
-    withSnapshot: normalizedReports.filter(
-      (report) => report.hasReportDataSnapshot
-    ).length,
-    withoutSnapshot: normalizedReports.filter(
-      (report) => !report.hasReportDataSnapshot
-    ).length,
+    approved: normalizedReports.filter((report) => report.status === "APPROVED").length,
+    draft: normalizedReports.filter((report) => report.status === "DRAFT").length,
+    generated: normalizedReports.filter((report) => report.status === "GENERATED").length,
+    archived: normalizedReports.filter((report) => report.status === "ARCHIVED").length,
+    withSnapshot: normalizedReports.filter((report) => report.hasReportDataSnapshot).length,
+    withoutSnapshot: normalizedReports.filter((report) => !report.hasReportDataSnapshot).length,
   };
 
   return (
@@ -96,8 +96,7 @@ export default async function ReportsPage() {
             <h1 className="mt-4 text-5xl font-black">التقارير الإرشادية</h1>
 
             <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-100">
-              إدارة التقارير الرسمية الصادرة من الحالات، مع دعم القوالب،
-              الشواهد، الاعتماد، وحفظ Snapshot لضمان ثبات التقارير بعد إصداره.
+              إدارة التقارير الرسمية الصادرة من الحالات، مع دعم القوالب، الشواهد، الاعتماد، وحفظ نسخة ثابتة من التقرير بعد إصداره.
             </p>
           </div>
 
