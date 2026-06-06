@@ -48,6 +48,7 @@ type EntryNotice = {
   title: string;
   message: string;
   serviceSlug?: string | null;
+  actionLabel?: string;
 };
 
 function formatLimit(value: string, suffix: string) {
@@ -180,6 +181,8 @@ export function CounselorPlansPage() {
     return getPlanPrice(selectedPlan, billingCycle);
   }, [billingCycle, selectedPlan]);
 
+  const isSelectedPlanFree = selectedPlan ? selectedPrice <= 0 : false;
+
   async function submitOrder() {
     if (!selectedPlan) {
       setMessage({
@@ -189,7 +192,7 @@ export function CounselorPlansPage() {
       return;
     }
 
-    if (!senderName.trim()) {
+    if (!isSelectedPlanFree && !senderName.trim()) {
       setMessage({
         type: "error",
         text: "اكتب اسم المحوّل.",
@@ -197,7 +200,7 @@ export function CounselorPlansPage() {
       return;
     }
 
-    if (!phone.trim()) {
+    if (!isSelectedPlanFree && !phone.trim()) {
       setMessage({
         type: "error",
         text: "اكتب رقم الجوال.",
@@ -230,15 +233,31 @@ export function CounselorPlansPage() {
         throw new Error(result.error || "تعذر إرسال طلب الاشتراك.");
       }
 
+      const activatedImmediately = Boolean(result.activated) || isSelectedPlanFree;
+
       setMessage({
         type: "success",
-        text: result.message || "تم إرسال طلب الاشتراك بنجاح.",
+        text:
+          result.message ||
+          (activatedImmediately
+            ? "تم تفعيل الباقة بنجاح."
+            : "تم إرسال طلب الاشتراك بنجاح."),
       });
 
       setSenderName("");
       setPhone("");
       setReceiptUrl("");
       setNote("");
+
+      if (activatedImmediately) {
+        setEntryNotice({
+          title: "تم تفعيل الباقة بنجاح",
+          message: `تم تفعيل ${selectedPlan.name} مباشرة، ويمكنك الآن استخدام الخدمات المشمولة في الباقة.`,
+          actionLabel: "متابعة",
+        });
+        setNoticeOpen(true);
+        setSelectedPlan(null);
+      }
 
       await load();
     } catch (error) {
@@ -306,7 +325,7 @@ export function CounselorPlansPage() {
               onClick={() => setNoticeOpen(false)}
               className="mt-6 h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white transition hover:bg-sky-700"
             >
-              تصفح الباقات
+              {entryNotice.actionLabel || "تصفح الباقات"}
             </button>
           </section>
         </div>
@@ -397,7 +416,10 @@ export function CounselorPlansPage() {
                 setPaymentMethod("bank");
                 setMessage({
                   type: "info",
-                  text: "تم اختيار الباقة. أكمل طريقة الدفع في الأسفل.",
+                  text:
+                    price <= 0
+                      ? "هذه الباقة مجانية. اضغط زر تفعيل الباقة الآن لتفعيلها مباشرة."
+                      : "تم اختيار الباقة. أكمل طريقة الدفع في الأسفل.",
                 });
               }}
               className={[
@@ -479,9 +501,13 @@ export function CounselorPlansPage() {
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div>
-              <p className="text-sm font-black text-sky-700">طريقة الدفع</p>
+              <p className="text-sm font-black text-sky-700">
+                {isSelectedPlanFree ? "تفعيل مجاني" : "طريقة الدفع"}
+              </p>
               <h2 className="mt-2 text-2xl font-black text-slate-950">
-                إكمال طلب {selectedPlan.name}
+                {isSelectedPlanFree
+                  ? `تفعيل ${selectedPlan.name}`
+                  : `إكمال طلب ${selectedPlan.name}`}
               </h2>
               <p className="mt-2 text-sm font-bold text-slate-500">
                 المبلغ: {selectedPrice} ريال / {getBillingLabel(billingCycle)}
@@ -500,7 +526,8 @@ export function CounselorPlansPage() {
             </button>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {!isSelectedPlanFree ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
             <PaymentCard
               active={paymentMethod === "bank"}
               icon={<Landmark className="h-7 w-7" />}
@@ -530,9 +557,41 @@ export function CounselorPlansPage() {
                 </div>
               }
             />
-          </div>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-5">
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-emerald-600">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
 
-          {paymentMethod === "bank" ? (
+                <div>
+                  <h3 className="text-lg font-black text-slate-950">
+                    تفعيل مباشر
+                  </h3>
+                  <p className="mt-2 text-sm font-bold leading-7 text-slate-600">
+                    هذه الباقة مجانية، وسيتم تفعيلها مباشرة دون تحويل بنكي أو انتظار مراجعة من الأدمن.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={submitOrder}
+                disabled={submitting}
+                className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {submitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-5 w-5" />
+                )}
+                {submitting ? "جار التفعيل..." : "تفعيل الباقة الآن"}
+              </button>
+            </div>
+          )}
+
+          {!isSelectedPlanFree && paymentMethod === "bank" ? (
             <div className="mt-6 rounded-[1.5rem] border border-sky-100 bg-sky-50/60 p-5">
               <div className="flex items-start gap-3">
                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-sky-600">

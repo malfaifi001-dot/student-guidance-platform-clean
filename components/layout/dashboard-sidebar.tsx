@@ -101,7 +101,6 @@ const counselorToolsLinks: SidebarLinkItem[] = [
 ];
 
 const counselorAccountLinks: SidebarLinkItem[] = [
-  { label: "التفعيل", href: "/dashboard/subscription", icon: ShieldCheck },
   { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
   { label: "حسابي", href: "/dashboard/account", icon: UserRound },
   { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
@@ -393,7 +392,6 @@ function CounselorSidebar({
         <SidebarDropdown
           title="الحساب والباقات"
           defaultOpen={
-            pathname.startsWith("/dashboard/subscription") ||
             pathname.startsWith("/dashboard/plans") ||
             pathname.startsWith("/dashboard/account") ||
             pathname.startsWith("/dashboard/settings")

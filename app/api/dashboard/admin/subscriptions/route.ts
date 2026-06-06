@@ -44,34 +44,52 @@ async function syncSchoolServicesFromPlan(input: {
     .filter((feature: any) => feature.value === "enabled")
     .map((feature: any) => feature.key.replace("service:", ""));
 
-  const services = await prisma.service.findMany({
-    where: {
-      slug: {
-        in: enabledServiceSlugs,
-      },
-    },
-  });
-
-  for (const service of services) {
-    await prisma.serviceAccess.upsert({
-      where: {
-        schoolAccountId_serviceId: {
-          schoolAccountId: input.schoolAccountId,
-          serviceId: service.id,
+  const enabledServices = enabledServiceSlugs.length
+    ? await prisma.service.findMany({
+        where: {
+          slug: {
+            in: enabledServiceSlugs,
+          },
         },
-      },
-      update: {
-        isEnabled: true,
-        isPaid: true,
-      },
-      create: {
+        select: {
+          id: true,
+          slug: true,
+        },
+      })
+    : [];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.serviceAccess.updateMany({
+      where: {
         schoolAccountId: input.schoolAccountId,
-        serviceId: service.id,
-        isEnabled: true,
-        isPaid: true,
+      },
+      data: {
+        isEnabled: false,
+        isPaid: false,
       },
     });
-  }
+
+    for (const service of enabledServices) {
+      await tx.serviceAccess.upsert({
+        where: {
+          schoolAccountId_serviceId: {
+            schoolAccountId: input.schoolAccountId,
+            serviceId: service.id,
+          },
+        },
+        update: {
+          isEnabled: true,
+          isPaid: true,
+        },
+        create: {
+          schoolAccountId: input.schoolAccountId,
+          serviceId: service.id,
+          isEnabled: true,
+          isPaid: true,
+        },
+      });
+    }
+  });
 }
 
 export async function GET() {

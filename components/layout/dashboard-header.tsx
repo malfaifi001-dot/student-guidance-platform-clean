@@ -164,12 +164,6 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                   {!isAdmin ? (
                     <>
                       <HeaderMenuLink
-                        href="/dashboard/subscription"
-                        icon={<ShieldCheck className="h-4 w-4" />}
-                        label="التفعيل"
-                      />
-
-                      <HeaderMenuLink
                         href="/dashboard/plans"
                         icon={<WalletCards className="h-4 w-4" />}
                         label="الباقات"

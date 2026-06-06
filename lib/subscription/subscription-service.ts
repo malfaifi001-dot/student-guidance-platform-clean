@@ -1,5 +1,10 @@
-﻿import { prisma } from "@/lib/prisma";
-import type { SubscriptionStatus} from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import type { SubscriptionStatus } from "@prisma/client";
+
+type PlanFeatureLike = {
+  key: string;
+  value: string | null;
+};
 
 export function addDays(date: Date, days: number) {
   const next = new Date(date);
@@ -39,13 +44,15 @@ export function getPlanFeatureValue(
   return features.find((feature) => feature.key === key)?.value || fallback;
 }
 
-export function getPlanServiceSlugs(
-  features: Array<{ key: string; value: string | null }>
-) {
+export function getPlanServiceSlugs(features: PlanFeatureLike[]) {
   return features
     .filter((feature) => feature.key.startsWith("service:"))
     .filter((feature) => feature.value === "enabled")
     .map((feature) => feature.key.replace("service:", ""));
+}
+
+function hasPlanServiceRules(features: PlanFeatureLike[]) {
+  return features.some((feature) => feature.key.startsWith("service:"));
 }
 
 export async function syncSchoolServicesFromPlan(input: {
@@ -58,40 +65,57 @@ export async function syncSchoolServicesFromPlan(input: {
       key: {
         startsWith: "service:",
       },
-      value: "enabled",
     },
   });
 
   const enabledServiceSlugs = getPlanServiceSlugs(planFeatures);
 
-  const services = await prisma.service.findMany({
-    where: {
-      slug: {
-        in: enabledServiceSlugs,
-      },
-    },
-  });
-
-  for (const service of services) {
-    await prisma.serviceAccess.upsert({
-      where: {
-        schoolAccountId_serviceId: {
-          schoolAccountId: input.schoolAccountId,
-          serviceId: service.id,
+  const enabledServices = enabledServiceSlugs.length
+    ? await prisma.service.findMany({
+        where: {
+          slug: {
+            in: enabledServiceSlugs,
+          },
         },
-      },
-      update: {
-        isEnabled: true,
-        isPaid: true,
-      },
-      create: {
+        select: {
+          id: true,
+          slug: true,
+        },
+      })
+    : [];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.serviceAccess.updateMany({
+      where: {
         schoolAccountId: input.schoolAccountId,
-        serviceId: service.id,
-        isEnabled: true,
-        isPaid: true,
+      },
+      data: {
+        isEnabled: false,
+        isPaid: false,
       },
     });
-  }
+
+    for (const service of enabledServices) {
+      await tx.serviceAccess.upsert({
+        where: {
+          schoolAccountId_serviceId: {
+            schoolAccountId: input.schoolAccountId,
+            serviceId: service.id,
+          },
+        },
+        update: {
+          isEnabled: true,
+          isPaid: true,
+        },
+        create: {
+          schoolAccountId: input.schoolAccountId,
+          serviceId: service.id,
+          isEnabled: true,
+          isPaid: true,
+        },
+      });
+    }
+  });
 }
 
 export async function assignPlanToSchool(input: {
@@ -199,16 +223,64 @@ export async function isServiceAllowedForSchool(input: {
     };
   }
 
+  const planFeatures = overview.subscription?.plan?.features || [];
+  const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+
+  if (planServiceSlugs.includes(input.serviceSlug)) {
+    const service = await prisma.service.findFirst({
+      where: {
+        slug: input.serviceSlug,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!service) {
+      return {
+        ok: false,
+        reason: "SERVICE_NOT_FOUND" as const,
+      };
+    }
+
+    await prisma.serviceAccess.upsert({
+      where: {
+        schoolAccountId_serviceId: {
+          schoolAccountId: input.schoolAccountId,
+          serviceId: service.id,
+        },
+      },
+      update: {
+        isEnabled: true,
+        isPaid: true,
+      },
+      create: {
+        schoolAccountId: input.schoolAccountId,
+        serviceId: service.id,
+        isEnabled: true,
+        isPaid: true,
+      },
+    });
+
+    return {
+      ok: true,
+      reason: "SERVICE_INCLUDED_BY_PLAN" as const,
+    };
+  }
+
+  if (hasPlanServiceRules(planFeatures)) {
+    return {
+      ok: false,
+      reason: "SERVICE_NOT_INCLUDED" as const,
+    };
+  }
+
   const accessRows = await prisma.serviceAccess.findMany({
     where: {
       schoolAccountId: input.schoolAccountId,
     },
   });
 
-  /*
-    لو لم يتم ضبط أي ServiceAccess للحساب بعد، نسمح مؤقتًا حتى لا نكسر الحسابات القديمة.
-    بعد إسناد باقة من الأدمن، تصبح الخدمات مقيدة حسب الباقة.
-  */
   if (accessRows.length === 0) {
     return {
       ok: true,
