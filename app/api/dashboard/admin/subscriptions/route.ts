@@ -9,7 +9,7 @@ function getSchoolDisplayName(account: {
   } | null;
 }) {
   const schoolName = String(account.profile?.schoolName || "").trim();
-  return schoolName || "Ù‡ÙˆÙŠØ© Ø§Ù„Ù…Ø¯Ø±Ø³Ø© ØºÙŠØ± Ù…ÙƒØªÙ…Ù„Ø©";
+  return schoolName || "هوية المدرسة غير مكتملة";
 }
 
 function slugify(input: string) {
@@ -84,7 +84,7 @@ export async function GET() {
   const current = await getCurrentSessionUser();
 
   if (!current) {
-    return NextResponse.json({ error: "ØºÙŠØ± Ù…ØµØ±Ø­." }, { status: 401 });
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
   const [plans, services, schools, subscriptions, serviceAccess] =
@@ -180,7 +180,7 @@ export async function POST(request: Request) {
   const current = await getCurrentSessionUser();
 
   if (!current) {
-    return NextResponse.json({ error: "ØºÙŠØ± Ù…ØµØ±Ø­." }, { status: 401 });
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
   const payload = await request.json().catch(() => null);
@@ -202,14 +202,14 @@ export async function POST(request: Request) {
 
     if (!name) {
       return NextResponse.json(
-        { error: "Ø§ÙƒØªØ¨ Ø§Ø³Ù… Ø§Ù„Ø¨Ø§Ù‚Ø©." },
+        { error: "اكتب اسم الباقة." },
         { status: 400 }
       );
     }
 
     if (!slug) {
       return NextResponse.json(
-        { error: "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø¹Ø±Ù Ø§Ù„Ø¨Ø§Ù‚Ø©." },
+        { error: "تعذر إنشاء معرف الباقة." },
         { status: 400 }
       );
     }
@@ -222,7 +222,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       return NextResponse.json(
-        { error: "ÙŠÙˆØ¬Ø¯ Ø¨Ø§Ù‚Ø© Ø¨Ù†ÙØ³ Ø§Ù„Ù…Ø¹Ø±Ù." },
+        { error: "يوجد باقة بنفس المعرف." },
         { status: 400 }
       );
     }
@@ -238,27 +238,27 @@ export async function POST(request: Request) {
           create: [
             {
               key: "durationDays",
-              label: "Ù…Ø¯Ø© Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ø¨Ø§Ù„Ø£ÙŠØ§Ù…",
+              label: "مدة الاشتراك بالأيام",
               value: String(durationDays > 0 ? durationDays : 30),
             },
             {
               key: "maxStudents",
-              label: "Ø­Ø¯ Ø§Ù„Ø·Ù„Ø§Ø¨",
+              label: "حد الطلاب",
               value: String(maxStudents > 0 ? maxStudents : 0),
             },
             {
               key: "maxUsers",
-              label: "Ø­Ø¯ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†",
+              label: "حد المستخدمين",
               value: String(maxUsers > 0 ? maxUsers : 0),
             },
             {
               key: "maxReports",
-              label: "Ø­Ø¯ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±",
+              label: "حد التقارير",
               value: String(maxReports > 0 ? maxReports : 0),
             },
             ...enabledServiceSlugs.map((serviceSlug: string) => ({
               key: `service:${serviceSlug}`,
-              label: `Ø®Ø¯Ù…Ø©: ${serviceSlug}`,
+              label: `خدمة: ${serviceSlug}`,
               value: "enabled",
             })),
           ],
@@ -270,7 +270,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­.",
+      message: "تم إنشاء الباقة بنجاح.",
       plan,
     });
   }
@@ -289,7 +289,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: isActive ? "ØªÙ… ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø¨Ø§Ù‚Ø©." : "ØªÙ… Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ø¨Ø§Ù‚Ø©.",
+      message: isActive ? "تم تفعيل الباقة." : "تم إيقاف الباقة.",
     });
   }
 
@@ -306,7 +306,7 @@ export async function POST(request: Request) {
 
     if (!schoolAccountId || !planId) {
       return NextResponse.json(
-        { error: "Ø§Ø®ØªØ± Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ§Ù„Ø¨Ø§Ù‚Ø©." },
+        { error: "اختر الحساب والباقة." },
         { status: 400 }
       );
     }
@@ -322,7 +322,7 @@ export async function POST(request: Request) {
 
     if (!plan) {
       return NextResponse.json(
-        { error: "Ø§Ù„Ø¨Ø§Ù‚Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©." },
+        { error: "الباقة غير موجودة." },
         { status: 404 }
       );
     }
@@ -369,14 +369,14 @@ export async function POST(request: Request) {
       data: {
         schoolAccountId,
         activatedById: current.user.id,
-        reason: `Ø¥Ø³Ù†Ø§Ø¯ Ø¨Ø§Ù‚Ø© ${plan.name} Ù„Ù…Ø¯Ø© ${durationDays} ÙŠÙˆÙ…`,
+        reason: `إسناد باقة ${plan.name} لمدة ${durationDays} يوم`,
         startsAt: now,
         endsAt,
       },
     });
 
     return NextResponse.json({
-      message: "ØªÙ… Ø¥Ø³Ù†Ø§Ø¯ Ø§Ù„Ø¨Ø§Ù‚Ø© ÙˆØªÙØ¹ÙŠÙ„ Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ù…ØµØ§Ø­Ø¨Ø©.",
+      message: "تم إسناد الباقة وتفعيل الخدمات المصاحبة.",
       subscription,
     });
   }
@@ -393,7 +393,7 @@ export async function POST(request: Request) {
 
     if (!subscription) {
       return NextResponse.json(
-        { error: "Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯." },
+        { error: "الاشتراك غير موجود." },
         { status: 404 }
       );
     }
@@ -420,14 +420,14 @@ export async function POST(request: Request) {
       data: {
         schoolAccountId: subscription.schoolAccountId,
         activatedById: current.user.id,
-        reason: `ØªÙ…Ø¯ÙŠØ¯ Ø§Ø´ØªØ±Ø§Ùƒ Ù„Ù…Ø¯Ø© ${days || 30} ÙŠÙˆÙ…`,
+        reason: `تمديد اشتراك لمدة ${days || 30} يوم`,
         startsAt: now,
         endsAt,
       },
     });
 
     return NextResponse.json({
-      message: "ØªÙ… ØªÙ…Ø¯ÙŠØ¯ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ.",
+      message: "تم تمديد الاشتراك.",
     });
   }
 
@@ -436,7 +436,7 @@ export async function POST(request: Request) {
 
     if (!subscriptionId) {
       return NextResponse.json(
-        { error: "Ø±Ù‚Ù… Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ù…Ø·Ù„ÙˆØ¨." },
+        { error: "رقم الاشتراك مطلوب." },
         { status: 400 }
       );
     }
@@ -453,7 +453,7 @@ export async function POST(request: Request) {
 
     if (!subscription) {
       return NextResponse.json(
-        { error: "Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯ Ø£Ùˆ ØªÙ… Ø­Ø°ÙÙ‡ Ù…Ø³Ø¨Ù‚Ù‹Ø§." },
+        { error: "الاشتراك غير موجود أو تم حذفه مسبقًا." },
         { status: 404 }
       );
     }
@@ -474,7 +474,7 @@ export async function POST(request: Request) {
       await tx.manualActivation.create({
         data: {
           schoolAccountId: subscription.schoolAccountId,
-          reason: `Ø­Ø°Ù Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙˆØ¥Ø±Ø¬Ø§Ø¹ Ø§Ù„Ø­Ø³Ø§Ø¨ Ø¨Ø¯ÙˆÙ† Ø¨Ø§Ù‚Ø©: ${subscription.schoolAccount.name}`,
+          reason: `حذف الاشتراك وإرجاع الحساب بدون باقة: ${subscription.schoolAccount.name}`,
           startsAt: now,
           endsAt: now,
         },
@@ -488,7 +488,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: "ØªÙ… Ø­Ø°Ù Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙˆØ¥Ø±Ø¬Ø§Ø¹ Ø§Ù„Ø­Ø³Ø§Ø¨ Ø¨Ø¯ÙˆÙ† Ø¨Ø§Ù‚Ø© ÙˆØ¨Ø¯ÙˆÙ† Ø£ÙŠØ§Ù….",
+      message: "تم حذف الاشتراك وإرجاع الحساب بدون باقة وبدون أيام.",
     });
   }
 
@@ -500,7 +500,7 @@ export async function POST(request: Request) {
 
     if (!schoolAccountId || !serviceId) {
       return NextResponse.json(
-        { error: "Ø§Ø®ØªØ± Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ§Ù„Ø®Ø¯Ù…Ø©." },
+        { error: "اختر الحساب والخدمة." },
         { status: 400 }
       );
     }
@@ -525,16 +525,15 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: "ØªÙ… ØªØ­Ø¯ÙŠØ« ØµÙ„Ø§Ø­ÙŠØ© Ø§Ù„Ø®Ø¯Ù…Ø© Ù„Ù„Ø­Ø³Ø§Ø¨.",
+      message: "تم تحديث صلاحية الخدمة للحساب.",
     });
   }
 
   return NextResponse.json(
-    { error: "Ø¥Ø¬Ø±Ø§Ø¡ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ." },
+    { error: "إجراء غير معروف." },
     { status: 400 }
   );
 }
-
 
 
 
