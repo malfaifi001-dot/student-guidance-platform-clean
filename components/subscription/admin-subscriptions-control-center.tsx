@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -264,7 +264,7 @@ export function AdminSubscriptionsControlCenter() {
 
   async function cancelSubscription(subscriptionId: string) {
     await runAction({
-      action: "cancel-subscription",
+      action: "reset-subscription",
       subscriptionId,
     });
   }
@@ -618,9 +618,7 @@ export function AdminSubscriptionsControlCenter() {
                             type="button"
                             onClick={() => cancelSubscription(subscription.id)}
                             className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-black text-white"
-                          >
-                            إيقاف
-                          </button>
+                          >{"\uD83D\uDDD1\uFE0F \u062D\u0630\u0641 \u0627\u0644\u0627\u0634\u062A\u0631\u0627\u0643"}</button>
                         </div>
                       </td>
                     </tr>

@@ -8,9 +8,9 @@ import {
   Landmark,
   Loader2,
   ShieldCheck,
-  Smartphone,
   Sparkles,
   WalletCards,
+  X,
 } from "lucide-react";
 
 type CounselorPlan = {
@@ -44,6 +44,12 @@ type PlansPayload = {
 type BillingCycle = "monthly" | "yearly";
 type PaymentMethod = "bank" | "online";
 
+type EntryNotice = {
+  title: string;
+  message: string;
+  serviceSlug?: string | null;
+};
+
 function formatLimit(value: string, suffix: string) {
   if (!value || value === "0") return "مفتوح";
   return `${value} ${suffix}`;
@@ -57,6 +63,15 @@ function getBillingLabel(billingCycle: BillingCycle) {
   return billingCycle === "yearly" ? "عام دراسي" : "ترم دراسي";
 }
 
+function subscriptionStatusLabel(status?: string | null) {
+  if (status === "TRIAL") return "تجربة مجانية";
+  if (status === "ACTIVE") return "نشط";
+  if (status === "PAST_DUE") return "بانتظار الدفع";
+  if (status === "CANCELED") return "ملغي";
+  if (status === "EXPIRED") return "منتهي";
+  return "بدون اشتراك";
+}
+
 async function readApiResponse(response: Response) {
   const text = await response.text();
 
@@ -65,6 +80,41 @@ async function readApiResponse(response: Response) {
   } catch {
     return {};
   }
+}
+
+function getEntryNoticeFromUrl(): EntryNotice | null {
+  if (typeof window === "undefined") return null;
+
+  const params = new URLSearchParams(window.location.search);
+  const reason = params.get("reason");
+  const service = params.get("service");
+
+  if (!reason) return null;
+
+  if (reason === "service-not-in-plan") {
+    return {
+      title: "هذه الخدمة غير مشمولة في باقتك الحالية",
+      message:
+        "الخدمة التي حاولت فتحها تحتاج باقة تشملها. اختر باقة مناسبة من الباقات المتاحة بالأسفل، وبعد قبول الطلب ستفتح لك الخدمة تلقائيًا.",
+      serviceSlug: service,
+    };
+  }
+
+  if (reason === "activation-required") {
+    return {
+      title: "الخدمة مدفوعة وتحتاج اشتراكًا نشطًا",
+      message:
+        "حسابك لا يملك اشتراكًا نشطًا حاليًا. اختر باقة مناسبة، ثم أرسل طلب الاشتراك ليتم تفعيل الخدمات بعد المراجعة.",
+      serviceSlug: service,
+    };
+  }
+
+  return {
+    title: "اختر الباقة المناسبة",
+    message:
+      "للوصول إلى الخدمات المدفوعة، اختر باقة مناسبة من الباقات المتاحة ثم أكمل طلب الاشتراك.",
+    serviceSlug: service,
+  };
 }
 
 export function CounselorPlansPage() {
@@ -78,6 +128,9 @@ export function CounselorPlansPage() {
   const [phone, setPhone] = useState("");
   const [receiptUrl, setReceiptUrl] = useState("");
   const [note, setNote] = useState("");
+
+  const [entryNotice, setEntryNotice] = useState<EntryNotice | null>(null);
+  const [noticeOpen, setNoticeOpen] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{
@@ -112,6 +165,13 @@ export function CounselorPlansPage() {
   }
 
   useEffect(() => {
+    const notice = getEntryNoticeFromUrl();
+
+    if (notice) {
+      setEntryNotice(notice);
+      setNoticeOpen(true);
+    }
+
     load();
   }, []);
 
@@ -167,12 +227,12 @@ export function CounselorPlansPage() {
       const result = await readApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(result.error || "تعذر إرسال طلب التفعيل.");
+        throw new Error(result.error || "تعذر إرسال طلب الاشتراك.");
       }
 
       setMessage({
         type: "success",
-        text: result.message || "تم إرسال طلب التفعيل بنجاح.",
+        text: result.message || "تم إرسال طلب الاشتراك بنجاح.",
       });
 
       setSenderName("");
@@ -187,7 +247,7 @@ export function CounselorPlansPage() {
         text:
           error instanceof Error
             ? error.message
-            : "تعذر إرسال طلب التفعيل.",
+            : "تعذر إرسال طلب الاشتراك.",
       });
     } finally {
       setSubmitting(false);
@@ -209,6 +269,49 @@ export function CounselorPlansPage() {
 
   return (
     <main className="space-y-6" dir="rtl">
+      {noticeOpen && entryNotice ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4">
+          <section className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-600">
+                <AlertCircle className="h-6 w-6" />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setNoticeOpen(false)}
+                className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 text-slate-500 transition hover:bg-slate-100"
+                aria-label="إغلاق"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <h2 className="mt-5 text-2xl font-black text-slate-950">
+              {entryNotice.title}
+            </h2>
+
+            <p className="mt-3 text-sm font-bold leading-7 text-slate-600">
+              {entryNotice.message}
+            </p>
+
+            {entryNotice.serviceSlug ? (
+              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-500">
+                الخدمة المطلوبة: {entryNotice.serviceSlug}
+              </p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => setNoticeOpen(false)}
+              className="mt-6 h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white transition hover:bg-sky-700"
+            >
+              تصفح الباقات
+            </button>
+          </section>
+        </div>
+      ) : null}
+
       {message ? (
         <section
           className={[
@@ -224,138 +327,152 @@ export function CounselorPlansPage() {
         </section>
       ) : null}
 
-      <section className="space-y-5">
+      <section className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <p className="text-sm font-black text-sky-700">الباقات</p>
             <h1 className="mt-2 text-3xl font-black text-slate-950">
               اختر الباقة المناسبة
             </h1>
+            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              لا يتم تركيب باقة فوق باقة. عند اختيار باقة جديدة سيتم التعامل معها كطلب اشتراك أو ترقية، وبعد قبولها تبدأ مدة الباقة من تاريخ التفعيل.
+            </p>
           </div>
 
-          <div className="flex w-fit rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
-            <button
-              type="button"
-              onClick={() => setBillingCycle("monthly")}
-              className={[
-                "rounded-xl px-5 py-2 text-sm font-black transition",
-                billingCycle === "monthly"
-                  ? "bg-sky-600 text-white"
-                  : "text-slate-500 hover:bg-slate-50",
-              ].join(" ")}
-            >
-              ترم دراسي
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setBillingCycle("yearly")}
-              className={[
-                "rounded-xl px-5 py-2 text-sm font-black transition",
-                billingCycle === "yearly"
-                  ? "bg-sky-600 text-white"
-                  : "text-slate-500 hover:bg-slate-50",
-              ].join(" ")}
-            >
-              عام دراسي
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {data?.plans.map((plan, index) => {
-            const active = selectedPlan?.id === plan.id;
-            const price = getPlanPrice(plan, billingCycle);
-            const period = getBillingLabel(billingCycle);
-
-            return (
-              <button
-                key={plan.id}
-                type="button"
-                onClick={() => {
-                  setSelectedPlan(plan);
-                  setPaymentMethod("bank");
-                  setMessage({
-                    type: "info",
-                    text: "تم اختيار الباقة. أكمل طريقة الدفع في الأسفل.",
-                  });
-                }}
-                className={[
-                  "group relative overflow-hidden rounded-[2rem] border bg-white p-6 text-right shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
-                  active
-                    ? "border-sky-300 ring-4 ring-sky-50"
-                    : "border-slate-100",
-                ].join(" ")}
-              >
-                {index === 0 ? (
-                  <div className="absolute left-5 top-5 rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
-                    الأنسب للبداية
-                  </div>
-                ) : null}
-
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-600">
-                  <Sparkles className="h-7 w-7" />
-                </div>
-
-                <h2 className="mt-5 text-2xl font-black text-slate-950">
-                  {plan.name}
-                </h2>
-
-                <div className="mt-4 flex items-end gap-2">
-                  <p className="text-5xl font-black text-slate-950">
-                    {price}
-                  </p>
-                  <span className="pb-2 text-sm font-black text-slate-400">
-                    ريال / {period}
-                  </span>
-                </div>
-
-                <div className="mt-5 grid gap-3 text-sm font-bold text-slate-600">
-                  <PlanPoint text={`مدة الباقة: ${plan.durationDays} يوم`} />
-                  <PlanPoint text={formatLimit(plan.maxStudents, "طالب/طالبة")} />
-                  <PlanPoint text={formatLimit(plan.maxReports, "تقرير")} />
-                  <PlanPoint text={formatLimit(plan.maxUsers, "مستخدم")} />
-                </div>
-
-                {plan.services.length ? (
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {plan.services.slice(0, 5).map((service) => (
-                      <span
-                        key={service.id}
-                        className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600"
-                      >
-                        {service.name}
-                      </span>
-                    ))}
-
-                    {plan.services.length > 5 ? (
-                      <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">
-                        +{plan.services.length - 5}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div
-                  className={[
-                    "mt-6 flex h-12 items-center justify-center rounded-2xl text-sm font-black transition",
-                    active
-                      ? "bg-sky-600 text-white"
-                      : "bg-slate-50 text-slate-600 group-hover:bg-sky-50 group-hover:text-sky-700",
-                  ].join(" ")}
-                >
-                  {active ? "تم اختيار الباقة" : "اختيار الباقة"}
-                </div>
-              </button>
-            );
-          })}
-
-          {data?.plans.length === 0 ? (
-            <div className="rounded-[2rem] border border-amber-100 bg-amber-50 p-6 text-sm font-bold leading-7 text-amber-800 md:col-span-2 xl:col-span-3">
-              لا توجد باقات مفعلة حاليًا.
+          {data?.subscription ? (
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+              <span className="text-slate-400">اشتراكك الحالي: </span>
+              <strong className="text-slate-900">
+                {data.subscription.planName}
+              </strong>
+              <span className="mx-2">·</span>
+              <span>{subscriptionStatusLabel(data.subscription.status)}</span>
+              <span className="mx-2">·</span>
+              <span>{data.subscription.remainingDays ?? 0} يوم</span>
             </div>
           ) : null}
         </div>
+
+        <div className="mt-5 flex w-fit rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setBillingCycle("monthly")}
+            className={[
+              "rounded-xl px-5 py-2 text-sm font-black transition",
+              billingCycle === "monthly"
+                ? "bg-sky-600 text-white"
+                : "text-slate-500 hover:bg-slate-50",
+            ].join(" ")}
+          >
+            ترم دراسي
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBillingCycle("yearly")}
+            className={[
+              "rounded-xl px-5 py-2 text-sm font-black transition",
+              billingCycle === "yearly"
+                ? "bg-sky-600 text-white"
+                : "text-slate-500 hover:bg-slate-50",
+            ].join(" ")}
+          >
+            عام دراسي
+          </button>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {data?.plans.map((plan, index) => {
+          const active = selectedPlan?.id === plan.id;
+          const price = getPlanPrice(plan, billingCycle);
+          const period = getBillingLabel(billingCycle);
+
+          return (
+            <button
+              key={plan.id}
+              type="button"
+              onClick={() => {
+                setSelectedPlan(plan);
+                setPaymentMethod("bank");
+                setMessage({
+                  type: "info",
+                  text: "تم اختيار الباقة. أكمل طريقة الدفع في الأسفل.",
+                });
+              }}
+              className={[
+                "group relative overflow-hidden rounded-[2rem] border bg-white p-6 text-right shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+                active
+                  ? "border-sky-300 ring-4 ring-sky-50"
+                  : "border-slate-100",
+              ].join(" ")}
+            >
+              {index === 0 ? (
+                <div className="absolute left-5 top-5 rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                  الأنسب للبداية
+                </div>
+              ) : null}
+
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+                <Sparkles className="h-7 w-7" />
+              </div>
+
+              <h2 className="mt-5 text-2xl font-black text-slate-950">
+                {plan.name}
+              </h2>
+
+              <div className="mt-4 flex items-end gap-2">
+                <p className="text-5xl font-black text-slate-950">{price}</p>
+                <span className="pb-2 text-sm font-black text-slate-400">
+                  ريال / {period}
+                </span>
+              </div>
+
+              <div className="mt-5 grid gap-3 text-sm font-bold text-slate-600">
+                <PlanPoint text={`مدة الباقة: ${plan.durationDays} يوم`} />
+                <PlanPoint text={formatLimit(plan.maxStudents, "طالب/طالبة")} />
+                <PlanPoint text={formatLimit(plan.maxReports, "تقرير")} />
+                <PlanPoint text={formatLimit(plan.maxUsers, "مستخدم")} />
+              </div>
+
+              {plan.services.length ? (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {plan.services.slice(0, 5).map((service) => (
+                    <span
+                      key={service.id}
+                      className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600"
+                    >
+                      {service.name}
+                    </span>
+                  ))}
+
+                  {plan.services.length > 5 ? (
+                    <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">
+                      +{plan.services.length - 5}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div
+                className={[
+                  "mt-6 flex h-12 items-center justify-center rounded-2xl text-sm font-black transition",
+                  active
+                    ? "bg-sky-600 text-white"
+                    : "bg-slate-50 text-slate-600 group-hover:bg-sky-50 group-hover:text-sky-700",
+                ].join(" ")}
+              >
+                {active ? "تم اختيار الباقة" : "اختيار الباقة"}
+              </div>
+            </button>
+          );
+        })}
+
+        {data?.plans.length === 0 ? (
+          <div className="rounded-[2rem] border border-amber-100 bg-amber-50 p-6 text-sm font-bold leading-7 text-amber-800 md:col-span-2 xl:col-span-3">
+            لا توجد باقات مفعلة حاليًا.
+          </div>
+        ) : null}
       </section>
 
       {selectedPlan ? (
@@ -364,7 +481,7 @@ export function CounselorPlansPage() {
             <div>
               <p className="text-sm font-black text-sky-700">طريقة الدفع</p>
               <h2 className="mt-2 text-2xl font-black text-slate-950">
-                إكمال تفعيل {selectedPlan.name}
+                إكمال طلب {selectedPlan.name}
               </h2>
               <p className="mt-2 text-sm font-bold text-slate-500">
                 المبلغ: {selectedPrice} ريال / {getBillingLabel(billingCycle)}
@@ -397,7 +514,7 @@ export function CounselorPlansPage() {
               disabled
               icon={<CreditCard className="h-7 w-7" />}
               title="الدفع الإلكتروني"
-              description="Apple Pay و مدى قريبًا."
+              description="Apple Pay ومدى قريبًا."
               onClick={() => setPaymentMethod("online")}
               footer={
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -476,7 +593,7 @@ export function CounselorPlansPage() {
                 ) : (
                   <ShieldCheck className="h-5 w-5" />
                 )}
-                {submitting ? "جار إرسال الطلب..." : "إرسال طلب التفعيل"}
+                {submitting ? "جار إرسال الطلب..." : "إرسال طلب الاشتراك"}
               </button>
             </div>
           ) : null}

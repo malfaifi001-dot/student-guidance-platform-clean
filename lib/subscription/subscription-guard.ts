@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import {
   getSchoolSubscriptionOverview,
@@ -21,7 +21,7 @@ export async function requireActiveSubscriptionForCurrentUser() {
   );
 
   if (!overview.usable) {
-    redirect("/dashboard/subscription?reason=activation-required");
+    redirect("/dashboard/plans?reason=activation-required");
   }
 
   return current;

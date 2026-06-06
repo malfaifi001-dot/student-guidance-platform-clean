@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import {
   getSchoolSubscriptionOverview,
@@ -33,7 +33,7 @@ export async function requireActiveSubscriptionApi() {
       {
         error: "حسابك يحتاج تفعيلًا للاستمرار في إنشاء الحالات أو التقارير.",
         code: "SUBSCRIPTION_INACTIVE",
-        redirectTo: "/dashboard/subscription?reason=activation-required",
+        redirectTo: "/dashboard/plans?reason=activation-required",
       },
       {
         status: 402,

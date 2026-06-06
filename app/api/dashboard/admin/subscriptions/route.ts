@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
@@ -9,7 +9,7 @@ function getSchoolDisplayName(account: {
   } | null;
 }) {
   const schoolName = String(account.profile?.schoolName || "").trim();
-  return schoolName || "هوية المدرسة غير مكتملة";
+  return schoolName || "Ù‡ÙˆÙŠØ© Ø§Ù„Ù…Ø¯Ø±Ø³Ø© ØºÙŠØ± Ù…ÙƒØªÙ…Ù„Ø©";
 }
 
 function slugify(input: string) {
@@ -84,7 +84,7 @@ export async function GET() {
   const current = await getCurrentSessionUser();
 
   if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+    return NextResponse.json({ error: "ØºÙŠØ± Ù…ØµØ±Ø­." }, { status: 401 });
   }
 
   const [plans, services, schools, subscriptions, serviceAccess] =
@@ -180,7 +180,7 @@ export async function POST(request: Request) {
   const current = await getCurrentSessionUser();
 
   if (!current) {
-    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+    return NextResponse.json({ error: "ØºÙŠØ± Ù…ØµØ±Ø­." }, { status: 401 });
   }
 
   const payload = await request.json().catch(() => null);
@@ -202,14 +202,14 @@ export async function POST(request: Request) {
 
     if (!name) {
       return NextResponse.json(
-        { error: "اكتب اسم الباقة." },
+        { error: "Ø§ÙƒØªØ¨ Ø§Ø³Ù… Ø§Ù„Ø¨Ø§Ù‚Ø©." },
         { status: 400 }
       );
     }
 
     if (!slug) {
       return NextResponse.json(
-        { error: "تعذر إنشاء معرف الباقة." },
+        { error: "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø¹Ø±Ù Ø§Ù„Ø¨Ø§Ù‚Ø©." },
         { status: 400 }
       );
     }
@@ -222,7 +222,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       return NextResponse.json(
-        { error: "يوجد باقة بنفس المعرف." },
+        { error: "ÙŠÙˆØ¬Ø¯ Ø¨Ø§Ù‚Ø© Ø¨Ù†ÙØ³ Ø§Ù„Ù…Ø¹Ø±Ù." },
         { status: 400 }
       );
     }
@@ -238,27 +238,27 @@ export async function POST(request: Request) {
           create: [
             {
               key: "durationDays",
-              label: "مدة الاشتراك بالأيام",
+              label: "Ù…Ø¯Ø© Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ø¨Ø§Ù„Ø£ÙŠØ§Ù…",
               value: String(durationDays > 0 ? durationDays : 30),
             },
             {
               key: "maxStudents",
-              label: "حد الطلاب",
+              label: "Ø­Ø¯ Ø§Ù„Ø·Ù„Ø§Ø¨",
               value: String(maxStudents > 0 ? maxStudents : 0),
             },
             {
               key: "maxUsers",
-              label: "حد المستخدمين",
+              label: "Ø­Ø¯ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†",
               value: String(maxUsers > 0 ? maxUsers : 0),
             },
             {
               key: "maxReports",
-              label: "حد التقارير",
+              label: "Ø­Ø¯ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±",
               value: String(maxReports > 0 ? maxReports : 0),
             },
             ...enabledServiceSlugs.map((serviceSlug: string) => ({
               key: `service:${serviceSlug}`,
-              label: `خدمة: ${serviceSlug}`,
+              label: `Ø®Ø¯Ù…Ø©: ${serviceSlug}`,
               value: "enabled",
             })),
           ],
@@ -270,7 +270,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: "تم إنشاء الباقة بنجاح.",
+      message: "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­.",
       plan,
     });
   }
@@ -289,7 +289,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: isActive ? "تم تفعيل الباقة." : "تم إيقاف الباقة.",
+      message: isActive ? "ØªÙ… ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø¨Ø§Ù‚Ø©." : "ØªÙ… Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ø¨Ø§Ù‚Ø©.",
     });
   }
 
@@ -306,7 +306,7 @@ export async function POST(request: Request) {
 
     if (!schoolAccountId || !planId) {
       return NextResponse.json(
-        { error: "اختر الحساب والباقة." },
+        { error: "Ø§Ø®ØªØ± Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ§Ù„Ø¨Ø§Ù‚Ø©." },
         { status: 400 }
       );
     }
@@ -322,7 +322,7 @@ export async function POST(request: Request) {
 
     if (!plan) {
       return NextResponse.json(
-        { error: "الباقة غير موجودة." },
+        { error: "Ø§Ù„Ø¨Ø§Ù‚Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©." },
         { status: 404 }
       );
     }
@@ -369,14 +369,14 @@ export async function POST(request: Request) {
       data: {
         schoolAccountId,
         activatedById: current.user.id,
-        reason: `إسناد باقة ${plan.name} لمدة ${durationDays} يوم`,
+        reason: `Ø¥Ø³Ù†Ø§Ø¯ Ø¨Ø§Ù‚Ø© ${plan.name} Ù„Ù…Ø¯Ø© ${durationDays} ÙŠÙˆÙ…`,
         startsAt: now,
         endsAt,
       },
     });
 
     return NextResponse.json({
-      message: "تم إسناد الباقة وتفعيل الخدمات المصاحبة.",
+      message: "ØªÙ… Ø¥Ø³Ù†Ø§Ø¯ Ø§Ù„Ø¨Ø§Ù‚Ø© ÙˆØªÙØ¹ÙŠÙ„ Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ù…ØµØ§Ø­Ø¨Ø©.",
       subscription,
     });
   }
@@ -393,7 +393,7 @@ export async function POST(request: Request) {
 
     if (!subscription) {
       return NextResponse.json(
-        { error: "الاشتراك غير موجود." },
+        { error: "Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯." },
         { status: 404 }
       );
     }
@@ -420,31 +420,75 @@ export async function POST(request: Request) {
       data: {
         schoolAccountId: subscription.schoolAccountId,
         activatedById: current.user.id,
-        reason: `تمديد اشتراك لمدة ${days || 30} يوم`,
+        reason: `ØªÙ…Ø¯ÙŠØ¯ Ø§Ø´ØªØ±Ø§Ùƒ Ù„Ù…Ø¯Ø© ${days || 30} ÙŠÙˆÙ…`,
         startsAt: now,
         endsAt,
       },
     });
 
     return NextResponse.json({
-      message: "تم تمديد الاشتراك.",
+      message: "ØªÙ… ØªÙ…Ø¯ÙŠØ¯ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ.",
     });
   }
 
-  if (action === "cancel-subscription") {
+  if (action === "cancel-subscription" || action === "reset-subscription") {
     const subscriptionId = String(payload?.subscriptionId || "").trim();
 
-    await prisma.subscription.update({
+    if (!subscriptionId) {
+      return NextResponse.json(
+        { error: "Ø±Ù‚Ù… Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ù…Ø·Ù„ÙˆØ¨." },
+        { status: 400 }
+      );
+    }
+
+    const subscription = await prisma.subscription.findUnique({
       where: {
         id: subscriptionId,
       },
-      data: {
-        status: "CANCELED",
+      include: {
+        schoolAccount: true,
+        plan: true,
       },
     });
 
+    if (!subscription) {
+      return NextResponse.json(
+        { error: "Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯ Ø£Ùˆ ØªÙ… Ø­Ø°ÙÙ‡ Ù…Ø³Ø¨Ù‚Ù‹Ø§." },
+        { status: 404 }
+      );
+    }
+
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.serviceAccess.updateMany({
+        where: {
+          schoolAccountId: subscription.schoolAccountId,
+        },
+        data: {
+          isEnabled: false,
+          isPaid: false,
+        },
+      });
+
+      await tx.manualActivation.create({
+        data: {
+          schoolAccountId: subscription.schoolAccountId,
+          reason: `Ø­Ø°Ù Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙˆØ¥Ø±Ø¬Ø§Ø¹ Ø§Ù„Ø­Ø³Ø§Ø¨ Ø¨Ø¯ÙˆÙ† Ø¨Ø§Ù‚Ø©: ${subscription.schoolAccount.name}`,
+          startsAt: now,
+          endsAt: now,
+        },
+      });
+
+      await tx.subscription.delete({
+        where: {
+          id: subscription.id,
+        },
+      });
+    });
+
     return NextResponse.json({
-      message: "تم إيقاف الاشتراك.",
+      message: "ØªÙ… Ø­Ø°Ù Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙˆØ¥Ø±Ø¬Ø§Ø¹ Ø§Ù„Ø­Ø³Ø§Ø¨ Ø¨Ø¯ÙˆÙ† Ø¨Ø§Ù‚Ø© ÙˆØ¨Ø¯ÙˆÙ† Ø£ÙŠØ§Ù….",
     });
   }
 
@@ -456,7 +500,7 @@ export async function POST(request: Request) {
 
     if (!schoolAccountId || !serviceId) {
       return NextResponse.json(
-        { error: "اختر الحساب والخدمة." },
+        { error: "Ø§Ø®ØªØ± Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ§Ù„Ø®Ø¯Ù…Ø©." },
         { status: 400 }
       );
     }
@@ -481,12 +525,12 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: "تم تحديث صلاحية الخدمة للحساب.",
+      message: "ØªÙ… ØªØ­Ø¯ÙŠØ« ØµÙ„Ø§Ø­ÙŠØ© Ø§Ù„Ø®Ø¯Ù…Ø© Ù„Ù„Ø­Ø³Ø§Ø¨.",
     });
   }
 
   return NextResponse.json(
-    { error: "إجراء غير معروف." },
+    { error: "Ø¥Ø¬Ø±Ø§Ø¡ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ." },
     { status: 400 }
   );
 }
