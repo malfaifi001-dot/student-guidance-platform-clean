@@ -1,6 +1,7 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 import { logPlanOrderCreatedEvent } from "@/lib/admin/activity-events";
 import {
   assignPlanToSchool,
@@ -23,6 +24,8 @@ export async function GET() {
       }
     );
   }
+
+  await ensureDefaultPlatformServices();
 
   const [plans, services, subscription] = await Promise.all([
     prisma.plan.findMany({

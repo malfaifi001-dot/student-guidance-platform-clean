@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 
 function getSchoolDisplayName(account: {
   profile?: {
@@ -104,6 +105,8 @@ export async function GET() {
   if (!current) {
     return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
+
+  await ensureDefaultPlatformServices();
 
   const [plans, services, schools, subscriptions, serviceAccess] =
     await Promise.all([

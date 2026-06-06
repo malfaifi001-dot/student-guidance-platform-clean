@@ -49,6 +49,7 @@ type EntryNotice = {
   message: string;
   serviceSlug?: string | null;
   actionLabel?: string;
+  variant?: "warning" | "success" | "info";
 };
 
 function formatLimit(value: string, suffix: string) {
@@ -72,6 +73,22 @@ function subscriptionStatusLabel(status?: string | null) {
   if (status === "EXPIRED") return "منتهي";
   return "بدون اشتراك";
 }
+function getServiceDisplayName(slug?: string | null) {
+  if (!slug) return null;
+
+  const labels: Record<string, string> = {
+    "guidance-programs": "البرامج الإرشادية",
+    "committees-meetings": "اللجان والاجتماعات",
+    "student-follow-up": "متابعة الطلاب",
+    "student-guidance-services": "الخدمات الإرشادية المقدمة للطلاب",
+    "family-school-communication": "التواصل بين الأسرة والمدرسة",
+    "results-analysis": "تحليل النتائج",
+    "comprehensive-reference": "المرجع الشامل للموجه الطلابي",
+    reports: "التقارير",
+  };
+
+  return labels[slug] || slug;
+}
 
 async function readApiResponse(response: Response) {
   const text = await response.text();
@@ -94,27 +111,33 @@ function getEntryNoticeFromUrl(): EntryNotice | null {
 
   if (reason === "service-not-in-plan") {
     return {
-      title: "هذه الخدمة غير مشمولة في باقتك الحالية",
+      title: "الخدمة تحتاج باقة تشملها",
       message:
-        "الخدمة التي حاولت فتحها تحتاج باقة تشملها. اختر باقة مناسبة من الباقات المتاحة بالأسفل، وبعد قبول الطلب ستفتح لك الخدمة تلقائيًا.",
+        "اشتراكك الحالي نشط، لكن هذه الخدمة غير موجودة ضمن باقتك الحالية. اختر باقة مناسبة تشمل الخدمة، وبعد التفعيل ستفتح لك مباشرة.",
       serviceSlug: service,
+      actionLabel: "استعراض الباقات المناسبة",
+      variant: "warning",
     };
   }
 
   if (reason === "activation-required") {
     return {
-      title: "الخدمة مدفوعة وتحتاج اشتراكًا نشطًا",
+      title: "فعّل حسابك للوصول للخدمة",
       message:
-        "حسابك لا يملك اشتراكًا نشطًا حاليًا. اختر باقة مناسبة، ثم أرسل طلب الاشتراك ليتم تفعيل الخدمات بعد المراجعة.",
+        "حسابك لا يملك اشتراكًا نشطًا حاليًا. اختر باقة مناسبة، ثم أكمل طلب الاشتراك ليتم فتح الخدمات لك بعد التفعيل.",
       serviceSlug: service,
+      actionLabel: "اختيار باقة الآن",
+      variant: "warning",
     };
   }
 
   return {
-    title: "اختر الباقة المناسبة",
+    title: "اختر الباقة المناسبة لك",
     message:
-      "للوصول إلى الخدمات المدفوعة، اختر باقة مناسبة من الباقات المتاحة ثم أكمل طلب الاشتراك.",
+      "للوصول إلى الخدمات المدفوعة، اختر الباقة التي تناسب احتياجك ثم أكمل طلب الاشتراك بخطوات بسيطة.",
     serviceSlug: service,
+    actionLabel: "تصفح الباقات",
+    variant: "info",
   };
 }
 
@@ -289,44 +312,99 @@ export function CounselorPlansPage() {
   return (
     <main className="space-y-6" dir="rtl">
       {noticeOpen && entryNotice ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4">
-          <section className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-600">
-                <AlertCircle className="h-6 w-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subscription-notice-title"
+            className="relative w-full max-w-xl overflow-hidden rounded-[2.25rem] border border-white/70 bg-white shadow-2xl shadow-slate-950/20"
+          >
+            <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l from-sky-400 via-cyan-300 to-emerald-300" />
+
+            <div className="p-6 sm:p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div
+                  className={[
+                    "grid h-14 w-14 shrink-0 place-items-center rounded-3xl ring-1",
+                    entryNotice.variant === "success" ||
+                    entryNotice.actionLabel === "متابعة"
+                      ? "bg-emerald-50 text-emerald-600 ring-emerald-100"
+                      : "bg-sky-50 text-sky-600 ring-sky-100",
+                  ].join(" ")}
+                >
+                  {entryNotice.variant === "success" ||
+                  entryNotice.actionLabel === "متابعة" ? (
+                    <ShieldCheck className="h-7 w-7" />
+                  ) : (
+                    <AlertCircle className="h-7 w-7" />
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setNoticeOpen(false)}
+                  className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="إغلاق"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setNoticeOpen(false)}
-                className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 text-slate-500 transition hover:bg-slate-100"
-                aria-label="إغلاق"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="mt-6 text-center sm:text-right">
+                <p className="text-xs font-black text-sky-600">
+                  تنبيه اشتراك
+                </p>
+
+                <h2
+                  id="subscription-notice-title"
+                  className="mt-2 text-3xl font-black leading-[1.35] text-slate-950"
+                >
+                  {entryNotice.title}
+                </h2>
+
+                <p className="mx-auto mt-4 max-w-lg text-base font-bold leading-8 text-slate-600 sm:mx-0">
+                  {entryNotice.message}
+                </p>
+
+                {entryNotice.serviceSlug ? (
+                  <div className="mt-5 rounded-3xl border border-slate-100 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-black text-slate-400">
+                      الخدمة المطلوبة
+                    </p>
+                    <p className="mt-1 text-sm font-black text-slate-700">
+                      {getServiceDisplayName(entryNotice.serviceSlug)}
+                    </p>
+                  </div>
+                ) : null}
+
+                <div className="mt-5 rounded-3xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm font-bold leading-7 text-sky-800">
+                  لا تقلق، بياناتك محفوظة. بعد اختيار الباقة المناسبة سيتم فتح الخدمة تلقائيًا عند اكتمال التفعيل.
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNoticeOpen(false);
+                      document
+                        .getElementById("plans-list")
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                    className="h-13 rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+                  >
+                    {entryNotice.actionLabel || "تصفح الباقات"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNoticeOpen(false)}
+                    className="h-13 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+                  >
+                    لاحقًا
+                  </button>
+                </div>
+              </div>
             </div>
-
-            <h2 className="mt-5 text-2xl font-black text-slate-950">
-              {entryNotice.title}
-            </h2>
-
-            <p className="mt-3 text-sm font-bold leading-7 text-slate-600">
-              {entryNotice.message}
-            </p>
-
-            {entryNotice.serviceSlug ? (
-              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-500">
-                الخدمة المطلوبة: {entryNotice.serviceSlug}
-              </p>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={() => setNoticeOpen(false)}
-              className="mt-6 h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white transition hover:bg-sky-700"
-            >
-              {entryNotice.actionLabel || "تصفح الباقات"}
-            </button>
           </section>
         </div>
       ) : null}
@@ -401,7 +479,7 @@ export function CounselorPlansPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section id="plans-list" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {data?.plans.map((plan, index) => {
           const active = selectedPlan?.id === plan.id;
           const price = getPlanPrice(plan, billingCycle);
