@@ -1,5 +1,6 @@
-import { cookies } from "next/headers";
+﻿import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
 
 type SchoolAccountLite = {
   id: string;
@@ -13,6 +14,7 @@ type CurrentUserLite = {
   email?: string | null;
   role?: string | null;
   schoolAccountId?: string | null;
+  isActive?: boolean;
   schoolAccount?: SchoolAccountLite | null;
 };
 
@@ -49,7 +51,50 @@ function readString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-async function findUserFromCookieValue(value: string): Promise<CurrentUserLite | null> {
+async function findUserById(userId: string): Promise<CurrentUserLite | null> {
+  const user = await prisma.user
+    .findUnique({
+      where: { id: userId },
+      include: { schoolAccount: true },
+    })
+    .catch(() => null);
+
+  if (!user || user.isActive === false) {
+    return null;
+  }
+
+  return user as CurrentUserLite;
+}
+
+async function findUserByEmail(email: string): Promise<CurrentUserLite | null> {
+  const user = await prisma.user
+    .findUnique({
+      where: { email },
+      include: { schoolAccount: true },
+    })
+    .catch(() => null);
+
+  if (!user || user.isActive === false) {
+    return null;
+  }
+
+  return user as CurrentUserLite;
+}
+
+async function findUserFromUnifiedSession(): Promise<CurrentUserLite | null> {
+  const current = await getCurrentSessionUser().catch(() => null);
+  const userId = current?.user?.id ? String(current.user.id).trim() : "";
+
+  if (!userId) {
+    return null;
+  }
+
+  return findUserById(userId);
+}
+
+async function findUserFromCookieValue(
+  value: string,
+): Promise<CurrentUserLite | null> {
   const direct = value.trim();
 
   if (!direct) {
@@ -68,35 +113,25 @@ async function findUserFromCookieValue(value: string): Promise<CurrentUserLite |
   const possibleEmail = readString(payload?.email);
 
   if (possibleId) {
-    const user = await prisma.user
-      .findUnique({
-        where: { id: possibleId },
-        include: { schoolAccount: true },
-      })
-      .catch(() => null);
+    const user = await findUserById(possibleId);
 
     if (user) {
-      return user as CurrentUserLite;
+      return user;
     }
   }
 
   if (possibleEmail) {
-    const user = await prisma.user
-      .findUnique({
-        where: { email: possibleEmail },
-        include: { schoolAccount: true },
-      })
-      .catch(() => null);
+    const user = await findUserByEmail(possibleEmail);
 
     if (user) {
-      return user as CurrentUserLite;
+      return user;
     }
   }
 
   return null;
 }
 
-export async function resolveCurrentSchoolContext(): Promise<SchoolUserContext> {
+async function findUserFromLegacyCookies(): Promise<CurrentUserLite | null> {
   const cookieStore = await cookies();
 
   const prioritizedCookieNames = [
@@ -126,28 +161,41 @@ export async function resolveCurrentSchoolContext(): Promise<SchoolUserContext> 
     }
   }
 
-  let user: CurrentUserLite | null = null;
-
   for (const value of cookieValues) {
-    user = await findUserFromCookieValue(value);
+    const user = await findUserFromCookieValue(value);
 
     if (user) {
-      break;
+      return user;
     }
   }
 
-  if (!user && process.env.NODE_ENV !== "production") {
-    user = (await prisma.user
-      .findFirst({
-        where: {
-          schoolAccountId: { not: null },
-          isActive: true,
-        },
-        include: { schoolAccount: true },
-        orderBy: { createdAt: "asc" },
-      })
-      .catch(() => null)) as CurrentUserLite | null;
+  return null;
+}
+
+async function findDevelopmentFallbackUser(): Promise<CurrentUserLite | null> {
+  if (process.env.NODE_ENV === "production") {
+    return null;
   }
+
+  const user = await prisma.user
+    .findFirst({
+      where: {
+        schoolAccountId: { not: null },
+        isActive: true,
+      },
+      include: { schoolAccount: true },
+      orderBy: { createdAt: "asc" },
+    })
+    .catch(() => null);
+
+  return user as CurrentUserLite | null;
+}
+
+export async function resolveCurrentSchoolContext(): Promise<SchoolUserContext> {
+  const user =
+    (await findUserFromUnifiedSession()) ||
+    (await findUserFromLegacyCookies()) ||
+    (await findDevelopmentFallbackUser());
 
   if (!user || !user.schoolAccountId) {
     throw new Error("UNAUTHENTICATED_SCHOOL_USER");
