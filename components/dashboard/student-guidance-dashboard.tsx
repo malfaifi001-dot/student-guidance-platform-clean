@@ -157,7 +157,7 @@ const students: StudentRow[] = [
     dotClass: "bg-sky-500",
   },
   {
-    name: "نورة المطيري",
+    name: "بيانات الطلابة المطيري",
     grade: "الثاني الثانوي - ج",
     service: "متابعة الطلاب",
     status: "قيد التنفيذ",
@@ -192,7 +192,7 @@ const activities: ActivityItem[] = [
   },
   {
     title: "تمت مشاركة ملف مع",
-    subtitle: "نورة المطيري",
+    subtitle: "بيانات الطلابة المطيري",
     time: "منذ 5 ساعات",
     icon: ClipboardCheck,
     toneClass: "bg-orange-50 text-orange-600",

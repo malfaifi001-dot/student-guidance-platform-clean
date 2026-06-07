@@ -44,7 +44,7 @@ export function StudentImportCard() {
 
         <div>
           <h2 className="text-xl font-black text-slate-900">
-            رفع دفعة بيانات من نظام نور
+            رفع دفعة بيانات من النظام المصدر
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             سيتم تحليل الملف أولًا، ثم مراجعة الدفعة، ثم اعتمادها لاحقًا.

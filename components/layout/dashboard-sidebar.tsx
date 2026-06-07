@@ -75,9 +75,9 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     icon: FileText,
   },
   {
-    label: "التقارير",
-    href: "/dashboard/reports",
-    icon: FileText,
+    label: "التواصل بين الأسرة والمدرسة",
+    href: "/dashboard/family-school-communication",
+    icon: MessageCircle,
   },
   {
     label: "المرجع الشامل للموجه الطلابي",
@@ -85,20 +85,28 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     icon: BookOpen,
   },
   {
+    label: "المرجع الشامل للطالب",
+    href: "/dashboard/student-comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "رفع بيانات الطلاب",
+    href: "/dashboard/student-import",
+    icon: UploadCloud,
+  },
+  {
     label: "تحليل النتائج",
     href: "/dashboard/results-analysis",
     icon: BarChart3,
   },
   {
-    label: "التواصل بين الأسرة والمدرسة",
-    href: "/dashboard/family-school-communication",
-    icon: MessageCircle,
+    label: "التقارير",
+    href: "/dashboard/reports",
+    icon: FileText,
   },
 ];
 
-const counselorToolsLinks: SidebarLinkItem[] = [
-  { label: "رفع بيانات نور", href: "/dashboard/student-import", icon: UploadCloud },
-];
+const counselorToolsLinks: SidebarLinkItem[] = [];
 
 const counselorAccountLinks: SidebarLinkItem[] = [
   { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
@@ -372,24 +380,25 @@ function CounselorSidebar({
             />
           ))}
         </SidebarSection>
+        {counselorToolsLinks.length > 0 ? (
+          <SidebarDropdown
+            title="أدوات إضافية"
+            defaultOpen={hasActive(pathname, counselorToolsLinks)}
+            collapsed={collapsed}
+          >
+            {counselorToolsLinks.map((item) => (
+              <SidebarLink
+                key={item.href}
+                item={item}
+                active={isActivePath(pathname, item.href)}
+                compact
+                collapsed={collapsed}
+              />
+            ))}
+          </SidebarDropdown>
+        ) : null}
 
-        <SidebarDropdown
-          title="أدوات إضافية"
-          defaultOpen={hasActive(pathname, counselorToolsLinks)}
-          collapsed={collapsed}
-        >
-          {counselorToolsLinks.map((item) => (
-            <SidebarLink
-              key={item.href}
-              item={item}
-              active={isActivePath(pathname, item.href)}
-              compact
-              collapsed={collapsed}
-            />
-          ))}
-        </SidebarDropdown>
-
-        <SidebarDropdown
+<SidebarDropdown
           title="الحساب والباقات"
           defaultOpen={
             pathname.startsWith("/dashboard/plans") ||

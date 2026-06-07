@@ -1,0 +1,37 @@
+[1mdiff --git a/components/layout/dashboard-header.tsx b/components/layout/dashboard-header.tsx[m
+[1mindex 868732c..2c609d6 100644[m
+[1m--- a/components/layout/dashboard-header.tsx[m
+[1m+++ b/components/layout/dashboard-header.tsx[m
+[36m@@ -163,12 +163,6 @@[m [mexport function DashboardHeader({ user }: DashboardHeaderProps) {[m
+ [m
+                   {!isAdmin ? ([m
+                     <>[m
+[31m-                      <HeaderMenuLink[m
+[31m-                        href="/dashboard/subscription"[m
+[31m-                        icon={<ShieldCheck className="h-4 w-4" />}[m
+[31m-                        label="التفعيل"[m
+[31m-                      />[m
+[31m-[m
+                       <HeaderMenuLink[m
+                         href="/dashboard/plans"[m
+                         icon={<WalletCards className="h-4 w-4" />}[m
+[1mdiff --git a/components/layout/dashboard-sidebar.tsx b/components/layout/dashboard-sidebar.tsx[m
+[1mindex 5832c16..ae68b40 100644[m
+[1m--- a/components/layout/dashboard-sidebar.tsx[m
+[1m+++ b/components/layout/dashboard-sidebar.tsx[m
+[36m@@ -101,7 +101,6 @@[m [mconst counselorToolsLinks: SidebarLinkItem[] = [[m
+ ];[m
+ [m
+ const counselorAccountLinks: SidebarLinkItem[] = [[m
+[31m-  { label: "التفعيل", href: "/dashboard/subscription", icon: ShieldCheck },[m
+   { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },[m
+   { label: "حسابي", href: "/dashboard/account", icon: UserRound },[m
+   { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },[m
+[36m@@ -393,7 +392,6 @@[m [mfunction CounselorSidebar({[m
+         <SidebarDropdown[m
+           title="الحساب والباقات"[m
+           defaultOpen={[m
+[31m-            pathname.startsWith("/dashboard/subscription") ||[m
+             pathname.startsWith("/dashboard/plans") ||[m
+             pathname.startsWith("/dashboard/account") ||[m
+             pathname.startsWith("/dashboard/settings")[m

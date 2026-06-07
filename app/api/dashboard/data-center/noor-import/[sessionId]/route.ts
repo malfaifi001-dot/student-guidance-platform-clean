@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
@@ -36,7 +36,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     if (!session) {
       return NextResponse.json(
-        { error: "لم يتم العثور على تحديث بيانات نور." },
+        { error: "لم يتم العثور على تحديث بيانات الطلاب." },
         { status: 404 },
       );
     }
@@ -70,7 +70,7 @@ export async function GET(_request: Request, context: RouteContext) {
         error:
           error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
             ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
-            : "تعذر جلب تحديث بيانات نور.",
+            : "تعذر جلب تحديث بيانات الطلاب.",
       },
       { status: 500 },
     );
@@ -91,7 +91,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
     if (!session) {
       return NextResponse.json(
-        { error: "لم يتم العثور على تحديث بيانات نور." },
+        { error: "لم يتم العثور على تحديث بيانات الطلاب." },
         { status: 404 },
       );
     }
@@ -123,8 +123,8 @@ export async function DELETE(_request: Request, context: RouteContext) {
       schoolAccountId: current.schoolAccountId,
       userId: current.user.id,
       event: "NOOR_IMPORT_SESSION_DELETED",
-      title: "تم حذف تحديث بيانات نور غير معتمد",
-      description: "تم حذف تحديث نور كان بانتظار المراجعة ولم يتم اعتماده.",
+      title: "تم حذف تحديث بيانات الطلاب غير معتمد",
+      description: "تم حذف تحديث بيانات الطلاب كان بانتظار المراجعة ولم يتم اعتماده.",
       metadata: {
         sessionId: session.id,
         cycleId: session.cycleId,
@@ -133,7 +133,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({
-      message: "تم حذف تحديث بيانات نور غير المعتمد.",
+      message: "تم حذف تحديث بيانات الطلاب غير المعتمد.",
     });
   } catch (error) {
     return NextResponse.json(
@@ -141,7 +141,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
         error:
           error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
             ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
-            : "تعذر حذف تحديث بيانات نور.",
+            : "تعذر حذف تحديث بيانات الطلاب.",
       },
       { status: 500 },
     );

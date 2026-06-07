@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 type AppTransactionClient = Omit<
   typeof prisma,
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
 
     if (!cycleId) {
       return NextResponse.json(
-        { error: "يجب رفع ملف نور من داخل بطاقة بيانات نور وليس من رابط مباشر." },
+        { error: "يجب رفع ملف بيانات الطلاب من داخل بطاقة بيانات الطلاب وليس من رابط مباشر." },
         { status: 400 },
       );
     }
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 
     if (!cycle) {
       return NextResponse.json(
-        { error: "لم يتم العثور على بطاقة بيانات نور." },
+        { error: "لم يتم العثور على بطاقة بيانات الطلاب." },
         { status: 404 },
       );
     }
@@ -162,7 +162,7 @@ export async function POST(request: Request) {
 
     if (!uploaded || typeof uploaded === "string" || typeof uploaded.arrayBuffer !== "function") {
       return NextResponse.json(
-        { error: "الرجاء اختيار ملف Excel صادر من نور." },
+        { error: "الرجاء اختيار ملف Excel صادر من ملف الطلاب." },
         { status: 400 },
       );
     }
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "لم يتم العثور على طلاب داخل الملف. تأكد أن الملف هو كشف بيانات الطلاب من نور.",
+            "لم يتم العثور على طلاب داخل الملف. تأكد أن الملف هو كشف بيانات الطلاب من ملف الطلاب.",
         },
         { status: 422 },
       );
@@ -258,7 +258,7 @@ export async function POST(request: Request) {
         data: {
           schoolAccountId: context.schoolAccountId,
           cycleId,
-          title: `تحديث نور - ${new Date().toLocaleDateString("ar-SA")}`,
+          title: `تحديث بيانات الطلاب - ${new Date().toLocaleDateString("ar-SA")}`,
           source: "NOOR_EXCEL",
           status: "PARSED",
           academicYear: academicYear ?? cycle.academicYear,
@@ -315,8 +315,8 @@ export async function POST(request: Request) {
       schoolAccountId: context.schoolAccountId,
       userId: context.user.id,
       event: "NOOR_IMPORT_PREVIEW_CREATED",
-      title: "تم إنشاء تحديث بيانات نور للمراجعة",
-      description: `تمت قراءة ${rowsWithPlan.length} طالب/طالبة من ملف نور قبل الاعتماد النهائي.`,
+      title: "تم إنشاء تحديث بيانات الطلاب للمراجعة",
+      description: `تمت قراءة ${rowsWithPlan.length} طالب/طالبة من ملف بيانات الطلاب قبل الاعتماد النهائي.`,
       metadata: {
         sessionId: session.id,
         cycleId,
@@ -333,7 +333,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: "تم إنشاء تحديث نور بنجاح. راجع التحديث قبل الاعتماد.",
+      message: "تم إنشاء تحديث بيانات الطلاب بنجاح. راجع التحديث قبل الاعتماد.",
       parsedSummary: {
         detectedFormat: parsed.detectedFormat,
         sheetsCount: parsed.sheetsCount,
@@ -359,8 +359,8 @@ export async function POST(request: Request) {
       {
         error:
           error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
-            ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل رفع بيانات نور."
-            : "تعذر إنشاء معاينة استيراد نور. راجع Terminal لمعرفة السبب التفصيلي.",
+            ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل رفع بيانات الطلاب."
+            : "تعذر إنشاء معاينة استيراد بيانات الطلاب. راجع Terminal لمعرفة السبب التفصيلي.",
       },
       { status: 500 },
     );

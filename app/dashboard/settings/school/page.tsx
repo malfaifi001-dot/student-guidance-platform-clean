@@ -1,4 +1,4 @@
-﻿import { SchoolSettingsForm } from "@/components/settings/school-settings-form";
+import { SchoolSettingsForm } from "@/components/settings/school-settings-form";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 
 export default async function SchoolSettingsPage() {
@@ -12,7 +12,7 @@ export default async function SchoolSettingsPage() {
           هوية المدرسة والحساب
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-8 text-slate-500">
-          أكمل هذه البيانات مرة واحدة لتظهر تلقائيًا في التقارير الرسمية وملفات PDF، ولتفعيل الميزات الحساسة مثل رفع بيانات نور وإصدار التقارير الرسمية.
+          أكمل هذه البيانات مرة واحدة لتظهر تلقائيًا في التقارير الرسمية وملفات PDF، ولتفعيل الميزات الحساسة مثل رفع بيانات الطلاب وإصدار التقارير الرسمية.
         </p>
       </section>
 

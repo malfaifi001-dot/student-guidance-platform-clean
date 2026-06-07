@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { readApiResponse } from "@/lib/http/read-api-response";
@@ -203,7 +203,7 @@ export function StudentsCenterClient({ schoolName }: Props) {
             <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
             <h1 className="mt-2 text-2xl font-black md:text-4xl">سجل الطلاب</h1>
             <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
-              هذا هو السجل الناتج من بيانات نور لمدرسة {schoolName}. ابحث وعدّل الحالات الشاذة قبل استخدام الطلاب في الخدمات والتقارير.
+              هذا هو السجل الناتج من بيانات الطلاب لمدرسة {schoolName}. ابحث وعدّل الحالات الشاذة قبل استخدام الطلاب في الخدمات والتقارير.
             </p>
           </div>
         </section>

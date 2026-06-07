@@ -108,7 +108,11 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             </span>
           </button>
 
-          <div className="relative">
+          <div
+            className="group relative"
+            onMouseEnter={() => setMenuOpen(true)}
+            onMouseLeave={() => setMenuOpen(false)}
+          >
             <button
               type="button"
               onClick={() => setMenuOpen((value) => !value)}
@@ -138,13 +142,19 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               <ChevronDown
                 className={[
                   "h-4 w-4 text-slate-400 transition",
-                  menuOpen ? "rotate-180" : "",
+                  menuOpen ? "rotate-180" : "group-hover:rotate-180",
                 ].join(" ")}
               />
             </button>
 
-            {menuOpen ? (
-              <div className="absolute left-0 top-14 z-50 w-64 overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white p-2 text-right shadow-xl shadow-slate-200/60">
+            <div
+              className={[
+                "absolute left-0 top-14 z-50 w-64 overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white p-2 text-right shadow-xl shadow-slate-200/60 transition duration-150 ease-out",
+                menuOpen
+                  ? "visible translate-y-0 opacity-100 pointer-events-auto"
+                  : "invisible translate-y-2 opacity-0 pointer-events-none group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-hover:pointer-events-auto",
+              ].join(" ")}
+            >
                 <div className="border-b border-slate-100 px-3 py-3">
                   <p className="truncate text-sm font-black text-slate-950">
                     {displayName}
@@ -183,7 +193,6 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                   </button>
                 </div>
               </div>
-            ) : null}
           </div>
         </div>
       </div>

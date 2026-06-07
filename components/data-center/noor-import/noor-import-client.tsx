@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -194,7 +194,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
     if (!academicYear.trim()) {
       setFeedback({
         type: "error",
-        text: "حدد السنة الدراسية قبل رفع ملف نور.",
+        text: "حدد السنة الدراسية قبل رفع ملف بيانات الطلاب.",
       });
       return;
     }
@@ -202,7 +202,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
     if (!term.trim()) {
       setFeedback({
         type: "error",
-        text: "حدد الفصل الدراسي قبل رفع ملف نور.",
+        text: "حدد الفصل الدراسي قبل رفع ملف بيانات الطلاب.",
       });
       return;
     }
@@ -210,7 +210,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
     if (!file) {
       setFeedback({
         type: "error",
-        text: "اختر ملف Excel صادر من نور أولًا.",
+        text: "اختر ملف Excel صادر من ملف الطلاب أولًا.",
       });
       return;
     }
@@ -218,7 +218,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
     setIsUploading(true);
     setFeedback({
       type: "info",
-      text: "جاري قراءة ملف نور وإنشاء جلسة مراجعة...",
+      text: "جاري قراءة ملف بيانات الطلاب وإنشاء جلسة مراجعة...",
     });
 
     try {
@@ -235,7 +235,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
       const result = await readApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(result.error || "تعذر قراءة ملف نور.");
+        throw new Error(result.error || "تعذر قراءة ملف بيانات الطلاب.");
       }
 
       setCurrentSession(result.session);
@@ -262,7 +262,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
         <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-6 md:p-8">
             <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
-            <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز استيراد بيانات نور</h1>
+            <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز استيراد بيانات الطلاب</h1>
             <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
               أنشئ جلسة استيراد لكل سنة وفصل دراسي، ثم راجع الطلاب والتحديثات قبل اعتمادها في سجل مدرسة {schoolName}.
             </p>
@@ -294,7 +294,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
                 <div>
                   <h2 className="text-lg font-black">بيانات فترة الاستيراد</h2>
                   <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
-                    كل ملف نور يجب أن يُحفظ داخل سنة وفصل دراسي حتى يسهل تحديث الطلاب سنويًا.
+                    كل ملف بيانات الطلاب يجب أن يُحفظ داخل سنة وفصل دراسي حتى يسهل تحديث الطلاب سنويًا.
                   </p>
                 </div>
               </div>
@@ -333,9 +333,9 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
                   2
                 </span>
                 <div>
-                  <h2 className="text-lg font-black">رفع ملف نور</h2>
+                  <h2 className="text-lg font-black">رفع ملف بيانات الطلاب</h2>
                   <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
-                    ارفع كشف بيانات الطلاب من نور. لن يتم تعديل سجل الطلاب إلا بعد فتح الجلسة واعتمادها.
+                    ارفع كشف بيانات الطلاب من ملف الطلاب. لن يتم تعديل سجل الطلاب إلا بعد فتح الجلسة واعتمادها.
                   </p>
                 </div>
               </div>
@@ -450,7 +450,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
         <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
             <div>
-              <h2 className="text-lg font-black">سجل استيرادات نور السابقة</h2>
+              <h2 className="text-lg font-black">سجل استيرادات بيانات الطلاب السابقة</h2>
               <p className="mt-1 text-sm font-bold text-slate-500">
                 كل سنة وفصل لها جلسة مستقلة. افتح الجلسة لمراجعة التفاصيل أو الاعتماد أو الأرشفة.
               </p>
@@ -490,7 +490,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
                       </h3>
 
                       <p className="mt-1 text-xs font-bold text-slate-500">
-                        {session.files?.[0]?.fileName || "ملف نور"} · {session.totalRows} طالب/طالبة · {formatDate(session.createdAt)}
+                        {session.files?.[0]?.fileName || "ملف بيانات الطلاب"} · {session.totalRows} طالب/طالبة · {formatDate(session.createdAt)}
                       </p>
                     </div>
 

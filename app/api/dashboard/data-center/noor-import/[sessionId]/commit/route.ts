@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
@@ -328,7 +328,7 @@ export async function POST(request: Request, context: RouteContext) {
       schoolAccountId: current.schoolAccountId,
       userId: current.user.id,
       event: "NOOR_IMPORT_COMMITTED",
-      title: "تم اعتماد استيراد بيانات نور",
+      title: "تم اعتماد استيراد بيانات الطلاب",
       description: `تم إنشاء ${result.createdCount} طالب/طالبة وتحديث ${result.updatedCount} وتعطيل ${result.deactivatedCount} غير موجودين في الملف الجديد.`,
       metadata: {
         sessionId,
@@ -341,7 +341,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({
-      message: "تم اعتماد بيانات نور وربط الطلاب وأولياء الأمور بالمدرسة.",
+      message: "تم اعتماد بيانات الطلاب وربط الطلاب وأولياء الأمور بالمدرسة.",
       deactivatedCount: result.deactivatedCount,
       session: {
         ...result.session,
@@ -354,7 +354,7 @@ export async function POST(request: Request, context: RouteContext) {
         error:
           error instanceof Error
             ? error.message === "UNAUTHENTICATED_SCHOOL_USER"
-              ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل اعتماد بيانات نور."
+              ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل اعتماد بيانات الطلاب."
               : error.message
             : "تعذر اعتماد جلسة الاستيراد.",
       },

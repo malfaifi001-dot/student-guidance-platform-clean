@@ -1,4 +1,4 @@
-﻿export type SchoolIdentityReadinessInput = {
+export type SchoolIdentityInput = {
   officialName?: string | null;
   jobTitle?: string | null;
   phone?: string | null;
@@ -12,137 +12,192 @@
   academicYear?: string | null;
   currentSemester?: string | null;
   logoUrl?: string | null;
+  onboardingCompleted?: boolean | null;
 };
+
+export type SchoolIdentityReadinessLevel =
+  | "excellent"
+  | "good"
+  | "needs-work";
 
 export type SchoolIdentityReadinessItem = {
-  key: keyof SchoolIdentityReadinessInput;
+  key: keyof SchoolIdentityInput;
   label: string;
+  completed: boolean;
   required: boolean;
-  weight: number;
 };
 
-export const SCHOOL_IDENTITY_READINESS_ITEMS: SchoolIdentityReadinessItem[] = [
-  {
-    key: "officialName",
-    label: "الاسم الرسمي للموجه/الموجهة",
-    required: true,
-    weight: 14,
-  },
-  {
-    key: "jobTitle",
-    label: "المسمى الوظيفي",
-    required: true,
-    weight: 10,
-  },
-  {
-    key: "schoolName",
-    label: "اسم المدرسة",
-    required: true,
-    weight: 16,
-  },
-  {
-    key: "educationDepartment",
-    label: "إدارة التعليم",
-    required: true,
-    weight: 12,
-  },
-  {
-    key: "academicYear",
-    label: "العام الدراسي",
-    required: true,
-    weight: 10,
-  },
-  {
-    key: "currentSemester",
-    label: "الفصل الدراسي",
-    required: true,
-    weight: 8,
-  },
-  {
-    key: "principalName",
-    label: "اسم المدير/ة",
-    required: false,
-    weight: 8,
-  },
-  {
-    key: "educationOffice",
-    label: "مكتب التعليم",
-    required: false,
-    weight: 6,
-  },
-  {
-    key: "city",
-    label: "المدينة",
-    required: false,
-    weight: 4,
-  },
-  {
-    key: "stage",
-    label: "المرحلة",
-    required: false,
-    weight: 4,
-  },
-  {
-    key: "phone",
-    label: "رقم جوال الموجه/الموجهة",
-    required: false,
-    weight: 3,
-  },
-  {
-    key: "logoUrl",
-    label: "شعار المدرسة",
-    required: false,
-    weight: 5,
-  },
+export type SchoolIdentityReadiness = {
+  percentage: number;
+  score: number;
+  completedPercentage: number;
+  completionPercentage: number;
+  level: SchoolIdentityReadinessLevel;
+
+  completed: boolean;
+  isComplete: boolean;
+  isReady: boolean;
+
+  completedCount: number;
+  totalCount: number;
+
+  requiredCompletedCount: number;
+  requiredTotalCount: number;
+  optionalCompletedCount: number;
+  optionalTotalCount: number;
+
+  items: SchoolIdentityReadinessItem[];
+  allItems: SchoolIdentityReadinessItem[];
+
+  required: SchoolIdentityReadinessItem[];
+  optional: SchoolIdentityReadinessItem[];
+
+  requiredItems: SchoolIdentityReadinessItem[];
+  optionalItems: SchoolIdentityReadinessItem[];
+
+  requiredFields: SchoolIdentityReadinessItem[];
+  optionalFields: SchoolIdentityReadinessItem[];
+
+  missingRequired: SchoolIdentityReadinessItem[];
+  missingOptional: SchoolIdentityReadinessItem[];
+  completedRequired: SchoolIdentityReadinessItem[];
+  completedOptional: SchoolIdentityReadinessItem[];
+
+  missingItems: string[];
+  missingFields: string[];
+  missingRequiredLabels: string[];
+  missingOptionalLabels: string[];
+};
+
+const REQUIRED_FIELDS: Array<{
+  key: keyof SchoolIdentityInput;
+  label: string;
+}> = [
+  { key: "officialName", label: "الاسم الرسمي" },
+  { key: "jobTitle", label: "المسمى الوظيفي" },
+  { key: "schoolName", label: "اسم المدرسة" },
+  { key: "educationDepartment", label: "إدارة التعليم" },
+  { key: "academicYear", label: "العام الدراسي" },
+  { key: "currentSemester", label: "الفصل الدراسي" },
 ];
 
+const OPTIONAL_FIELDS: Array<{
+  key: keyof SchoolIdentityInput;
+  label: string;
+}> = [
+  { key: "phone", label: "رقم الجوال" },
+  { key: "principalName", label: "اسم المدير/ة" },
+  { key: "educationOffice", label: "مكتب التعليم" },
+  { key: "city", label: "المدينة" },
+  { key: "district", label: "الحي" },
+  { key: "stage", label: "المرحلة" },
+  { key: "logoUrl", label: "شعار المدرسة" },
+];
+
+function hasValue(value: unknown): boolean {
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  return Boolean(value);
+}
+
+function buildItem(
+  data: SchoolIdentityInput,
+  field: { key: keyof SchoolIdentityInput; label: string },
+  required: boolean
+): SchoolIdentityReadinessItem {
+  return {
+    key: field.key,
+    label: field.label,
+    completed: hasValue(data[field.key]),
+    required,
+  };
+}
+
+function getReadinessLevel(percentage: number): SchoolIdentityReadinessLevel {
+  if (percentage >= 100) return "excellent";
+  if (percentage >= 70) return "good";
+  return "needs-work";
+}
+
 export function calculateSchoolIdentityReadiness(
-  input: SchoolIdentityReadinessInput
-) {
-  const totalWeight = SCHOOL_IDENTITY_READINESS_ITEMS.reduce(
-    (sum, item) => sum + item.weight,
-    0
+  data: SchoolIdentityInput | null | undefined
+): SchoolIdentityReadiness {
+  const safeData = data || {};
+
+  const requiredItems = REQUIRED_FIELDS.map((field) =>
+    buildItem(safeData, field, true)
   );
 
-  const completedItems = SCHOOL_IDENTITY_READINESS_ITEMS.filter((item) => {
-    const value = input[item.key];
-    return typeof value === "string" ? Boolean(value.trim()) : Boolean(value);
-  });
-
-  const completedWeight = completedItems.reduce(
-    (sum, item) => sum + item.weight,
-    0
+  const optionalItems = OPTIONAL_FIELDS.map((field) =>
+    buildItem(safeData, field, false)
   );
 
-  const missingRequired = SCHOOL_IDENTITY_READINESS_ITEMS.filter((item) => {
-    if (!item.required) return false;
+  const allItems = [...requiredItems, ...optionalItems];
 
-    const value = input[item.key];
-    return typeof value === "string" ? !value.trim() : !value;
-  });
+  const completedRequired = requiredItems.filter((item) => item.completed);
+  const completedOptional = optionalItems.filter((item) => item.completed);
 
-  const missingOptional = SCHOOL_IDENTITY_READINESS_ITEMS.filter((item) => {
-    if (item.required) return false;
+  const missingRequired = requiredItems.filter((item) => !item.completed);
+  const missingOptional = optionalItems.filter((item) => !item.completed);
 
-    const value = input[item.key];
-    return typeof value === "string" ? !value.trim() : !value;
-  });
+  const requiredTotalCount = requiredItems.length;
+  const requiredCompletedCount = completedRequired.length;
 
-  const score = Math.round((completedWeight / totalWeight) * 100);
+  const optionalTotalCount = optionalItems.length;
+  const optionalCompletedCount = completedOptional.length;
+
+  const percentage =
+    requiredTotalCount > 0
+      ? Math.round((requiredCompletedCount / requiredTotalCount) * 100)
+      : 100;
+
+  const level = getReadinessLevel(percentage);
+  const isComplete = missingRequired.length === 0;
+
+  const missingRequiredLabels = missingRequired.map((item) => item.label);
+  const missingOptionalLabels = missingOptional.map((item) => item.label);
 
   return {
-    score,
-    completedItems,
+    percentage,
+    score: percentage,
+    completedPercentage: percentage,
+    completionPercentage: percentage,
+    level,
+
+    completed: isComplete,
+    isComplete,
+    isReady: isComplete,
+
+    completedCount: allItems.filter((item) => item.completed).length,
+    totalCount: allItems.length,
+
+    requiredCompletedCount,
+    requiredTotalCount,
+    optionalCompletedCount,
+    optionalTotalCount,
+
+    items: allItems,
+    allItems,
+
+    required: requiredItems,
+    optional: optionalItems,
+
+    requiredItems,
+    optionalItems,
+
+    requiredFields: requiredItems,
+    optionalFields: optionalItems,
+
     missingRequired,
     missingOptional,
-    readyForOfficialReports: missingRequired.length === 0,
-    level:
-      score >= 90
-        ? "excellent"
-        : score >= 75
-          ? "good"
-          : score >= 50
-            ? "needs-work"
-            : "incomplete",
+    completedRequired,
+    completedOptional,
+
+    missingItems: missingRequiredLabels,
+    missingFields: missingRequiredLabels,
+    missingRequiredLabels,
+    missingOptionalLabels,
   };
 }

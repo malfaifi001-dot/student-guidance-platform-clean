@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
@@ -54,7 +54,7 @@ export async function POST(_request: Request, context: RouteContext) {
       schoolAccountId: current.schoolAccountId,
       userId: current.user.id,
       event: "NOOR_IMPORT_SESSION_ARCHIVED",
-      title: "تمت أرشفة جلسة استيراد نور",
+      title: "تمت أرشفة جلسة استيراد بيانات الطلاب",
       description: "تمت أرشفة جلسة معتمدة مع إبقاء أثرها محفوظًا.",
       metadata: {
         sessionId: session.id,

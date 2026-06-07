@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 
 type ImportStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
 
@@ -34,7 +34,7 @@ export function StudentImportSessionsTable({
           لا توجد عمليات استيراد حتى الآن
         </h3>
         <p className="mt-2 text-sm text-slate-500">
-          عند رفع ملف طلاب من نظام نور ستظهر جلسات الاستيراد هنا.
+          عند رفع ملف طلاب من النظام المصدر ستظهر جلسات الاستيراد هنا.
         </p>
       </div>
     );

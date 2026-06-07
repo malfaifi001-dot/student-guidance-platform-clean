@@ -37,7 +37,7 @@ export default function HomePage() {
               <p className="mt-8 max-w-3xl text-lg leading-9 text-slate-600">
                 منصة ذكية للموجه والموجهة الطلابية تدعم:
                 إدارة الحالات، الاجتماعات، البرامج،
-                الشواهد، التقارير، بيانات نور،
+                الشواهد، التقارير، بيانات الطلاب،
                 Workflow Runtime، والاشتراكات SaaS.
               </p>
 
@@ -68,7 +68,7 @@ export default function HomePage() {
                 {
                   title: "Noor Integration",
                   icon: Database,
-                  desc: "رفع ذكي لملفات نور وربط الطلاب.",
+                  desc: "رفع ذكي لملفات بيانات الطلاب وربط الطلاب.",
                 },
                 {
                   title: "Reports & Export",

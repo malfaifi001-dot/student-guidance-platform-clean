@@ -1,7 +1,19 @@
-﻿"use client";
+"use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { calculateSchoolIdentityReadiness } from "@/lib/school-identity-readiness";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ImageIcon,
+  Save,
+  UploadCloud,
+  X,
+} from "lucide-react";
+import {
+  calculateSchoolIdentityReadiness,
+  type SchoolIdentityReadiness,
+} from "@/lib/school-identity-readiness";
 
 type SchoolSettingsFormState = {
   officialName: string;
@@ -20,24 +32,12 @@ type SchoolSettingsFormState = {
   onboardingCompleted?: boolean;
 };
 
-function normalizeSchoolSettingsData(data: Partial<SchoolSettingsFormState> | null | undefined): SchoolSettingsFormState {
-  return {
-    officialName: data?.officialName || "",
-    jobTitle: data?.jobTitle || "",
-    phone: data?.phone || "",
-    schoolName: data?.schoolName || "",
-    principalName: data?.principalName || "",
-    educationDepartment: data?.educationDepartment || "",
-    educationOffice: data?.educationOffice || "",
-    city: data?.city || "",
-    district: data?.district || "",
-    stage: data?.stage || "",
-    academicYear: data?.academicYear || "",
-    currentSemester: data?.currentSemester || "",
-    logoUrl: data?.logoUrl || "",
-    onboardingCompleted: Boolean(data?.onboardingCompleted),
-  };
-}
+type FeedbackState = {
+  type: "success" | "error" | "warning";
+  message: string;
+} | null;
+
+type Tone = "emerald" | "blue" | "amber" | "rose";
 
 const EMPTY_FORM: SchoolSettingsFormState = {
   officialName: "",
@@ -56,6 +56,37 @@ const EMPTY_FORM: SchoolSettingsFormState = {
   onboardingCompleted: false,
 };
 
+function normalizeSchoolSettingsData(
+  data: Partial<SchoolSettingsFormState> | null | undefined
+): SchoolSettingsFormState {
+  return {
+    officialName: data?.officialName || "",
+    jobTitle: data?.jobTitle || "",
+    phone: data?.phone || "",
+    schoolName: data?.schoolName || "",
+    principalName: data?.principalName || "",
+    educationDepartment: data?.educationDepartment || "",
+    educationOffice: data?.educationOffice || "",
+    city: data?.city || "",
+    district: data?.district || "",
+    stage: data?.stage || "",
+    academicYear: data?.academicYear || "",
+    currentSemester: data?.currentSemester || "",
+    logoUrl: data?.logoUrl || "",
+    onboardingCompleted: Boolean(data?.onboardingCompleted),
+  };
+}
+
+function clampPercentage(value: unknown): number {
+  const numericValue = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(numericValue)));
+}
+
 export function SchoolSettingsForm() {
   const [form, setForm] = useState<SchoolSettingsFormState>(EMPTY_FORM);
   const [initialForm, setInitialForm] =
@@ -63,26 +94,20 @@ export function SchoolSettingsForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [feedback, setFeedback] = useState<{
-    type: "success" | "error" | "warning";
-    message: string;
-  } | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
 
-  const requiredCompleted = useMemo(() => {
-    return Boolean(
-      form.officialName.trim() &&
-        form.jobTitle.trim() &&
-        form.schoolName.trim()
-    );
+  const readiness = useMemo(() => {
+    return calculateSchoolIdentityReadiness(form);
   }, [form]);
 
   const hasChanges = useMemo(() => {
     return JSON.stringify(form) !== JSON.stringify(initialForm);
   }, [form, initialForm]);
 
-  const readiness = useMemo(() => {
-    return calculateSchoolIdentityReadiness(form);
-  }, [form]);
+  const requiredCompleted = useMemo(() => {
+    return readiness.missingRequired.length === 0;
+  }, [readiness.missingRequired.length]);
 
   useEffect(() => {
     let active = true;
@@ -107,13 +132,15 @@ export function SchoolSettingsForm() {
           setInitialForm(normalizedData);
         }
       } catch (error) {
-        setFeedback({
-          type: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : "حدث خطأ أثناء تحميل الإعدادات.",
-        });
+        if (active) {
+          setFeedback({
+            type: "error",
+            message:
+              error instanceof Error
+                ? error.message
+                : "حدث خطأ أثناء تحميل الإعدادات.",
+          });
+        }
       } finally {
         if (active) {
           setLoading(false);
@@ -157,14 +184,11 @@ export function SchoolSettingsForm() {
         throw new Error(data.error || "تعذر رفع الشعار.");
       }
 
-      setForm((current) => ({
-        ...current,
-        logoUrl: data.logoUrl,
-      }));
+      update("logoUrl", data.logoUrl || "");
 
       setFeedback({
         type: "success",
-        message: "تم رفع شعار المدرسة بنجاح. اضغط حفظ البيانات لتثبيت بقية التعديلات إن وجدت.",
+        message: "تم رفع شعار المدرسة بنجاح. اضغط حفظ البيانات لتثبيت التعديل.",
       });
     } catch (error) {
       setFeedback({
@@ -179,11 +203,12 @@ export function SchoolSettingsForm() {
 
   async function save() {
     setFeedback(null);
+    setSaveSuccessOpen(false);
 
     if (!requiredCompleted) {
       setFeedback({
         type: "warning",
-        message: "أكمل الاسم الرسمي، المسمى الوظيفي، واسم المدرسة أولًا.",
+        message: "أكمل الحقول الأساسية المطلوبة قبل حفظ بيانات المدرسة.",
       });
       return;
     }
@@ -217,6 +242,8 @@ export function SchoolSettingsForm() {
         type: "success",
         message: "تم حفظ بيانات المدرسة والحساب بنجاح.",
       });
+
+      setSaveSuccessOpen(true);
     } catch (error) {
       setFeedback({
         type: "error",
@@ -237,37 +264,33 @@ export function SchoolSettingsForm() {
   }
 
   return (
-    <div className="space-y-6">
-      {feedback ? (
-        <div
-          className={[
-            "rounded-2xl border px-4 py-3 text-sm font-bold leading-7",
-            feedback.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : feedback.type === "warning"
-                ? "border-amber-200 bg-amber-50 text-amber-700"
-                : "border-red-200 bg-red-50 text-red-700",
-          ].join(" ")}
-        >
-          {feedback.message}
-        </div>
-      ) : null}
+    <div className="space-y-6 pb-24">
+      <SaveSuccessModal
+        open={saveSuccessOpen}
+        onClose={() => setSaveSuccessOpen(false)}
+      />
+
+      <TopActionsBar
+        saving={saving}
+        hasChanges={hasChanges}
+        onSave={save}
+      />
+
+      {feedback ? <FeedbackMessage feedback={feedback} /> : null}
 
       <IdentityReadinessCard readiness={readiness} />
 
-      <ReportIdentityPreviewCard form={form} />
+      <section className="grid gap-6 xl:grid-cols-[360px_1fr]">
+        <SchoolLogoCard
+          logoUrl={form.logoUrl}
+          uploading={uploadingLogo}
+          onUpload={uploadLogo}
+          onClear={() => update("logoUrl", "")}
+        />
 
-      <SchoolLogoUploadCard
-        logoUrl={form.logoUrl}
-        uploading={uploadingLogo}
-        onUpload={uploadLogo}
-        onClear={() => update("logoUrl", "")}
-      />
-
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div>
-            <p className="text-sm font-black text-blue-700">هوية الحساب</p>
+            <p className="text-sm font-black text-blue-700">بيانات الحساب</p>
             <h2 className="mt-2 text-2xl font-black text-slate-950">
               بيانات الموجه/الموجهة
             </h2>
@@ -276,30 +299,28 @@ export function SchoolSettingsForm() {
             </p>
           </div>
 
-          <StatusBadge completed={Boolean(form.onboardingCompleted)} />
-        </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <Input
+              label="الاسم الرسمي في التقارير"
+              value={form.officialName}
+              onChange={(value) => update("officialName", value)}
+              required
+            />
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <Input
-            label="الاسم الرسمي في التقارير"
-            value={form.officialName}
-            onChange={(value) => update("officialName", value)}
-            required
-          />
+            <Input
+              label="المسمى الوظيفي"
+              value={form.jobTitle}
+              onChange={(value) => update("jobTitle", value)}
+              required
+            />
 
-          <Input
-            label="المسمى الوظيفي"
-            value={form.jobTitle}
-            onChange={(value) => update("jobTitle", value)}
-            required
-          />
-
-          <Input
-            label="رقم الجوال"
-            value={form.phone}
-            onChange={(value) => update("phone", value)}
-          />
-        </div>
+            <Input
+              label="رقم الجوال"
+              value={form.phone}
+              onChange={(value) => update("phone", value)}
+            />
+          </div>
+        </section>
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -309,7 +330,7 @@ export function SchoolSettingsForm() {
             بيانات المدرسة الرسمية
           </h2>
           <p className="mt-2 text-sm leading-7 text-slate-500">
-            تستخدم هذه البيانات في ترويسة التقارير وملفات PDF والوثائق.
+            الحقول الأساسية فقط مطلوبة. باقي البيانات اختيارية لتحسين شكل التقارير.
           </p>
         </div>
 
@@ -331,6 +352,7 @@ export function SchoolSettingsForm() {
             label="إدارة التعليم"
             value={form.educationDepartment}
             onChange={(value) => update("educationDepartment", value)}
+            required
           />
 
           <Input
@@ -361,12 +383,14 @@ export function SchoolSettingsForm() {
             label="العام الدراسي"
             value={form.academicYear}
             onChange={(value) => update("academicYear", value)}
+            required
           />
 
           <Input
             label="الفصل الدراسي"
             value={form.currentSemester}
             onChange={(value) => update("currentSemester", value)}
+            required
           />
 
           <Input
@@ -377,6 +401,8 @@ export function SchoolSettingsForm() {
         </div>
       </section>
 
+      <ReportIdentityPreviewCard form={form} />
+
       <div className="sticky bottom-4 z-20 rounded-[2rem] border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -384,16 +410,17 @@ export function SchoolSettingsForm() {
               {hasChanges ? "يوجد تغييرات غير محفوظة" : "كل التغييرات محفوظة"}
             </p>
             <p className="mt-1 text-xs font-bold text-slate-500">
-              بعد حفظ هذه البيانات تختفي رسالة إكمال بيانات المدرسة.
+              البيانات الإضافية اختيارية ويمكن تعديلها لاحقًا.
             </p>
           </div>
 
           <button
             type="button"
             onClick={save}
-            disabled={saving || !hasChanges}
-            className="rounded-2xl bg-slate-950 px-7 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-7 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
+            <Save className="h-4 w-4" />
             {saving ? "جاري الحفظ..." : "حفظ البيانات"}
           </button>
         </div>
@@ -402,7 +429,107 @@ export function SchoolSettingsForm() {
   );
 }
 
-function SchoolLogoUploadCard({
+function TopActionsBar({
+  saving,
+  hasChanges,
+  onSave,
+}: {
+  saving: boolean;
+  hasChanges: boolean;
+  onSave: () => void;
+}) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-black text-slate-950">
+            إعداد الهوية اختياري ويمكن إكماله لاحقًا
+          </p>
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            {hasChanges
+              ? "لديك تغييرات غير محفوظة."
+              : "لا توجد تغييرات جديدة."}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            تخطي الآن
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            {saving ? "جاري الحفظ..." : "حفظ البيانات"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FeedbackMessage({ feedback }: { feedback: NonNullable<FeedbackState> }) {
+  return (
+    <div
+      className={[
+        "rounded-2xl border px-4 py-3 text-sm font-bold leading-7",
+        feedback.type === "success"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : feedback.type === "warning"
+            ? "border-amber-200 bg-amber-50 text-amber-700"
+            : "border-red-200 bg-red-50 text-red-700",
+      ].join(" ")}
+    >
+      {feedback.message}
+    </div>
+  );
+}
+
+function SaveSuccessModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-[2rem] border border-emerald-100 bg-white p-6 text-center shadow-2xl">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl font-black text-emerald-700">
+          ✓
+        </div>
+
+        <h2 className="mt-4 text-2xl font-black text-slate-950">
+          تم حفظ البيانات بنجاح
+        </h2>
+
+        <p className="mt-3 text-sm font-bold leading-7 text-slate-500">
+          تم تحديث بيانات المدرسة والحساب، وستظهر التحديثات في التقارير والمعاينات.
+        </p>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-6 w-full rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-700"
+        >
+          تم
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SchoolLogoCard({
   logoUrl,
   uploading,
   onUpload,
@@ -415,71 +542,64 @@ function SchoolLogoUploadCard({
 }) {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
-          <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="شعار المدرسة"
-                className="h-full w-full object-contain p-2"
-              />
-            ) : (
-              <span className="px-4 text-xs font-black leading-6 text-slate-400">
-                شعار المدرسة
-              </span>
-            )}
-          </div>
-
-          {logoUrl ? (
-            <button
-              type="button"
-              onClick={onClear}
-              className="mt-3 text-xs font-black text-red-600 hover:text-red-700"
-            >
-              إزالة الشعار
-            </button>
-          ) : null}
-        </div>
-
+      <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-black text-blue-700">شعار المدرسة</p>
-          <h2 className="mt-2 text-2xl font-black text-slate-950">
-            رفع شعار يظهر في التقارير الرسمية
+          <h2 className="mt-2 text-xl font-black text-slate-950">
+            شعار يظهر في التقارير
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-500">
-            يفضّل رفع شعار بصيغة PNG بخلفية شفافة أو SVG بجودة عالية. سيظهر الشعار في معاينة الهوية وملفات PDF الرسمية.
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            اختياري، ويمكن إضافته لاحقًا.
           </p>
+        </div>
 
-          <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            <label className="block cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-4 text-center transition hover:bg-slate-50">
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] || null;
-                  onUpload(file);
-                  event.currentTarget.value = "";
-                }}
-                disabled={uploading}
-              />
-
-              <span className="block text-sm font-black text-slate-900">
-                {uploading ? "جاري رفع الشعار..." : "اختر شعار المدرسة"}
-              </span>
-
-              <span className="mt-1 block text-xs font-bold text-slate-500">
-                PNG / JPG / WEBP / SVG — الحد الأقصى 2MB
-              </span>
-            </label>
-
-            <div className="mt-3 rounded-2xl bg-blue-50 px-4 py-3 text-xs font-bold leading-6 text-blue-700">
-              نصيحة: استخدم صورة مربعة أو شعار شفاف حتى يظهر بشكل أجمل في الغلاف والترويسة.
-            </div>
-          </div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+          <ImageIcon className="h-6 w-6" />
         </div>
       </div>
+
+      <div className="mt-5 flex flex-col items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
+        <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="شعار المدرسة"
+              className="h-full w-full object-contain p-2"
+            />
+          ) : (
+            <span className="px-4 text-xs font-black leading-6 text-slate-400">
+              بدون شعار
+            </span>
+          )}
+        </div>
+
+        {logoUrl ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className="mt-3 inline-flex items-center gap-1 text-xs font-black text-red-600 hover:text-red-700"
+          >
+            <X className="h-3.5 w-3.5" />
+            إزالة الشعار
+          </button>
+        ) : null}
+      </div>
+
+      <label className="mt-5 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+        <UploadCloud className="h-4 w-4" />
+        {uploading ? "جاري رفع الشعار..." : "رفع شعار المدرسة"}
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          className="hidden"
+          disabled={uploading}
+          onChange={(event) => {
+            const file = event.target.files?.[0] || null;
+            onUpload(file);
+            event.currentTarget.value = "";
+          }}
+        />
+      </label>
     </section>
   );
 }
@@ -487,89 +607,132 @@ function SchoolLogoUploadCard({
 function IdentityReadinessCard({
   readiness,
 }: {
-  readiness: ReturnType<typeof calculateSchoolIdentityReadiness>;
+  readiness: SchoolIdentityReadiness;
 }) {
-  const tone =
-    readiness.level === "excellent"
+  const percentage = clampPercentage(
+    readiness.percentage ??
+      readiness.score ??
+      readiness.completedPercentage ??
+      readiness.completionPercentage
+  );
+
+  const tone: Tone =
+    percentage >= 100
       ? "emerald"
-      : readiness.level === "good"
+      : percentage >= 70
         ? "blue"
-        : readiness.level === "needs-work"
+        : percentage >= 40
           ? "amber"
-          : "red";
+          : "rose";
+
+  const toneStyles: Record<
+    Tone,
+    {
+      side: string;
+      ring: string;
+      label: string;
+      pill: string;
+    }
+  > = {
+    emerald: {
+      side: "bg-emerald-50",
+      ring: "border-emerald-200 text-emerald-700",
+      label: "جاهزة",
+      pill: "bg-emerald-50 text-emerald-700",
+    },
+    blue: {
+      side: "bg-blue-50",
+      ring: "border-blue-200 text-blue-700",
+      label: "قريبة من الاكتمال",
+      pill: "bg-blue-50 text-blue-700",
+    },
+    amber: {
+      side: "bg-amber-50",
+      ring: "border-amber-200 text-amber-700",
+      label: "تحتاج إكمال",
+      pill: "bg-amber-50 text-amber-700",
+    },
+    rose: {
+      side: "bg-rose-50",
+      ring: "border-rose-200 text-rose-700",
+      label: "غير مكتملة",
+      pill: "bg-rose-50 text-rose-700",
+    },
+  };
+
+  const currentTone = toneStyles[tone];
 
   const title =
-    readiness.level === "excellent"
-      ? "هوية رسمية ممتازة"
+    percentage >= 100
+      ? "الهوية الأساسية مكتملة"
       : readiness.level === "good"
         ? "هوية جيدة وقريبة من الاكتمال"
-        : readiness.level === "needs-work"
-          ? "الهوية تحتاج بعض التحسين"
-          : "الهوية غير مكتملة";
+        : "الهوية غير مكتملة";
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-      <div className="grid gap-0 lg:grid-cols-[280px_1fr]">
+      <div className="grid gap-0 lg:grid-cols-[320px_1fr]">
         <div
           className={[
             "flex flex-col items-center justify-center p-7 text-center",
-            tone === "emerald"
-              ? "bg-emerald-50"
-              : tone === "blue"
-                ? "bg-blue-50"
-                : tone === "amber"
-                  ? "bg-amber-50"
-                  : "bg-red-50",
+            currentTone.side,
           ].join(" ")}
         >
           <div
             className={[
-              "flex h-32 w-32 items-center justify-center rounded-full border-[10px] bg-white text-3xl font-black",
-              tone === "emerald"
-                ? "border-emerald-200 text-emerald-700"
-                : tone === "blue"
-                  ? "border-blue-200 text-blue-700"
-                  : tone === "amber"
-                    ? "border-amber-200 text-amber-700"
-                    : "border-red-200 text-red-700",
+              "flex h-36 w-36 items-center justify-center rounded-full border-[12px] bg-white text-4xl font-black",
+              currentTone.ring,
             ].join(" ")}
           >
-            {readiness.score}%
+            {percentage}%
           </div>
 
-          <p className="mt-4 text-sm font-black text-slate-950">
+          <h2 className="mt-6 text-xl font-black text-slate-950">
             جاهزية الهوية الرسمية
-          </p>
+          </h2>
 
-          <p className="mt-2 text-xs font-bold leading-6 text-slate-500">
-            {readiness.readyForOfficialReports
-              ? "جاهزة لاستخدام التقارير الرسمية."
-              : "أكمل الحقول الأساسية قبل إصدار التقارير الرسمية."}
+          <p className="mt-2 max-w-xs text-sm font-bold leading-7 text-slate-500">
+            الحقول الأساسية فقط مطلوبة. الباقي تحسينات اختيارية.
           </p>
         </div>
 
-        <div className="p-6">
-          <p className="text-sm font-black text-blue-700">فحص ذكي</p>
-          <h2 className="mt-2 text-2xl font-black text-slate-950">{title}</h2>
+        <div className="p-7">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-black text-blue-700">فحص ذكي</p>
+              <h2 className="mt-2 text-3xl font-black text-slate-950">
+                {title}
+              </h2>
+            </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <span
+              className={[
+                "rounded-full px-4 py-2 text-xs font-black",
+                currentTone.pill,
+              ].join(" ")}
+            >
+              {currentTone.label}
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <ReadinessList
               title="حقول أساسية مطلوبة"
               emptyText="كل الحقول الأساسية مكتملة."
-              items={readiness.missingRequired.map((item) => item.label)}
+              items={(readiness.missingRequired || []).map((item) => item.label)}
               type="required"
             />
 
             <ReadinessList
               title="تحسينات اختيارية"
-              emptyText="الهوية شبه مكتملة."
-              items={readiness.missingOptional.slice(0, 5).map((item) => item.label)}
+              emptyText="كل التحسينات الاختيارية مكتملة."
+              items={(readiness.missingOptional || []).map((item) => item.label)}
               type="optional"
             />
           </div>
 
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold leading-6 text-slate-600">
-            كلما اكتملت الهوية، ظهرت التقارير الرسمية بشكل أقرب للوثائق المدرسية الجاهزة للطباعة والاعتماد.
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold leading-7 text-slate-600">
+            تستطيع تخطي هذه الصفحة الآن، والعودة لاحقًا من الحساب والباقات ← إعدادات المدرسة.
           </div>
         </div>
       </div>
@@ -588,31 +751,36 @@ function ReadinessList({
   items: string[];
   type: "required" | "optional";
 }) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-sm font-black text-slate-900">{title}</p>
+  const hasItems = items.length > 0;
+  const itemClass =
+    type === "required"
+      ? "bg-rose-50 text-rose-700"
+      : "bg-amber-50 text-amber-700";
 
-      {items.length ? (
-        <ul className="mt-3 space-y-2">
-          {items.map((item) => (
-            <li
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5">
+      <h3 className="text-sm font-black text-slate-950">{title}</h3>
+
+      <div className="mt-4 space-y-2">
+        {hasItems ? (
+          items.map((item) => (
+            <div
               key={item}
               className={[
-                "rounded-2xl px-3 py-2 text-xs font-bold",
-                type === "required"
-                  ? "bg-red-50 text-red-700"
-                  : "bg-amber-50 text-amber-700",
+                "rounded-2xl px-4 py-3 text-sm font-black",
+                itemClass,
               ].join(" ")}
             >
               {item}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
-          {emptyText}
-        </p>
-      )}
+            </div>
+          ))
+        ) : (
+          <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">
+            <CheckCircle2 className="h-4 w-4" />
+            {emptyText}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -667,10 +835,22 @@ function ReportIdentityPreviewCard({
         </div>
 
         <div className="mt-5 grid gap-3 text-sm md:grid-cols-2">
-          <PreviewLine label="الموجه/الموجهة" value={form.officialName || "الاسم الرسمي"} />
-          <PreviewLine label="المسمى" value={form.jobTitle || "المسمى الوظيفي"} />
-          <PreviewLine label="مدير/ة المدرسة" value={form.principalName || "غير محدد"} />
-          <PreviewLine label="المدينة/الحي" value={[form.city, form.district].filter(Boolean).join(" - ") || "غير محدد"} />
+          <PreviewLine
+            label="الموجه/الموجهة"
+            value={form.officialName || "الاسم الرسمي"}
+          />
+          <PreviewLine
+            label="المسمى"
+            value={form.jobTitle || "المسمى الوظيفي"}
+          />
+          <PreviewLine
+            label="مدير/ة المدرسة"
+            value={form.principalName || "غير محدد"}
+          />
+          <PreviewLine
+            label="المدينة/الحي"
+            value={[form.city, form.district].filter(Boolean).join(" - ") || "غير محدد"}
+          />
         </div>
       </div>
     </section>
@@ -683,21 +863,6 @@ function PreviewLine({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-bold text-slate-400">{label}</p>
       <p className="mt-1 text-sm font-black text-slate-800">{value}</p>
     </div>
-  );
-}
-
-function StatusBadge({ completed }: { completed: boolean }) {
-  return (
-    <span
-      className={[
-        "rounded-full px-4 py-2 text-xs font-black",
-        completed
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-amber-50 text-amber-700",
-      ].join(" ")}
-    >
-      {completed ? "مكتملة" : "غير مكتملة"}
-    </span>
   );
 }
 

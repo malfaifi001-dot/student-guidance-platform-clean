@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
@@ -6,7 +6,7 @@ import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
 export const runtime = "nodejs";
 
 function buildCycleTitle(academicYear: string, term: string) {
-  return `بيانات نور ${academicYear} - ${term}`;
+  return `بيانات الطلاب ${academicYear} - ${term}`;
 }
 
 function computeCycleStatus(sessions: Array<{ status: string }>, isArchived?: boolean) {
@@ -96,7 +96,7 @@ export async function GET() {
         error:
           error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
             ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
-            : "تعذر جلب بطاقات بيانات نور.",
+            : "تعذر جلب بطاقات بيانات الطلاب.",
       },
       { status: 500 },
     );
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       return NextResponse.json({
-        message: "توجد بطاقة بيانات نور لهذه السنة والفصل، تم فتحها بدل إنشاء نسخة مكررة.",
+        message: "توجد بطاقة بيانات الطلاب لهذه السنة والفصل، تم فتحها بدل إنشاء نسخة مكررة.",
         cycle: existing,
       });
     }
@@ -156,8 +156,8 @@ export async function POST(request: Request) {
       schoolAccountId: context.schoolAccountId,
       userId: context.user.id,
       event: "NOOR_IMPORT_CYCLE_CREATED",
-      title: "تم إنشاء بطاقة بيانات نور",
-      description: `تم إنشاء بطاقة بيانات نور للسنة ${academicYear} - ${term}.`,
+      title: "تم إنشاء بطاقة بيانات الطلاب",
+      description: `تم إنشاء بطاقة بيانات الطلاب للسنة ${academicYear} - ${term}.`,
       metadata: {
         cycleId: cycle.id,
         academicYear,
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: "تم إنشاء بطاقة بيانات نور بنجاح.",
+      message: "تم إنشاء بطاقة بيانات الطلاب بنجاح.",
       cycle,
     });
   } catch (error) {
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
         error:
           error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
             ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
-            : "تعذر إنشاء بطاقة بيانات نور.",
+            : "تعذر إنشاء بطاقة بيانات الطلاب.",
       },
       { status: 500 },
     );

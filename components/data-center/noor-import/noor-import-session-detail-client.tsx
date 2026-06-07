@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -156,7 +156,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
     const result = await readApiResponse(response);
 
     if (!response.ok) {
-      throw new Error(result.error || "تعذر جلب تحديث بيانات نور.");
+      throw new Error(result.error || "تعذر جلب تحديث بيانات الطلاب.");
     }
 
     setSession(result.session);
@@ -236,7 +236,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
         throw new Error(result.error || "تعذر اعتماد التحديث.");
       }
 
-      setMessage(result.message || "تم اعتماد تحديث بيانات نور بنجاح.");
+      setMessage(result.message || "تم اعتماد تحديث بيانات الطلاب بنجاح.");
       await loadSession();
       await loadRows(pagination.page);
     } catch (error) {
@@ -279,7 +279,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
 
   useEffect(() => {
     loadSession().catch((error) => {
-      setMessage(error instanceof Error ? error.message : "تعذر فتح تحديث بيانات نور.");
+      setMessage(error instanceof Error ? error.message : "تعذر فتح تحديث بيانات الطلاب.");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
@@ -305,12 +305,12 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
             href={session?.cycleId ? `/dashboard/data-center/noor-import/cycles/${session.cycleId}` : "/dashboard/data-center/noor-import"}
             className="text-sm font-black text-sky-700 hover:text-sky-900"
           >
-            ← العودة إلى بطاقة بيانات نور
+            ← العودة إلى بطاقة بيانات الطلاب
           </Link>
 
           <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-black text-sky-700">تحديث بيانات نور</p>
+              <p className="text-sm font-black text-sky-700">تحديث بيانات الطلاب</p>
               <h1 className="mt-2 text-2xl font-black md:text-4xl">مراجعة التحديث</h1>
               <p className="mt-2 text-sm font-bold text-slate-500">
                 راجع التغييرات فقط، ثم اعتمد التحديث.

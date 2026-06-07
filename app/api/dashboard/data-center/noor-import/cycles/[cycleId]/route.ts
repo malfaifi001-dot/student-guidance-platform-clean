@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 
@@ -42,7 +42,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     if (!cycle) {
       return NextResponse.json(
-        { error: "لم يتم العثور على بطاقة بيانات نور." },
+        { error: "لم يتم العثور على بطاقة بيانات الطلاب." },
         { status: 404 },
       );
     }
@@ -112,7 +112,7 @@ export async function GET(_request: Request, context: RouteContext) {
         error:
           error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER"
             ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة."
-            : "تعذر جلب بطاقة بيانات نور.",
+            : "تعذر جلب بطاقة بيانات الطلاب.",
       },
       { status: 500 },
     );
