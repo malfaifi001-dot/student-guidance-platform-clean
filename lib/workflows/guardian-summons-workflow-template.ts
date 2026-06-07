@@ -1,4 +1,4 @@
-﻿export const FAMILY_SCHOOL_COMMUNICATION_SERVICE = {
+export const FAMILY_SCHOOL_COMMUNICATION_SERVICE = {
   slug: "family-school-communication",
   name: "التواصل بين الأسرة والمدرسة",
   description:
@@ -13,7 +13,7 @@ export const GUARDIAN_SUMMONS_WORKFLOW = {
     {
       title: "اختيار الطالب/الطالبة",
       description:
-        "اختر الطالب/الطالبة من بيانات نور ليتم ربط الاستدعاء بسجل الطالب وولي الأمر.",
+        "اختر الطالب/الطالبة من بيانات الطلاب ليتم ربط الاستدعاء بسجل الطالب وولي الأمر.",
       order: 1,
       fields: [
         {

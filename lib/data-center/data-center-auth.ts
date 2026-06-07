@@ -1,4 +1,4 @@
-﻿import { cookies } from "next/headers";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 

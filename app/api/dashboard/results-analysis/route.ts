@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseResultsExcel } from "@/lib/results-analysis/results-analysis-parser";
 import { analyzeStudentResults } from "@/engine/results-analysis/results-analysis-engine";

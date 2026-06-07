@@ -1,4 +1,4 @@
-﻿type Props = {
+type Props = {
   insights?: string[];
   recommendations?: string[];
 };

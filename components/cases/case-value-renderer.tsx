@@ -1,4 +1,4 @@
-﻿type CaseValueRendererProps = {
+type CaseValueRendererProps = {
   label: string;
   value: unknown;
 };

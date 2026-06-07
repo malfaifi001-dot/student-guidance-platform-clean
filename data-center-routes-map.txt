@@ -1,0 +1,181 @@
+DATA CENTER ROUTES MAP
+GeneratedAt: 2026-06-08T01:36:03.5103898+03:00
+
+
+============================================================
+FOLDER: app\dashboard\data-center
+============================================================
+app\dashboard\data-center\noor-import\cycles\[cycleId]\page.tsx
+app\dashboard\data-center\noor-import\page.tsx
+app\dashboard\data-center\noor-import\sessions\[sessionId]\page.tsx
+app\dashboard\data-center\noor-import\sessions\page.tsx
+app\dashboard\data-center\student-data-import\cycles\[cycleId]\page.tsx
+app\dashboard\data-center\student-data-import\page.tsx
+app\dashboard\data-center\student-data-import\sessions\[sessionId]\page.tsx
+app\dashboard\data-center\student-data-import\sessions\page.tsx
+app\dashboard\data-center\students\page.tsx
+
+============================================================
+FOLDER: app\api\dashboard\data-center
+============================================================
+app\api\dashboard\data-center\noor-import\[sessionId]\archive\route.ts
+app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+app\api\dashboard\data-center\noor-import\[sessionId]\route.ts
+app\api\dashboard\data-center\noor-import\[sessionId]\rows\route.ts
+app\api\dashboard\data-center\noor-import\cycles\[cycleId]\route.ts
+app\api\dashboard\data-center\noor-import\cycles\route.ts
+app\api\dashboard\data-center\noor-import\preview\route.ts
+app\api\dashboard\data-center\noor-import\sessions\route.ts
+app\api\dashboard\data-center\student-data-import\[sessionId]\archive\route.ts
+app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+app\api\dashboard\data-center\student-data-import\[sessionId]\route.ts
+app\api\dashboard\data-center\student-data-import\[sessionId]\rows\route.ts
+app\api\dashboard\data-center\student-data-import\cycles\[cycleId]\route.ts
+app\api\dashboard\data-center\student-data-import\cycles\route.ts
+app\api\dashboard\data-center\student-data-import\preview\route.ts
+app\api\dashboard\data-center\student-data-import\sessions\route.ts
+app\api\dashboard\data-center\students\[studentId]\route.ts
+app\api\dashboard\data-center\students\route.ts
+
+============================================================
+FOLDER: components\data-center
+============================================================
+components\data-center\noor-import\noor-import-client.tsx
+components\data-center\noor-import\noor-import-cycle-detail-client.tsx
+components\data-center\noor-import\noor-import-cycles-client.tsx
+components\data-center\noor-import\noor-import-session-detail-client.tsx
+components\data-center\students\students-center-client.tsx
+
+============================================================
+FOLDER: lib\data-center
+============================================================
+lib\data-center\data-center-auth.ts
+lib\data-center\noor-import-audit.ts
+
+============================================================
+REFERENCES
+============================================================
+
+FILE: app\api\dashboard\data-center\noor-import\cycles\[cycleId]\route.ts
+
+FILE: app\api\dashboard\data-center\noor-import\cycles\route.ts
+L3: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+L4: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+
+FILE: app\api\dashboard\data-center\noor-import\preview\route.ts
+L8: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+L9: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+L13: } from "@/lib/noor-import/noor-student-data-list-parser";
+L14: import { syncNoorImportCycle } from "@/lib/noor-import/noor-import-cycle-sync";
+
+FILE: app\api\dashboard\data-center\noor-import\sessions\route.ts
+L3: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+
+FILE: app\api\dashboard\data-center\noor-import\[sessionId]\archive\route.ts
+
+FILE: app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+
+FILE: app\api\dashboard\data-center\noor-import\[sessionId]\rows\route.ts
+
+FILE: app\api\dashboard\data-center\noor-import\[sessionId]\route.ts
+
+FILE: app\api\dashboard\data-center\student-data-import\cycles\[cycleId]\route.ts
+
+FILE: app\api\dashboard\data-center\student-data-import\cycles\route.ts
+L3: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+L4: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+
+FILE: app\api\dashboard\data-center\student-data-import\preview\route.ts
+L8: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+L9: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+L13: } from "@/lib/noor-import/noor-student-data-list-parser";
+L14: import { syncNoorImportCycle } from "@/lib/noor-import/noor-import-cycle-sync";
+
+FILE: app\api\dashboard\data-center\student-data-import\sessions\route.ts
+L3: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+
+FILE: app\api\dashboard\data-center\student-data-import\[sessionId]\archive\route.ts
+
+FILE: app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+
+FILE: app\api\dashboard\data-center\student-data-import\[sessionId]\rows\route.ts
+
+FILE: app\api\dashboard\data-center\student-data-import\[sessionId]\route.ts
+
+FILE: app\api\dashboard\data-center\students\[studentId]\route.ts
+
+FILE: app\api\dashboard\data-center\students\route.ts
+L3: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+
+FILE: app\api\dashboard\students\search\route.ts
+L3: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+
+FILE: app\dashboard\data-center\noor-import\cycles\[cycleId]\page.tsx
+
+FILE: app\dashboard\data-center\noor-import\sessions\[sessionId]\page.tsx
+
+FILE: app\dashboard\data-center\noor-import\sessions\page.tsx
+L3: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+L27: redirect("/dashboard/data-center/student-data-import");
+L30: redirect(`/dashboard/data-center/student-data-import/sessions/${latestSession.id}`);
+
+FILE: app\dashboard\data-center\noor-import\page.tsx
+L2: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+L3: import { NoorImportCyclesClient } from "@/components/data-center/noor-import/noor-import-cycles-client";
+
+FILE: app\dashboard\data-center\student-data-import\cycles\[cycleId]\page.tsx
+
+FILE: app\dashboard\data-center\student-data-import\sessions\[sessionId]\page.tsx
+
+FILE: app\dashboard\data-center\student-data-import\sessions\page.tsx
+L3: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+L27: redirect("/dashboard/data-center/student-data-import");
+L30: redirect(`/dashboard/data-center/student-data-import/sessions/${latestSession.id}`);
+
+FILE: app\dashboard\data-center\student-data-import\page.tsx
+L2: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+L3: import { NoorImportCyclesClient } from "@/components/data-center/noor-import/noor-import-cycles-client";
+
+FILE: app\dashboard\data-center\students\page.tsx
+L2: import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+L3: import { StudentsCenterClient } from "@/components/data-center/students/students-center-client";
+
+FILE: app\dashboard\student-import\sessions\[sessionId]\page.tsx
+
+FILE: app\dashboard\student-import\page.tsx
+L6: redirect("/dashboard/data-center/student-data-import");
+
+FILE: components\data-center\noor-import\noor-import-client.tsx
+L174: const response = await fetch("/api/dashboard/data-center/student-data-import/sessions", {
+L230: const response = await fetch("/api/dashboard/data-center/student-data-import/preview", {
+L428: href={`/dashboard/data-center/student-data-import/sessions/${currentSession.id}`}
+L435: href="/dashboard/data-center/student-data-import/sessions"
+L460: href="/dashboard/data-center/student-data-import/sessions"
+L509: href={`/dashboard/data-center/student-data-import/sessions/${session.id}`}
+
+FILE: components\data-center\noor-import\noor-import-cycle-detail-client.tsx
+L109: const response = await fetch(`/api/dashboard/data-center/student-data-import/cycles/${cycleId}`, {
+L168: const response = await fetch("/api/dashboard/data-center/student-data-import/preview", {
+L204: href="/dashboard/data-center/student-data-import"
+L258: href={`/dashboard/data-center/student-data-import/sessions/${latestPendingSession.id}`}
+L402: href={`/dashboard/data-center/student-data-import/sessions/${session.id}`}
+
+FILE: components\data-center\noor-import\noor-import-cycles-client.tsx
+L98: const response = await fetch("/api/dashboard/data-center/student-data-import/cycles", {
+L138: const response = await fetch("/api/dashboard/data-center/student-data-import/cycles", {
+L164: window.location.href = `/dashboard/data-center/student-data-import/cycles/${result.cycle.id}`;
+L266: href={`/dashboard/data-center/student-data-import/cycles/${cycle.id}`}
+L274: href={`/dashboard/data-center/student-data-import/sessions/${cycle.latestSession.id}`}
+
+FILE: components\data-center\noor-import\noor-import-session-detail-client.tsx
+L216: const response = await fetch(`/api/dashboard/data-center/student-data-import/${sessionId}`, {
+L251: `/api/dashboard/data-center/student-data-import/${sessionId}/rows?${params.toString()}`,
+L294: `/api/dashboard/data-center/student-data-import/${targetSession.id}/commit`,
+L347: `/api/dashboard/data-center/student-data-import/${targetSession.id}`,
+L360: ? `/dashboard/data-center/student-data-import/cycles/${targetSession.cycleId}`
+L361: : "/dashboard/data-center/student-data-import";
+L409: href={session?.cycleId ? `/dashboard/data-center/student-data-import/cycles/${session.cycleId}` : "/dashboard/data-center/student-data-import"}
+
+FILE: components\data-center\students\students-center-client.tsx
+L112: `/api/dashboard/data-center/students?${params.toString()}`,
+L167: const response = await fetch(`/api/dashboard/data-center/students/${editing.id}`, {

@@ -1,4 +1,4 @@
-﻿export type StudentResultStatus = "PASS" | "FAIL" | "NEEDS_SUPPORT" | "UNKNOWN";
+export type StudentResultStatus = "PASS" | "FAIL" | "NEEDS_SUPPORT" | "UNKNOWN";
 
 export type StudentResultRow = {
   id: string;

@@ -1,4 +1,4 @@
-﻿import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 
 export default function ContactPage() {

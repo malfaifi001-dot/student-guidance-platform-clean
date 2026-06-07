@@ -1,0 +1,5485 @@
+
+============================================================
+FILE: app\dashboard\plans\page.tsx
+============================================================
+import { CounselorPlansPage } from "@/components/subscription/counselor-plans-page";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+
+export default async function PlansPage() {
+  await requireDashboardUser();
+
+  return <CounselorPlansPage />;
+}
+
+
+============================================================
+FILE: app\dashboard\subscription\page.tsx
+============================================================
+import { redirect } from "next/navigation";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+
+export default async function SubscriptionPage() {
+  await requireDashboardUser();
+
+  redirect("/dashboard/plans");
+}
+
+
+============================================================
+FILE: components\activation\admin-activations-center.tsx
+============================================================
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  CheckCircle2,
+  Copy,
+  KeyRound,
+  Loader2,
+  ShieldCheck,
+  UserCheck,
+  WalletCards,
+  XCircle,
+} from "lucide-react";
+import { SmartActionModal } from "@/components/ui/smart-action-modal";
+
+type ActivationData = {
+  codes: Array<{
+    id: string;
+    code: string;
+    label: string | null;
+    durationDays: number;
+    maxUses: number;
+    usedCount: number;
+    isActive: boolean;
+    createdAt: string;
+  }>;
+  requests: Array<{
+    id: string;
+    schoolAccountId: string;
+    amount: number;
+    currency: string;
+    senderName: string | null;
+    receiptUrl: string | null;
+    status: string;
+    adminNote: string | null;
+    planId?: string | null;
+    durationDays?: number | null;
+    billingCycle?: string | null;
+    createdAt: string;
+  }>;
+  subscriptions: Array<{
+    id: string;
+    status: string;
+    endsAt: string | null;
+    schoolAccount: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+    plan: {
+      name: string;
+    };
+  }>;
+  schools: Array<{
+    id: string;
+    name: string;
+    slug: string;
+  }>;
+  plans: Array<{
+    id: string;
+    name: string;
+    slug: string;
+  }>;
+};
+
+type ModalState = {
+  open: boolean;
+  title: string;
+  description?: string;
+  variant?: "info" | "success" | "warning" | "danger" | "error";
+  confirmLabel?: string;
+  run?: () => Promise<void>;
+};
+
+async function readApiResponse(response: Response) {
+  const text = await response.text();
+
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
+
+function statusLabel(status: string) {
+  if (status === "PENDING") return "معلق";
+  if (status === "PAID") return "مقبول";
+  if (status === "FAILED") return "مرفوض";
+  if (status === "ACTIVE") return "نشط";
+  if (status === "TRIAL") return "تجربة";
+  if (status === "CANCELED") return "ملغي";
+  if (status === "EXPIRED") return "منتهي";
+  return status;
+}
+
+function statusClass(status: string) {
+  if (status === "PENDING") return "bg-amber-50 text-amber-700";
+  if (status === "PAID" || status === "ACTIVE") return "bg-emerald-50 text-emerald-700";
+  if (status === "FAILED" || status === "CANCELED" || status === "EXPIRED") return "bg-rose-50 text-rose-700";
+  return "bg-slate-50 text-slate-500";
+}
+
+export function AdminActivationsCenter() {
+  const [data, setData] = useState<ActivationData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [label, setLabel] = useState("");
+  const [durationDays, setDurationDays] = useState("30");
+  const [maxUses, setMaxUses] = useState("1");
+
+  const [manualSchoolAccountId, setManualSchoolAccountId] = useState("");
+  const [manualPlanId, setManualPlanId] = useState("");
+  const [manualDays, setManualDays] = useState("30");
+
+  const [processing, setProcessing] = useState(false);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+  const [requestDays, setRequestDays] = useState<Record<string, string>>({});
+  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+
+  const [modal, setModal] = useState<ModalState>({
+    open: false,
+    title: "",
+  });
+
+  const planNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const plan of data?.plans || []) {
+      map.set(plan.id, plan.name);
+    }
+    return map;
+  }, [data?.plans]);
+
+  async function load() {
+    setLoading(true);
+
+    const response = await fetch("/api/dashboard/admin/activations/codes", {
+      cache: "no-store",
+    });
+    const result = await readApiResponse(response);
+
+    if (response.ok) {
+      setData({
+        codes: result.codes || [],
+        requests: result.requests || [],
+        subscriptions: result.subscriptions || [],
+        schools: result.schools || [],
+        plans: result.plans || [],
+      });
+    } else {
+      showResult("تعذر تحميل لوحة التفعيلات", result.error || "حدث خطأ أثناء تحميل البيانات.", "error");
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  function closeModal() {
+    if (processing) return;
+    setModal({ open: false, title: "" });
+  }
+
+  function showResult(
+    title: string,
+    description: string,
+    variant: "success" | "error" | "info" | "warning" = "success"
+  ) {
+    setModal({
+      open: true,
+      title,
+      description,
+      variant,
+      confirmLabel: "تم",
+    });
+  }
+
+  function confirmAction(input: {
+    title: string;
+    description: string;
+    variant?: "info" | "warning" | "danger";
+    confirmLabel?: string;
+    run: () => Promise<void>;
+  }) {
+    setModal({
+      open: true,
+      title: input.title,
+      description: input.description,
+      variant: input.variant || "info",
+      confirmLabel: input.confirmLabel || "تأكيد",
+      run: input.run,
+    });
+  }
+
+  async function runModalAction() {
+    if (!modal.run) return;
+
+    setProcessing(true);
+
+    try {
+      await modal.run();
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function createCode() {
+    const response = await fetch("/api/dashboard/admin/activations/codes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        label,
+        durationDays,
+        maxUses,
+      }),
+    });
+
+    const result = await readApiResponse(response);
+
+    if (!response.ok) {
+      showResult("تعذر إنشاء الكود", result.error || "لم يتم إنشاء كود التفعيل.", "error");
+      return;
+    }
+
+    setLabel("");
+    await load();
+
+    showResult(
+      "تم إنشاء كود التفعيل",
+      result.message || "تم إنشاء الكود بنجاح، ويمكنك نسخه من القائمة.",
+      "success"
+    );
+  }
+
+  async function manualActivate() {
+    const response = await fetch("/api/dashboard/admin/activations/manual", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        schoolAccountId: manualSchoolAccountId,
+        planId: manualPlanId,
+        days: manualDays,
+      }),
+    });
+
+    const result = await readApiResponse(response);
+
+    if (!response.ok) {
+      showResult("تعذر التفعيل اليدوي", result.error || "لم يتم تفعيل الحساب.", "error");
+      return;
+    }
+
+    await load();
+
+    showResult(
+      "تم تفعيل الحساب",
+      result.message || "تم تفعيل الباقة للحساب بنجاح.",
+      "success"
+    );
+  }
+
+  async function approveRequest(id: string) {
+    setProcessingRequestId(id);
+
+    const response = await fetch(
+      `/api/dashboard/admin/activations/bank-transfer/${id}/approve`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          days: Number(requestDays[id] || 0),
+        }),
+      }
+    );
+
+    const result = await readApiResponse(response);
+    setProcessingRequestId(null);
+
+    if (!response.ok) {
+      showResult("تعذر قبول التحويل", result.error || "لم يتم قبول الطلب.", "error");
+      return;
+    }
+
+    await load();
+
+    showResult(
+      "تم قبول التحويل",
+      result.message || "تم قبول التحويل وتفعيل الباقة.",
+      "success"
+    );
+  }
+
+  async function rejectRequest(id: string) {
+    setProcessingRequestId(id);
+
+    const response = await fetch(
+      `/api/dashboard/admin/activations/bank-transfer/${id}/reject`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: rejectReason[id] || "تم رفض الطلب من لوحة الأدمن.",
+        }),
+      }
+    );
+
+    const result = await readApiResponse(response);
+    setProcessingRequestId(null);
+
+    if (!response.ok) {
+      showResult("تعذر رفض الطلب", result.error || "لم يتم رفض الطلب.", "error");
+      return;
+    }
+
+    await load();
+
+    showResult(
+      "تم رفض الطلب",
+      result.message || "تم رفض طلب التحويل وحفظ السبب.",
+      "success"
+    );
+  }
+
+  async function cancelActivation(subscriptionId: string) {
+    const response = await fetch("/api/dashboard/admin/activations/cancel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        subscriptionId,
+      }),
+    });
+
+    const result = await readApiResponse(response);
+
+    if (!response.ok) {
+      showResult("تعذر إلغاء التفعيل", result.error || "لم يتم إلغاء التفعيل.", "error");
+      return;
+    }
+
+    await load();
+
+    showResult(
+      "تم إلغاء التفعيل",
+      result.message || "تم إلغاء الاشتراك وتعطيل الخدمات.",
+      "success"
+    );
+  }
+
+  if (loading) {
+    return (
+      <main className="grid min-h-[50vh] place-items-center" dir="rtl">
+        <div className="flex items-center gap-3 rounded-3xl border border-slate-100 bg-white px-5 py-4 text-sm font-black text-slate-500 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
+          جار تحميل التفعيلات...
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="space-y-5" dir="rtl">
+      <SmartActionModal
+        open={modal.open}
+        title={modal.title}
+        description={modal.description}
+        variant={modal.variant}
+        confirmLabel={modal.confirmLabel}
+        loading={processing}
+        onConfirm={modal.run ? runModalAction : undefined}
+        onClose={closeModal}
+      />
+
+      <section className="relative overflow-hidden rounded-[2rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-6 shadow-sm">
+        <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-sky-100/80 blur-3xl" />
+
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[12px] font-black text-sky-700 shadow-sm">
+            <ShieldCheck className="h-4 w-4" />
+            Admin Activation Center
+          </div>
+
+          <h1 className="mt-3 text-3xl font-black text-slate-950">
+            إدارة التفعيلات والتحويلات
+          </h1>
+
+          <p className="mt-2 max-w-3xl text-[14px] font-bold leading-7 text-slate-600">
+            هنا تتم مراجعة التحويلات والتفعيل اليدوي. أي تفعيل جديد يرتبط بباقة واضحة حتى تبقى الخدمات والصلاحيات منظمة.
+          </p>
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <div className="rounded-[1.6rem] border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <UserCheck className="h-6 w-6" />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-black text-slate-950">تفعيل يدوي بباقة</h2>
+              <p className="mt-1 text-[13px] font-bold text-slate-500">
+                اختر الحساب والباقة، ثم أكد التفعيل من النافذة المنبثقة.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_130px]">
+            <select
+              value={manualSchoolAccountId}
+              onChange={(event) => setManualSchoolAccountId(event.target.value)}
+              className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+            >
+              <option value="">اختر الحساب</option>
+              {data?.schools.map((school) => (
+                <option key={school.id} value={school.id}>
+                  {school.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={manualPlanId}
+              onChange={(event) => setManualPlanId(event.target.value)}
+              className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+            >
+              <option value="">اختر الباقة</option>
+              {data?.plans.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              value={manualDays}
+              onChange={(event) => setManualDays(event.target.value)}
+              placeholder="الأيام"
+              className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              confirmAction({
+                title: "تأكيد التفعيل اليدوي",
+                description: "سيتم إسناد الباقة المحددة للحساب، وفتح الخدمات المشمولة في هذه الباقة فقط.",
+                variant: "warning",
+                confirmLabel: "تفعيل الحساب",
+                run: manualActivate,
+              })
+            }
+            className="mt-4 h-12 w-full rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700"
+          >
+            تفعيل الحساب
+          </button>
+        </div>
+
+        <div className="rounded-[1.6rem] border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+              <KeyRound className="h-6 w-6" />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-black text-slate-950">أكواد التفعيل</h2>
+              <p className="mt-1 text-[13px] font-bold text-slate-500">
+                متاحة مؤقتًا، والأفضل لاحقًا ربط الأكواد بباقة محددة.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <input
+              value={label}
+              onChange={(event) => setLabel(event.target.value)}
+              placeholder="وصف الكود"
+              className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+            />
+
+            <input
+              value={durationDays}
+              onChange={(event) => setDurationDays(event.target.value)}
+              placeholder="مدة التفعيل بالأيام"
+              className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+            />
+
+            <input
+              value={maxUses}
+              onChange={(event) => setMaxUses(event.target.value)}
+              placeholder="عدد الاستخدامات"
+              className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              confirmAction({
+                title: "إنشاء كود تفعيل؟",
+                description: "سيتم إنشاء كود جديد بالمدة وعدد الاستخدامات المحددة. تأكد من البيانات قبل المتابعة.",
+                variant: "info",
+                confirmLabel: "إنشاء الكود",
+                run: createCode,
+              })
+            }
+            className="mt-4 h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+          >
+            إنشاء كود
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-[1.6rem] border border-slate-100 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-violet-50 text-violet-600">
+            <WalletCards className="h-6 w-6" />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-black text-slate-950">طلبات التحويل البنكي</h2>
+            <p className="mt-1 text-[13px] font-bold text-slate-500">
+              قبول التحويل يفعّل الباقة المطلوبة في طلب المستخدم.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-100">
+          <table className="w-full text-right text-sm">
+            <thead className="bg-slate-50 text-xs font-black text-slate-500">
+              <tr>
+                <th className="p-3">المحوّل</th>
+                <th className="p-3">الباقة</th>
+                <th className="p-3">المبلغ</th>
+                <th className="p-3">الحالة</th>
+                <th className="p-3">المرجع/الملاحظة</th>
+                <th className="p-3">الإجراء</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {data?.requests.map((request) => (
+                <tr key={request.id}>
+                  <td className="p-3 font-bold text-slate-800">
+                    {request.senderName || "غير محدد"}
+                  </td>
+
+                  <td className="p-3 text-xs font-black text-slate-600">
+                    {request.planId
+                      ? planNameById.get(request.planId) || "باقة غير معروفة"
+                      : "طلب قديم بلا باقة"}
+                  </td>
+
+                  <td className="p-3 text-xs font-black text-slate-600">
+                    {request.amount} {request.currency}
+                  </td>
+
+                  <td className="p-3">
+                    <span className={["rounded-full px-3 py-1 text-xs font-black", statusClass(request.status)].join(" ")}>
+                      {statusLabel(request.status)}
+                    </span>
+                  </td>
+
+                  <td className="max-w-xs p-3 text-xs font-bold leading-6 text-slate-500">
+                    {request.receiptUrl || request.adminNote || "—"}
+                  </td>
+
+                  <td className="p-3">
+                    {request.status === "PENDING" ? (
+                      <div className="min-w-[330px] rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                        <div className="grid gap-2 md:grid-cols-[90px_1fr]">
+                          <input
+                            value={requestDays[request.id] || String(request.durationDays || "")}
+                            onChange={(event) =>
+                              setRequestDays((current) => ({
+                                ...current,
+                                [request.id]: event.target.value,
+                              }))
+                            }
+                            placeholder="الأيام"
+                            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-center text-xs font-black text-slate-700 outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+                          />
+
+                          <input
+                            value={rejectReason[request.id] || ""}
+                            onChange={(event) =>
+                              setRejectReason((current) => ({
+                                ...current,
+                                [request.id]: event.target.value,
+                              }))
+                            }
+                            placeholder="سبب الرفض اختياري"
+                            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+                          />
+                        </div>
+
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            disabled={processingRequestId === request.id}
+                            onClick={() =>
+                              confirmAction({
+                                title: "قبول التحويل وتفعيل الباقة؟",
+                                description:
+                                  "سيتم تحويل الطلب إلى مقبول، وتفعيل الباقة المطلوبة للحساب، وفتح خدمات الباقة فقط.",
+                                variant: "warning",
+                                confirmLabel: "قبول وتفعيل",
+                                run: () => approveRequest(request.id),
+                              })
+                            }
+                            className="h-10 rounded-xl bg-emerald-600 px-3 text-xs font-black text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
+                          >
+                            {processingRequestId === request.id ? "جار التنفيذ..." : "قبول وتفعيل"}
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={processingRequestId === request.id}
+                            onClick={() =>
+                              confirmAction({
+                                title: "رفض طلب التحويل؟",
+                                description:
+                                  "سيتم رفض الطلب وحفظ السبب إن وُجد. لن يتم تفعيل أي باقة لهذا الطلب.",
+                                variant: "danger",
+                                confirmLabel: "رفض الطلب",
+                                run: () => rejectRequest(request.id),
+                              })
+                            }
+                            className="h-10 rounded-xl bg-rose-600 px-3 text-xs font-black text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-60"
+                          >
+                            رفض الطلب
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="inline-flex rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-400">
+                        تمت المعالجة
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+
+              {data?.requests.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-sm font-bold text-slate-400">
+                    لا توجد طلبات تحويل.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <div className="rounded-[1.6rem] border border-slate-100 bg-white p-5 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">الأكواد المنشأة</h2>
+
+          <div className="mt-4 space-y-2">
+            {data?.codes.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3"
+              >
+                <div>
+                  <p className="font-mono text-sm font-black text-slate-950">
+                    {item.code}
+                  </p>
+                  <p className="mt-1 text-xs font-bold text-slate-500">
+                    {item.durationDays} يوم · استخدم {item.usedCount}/{item.maxUses}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(item.code);
+                    showResult("تم نسخ الكود", "تم نسخ كود التفعيل إلى الحافظة.", "success");
+                  }}
+                  className="grid h-10 w-10 place-items-center rounded-2xl bg-white text-sky-600 shadow-sm"
+                  title="نسخ الكود"
+                >
+                  <Copy className="h-5 w-5" />
+                </button>
+              </div>
+            ))}
+
+            {data?.codes.length === 0 ? (
+              <div className="rounded-3xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-400">
+                لا توجد أكواد تفعيل.
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-[1.6rem] border border-slate-100 bg-white p-5 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">الاشتراكات الحالية</h2>
+
+          <div className="mt-4 space-y-2">
+            {data?.subscriptions.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3"
+              >
+                <div>
+                  <p className="text-sm font-black text-slate-950">
+                    {item.schoolAccount.name}
+                  </p>
+                  <p className="mt-1 text-xs font-bold text-slate-500">
+                    {item.plan.name} · ينتهي:{" "}
+                    {item.endsAt
+                      ? new Date(item.endsAt).toLocaleDateString("ar-SA")
+                      : "غير محدد"}
+                  </p>
+                </div>
+
+                {item.status === "ACTIVE" ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      confirmAction({
+                        title: "إلغاء التفعيل؟",
+                        description:
+                          "سيتم إلغاء الاشتراك وتعطيل الخدمات للحساب. هذا الإجراء لا يحذف الحساب.",
+                        variant: "danger",
+                        confirmLabel: "إلغاء التفعيل",
+                        run: () => cancelActivation(item.id),
+                      })
+                    }
+                    className="inline-flex items-center gap-1 rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-100"
+                    title="إلغاء التفعيل"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    إلغاء التفعيل
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-400">
+                    <XCircle className="h-4 w-4" />
+                    غير مفعل
+                  </span>
+                )}
+              </div>
+            ))}
+
+            {data?.subscriptions.length === 0 ? (
+              <div className="rounded-3xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-400">
+                لا توجد اشتراكات.
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\data-center\noor-import\noor-import-client.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { readApiResponse } from "@/lib/http/read-api-response";
+
+type ImportRow = {
+  id: string;
+  rowIndex: number;
+  status: string;
+  planAction?: string | null;
+  fullName: string;
+  nationalId?: string | null;
+  stage?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  guardianName?: string | null;
+  guardianPhone?: string | null;
+  errorMessage?: string | null;
+  rawJson?: {
+    guardianNeedsReview?: boolean;
+    warnings?: string[];
+    errors?: string[];
+  } | null;
+};
+
+type ImportSession = {
+  id: string;
+  title: string;
+  status: string;
+  source?: string | null;
+  academicYear?: string | null;
+  term?: string | null;
+  importMode?: string | null;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  conflictCount?: number;
+  isArchived?: boolean;
+  committedAt?: string | null;
+  createdAt: string;
+  rowCount?: number;
+  rows?: ImportRow[];
+  files?: Array<{
+    fileName: string;
+    rowCount: number;
+  }>;
+};
+
+type ParsedSummary = {
+  detectedFormat: string;
+  sheetsCount: number;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  conflictCount?: number;
+  warningsCount: number;
+  schoolName?: string | null;
+  grades: string[];
+  classrooms: string[];
+  planSummary?: Record<string, number>;
+};
+
+type NoorImportClientProps = {
+  schoolName: string;
+};
+
+type FeedbackState = {
+  type: "success" | "error" | "info";
+  text: string;
+};
+
+const statusLabel: Record<string, string> = {
+  DRAFT: "مسودة",
+  PARSED: "جاهزة للمراجعة",
+  COMMITTED: "معتمدة",
+  FAILED: "فشلت",
+  CANCELED: "ملغاة",
+  VALID: "صالح",
+  INVALID: "يحتاج مراجعة",
+  CREATED: "تم الإنشاء",
+  UPDATED: "تم التحديث",
+  SKIPPED: "بدون تغيير",
+  CONFLICT: "تعارض",
+};
+
+const termOptions = [
+  "الفصل الدراسي الأول",
+  "الفصل الدراسي الثاني",
+  "الفصل الدراسي الثالث",
+];
+
+const planLabels: Record<string, string> = {
+  NEW: "جديد",
+  UPDATE: "سيتم تحديثه",
+  UNCHANGED: "بدون تغيير",
+  DUPLICATE_IN_FILE: "مكرر",
+  NEEDS_REVIEW: "يحتاج مراجعة",
+};
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function getStatusClass(status: string) {
+  if (["COMMITTED", "CREATED", "UPDATED", "VALID"].includes(status)) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (["INVALID", "FAILED", "CONFLICT"].includes(status)) {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  return "border-sky-200 bg-sky-50 text-sky-700";
+}
+
+function getPlanCards(summary?: Record<string, number>) {
+  return [
+    { key: "NEW", label: "طلاب جدد", value: summary?.NEW ?? 0 },
+    { key: "UPDATE", label: "سيتم تحديثهم", value: summary?.UPDATE ?? 0 },
+    { key: "UNCHANGED", label: "بدون تغيير", value: summary?.UNCHANGED ?? 0 },
+    { key: "DUPLICATE_IN_FILE", label: "مكررون", value: summary?.DUPLICATE_IN_FILE ?? 0 },
+    { key: "NEEDS_REVIEW", label: "يحتاجون مراجعة", value: summary?.NEEDS_REVIEW ?? 0 },
+  ];
+}
+
+function defaultAcademicYear() {
+  return "1447";
+}
+
+export function NoorImportClient({ schoolName }: NoorImportClientProps) {
+  const [academicYear, setAcademicYear] = useState(defaultAcademicYear());
+  const [term, setTerm] = useState(termOptions[0]);
+  const [file, setFile] = useState<File | null>(null);
+  const [currentSession, setCurrentSession] = useState<ImportSession | null>(null);
+  const [parsedSummary, setParsedSummary] = useState<ParsedSummary | null>(null);
+  const [sessions, setSessions] = useState<ImportSession[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const canUpload = academicYear.trim().length > 0 && term.trim().length > 0 && file !== null;
+
+  const previewRows = currentSession?.rows ?? [];
+
+  const previewStats = useMemo(() => {
+    if (!currentSession) {
+      return [];
+    }
+
+    return [
+      { label: "إجمالي الطلاب", value: currentSession.totalRows },
+      { label: "صالح", value: currentSession.validRows },
+      { label: "يحتاج مراجعة", value: currentSession.invalidRows },
+      { label: "تعارض", value: currentSession.conflictCount ?? 0 },
+      { label: "معروض هنا", value: previewRows.length },
+    ];
+  }, [currentSession, previewRows.length]);
+
+  async function loadSessions() {
+    const response = await fetch("/api/dashboard/data-center/student-data-import/sessions", {
+      cache: "no-store",
+    });
+
+    const result = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(result.error || "تعذر جلب جلسات الاستيراد.");
+    }
+
+    setSessions(result.sessions ?? []);
+  }
+
+  useEffect(() => {
+    loadSessions().catch(() => undefined);
+  }, []);
+
+  async function handleUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!academicYear.trim()) {
+      setFeedback({
+        type: "error",
+        text: "حدد السنة الدراسية قبل رفع ملف بيانات الطلاب.",
+      });
+      return;
+    }
+
+    if (!term.trim()) {
+      setFeedback({
+        type: "error",
+        text: "حدد الفصل الدراسي قبل رفع ملف بيانات الطلاب.",
+      });
+      return;
+    }
+
+    if (!file) {
+      setFeedback({
+        type: "error",
+        text: "اختر ملف Excel صادر من نور أولًا.",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setFeedback({
+      type: "info",
+      text: "جاري قراءة ملف بيانات الطلاب وإنشاء جلسة مراجعة...",
+    });
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("academicYear", academicYear.trim());
+      formData.append("term", term.trim());
+
+      const response = await fetch("/api/dashboard/data-center/student-data-import/preview", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر قراءة ملف بيانات الطلاب.");
+      }
+
+      setCurrentSession(result.session);
+      setParsedSummary(result.parsedSummary);
+      setFeedback({
+        type: "success",
+        text: "تم إنشاء جلسة مراجعة. افتح تفاصيل الجلسة لمراجعة الطلاب قبل الاعتماد.",
+      });
+
+      await loadSessions();
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر رفع الملف.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+          <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-6 md:p-8">
+            <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
+            <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز استيراد بيانات الطلاب</h1>
+            <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
+              أنشئ جلسة استيراد لكل سنة وفصل دراسي، ثم راجع الطلاب والتحديثات قبل اعتمادها في سجل مدرسة {schoolName}.
+            </p>
+          </div>
+        </section>
+
+        {feedback ? (
+          <section
+            className={[
+              "rounded-3xl border px-5 py-4 text-sm font-bold leading-7 shadow-sm",
+              feedback.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : feedback.type === "error"
+                  ? "border-rose-200 bg-rose-50 text-rose-800"
+                  : "border-sky-200 bg-sky-50 text-sky-800",
+            ].join(" ")}
+          >
+            {feedback.text}
+          </section>
+        ) : null}
+
+        <section className="grid gap-5 lg:grid-cols-[0.95fr_1.15fr]">
+          <form onSubmit={handleUpload} className="space-y-5">
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700">
+                  1
+                </span>
+                <div>
+                  <h2 className="text-lg font-black">بيانات فترة الاستيراد</h2>
+                  <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
+                    كل ملف بيانات الطلاب يجب أن يُحفظ داخل سنة وفصل دراسي حتى يسهل تحديث الطلاب سنويًا.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">السنة الدراسية</span>
+                  <input
+                    value={academicYear}
+                    onChange={(event) => setAcademicYear(event.target.value)}
+                    placeholder="مثال: 1447"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">الفصل الدراسي</span>
+                  <select
+                    value={term}
+                    onChange={(event) => setTerm(event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+                  >
+                    {termOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700">
+                  2
+                </span>
+                <div>
+                  <h2 className="text-lg font-black">رفع ملف بيانات الطلاب</h2>
+                  <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
+                    ارفع كشف بيانات الطلاب من نور. لن يتم تعديل سجل الطلاب إلا بعد فتح الجلسة واعتمادها.
+                  </p>
+                </div>
+              </div>
+
+              <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-[1.5rem] border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center transition hover:border-sky-300 hover:bg-sky-50">
+                <span className="text-base font-black text-slate-800">
+                  {file ? file.name : "اختر ملف Excel"}
+                </span>
+                <span className="mt-2 text-xs font-bold text-slate-500">xlsx / xls</span>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+
+              <button
+                type="submit"
+                disabled={!canUpload || isUploading}
+                className="mt-5 w-full rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isUploading ? "جاري إنشاء الجلسة..." : "إنشاء جلسة مراجعة"}
+              </button>
+
+              <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-800">
+                سيتم استنتاج ولي الأمر تلقائيًا من اسم الطالب بحذف الاسم الأول. يمكن تعديل الحالات الشاذة لاحقًا من سجل الطلاب.
+              </div>
+            </section>
+          </form>
+
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-100 text-sm font-black text-emerald-700">
+                3
+              </span>
+              <div>
+                <h2 className="text-lg font-black">الجلسة التي تم إنشاؤها الآن</h2>
+                <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
+                  بعد إنشاء الجلسة، افتح تفاصيلها لمراجعة كل الطلاب قبل الاعتماد.
+                </p>
+              </div>
+            </div>
+
+            {currentSession ? (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
+                  <p className="text-sm font-black text-emerald-800">
+                    تم إنشاء جلسة مراجعة لـ {currentSession.academicYear || academicYear} · {currentSession.term || term}
+                  </p>
+                  <p className="mt-1 text-xs font-bold text-emerald-700">
+                    افتح التفاصيل لمراجعة جميع الطلاب، الفلاتر، والتحديثات قبل الاعتماد.
+                  </p>
+                </div>
+
+                {parsedSummary ? (
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-xs font-black text-slate-500">الشيتات</p>
+                      <p className="mt-1 text-2xl font-black">{parsedSummary.sheetsCount}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-xs font-black text-slate-500">الطلاب</p>
+                      <p className="mt-1 text-2xl font-black">{parsedSummary.totalRows}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-xs font-black text-slate-500">الصفوف</p>
+                      <p className="mt-1 text-2xl font-black">{parsedSummary.grades.length}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-xs font-black text-slate-500">الفصول</p>
+                      <p className="mt-1 text-2xl font-black">{parsedSummary.classrooms.length}</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {parsedSummary?.planSummary ? (
+                  <div className="grid gap-3 md:grid-cols-5">
+                    {getPlanCards(parsedSummary.planSummary).map((item) => (
+                      <div key={item.key} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                        <p className="text-xs font-black text-slate-400">{item.label}</p>
+                        <p className="mt-1 text-2xl font-black text-slate-950">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/data-center/student-data-import/sessions/${currentSession.id}`}
+                    className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700"
+                  >
+                    فتح تفاصيل الجلسة
+                  </Link>
+
+                  <Link
+                    href="/dashboard/data-center/student-data-import/sessions"
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                  >
+                    آخر جلسة محفوظة
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-8 text-center text-sm font-bold text-slate-500">
+                لم يتم إنشاء جلسة مراجعة بعد.
+              </div>
+            )}
+          </section>
+        </section>
+
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+            <div>
+              <h2 className="text-lg font-black">سجل استيرادات نور السابقة</h2>
+              <p className="mt-1 text-sm font-bold text-slate-500">
+                كل سنة وفصل لها جلسة مستقلة. افتح الجلسة لمراجعة التفاصيل أو الاعتماد أو الأرشفة.
+              </p>
+            </div>
+
+            <Link
+              href="/dashboard/data-center/student-data-import/sessions"
+              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700 hover:bg-sky-100"
+            >
+              فتح آخر جلسة
+            </Link>
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            {sessions.length ? (
+              sessions.map((session) => (
+                <article
+                  key={session.id}
+                  className="rounded-3xl border border-slate-100 bg-slate-50 p-4 transition hover:border-sky-200 hover:bg-sky-50"
+                >
+                  <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={["rounded-full border px-3 py-1 text-xs font-black", getStatusClass(session.status)].join(" ")}>
+                          {statusLabel[session.status] || session.status}
+                        </span>
+
+                        {session.isArchived ? (
+                          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                            مؤرشفة
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <h3 className="mt-3 text-base font-black text-slate-950">
+                        {session.academicYear || "سنة غير محددة"} · {session.term || "فصل غير محدد"}
+                      </h3>
+
+                      <p className="mt-1 text-xs font-bold text-slate-500">
+                        {session.files?.[0]?.fileName || "ملف بيانات الطلاب"} · {session.totalRows} طالب/طالبة · {formatDate(session.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        صالح: {session.validRows}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        جديد: {session.createdCount}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        محدث: {session.updatedCount}
+                      </span>
+
+                      <Link
+                        href={`/dashboard/data-center/student-data-import/sessions/${session.id}`}
+                        className="rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-black text-sky-700 hover:bg-sky-50"
+                      >
+                        فتح الجلسة
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 text-sm font-bold text-slate-500">
+                لا توجد جلسات استيراد سابقة.
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\data-center\noor-import\noor-import-cycle-detail-client.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { readApiResponse } from "@/lib/http/read-api-response";
+
+type SessionItem = {
+  id: string;
+  title: string;
+  status: string;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  conflictCount?: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  createdAt: string;
+  committedAt?: string | null;
+  files?: Array<{
+    fileName: string;
+  }>;
+};
+
+type CycleDetail = {
+  id: string;
+  academicYear: string;
+  term: string;
+  title: string;
+  status: string;
+  totalStudents: number;
+  totalSessions: number;
+  pendingSessions: number;
+  committedSessions: number;
+  latestSession?: SessionItem | null;
+  latestCommitted?: SessionItem | null;
+  planSummary?: Record<string, number>;
+};
+
+type Props = {
+  cycleId: string;
+};
+
+const statusLabel: Record<string, string> = {
+  DRAFT: "لم يبدأ",
+  REVIEW_PENDING: "بانتظار المراجعة",
+  COMMITTED: "معتمدة",
+  ARCHIVED: "مؤرشفة",
+  PARSED: "جاهزة للمراجعة",
+  FAILED: "فشلت",
+};
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function statusClass(status: string) {
+  if (status === "COMMITTED") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "REVIEW_PENDING" || status === "PARSED") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (status === "FAILED") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  return "border-sky-200 bg-sky-50 text-sky-700";
+}
+
+function getFileName(session?: SessionItem | null) {
+  return session?.files?.[0]?.fileName || "ملف بيانات الطلاب";
+}
+
+export function NoorImportCycleDetailClient({ cycleId }: Props) {
+  const [cycle, setCycle] = useState<CycleDetail | null>(null);
+  const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const pendingSessions = useMemo(
+    () => sessions.filter((session) => session.status !== "COMMITTED"),
+    [sessions],
+  );
+
+  const committedSessions = useMemo(
+    () => sessions.filter((session) => session.status === "COMMITTED"),
+    [sessions],
+  );
+
+  const latestPendingSession = pendingSessions[0] ?? null;
+  const hasPendingUpdate = Boolean(latestPendingSession);
+
+  async function loadCycle() {
+    const response = await fetch(`/api/dashboard/data-center/student-data-import/cycles/${cycleId}`, {
+      cache: "no-store",
+    });
+
+    const result = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(result.error || "تعذر جلب بطاقة بيانات الطلاب.");
+    }
+
+    setCycle(result.cycle);
+    setSessions(result.sessions ?? []);
+  }
+
+  useEffect(() => {
+    loadCycle().catch((error) => {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر فتح بطاقة بيانات الطلاب.",
+      });
+    });
+  }, [cycleId]);
+
+  async function handleUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!cycle) {
+      return;
+    }
+
+    if (hasPendingUpdate) {
+      setMessage({
+        type: "error",
+        text: "يوجد تحديث بانتظار المراجعة. راجع التحديث الحالي أو احذفه قبل رفع ملف جديد.",
+      });
+      return;
+    }
+
+    if (!file) {
+      setMessage({
+        type: "error",
+        text: "اختر ملف Excel صادر من نور أولًا.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage({
+      type: "info",
+      text: "جاري إنشاء تحديث جديد داخل بطاقة بيانات الطلاب...",
+    });
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("cycleId", cycle.id);
+      formData.append("academicYear", cycle.academicYear);
+      formData.append("term", cycle.term);
+
+      const response = await fetch("/api/dashboard/data-center/student-data-import/preview", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر إنشاء تحديث نور.");
+      }
+
+      setFile(null);
+
+      await loadCycle();
+
+      setMessage({
+        type: "success",
+        text: "تم إنشاء تحديث جديد. راجع التحديث من نفس البطاقة قبل الاعتماد.",
+      });
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر رفع ملف بيانات الطلاب.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const summary = cycle?.planSummary ?? {};
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <Link
+            href="/dashboard/data-center/student-data-import"
+            className="text-sm font-black text-sky-700 hover:text-sky-900"
+          >
+            ← العودة إلى مركز بيانات الطلاب
+          </Link>
+
+          <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-sm font-black text-sky-700">بطاقة بيانات الطلاب</p>
+              <h1 className="mt-2 text-2xl font-black md:text-4xl">
+                {cycle ? `بيانات الطلاب ${cycle.academicYear} - ${cycle.term}` : "بيانات الطلاب"}
+              </h1>
+              <p className="mt-2 text-sm font-bold text-slate-500">
+                كل تحديثات هذه السنة والفصل الدراسي محفوظة هنا. ارفع ملف بيانات الطلاب، راجع التحديث، ثم اعتمده.
+              </p>
+            </div>
+
+            {cycle ? (
+              <span className={["rounded-full border px-4 py-2 text-sm font-black", statusClass(cycle.status)].join(" ")}>
+                {statusLabel[cycle.status] || cycle.status}
+              </span>
+            ) : null}
+          </div>
+        </section>
+
+        {message ? (
+          <section
+            className={[
+              "rounded-3xl border px-5 py-4 text-sm font-bold leading-7 shadow-sm",
+              message.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : message.type === "error"
+                  ? "border-rose-200 bg-rose-50 text-rose-800"
+                  : "border-sky-200 bg-sky-50 text-sky-800",
+            ].join(" ")}
+          >
+            {message.text}
+          </section>
+        ) : null}
+
+        {hasPendingUpdate ? (
+          <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-5 shadow-sm">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+              <div>
+                <p className="text-sm font-black text-amber-700">يوجد تحديث ينتظر المراجعة</p>
+                <h2 className="mt-1 text-xl font-black text-amber-950">
+                  {getFileName(latestPendingSession)}
+                </h2>
+                <p className="mt-2 text-sm font-bold text-amber-800">
+                  تم رفع هذا الملف ولم يتم اعتماده بعد. راجعه أولًا، ثم اعتمد التحديث أو احذفه.
+                </p>
+              </div>
+
+              <Link
+                href={`/dashboard/data-center/student-data-import/sessions/${latestPendingSession.id}`}
+                className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-amber-700"
+              >
+                مراجعة واعتماد التحديث
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
+        {cycle ? (
+          <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-black">ملخص البطاقة</h2>
+              <p className="mt-1 text-sm font-bold text-slate-500">
+                أرقام مختصرة عن بيانات الطلاب لهذه السنة والفصل.
+              </p>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-4">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">الطلاب</p>
+                  <p className="mt-1 text-2xl font-black">{cycle.totalStudents || cycle.latestSession?.totalRows || 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">التحديثات</p>
+                  <p className="mt-1 text-2xl font-black">{sessions.length}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">بانتظار مراجعة</p>
+                  <p className="mt-1 text-2xl font-black">{pendingSessions.length}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">معتمدة</p>
+                  <p className="mt-1 text-2xl font-black">{committedSessions.length}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-5">
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">جدد</p>
+                  <p className="mt-1 text-2xl font-black">{summary.NEW ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">تحديث</p>
+                  <p className="mt-1 text-2xl font-black">{summary.UPDATE ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">بدون تغيير</p>
+                  <p className="mt-1 text-2xl font-black">{summary.UNCHANGED ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">مكرر</p>
+                  <p className="mt-1 text-2xl font-black">{summary.DUPLICATE_IN_FILE ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">مراجعة</p>
+                  <p className="mt-1 text-2xl font-black">{summary.NEEDS_REVIEW ?? 0}</p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleUpload} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-black">رفع تحديث جديد</h2>
+              <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
+                ارفع ملف بيانات الطلاب جديد لنفس السنة والفصل. سيظهر كتحديث ينتظر المراجعة داخل هذه البطاقة.
+              </p>
+
+              {hasPendingUpdate ? (
+                <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold leading-7 text-amber-800">
+                  لا يمكن رفع ملف جديد الآن لأن هناك تحديثًا بانتظار المراجعة.
+                </div>
+              ) : (
+                <>
+                  <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-[1.5rem] border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center transition hover:border-sky-300 hover:bg-sky-50">
+                    <span className="text-base font-black text-slate-800">
+                      {file ? file.name : "اختر ملف Excel"}
+                    </span>
+                    <span className="mt-2 text-xs font-bold text-slate-500">xlsx / xls</span>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      className="hidden"
+                      onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || !file}
+                    className="mt-5 w-full rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isLoading ? "جاري إنشاء التحديث..." : "إنشاء تحديث للمراجعة"}
+                  </button>
+                </>
+              )}
+            </form>
+          </section>
+        ) : null}
+
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-black">سجل تحديثات البطاقة</h2>
+          <p className="mt-1 text-sm font-bold text-slate-500">
+            كل ملف بيانات الطلاب مرفوع لهذه السنة والفصل يظهر هنا، سواء كان بانتظار المراجعة أو معتمدًا.
+          </p>
+
+          <div className="mt-5 grid gap-3">
+            {sessions.length ? (
+              sessions.map((session, index) => (
+                <article
+                  key={session.id}
+                  className="rounded-3xl border border-slate-100 bg-slate-50 p-4 transition hover:border-sky-200 hover:bg-sky-50"
+                >
+                  <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={["rounded-full border px-3 py-1 text-xs font-black", statusClass(session.status)].join(" ")}>
+                          {statusLabel[session.status] || session.status}
+                        </span>
+
+                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                          تحديث رقم {sessions.length - index}
+                        </span>
+                      </div>
+
+                      <h3 className="mt-3 text-base font-black text-slate-950">
+                        {getFileName(session)}
+                      </h3>
+
+                      <p className="mt-1 text-xs font-bold text-slate-500">
+                        {session.totalRows} طالب/طالبة · {formatDate(session.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        صالح: {session.validRows}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        مراجعة: {session.invalidRows}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        محدث: {session.updatedCount}
+                      </span>
+
+                      <Link
+                        href={`/dashboard/data-center/student-data-import/sessions/${session.id}`}
+                        className="rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-black text-sky-700 hover:bg-sky-50"
+                      >
+                        {session.status === "COMMITTED" ? "عرض التحديث" : "مراجعة واعتماد"}
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-8 text-center text-sm font-bold text-slate-500">
+                لم يتم رفع أي ملف داخل هذه البطاقة بعد. ارفع أول ملف بيانات الطلاب من بطاقة "رفع تحديث جديد".
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\data-center\noor-import\noor-import-session-detail-client.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { readApiResponse } from "@/lib/http/read-api-response";
+
+type ImportSession = {
+  id: string;
+  cycleId?: string | null;
+  status: string;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  conflictCount?: number;
+  createdAt: string;
+  committedAt?: string | null;
+  rowCount?: number;
+  planSummary?: Record<string, number>;
+  files?: Array<{
+    fileName: string;
+  }>;
+};
+
+type ImportRow = {
+  id: string;
+  rowIndex: number;
+  status: string;
+  planAction?: string | null;
+  fullName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  guardianName?: string | null;
+  errorMessage?: string | null;
+};
+
+type Pagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+type Props = {
+  sessionId: string;
+};
+
+const statusLabel: Record<string, string> = {
+  PARSED: "بانتظار الاعتماد",
+  COMMITTED: "معتمد",
+  VALID: "صالح",
+  INVALID: "يحتاج مراجعة",
+  CONFLICT: "تعارض",
+  CREATED: "تم الإنشاء",
+  UPDATED: "تم التحديث",
+  SKIPPED: "بدون تغيير",
+};
+
+const planLabel: Record<string, string> = {
+  NEW: "جديد",
+  UPDATE: "سيتم تحديثه",
+  UNCHANGED: "بدون تغيير",
+  DUPLICATE_IN_FILE: "مكرر",
+  NEEDS_REVIEW: "يحتاج مراجعة",
+};
+
+function badgeClass(value: string) {
+  if (["VALID", "COMMITTED", "CREATED", "UPDATED", "NEW"].includes(value)) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (["INVALID", "CONFLICT", "DUPLICATE_IN_FILE", "NEEDS_REVIEW"].includes(value)) {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  if (["UNCHANGED", "SKIPPED"].includes(value)) {
+    return "border-slate-200 bg-slate-50 text-slate-600";
+  }
+
+  return "border-amber-200 bg-amber-50 text-amber-700";
+}
+
+function planCardClass(value: string, selected: boolean) {
+  if (selected) {
+    return "border-sky-300 bg-sky-50 ring-2 ring-sky-100";
+  }
+
+  if (value === "UPDATE") {
+    return "border-blue-100 bg-blue-50/60 hover:border-blue-200";
+  }
+
+  if (value === "NEW") {
+    return "border-emerald-100 bg-emerald-50/60 hover:border-emerald-200";
+  }
+
+  if (value === "UNCHANGED") {
+    return "border-slate-100 bg-slate-50 hover:border-slate-200";
+  }
+
+  return "border-rose-100 bg-rose-50/60 hover:border-rose-200";
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+export function NoorImportSessionDetailClient({ sessionId }: Props) {
+  const [session, setSession] = useState<ImportSession | null>(null);
+  const [rows, setRows] = useState<ImportRow[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    totalPages: 1,
+  });
+
+  const [q, setQ] = useState("");
+  const [planAction, setPlanAction] = useState("");
+  const [status, setStatus] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const isCommitted = session?.status === "COMMITTED";
+  const summary = session?.planSummary || {};
+
+  const planCards = useMemo(
+    () => [
+      { key: "NEW", label: "جديد", value: summary.NEW ?? 0 },
+      { key: "UPDATE", label: "سيتم تحديثه", value: summary.UPDATE ?? 0 },
+      { key: "UNCHANGED", label: "بدون تغيير", value: summary.UNCHANGED ?? 0 },
+      { key: "DUPLICATE_IN_FILE", label: "مكرر", value: summary.DUPLICATE_IN_FILE ?? 0 },
+      { key: "NEEDS_REVIEW", label: "مراجعة", value: summary.NEEDS_REVIEW ?? 0 },
+    ],
+    [summary],
+  );
+
+  async function loadSession() {
+    const response = await fetch(`/api/dashboard/data-center/student-data-import/${sessionId}`, {
+      cache: "no-store",
+    });
+
+    const result = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(result.error || "تعذر جلب تحديث بيانات الطلاب.");
+    }
+
+    setSession(result.session);
+  }
+
+  async function loadRows(page = 1) {
+    setIsLoading(true);
+
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pagination.pageSize),
+      });
+
+      if (q.trim()) {
+        params.set("q", q.trim());
+      }
+
+      if (status) {
+        params.set("status", status);
+      }
+
+      if (planAction) {
+        params.set("planAction", planAction);
+      }
+
+      const response = await fetch(
+        `/api/dashboard/data-center/student-data-import/${sessionId}/rows?${params.toString()}`,
+        { cache: "no-store" },
+      );
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر جلب صفوف التحديث.");
+      }
+
+      setRows(result.rows || []);
+      setPagination(result.pagination || {
+        page,
+        pageSize: 50,
+        total: 0,
+        totalPages: 1,
+      });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر تحميل الصفوف.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleCommit() {
+    if (!session) {
+      return;
+    }
+
+    if (!window.confirm("سيتم اعتماد هذا التحديث وتطبيق التغييرات على سجل الطلاب. هل أنت متأكد؟")) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/dashboard/data-center/student-data-import/${session.id}/commit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deactivateMissing: false,
+        }),
+      });
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر اعتماد التحديث.");
+      }
+
+      setMessage(result.message || "تم اعتماد تحديث بيانات الطلاب بنجاح.");
+      await loadSession();
+      await loadRows(pagination.page);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر اعتماد التحديث.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!session) {
+      return;
+    }
+
+    if (!window.confirm("سيتم حذف هذا التحديث غير المعتمد. هل أنت متأكد؟")) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/dashboard/data-center/student-data-import/${session.id}`, {
+        method: "DELETE",
+      });
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر حذف التحديث.");
+      }
+
+      window.location.href = session.cycleId
+        ? `/dashboard/data-center/student-data-import/cycles/${session.cycleId}`
+        : "/dashboard/data-center/student-data-import";
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر حذف التحديث.");
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadSession().catch((error) => {
+      setMessage(error instanceof Error ? error.message : "تعذر فتح تحديث بيانات الطلاب.");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      loadRows(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id, q, status, planAction]);
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <Link
+            href={session?.cycleId ? `/dashboard/data-center/student-data-import/cycles/${session.cycleId}` : "/dashboard/data-center/student-data-import"}
+            className="text-sm font-black text-sky-700 hover:text-sky-900"
+          >
+            ← العودة إلى بطاقة بيانات الطلاب
+          </Link>
+
+          <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-sm font-black text-sky-700">تحديث بيانات الطلاب</p>
+              <h1 className="mt-2 text-2xl font-black md:text-4xl">مراجعة التحديث</h1>
+              <p className="mt-2 text-sm font-bold text-slate-500">
+                راجع التغييرات فقط، ثم اعتمد التحديث.
+              </p>
+            </div>
+
+            {session ? (
+              <span className={["rounded-full border px-4 py-2 text-sm font-black", badgeClass(session.status)].join(" ")}>
+                {statusLabel[session.status] || session.status}
+              </span>
+            ) : null}
+          </div>
+        </section>
+
+        {message ? (
+          <section className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-bold text-sky-800">
+            {message}
+          </section>
+        ) : null}
+
+        {session ? (
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+              <div>
+                <p className="text-sm font-black text-slate-800">
+                  إجمالي الملف: {session.totalRows} طالب/طالبة
+                </p>
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  آخر تحديث: {formatDate(session.createdAt)}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {!isCommitted ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCommit}
+                      disabled={isLoading}
+                      className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      اعتماد التحديث
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={isLoading}
+                      className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
+                    >
+                      حذف التحديث
+                    </button>
+                  </>
+                ) : (
+                  <span className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700">
+                    تم اعتماد هذا التحديث
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-5">
+              {planCards.map((card) => (
+                <button
+                  key={card.key}
+                  type="button"
+                  onClick={() => setPlanAction(planAction === card.key ? "" : card.key)}
+                  className={[
+                    "rounded-2xl border p-4 text-right shadow-sm transition",
+                    planCardClass(card.key, planAction === card.key),
+                  ].join(" ")}
+                >
+                  <p className="text-xs font-black text-slate-500">{card.label}</p>
+                  <p className="mt-1 text-3xl font-black text-slate-950">{card.value}</p>
+                  {planAction === card.key ? (
+                    <p className="mt-2 text-xs font-black text-sky-700">يعرض الآن</p>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-3 md:grid-cols-[1fr_180px_180px]">
+            <input
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder="اكتب اسم الطالب، الهوية، ولي الأمر، الصف أو الفصل..."
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            />
+
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            >
+              <option value="">كل الحالات</option>
+              <option value="VALID">صالح</option>
+              <option value="INVALID">يحتاج مراجعة</option>
+              <option value="CONFLICT">تعارض</option>
+              <option value="CREATED">تم الإنشاء</option>
+              <option value="UPDATED">تم التحديث</option>
+              <option value="SKIPPED">بدون تغيير</option>
+            </select>
+
+            <select
+              value={planAction}
+              onChange={(event) => setPlanAction(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            >
+              <option value="">كل الخطط</option>
+              <option value="NEW">جديد</option>
+              <option value="UPDATE">سيتم تحديثه</option>
+              <option value="UNCHANGED">بدون تغيير</option>
+              <option value="DUPLICATE_IN_FILE">مكرر</option>
+              <option value="NEEDS_REVIEW">يحتاج مراجعة</option>
+            </select>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-bold text-slate-500">
+              البحث يعمل تلقائيًا أثناء الكتابة.
+              {isLoading ? " جاري التحديث..." : ""}
+            </p>
+
+            {(q || planAction || status) ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setQ("");
+                  setStatus("");
+                  setPlanAction("");
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700"
+              >
+                مسح الفلاتر
+              </button>
+            ) : null}
+          </div>
+
+          <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-200">
+            <div className="max-h-[560px] overflow-auto">
+              <table className="w-full min-w-[1050px] border-collapse text-sm">
+                <thead className="sticky top-0 bg-slate-100 text-xs font-black text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3 text-right">#</th>
+                    <th className="px-4 py-3 text-right">اسم الطالب/الطالبة</th>
+                    <th className="px-4 py-3 text-right">الهوية</th>
+                    <th className="px-4 py-3 text-right">الصف</th>
+                    <th className="px-4 py-3 text-right">الفصل</th>
+                    <th className="px-4 py-3 text-right">ولي الأمر</th>
+                    <th className="px-4 py-3 text-right">الخطة</th>
+                    <th className="px-4 py-3 text-right">الحالة</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-100">
+                  {rows.map((row) => (
+                    <tr key={row.id} className="bg-white hover:bg-slate-50">
+                      <td className="px-4 py-3 font-bold text-slate-400">{row.rowIndex}</td>
+                      <td className="px-4 py-3 font-black">{row.fullName}</td>
+                      <td className="px-4 py-3 font-bold text-slate-600">{row.nationalId || "—"}</td>
+                      <td className="px-4 py-3 font-bold text-slate-600">{row.grade || "—"}</td>
+                      <td className="px-4 py-3 font-bold text-slate-600">{row.classroom || "—"}</td>
+                      <td className="px-4 py-3 font-bold text-slate-600">{row.guardianName || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className={["inline-flex rounded-full border px-3 py-1 text-xs font-black", badgeClass(row.planAction || "")].join(" ")}>
+                          {planLabel[row.planAction || ""] || row.planAction || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={["inline-flex rounded-full border px-3 py-1 text-xs font-black", badgeClass(row.status)].join(" ")}>
+                          {statusLabel[row.status] || row.status}
+                        </span>
+                        {row.errorMessage ? (
+                          <p className="mt-1 max-w-xs text-xs font-bold leading-5 text-slate-500">
+                            {row.errorMessage}
+                          </p>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {!rows.length ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm font-bold text-slate-500">
+                        لا توجد نتائج مطابقة.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+            <p className="text-sm font-bold text-slate-500">
+              صفحة {pagination.page} من {pagination.totalPages} · إجمالي النتائج {pagination.total}
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => loadRows(Math.max(pagination.page - 1, 1))}
+                disabled={pagination.page <= 1 || isLoading}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-50"
+              >
+                السابق
+              </button>
+
+              <button
+                type="button"
+                onClick={() => loadRows(Math.min(pagination.page + 1, pagination.totalPages))}
+                disabled={pagination.page >= pagination.totalPages || isLoading}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-50"
+              >
+                التالي
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\layout\dashboard-header.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  UserRound,
+  WalletCards,
+} from "lucide-react";
+
+type DashboardHeaderProps = {
+  user?: {
+    name?: string | null;
+    officialName?: string | null;
+    gender?: string | null;
+    jobTitle?: string | null;
+    role?: string | null;
+    schoolAccount?: {
+      name?: string | null;
+      profile?: {
+        schoolName?: string | null;
+        logoUrl?: string | null;
+      } | null;
+    } | null;
+  } | null;
+};
+
+export function DashboardHeader({ user }: DashboardHeaderProps) {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const isAdmin = user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+
+  const displayName = user?.officialName || user?.name || "حسابي";
+
+  const avatar =
+    user?.schoolAccount?.profile?.logoUrl ||
+    (user?.gender === "FEMALE"
+      ? "/uploads/VD/girl.png"
+      : "/uploads/VD/boy.png");
+
+  const roleText = isAdmin
+    ? "مدير النظام"
+    : user?.jobTitle ||
+      (user?.gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي");
+
+  async function logout() {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    window.location.href = "/login";
+  }
+
+  return (
+    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7faff]/85 px-4 py-2.5 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4">
+        <div className="hidden min-w-[360px] max-w-2xl flex-1 lg:block">
+          <div className="relative">
+            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <input
+              suppressHydrationWarning
+              type="search"
+              placeholder={
+                isAdmin
+                  ? "ابحث عن حساب، باقة، طلب تفعيل، Workflow..."
+                  : "ابحث عن طالب، خدمة، حالة أو تقرير..."
+              }
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-12 text-[15px] font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center gap-2 lg:flex-none">
+          <div
+            className={[
+              "hidden items-center gap-2 rounded-2xl border bg-white px-4 py-2 text-[13px] font-black shadow-sm md:flex",
+              isAdmin
+                ? "border-slate-200 text-slate-700"
+                : "border-slate-200 text-slate-500",
+            ].join(" ")}
+          >
+            {isAdmin ? (
+              <ShieldCheck className="h-4 w-4 text-slate-900" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-sky-500" />
+            )}
+            {isAdmin ? "Admin Center" : "منصة التوجيه الطلابي"}
+          </div>
+
+          <ThemeToggleButton />
+
+          <button
+            type="button"
+            className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-sky-600"
+            aria-label="الإشعارات"
+          >
+            <Bell className="h-5 w-5" />
+            <span className="absolute -left-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">
+              4
+            </span>
+          </button>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((value) => !value)}
+              className="group flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/70 hover:shadow-lg hover:shadow-sky-100"
+            >
+              <div className="h-8 w-8 overflow-hidden rounded-xl bg-sky-50 ring-2 ring-transparent transition group-hover:ring-sky-200">
+                {avatar ? (
+                  <img
+                    src={avatar}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserRound className="h-5 w-5" />
+                )}
+              </div>
+
+              <div className="hidden max-w-[140px] text-right sm:block">
+                <p className="truncate text-[13px] font-black text-slate-900">
+                  {displayName}
+                </p>
+                <p className="truncate text-[12px] font-bold text-slate-400">
+                  {roleText}
+                </p>
+              </div>
+
+              <ChevronDown
+                className={[
+                  "h-4 w-4 text-slate-400 transition",
+                  menuOpen ? "rotate-180" : "",
+                ].join(" ")}
+              />
+            </button>
+
+            {menuOpen ? (
+              <div className="absolute left-0 top-14 z-50 w-72 overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/95 p-2 text-right shadow-2xl shadow-slate-300/60 backdrop-blur-xl">
+                <div className="border-b border-slate-100 px-3 py-3">
+                  <p className="truncate text-sm font-black text-slate-950">
+                    {displayName}
+                  </p>
+                  <p className="mt-1 truncate text-xs font-bold text-slate-400">
+                    {roleText}
+                  </p>
+                </div>
+
+                <div className="py-2">
+                  <HeaderMenuLink
+                    href="/dashboard/account"
+                    icon={<UserRound className="h-4 w-4" />}
+                    label={isAdmin ? "حساب الأدمن" : "حسابي والجلسات"}
+                  />
+
+                  {!isAdmin ? (
+                    <>
+                      <HeaderMenuLink
+                        href="/dashboard/plans"
+                        icon={<WalletCards className="h-4 w-4" />}
+                        label="الباقات"
+                      />
+                    </>
+                  ) : null}
+                </div>
+
+                <div className="border-t border-slate-100 pt-2">
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="flex w-full items-center gap-2 rounded-2xl px-3 py-2.5 text-right text-xs font-bold text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    تسجيل الخروج
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function HeaderMenuLink({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-black text-slate-600 transition hover:bg-sky-50 hover:text-sky-700"
+    >
+      <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-50 text-slate-500">
+        {icon}
+      </span>
+      {label}
+    </Link>
+  );
+}
+
+
+============================================================
+FILE: components\layout\dashboard-sidebar.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import type { ComponentType, ReactNode } from "react";
+import {
+  Activity,
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Crown,
+  FilePlus2,
+  FileText,
+  FolderKanban,
+  GitBranch,
+  Home,
+  KeyRound,
+  LayoutDashboard,
+  MessageCircle,
+  PenTool,
+  School,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  UserRound,
+  Users,
+  WalletCards,
+} from "lucide-react";
+
+type SidebarUser = {
+  role?: string | null;
+  name?: string | null;
+  officialName?: string | null;
+};
+
+type SidebarLinkItem = {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+};
+
+const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
+
+const counselorImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard", icon: Home },
+  { label: "الحالات", href: "/dashboard/cases", icon: FolderKanban },
+  { label: "التقارير", href: "/dashboard/reports", icon: FileText },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+];
+
+const counselorServiceLinks: SidebarLinkItem[] = [
+  {
+    label: "البرامج الإرشادية",
+    href: "/dashboard/guidance-programs",
+    icon: ClipboardList,
+  },
+  {
+    label: "اللجان والاجتماعات",
+    href: "/dashboard/committees-meetings",
+    icon: ShieldCheck,
+  },
+  {
+    label: "متابعة الطلاب",
+    href: "/dashboard/student-follow-up",
+    icon: Users,
+  },
+  {
+    label: "الخدمات الإرشادية المقدمة للطلاب",
+    href: "/dashboard/student-guidance-services",
+    icon: FileText,
+  },
+  {
+    label: "المرجع الشامل للطالب",
+    href: "/dashboard/student-comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "المرجع الشامل للموجه الطلابي",
+    href: "/dashboard/comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "تحليل النتائج",
+    href: "/dashboard/results-analysis",
+    icon: BarChart3,
+  },
+  {
+    label: "التواصل بين الأسرة والمدرسة",
+    href: "/dashboard/family-school-communication",
+    icon: MessageCircle,
+  },
+];
+
+const counselorToolsLinks: SidebarLinkItem[] = [
+  { label: "رفع بيانات الطلاب", href: "/dashboard/student-import", icon: UploadCloud },
+];
+
+const counselorAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "الباقة الحالية", href: "/dashboard/subscription", icon: Crown },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const adminMainLinks: SidebarLinkItem[] = [
+  { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
+  { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
+  { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
+  { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
+  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
+  { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
+  { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
+];
+
+const adminPaymentLinks: SidebarLinkItem[] = [
+  { label: "عمليات الدفع", href: "/dashboard/admin/payments", icon: WalletCards },
+  { label: "مزودو الدفع", href: "/dashboard/admin/payments/providers", icon: WalletCards },
+  { label: "التسوية المالية", href: "/dashboard/admin/payments/reconciliation", icon: WalletCards },
+  { label: "الفواتير", href: "/dashboard/admin/payments/invoices", icon: FileText },
+  {
+    label: "إعدادات الفواتير والضريبة",
+    href: "/dashboard/admin/payments/invoice-settings",
+    icon: Settings,
+  },
+];
+
+const adminBuilderLinks: SidebarLinkItem[] = [
+  {
+    label: "مصمم Workflow",
+    href: "/dashboard/admin/workflow-builder",
+    icon: PenTool,
+  },
+  {
+    label: "قوالب التقارير",
+    href: "/dashboard/admin/report-templates",
+    icon: FileText,
+  },
+  {
+    label: "قالب تقرير جديد",
+    href: "/dashboard/admin/report-templates/new",
+    icon: FilePlus2,
+  },
+];
+
+const adminAccountLinks: SidebarLinkItem[] = [
+  { label: "حساب الأدمن", href: "/dashboard/account", icon: UserRound },
+  { label: "هوية المنصة", href: "/dashboard/settings/school", icon: Settings },
+];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function hasActive(pathname: string, items: SidebarLinkItem[]) {
+  return items.some((item) => isActivePath(pathname, item.href));
+}
+
+export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+
+  useEffect(() => {
+    const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    setCollapsed(savedValue === "true");
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  }, [collapsed, ready]);
+
+  return (
+    <aside
+      className={[
+        "hidden min-h-screen shrink-0 bg-transparent py-5 transition-all duration-300 xl:block",
+        collapsed ? "w-[96px] px-3" : "w-[320px] px-4",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "sticky top-5 flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300",
+          collapsed ? "p-2" : "p-4",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "flex items-center gap-2 border-b border-slate-100 pb-3",
+            collapsed ? "justify-center" : "justify-between",
+          ].join(" ")}
+        >
+          <Link
+            href={isAdmin ? "/dashboard/admin" : "/dashboard"}
+            className={[
+              "flex min-w-0 items-center rounded-[1.35rem] transition",
+              collapsed ? "justify-center p-1" : "flex-1 gap-3 px-2 py-2",
+              isAdmin ? "hover:bg-slate-50" : "hover:bg-sky-50/60",
+            ].join(" ")}
+            title={isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+          >
+            <div
+              className={[
+                "flex shrink-0 items-center justify-center rounded-2xl ring-1",
+                collapsed ? "h-11 w-11" : "h-12 w-12",
+                isAdmin
+                  ? "bg-slate-950 text-white ring-slate-900"
+                  : "bg-sky-50 text-sky-600 ring-sky-100",
+              ].join(" ")}
+            >
+              {isAdmin ? (
+                <ShieldCheck className="h-5 w-5" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
+            </div>
+
+            {!collapsed ? (
+              <div className="min-w-0">
+                <h1 className="truncate text-[15px] font-black text-slate-950">
+                  {isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+                </h1>
+                <p className="mt-1 truncate text-[11px] font-black text-slate-400">
+                  {isAdmin ? "Admin Center" : "Counselor"}
+                </p>
+              </div>
+            ) : null}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            aria-label={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+            title={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+          >
+            {collapsed ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+
+        {isAdmin ? (
+          <AdminSidebar pathname={pathname} collapsed={collapsed} />
+        ) : (
+          <CounselorSidebar pathname={pathname} collapsed={collapsed} />
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function AdminSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الإدارة" collapsed={collapsed}>
+          {adminMainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="المدفوعات"
+          defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
+          admin
+          collapsed={collapsed}
+        >
+          {adminPaymentLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="أدوات البناء"
+          defaultOpen={hasActive(pathname, adminBuilderLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminBuilderLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والإعدادات"
+          defaultOpen={hasActive(pathname, adminAccountLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 p-4 text-xs leading-6 text-emerald-900">
+          <p className="font-black">Admin Mode</p>
+          <p className="mt-1 text-emerald-700">
+            إدارة التفعيل، الاشتراكات، المدفوعات، الفواتير، النماذج، والتقارير.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function CounselorSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {counselorImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="الخدمات" collapsed={collapsed}>
+          {counselorServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="أدوات إضافية"
+          defaultOpen={hasActive(pathname, counselorToolsLinks)}
+          collapsed={collapsed}
+        >
+          {counselorToolsLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/subscription") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {counselorAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4">
+          <p className="text-xs font-black text-sky-700">اقتراح سريع</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80">
+            ابدأ بالتقويم، ثم افتح الحالة أو المرجع الشامل عند الحاجة.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function SidebarSection({
+  title,
+  children,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  collapsed: boolean;
+}) {
+  return (
+    <section>
+      {!collapsed ? (
+        <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400">
+          {title}
+        </p>
+      ) : null}
+
+      <div className={collapsed ? "space-y-2" : "space-y-1.5"}>{children}</div>
+    </section>
+  );
+}
+
+function SidebarDropdown({
+  title,
+  children,
+  defaultOpen = false,
+  admin,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  admin?: boolean;
+  collapsed: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (collapsed) {
+    return <div className="space-y-2">{children}</div>;
+  }
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={[
+          "mb-2 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black tracking-wide transition",
+          admin
+            ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+            : "text-slate-400 hover:bg-sky-50 hover:text-sky-700",
+        ].join(" ")}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={["h-4 w-4 transition", open ? "rotate-180" : ""].join(
+            " "
+          )}
+        />
+      </button>
+
+      {open ? <div className="space-y-1.5">{children}</div> : null}
+    </section>
+  );
+}
+
+function SidebarLink({
+  item,
+  active,
+  admin,
+  compact,
+  collapsed,
+}: {
+  item: SidebarLinkItem;
+  active: boolean;
+  admin?: boolean;
+  compact?: boolean;
+  collapsed: boolean;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      className={[
+        "group relative flex items-center rounded-2xl transition",
+        collapsed
+          ? "h-11 justify-center px-0"
+          : "min-h-11 gap-3 px-4 py-2.5",
+        compact && !collapsed ? "py-2" : "",
+        active
+          ? admin
+            ? "bg-slate-950 text-white shadow-sm"
+            : "bg-sky-50 text-sky-700 shadow-sm"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950",
+      ].join(" ")}
+    >
+      {active && !collapsed ? (
+        <span
+          className={[
+            "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
+            admin ? "bg-white" : "bg-sky-500",
+          ].join(" ")}
+        />
+      ) : null}
+
+      <div
+        className={[
+          "flex shrink-0 items-center justify-center rounded-xl transition",
+          collapsed ? "h-9 w-9" : compact ? "h-8 w-8" : "h-9 w-9",
+          active
+            ? admin
+              ? "bg-white/10 text-white"
+              : "bg-white text-sky-600"
+            : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600",
+        ].join(" ")}
+      >
+        <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
+      </div>
+
+      {!collapsed ? (
+        <span className="min-w-0 flex-1 whitespace-normal break-words text-right text-[14px] font-black leading-6">
+          {item.label}
+        </span>
+      ) : (
+        <span className="pointer-events-none fixed right-[105px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">
+          {item.label}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+============================================================
+FILE: components\subscription\admin-subscribers-center.tsx
+============================================================
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  CheckCircle2,
+  Crown,
+  Loader2,
+  PauseCircle,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  TimerReset,
+  UserCheck,
+  Users,
+  WalletCards,
+  XCircle,
+} from "lucide-react";
+
+type SubscriberStatus =
+  | "ACTIVE"
+  | "TRIAL"
+  | "CANCELED"
+  | "EXPIRED"
+  | "PAST_DUE"
+  | "NO_SUBSCRIPTION";
+
+type Subscriber = {
+  schoolAccountId: string;
+  accountName: string;
+  slug: string;
+  isActive: boolean;
+  schoolName: string;
+  educationDepartment: string;
+  ownerName: string;
+  ownerEmail: string;
+  usersCount: number;
+  studentsCount: number;
+  pendingRequestsCount: number;
+  computedStatus: SubscriberStatus;
+  needsAttention: boolean;
+  subscription: null | {
+    id: string;
+    status: string;
+    computedStatus: SubscriberStatus;
+    startsAt: string;
+    endsAt: string | null;
+    remainingDays: number | null;
+    usable: boolean;
+    planId: string;
+    planName: string;
+    planSlug: string;
+  };
+};
+
+type Plan = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type SubscribersPayload = {
+  stats: {
+    total: number;
+    active: number;
+    trial: number;
+    canceled: number;
+    expired: number;
+    noSubscription: number;
+    needsAttention: number;
+    pendingRequests: number;
+    totalUsers: number;
+    totalStudents: number;
+  };
+  plans: Plan[];
+  subscribers: Subscriber[];
+};
+
+type FilterStatus =
+  | "ALL"
+  | "ACTIVE"
+  | "TRIAL"
+  | "CANCELED"
+  | "EXPIRED"
+  | "NO_SUBSCRIPTION"
+  | "NEEDS_ATTENTION";
+
+function statusLabel(status: SubscriberStatus) {
+  if (status === "ACTIVE") return "نشط";
+  if (status === "TRIAL") return "تجربة";
+  if (status === "CANCELED") return "ملغي";
+  if (status === "EXPIRED") return "منتهي";
+  if (status === "PAST_DUE") return "بانتظار الدفع";
+  if (status === "NO_SUBSCRIPTION") return "بدون اشتراك";
+  return status;
+}
+
+function statusClasses(status: SubscriberStatus) {
+  if (status === "ACTIVE") return "bg-emerald-50 text-emerald-700";
+  if (status === "TRIAL") return "bg-sky-50 text-sky-700";
+  if (status === "CANCELED") return "bg-slate-100 text-slate-600";
+  if (status === "EXPIRED") return "bg-rose-50 text-rose-700";
+  if (status === "PAST_DUE") return "bg-amber-50 text-amber-700";
+  return "bg-slate-50 text-slate-500";
+}
+
+function decisionLabel(item: Subscriber) {
+  if (item.pendingRequestsCount > 0) return "راجع طلبات التحويل";
+  if (item.computedStatus === "NO_SUBSCRIPTION") return "فعّل باقة للحساب";
+  if (item.computedStatus === "EXPIRED") return "مدّد الاشتراك";
+  if (item.computedStatus === "CANCELED") return "راجع سبب الإلغاء";
+  if (item.computedStatus === "PAST_DUE") return "متابعة الدفع";
+  if ((item.subscription?.remainingDays ?? 999) <= 7) return "قريب الانتهاء";
+  return "مستقر";
+}
+
+function decisionClass(item: Subscriber) {
+  if (item.pendingRequestsCount > 0) return "bg-violet-50 text-violet-700";
+  if (item.needsAttention) return "bg-amber-50 text-amber-700";
+  return "bg-emerald-50 text-emerald-700";
+}
+
+export function AdminSubscribersCenter() {
+  const [data, setData] = useState<SubscribersPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<FilterStatus>("ALL");
+  const [planId, setPlanId] = useState("ALL");
+  const [sortBy, setSortBy] = useState<
+    "attention" | "remaining" | "students" | "newest"
+  >("attention");
+  const [message, setMessage] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+
+    const response = await fetch("/api/dashboard/admin/subscribers");
+    const result = await response.json();
+
+    if (response.ok) {
+      setData(result);
+      setSelectedId((current) => current || result.subscribers?.[0]?.schoolAccountId || null);
+    } else {
+      setMessage(result.error || "تعذر تحميل المشتركين.");
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const filteredSubscribers = useMemo(() => {
+    const search = query.trim().toLowerCase();
+
+    const list = [...(data?.subscribers || [])].filter((item) => {
+      const matchesSearch =
+        !search ||
+        [
+          item.schoolName,
+          item.accountName,
+          item.slug,
+          item.ownerName,
+          item.ownerEmail,
+          item.educationDepartment,
+          item.subscription?.planName,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+
+      const matchesStatus =
+        status === "ALL"
+          ? true
+          : status === "NEEDS_ATTENTION"
+            ? item.needsAttention
+            : item.computedStatus === status;
+
+      const matchesPlan =
+        planId === "ALL" ? true : item.subscription?.planId === planId;
+
+      return matchesSearch && matchesStatus && matchesPlan;
+    });
+
+    list.sort((a, b) => {
+      if (sortBy === "attention") {
+        return Number(b.needsAttention) - Number(a.needsAttention);
+      }
+
+      if (sortBy === "remaining") {
+        return (
+          (a.subscription?.remainingDays ?? 99999) -
+          (b.subscription?.remainingDays ?? 99999)
+        );
+      }
+
+      if (sortBy === "students") {
+        return b.studentsCount - a.studentsCount;
+      }
+
+      return a.schoolName.localeCompare(b.schoolName, "ar");
+    });
+
+    return list;
+  }, [data?.subscribers, planId, query, sortBy, status]);
+
+  const selectedSubscriber =
+    filteredSubscribers.find((item) => item.schoolAccountId === selectedId) ||
+    filteredSubscribers[0] ||
+    null;
+
+  const priorityItems = useMemo(() => {
+    return [...(data?.subscribers || [])]
+      .filter((item) => item.needsAttention)
+      .sort((a, b) => {
+        if (b.pendingRequestsCount !== a.pendingRequestsCount) {
+          return b.pendingRequestsCount - a.pendingRequestsCount;
+        }
+
+        return (
+          (a.subscription?.remainingDays ?? 99999) -
+          (b.subscription?.remainingDays ?? 99999)
+        );
+      })
+      .slice(0, 3);
+  }, [data?.subscribers]);
+
+  async function runAction(input: {
+    type: "extend" | "year" | "cancel";
+    subscriber: Subscriber;
+  }) {
+    if (!input.subscriber.subscription?.id) {
+      setMessage("هذا الحساب لا يملك اشتراكًا بعد. فعّله من صفحة إدارة الاشتراكات.");
+      return;
+    }
+
+    setProcessingId(input.subscriber.schoolAccountId);
+    setMessage(null);
+
+    const endpoint =
+      input.type === "cancel"
+        ? "/api/dashboard/admin/activations/cancel"
+        : "/api/dashboard/admin/subscriptions";
+
+    const body =
+      input.type === "cancel"
+        ? {
+            subscriptionId: input.subscriber.subscription.id,
+          }
+        : {
+            action: "extend-subscription",
+            subscriptionId: input.subscriber.subscription.id,
+            days: input.type === "year" ? 365 : 30,
+          };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const result = await response.json();
+    setMessage(result.message || result.error || "تم تنفيذ العملية.");
+    setProcessingId(null);
+
+    await load();
+  }
+
+  if (loading) {
+    return (
+      <main className="grid min-h-[50vh] place-items-center">
+        <div className="flex items-center gap-3 rounded-3xl border border-slate-100 bg-white px-5 py-4 text-sm font-black text-slate-500 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
+          جار تحميل المشتركين...
+        </div>
+      </main>
+    );
+  }
+
+  const stats = data?.stats;
+
+  return (
+    <main className="space-y-6 pb-24" dir="rtl">
+      <section className="relative overflow-hidden rounded-[2.2rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-sm">
+        <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-sky-500/20 blur-3xl" />
+        <div className="absolute -bottom-28 right-32 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+
+        <div className="relative z-10 flex flex-wrap items-start justify-between gap-5">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[12px] font-black text-sky-100 ring-1 ring-white/10">
+              <UserCheck className="h-4 w-4" />
+              Admin Subscribers Decision Center
+            </div>
+
+            <h1 className="mt-4 text-4xl font-black tracking-tight">
+              مركز قرارات المشتركين
+            </h1>
+
+            <p className="mt-3 max-w-3xl text-[14px] font-bold leading-7 text-slate-300">
+              هذه الصفحة تساعدك تعرف من يحتاج متابعة الآن، من يستحق التمديد،
+              ومن عنده طلب تحويل أو اشتراك منتهي أو بدون باقة.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={load}
+              className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 text-sm font-black text-white ring-1 ring-white/10 transition hover:bg-white/15"
+            >
+              <RefreshCw className="h-4 w-4" />
+              تحديث
+            </button>
+
+            <Link
+              href="/dashboard/admin/subscriptions"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-slate-100"
+            >
+              إدارة الباقات
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {message ? (
+        <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-[14px] font-bold text-sky-700">
+          {message}
+        </div>
+      ) : null}
+
+      <section className="grid gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <StatCard title="إجمالي الحسابات" value={stats?.total || 0} icon={<Users />} />
+        <StatCard title="نشطة" value={stats?.active || 0} icon={<CheckCircle2 />} tone="emerald" />
+        <StatCard title="تجربة" value={stats?.trial || 0} icon={<Sparkles />} tone="sky" />
+        <StatCard title="منتهية" value={stats?.expired || 0} icon={<TimerReset />} tone="rose" />
+        <StatCard title="ملغية" value={stats?.canceled || 0} icon={<PauseCircle />} tone="slate" />
+        <StatCard title="تحتاج متابعة" value={stats?.needsAttention || 0} icon={<AlertTriangle />} tone="amber" />
+        <StatCard title="طلبات معلقة" value={stats?.pendingRequests || 0} icon={<WalletCards />} tone="violet" />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <div className="space-y-6">
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_180px_180px]">
+              <div className="relative">
+                <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="ابحث باسم الحساب، المدرسة، الإيميل، الباقة..."
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 text-sm font-bold outline-none transition focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+                />
+              </div>
+
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value as FilterStatus)}
+                className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+              >
+                <option value="ALL">كل الحالات</option>
+                <option value="NEEDS_ATTENTION">تحتاج متابعة</option>
+                <option value="ACTIVE">نشط</option>
+                <option value="TRIAL">تجربة</option>
+                <option value="EXPIRED">منتهي</option>
+                <option value="CANCELED">ملغي</option>
+                <option value="NO_SUBSCRIPTION">بدون اشتراك</option>
+              </select>
+
+              <select
+                value={planId}
+                onChange={(event) => setPlanId(event.target.value)}
+                className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+              >
+                <option value="ALL">كل الباقات</option>
+                {data?.plans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(event) =>
+                  setSortBy(event.target.value as "attention" | "remaining" | "students" | "newest")
+                }
+                className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+              >
+                <option value="attention">الأولوية</option>
+                <option value="remaining">الأقرب انتهاء</option>
+                <option value="students">الأكثر طلابًا</option>
+                <option value="newest">ترتيب أبجدي</option>
+              </select>
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-950">
+                  الحسابات حسب الأولوية
+                </h2>
+                <p className="mt-1 text-[12px] font-bold text-slate-400">
+                  النتائج: {filteredSubscribers.length}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 p-4">
+              {filteredSubscribers.map((item) => (
+                <button
+                  key={item.schoolAccountId}
+                  type="button"
+                  onClick={() => setSelectedId(item.schoolAccountId)}
+                  className={[
+                    "rounded-[1.5rem] border p-4 text-right transition hover:bg-slate-50",
+                    selectedSubscriber?.schoolAccountId === item.schoolAccountId
+                      ? "border-sky-200 bg-sky-50/70 ring-1 ring-sky-100"
+                      : "border-slate-100 bg-white",
+                  ].join(" ")}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-black text-slate-950">
+                          {item.ownerName || item.accountName || item.schoolName}
+                        </h3>
+
+                        <span
+                          className={[
+                            "rounded-full px-3 py-1 text-xs font-black",
+                            statusClasses(item.computedStatus),
+                          ].join(" ")}
+                        >
+                          {statusLabel(item.computedStatus)}
+                        </span>
+
+                        <span
+                          className={[
+                            "rounded-full px-3 py-1 text-xs font-black",
+                            decisionClass(item),
+                          ].join(" ")}
+                        >
+                          {decisionLabel(item)}
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-xs font-bold text-slate-400">
+                        {item.ownerEmail || "بدون بريد"} · الحساب: {item.accountName || item.slug} · المدرسة: {item.schoolName} · {item.educationDepartment || "بدون إدارة تعليم"}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 text-xs font-black">
+                      <MiniMetric label="المستخدمون" value={item.usersCount} />
+                      <MiniMetric label="الطلاب" value={item.studentsCount} />
+                      <MiniMetric
+                        label="المتبقي"
+                        value={
+                          item.subscription?.remainingDays !== null &&
+                          item.subscription?.remainingDays !== undefined
+                            ? item.subscription.remainingDays
+                            : "—"
+                        }
+                      />
+                    </div>
+                  </div>
+                </button>
+              ))}
+
+              {filteredSubscribers.length === 0 ? (
+                <div className="rounded-3xl bg-slate-50 p-10 text-center text-sm font-bold text-slate-400">
+                  لا توجد نتائج مطابقة للفلاتر الحالية.
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-6">
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">ماذا أفعل الآن؟</h2>
+            <p className="mt-1 text-sm font-bold text-slate-500">
+              أعلى الحسابات التي تحتاج قرار سريع.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              {priorityItems.length > 0 ? (
+                priorityItems.map((item) => (
+                  <button
+                    key={item.schoolAccountId}
+                    type="button"
+                    onClick={() => setSelectedId(item.schoolAccountId)}
+                    className="w-full rounded-3xl bg-amber-50 p-4 text-right transition hover:bg-amber-100"
+                  >
+                    <p className="font-black text-amber-900">{item.ownerName || item.accountName || item.schoolName}</p>
+                    <p className="mt-1 text-xs font-bold text-amber-700">
+                      {decisionLabel(item)}
+                    </p>
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-3xl bg-emerald-50 p-4 text-sm font-black text-emerald-700">
+                  لا توجد حسابات حرجة الآن.
+                </div>
+              )}
+            </div>
+          </section>
+
+          {selectedSubscriber ? (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black text-sky-600">الحساب المحدد</p>
+                  <h2 className="mt-1 text-2xl font-black text-slate-950">
+                    {selectedSubscriber.ownerName || selectedSubscriber.accountName || selectedSubscriber.schoolName}
+                  </h2>
+                  <p className="mt-1 text-xs font-bold text-slate-400">
+                    {selectedSubscriber.ownerEmail || "بدون بريد"} · الحساب: {selectedSubscriber.accountName || selectedSubscriber.slug} · المدرسة: {selectedSubscriber.schoolName}
+                  </p>
+                </div>
+
+                <span
+                  className={[
+                    "rounded-full px-3 py-1 text-xs font-black",
+                    statusClasses(selectedSubscriber.computedStatus),
+                  ].join(" ")}
+                >
+                  {statusLabel(selectedSubscriber.computedStatus)}
+                </span>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <InfoBox label="الباقة" value={selectedSubscriber.subscription?.planName || "بدون باقة"} />
+                <InfoBox
+                  label="المتبقي"
+                  value={
+                    selectedSubscriber.subscription?.remainingDays !== null &&
+                    selectedSubscriber.subscription?.remainingDays !== undefined
+                      ? `${selectedSubscriber.subscription.remainingDays} يوم`
+                      : "غير محدد"
+                  }
+                />
+                <InfoBox label="المستخدمون" value={String(selectedSubscriber.usersCount)} />
+                <InfoBox label="الطلاب" value={String(selectedSubscriber.studentsCount)} />
+              </div>
+
+              <div className="mt-5 grid gap-2">
+                <button
+                  type="button"
+                  disabled={processingId === selectedSubscriber.schoolAccountId}
+                  onClick={() => runAction({ type: "extend", subscriber: selectedSubscriber })}
+                  className="rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-60"
+                >
+                  تمديد 30 يوم
+                </button>
+
+                <button
+                  type="button"
+                  disabled={processingId === selectedSubscriber.schoolAccountId}
+                  onClick={() => runAction({ type: "year", subscriber: selectedSubscriber })}
+                  className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  تمديد سنة
+                </button>
+
+                <button
+                  type="button"
+                  disabled={processingId === selectedSubscriber.schoolAccountId}
+                  onClick={() => runAction({ type: "cancel", subscriber: selectedSubscriber })}
+                  className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-black text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
+                >
+                  إلغاء الاشتراك
+                </button>
+
+                <Link
+                  href="/dashboard/admin/subscriptions"
+                  className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
+                >
+                  إدارة الاشتراك والخدمات
+                </Link>
+
+                {selectedSubscriber.pendingRequestsCount > 0 ? (
+                  <Link
+                    href="/dashboard/admin/activations"
+                    className="rounded-2xl bg-violet-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-violet-700"
+                  >
+                    مراجعة طلبات التحويل
+                  </Link>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+        </aside>
+      </section>
+    </main>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+  icon,
+  tone = "slate",
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactElement;
+  tone?: "slate" | "emerald" | "sky" | "rose" | "amber" | "violet";
+}) {
+  const toneClass = {
+    slate: "bg-slate-50 text-slate-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+    sky: "bg-sky-50 text-sky-700",
+    rose: "bg-rose-50 text-rose-700",
+    amber: "bg-amber-50 text-amber-700",
+    violet: "bg-violet-50 text-violet-700",
+  }[tone];
+
+  return (
+    <article className="rounded-[1.4rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-2xl font-black text-slate-950">{value}</p>
+          <p className="mt-1 text-[12px] font-black text-slate-400">{title}</p>
+        </div>
+
+        <div className={["grid h-11 w-11 place-items-center rounded-2xl", toneClass].join(" ")}>
+          {icon}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function MiniMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <span className="rounded-2xl bg-slate-50 px-3 py-2 text-slate-600">
+      {label}: {value}
+    </span>
+  );
+}
+
+function InfoBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-3">
+      <p className="text-xs font-black text-slate-400">{label}</p>
+      <p className="mt-1 truncate text-sm font-black text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+
+
+
+
+
+============================================================
+FILE: components\subscription\admin-subscriptions-control-center.tsx
+============================================================
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardList,
+  Crown,
+  Eye,
+  KeyRound,
+  Layers3,
+  Loader2,
+  PackagePlus,
+  PauseCircle,
+  Rocket,
+  Save,
+  Search,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  ToggleLeft,
+  ToggleRight,
+  Users,
+} from "lucide-react";
+
+type ServiceItem = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  status: string;
+};
+
+type PlanFeature = {
+  id: string;
+  key: string;
+  label: string;
+  value: string | null;
+};
+
+type PlanItem = {
+  id: string;
+  name: string;
+  slug: string;
+  priceMonthly: number;
+  priceYearly: number;
+  isActive: boolean;
+  features: PlanFeature[];
+};
+
+type SchoolItem = {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  profile: {
+    schoolName: string | null;
+    educationDepartment: string | null;
+  } | null;
+};
+
+type SubscriptionItem = {
+  id: string;
+  status: string;
+  startsAt: string;
+  endsAt: string | null;
+  schoolAccount: SchoolItem;
+  plan: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+};
+
+type ServiceAccessItem = {
+  id: string;
+  isEnabled: boolean;
+  isPaid: boolean;
+  service: ServiceItem;
+  schoolAccount: {
+    id: string;
+    name: string;
+  };
+};
+
+type AdminSubscriptionData = {
+  plans: PlanItem[];
+  services: ServiceItem[];
+  schools: SchoolItem[];
+  subscriptions: SubscriptionItem[];
+  serviceAccess: ServiceAccessItem[];
+};
+
+function featureValue(plan: PlanItem, key: string, fallback = "0") {
+  return plan.features.find((feature) => feature.key === key)?.value || fallback;
+}
+
+function getPlanServices(plan: PlanItem) {
+  return plan.features
+    .filter((feature) => feature.key.startsWith("service:") && feature.value === "enabled")
+    .map((feature) => feature.key.replace("service:", ""));
+}
+
+function getStatusLabel(status: string) {
+  if (status === "TRIAL") return "تجربة";
+  if (status === "ACTIVE") return "نشط";
+  if (status === "CANCELED") return "متوقف";
+  if (status === "EXPIRED") return "منتهي";
+  if (status === "PAST_DUE") return "بانتظار الدفع";
+  return status;
+}
+
+export function AdminSubscriptionsControlCenter() {
+  const [data, setData] = useState<AdminSubscriptionData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<{
+    type: "success" | "error" | "info";
+    text: string;
+  } | null>(null);
+
+  const [planName, setPlanName] = useState("باقة الموجه الشهرية");
+  const [planSlug, setPlanSlug] = useState("counselor-monthly");
+  const [priceMonthly, setPriceMonthly] = useState("99");
+  const [priceYearly, setPriceYearly] = useState("799");
+  const [durationDays, setDurationDays] = useState("30");
+  const [maxStudents, setMaxStudents] = useState("500");
+  const [maxUsers, setMaxUsers] = useState("1");
+  const [maxReports, setMaxReports] = useState("100");
+  const [enabledServiceSlugs, setEnabledServiceSlugs] = useState<string[]>([]);
+
+  const [selectedSchoolId, setSelectedSchoolId] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [assignDays, setAssignDays] = useState("");
+  const [assignStatus, setAssignStatus] = useState("ACTIVE");
+
+  const [search, setSearch] = useState("");
+  const [serviceSchoolId, setServiceSchoolId] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  const [serviceEnabled, setServiceEnabled] = useState(true);
+  const [servicePaid, setServicePaid] = useState(true);
+
+  async function load() {
+    setLoading(true);
+
+    const response = await fetch("/api/dashboard/admin/subscriptions");
+    const result = await response.json();
+
+    if (response.ok) {
+      setData(result);
+      if (result.services?.length && enabledServiceSlugs.length === 0) {
+        setEnabledServiceSlugs(result.services.map((service: ServiceItem) => service.slug));
+      }
+    } else {
+      setMessage({
+        type: "error",
+        text: result.error || "تعذر تحميل إدارة الاشتراكات.",
+      });
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const filteredSubscriptions = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return data?.subscriptions || [];
+
+    return (data?.subscriptions || []).filter((item) => {
+      const text = [
+        item.schoolAccount.name,
+        item.schoolAccount.slug,
+        item.schoolAccount.profile?.schoolName,
+        item.plan.name,
+        item.status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return text.includes(query);
+    });
+  }, [data?.subscriptions, search]);
+
+  async function runAction(payload: Record<string, unknown>) {
+    setMessage(null);
+
+    const response = await fetch("/api/dashboard/admin/subscriptions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      setMessage({
+        type: "success",
+        text: result.message || "تم تنفيذ العملية.",
+      });
+      await load();
+    } else {
+      setMessage({
+        type: "error",
+        text: result.error || "تعذر تنفيذ العملية.",
+      });
+    }
+  }
+
+  function toggleServiceSlug(slug: string) {
+    setEnabledServiceSlugs((current) =>
+      current.includes(slug)
+        ? current.filter((item) => item !== slug)
+        : [...current, slug]
+    );
+  }
+
+  async function createPlan() {
+    await runAction({
+      action: "create-plan",
+      name: planName,
+      slug: planSlug,
+      priceMonthly,
+      priceYearly,
+      durationDays,
+      maxStudents,
+      maxUsers,
+      maxReports,
+      enabledServiceSlugs,
+    });
+  }
+
+  async function assignPlan() {
+    await runAction({
+      action: "assign-plan",
+      schoolAccountId: selectedSchoolId,
+      planId: selectedPlanId,
+      days: assignDays,
+      status: assignStatus,
+    });
+  }
+
+  async function togglePlan(plan: PlanItem) {
+    await runAction({
+      action: "toggle-plan",
+      planId: plan.id,
+      isActive: !plan.isActive,
+    });
+  }
+
+  async function extendSubscription(subscriptionId: string, days: number) {
+    await runAction({
+      action: "extend-subscription",
+      subscriptionId,
+      days,
+    });
+  }
+
+  async function cancelSubscription(subscriptionId: string) {
+    await runAction({
+      action: "reset-subscription",
+      subscriptionId,
+    });
+  }
+
+  async function updateServiceAccess() {
+    await runAction({
+      action: "toggle-service-access",
+      schoolAccountId: serviceSchoolId,
+      serviceId,
+      isEnabled: serviceEnabled,
+      isPaid: servicePaid,
+    });
+  }
+
+  if (loading) {
+    return (
+      <main className="grid min-h-[50vh] place-items-center">
+        <div className="flex items-center gap-3 rounded-3xl border border-slate-100 bg-white px-5 py-4 text-sm font-black text-slate-500 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
+          جار تحميل مركز الاشتراكات...
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="space-y-5" dir="rtl">
+      <section className="relative overflow-hidden rounded-[1.7rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-5 shadow-sm">
+        <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-sky-100/70 blur-3xl" />
+
+        <div className="relative z-10 flex flex-wrap items-start justify-between gap-5">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[12px] font-black text-sky-700 shadow-sm">
+              <Crown className="h-4 w-4" />
+              Admin Subscription Control
+            </div>
+
+            <h1 className="mt-3 text-3xl font-black text-slate-950">
+              التحكم الكامل في الباقات والاشتراكات
+            </h1>
+
+            <p className="mt-2 max-w-3xl text-[14px] font-bold leading-7 text-slate-600">
+              أنشئ فكرة الباقة، حدّد مدتها وسعرها وخدماتها، ثم فعّلها لأي حساب.
+              الموجه يرى الأمر ببساطة: حساب مفعل أو يحتاج تفعيل.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <SmallStat label="الباقات" value={data?.plans.length || 0} />
+            <SmallStat label="الحسابات" value={data?.schools.length || 0} />
+            <SmallStat label="الاشتراكات" value={data?.subscriptions.length || 0} />
+          </div>
+        </div>
+      </section>
+
+      {message ? (
+        <div
+          className={[
+            "rounded-2xl border px-4 py-3 text-[14px] font-bold",
+            message.type === "success"
+              ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+              : message.type === "error"
+                ? "border-rose-100 bg-rose-50 text-rose-700"
+                : "border-sky-100 bg-sky-50 text-sky-700",
+          ].join(" ")}
+        >
+          {message.text}
+        </div>
+      ) : null}
+
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <div className="space-y-5">
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
+            <SectionHeader
+              icon={<PackagePlus className="h-6 w-6" />}
+              title="إنشاء باقة اشتراك"
+              subtitle="عرّف الباقة مرة واحدة ثم اربطها بأي حساب من الأدمن."
+            />
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <Field label="اسم الباقة">
+                <input
+                  value={planName}
+                  onChange={(event) => setPlanName(event.target.value)}
+                  className="input"
+                />
+              </Field>
+
+              <Field label="معرف الباقة">
+                <input
+                  value={planSlug}
+                  onChange={(event) => setPlanSlug(event.target.value)}
+                  className="input"
+                />
+              </Field>
+
+              <Field label="السعر الشهري">
+                <input
+                  value={priceMonthly}
+                  onChange={(event) => setPriceMonthly(event.target.value)}
+                  className="input"
+                />
+              </Field>
+
+              <Field label="السعر السنوي">
+                <input
+                  value={priceYearly}
+                  onChange={(event) => setPriceYearly(event.target.value)}
+                  className="input"
+                />
+              </Field>
+
+              <Field label="مدة الباقة بالأيام">
+                <input
+                  value={durationDays}
+                  onChange={(event) => setDurationDays(event.target.value)}
+                  className="input"
+                />
+              </Field>
+
+              <Field label="حد الطلاب">
+                <input
+                  value={maxStudents}
+                  onChange={(event) => setMaxStudents(event.target.value)}
+                  className="input"
+                />
+              </Field>
+
+              <Field label="حد المستخدمين">
+                <input
+                  value={maxUsers}
+                  onChange={(event) => setMaxUsers(event.target.value)}
+                  className="input"
+                />
+              </Field>
+
+              <Field label="حد التقارير">
+                <input
+                  value={maxReports}
+                  onChange={(event) => setMaxReports(event.target.value)}
+                  className="input"
+                />
+              </Field>
+            </div>
+
+            <div className="mt-5">
+              <p className="text-[13px] font-black text-slate-700">
+                الخدمات المشمولة في الباقة
+              </p>
+
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {data?.services.map((service) => {
+                  const active = enabledServiceSlugs.includes(service.slug);
+
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      onClick={() => toggleServiceSlug(service.slug)}
+                      className={[
+                        "flex items-center justify-between gap-3 rounded-2xl border p-3 text-right transition",
+                        active
+                          ? "border-sky-100 bg-sky-50 text-sky-700"
+                          : "border-slate-100 bg-slate-50 text-slate-500 hover:bg-white",
+                      ].join(" ")}
+                    >
+                      <span>
+                        <span className="block text-[14px] font-black">
+                          {service.name}
+                        </span>
+                        <span className="mt-1 block text-[11px] font-bold opacity-70">
+                          {service.slug}
+                        </span>
+                      </span>
+
+                      {active ? (
+                        <CheckCircle2 className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={createPlan}
+              className="mt-5 h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+            >
+              إنشاء الباقة
+            </button>
+          </section>
+
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
+            <SectionHeader
+              icon={<Layers3 className="h-6 w-6" />}
+              title="الباقات الحالية"
+              subtitle="إيقاف أو مراجعة الباقات الموجودة."
+            />
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {data?.plans.map((plan) => {
+                const services = getPlanServices(plan);
+
+                return (
+                  <article
+                    key={plan.id}
+                    className="rounded-[1.35rem] border border-slate-100 bg-slate-50 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-[16px] font-black text-slate-950">
+                          {plan.name}
+                        </h3>
+                        <p className="mt-1 text-[12px] font-bold text-slate-400">
+                          {plan.slug}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => togglePlan(plan)}
+                        className={[
+                          "grid h-10 w-10 place-items-center rounded-2xl",
+                          plan.isActive
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-slate-200 text-slate-500",
+                        ].join(" ")}
+                      >
+                        {plan.isActive ? (
+                          <ToggleRight className="h-6 w-6" />
+                        ) : (
+                          <ToggleLeft className="h-6 w-6" />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-[12px] font-bold text-slate-600">
+                      <PlanMini label="شهري" value={`${plan.priceMonthly} ريال`} />
+                      <PlanMini label="سنوي" value={`${plan.priceYearly} ريال`} />
+                      <PlanMini label="المدة" value={`${featureValue(plan, "durationDays")} يوم`} />
+                      <PlanMini label="الطلاب" value={featureValue(plan, "maxStudents", "مفتوح")} />
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {services.slice(0, 4).map((slug) => (
+                        <span
+                          key={slug}
+                          className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-sky-700"
+                        >
+                          {slug}
+                        </span>
+                      ))}
+                      {services.length > 4 ? (
+                        <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-500">
+                          +{services.length - 4}
+                        </span>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
+            <SectionHeader
+              icon={<ClipboardList className="h-6 w-6" />}
+              title="الاشتراكات الحالية"
+              subtitle="بحث، تمديد، أو إيقاف أي اشتراك."
+            />
+
+            <div className="relative mt-4">
+              <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="ابحث باسم الحساب أو الباقة أو الحالة..."
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
+              />
+            </div>
+
+            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-100">
+              <table className="w-full text-right text-sm">
+                <thead className="bg-slate-50 text-xs font-black text-slate-500">
+                  <tr>
+                    <th className="p-3">الحساب</th>
+                    <th className="p-3">الباقة</th>
+                    <th className="p-3">الحالة</th>
+                    <th className="p-3">ينتهي</th>
+                    <th className="p-3">إجراءات</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-100">
+                  {filteredSubscriptions.map((subscription) => (
+                    <tr key={subscription.id}>
+                      <td className="p-3">
+                        <p className="font-black text-slate-900">
+                          {subscription.schoolAccount.name}
+                        </p>
+                        <p className="mt-1 text-xs font-bold text-slate-400">
+                          {subscription.schoolAccount.slug}
+                        </p>
+                      </td>
+
+                      <td className="p-3 font-bold text-slate-600">
+                        {subscription.plan.name}
+                      </td>
+
+                      <td className="p-3">
+                        <span
+                          className={[
+                            "rounded-full px-3 py-1 text-xs font-black",
+                            subscription.status === "ACTIVE"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : subscription.status === "TRIAL"
+                                ? "bg-sky-50 text-sky-700"
+                                : "bg-amber-50 text-amber-700",
+                          ].join(" ")}
+                        >
+                          {getStatusLabel(subscription.status)}
+                        </span>
+                      </td>
+
+                      <td className="p-3 text-xs font-bold text-slate-500">
+                        {subscription.endsAt
+                          ? new Date(subscription.endsAt).toLocaleDateString("ar-SA")
+                          : "غير محدد"}
+                      </td>
+
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => extendSubscription(subscription.id, 30)}
+                            className="rounded-xl bg-sky-600 px-3 py-2 text-xs font-black text-white"
+                          >
+                            +30 يوم
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => extendSubscription(subscription.id, 365)}
+                            className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white"
+                          >
+                            سنة
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => cancelSubscription(subscription.id)}
+                            className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-black text-white"
+                          >{"\uD83D\uDDD1\uFE0F \u062D\u0630\u0641 \u0627\u0644\u0627\u0634\u062A\u0631\u0627\u0643"}</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {filteredSubscriptions.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="p-8 text-center text-sm font-bold text-slate-400"
+                      >
+                        لا توجد اشتراكات مطابقة.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-5">
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
+            <SectionHeader
+              icon={<Rocket className="h-6 w-6" />}
+              title="إسناد باقة لحساب"
+              subtitle="اختر الحساب، الباقة، والمدة."
+            />
+
+            <div className="mt-5 space-y-3">
+              <select
+                value={selectedSchoolId}
+                onChange={(event) => setSelectedSchoolId(event.target.value)}
+                className="input"
+              >
+                <option value="">اختر الحساب</option>
+                {data?.schools.map((school) => (
+                  <option key={school.id} value={school.id}>
+                    {school.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={selectedPlanId}
+                onChange={(event) => setSelectedPlanId(event.target.value)}
+                className="input"
+              >
+                <option value="">اختر الباقة</option>
+                {data?.plans
+                  .filter((plan) => plan.isActive)
+                  .map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name}
+                    </option>
+                  ))}
+              </select>
+
+              <select
+                value={assignStatus}
+                onChange={(event) => setAssignStatus(event.target.value)}
+                className="input"
+              >
+                <option value="ACTIVE">نشط</option>
+                <option value="TRIAL">تجربة</option>
+                <option value="PAST_DUE">بانتظار الدفع</option>
+              </select>
+
+              <input
+                value={assignDays}
+                onChange={(event) => setAssignDays(event.target.value)}
+                placeholder="مدة مخصصة بالأيام، اتركها فارغة لاستخدام مدة الباقة"
+                className="input"
+              />
+
+              <button
+                type="button"
+                onClick={assignPlan}
+                className="h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+              >
+                إسناد وتفعيل
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
+            <SectionHeader
+              icon={<Settings2 className="h-6 w-6" />}
+              title="تحكم خدمة لحساب"
+              subtitle="فتح أو إغلاق خدمة معينة لحساب معين."
+            />
+
+            <div className="mt-5 space-y-3">
+              <select
+                value={serviceSchoolId}
+                onChange={(event) => setServiceSchoolId(event.target.value)}
+                className="input"
+              >
+                <option value="">اختر الحساب</option>
+                {data?.schools.map((school) => (
+                  <option key={school.id} value={school.id}>
+                    {school.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={serviceId}
+                onChange={(event) => setServiceId(event.target.value)}
+                className="input"
+              >
+                <option value="">اختر الخدمة</option>
+                {data?.services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+
+              <label className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 text-sm font-black text-slate-700">
+                الخدمة مفعلة
+                <input
+                  type="checkbox"
+                  checked={serviceEnabled}
+                  onChange={(event) => setServiceEnabled(event.target.checked)}
+                />
+              </label>
+
+              <label className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 text-sm font-black text-slate-700">
+                خدمة مدفوعة
+                <input
+                  type="checkbox"
+                  checked={servicePaid}
+                  onChange={(event) => setServicePaid(event.target.checked)}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={updateServiceAccess}
+                className="h-12 w-full rounded-2xl bg-slate-950 text-sm font-black text-white transition hover:bg-slate-800"
+              >
+                حفظ صلاحية الخدمة
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-[1.45rem] border border-amber-100 bg-amber-50 p-5 shadow-sm">
+            <div className="flex gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-amber-700 shadow-sm">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h3 className="text-[15px] font-black text-amber-950">
+                  قاعدة مهمة
+                </h3>
+                <p className="mt-2 text-[13px] font-bold leading-6 text-amber-800">
+                  الباقة تحدد الخدمات تلقائيًا، لكن يمكنك من هنا فتح أو إغلاق
+                  خدمة لحساب معيّن عند الحاجة.
+                </p>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <style jsx>{`
+        .input {
+          height: 3rem;
+          width: 100%;
+          border-radius: 1rem;
+          border: 1px solid rgb(226 232 240);
+          background: rgb(248 250 252);
+          padding: 0 1rem;
+          font-size: 0.875rem;
+          font-weight: 700;
+          outline: none;
+        }
+
+        .input:focus {
+          border-color: rgb(186 230 253);
+          box-shadow: 0 0 0 4px rgb(240 249 255);
+        }
+      `}</style>
+    </main>
+  );
+}
+
+function SmallStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-center shadow-sm">
+      <p className="text-2xl font-black text-slate-950">{value}</p>
+      <p className="mt-1 text-[11px] font-black text-slate-400">{label}</p>
+    </div>
+  );
+}
+
+function SectionHeader({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+        {icon}
+      </div>
+
+      <div>
+        <h2 className="text-xl font-black text-slate-950">{title}</h2>
+        <p className="mt-1 text-[13px] font-bold leading-6 text-slate-500">
+          {subtitle}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label>
+      <span className="mb-2 block text-[12px] font-black text-slate-500">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function PlanMini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white p-2">
+      <p className="text-[10px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 font-black text-slate-800">{value}</p>
+    </div>
+  );
+}
+
+
+
+
+
+============================================================
+FILE: components\subscription\counselor-plans-page.tsx
+============================================================
+"use client";
+
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  CreditCard,
+  Landmark,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+  WalletCards,
+  X,
+} from "lucide-react";
+
+type CounselorPlan = {
+  id: string;
+  name: string;
+  slug: string;
+  priceMonthly: number;
+  priceYearly: number;
+  durationDays: number;
+  maxStudents: string;
+  maxUsers: string;
+  maxReports: string;
+  services: Array<{
+    id: string;
+    slug: string;
+    name: string;
+  }>;
+};
+
+type PlansPayload = {
+  plans: CounselorPlan[];
+  subscription: {
+    status: string;
+    planName: string;
+    endsAt: string | null;
+    remainingDays: number | null;
+    usable: boolean;
+  } | null;
+};
+
+type BillingCycle = "monthly" | "yearly";
+type PaymentMethod = "bank" | "online";
+
+type EntryNotice = {
+  title: string;
+  message: string;
+  serviceSlug?: string | null;
+  actionLabel?: string;
+  variant?: "warning" | "success" | "info";
+};
+
+function formatLimit(value: string, suffix: string) {
+  if (!value || value === "0") return "مفتوح";
+  return `${value} ${suffix}`;
+}
+
+function getPlanPrice(plan: CounselorPlan, billingCycle: BillingCycle) {
+  return billingCycle === "yearly" ? plan.priceYearly : plan.priceMonthly;
+}
+
+function getBillingLabel(billingCycle: BillingCycle) {
+  return billingCycle === "yearly" ? "عام دراسي" : "ترم دراسي";
+}
+
+function subscriptionStatusLabel(status?: string | null) {
+  if (status === "TRIAL") return "تجربة مجانية";
+  if (status === "ACTIVE") return "نشط";
+  if (status === "PAST_DUE") return "بانتظار الدفع";
+  if (status === "CANCELED") return "ملغي";
+  if (status === "EXPIRED") return "منتهي";
+  return "بدون اشتراك";
+}
+function getServiceDisplayName(slug?: string | null) {
+  if (!slug) return null;
+
+  const labels: Record<string, string> = {
+    "guidance-programs": "البرامج الإرشادية",
+    "committees-meetings": "اللجان والاجتماعات",
+    "student-follow-up": "متابعة الطلاب",
+    "student-guidance-services": "الخدمات الإرشادية المقدمة للطلاب",
+    "family-school-communication": "التواصل بين الأسرة والمدرسة",
+    "results-analysis": "تحليل النتائج",
+    "comprehensive-reference": "المرجع الشامل للموجه الطلابي",
+    reports: "التقارير",
+  };
+
+  return labels[slug] || slug;
+}
+
+async function readApiResponse(response: Response) {
+  const text = await response.text();
+
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
+
+function getEntryNoticeFromUrl(): EntryNotice | null {
+  if (typeof window === "undefined") return null;
+
+  const params = new URLSearchParams(window.location.search);
+  const reason = params.get("reason");
+  const service = params.get("service");
+
+  if (!reason) return null;
+
+  if (reason === "service-not-in-plan") {
+    return {
+      title: "الخدمة تحتاج باقة تشملها",
+      message:
+        "اشتراكك الحالي نشط، لكن هذه الخدمة غير موجودة ضمن باقتك الحالية. اختر باقة مناسبة تشمل الخدمة، وبعد التفعيل ستفتح لك مباشرة.",
+      serviceSlug: service,
+      actionLabel: "استعراض الباقات المناسبة",
+      variant: "warning",
+    };
+  }
+
+  if (reason === "activation-required") {
+    return {
+      title: "فعّل حسابك للوصول للخدمة",
+      message:
+        "حسابك لا يملك اشتراكًا نشطًا حاليًا. اختر باقة مناسبة، ثم أكمل طلب الاشتراك ليتم فتح الخدمات لك بعد التفعيل.",
+      serviceSlug: service,
+      actionLabel: "اختيار باقة الآن",
+      variant: "warning",
+    };
+  }
+
+  return {
+    title: "اختر الباقة المناسبة لك",
+    message:
+      "للوصول إلى الخدمات المدفوعة، اختر الباقة التي تناسب احتياجك ثم أكمل طلب الاشتراك بخطوات بسيطة.",
+    serviceSlug: service,
+    actionLabel: "تصفح الباقات",
+    variant: "info",
+  };
+}
+
+export function CounselorPlansPage() {
+  const [data, setData] = useState<PlansPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<CounselorPlan | null>(null);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank");
+
+  const [senderName, setSenderName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [receiptUrl, setReceiptUrl] = useState("");
+  const [note, setNote] = useState("");
+
+  const [entryNotice, setEntryNotice] = useState<EntryNotice | null>(null);
+  const [noticeOpen, setNoticeOpen] = useState(false);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error" | "info";
+    text: string;
+  } | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/dashboard/plans", {
+        cache: "no-store",
+      });
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر تحميل الباقات.");
+      }
+
+      setData(result);
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر تحميل الباقات.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const notice = getEntryNoticeFromUrl();
+
+    if (notice) {
+      setEntryNotice(notice);
+      setNoticeOpen(true);
+    }
+
+    load();
+  }, []);
+
+  const selectedPrice = useMemo(() => {
+    if (!selectedPlan) return 0;
+    return getPlanPrice(selectedPlan, billingCycle);
+  }, [billingCycle, selectedPlan]);
+
+  const isSelectedPlanFree = selectedPlan ? selectedPrice <= 0 : false;
+
+  async function submitOrder() {
+    if (!selectedPlan) {
+      setMessage({
+        type: "error",
+        text: "اختر الباقة أولًا.",
+      });
+      return;
+    }
+
+    if (!isSelectedPlanFree && !senderName.trim()) {
+      setMessage({
+        type: "error",
+        text: "اكتب اسم المحوّل.",
+      });
+      return;
+    }
+
+    if (!isSelectedPlanFree && !phone.trim()) {
+      setMessage({
+        type: "error",
+        text: "اكتب رقم الجوال.",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/dashboard/plans", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          planId: selectedPlan.id,
+          billingCycle,
+          senderName,
+          phone,
+          receiptUrl,
+          note,
+        }),
+      });
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر إرسال طلب الاشتراك.");
+      }
+
+      const activatedImmediately = Boolean(result.activated) || isSelectedPlanFree;
+
+      setMessage({
+        type: "success",
+        text:
+          result.message ||
+          (activatedImmediately
+            ? "تم تفعيل الباقة بنجاح."
+            : "تم إرسال طلب الاشتراك بنجاح."),
+      });
+
+      setSenderName("");
+      setPhone("");
+      setReceiptUrl("");
+      setNote("");
+
+      if (activatedImmediately) {
+        setEntryNotice({
+          title: "تم تفعيل الباقة بنجاح",
+          message: `تم تفعيل ${selectedPlan.name} مباشرة، ويمكنك الآن استخدام الخدمات المشمولة في الباقة.`,
+          actionLabel: "متابعة",
+        });
+        setNoticeOpen(true);
+        setSelectedPlan(null);
+      }
+
+      await load();
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "تعذر إرسال طلب الاشتراك.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="grid min-h-[50vh] place-items-center" dir="rtl">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-7 w-7 animate-spin text-sky-600" />
+          <p className="mt-3 text-sm font-black text-slate-500">
+            جار تحميل الباقات...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      {noticeOpen && entryNotice ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subscription-notice-title"
+            className="relative w-full max-w-xl overflow-hidden rounded-[2.25rem] border border-white/70 bg-white shadow-2xl shadow-slate-950/20"
+          >
+            <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l from-sky-400 via-cyan-300 to-emerald-300" />
+
+            <div className="p-6 sm:p-7">
+              <div className="flex items-start justify-between gap-4">
+                <div
+                  className={[
+                    "grid h-14 w-14 shrink-0 place-items-center rounded-3xl ring-1",
+                    entryNotice.variant === "success" ||
+                    entryNotice.actionLabel === "متابعة"
+                      ? "bg-emerald-50 text-emerald-600 ring-emerald-100"
+                      : "bg-sky-50 text-sky-600 ring-sky-100",
+                  ].join(" ")}
+                >
+                  {entryNotice.variant === "success" ||
+                  entryNotice.actionLabel === "متابعة" ? (
+                    <ShieldCheck className="h-7 w-7" />
+                  ) : (
+                    <AlertCircle className="h-7 w-7" />
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setNoticeOpen(false)}
+                  className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="إغلاق"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-6 text-center sm:text-right">
+                <p className="text-xs font-black text-sky-600">
+                  تنبيه اشتراك
+                </p>
+
+                <h2
+                  id="subscription-notice-title"
+                  className="mt-2 text-3xl font-black leading-[1.35] text-slate-950"
+                >
+                  {entryNotice.title}
+                </h2>
+
+                <p className="mx-auto mt-4 max-w-lg text-base font-bold leading-8 text-slate-600 sm:mx-0">
+                  {entryNotice.message}
+                </p>
+
+                {entryNotice.serviceSlug ? (
+                  <div className="mt-5 rounded-3xl border border-slate-100 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-black text-slate-400">
+                      الخدمة المطلوبة
+                    </p>
+                    <p className="mt-1 text-sm font-black text-slate-700">
+                      {getServiceDisplayName(entryNotice.serviceSlug)}
+                    </p>
+                  </div>
+                ) : null}
+
+                <div className="mt-5 rounded-3xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm font-bold leading-7 text-sky-800">
+                  لا تقلق، بياناتك محفوظة. بعد اختيار الباقة المناسبة سيتم فتح الخدمة تلقائيًا عند اكتمال التفعيل.
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNoticeOpen(false);
+                      document
+                        .getElementById("plans-list")
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                    className="h-13 rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+                  >
+                    {entryNotice.actionLabel || "تصفح الباقات"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNoticeOpen(false)}
+                    className="h-13 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+                  >
+                    لاحقًا
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {message ? (
+        <section
+          className={[
+            "rounded-3xl border px-5 py-4 text-sm font-bold",
+            message.type === "success"
+              ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+              : message.type === "error"
+                ? "border-rose-100 bg-rose-50 text-rose-700"
+                : "border-sky-100 bg-sky-50 text-sky-700",
+          ].join(" ")}
+        >
+          {message.text}
+        </section>
+      ) : null}
+
+      <section className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <p className="text-sm font-black text-sky-700">الباقات</p>
+            <h1 className="mt-2 text-3xl font-black text-slate-950">
+              اختر الباقة المناسبة
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              لا يتم تركيب باقة فوق باقة. عند اختيار باقة جديدة سيتم التعامل معها كطلب اشتراك أو ترقية، وبعد قبولها تبدأ مدة الباقة من تاريخ التفعيل.
+            </p>
+          </div>
+
+          {data?.subscription ? (
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+              <span className="text-slate-400">اشتراكك الحالي: </span>
+              <strong className="text-slate-900">
+                {data.subscription.planName}
+              </strong>
+              <span className="mx-2">·</span>
+              <span>{subscriptionStatusLabel(data.subscription.status)}</span>
+              <span className="mx-2">·</span>
+              <span>{data.subscription.remainingDays ?? 0} يوم</span>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-5 flex w-fit rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setBillingCycle("monthly")}
+            className={[
+              "rounded-xl px-5 py-2 text-sm font-black transition",
+              billingCycle === "monthly"
+                ? "bg-sky-600 text-white"
+                : "text-slate-500 hover:bg-slate-50",
+            ].join(" ")}
+          >
+            ترم دراسي
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBillingCycle("yearly")}
+            className={[
+              "rounded-xl px-5 py-2 text-sm font-black transition",
+              billingCycle === "yearly"
+                ? "bg-sky-600 text-white"
+                : "text-slate-500 hover:bg-slate-50",
+            ].join(" ")}
+          >
+            عام دراسي
+          </button>
+        </div>
+      </section>
+
+      <section id="plans-list" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {data?.plans.map((plan, index) => {
+          const active = selectedPlan?.id === plan.id;
+          const price = getPlanPrice(plan, billingCycle);
+          const period = getBillingLabel(billingCycle);
+
+          return (
+            <button
+              key={plan.id}
+              type="button"
+              onClick={() => {
+                setSelectedPlan(plan);
+                setPaymentMethod("bank");
+                setMessage({
+                  type: "info",
+                  text:
+                    price <= 0
+                      ? "هذه الباقة مجانية. اضغط زر تفعيل الباقة الآن لتفعيلها مباشرة."
+                      : "تم اختيار الباقة. أكمل طريقة الدفع في الأسفل.",
+                });
+              }}
+              className={[
+                "group relative overflow-hidden rounded-[2rem] border bg-white p-6 text-right shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+                active
+                  ? "border-sky-300 ring-4 ring-sky-50"
+                  : "border-slate-100",
+              ].join(" ")}
+            >
+              {index === 0 ? (
+                <div className="absolute left-5 top-5 rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                  الأنسب للبداية
+                </div>
+              ) : null}
+
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+                <Sparkles className="h-7 w-7" />
+              </div>
+
+              <h2 className="mt-5 text-2xl font-black text-slate-950">
+                {plan.name}
+              </h2>
+
+              <div className="mt-4 flex items-end gap-2">
+                <p className="text-5xl font-black text-slate-950">{price}</p>
+                <span className="pb-2 text-sm font-black text-slate-400">
+                  ريال / {period}
+                </span>
+              </div>
+
+              <div className="mt-5 grid gap-3 text-sm font-bold text-slate-600">
+                <PlanPoint text={`مدة الباقة: ${plan.durationDays} يوم`} />
+                <PlanPoint text={formatLimit(plan.maxStudents, "طالب/طالبة")} />
+                <PlanPoint text={formatLimit(plan.maxReports, "تقرير")} />
+                <PlanPoint text={formatLimit(plan.maxUsers, "مستخدم")} />
+              </div>
+
+              {plan.services.length ? (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {plan.services.slice(0, 5).map((service) => (
+                    <span
+                      key={service.id}
+                      className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600"
+                    >
+                      {service.name}
+                    </span>
+                  ))}
+
+                  {plan.services.length > 5 ? (
+                    <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">
+                      +{plan.services.length - 5}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div
+                className={[
+                  "mt-6 flex h-12 items-center justify-center rounded-2xl text-sm font-black transition",
+                  active
+                    ? "bg-sky-600 text-white"
+                    : "bg-slate-50 text-slate-600 group-hover:bg-sky-50 group-hover:text-sky-700",
+                ].join(" ")}
+              >
+                {active ? "تم اختيار الباقة" : "اختيار الباقة"}
+              </div>
+            </button>
+          );
+        })}
+
+        {data?.plans.length === 0 ? (
+          <div className="rounded-[2rem] border border-amber-100 bg-amber-50 p-6 text-sm font-bold leading-7 text-amber-800 md:col-span-2 xl:col-span-3">
+            لا توجد باقات مفعلة حاليًا.
+          </div>
+        ) : null}
+      </section>
+
+      {selectedPlan ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+            <div>
+              <p className="text-sm font-black text-sky-700">
+                {isSelectedPlanFree ? "تفعيل مجاني" : "طريقة الدفع"}
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950">
+                {isSelectedPlanFree
+                  ? `تفعيل ${selectedPlan.name}`
+                  : `إكمال طلب ${selectedPlan.name}`}
+              </h2>
+              <p className="mt-2 text-sm font-bold text-slate-500">
+                المبلغ: {selectedPrice} ريال / {getBillingLabel(billingCycle)}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPlan(null);
+                setMessage(null);
+              }}
+              className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+            >
+              تغيير الباقة
+            </button>
+          </div>
+
+          {!isSelectedPlanFree ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <PaymentCard
+              active={paymentMethod === "bank"}
+              icon={<Landmark className="h-7 w-7" />}
+              title="تحويل بنكي"
+              description="حوّل المبلغ ثم أرسل بيانات التحويل للمراجعة والتفعيل."
+              onClick={() => setPaymentMethod("bank")}
+            />
+
+            <PaymentCard
+              active={paymentMethod === "online"}
+              disabled
+              icon={<CreditCard className="h-7 w-7" />}
+              title="الدفع الإلكتروني"
+              description="Apple Pay ومدى قريبًا."
+              onClick={() => setPaymentMethod("online")}
+              footer={
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                    Apple Pay
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                    مدى
+                  </span>
+                  <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                    قريبًا
+                  </span>
+                </div>
+              }
+            />
+            </div>
+          ) : (
+            <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-5">
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-emerald-600">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-black text-slate-950">
+                    تفعيل مباشر
+                  </h3>
+                  <p className="mt-2 text-sm font-bold leading-7 text-slate-600">
+                    هذه الباقة مجانية، وسيتم تفعيلها مباشرة دون تحويل بنكي أو انتظار مراجعة من الأدمن.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={submitOrder}
+                disabled={submitting}
+                className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {submitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-5 w-5" />
+                )}
+                {submitting ? "جار التفعيل..." : "تفعيل الباقة الآن"}
+              </button>
+            </div>
+          )}
+
+          {!isSelectedPlanFree && paymentMethod === "bank" ? (
+            <div className="mt-6 rounded-[1.5rem] border border-sky-100 bg-sky-50/60 p-5">
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-sky-600">
+                  <WalletCards className="h-6 w-6" />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-black text-slate-950">
+                    خطوات التحويل البنكي
+                  </h3>
+                  <ol className="mt-3 list-inside list-decimal space-y-2 text-sm font-bold leading-7 text-slate-600">
+                    <li>حوّل مبلغ الباقة إلى حساب المنصة.</li>
+                    <li>اكتب اسم المحوّل ورقم الجوال.</li>
+                    <li>ضع رقم المرجع أو رابط الإيصال إن وجد.</li>
+                    <li>أرسل الطلب، وسيتم تفعيله بعد المراجعة.</li>
+                  </ol>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <input
+                  value={senderName}
+                  onChange={(event) => setSenderName(event.target.value)}
+                  placeholder="اسم المحوّل"
+                  className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-sky-300"
+                />
+
+                <input
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="رقم الجوال"
+                  className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-sky-300"
+                />
+
+                <input
+                  value={receiptUrl}
+                  onChange={(event) => setReceiptUrl(event.target.value)}
+                  placeholder="رقم المرجع أو رابط الإيصال"
+                  className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-sky-300 md:col-span-2"
+                />
+
+                <textarea
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder="ملاحظة اختيارية"
+                  className="min-h-24 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300 md:col-span-2"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={submitOrder}
+                disabled={submitting}
+                className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700 disabled:opacity-60"
+              >
+                {submitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-5 w-5" />
+                )}
+                {submitting ? "جار إرسال الطلب..." : "إرسال طلب الاشتراك"}
+              </button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+    </main>
+  );
+}
+
+function PaymentCard({
+  active,
+  disabled,
+  icon,
+  title,
+  description,
+  footer,
+  onClick,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  icon: ReactNode;
+  title: string;
+  description: string;
+  footer?: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={[
+        "rounded-[1.5rem] border bg-white p-5 text-right transition",
+        active ? "border-sky-300 ring-4 ring-sky-50" : "border-slate-100",
+        disabled
+          ? "cursor-not-allowed opacity-80"
+          : "hover:-translate-y-0.5 hover:shadow-md",
+      ].join(" ")}
+    >
+      <div className="flex items-start gap-4">
+        <div
+          className={[
+            "grid h-14 w-14 place-items-center rounded-2xl",
+            active ? "bg-sky-50 text-sky-600" : "bg-slate-50 text-slate-500",
+          ].join(" ")}
+        >
+          {icon}
+        </div>
+
+        <div>
+          <h3 className="text-xl font-black text-slate-950">{title}</h3>
+          <p className="mt-2 text-sm font-bold leading-6 text-slate-500">
+            {description}
+          </p>
+          {footer}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function PlanPoint({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+      <span>{text}</span>
+    </div>
+  );
+}
+
+============================================================
+FILE: app\dashboard\plans\page.tsx
+============================================================
+import { CounselorPlansPage } from "@/components/subscription/counselor-plans-page";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+
+export default async function PlansPage() {
+  await requireDashboardUser();
+
+  return <CounselorPlansPage />;
+}
+
+
+============================================================
+FILE: app\dashboard\subscription\page.tsx
+============================================================
+import { redirect } from "next/navigation";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+
+export default async function SubscriptionPage() {
+  await requireDashboardUser();
+
+  redirect("/dashboard/plans");
+}

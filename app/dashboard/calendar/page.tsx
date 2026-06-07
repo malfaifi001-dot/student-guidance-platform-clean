@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
 import { CalendarCenterClient } from "@/components/calendar/calendar-center-client";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { chromium } from "playwright";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { getReportAccess } from "@/lib/reports/report-access";

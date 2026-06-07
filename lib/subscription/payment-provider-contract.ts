@@ -1,4 +1,4 @@
-﻿export type PaymentProviderCode =
+export type PaymentProviderCode =
   | "MANUAL_BANK_TRANSFER"
   | "MOYASAR"
   | "HYPERPAY"

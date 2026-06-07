@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";

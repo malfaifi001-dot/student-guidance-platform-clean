@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";

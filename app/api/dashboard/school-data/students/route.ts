@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseNoorExcel } from "@/lib/noor/excel-parser";
 import { createStudentImportSession } from "@/engine/students/student-import-engine";

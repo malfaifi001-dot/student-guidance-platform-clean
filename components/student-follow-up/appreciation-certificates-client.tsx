@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { SmartStudentPicker } from "@/components/students/smart-student-picker";

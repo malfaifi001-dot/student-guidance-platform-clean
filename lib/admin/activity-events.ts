@@ -1,4 +1,4 @@
-﻿import { headers } from "next/headers";
+import { headers } from "next/headers";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { logPlatformActivity } from "@/lib/admin/activity-log";
 

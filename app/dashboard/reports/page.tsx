@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ReportsDashboard } from "@/components/reports/reports-dashboard";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";

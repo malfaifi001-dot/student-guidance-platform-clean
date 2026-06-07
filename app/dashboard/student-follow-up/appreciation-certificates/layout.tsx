@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AppreciationCertificatesTabs } from "@/components/student-follow-up/appreciation-certificates-tabs";
 
 export default function AppreciationCertificatesLayout({

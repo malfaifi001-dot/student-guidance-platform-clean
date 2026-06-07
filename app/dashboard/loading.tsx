@@ -1,4 +1,4 @@
-﻿export default function DashboardLoading() {
+export default function DashboardLoading() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 text-slate-950" dir="rtl">
       <div className="flex min-h-[70vh] items-center justify-center">

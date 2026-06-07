@@ -1,4 +1,4 @@
-﻿export type ReportTemplateScope =
+export type ReportTemplateScope =
   | "GLOBAL"
   | "SERVICE"
   | "WORKFLOW"
@@ -334,7 +334,7 @@ export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
     title: "بيانات الطالب/الطالبة",
     source: {
       source: "student",
-      label: "بيانات نور",
+      label: "بيانات الطلاب",
       description:
         "اسم الطالب/الطالبة، الصف، الفصل، المرحلة، وولي الأمر عند توفره.",
     },

@@ -1,4 +1,4 @@
-﻿import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { OfficialFeatureRequiredPage } from "@/components/auth/official-feature-required-page";
 import { canUseOfficialFeatures, getMissingOfficialIdentityItems } from "@/lib/auth/official-feature-guard";
 import { buildReportIdentityFromCurrentUser } from "@/lib/report-engine/report-identity-runtime";

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getActivationOverview } from "@/lib/activation/activation-service";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 

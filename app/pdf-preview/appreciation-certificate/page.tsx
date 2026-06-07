@@ -1,4 +1,4 @@
-﻿import { AppreciationCertificatePreview } from "@/components/report-engine/appreciation-certificate-preview";
+import { AppreciationCertificatePreview } from "@/components/report-engine/appreciation-certificate-preview";
 import { appreciationCertificateTemplatePreset } from "@/components/report-engine/appreciation-certificate-preview";
 import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
 

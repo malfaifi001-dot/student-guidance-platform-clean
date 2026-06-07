@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import {
   ArrowLeft,
   BarChart3,
@@ -54,7 +54,7 @@ const mainActions = [
     tone: "from-blue-600 to-cyan-500",
   },
   {
-    title: "رفع بيانات نور",
+    title: "رفع بيانات الطلاب",
     description: "استورد الطلاب بذكاء وجهّزهم لكل الخدمات والتقارير.",
     href: "/dashboard/student-import",
     icon: UploadCloud,

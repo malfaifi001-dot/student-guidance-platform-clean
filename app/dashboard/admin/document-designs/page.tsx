@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 
 export default async function AdminDocumentDesignsPage() {

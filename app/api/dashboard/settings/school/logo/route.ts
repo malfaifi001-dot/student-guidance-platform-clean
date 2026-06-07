@@ -1,4 +1,4 @@
-﻿import { mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { NextResponse } from "next/server";

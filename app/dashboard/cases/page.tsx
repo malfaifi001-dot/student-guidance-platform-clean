@@ -1,4 +1,4 @@
-﻿
+
 import { redirect } from "next/navigation";
 
 import { CasesSearchTable } from "@/components/cases/cases-search-table";

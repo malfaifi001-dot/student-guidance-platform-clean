@@ -1,4 +1,4 @@
-﻿export const WORKFLOW_PLACEMENTS = {
+export const WORKFLOW_PLACEMENTS = {
   SERVICE_MAIN: "service-main",
   GUARDIAN_SUMMONS: "guardian-summons",
   CERTIFICATE: "certificate",

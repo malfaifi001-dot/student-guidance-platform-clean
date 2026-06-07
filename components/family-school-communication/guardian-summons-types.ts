@@ -1,4 +1,4 @@
-﻿export type GuardianSummonsStatus = "DRAFT" | "ISSUED" | "PRINTED";
+export type GuardianSummonsStatus = "DRAFT" | "ISSUED" | "PRINTED";
 
 export type GuardianSummonsAttendanceStatus =
   | "PENDING"

@@ -1,4 +1,4 @@
-﻿import crypto from "crypto";
+import crypto from "crypto";
 
 const ITERATIONS = 120000;
 const KEY_LENGTH = 64;

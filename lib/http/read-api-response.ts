@@ -1,4 +1,4 @@
-﻿export async function readApiResponse<T = any>(response: Response): Promise<T> {
+export async function readApiResponse<T = any>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type") || "";
   const text = await response.text();
 

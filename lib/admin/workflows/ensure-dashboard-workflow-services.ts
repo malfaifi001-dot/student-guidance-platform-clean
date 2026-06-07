@@ -1,4 +1,4 @@
-﻿import { ServiceStatus} from "@prisma/client";
+import { ServiceStatus} from "@prisma/client";
 
 import { dashboardServices } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";

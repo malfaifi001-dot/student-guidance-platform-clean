@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { mapCaseEntryToReportData } from "@/lib/report-engine/report-case-data-mapper";

@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
 import { StudentsCenterClient } from "@/components/data-center/students/students-center-client";
 

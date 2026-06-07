@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -95,14 +95,14 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
   const [isLoading, setIsLoading] = useState(false);
 
   async function loadCycles() {
-    const response = await fetch("/api/dashboard/data-center/noor-import/cycles", {
+    const response = await fetch("/api/dashboard/data-center/student-data-import/cycles", {
       cache: "no-store",
     });
 
     const result = await readApiResponse(response);
 
     if (!response.ok) {
-      throw new Error(result.error || "تعذر جلب بطاقات بيانات نور.");
+      throw new Error(result.error || "تعذر جلب بطاقات بيانات الطلاب.");
     }
 
     setCycles(result.cycles ?? []);
@@ -112,7 +112,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
     loadCycles().catch((error) => {
       setMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "تعذر جلب بطاقات بيانات نور.",
+        text: error instanceof Error ? error.message : "تعذر جلب بطاقات بيانات الطلاب.",
       });
     });
   }, []);
@@ -135,7 +135,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
     });
 
     try {
-      const response = await fetch("/api/dashboard/data-center/noor-import/cycles", {
+      const response = await fetch("/api/dashboard/data-center/student-data-import/cycles", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -161,7 +161,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
       await loadCycles();
 
       if (result.cycle?.id) {
-        window.location.href = `/dashboard/data-center/noor-import/cycles/${result.cycle.id}`;
+        window.location.href = `/dashboard/data-center/student-data-import/cycles/${result.cycle.id}`;
       }
     } catch (error) {
       setMessage({
@@ -181,9 +181,9 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
             <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
               <div>
                 <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
-                <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز بيانات نور</h1>
+                <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز بيانات الطلاب</h1>
                 <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
-                  نظّم بيانات الطلاب في بطاقات واضحة لكل سنة وفصل دراسي. افتح بطاقة بيانات الطلاب لرفع ملف نور ومراجعة التحديثات قبل اعتمادها في سجل {schoolName}.
+                  نظّم بيانات الطلاب في بطاقات واضحة لكل سنة وفصل دراسي. افتح بطاقة بيانات الطلاب لرفع ملف بيانات الطلاب ومراجعة التحديثات قبل اعتمادها في سجل {schoolName}.
                 </p>
               </div>
 
@@ -263,7 +263,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
 
                     <div className="flex flex-wrap gap-2">
                       <Link
-                        href={`/dashboard/data-center/noor-import/cycles/${cycle.id}`}
+                        href={`/dashboard/data-center/student-data-import/cycles/${cycle.id}`}
                         className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-700"
                       >
                         بيانات الطلاب
@@ -271,7 +271,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
 
                       {cycle.latestSession ? (
                         <Link
-                          href={`/dashboard/data-center/noor-import/sessions/${cycle.latestSession.id}`}
+                          href={`/dashboard/data-center/student-data-import/sessions/${cycle.latestSession.id}`}
                           className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
                         >
                           آخر تحديث
@@ -312,7 +312,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
                 <h3 className="text-lg font-black text-slate-900">لا توجد بيانات طلاب بعد</h3>
                 <p className="mt-2 text-sm font-bold text-slate-500">
-                  أضف بيانات الطلاب للسنة والفصل الدراسي، ثم ارفع ملف نور من داخل البطاقة.
+                  أضف بيانات الطلاب للسنة والفصل الدراسي، ثم ارفع ملف بيانات الطلاب من داخل البطاقة.
                 </p>
 
                 <button
@@ -337,7 +337,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                 <div>
                   <h2 className="text-xl font-black">إضافة بيانات طلاب</h2>
                   <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-                    اختر السنة والفصل، ثم سيتم فتح بطاقة بيانات الطلاب لرفع ملف نور من داخلها.
+                    اختر السنة والفصل، ثم سيتم فتح بطاقة بيانات الطلاب لرفع ملف بيانات الطلاب من داخلها.
                   </p>
                 </div>
 

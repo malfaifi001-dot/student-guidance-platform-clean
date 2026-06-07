@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { guardianSummonsTemplatePreset } from "@/components/report-engine/guardian-summons-letter-preview";
 
 const DESIGN_PRESET = "guardian-summons-letter-v1";

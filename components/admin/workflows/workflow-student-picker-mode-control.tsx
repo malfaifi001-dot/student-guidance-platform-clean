@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { CheckCircle2, Loader2, UserRoundSearch } from "lucide-react";
 import { useMemo, useState } from "react";

@@ -1,4 +1,4 @@
-﻿type FilterOption = {
+type FilterOption = {
   label: string;
   value: string;
 };

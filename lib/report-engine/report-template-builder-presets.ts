@@ -1,4 +1,4 @@
-﻿import { guardianSummonsTemplatePreset } from "@/components/report-engine/guardian-summons-letter-preview";
+import { guardianSummonsTemplatePreset } from "@/components/report-engine/guardian-summons-letter-preview";
 import type {
   ReportTemplateBuilderModel,
   ReportTextSnippet,

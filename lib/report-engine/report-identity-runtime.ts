@@ -1,4 +1,4 @@
-﻿import type { ReportIdentity } from "@/lib/report-engine/report-types";
+import type { ReportIdentity } from "@/lib/report-engine/report-types";
 
 type ReportIdentityUser = {
   name?: string | null;

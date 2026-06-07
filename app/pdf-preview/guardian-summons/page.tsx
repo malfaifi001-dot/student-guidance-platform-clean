@@ -1,4 +1,4 @@
-﻿import { GuardianSummonsLetterPreview } from "@/components/report-engine/guardian-summons-letter-preview";
+import { GuardianSummonsLetterPreview } from "@/components/report-engine/guardian-summons-letter-preview";
 import { initialReportTextSnippets } from "@/lib/report-engine/report-template-builder-presets";
 import { resolveGuardianSummonsTemplate } from "@/lib/report-engine/guardian-summons-template-runtime";
 import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";

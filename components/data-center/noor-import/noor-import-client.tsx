@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -171,7 +171,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
   }, [currentSession, previewRows.length]);
 
   async function loadSessions() {
-    const response = await fetch("/api/dashboard/data-center/noor-import/sessions", {
+    const response = await fetch("/api/dashboard/data-center/student-data-import/sessions", {
       cache: "no-store",
     });
 
@@ -194,7 +194,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
     if (!academicYear.trim()) {
       setFeedback({
         type: "error",
-        text: "حدد السنة الدراسية قبل رفع ملف نور.",
+        text: "حدد السنة الدراسية قبل رفع ملف بيانات الطلاب.",
       });
       return;
     }
@@ -202,7 +202,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
     if (!term.trim()) {
       setFeedback({
         type: "error",
-        text: "حدد الفصل الدراسي قبل رفع ملف نور.",
+        text: "حدد الفصل الدراسي قبل رفع ملف بيانات الطلاب.",
       });
       return;
     }
@@ -218,7 +218,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
     setIsUploading(true);
     setFeedback({
       type: "info",
-      text: "جاري قراءة ملف نور وإنشاء جلسة مراجعة...",
+      text: "جاري قراءة ملف بيانات الطلاب وإنشاء جلسة مراجعة...",
     });
 
     try {
@@ -227,7 +227,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
       formData.append("academicYear", academicYear.trim());
       formData.append("term", term.trim());
 
-      const response = await fetch("/api/dashboard/data-center/noor-import/preview", {
+      const response = await fetch("/api/dashboard/data-center/student-data-import/preview", {
         method: "POST",
         body: formData,
       });
@@ -235,7 +235,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
       const result = await readApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(result.error || "تعذر قراءة ملف نور.");
+        throw new Error(result.error || "تعذر قراءة ملف بيانات الطلاب.");
       }
 
       setCurrentSession(result.session);
@@ -262,7 +262,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
         <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-6 md:p-8">
             <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
-            <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز استيراد بيانات نور</h1>
+            <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز استيراد بيانات الطلاب</h1>
             <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
               أنشئ جلسة استيراد لكل سنة وفصل دراسي، ثم راجع الطلاب والتحديثات قبل اعتمادها في سجل مدرسة {schoolName}.
             </p>
@@ -294,7 +294,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
                 <div>
                   <h2 className="text-lg font-black">بيانات فترة الاستيراد</h2>
                   <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
-                    كل ملف نور يجب أن يُحفظ داخل سنة وفصل دراسي حتى يسهل تحديث الطلاب سنويًا.
+                    كل ملف بيانات الطلاب يجب أن يُحفظ داخل سنة وفصل دراسي حتى يسهل تحديث الطلاب سنويًا.
                   </p>
                 </div>
               </div>
@@ -333,7 +333,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
                   2
                 </span>
                 <div>
-                  <h2 className="text-lg font-black">رفع ملف نور</h2>
+                  <h2 className="text-lg font-black">رفع ملف بيانات الطلاب</h2>
                   <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
                     ارفع كشف بيانات الطلاب من نور. لن يتم تعديل سجل الطلاب إلا بعد فتح الجلسة واعتمادها.
                   </p>
@@ -425,14 +425,14 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
 
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    href={`/dashboard/data-center/noor-import/sessions/${currentSession.id}`}
+                    href={`/dashboard/data-center/student-data-import/sessions/${currentSession.id}`}
                     className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700"
                   >
                     فتح تفاصيل الجلسة
                   </Link>
 
                   <Link
-                    href="/dashboard/data-center/noor-import/sessions"
+                    href="/dashboard/data-center/student-data-import/sessions"
                     className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
                   >
                     آخر جلسة محفوظة
@@ -457,7 +457,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
             </div>
 
             <Link
-              href="/dashboard/data-center/noor-import/sessions"
+              href="/dashboard/data-center/student-data-import/sessions"
               className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700 hover:bg-sky-100"
             >
               فتح آخر جلسة
@@ -490,7 +490,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
                       </h3>
 
                       <p className="mt-1 text-xs font-bold text-slate-500">
-                        {session.files?.[0]?.fileName || "ملف نور"} · {session.totalRows} طالب/طالبة · {formatDate(session.createdAt)}
+                        {session.files?.[0]?.fileName || "ملف بيانات الطلاب"} · {session.totalRows} طالب/طالبة · {formatDate(session.createdAt)}
                       </p>
                     </div>
 
@@ -506,7 +506,7 @@ export function NoorImportClient({ schoolName }: NoorImportClientProps) {
                       </span>
 
                       <Link
-                        href={`/dashboard/data-center/noor-import/sessions/${session.id}`}
+                        href={`/dashboard/data-center/student-data-import/sessions/${session.id}`}
                         className="rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-black text-sky-700 hover:bg-sky-50"
                       >
                         فتح الجلسة

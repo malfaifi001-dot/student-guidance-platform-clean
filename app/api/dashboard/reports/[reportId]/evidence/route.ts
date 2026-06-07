@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireActiveSubscriptionApi } from "@/lib/subscription/subscription-api-guard";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";

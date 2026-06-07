@@ -1,4 +1,4 @@
-﻿import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { buildResultsAnalysisAccessWhere } from "@/lib/results-analysis/results-analysis-access";

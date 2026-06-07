@@ -1,4 +1,4 @@
-﻿import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 import { ReportTemplateLivePreview } from "@/components/report-engine/report-template-live-preview";
 import { initialReportTextSnippets } from "@/lib/report-engine/report-template-builder-presets";
 import { extraOfficialReportTemplatePresets } from "@/lib/report-engine/extra-official-template-presets";

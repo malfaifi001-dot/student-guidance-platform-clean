@@ -1,4 +1,4 @@
-﻿import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
 
 type AppreciationCertificatePreviewProps = {
   template?: unknown;

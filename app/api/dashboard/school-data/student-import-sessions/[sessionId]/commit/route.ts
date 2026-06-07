@@ -1,4 +1,4 @@
-﻿import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { commitStudentImportSession } from "@/engine/students/student-import-engine";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 

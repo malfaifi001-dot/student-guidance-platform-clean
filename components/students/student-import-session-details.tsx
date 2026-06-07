@@ -1,4 +1,4 @@
-﻿type Props = {
+type Props = {
   session?: {
     id: string;
     title?: string | null;

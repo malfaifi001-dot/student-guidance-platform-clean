@@ -1,4 +1,4 @@
-﻿import { AdminActivityMetricsPanel } from "@/components/admin/admin-activity-metrics-panel";
+import { AdminActivityMetricsPanel } from "@/components/admin/admin-activity-metrics-panel";
 import { AdminOperationalAlertsPanel } from "@/components/admin/admin-operational-alerts-panel";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 
 export async function POST() {

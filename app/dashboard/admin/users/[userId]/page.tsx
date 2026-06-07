@@ -1,4 +1,4 @@
-﻿import { notFound, redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import {

@@ -1,4 +1,4 @@
-﻿import { AdminActivityCenter } from "@/components/admin/admin-activity-center";
+import { AdminActivityCenter } from "@/components/admin/admin-activity-center";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { redirect } from "next/navigation";
 

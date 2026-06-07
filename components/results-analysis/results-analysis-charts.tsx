@@ -1,4 +1,4 @@
-﻿type ProgressItem = {
+type ProgressItem = {
   label: string;
   value: number;
 };

@@ -1,4 +1,4 @@
-﻿import { notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";

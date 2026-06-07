@@ -1,4 +1,4 @@
-﻿import { notFound, redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
 import {

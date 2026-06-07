@@ -1,4 +1,4 @@
-﻿
+
 type ActivityMetricUser = {
   id: string;
   officialName?: string | null;

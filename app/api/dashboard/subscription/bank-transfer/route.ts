@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { logBankTransferRequestedEvent } from "@/lib/admin/activity-events";

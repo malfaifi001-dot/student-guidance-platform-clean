@@ -1,4 +1,4 @@
-﻿import "server-only";
+import "server-only";
 
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { toUserRole, type UserRole } from "./roles";

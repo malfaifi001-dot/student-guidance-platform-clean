@@ -1,4 +1,4 @@
-﻿type ReportPdfGuidanceCardProps = {
+type ReportPdfGuidanceCardProps = {
   reportTitle: string;
   serviceName: string;
   editUrl: string;

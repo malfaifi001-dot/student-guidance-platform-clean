@@ -1,4 +1,4 @@
-﻿import "server-only";
+import "server-only";
 
 import { notFound } from "next/navigation";
 import type { CurrentUser } from "./auth";

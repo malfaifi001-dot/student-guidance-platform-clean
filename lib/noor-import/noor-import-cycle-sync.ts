@@ -1,4 +1,4 @@
-﻿type SyncNoorImportCycleArgs = {
+type SyncNoorImportCycleArgs = {
   cycleId?: string | null;
   schoolAccountId: string;
 };

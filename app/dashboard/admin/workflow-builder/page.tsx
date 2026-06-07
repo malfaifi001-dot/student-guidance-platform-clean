@@ -1,4 +1,4 @@
-﻿import { WorkflowBuilderSidebar } from "@/components/admin/workflow-builder-sidebar";
+import { WorkflowBuilderSidebar } from "@/components/admin/workflow-builder-sidebar";
 import { getWorkflowBuilderData } from "@/engine/workflow-builder/workflow-builder-engine";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 

@@ -1,4 +1,4 @@
-﻿import { cookies, headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import {
   SESSION_COOKIE_NAME,

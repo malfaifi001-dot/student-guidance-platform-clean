@@ -1,4 +1,4 @@
-﻿export type WorkflowOptionLike = {
+export type WorkflowOptionLike = {
   label?: string | null;
   value?: string | null;
 };

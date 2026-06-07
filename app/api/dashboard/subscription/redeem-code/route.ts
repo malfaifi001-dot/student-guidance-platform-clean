@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { redeemActivationCode } from "@/lib/activation/activation-service";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";

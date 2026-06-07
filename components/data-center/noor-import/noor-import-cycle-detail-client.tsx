@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -82,7 +82,7 @@ function statusClass(status: string) {
 }
 
 function getFileName(session?: SessionItem | null) {
-  return session?.files?.[0]?.fileName || "ملف نور";
+  return session?.files?.[0]?.fileName || "ملف بيانات الطلاب";
 }
 
 export function NoorImportCycleDetailClient({ cycleId }: Props) {
@@ -106,14 +106,14 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
   const hasPendingUpdate = Boolean(latestPendingSession);
 
   async function loadCycle() {
-    const response = await fetch(`/api/dashboard/data-center/noor-import/cycles/${cycleId}`, {
+    const response = await fetch(`/api/dashboard/data-center/student-data-import/cycles/${cycleId}`, {
       cache: "no-store",
     });
 
     const result = await readApiResponse(response);
 
     if (!response.ok) {
-      throw new Error(result.error || "تعذر جلب بطاقة بيانات نور.");
+      throw new Error(result.error || "تعذر جلب بطاقة بيانات الطلاب.");
     }
 
     setCycle(result.cycle);
@@ -124,7 +124,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
     loadCycle().catch((error) => {
       setMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "تعذر فتح بطاقة بيانات نور.",
+        text: error instanceof Error ? error.message : "تعذر فتح بطاقة بيانات الطلاب.",
       });
     });
   }, [cycleId]);
@@ -155,7 +155,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
     setIsLoading(true);
     setMessage({
       type: "info",
-      text: "جاري إنشاء تحديث جديد داخل بطاقة بيانات نور...",
+      text: "جاري إنشاء تحديث جديد داخل بطاقة بيانات الطلاب...",
     });
 
     try {
@@ -165,7 +165,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
       formData.append("academicYear", cycle.academicYear);
       formData.append("term", cycle.term);
 
-      const response = await fetch("/api/dashboard/data-center/noor-import/preview", {
+      const response = await fetch("/api/dashboard/data-center/student-data-import/preview", {
         method: "POST",
         body: formData,
       });
@@ -187,7 +187,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
     } catch (error) {
       setMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "تعذر رفع ملف نور.",
+        text: error instanceof Error ? error.message : "تعذر رفع ملف بيانات الطلاب.",
       });
     } finally {
       setIsLoading(false);
@@ -201,20 +201,20 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <Link
-            href="/dashboard/data-center/noor-import"
+            href="/dashboard/data-center/student-data-import"
             className="text-sm font-black text-sky-700 hover:text-sky-900"
           >
-            ← العودة إلى مركز بيانات نور
+            ← العودة إلى مركز بيانات الطلاب
           </Link>
 
           <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-black text-sky-700">بطاقة بيانات نور</p>
+              <p className="text-sm font-black text-sky-700">بطاقة بيانات الطلاب</p>
               <h1 className="mt-2 text-2xl font-black md:text-4xl">
-                {cycle ? `بيانات نور ${cycle.academicYear} - ${cycle.term}` : "بيانات نور"}
+                {cycle ? `بيانات الطلاب ${cycle.academicYear} - ${cycle.term}` : "بيانات الطلاب"}
               </h1>
               <p className="mt-2 text-sm font-bold text-slate-500">
-                كل تحديثات هذه السنة والفصل الدراسي محفوظة هنا. ارفع ملف نور، راجع التحديث، ثم اعتمده.
+                كل تحديثات هذه السنة والفصل الدراسي محفوظة هنا. ارفع ملف بيانات الطلاب، راجع التحديث، ثم اعتمده.
               </p>
             </div>
 
@@ -255,7 +255,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
               </div>
 
               <Link
-                href={`/dashboard/data-center/noor-import/sessions/${latestPendingSession.id}`}
+                href={`/dashboard/data-center/student-data-import/sessions/${latestPendingSession.id}`}
                 className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-amber-700"
               >
                 مراجعة واعتماد التحديث
@@ -269,7 +269,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
             <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black">ملخص البطاقة</h2>
               <p className="mt-1 text-sm font-bold text-slate-500">
-                أرقام مختصرة عن بيانات نور لهذه السنة والفصل.
+                أرقام مختصرة عن بيانات الطلاب لهذه السنة والفصل.
               </p>
 
               <div className="mt-5 grid gap-3 md:grid-cols-4">
@@ -318,7 +318,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
             <form onSubmit={handleUpload} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black">رفع تحديث جديد</h2>
               <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
-                ارفع ملف نور جديد لنفس السنة والفصل. سيظهر كتحديث ينتظر المراجعة داخل هذه البطاقة.
+                ارفع ملف بيانات الطلاب جديد لنفس السنة والفصل. سيظهر كتحديث ينتظر المراجعة داخل هذه البطاقة.
               </p>
 
               {hasPendingUpdate ? (
@@ -356,7 +356,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
         <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black">سجل تحديثات البطاقة</h2>
           <p className="mt-1 text-sm font-bold text-slate-500">
-            كل ملف نور مرفوع لهذه السنة والفصل يظهر هنا، سواء كان بانتظار المراجعة أو معتمدًا.
+            كل ملف بيانات الطلاب مرفوع لهذه السنة والفصل يظهر هنا، سواء كان بانتظار المراجعة أو معتمدًا.
           </p>
 
           <div className="mt-5 grid gap-3">
@@ -399,7 +399,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
                       </span>
 
                       <Link
-                        href={`/dashboard/data-center/noor-import/sessions/${session.id}`}
+                        href={`/dashboard/data-center/student-data-import/sessions/${session.id}`}
                         className="rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-black text-sky-700 hover:bg-sky-50"
                       >
                         {session.status === "COMMITTED" ? "عرض التحديث" : "مراجعة واعتماد"}
@@ -410,7 +410,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
               ))
             ) : (
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-8 text-center text-sm font-bold text-slate-500">
-                لم يتم رفع أي ملف داخل هذه البطاقة بعد. ارفع أول ملف نور من بطاقة "رفع تحديث جديد".
+                لم يتم رفع أي ملف داخل هذه البطاقة بعد. ارفع أول ملف بيانات الطلاب من بطاقة "رفع تحديث جديد".
               </div>
             )}
           </div>

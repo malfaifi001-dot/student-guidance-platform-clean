@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { buildReportIdentityFromCurrentUser } from "@/lib/report-engine/report-identity-runtime";
 

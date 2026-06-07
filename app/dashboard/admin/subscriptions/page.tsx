@@ -1,4 +1,4 @@
-﻿import { AdminSubscriptionsControlCenter } from "@/components/subscription/admin-subscriptions-control-center";
+import { AdminSubscriptionsControlCenter } from "@/components/subscription/admin-subscriptions-control-center";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { redirect } from "next/navigation";
 

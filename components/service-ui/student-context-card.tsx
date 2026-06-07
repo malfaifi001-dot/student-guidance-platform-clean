@@ -10,7 +10,7 @@ type StudentContextCardProps = {
 
 export function StudentContextCard({
   title = "بيانات الطالب/الطالبة",
-  description = "اختر الطالب من بيانات نور ليتم ربط السجل والتقارير بشكل صحيح.",
+  description = "اختر الطالب من بيانات الطلاب ليتم ربط السجل والتقارير بشكل صحيح.",
   onStudentChange,
 }: StudentContextCardProps) {
   return (

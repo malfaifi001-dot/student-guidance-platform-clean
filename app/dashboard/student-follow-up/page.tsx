@@ -1,4 +1,4 @@
-﻿import { WorkflowServiceHomePage } from "@/components/services/workflow-service-home-page";
+import { WorkflowServiceHomePage } from "@/components/services/workflow-service-home-page";
 
 export default function StudentFollowUpPage() {
   return (

@@ -1,4 +1,4 @@
-﻿type ReportTemplateItem = {
+type ReportTemplateItem = {
   id: string;
   name: string;
   serviceSlug: string | null;

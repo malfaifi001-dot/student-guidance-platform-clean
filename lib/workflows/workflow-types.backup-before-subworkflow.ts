@@ -1,4 +1,4 @@
-﻿export const WORKFLOW_TYPES = {
+export const WORKFLOW_TYPES = {
   DEFAULT: "default",
 } as const;
 

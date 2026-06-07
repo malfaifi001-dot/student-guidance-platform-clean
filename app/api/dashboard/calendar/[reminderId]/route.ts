@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { logPlatformActivity } from "@/lib/admin/activity-log";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";

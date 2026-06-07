@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 const FieldType = {
   TEXT: "TEXT",
   TEXTAREA: "TEXTAREA",
