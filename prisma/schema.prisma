@@ -656,6 +656,8 @@ model PaymentTransaction {
   externalRef  String?
   metadataJson Json?
 
+  invoice Invoice?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1100,5 +1102,72 @@ model NoorImportCycle {
 
   @@index([schoolAccountId])
   @@index([schoolAccountId, academicYear, term])
+  @@index([status])
+}
+
+model InvoiceSettings {
+  id                     String   @id @default(cuid())
+  singletonKey           String   @unique @default("default")
+  sellerName             String   @default("منصة التوجيه الطلابي")
+  sellerDomain           String?  @default("smstudents.com")
+  sellerCountry          String?  @default("المملكة العربية السعودية")
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+  vatEnabled             Boolean  @default(false)
+  vatRate                Int      @default(0)
+  invoicePrefix          String   @default("INV")
+  invoiceNote            String?  @db.Text
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model InvoiceNumberSequence {
+  id         String   @id @default(cuid())
+  year       Int
+  month      Int
+  nextNumber Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+model Invoice {
+  id                   String             @id @default(cuid())
+  invoiceNumber        String             @unique
+  paymentTransactionId String             @unique
+  paymentTransaction   PaymentTransaction @relation(fields: [paymentTransactionId], references: [id], onDelete: Cascade)
+  issuedById           String?
+  status               String             @default("ISSUED")
+
+  sellerName             String
+  sellerDomain           String?
+  sellerCountry          String?
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+
+  buyerName        String
+  buyerEmail       String?
+  buyerJobTitle    String?
+  buyerSchoolName  String?
+  buyerAccountName String?
+
+  itemTitle      String
+  subtotalAmount Int
+  taxRate        Int    @default(0)
+  taxAmount      Int    @default(0)
+  totalAmount    Int
+  currency       String @default("SAR")
+
+  pdfUrl       String?
+  snapshotJson Json?
+  issuedAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([paymentTransactionId])
+  @@index([issuedAt])
   @@index([status])
 }

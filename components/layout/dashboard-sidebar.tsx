@@ -111,11 +111,20 @@ const adminMainLinks: SidebarLinkItem[] = [
   { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
   { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
   { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
-  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown }, { label: "المدفوعات", href: "/dashboard/admin/payments", icon: WalletCards },
+  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
   { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
   { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
 ];
 
+const adminPaymentLinks: SidebarLinkItem[] = [
+  { label: "عمليات الدفع", href: "/dashboard/admin/payments", icon: WalletCards },
+  { label: "الفواتير", href: "/dashboard/admin/payments/invoices", icon: FileText },
+  {
+    label: "إعدادات الفواتير والضريبة",
+    href: "/dashboard/admin/payments/invoice-settings",
+    icon: Settings,
+  },
+];
 const adminBuilderLinks: SidebarLinkItem[] = [
   {
     label: "مصمم Workflow",
@@ -273,67 +282,77 @@ function AdminSidebar({
 }) {
   return (
     <>
-      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1">
-        <SidebarSection title="الرئيسية" collapsed={collapsed}>
-          {adminMainLinks.map((item) => (
-            <SidebarLink
-              key={item.href}
-              item={item}
-              active={isActivePath(pathname, item.href)}
-              admin
-              collapsed={collapsed}
-            />
-          ))}
-        </SidebarSection>
+      <SidebarSection title="الإدارة" collapsed={collapsed}>
+        {adminMainLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            admin
+            collapsed={collapsed}
+          />
+        ))}
+      </SidebarSection>
 
-        <SidebarDropdown
-          title="البناء والقوالب"
-          defaultOpen={
-            pathname.includes("/workflow-builder") ||
-            pathname.includes("/report-templates")
-          }
-          admin
-          collapsed={collapsed}
-        >
-          {adminBuilderLinks.map((item) => (
-            <SidebarLink
-              key={item.href}
-              item={item}
-              active={isActivePath(pathname, item.href)}
-              admin
-              compact
-              collapsed={collapsed}
-            />
-          ))}
-        </SidebarDropdown>
+      <SidebarDropdown
+        title="المدفوعات"
+        defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
+        admin
+        collapsed={collapsed}
+      >
+        {adminPaymentLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            admin
+            compact
+            collapsed={collapsed}
+          />
+        ))}
+      </SidebarDropdown>
 
-        <SidebarDropdown
-          title="الحساب والإعدادات"
-          defaultOpen={
-            pathname.startsWith("/dashboard/account") ||
-            pathname.startsWith("/dashboard/settings")
-          }
-          admin
-          collapsed={collapsed}
-        >
-          {adminAccountLinks.map((item) => (
-            <SidebarLink
-              key={item.href}
-              item={item}
-              active={isActivePath(pathname, item.href)}
-              admin
-              compact
-              collapsed={collapsed}
-            />
-          ))}
-        </SidebarDropdown>
-      </nav>
+      <SidebarDropdown
+        title="أدوات البناء"
+        defaultOpen={hasActive(pathname, adminBuilderLinks)}
+        admin
+        collapsed={collapsed}
+      >
+        {adminBuilderLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            admin
+            compact
+            collapsed={collapsed}
+          />
+        ))}
+      </SidebarDropdown>
+
+      <SidebarDropdown
+        title="الحساب والإعدادات"
+        defaultOpen={hasActive(pathname, adminAccountLinks)}
+        admin
+        collapsed={collapsed}
+      >
+        {adminAccountLinks.map((item) => (
+          <SidebarLink
+            key={item.href}
+            item={item}
+            active={isActivePath(pathname, item.href)}
+            admin
+            compact
+            collapsed={collapsed}
+          />
+        ))}
+      </SidebarDropdown>
 
       {!collapsed ? (
-        <div className="mt-5 rounded-[1.35rem] bg-slate-950 p-4 text-white shadow-sm">
-          <p className="text-xs font-black text-slate-300">Admin Mode</p>
-          <p className="mt-2 text-xs font-bold leading-6 text-slate-300">
-            إدارة التفعيل، الاشتراكات، النماذج، والتقارير.
+        <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 p-4 text-xs leading-6 text-emerald-900">
+          <p className="font-black">Admin Mode</p>
+          <p className="mt-1 text-emerald-700">
+            إدارة التفعيل، الاشتراكات، المدفوعات، الفواتير، النماذج، والتقارير.
           </p>
         </div>
       ) : null}
