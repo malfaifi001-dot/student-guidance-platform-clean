@@ -274,6 +274,15 @@ export function AdminPaymentDetailPage({ transactionId }: { transactionId: strin
             >
               العودة للمدفوعات
             </Link>
+
+            {transaction?.status === "PAID" ? (
+              <Link
+                href={`/dashboard/admin/payments/${transactionId}/invoice`}
+                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200 dark:hover:bg-emerald-950/50"
+              >
+                إصدار فاتورة
+              </Link>
+            ) : null}
             <button
               type="button"
               onClick={() => void loadDetails()}

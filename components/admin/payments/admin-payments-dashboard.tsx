@@ -144,6 +144,29 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function buildPaymentsExportUrl({
+  query,
+  status,
+  method,
+  from,
+  to,
+}: {
+  query: string;
+  status: "ALL" | PaymentStatus;
+  method: "ALL" | PaymentMethod;
+  from: string;
+  to: string;
+}) {
+  const params = new URLSearchParams();
+
+  if (query.trim()) params.set("query", query.trim());
+  if (status !== "ALL") params.set("status", status);
+  if (method !== "ALL") params.set("method", method);
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+
+  return `/api/dashboard/admin/payments/export?${params.toString()}`;
+}
 function getStatusLabel(status: string) {
   const labels: Record<string, string> = {
     PENDING: "معلقة",
@@ -280,6 +303,18 @@ export function AdminPaymentsDashboard() {
   const metrics = data?.metrics;
   const transactions = useMemo(() => data?.transactions || [], [data]);
   const pendingBankTransfers = useMemo(() => data?.pendingBankTransfers || [], [data]);
+
+  const exportUrl = useMemo(
+    () =>
+      buildPaymentsExportUrl({
+        query,
+        status,
+        method,
+        from,
+        to,
+      }),
+    [query, status, method, from, to]
+  );
 
   async function loadPayments() {
     setIsLoading(true);
@@ -481,6 +516,13 @@ export function AdminPaymentsDashboard() {
               >
                 تطبيق الفلاتر
               </button>
+
+              <a
+                href={exportUrl}
+                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200 dark:hover:bg-emerald-950/50"
+              >
+                تصدير Excel
+              </a>
 
               <button
                 type="button"
