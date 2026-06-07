@@ -1,4 +1,4 @@
-﻿export type SchoolIdentityReadinessInput = {
+export type SchoolIdentityReadinessInput = {
   officialName?: string | null;
   jobTitle?: string | null;
   phone?: string | null;
@@ -65,12 +65,6 @@ export const SCHOOL_IDENTITY_READINESS_ITEMS: SchoolIdentityReadinessItem[] = [
     weight: 8,
   },
   {
-    key: "educationOffice",
-    label: "مكتب التعليم",
-    required: false,
-    weight: 6,
-  },
-  {
     key: "city",
     label: "المدينة",
     required: false,
@@ -87,12 +81,6 @@ export const SCHOOL_IDENTITY_READINESS_ITEMS: SchoolIdentityReadinessItem[] = [
     label: "رقم جوال الموجه/الموجهة",
     required: false,
     weight: 3,
-  },
-  {
-    key: "logoUrl",
-    label: "شعار المدرسة",
-    required: false,
-    weight: 5,
   },
 ];
 

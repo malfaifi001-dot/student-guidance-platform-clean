@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { calculateSchoolIdentityReadiness } from "@/lib/school-identity-readiness";
@@ -256,15 +256,7 @@ export function SchoolSettingsForm() {
       <IdentityReadinessCard readiness={readiness} />
 
       <ReportIdentityPreviewCard form={form} />
-
-      <SchoolLogoUploadCard
-        logoUrl={form.logoUrl}
-        uploading={uploadingLogo}
-        onUpload={uploadLogo}
-        onClear={() => update("logoUrl", "")}
-      />
-
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+<section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-black text-blue-700">هوية الحساب</p>
@@ -332,26 +324,12 @@ export function SchoolSettingsForm() {
             value={form.educationDepartment}
             onChange={(value) => update("educationDepartment", value)}
           />
-
-          <Input
-            label="مكتب التعليم"
-            value={form.educationOffice}
-            onChange={(value) => update("educationOffice", value)}
-          />
-
-          <Input
+<Input
             label="المدينة"
             value={form.city}
             onChange={(value) => update("city", value)}
           />
-
-          <Input
-            label="الحي"
-            value={form.district}
-            onChange={(value) => update("district", value)}
-          />
-
-          <Input
+<Input
             label="المرحلة"
             value={form.stage}
             onChange={(value) => update("stage", value)}
@@ -368,13 +346,7 @@ export function SchoolSettingsForm() {
             value={form.currentSemester}
             onChange={(value) => update("currentSemester", value)}
           />
-
-          <Input
-            label="رابط شعار المدرسة"
-            value={form.logoUrl}
-            onChange={(value) => update("logoUrl", value)}
-          />
-        </div>
+</div>
       </section>
 
       <div className="sticky bottom-4 z-20 rounded-[2rem] border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur">
@@ -634,26 +606,13 @@ function ReportIdentityPreviewCard({
             هذه معاينة تقريبية للترويسة والبيانات التي ستظهر في PDF.
           </p>
         </div>
-
-        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-400">
-          {form.logoUrl ? (
-            <img
-              src={form.logoUrl}
-              alt="شعار المدرسة"
-              className="h-full w-full object-contain p-1"
-            />
-          ) : (
-            "بدون شعار"
-          )}
-        </div>
-      </div>
+</div>
 
       <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
         <div className="grid gap-3 text-center text-sm font-black text-slate-800 md:grid-cols-3">
           <p>وزارة التعليم</p>
           <p>{form.educationDepartment || "إدارة التعليم"}</p>
-          <p>{form.educationOffice || "مكتب التعليم"}</p>
-        </div>
+</div>
 
         <div className="mt-5 rounded-2xl bg-white p-5 text-center">
           <p className="text-2xl font-black text-slate-950">
@@ -670,7 +629,7 @@ function ReportIdentityPreviewCard({
           <PreviewLine label="الموجه/الموجهة" value={form.officialName || "الاسم الرسمي"} />
           <PreviewLine label="المسمى" value={form.jobTitle || "المسمى الوظيفي"} />
           <PreviewLine label="مدير/ة المدرسة" value={form.principalName || "غير محدد"} />
-          <PreviewLine label="المدينة/الحي" value={[form.city, form.district].filter(Boolean).join(" - ") || "غير محدد"} />
+          <PreviewLine label="المدينة" value={form.city || "غير محدد"} />
         </div>
       </div>
     </section>

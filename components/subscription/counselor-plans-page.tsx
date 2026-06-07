@@ -141,6 +141,22 @@ function getEntryNoticeFromUrl(): EntryNotice | null {
   };
 }
 
+
+function PlanMini({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white/80 px-3 py-3 shadow-sm">
+      <p className="text-[11px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 truncate text-xs font-black text-slate-800">{value}</p>
+    </div>
+  );
+}
+
 export function CounselorPlansPage() {
   const [data, setData] = useState<PlansPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -205,6 +221,13 @@ export function CounselorPlansPage() {
   }, [billingCycle, selectedPlan]);
 
   const isSelectedPlanFree = selectedPlan ? selectedPrice <= 0 : false;
+
+  const currentSubscriptionPlan = data?.subscription
+    ? data.plans.find((plan) => plan.name === data.subscription?.planName) ?? null
+    : null;
+
+  const currentSubscriptionServicesCount =
+    currentSubscriptionPlan?.services.length ?? 0;
 
   async function submitOrder() {
     if (!selectedPlan) {
@@ -436,18 +459,79 @@ export function CounselorPlansPage() {
             </p>
           </div>
 
-          {data?.subscription ? (
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
-              <span className="text-slate-400">اشتراكك الحالي: </span>
-              <strong className="text-slate-900">
-                {data.subscription.planName}
-              </strong>
-              <span className="mx-2">·</span>
-              <span>{subscriptionStatusLabel(data.subscription.status)}</span>
-              <span className="mx-2">·</span>
-              <span>{data.subscription.remainingDays ?? 0} يوم</span>
+                    {data?.subscription ? (
+            <div className="relative min-w-[330px] overflow-hidden rounded-[1.75rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-5 shadow-sm">
+              <div className="absolute -left-10 -top-10 h-28 w-28 rounded-full bg-sky-100/70 blur-2xl" />
+
+              <div className="relative z-10">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-sky-600 shadow-sm">
+                    <WalletCards className="h-6 w-6" />
+                  </div>
+
+                  <span
+                    className={[
+                      "rounded-full px-3 py-1 text-[11px] font-black",
+                      data.subscription.usable
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700",
+                    ].join(" ")}
+                  >
+                    {subscriptionStatusLabel(data.subscription.status)}
+                  </span>
+                </div>
+
+                <p className="mt-4 text-xs font-black text-sky-700">
+                  اشتراكك الحالي
+                </p>
+
+                <h2 className="mt-1 text-2xl font-black text-slate-950">
+                  {data.subscription.planName}
+                </h2>
+
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+                  <PlanMini
+                    label="الحالة"
+                    value={subscriptionStatusLabel(data.subscription.status)}
+                  />
+                  <PlanMini
+                    label="المتبقي"
+                    value={`${data.subscription.remainingDays ?? 0} يوم`}
+                  />
+                  <PlanMini
+                    label="الخدمات"
+                    value={
+                      currentSubscriptionServicesCount > 0
+                        ? `${currentSubscriptionServicesCount} خدمة`
+                        : "حسب الباقة"
+                    }
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    document
+                      .getElementById("plans-list")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  className="mt-4 h-11 w-full rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+                >
+                  اختيار أو تغيير الباقة
+                </button>
+              </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="min-w-[330px] rounded-[1.75rem] border border-amber-100 bg-amber-50 p-5 shadow-sm">
+              <p className="text-xs font-black text-amber-700">لا يوجد اشتراك نشط</p>
+              <h2 className="mt-2 text-xl font-black text-amber-950">
+                اختر باقة لبدء استخدام الخدمات
+              </h2>
+              <p className="mt-2 text-xs font-bold leading-6 text-amber-800">
+                بعد قبول الطلب سيتم تفعيل الباقة وفتح الخدمات المشمولة.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="mt-5 flex w-fit rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
