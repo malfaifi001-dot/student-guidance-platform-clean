@@ -28,6 +28,15 @@ function asJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
+function isUniqueInvoiceCreationRaceError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002" &&
+    Array.isArray(error.meta?.target) &&
+    error.meta.target.includes("paymentTransactionId")
+  );
+}
+
 function getMetadata(metadataJson: unknown) {
   return metadataJson && typeof metadataJson === "object"
     ? (metadataJson as Record<string, unknown>)
@@ -342,90 +351,106 @@ export async function getOrCreateInvoiceForPaymentTransaction(
     transaction.subscription?.plan.name || "باقة غير محددة"
   }`;
 
-  await prisma.$transaction(async (tx) => {
-    const issuedAt = new Date();
-    const year = issuedAt.getFullYear();
-    const month = issuedAt.getMonth() + 1;
+  try {
+    await prisma.$transaction(async (tx) => {
+      const alreadyCreatedInsideTransaction = await tx.invoice.findUnique({
+        where: {
+          paymentTransactionId: transaction.id,
+        },
+      });
 
-    const sequence = await tx.invoiceNumberSequence.upsert({
-      where: {
-        year_month: {
+      if (alreadyCreatedInsideTransaction) {
+        return;
+      }
+
+      const issuedAt = new Date();
+      const year = issuedAt.getFullYear();
+      const month = issuedAt.getMonth() + 1;
+
+      const sequence = await tx.invoiceNumberSequence.upsert({
+        where: {
+          year_month: {
+            year,
+            month,
+          },
+        },
+        update: {
+          nextNumber: {
+            increment: 1,
+          },
+        },
+        create: {
           year,
           month,
+          nextNumber: 2,
         },
-      },
-      update: {
-        nextNumber: {
-          increment: 1,
+      });
+
+      const sequenceNumber = sequence.nextNumber - 1;
+      const invoiceNumber = buildInvoiceNumber(
+        normalizePrefix(settings.invoicePrefix),
+        issuedAt,
+        sequenceNumber
+      );
+
+      await tx.invoice.create({
+        data: {
+          invoiceNumber,
+          paymentTransactionId: transaction.id,
+          issuedById: issuedById || null,
+          status: "ISSUED",
+
+          sellerName: settings.sellerName,
+          sellerDomain: settings.sellerDomain,
+          sellerCountry: settings.sellerCountry,
+          sellerAddress: settings.sellerAddress,
+          commercialRegistration: settings.commercialRegistration,
+          taxNumber: settings.taxNumber,
+
+          buyerName: counselorName,
+          buyerEmail: requesterUser?.email || null,
+          buyerJobTitle: requesterUser?.jobTitle || null,
+          buyerSchoolName: schoolName,
+          buyerAccountName: transaction.subscription?.schoolAccount.name || null,
+
+          itemTitle,
+          subtotalAmount: amounts.subtotalAmount,
+          taxRate: settings.vatEnabled ? settings.vatRate : 0,
+          taxAmount: amounts.taxAmount,
+          totalAmount: amounts.totalAmount,
+          currency: transaction.currency,
+
+          snapshotJson: asJson({
+            invoiceNote:
+              settings.invoiceNote ||
+              "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.",
+            settings: {
+              sellerName: settings.sellerName,
+              sellerDomain: settings.sellerDomain,
+              sellerCountry: settings.sellerCountry,
+              sellerAddress: settings.sellerAddress,
+              commercialRegistration: settings.commercialRegistration,
+              taxNumber: settings.taxNumber,
+              vatEnabled: settings.vatEnabled,
+              vatRate: settings.vatRate,
+            },
+            transaction: {
+              id: transaction.id,
+              amount: transaction.amount,
+              currency: transaction.currency,
+              method: transaction.method,
+              status: transaction.status,
+              externalRef: transaction.externalRef,
+            },
+          }),
         },
-      },
-      create: {
-        year,
-        month,
-        nextNumber: 2,
-      },
+      });
     });
-
-    const sequenceNumber = sequence.nextNumber - 1;
-    const invoiceNumber = buildInvoiceNumber(
-      normalizePrefix(settings.invoicePrefix),
-      issuedAt,
-      sequenceNumber
-    );
-
-    await tx.invoice.create({
-      data: {
-        invoiceNumber,
-        paymentTransactionId: transaction.id,
-        issuedById: issuedById || null,
-        status: "ISSUED",
-
-        sellerName: settings.sellerName,
-        sellerDomain: settings.sellerDomain,
-        sellerCountry: settings.sellerCountry,
-        sellerAddress: settings.sellerAddress,
-        commercialRegistration: settings.commercialRegistration,
-        taxNumber: settings.taxNumber,
-
-        buyerName: counselorName,
-        buyerEmail: requesterUser?.email || null,
-        buyerJobTitle: requesterUser?.jobTitle || null,
-        buyerSchoolName: schoolName,
-        buyerAccountName: transaction.subscription?.schoolAccount.name || null,
-
-        itemTitle,
-        subtotalAmount: amounts.subtotalAmount,
-        taxRate: settings.vatEnabled ? settings.vatRate : 0,
-        taxAmount: amounts.taxAmount,
-        totalAmount: amounts.totalAmount,
-        currency: transaction.currency,
-
-        snapshotJson: asJson({
-          invoiceNote:
-            settings.invoiceNote ||
-            "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.",
-          settings: {
-            sellerName: settings.sellerName,
-            sellerDomain: settings.sellerDomain,
-            sellerCountry: settings.sellerCountry,
-            sellerAddress: settings.sellerAddress,
-            commercialRegistration: settings.commercialRegistration,
-            taxNumber: settings.taxNumber,
-            vatEnabled: settings.vatEnabled,
-            vatRate: settings.vatRate,
-          },
-          transaction: {
-            id: transaction.id,
-            amount: transaction.amount,
-            currency: transaction.currency,
-            method: transaction.method,
-            status: transaction.status,
-            externalRef: transaction.externalRef,
-          },
-        }),
-      },
-    });
-  });
+  } catch (error) {
+    if (!isUniqueInvoiceCreationRaceError(error)) {
+      throw error;
+    }
+  }
 
   const createdInvoice = await findInvoiceWithTransaction(paymentTransactionId);
 
