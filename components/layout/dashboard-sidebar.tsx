@@ -181,11 +181,11 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
   return (
     <aside
       className={[
-        "hidden min-h-screen shrink-0 border-l border-slate-200 bg-white px-3 py-4 transition-all duration-300 xl:block",
+        "hidden min-h-screen shrink-0 bg-transparent px-4 py-5 transition-all duration-300 xl:block",
         collapsed ? "w-[82px]" : "w-[236px]",
       ].join(" ")}
     >
-      <div className="flex h-full flex-col">
+      <div className="sticky top-5 flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 p-3 shadow-xl shadow-slate-200/70 backdrop-blur-xl">
         <div
           className={[
             "rounded-[1.6rem] border transition",
