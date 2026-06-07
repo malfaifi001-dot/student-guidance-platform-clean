@@ -509,7 +509,7 @@ export function AdminInvoicesDashboard() {
                     <td className="px-3 py-4">
                       <div className="flex flex-wrap gap-2">
                         <Link
-                          href={`/dashboard/admin/payments/${invoice.paymentTransactionId}/invoice`}
+                          href={`/dashboard/admin/payments/invoices/${invoice.id}`}
                           className="inline-flex rounded-2xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
                         >
                           فتح
