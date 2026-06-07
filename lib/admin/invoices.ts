@@ -29,11 +29,24 @@ function asJson(value: unknown): Prisma.InputJsonValue {
 }
 
 function isUniqueInvoiceCreationRaceError(error: unknown) {
+  const knownError = error as {
+    code?: string;
+    meta?: unknown;
+    message?: string;
+  };
+
+  if (knownError.code !== "P2002") {
+    return false;
+  }
+
+  const metaText = JSON.stringify(knownError.meta || {});
+  const messageText = knownError.message || "";
+
   return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2002" &&
-    Array.isArray(error.meta?.target) &&
-    error.meta.target.includes("paymentTransactionId")
+    metaText.includes("paymentTransactionId") ||
+    metaText.includes("Invoice_paymentTransactionId_key") ||
+    messageText.includes("paymentTransactionId") ||
+    messageText.includes("Invoice_paymentTransactionId_key")
   );
 }
 
@@ -126,7 +139,7 @@ export async function updateInvoiceSettings(input: InvoiceSettingsInput) {
       invoicePrefix: normalizePrefix(input.invoicePrefix),
       invoiceNote:
         String(input.invoiceNote || "").trim() ||
-        "فاتورة/إيصال دفع إداري. الفاتورة الضريبية النهائية تتطلب اكتمال بيانات السجل والرقم الضريبي.",
+        "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.",
     },
   });
 }
@@ -194,20 +207,26 @@ async function findInvoiceWithTransaction(paymentTransactionId: string) {
   });
 }
 
-function buildInvoicePayload(invoice: NonNullable<Awaited<ReturnType<typeof findInvoiceWithTransaction>>>, linkedBankTransfer: Awaited<ReturnType<typeof getLinkedBankTransfer>>) {
+function buildInvoicePayload(
+  invoice: NonNullable<Awaited<ReturnType<typeof findInvoiceWithTransaction>>>,
+  linkedBankTransfer: Awaited<ReturnType<typeof getLinkedBankTransfer>>
+) {
   const transaction = invoice.paymentTransaction;
+  const snapshot =
+    invoice.snapshotJson && typeof invoice.snapshotJson === "object"
+      ? (invoice.snapshotJson as Record<string, unknown>)
+      : null;
 
   return {
     generatedAt: new Date(),
     invoice: {
       id: invoice.id,
+      status: invoice.status,
       invoiceNumber: invoice.invoiceNumber,
       issueDate: invoice.issuedAt,
       note:
-        (invoice.snapshotJson &&
-        typeof invoice.snapshotJson === "object" &&
-        "invoiceNote" in invoice.snapshotJson
-          ? String((invoice.snapshotJson as Record<string, unknown>).invoiceNote || "")
+        (snapshot && typeof snapshot.invoiceNote === "string"
+          ? snapshot.invoiceNote
           : "") ||
         "تم إصدار هذه الفاتورة آليًا من مركز المدفوعات في منصة التوجيه الطلابي.",
       seller: {
@@ -357,6 +376,9 @@ export async function getOrCreateInvoiceForPaymentTransaction(
         where: {
           paymentTransactionId: transaction.id,
         },
+        select: {
+          id: true,
+        },
       });
 
       if (alreadyCreatedInsideTransaction) {
@@ -463,7 +485,7 @@ export async function getOrCreateInvoiceForPaymentTransaction(
   );
 
   return {
-    wasCreated: true,
+    wasCreated: createdInvoice.createdAt.getTime() > Date.now() - 10_000,
     payload: buildInvoicePayload(createdInvoice, linkedBankTransfer),
   };
 }
