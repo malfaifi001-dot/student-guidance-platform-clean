@@ -24,25 +24,34 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ requestId: string }> }
 ) {
+  let step = "START";
+  let resolvedRequestId: string | null = null;
+
   try {
+    step = "CHECK_ADMIN_PERMISSION";
     const adminError = await requireAdminApi();
 
     if (adminError) {
       return adminError;
     }
 
+    step = "GET_CURRENT_USER";
     const current = await getCurrentSessionUser();
 
     if (!current?.user) {
       return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
     }
 
+    step = "READ_REQUEST";
     const device = await getRequestDeviceInfo();
     const { requestId } = await context.params;
+    resolvedRequestId = requestId;
+
     const payload = await request.json().catch(() => null);
     const days = Number(payload?.days || 0);
     const adminNote = String(payload?.adminNote || "").trim();
 
+    step = "LOAD_BANK_TRANSFER_REQUEST";
     const transferRequest = await prisma.bankTransferRequest.findUnique({
       where: {
         id: requestId,
@@ -51,13 +60,16 @@ export async function POST(
 
     if (!transferRequest) {
       return NextResponse.json(
-        { error: "طلب التحويل غير موجود." },
+        { error: "طلب التحويل غير موجود.", step },
         { status: 404 }
       );
     }
 
+    step = "VALIDATE_BANK_TRANSFER_STATUS";
     if (transferRequest.status !== "PENDING") {
       if (transferRequest.status === "PAID") {
+        step = "RECOVER_ALREADY_PAID_PAYMENT_TRANSACTION";
+
         const paymentResult = await createPaidBankTransferPaymentTransaction(
           transferRequest.id,
           {
@@ -71,6 +83,8 @@ export async function POST(
         return NextResponse.json({
           message:
             "هذا الطلب تمت معالجته مسبقًا، وتم التأكد من عملية الدفع المرتبطة به.",
+          step,
+          requestId: transferRequest.id,
           paymentTransactionId: paymentResult.transaction?.id || null,
           paymentTransactionCreated: paymentResult.wasCreated,
           skippedReason: paymentResult.skippedReason,
@@ -78,28 +92,42 @@ export async function POST(
       }
 
       return NextResponse.json(
-        { error: "هذا الطلب تمت معالجته مسبقًا." },
-        { status: 400 }
-      );
-    }
-
-    if (!transferRequest.schoolAccountId) {
-      return NextResponse.json(
-        { error: "طلب التحويل لا يحتوي على حساب مدرسة مرتبط." },
-        { status: 409 }
-      );
-    }
-
-    if (!transferRequest.planId) {
-      return NextResponse.json(
         {
-          error:
-            "هذا الطلب قديم ولا يحتوي على باقة مرتبطة. اطلب من المستخدم اختيار الباقة من صفحة الباقات أو فعّل له باقة يدويًا من إدارة الاشتراكات.",
+          error: "هذا الطلب تمت معالجته مسبقًا.",
+          step,
+          requestId: transferRequest.id,
+          currentStatus: transferRequest.status,
         },
         { status: 400 }
       );
     }
 
+    step = "VALIDATE_SCHOOL_ACCOUNT";
+    if (!transferRequest.schoolAccountId) {
+      return NextResponse.json(
+        {
+          error: "طلب التحويل لا يحتوي على حساب مدرسة مرتبط.",
+          step,
+          requestId: transferRequest.id,
+        },
+        { status: 409 }
+      );
+    }
+
+    step = "VALIDATE_PLAN_ID";
+    if (!transferRequest.planId) {
+      return NextResponse.json(
+        {
+          error:
+            "هذا الطلب لا يحتوي على باقة مرتبطة. اطلب من المستخدم إعادة اختيار الباقة ثم رفع التحويل.",
+          step,
+          requestId: transferRequest.id,
+        },
+        { status: 400 }
+      );
+    }
+
+    step = "LOAD_PLAN";
     const plan = await prisma.plan.findUnique({
       where: {
         id: transferRequest.planId,
@@ -111,11 +139,17 @@ export async function POST(
 
     if (!plan) {
       return NextResponse.json(
-        { error: "الباقة المرتبطة بطلب التحويل غير موجودة." },
+        {
+          error: "الباقة المرتبطة بطلب التحويل غير موجودة.",
+          step,
+          requestId: transferRequest.id,
+          planId: transferRequest.planId,
+        },
         { status: 404 }
       );
     }
 
+    step = "CALCULATE_DURATION";
     const durationDays =
       days > 0
         ? days
@@ -123,6 +157,7 @@ export async function POST(
           ? transferRequest.durationDays
           : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
 
+    step = "ASSIGN_PLAN_TO_SCHOOL";
     await assignPlanToSchool({
       schoolAccountId: transferRequest.schoolAccountId,
       planId: plan.id,
@@ -132,6 +167,7 @@ export async function POST(
       reason: `قبول تحويل بنكي وتفعيل باقة ${plan.name} لمدة ${durationDays} يوم`,
     });
 
+    step = "MARK_BANK_TRANSFER_AS_PAID";
     await prisma.bankTransferRequest.update({
       where: {
         id: transferRequest.id,
@@ -148,6 +184,7 @@ export async function POST(
       },
     });
 
+    step = "CREATE_PAYMENT_TRANSACTION";
     const paymentResult = await createPaidBankTransferPaymentTransaction(
       transferRequest.id,
       {
@@ -162,13 +199,16 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "تم تفعيل الاشتراك وتحديث طلب التحويل، لكن تعذر إنشاء عملية الدفع المرتبطة. افتح مركز المدفوعات لإجراء المزامنة أو أعد المحاولة.",
+            "تم تفعيل الاشتراك وتحديث طلب التحويل، لكن تعذر إنشاء عملية الدفع المرتبطة.",
+          step,
+          requestId: transferRequest.id,
           skippedReason: paymentResult.skippedReason,
         },
         { status: 409 }
       );
     }
 
+    step = "WRITE_AUDIT_LOG";
     await logAdminActivity({
       actorUserId: current.user.id,
       category: "PAYMENT",
@@ -190,17 +230,26 @@ export async function POST(
       userAgent: device.userAgent,
     });
 
+    step = "DONE";
     return NextResponse.json({
       message: `تم قبول التحويل وتفعيل باقة ${plan.name} بنجاح.`,
+      step,
+      requestId: transferRequest.id,
       paymentTransactionId: paymentResult.transaction.id,
       paymentTransactionCreated: paymentResult.wasCreated,
     });
   } catch (error) {
-    console.error("bank transfer approval failed", error);
+    console.error("bank transfer approval failed", {
+      step,
+      requestId: resolvedRequestId,
+      error,
+    });
 
     return NextResponse.json(
       {
         error: "تعذر قبول التحويل.",
+        step,
+        requestId: resolvedRequestId,
         details: getErrorMessage(error),
       },
       { status: 500 }
