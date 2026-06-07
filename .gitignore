@@ -6,3 +6,16 @@ node_modules
 public/generated/
 prisma-models-payments-invoices.txt
 prisma-models-checkout-step2.txt
+.env.production
+.env.*
+!.env.example
+node_modules/
+.next/
+*.sqlite
+*.sqlite3
+*.db
+server-issues-diagnostics.txt
+noor-workflow-banktransfer-debug.txt
+remaining-mojibake-check.txt
+local-services-plans-check.txt
+production-services-plans-check.txt
