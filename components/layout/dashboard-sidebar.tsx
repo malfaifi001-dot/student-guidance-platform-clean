@@ -111,7 +111,7 @@ const adminMainLinks: SidebarLinkItem[] = [
   { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
   { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
   { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
-  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
+  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown }, { label: "المدفوعات", href: "/dashboard/admin/payments", icon: WalletCards },
   { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
   { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
 ];
