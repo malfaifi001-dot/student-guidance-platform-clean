@@ -64,18 +64,17 @@ export async function syncSchoolServicesFromPlan(input: {
   schoolAccountId: string;
   planId: string;
 }) {
-  const planFeatures = await prisma.planFeature.findMany({
-    where: {
-      planId: input.planId,
-      key: {
-        startsWith: "service:",
+  const planFeatures = (
+    await prisma.planFeature.findMany({
+      where: {
+        planId: input.planId,
       },
-    },
-    select: {
-      key: true,
-      value: true,
-    },
-  });
+      select: {
+        key: true,
+        value: true,
+      },
+    })
+  ).filter((feature) => feature.key.startsWith("service:"));
 
   const enabledServiceSlugs = getPlanServiceSlugs(planFeatures);
 
