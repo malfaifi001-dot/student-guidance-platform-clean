@@ -45,10 +45,15 @@ export function getPlanFeatureValue(
 }
 
 export function getPlanServiceSlugs(features: PlanFeatureLike[]) {
-  return features
-    .filter((feature) => feature.key.startsWith("service:"))
-    .filter((feature) => feature.value === "enabled")
-    .map((feature) => feature.key.replace("service:", ""));
+  return Array.from(
+    new Set(
+      features
+        .filter((feature) => feature.key.startsWith("service:"))
+        .filter((feature) => feature.value === "enabled")
+        .map((feature) => feature.key.replace("service:", "").trim())
+        .filter(Boolean)
+    )
+  );
 }
 
 function hasPlanServiceRules(features: PlanFeatureLike[]) {
@@ -66,23 +71,44 @@ export async function syncSchoolServicesFromPlan(input: {
         startsWith: "service:",
       },
     },
+    select: {
+      key: true,
+      value: true,
+    },
   });
 
   const enabledServiceSlugs = getPlanServiceSlugs(planFeatures);
 
-  const enabledServices = enabledServiceSlugs.length
-    ? await prisma.service.findMany({
-        where: {
-          slug: {
-            in: enabledServiceSlugs,
-          },
-        },
-        select: {
-          id: true,
-          slug: true,
-        },
-      })
-    : [];
+  if (!enabledServiceSlugs.length) {
+    return {
+      enabledServiceCount: 0,
+      missingServiceSlugs: [],
+      skippedReason: "PLAN_HAS_NO_ENABLED_SERVICE_FEATURES",
+    };
+  }
+
+  const enabledServices = await prisma.service.findMany({
+    where: {
+      slug: {
+        in: enabledServiceSlugs,
+      },
+    },
+    select: {
+      id: true,
+      slug: true,
+    },
+  });
+
+  const foundServiceSlugs = new Set(enabledServices.map((service) => service.slug));
+  const missingServiceSlugs = enabledServiceSlugs.filter(
+    (slug) => !foundServiceSlugs.has(slug)
+  );
+
+  if (missingServiceSlugs.length) {
+    throw new Error(
+      `الباقة تحتوي على خدمات غير موجودة في جدول Service: ${missingServiceSlugs.join(", ")}`
+    );
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.serviceAccess.updateMany({
@@ -116,6 +142,12 @@ export async function syncSchoolServicesFromPlan(input: {
       });
     }
   });
+
+  return {
+    enabledServiceCount: enabledServices.length,
+    missingServiceSlugs,
+    skippedReason: null,
+  };
 }
 
 export async function assignPlanToSchool(input: {
