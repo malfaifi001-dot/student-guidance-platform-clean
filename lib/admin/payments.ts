@@ -108,13 +108,161 @@ export function buildAdminPaymentsWhere(filters: AdminPaymentsFilters) {
           },
         },
       },
+      {
+        subscription: {
+          is: {
+            schoolAccount: {
+              is: {
+                profile: {
+                  is: {
+                    schoolName: { contains: query },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     ];
   }
 
   return where;
 }
 
+async function syncPaidBankTransfersIntoPaymentTransactions() {
+  const paidBankTransfers = await prisma.bankTransferRequest.findMany({
+    where: {
+      status: "PAID",
+      amount: {
+        gt: 0,
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  if (paidBankTransfers.length === 0) {
+    return {
+      scanned: 0,
+      created: 0,
+    };
+  }
+
+  const externalRefs = paidBankTransfers.map((request) => `bank-transfer:${request.id}`);
+
+  const existingTransactions = await prisma.paymentTransaction.findMany({
+    where: {
+      method: "BANK_TRANSFER",
+      externalRef: {
+        in: externalRefs,
+      },
+    },
+    select: {
+      externalRef: true,
+    },
+  });
+
+  const existingExternalRefs = new Set(
+    existingTransactions
+      .map((transaction) => transaction.externalRef)
+      .filter((value): value is string => Boolean(value))
+  );
+
+  const requestsToSync = paidBankTransfers.filter(
+    (request) => !existingExternalRefs.has(`bank-transfer:${request.id}`)
+  );
+
+  if (requestsToSync.length === 0) {
+    return {
+      scanned: paidBankTransfers.length,
+      created: 0,
+    };
+  }
+
+  const schoolAccountIds = Array.from(
+    new Set(requestsToSync.map((request) => request.schoolAccountId))
+  );
+
+  const subscriptions = await prisma.subscription.findMany({
+    where: {
+      schoolAccountId: {
+        in: schoolAccountIds,
+      },
+    },
+    select: {
+      id: true,
+      schoolAccountId: true,
+      planId: true,
+      status: true,
+      startsAt: true,
+      endsAt: true,
+    },
+  });
+
+  const subscriptionBySchoolAccountId = new Map(
+    subscriptions.map((subscription) => [subscription.schoolAccountId, subscription])
+  );
+
+  let created = 0;
+
+  for (const request of requestsToSync) {
+    const subscription = subscriptionBySchoolAccountId.get(request.schoolAccountId);
+    const externalRef = `bank-transfer:${request.id}`;
+
+    const existing = await prisma.paymentTransaction.findFirst({
+      where: {
+        method: "BANK_TRANSFER",
+        externalRef,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existing) {
+      continue;
+    }
+
+    await prisma.paymentTransaction.create({
+      data: {
+        subscriptionId: subscription?.id,
+        amount: request.amount,
+        currency: request.currency || "SAR",
+        method: "BANK_TRANSFER",
+        status: "PAID",
+        externalRef,
+        metadataJson: {
+          source: "BANK_TRANSFER_REQUEST",
+          bankTransferRequestId: request.id,
+          schoolAccountId: request.schoolAccountId,
+          requestPlanId: request.planId,
+          activeSubscriptionId: subscription?.id || null,
+          activeSubscriptionPlanId: subscription?.planId || null,
+          senderName: request.senderName,
+          receiptUrl: request.receiptUrl,
+          adminNote: request.adminNote,
+          billingCycle: request.billingCycle,
+          durationDays: request.durationDays,
+          requesterUserId: request.requesterUserId,
+          originalCreatedAt: request.createdAt.toISOString(),
+          syncedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    created += 1;
+  }
+
+  return {
+    scanned: paidBankTransfers.length,
+    created,
+  };
+}
+
 export async function getAdminPaymentsCenterData(filters: AdminPaymentsFilters) {
+  await syncPaidBankTransfersIntoPaymentTransactions();
+
   const where = buildAdminPaymentsWhere(filters);
   const take = Math.min(Math.max(filters.take || 50, 1), 100);
 
