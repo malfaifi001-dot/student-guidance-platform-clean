@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 type LoginTransactionClient = Pick<typeof prisma, "user" | "userSession">;
 import { verifyPassword } from "@/lib/auth/password";
@@ -98,9 +98,11 @@ export async function POST(request: Request) {
     const response = NextResponse.json({
       success: true,
       redirectTo:
-        user.onboardingCompleted || user.onboardingSkippedAt
-          ? "/dashboard"
-          : "/dashboard/onboarding",
+        user.role === "ADMIN"
+          ? "/dashboard/admin"
+          : user.onboardingCompleted || user.onboardingSkippedAt
+            ? "/dashboard"
+            : "/dashboard/onboarding",
     });
 
     response.cookies.set(
