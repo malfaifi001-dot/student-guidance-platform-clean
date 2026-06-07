@@ -118,6 +118,8 @@ const adminMainLinks: SidebarLinkItem[] = [
 
 const adminPaymentLinks: SidebarLinkItem[] = [
   { label: "عمليات الدفع", href: "/dashboard/admin/payments", icon: WalletCards },
+  { label: "مزودو الدفع", href: "/dashboard/admin/payments/providers", icon: WalletCards },
+  { label: "التسوية المالية", href: "/dashboard/admin/payments/reconciliation", icon: WalletCards },
   { label: "الفواتير", href: "/dashboard/admin/payments/invoices", icon: FileText },
   {
     label: "إعدادات الفواتير والضريبة",
