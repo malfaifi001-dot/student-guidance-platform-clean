@@ -19,6 +19,12 @@ export type SmartActionVariant =
 
 type SmartActionMode = "feedback" | "confirm";
 
+type SmartActionRunResult = {
+  title?: string;
+  description?: string;
+  variant?: SmartActionVariant;
+};
+
 type SmartActionState = {
   open: boolean;
   mode: SmartActionMode;
@@ -27,7 +33,7 @@ type SmartActionState = {
   variant: SmartActionVariant;
   confirmLabel?: string;
   cancelLabel?: string;
-  run?: () => Promise<void> | void;
+  run?: () => Promise<void | SmartActionRunResult> | void | SmartActionRunResult;
   successTitle?: string;
   successDescription?: string;
   errorTitle?: string;
@@ -46,7 +52,7 @@ type ConfirmActionInput = {
   variant?: Exclude<SmartActionVariant, "success" | "error"> | "danger";
   confirmLabel?: string;
   cancelLabel?: string;
-  run: () => Promise<void> | void;
+  run: () => Promise<void | SmartActionRunResult> | void | SmartActionRunResult;
   successTitle?: string;
   successDescription?: string;
   errorTitle?: string;
@@ -157,16 +163,23 @@ export function useSmartActionFeedback() {
     setProcessing(true);
 
     try {
-      await state.run();
+      const actionResult = await state.run();
+      const resultFeedback =
+        actionResult && typeof actionResult === "object"
+          ? (actionResult as SmartActionRunResult)
+          : null;
 
       const afterSuccess = state.afterSuccess;
 
       setState({
         open: true,
         mode: "feedback",
-        title: state.successTitle || "تم تنفيذ العملية",
-        description: state.successDescription || "تم تنفيذ الإجراء بنجاح.",
-        variant: "success",
+        title: resultFeedback?.title || state.successTitle || "تم تنفيذ العملية",
+        description:
+          resultFeedback?.description ||
+          state.successDescription ||
+          "تم تنفيذ الإجراء بنجاح.",
+        variant: resultFeedback?.variant || "success",
         confirmLabel: "تم",
       });
 

@@ -1,8 +1,12 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { readApiResponse } from "@/lib/http/read-api-response";
+import {
+  SmartActionFeedbackModal,
+  useSmartActionFeedback,
+} from "@/components/ui/smart-action-feedback";
 
 type ImportSession = {
   id: string;
@@ -118,6 +122,58 @@ function formatDate(value?: string | null) {
   }
 }
 
+
+function toSafeNumber(value: unknown) {
+  const numeric = Number(value || 0);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function buildCommitFeedbackTitle(result: any) {
+  const session = result?.session || {};
+  const createdCount = toSafeNumber(result?.createdCount ?? session.createdCount);
+  const updatedCount = toSafeNumber(result?.updatedCount ?? session.updatedCount);
+
+  if (createdCount > 0 && updatedCount > 0) {
+    return "تم الربط والتحديث بنجاح";
+  }
+
+  if (createdCount > 0) {
+    return "تم ربط بيانات الطلاب بنجاح";
+  }
+
+  if (updatedCount > 0) {
+    return "تم تحديث بيانات الطلاب بنجاح";
+  }
+
+  return "تم اعتماد تحديث بيانات الطلاب";
+}
+
+function buildCommitFeedbackDescription(result: any) {
+  const session = result?.session || {};
+  const createdCount = toSafeNumber(result?.createdCount ?? session.createdCount);
+  const updatedCount = toSafeNumber(result?.updatedCount ?? session.updatedCount);
+  const skippedCount = toSafeNumber(result?.skippedCount ?? session.skippedCount);
+  const deactivatedCount = toSafeNumber(result?.deactivatedCount ?? session.deactivatedCount);
+  const rowCount = toSafeNumber(session.rowCount || session.totalRows);
+
+  const lines = [
+    createdCount > 0
+      ? `تم ربط ${createdCount} طالب/طالبة جديد بسجل المدرسة.`
+      : "لا يوجد طلاب جدد للربط.",
+    updatedCount > 0
+      ? `تم تحديث بيانات ${updatedCount} طالب/طالبة موجودين مسبقًا.`
+      : "لا توجد بيانات طلاب قائمة تحتاج تحديثًا.",
+    skippedCount > 0
+      ? `تم تجاوز ${skippedCount} صف بدون تغيير.`
+      : "",
+    deactivatedCount > 0
+      ? `تم تعطيل ${deactivatedCount} طالب/طالبة غير موجودين في الملف الجديد.`
+      : "",
+    rowCount > 0 ? `إجمالي الصفوف التي تمت مراجعتها: ${rowCount}.` : "",
+  ].filter(Boolean);
+
+  return lines.join(" ");
+}
 export function NoorImportSessionDetailClient({ sessionId }: Props) {
   const [session, setSession] = useState<ImportSession | null>(null);
   const [rows, setRows] = useState<ImportRow[]>([]);
@@ -134,6 +190,14 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const {
+    actionState,
+    processing: actionProcessing,
+    confirmAction,
+    closeActionFeedback,
+    runConfirmedAction,
+  } = useSmartActionFeedback();
+
   const isCommitted = session?.status === "COMMITTED";
   const summary = session?.planSummary || {};
 
@@ -149,14 +213,14 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
   );
 
   async function loadSession() {
-    const response = await fetch(`/api/dashboard/data-center/noor-import/${sessionId}`, {
+    const response = await fetch(`/api/dashboard/data-center/student-data-import/${sessionId}`, {
       cache: "no-store",
     });
 
     const result = await readApiResponse(response);
 
     if (!response.ok) {
-      throw new Error(result.error || "تعذر جلب تحديث بيانات نور.");
+      throw new Error(result.error || "تعذر جلب تحديث بيانات الطلاب.");
     }
 
     setSession(result.session);
@@ -184,7 +248,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
       }
 
       const response = await fetch(
-        `/api/dashboard/data-center/noor-import/${sessionId}/rows?${params.toString()}`,
+        `/api/dashboard/data-center/student-data-import/${sessionId}/rows?${params.toString()}`,
         { cache: "no-store" },
       );
 
@@ -208,78 +272,110 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
     }
   }
 
-  async function handleCommit() {
+  function handleCommit() {
     if (!session) {
       return;
     }
 
-    if (!window.confirm("سيتم اعتماد هذا التحديث وتطبيق التغييرات على سجل الطلاب. هل أنت متأكد؟")) {
-      return;
-    }
+    const targetSession = session;
 
-    setIsLoading(true);
+    confirmAction({
+      title: "اعتماد تحديث بيانات الطلاب؟",
+      description:
+        "سيتم تطبيق التغييرات على سجل الطلاب. سيتم ربط الطلاب الجدد، وتحديث بيانات الطلاب الموجودين، ثم حفظ سجل تغييرات لهذا التحديث.",
+      variant: "warning",
+      confirmLabel: "اعتماد التحديث",
+      errorTitle: "تعذر اعتماد التحديث",
+      run: async () => {
+        setIsLoading(true);
 
-    try {
-      const response = await fetch(`/api/dashboard/data-center/noor-import/${session.id}/commit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          deactivateMissing: false,
-        }),
-      });
+        try {
+          const response = await fetch(
+            `/api/dashboard/data-center/student-data-import/${targetSession.id}/commit`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                deactivateMissing: false,
+              }),
+            }
+          );
 
-      const result = await readApiResponse(response);
+          const result = await readApiResponse(response);
 
-      if (!response.ok) {
-        throw new Error(result.error || "تعذر اعتماد التحديث.");
-      }
+          if (!response.ok) {
+            throw new Error(result.details || result.error || "تعذر اعتماد التحديث.");
+          }
 
-      setMessage(result.message || "تم اعتماد تحديث بيانات نور بنجاح.");
-      await loadSession();
-      await loadRows(pagination.page);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر اعتماد التحديث.");
-    } finally {
-      setIsLoading(false);
-    }
+          setMessage(null);
+          await loadSession();
+          await loadRows(pagination.page);
+
+          return {
+            title: buildCommitFeedbackTitle(result),
+            description: buildCommitFeedbackDescription(result),
+            variant: "success" as const,
+          };
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!session) {
       return;
     }
 
-    if (!window.confirm("سيتم حذف هذا التحديث غير المعتمد. هل أنت متأكد؟")) {
-      return;
-    }
+    const targetSession = session;
 
-    setIsLoading(true);
+    confirmAction({
+      title: "حذف التحديث غير المعتمد؟",
+      description:
+        "سيتم حذف جلسة التحديث الحالية قبل اعتمادها. هذا الإجراء لا يحذف الطلاب من سجل المدرسة، لكنه يزيل هذه المراجعة غير المعتمدة.",
+      variant: "danger",
+      confirmLabel: "حذف التحديث",
+      errorTitle: "تعذر حذف التحديث",
+      run: async () => {
+        setIsLoading(true);
 
-    try {
-      const response = await fetch(`/api/dashboard/data-center/noor-import/${session.id}`, {
-        method: "DELETE",
-      });
+        try {
+          const response = await fetch(
+            `/api/dashboard/data-center/student-data-import/${targetSession.id}`,
+            {
+              method: "DELETE",
+            }
+          );
 
-      const result = await readApiResponse(response);
+          const result = await readApiResponse(response);
 
-      if (!response.ok) {
-        throw new Error(result.error || "تعذر حذف التحديث.");
-      }
+          if (!response.ok) {
+            throw new Error(result.details || result.error || "تعذر حذف التحديث.");
+          }
 
-      window.location.href = session.cycleId
-        ? `/dashboard/data-center/noor-import/cycles/${session.cycleId}`
-        : "/dashboard/data-center/noor-import";
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر حذف التحديث.");
-      setIsLoading(false);
-    }
+          window.location.href = targetSession.cycleId
+            ? `/dashboard/data-center/student-data-import/cycles/${targetSession.cycleId}`
+            : "/dashboard/data-center/student-data-import";
+
+          return {
+            title: "تم حذف التحديث",
+            description: "تم حذف جلسة التحديث غير المعتمدة بنجاح.",
+            variant: "success" as const,
+          };
+        } catch (error) {
+          setIsLoading(false);
+          throw error;
+        }
+      },
+    });
   }
 
   useEffect(() => {
     loadSession().catch((error) => {
-      setMessage(error instanceof Error ? error.message : "تعذر فتح تحديث بيانات نور.");
+      setMessage(error instanceof Error ? error.message : "تعذر فتح تحديث بيانات الطلاب.");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
@@ -298,19 +394,27 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
   }, [session?.id, q, status, planAction]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
+    <>
+      <SmartActionFeedbackModal
+        state={actionState}
+        processing={actionProcessing}
+        onClose={closeActionFeedback}
+        onConfirm={runConfirmedAction}
+      />
+
+      <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <Link
-            href={session?.cycleId ? `/dashboard/data-center/noor-import/cycles/${session.cycleId}` : "/dashboard/data-center/noor-import"}
+            href={session?.cycleId ? `/dashboard/data-center/student-data-import/cycles/${session.cycleId}` : "/dashboard/data-center/student-data-import"}
             className="text-sm font-black text-sky-700 hover:text-sky-900"
           >
-            ← العودة إلى بطاقة بيانات نور
+            ← العودة إلى بطاقة بيانات الطلاب
           </Link>
 
           <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-black text-sky-700">تحديث بيانات نور</p>
+              <p className="text-sm font-black text-sky-700">تحديث بيانات الطلاب</p>
               <h1 className="mt-2 text-2xl font-black md:text-4xl">مراجعة التحديث</h1>
               <p className="mt-2 text-sm font-bold text-slate-500">
                 راجع التغييرات فقط، ثم اعتمد التحديث.
@@ -534,6 +638,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
           </div>
         </section>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
