@@ -49,8 +49,9 @@ const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
 
 const counselorImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard", icon: Home },
-  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
   { label: "الحالات", href: "/dashboard/cases", icon: FolderKanban },
+  { label: "التقارير", href: "/dashboard/reports", icon: FileText },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
 ];
 
 const counselorServiceLinks: SidebarLinkItem[] = [
@@ -75,9 +76,9 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     icon: FileText,
   },
   {
-    label: "التقارير",
-    href: "/dashboard/reports",
-    icon: FileText,
+    label: "المرجع الشامل للطالب",
+    href: "/dashboard/student-comprehensive-reference",
+    icon: BookOpen,
   },
   {
     label: "المرجع الشامل للموجه الطلابي",
@@ -97,7 +98,7 @@ const counselorServiceLinks: SidebarLinkItem[] = [
 ];
 
 const counselorToolsLinks: SidebarLinkItem[] = [
-  { label: "رفع بيانات نور", href: "/dashboard/student-import", icon: UploadCloud },
+  { label: "رفع بيانات الطلاب", href: "/dashboard/student-import", icon: UploadCloud },
 ];
 
 const counselorAccountLinks: SidebarLinkItem[] = [
@@ -127,6 +128,7 @@ const adminPaymentLinks: SidebarLinkItem[] = [
     icon: Settings,
   },
 ];
+
 const adminBuilderLinks: SidebarLinkItem[] = [
   {
     label: "مصمم Workflow",
@@ -181,89 +183,73 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
   return (
     <aside
       className={[
-        "hidden min-h-screen shrink-0 bg-transparent px-4 py-5 transition-all duration-300 xl:block",
-        collapsed ? "w-[82px]" : "w-[236px]",
+        "hidden min-h-screen shrink-0 bg-transparent py-5 transition-all duration-300 xl:block",
+        collapsed ? "w-[96px] px-3" : "w-[320px] px-4",
       ].join(" ")}
     >
-      <div className="sticky top-5 flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 p-3 shadow-xl shadow-slate-200/70 backdrop-blur-xl">
+      <div
+        className={[
+          "sticky top-5 flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300",
+          collapsed ? "p-2" : "p-4",
+        ].join(" ")}
+      >
         <div
           className={[
-            "rounded-[1.6rem] border transition",
-            collapsed
-              ? "border-slate-100 bg-slate-50/70 p-2"
-              : "border-transparent bg-transparent p-0",
+            "flex items-center gap-2 border-b border-slate-100 pb-3",
+            collapsed ? "justify-center" : "justify-between",
           ].join(" ")}
         >
-          <div className="flex items-center justify-between gap-2">
-            <Link
-              href={isAdmin ? "/dashboard/admin" : "/dashboard"}
+          <Link
+            href={isAdmin ? "/dashboard/admin" : "/dashboard"}
+            className={[
+              "flex min-w-0 items-center rounded-[1.35rem] transition",
+              collapsed ? "justify-center p-1" : "flex-1 gap-3 px-2 py-2",
+              isAdmin ? "hover:bg-slate-50" : "hover:bg-sky-50/60",
+            ].join(" ")}
+            title={isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+          >
+            <div
               className={[
-                "flex min-w-0 items-center gap-3 rounded-[1.35rem] px-2 py-2 transition",
-                collapsed ? "justify-center" : "flex-1",
-                isAdmin ? "hover:bg-slate-50" : "hover:bg-sky-50/60",
+                "flex shrink-0 items-center justify-center rounded-2xl ring-1",
+                collapsed ? "h-11 w-11" : "h-12 w-12",
+                isAdmin
+                  ? "bg-slate-950 text-white ring-slate-900"
+                  : "bg-sky-50 text-sky-600 ring-sky-100",
               ].join(" ")}
-              title={isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
             >
-              <div
-                className={[
-                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1",
-                  isAdmin
-                    ? "bg-slate-950 text-white ring-slate-900"
-                    : "bg-sky-50 text-sky-600 ring-sky-100",
-                ].join(" ")}
-              >
-                {isAdmin ? (
-                  <ShieldCheck className="h-5 w-5" />
-                ) : (
-                  <Sparkles className="h-5 w-5" />
-                )}
-              </div>
-
-              {!collapsed ? (
-                <div className="min-w-0">
-                  <h1 className="truncate text-[15px] font-black text-slate-950">
-                    {isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
-                  </h1>
-                  <p className="mt-1 truncate text-[11px] font-black text-slate-400">
-                    {isAdmin ? "Admin Center" : "Counselor"}
-                  </p>
-                </div>
-              ) : null}
-            </Link>
+              {isAdmin ? (
+                <ShieldCheck className="h-5 w-5" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
+            </div>
 
             {!collapsed ? (
-              <button
-                type="button"
-                onClick={() => setCollapsed(true)}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                aria-label="تصغير القائمة"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+              <div className="min-w-0">
+                <h1 className="truncate text-[15px] font-black text-slate-950">
+                  {isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+                </h1>
+                <p className="mt-1 truncate text-[11px] font-black text-slate-400">
+                  {isAdmin ? "Admin Center" : "Counselor"}
+                </p>
+              </div>
             ) : null}
-          </div>
+          </Link>
 
-          {collapsed ? (
-            <button
-              type="button"
-              onClick={() => setCollapsed(false)}
-              className="mx-auto mt-3 grid h-9 w-9 place-items-center rounded-2xl bg-white text-slate-400 shadow-sm transition hover:bg-slate-100 hover:text-slate-700"
-              aria-label="توسيع القائمة"
-              title="توسيع القائمة"
-            >
+          <button
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            aria-label={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+            title={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+          >
+            {collapsed ? (
               <ChevronLeft className="h-4 w-4" />
-            </button>
-          ) : null}
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
         </div>
-
-        {!collapsed ? (
-          <div
-            className={[
-              "mx-2 mt-4 h-px",
-              isAdmin ? "bg-slate-200" : "bg-sky-100",
-            ].join(" ")}
-          />
-        ) : null}
 
         {isAdmin ? (
           <AdminSidebar pathname={pathname} collapsed={collapsed} />
@@ -284,71 +270,78 @@ function AdminSidebar({
 }) {
   return (
     <>
-      <SidebarSection title="الإدارة" collapsed={collapsed}>
-        {adminMainLinks.map((item) => (
-          <SidebarLink
-            key={item.href}
-            item={item}
-            active={isActivePath(pathname, item.href)}
-            admin
-            collapsed={collapsed}
-          />
-        ))}
-      </SidebarSection>
-
-      <SidebarDropdown
-        title="المدفوعات"
-        defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
-        admin
-        collapsed={collapsed}
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
       >
-        {adminPaymentLinks.map((item) => (
-          <SidebarLink
-            key={item.href}
-            item={item}
-            active={isActivePath(pathname, item.href)}
-            admin
-            compact
-            collapsed={collapsed}
-          />
-        ))}
-      </SidebarDropdown>
+        <SidebarSection title="الإدارة" collapsed={collapsed}>
+          {adminMainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
 
-      <SidebarDropdown
-        title="أدوات البناء"
-        defaultOpen={hasActive(pathname, adminBuilderLinks)}
-        admin
-        collapsed={collapsed}
-      >
-        {adminBuilderLinks.map((item) => (
-          <SidebarLink
-            key={item.href}
-            item={item}
-            active={isActivePath(pathname, item.href)}
-            admin
-            compact
-            collapsed={collapsed}
-          />
-        ))}
-      </SidebarDropdown>
+        <SidebarDropdown
+          title="المدفوعات"
+          defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
+          admin
+          collapsed={collapsed}
+        >
+          {adminPaymentLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
 
-      <SidebarDropdown
-        title="الحساب والإعدادات"
-        defaultOpen={hasActive(pathname, adminAccountLinks)}
-        admin
-        collapsed={collapsed}
-      >
-        {adminAccountLinks.map((item) => (
-          <SidebarLink
-            key={item.href}
-            item={item}
-            active={isActivePath(pathname, item.href)}
-            admin
-            compact
-            collapsed={collapsed}
-          />
-        ))}
-      </SidebarDropdown>
+        <SidebarDropdown
+          title="أدوات البناء"
+          defaultOpen={hasActive(pathname, adminBuilderLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminBuilderLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والإعدادات"
+          defaultOpen={hasActive(pathname, adminAccountLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
 
       {!collapsed ? (
         <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 p-4 text-xs leading-6 text-emerald-900">
@@ -371,7 +364,12 @@ function CounselorSidebar({
 }) {
   return (
     <>
-      <nav className="mt-5 flex-1 space-y-5 overflow-y-auto pr-1">
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
         <SidebarSection title="الأهم" collapsed={collapsed}>
           {counselorImportantLinks.map((item) => (
             <SidebarLink
@@ -460,7 +458,7 @@ function SidebarSection({
         </p>
       ) : null}
 
-      <div className="space-y-1">{children}</div>
+      <div className={collapsed ? "space-y-2" : "space-y-1.5"}>{children}</div>
     </section>
   );
 }
@@ -481,7 +479,7 @@ function SidebarDropdown({
   const [open, setOpen] = useState(defaultOpen);
 
   if (collapsed) {
-    return <div className="space-y-1">{children}</div>;
+    return <div className="space-y-2">{children}</div>;
   }
 
   return (
@@ -504,7 +502,7 @@ function SidebarDropdown({
         />
       </button>
 
-      {open ? <div className="space-y-1">{children}</div> : null}
+      {open ? <div className="space-y-1.5">{children}</div> : null}
     </section>
   );
 }
@@ -530,8 +528,10 @@ function SidebarLink({
       title={item.label}
       className={[
         "group relative flex items-center rounded-2xl transition",
-        collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3",
-        compact && !collapsed ? "py-2" : "py-2.5",
+        collapsed
+          ? "h-11 justify-center px-0"
+          : "min-h-11 gap-3 px-4 py-2.5",
+        compact && !collapsed ? "py-2" : "",
         active
           ? admin
             ? "bg-slate-950 text-white shadow-sm"
@@ -539,7 +539,7 @@ function SidebarLink({
           : "text-slate-500 hover:bg-slate-50 hover:text-slate-950",
       ].join(" ")}
     >
-      {active ? (
+      {active && !collapsed ? (
         <span
           className={[
             "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
@@ -551,7 +551,7 @@ function SidebarLink({
       <div
         className={[
           "flex shrink-0 items-center justify-center rounded-xl transition",
-          compact ? "h-8 w-8" : "h-9 w-9",
+          collapsed ? "h-9 w-9" : compact ? "h-8 w-8" : "h-9 w-9",
           active
             ? admin
               ? "bg-white/10 text-white"
@@ -563,11 +563,11 @@ function SidebarLink({
       </div>
 
       {!collapsed ? (
-        <span className="min-w-0 truncate text-[14px] font-black">
+        <span className="min-w-0 flex-1 whitespace-normal break-words text-right text-[14px] font-black leading-6">
           {item.label}
         </span>
       ) : (
-        <span className="pointer-events-none absolute right-[72px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">
+        <span className="pointer-events-none fixed right-[105px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">
           {item.label}
         </span>
       )}
