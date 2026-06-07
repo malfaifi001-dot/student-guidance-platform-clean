@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
@@ -36,9 +36,39 @@ async function readRequestBody(request: Request) {
   }
 }
 
+function getActorUserId(current: any) {
+  return (
+    current?.user?.id ||
+    current?.currentUser?.id ||
+    current?.sessionUser?.id ||
+    current?.userId ||
+    null
+  );
+}
+
 export async function POST(request: Request, context: RouteContext) {
   try {
     const current = await resolveCurrentSchoolContext();
+    const currentContext = current as any;
+    const actorUserId = getActorUserId(currentContext);
+
+    if (!currentContext?.schoolAccountId) {
+      return NextResponse.json(
+        { error: "تعذر تحديد حساب المدرسة المرتبط بالمستخدم الحالي." },
+        { status: 401 }
+      );
+    }
+
+    if (!actorUserId) {
+      return NextResponse.json(
+        {
+          error:
+            "تعذر تحديد المستخدم الحالي لاعتماد تحديث نور. سجّل الخروج ثم ادخل مرة أخرى، أو تأكد أن الحساب مرتبط بمدرسة.",
+        },
+        { status: 401 }
+      );
+    }
+
     const params = await getParams(context);
     const body = await readRequestBody(request);
 
@@ -48,7 +78,7 @@ export async function POST(request: Request, context: RouteContext) {
     const session = await prisma.studentImportSession.findFirst({
       where: {
         id: sessionId,
-        schoolAccountId: current.schoolAccountId,
+        schoolAccountId: currentContext.schoolAccountId,
       },
       include: {
         rows: {
@@ -65,21 +95,21 @@ export async function POST(request: Request, context: RouteContext) {
     if (!session) {
       return NextResponse.json(
         { error: "لم يتم العثور على جلسة الاستيراد." },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     if (session.status === "COMMITTED") {
       return NextResponse.json(
         { error: "تم اعتماد هذه الجلسة مسبقًا ولا يمكن اعتمادها مرة أخرى." },
-        { status: 409 },
+        { status: 409 }
       );
     }
 
     if (!session.rows.length) {
       return NextResponse.json(
         { error: "لا توجد صفوف صالحة للاعتماد في هذه الجلسة." },
-        { status: 422 },
+        { status: 422 }
       );
     }
 
@@ -113,7 +143,7 @@ export async function POST(request: Request, context: RouteContext) {
         if (row.guardianName?.trim()) {
           const existingGuardian = await tx.guardian.findFirst({
             where: {
-              schoolAccountId: current.schoolAccountId,
+              schoolAccountId: currentContext.schoolAccountId,
               name: row.guardianName.trim(),
             },
           });
@@ -132,7 +162,7 @@ export async function POST(request: Request, context: RouteContext) {
           } else {
             const createdGuardian = await tx.guardian.create({
               data: {
-                schoolAccountId: current.schoolAccountId,
+                schoolAccountId: currentContext.schoolAccountId,
                 name: row.guardianName.trim(),
                 phone: row.guardianPhone || null,
                 relation: "ولي أمر مستنتج من اسم الطالب",
@@ -146,13 +176,13 @@ export async function POST(request: Request, context: RouteContext) {
         const existingStudent = row.nationalId
           ? await tx.student.findFirst({
               where: {
-                schoolAccountId: current.schoolAccountId,
+                schoolAccountId: currentContext.schoolAccountId,
                 nationalId: row.nationalId,
               },
             })
           : await tx.student.findFirst({
               where: {
-                schoolAccountId: current.schoolAccountId,
+                schoolAccountId: currentContext.schoolAccountId,
                 fullName: row.fullName,
                 grade: row.grade,
                 classroom: row.classroom,
@@ -226,7 +256,7 @@ export async function POST(request: Request, context: RouteContext) {
         } else {
           const created = await tx.student.create({
             data: {
-              schoolAccountId: current.schoolAccountId,
+              schoolAccountId: currentContext.schoolAccountId,
               ...studentData,
             },
           });
@@ -257,7 +287,7 @@ export async function POST(request: Request, context: RouteContext) {
       if (deactivateMissing && incomingNationalIds.length > 0) {
         const activeStudents = await tx.student.findMany({
           where: {
-            schoolAccountId: current.schoolAccountId,
+            schoolAccountId: currentContext.schoolAccountId,
             isActive: true,
           },
         });
@@ -301,7 +331,7 @@ export async function POST(request: Request, context: RouteContext) {
           updatedCount,
           skippedCount,
           committedAt: new Date(),
-          committedByUserId: current.user.id,
+          committedByUserId: actorUserId,
         },
         include: {
           files: true,
@@ -325,8 +355,8 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     await writeNoorImportActivity({
-      schoolAccountId: current.schoolAccountId,
-      userId: current.user.id,
+      schoolAccountId: currentContext.schoolAccountId,
+      userId: actorUserId,
       event: "NOOR_IMPORT_COMMITTED",
       title: "تم اعتماد استيراد بيانات نور",
       description: `تم إنشاء ${result.createdCount} طالب/طالبة وتحديث ${result.updatedCount} وتعطيل ${result.deactivatedCount} غير موجودين في الملف الجديد.`,
@@ -349,6 +379,8 @@ export async function POST(request: Request, context: RouteContext) {
       },
     });
   } catch (error) {
+    console.error("noor import commit failed", error);
+
     return NextResponse.json(
       {
         error:
@@ -358,7 +390,7 @@ export async function POST(request: Request, context: RouteContext) {
               : error.message
             : "تعذر اعتماد جلسة الاستيراد.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

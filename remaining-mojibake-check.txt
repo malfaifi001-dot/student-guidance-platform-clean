@@ -1,0 +1,8 @@
+Remaining mojibake check
+GeneratedAt: 06/07/2026 22:14:37
+
+MATCH: app\api\dashboard\reports\prepare\route.ts
+MATCH: app\api\dashboard\reports\route.ts
+MATCH: app\dashboard\reports\[reportId]\preview\page.tsx
+MATCH: components\report-engine\design-renderers\report-design-renderer.tsx
+MATCH: components\reports\report-studio-editor.tsx
