@@ -38,6 +38,15 @@ type PaymentTransaction = {
   externalRef: string | null;
   createdAt: string;
   updatedAt: string;
+  metadataJson: unknown;
+  requesterUser: {
+    id: string;
+    name: string;
+    officialName: string | null;
+    email: string;
+    jobTitle: string | null;
+    gender: string;
+  } | null;
   provider: {
     id: string;
     name: string;
@@ -174,6 +183,40 @@ function getStatusClass(status: string) {
   return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200";
 }
 
+function getTransactionMetadata(transaction: PaymentTransaction) {
+  return transaction.metadataJson && typeof transaction.metadataJson === "object"
+    ? (transaction.metadataJson as Record<string, unknown>)
+    : null;
+}
+
+function getCounselorName(transaction: PaymentTransaction) {
+  const metadata = getTransactionMetadata(transaction);
+  const senderName = metadata?.senderName;
+
+  return (
+    transaction.requesterUser?.officialName ||
+    transaction.requesterUser?.name ||
+    (typeof senderName === "string" ? senderName : null) ||
+    transaction.subscription?.schoolAccount.profile?.schoolName ||
+    transaction.subscription?.schoolAccount.name ||
+    "موجه غير محدد"
+  );
+}
+
+function getCounselorSubtitle(transaction: PaymentTransaction) {
+  if (transaction.requesterUser?.jobTitle) {
+    return transaction.requesterUser.jobTitle;
+  }
+
+  if (transaction.requesterUser?.email) {
+    return transaction.requesterUser.email;
+  }
+
+  return transaction.subscription?.schoolAccount.profile?.schoolName ||
+    transaction.subscription?.schoolAccount.name ||
+    transaction.subscription?.schoolAccount.slug ||
+    "لا توجد بيانات إضافية";
+}
 function getSchoolName(transaction: PaymentTransaction) {
   return (
     transaction.subscription?.schoolAccount.profile?.schoolName ||
@@ -476,13 +519,13 @@ export function AdminPaymentsDashboard() {
                     <thead>
                       <tr className="border-b border-slate-100 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
                         <th className="px-3 py-3 font-black">العملية</th>
-                        <th className="px-3 py-3 font-black">الحساب</th>
+                        <th className="px-3 py-3 font-black">الموجه/الموجهة</th>
                         <th className="px-3 py-3 font-black">الباقة</th>
                         <th className="px-3 py-3 font-black">المبلغ</th>
                         <th className="px-3 py-3 font-black">الطريقة</th>
                         <th className="px-3 py-3 font-black">المزود</th>
                         <th className="px-3 py-3 font-black">الحالة</th>
-                        <th className="px-3 py-3 font-black">التاريخ</th>
+                        <th className="px-3 py-3 font-black">التاريخ</th><th className="px-3 py-3 font-black">الإجراء</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -501,10 +544,10 @@ export function AdminPaymentsDashboard() {
                           </td>
                           <td className="px-3 py-4">
                             <div className="font-bold text-slate-800 dark:text-slate-100">
-                              {getSchoolName(transaction)}
+                              {getCounselorName(transaction)}
                             </div>
                             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                              {transaction.subscription?.schoolAccount.slug || "—"}
+                              {getCounselorSubtitle(transaction)}
                             </div>
                           </td>
                           <td className="px-3 py-4 text-slate-700 dark:text-slate-200">
@@ -530,6 +573,14 @@ export function AdminPaymentsDashboard() {
                           </td>
                           <td className="px-3 py-4 text-xs text-slate-500 dark:text-slate-400">
                             {formatDate(transaction.createdAt)}
+                          </td>
+                          <td className="px-3 py-4">
+                            <Link
+                              href={`/dashboard/admin/payments/${transaction.id}`}
+                              className="inline-flex rounded-2xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+                            >
+                              عرض التفاصيل
+                            </Link>
                           </td>
                         </tr>
                       ))}

@@ -429,10 +429,64 @@ export async function getAdminPaymentsCenterData(filters: AdminPaymentsFilters) 
     })),
   };
 
+  const requesterUserIds = Array.from(
+    new Set(
+      transactions
+        .map((transaction) => {
+          const metadata =
+            transaction.metadataJson && typeof transaction.metadataJson === "object"
+              ? (transaction.metadataJson as Record<string, unknown>)
+              : null;
+
+          const requesterUserId = metadata?.requesterUserId;
+
+          return typeof requesterUserId === "string" ? requesterUserId : null;
+        })
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+
+  const requesterUsers = requesterUserIds.length
+    ? await prisma.user.findMany({
+        where: {
+          id: {
+            in: requesterUserIds,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          officialName: true,
+          email: true,
+          jobTitle: true,
+          gender: true,
+        },
+      })
+    : [];
+
+  const requesterUserById = new Map(requesterUsers.map((user) => [user.id, user]));
+
+  const transactionsWithRequester = transactions.map((transaction) => {
+    const metadata =
+      transaction.metadataJson && typeof transaction.metadataJson === "object"
+        ? (transaction.metadataJson as Record<string, unknown>)
+        : null;
+
+    const requesterUserId = metadata?.requesterUserId;
+
+    return {
+      ...transaction,
+      requesterUser:
+        typeof requesterUserId === "string"
+          ? requesterUserById.get(requesterUserId) || null
+          : null,
+    };
+  });
+
   return {
     generatedAt: new Date(),
     metrics,
-    transactions,
+    transactions: transactionsWithRequester,
     pendingBankTransfers: pendingBankTransfers.map((request) => ({
       ...request,
       schoolAccount: schoolById.get(request.schoolAccountId) || null,
