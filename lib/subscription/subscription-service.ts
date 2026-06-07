@@ -203,15 +203,19 @@ export async function assignPlanToSchool(input: {
     planId: plan.id,
   });
 
-  await prisma.manualActivation.create({
-    data: {
-      schoolAccountId: input.schoolAccountId,
-      activatedById: input.activatedById,
-      reason: input.reason || `إسناد باقة ${plan.name}`,
-      startsAt: now,
-      endsAt,
-    },
-  });
+  try {
+    await prisma.manualActivation.create({
+      data: {
+        schoolAccountId: input.schoolAccountId,
+        activatedById: input.activatedById || null,
+        reason: input.reason || `إسناد باقة ${plan.name}`,
+        startsAt: now,
+        endsAt,
+      },
+    });
+  } catch (error) {
+    console.error("manual activation audit failed", error);
+  }
 
   return subscription;
 }
