@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  getCurrentSessionUser,
+  getRequestDeviceInfo,
+} from "@/lib/auth/current-user";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+import { createPaidBankTransferPaymentTransaction } from "@/lib/admin/bank-transfer-payments";
 import {
   assignPlanToSchool,
   getPlanFeatureValue,
@@ -23,6 +28,7 @@ export async function POST(
     return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
   }
 
+  const device = await getRequestDeviceInfo();
   const { requestId } = await context.params;
   const payload = await request.json().catch(() => null);
   const days = Number(payload?.days || 0);
@@ -42,6 +48,24 @@ export async function POST(
   }
 
   if (transferRequest.status !== "PENDING") {
+    if (transferRequest.status === "PAID") {
+      const paymentResult = await createPaidBankTransferPaymentTransaction(
+        transferRequest.id,
+        {
+          actorUserId: current.user.id,
+          ipAddress: device.ipAddress,
+          userAgent: device.userAgent,
+          source: "BANK_TRANSFER_APPROVE_ALREADY_PAID_RECOVERY",
+        }
+      );
+
+      return NextResponse.json({
+        message: "هذا الطلب تمت معالجته مسبقًا، وتم التأكد من عملية الدفع المرتبطة به.",
+        paymentTransactionId: paymentResult.transaction?.id || null,
+        paymentTransactionCreated: paymentResult.wasCreated,
+      });
+    }
+
     return NextResponse.json(
       { error: "هذا الطلب تمت معالجته مسبقًا." },
       { status: 400 }
@@ -106,7 +130,40 @@ export async function POST(
     },
   });
 
+  const paymentResult = await createPaidBankTransferPaymentTransaction(
+    transferRequest.id,
+    {
+      actorUserId: current.user.id,
+      ipAddress: device.ipAddress,
+      userAgent: device.userAgent,
+      source: "BANK_TRANSFER_APPROVAL",
+    }
+  );
+
+  await logAdminActivity({
+    actorUserId: current.user.id,
+    category: "PAYMENT",
+    action: "BANK_TRANSFER_APPROVED",
+    severity: "SUCCESS",
+    title: "قبول تحويل بنكي وتفعيل اشتراك",
+    details: {
+      bankTransferRequestId: transferRequest.id,
+      schoolAccountId: transferRequest.schoolAccountId,
+      planId: plan.id,
+      planName: plan.name,
+      durationDays,
+      amount: transferRequest.amount,
+      currency: transferRequest.currency,
+      paymentTransactionId: paymentResult.transaction?.id || null,
+      paymentTransactionCreated: paymentResult.wasCreated,
+    },
+    ipAddress: device.ipAddress,
+    userAgent: device.userAgent,
+  });
+
   return NextResponse.json({
     message: `تم قبول التحويل وتفعيل باقة ${plan.name} بنجاح.`,
+    paymentTransactionId: paymentResult.transaction?.id || null,
+    paymentTransactionCreated: paymentResult.wasCreated,
   });
 }

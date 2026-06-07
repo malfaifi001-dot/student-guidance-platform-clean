@@ -1,5 +1,6 @@
 import { PaymentMethod, PaymentStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { createPaidBankTransferPaymentTransaction } from "@/lib/admin/bank-transfer-payments";
 
 export type AdminPaymentsFilters = {
   query?: string;
@@ -138,126 +139,27 @@ async function syncPaidBankTransfersIntoPaymentTransactions() {
       },
     },
     orderBy: {
-      createdAt: "asc",
+      createdAt: "desc",
     },
-  });
-
-  if (paidBankTransfers.length === 0) {
-    return {
-      scanned: 0,
-      created: 0,
-    };
-  }
-
-  const externalRefs = paidBankTransfers.map((request) => `bank-transfer:${request.id}`);
-
-  const existingTransactions = await prisma.paymentTransaction.findMany({
-    where: {
-      method: "BANK_TRANSFER",
-      externalRef: {
-        in: externalRefs,
-      },
-    },
-    select: {
-      externalRef: true,
-    },
-  });
-
-  const existingExternalRefs = new Set(
-    existingTransactions
-      .map((transaction) => transaction.externalRef)
-      .filter((value): value is string => Boolean(value))
-  );
-
-  const requestsToSync = paidBankTransfers.filter(
-    (request) => !existingExternalRefs.has(`bank-transfer:${request.id}`)
-  );
-
-  if (requestsToSync.length === 0) {
-    return {
-      scanned: paidBankTransfers.length,
-      created: 0,
-    };
-  }
-
-  const schoolAccountIds = Array.from(
-    new Set(requestsToSync.map((request) => request.schoolAccountId))
-  );
-
-  const subscriptions = await prisma.subscription.findMany({
-    where: {
-      schoolAccountId: {
-        in: schoolAccountIds,
-      },
-    },
+    take: 1000,
     select: {
       id: true,
-      schoolAccountId: true,
-      planId: true,
-      status: true,
-      startsAt: true,
-      endsAt: true,
     },
   });
 
-  const subscriptionBySchoolAccountId = new Map(
-    subscriptions.map((subscription) => [subscription.schoolAccountId, subscription])
-  );
-
-  let created = 0;
-
-  for (const request of requestsToSync) {
-    const subscription = subscriptionBySchoolAccountId.get(request.schoolAccountId);
-    const externalRef = `bank-transfer:${request.id}`;
-
-    const existing = await prisma.paymentTransaction.findFirst({
-      where: {
-        method: "BANK_TRANSFER",
-        externalRef,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (existing) {
-      continue;
+  for (const request of paidBankTransfers) {
+    try {
+      await createPaidBankTransferPaymentTransaction(request.id, {
+        logActivity: false,
+        source: "PAYMENTS_CENTER_FALLBACK_SYNC",
+      });
+    } catch (error) {
+      console.error("BANK_TRANSFER_PAYMENT_TRANSACTION_FALLBACK_SYNC_ERROR", {
+        bankTransferRequestId: request.id,
+        error,
+      });
     }
-
-    await prisma.paymentTransaction.create({
-      data: {
-        subscriptionId: subscription?.id,
-        amount: request.amount,
-        currency: request.currency || "SAR",
-        method: "BANK_TRANSFER",
-        status: "PAID",
-        externalRef,
-        metadataJson: {
-          source: "BANK_TRANSFER_REQUEST",
-          bankTransferRequestId: request.id,
-          schoolAccountId: request.schoolAccountId,
-          requestPlanId: request.planId,
-          activeSubscriptionId: subscription?.id || null,
-          activeSubscriptionPlanId: subscription?.planId || null,
-          senderName: request.senderName,
-          receiptUrl: request.receiptUrl,
-          adminNote: request.adminNote,
-          billingCycle: request.billingCycle,
-          durationDays: request.durationDays,
-          requesterUserId: request.requesterUserId,
-          originalCreatedAt: request.createdAt.toISOString(),
-          syncedAt: new Date().toISOString(),
-        },
-      },
-    });
-
-    created += 1;
   }
-
-  return {
-    scanned: paidBankTransfers.length,
-    created,
-  };
 }
 
 export async function getAdminPaymentsCenterData(filters: AdminPaymentsFilters) {
