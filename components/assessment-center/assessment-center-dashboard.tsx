@@ -14,7 +14,32 @@ import {
   UsersRound,
 } from "lucide-react";
 
-const kpis = [
+
+type AssessmentDashboardAnalysis = {
+  id: string;
+  title: string;
+  sourceFile?: string | null;
+  totalStudents: number;
+  totalSubjects: number;
+  totalRows: number;
+  averagePercentage?: number | null;
+  createdAt: Date;
+  summaryJson?: unknown;
+};
+
+type AssessmentCenterDashboardProps = {
+  analyses?: AssessmentDashboardAnalysis[];
+  totalCount?: number;
+};
+
+function getRiskCount(summaryJson: unknown) {
+  if (!summaryJson || typeof summaryJson !== "object") return 0;
+
+  const value = (summaryJson as { riskStudentsCount?: unknown }).riskStudentsCount;
+
+  return typeof value === "number" ? value : 0;
+}
+const baseKpis = [
   {
     label: "التحليلات",
     value: "0",
@@ -103,7 +128,7 @@ const roadmap = [
   "إضافة إنشاء حالة متابعة وربطها بمحرك الحالات.",
 ];
 
-export function AssessmentCenterDashboard() {
+export function AssessmentCenterDashboard({ analyses = [], totalCount = 0 }: AssessmentCenterDashboardProps) {
   return (
     <main className="space-y-8">
       <section className="relative overflow-hidden rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-700 p-8 text-white shadow-2xl">
@@ -138,8 +163,41 @@ export function AssessmentCenterDashboard() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((item) => {
-          const Icon = item.icon;
+        {[
+          {
+            label: "التحليلات",
+            value: String(totalCount),
+            note: "تحليلات محفوظة",
+            icon: BarChart3,
+          },
+          {
+            label: "طلاب يحتاجون متابعة",
+            value: String(
+              analyses.reduce(
+                (sum, analysis) => sum + getRiskCount(analysis.summaryJson),
+                0
+              )
+            ),
+            note: "حسب آخر التحليلات",
+            icon: AlertTriangle,
+          },
+          {
+            label: "متوسط آخر تحليل",
+            value:
+              analyses[0]?.averagePercentage !== null &&
+              analyses[0]?.averagePercentage !== undefined
+                ? `${Math.round(Number(analyses[0].averagePercentage))}%`
+                : "0",
+            note: "يحدث بعد الرفع",
+            icon: Lightbulb,
+          },
+          {
+            label: "التقارير والتصدير",
+            value: "قريبًا",
+            note: "PDF و Excel لاحقًا",
+            icon: FileText,
+          },
+        ].map((item) => {          const Icon = item.icon;
 
           return (
             <article
@@ -169,6 +227,62 @@ export function AssessmentCenterDashboard() {
         })}
       </section>
 
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-black text-cyan-600">آخر التحليلات</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">
+              التحليلات المحفوظة
+            </h2>
+          </div>
+
+          <Link
+            href="/dashboard/assessment-center/new"
+            className="inline-flex items-center justify-center rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-black text-white transition hover:bg-cyan-700"
+          >
+            رفع تحليل جديد
+          </Link>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {analyses.length === 0 ? (
+            <p className="rounded-2xl bg-slate-50 p-5 text-sm font-bold text-slate-500">
+              لا توجد تحليلات محفوظة حتى الآن. ابدأ برفع ملف Excel تجريبي.
+            </p>
+          ) : (
+            analyses.map((analysis) => (
+              <Link
+                key={analysis.id}
+                href={`/dashboard/assessment-center/${analysis.id}`}
+                className="block rounded-[1.4rem] border border-slate-100 bg-slate-50 p-5 transition hover:border-cyan-100 hover:bg-cyan-50/40"
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-950">
+                      {analysis.title}
+                    </h3>
+                    <p className="mt-1 text-sm font-bold text-slate-500">
+                      {analysis.sourceFile || "ملف غير محدد"}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 text-xs font-black">
+                    <span className="rounded-full bg-white px-3 py-2 text-slate-600">
+                      الطلاب: {analysis.totalStudents}
+                    </span>
+                    <span className="rounded-full bg-white px-3 py-2 text-slate-600">
+                      المواد: {analysis.totalSubjects}
+                    </span>
+                    <span className="rounded-full bg-white px-3 py-2 text-cyan-700">
+                      المتوسط: {Math.round(Number(analysis.averagePercentage || 0))}%
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+      </section>
       <section className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">

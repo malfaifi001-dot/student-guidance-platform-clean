@@ -149,6 +149,7 @@ model SchoolAccount {
   cases             CaseEntry[]
   subscription      Subscription?
   resultsAnalyses   ResultsAnalysis[]
+  assessmentAnalyses AssessmentAnalysis[]
   calendarReminders CalendarReminder[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -762,6 +763,32 @@ model ExternalSyncLog {
   @@index([entityType])
 }
 
+
+model AssessmentAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title      String
+  sourceFile String?
+  status     String @default("COMPLETED")
+  uploadMode String @default("GENERAL")
+
+  totalStudents     Int    @default(0)
+  totalRows         Int    @default(0)
+  totalSubjects     Int    @default(0)
+  averagePercentage Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+  @@index([createdAt])
+}
 model ResultsAnalysis {
   id              String         @id @default(cuid())
   schoolAccountId String?
