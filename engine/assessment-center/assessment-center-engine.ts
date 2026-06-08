@@ -22,7 +22,11 @@ function average(values: number[]) {
 }
 
 function buildStudentKey(row: AssessmentResultRow) {
-  return row.nationalId || `${row.studentName}-${row.grade || ""}-${row.classroom || ""}`;
+  return (
+    row.studentId ||
+    row.nationalId ||
+    `${row.studentName}-${row.grade || ""}-${row.classroom || ""}`
+  );
 }
 
 function buildSubjectAverages(rows: AssessmentResultRow[]): AssessmentSubjectSummary[] {
@@ -146,6 +150,12 @@ export function analyzeAssessmentRows(rows: AssessmentResultRow[]) {
     normalizedRows.map((row) => row.subject).filter(Boolean)
   );
 
+  const linkedStudents = new Set(
+    normalizedRows
+      .map((row) => row.studentId)
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+  );
+
   const riskStudents = buildRiskStudents(normalizedRows);
 
   const summary: AssessmentAnalysisSummary = {
@@ -169,6 +179,15 @@ export function analyzeAssessmentRows(rows: AssessmentResultRow[]) {
     needsSupportStudentsCount: normalizedRows.filter(
       (row) => row.status === "NEEDS_SUPPORT"
     ).length,
+
+    linkedStudentsCount: linkedStudents.size,
+    unmatchedRowsCount: normalizedRows.filter(
+      (row) => row.linkStatus === "UNMATCHED"
+    ).length,
+    ambiguousRowsCount: normalizedRows.filter(
+      (row) => row.linkStatus === "AMBIGUOUS"
+    ).length,
+
     subjectAverages: buildSubjectAverages(normalizedRows),
     classroomAverages: buildGroupAverages(normalizedRows, "classroom"),
     gradeAverages: buildGroupAverages(normalizedRows, "grade"),

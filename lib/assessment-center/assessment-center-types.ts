@@ -5,8 +5,18 @@ export type AssessmentResultStatus =
   | "RISK"
   | "UNKNOWN";
 
+export type AssessmentStudentLinkStatus =
+  | "LINKED"
+  | "UNMATCHED"
+  | "AMBIGUOUS";
+
 export type AssessmentResultRow = {
   id: string;
+  studentId?: string | null;
+  matchedStudentName?: string | null;
+  linkStatus?: AssessmentStudentLinkStatus;
+  linkReason?: string | null;
+
   studentName: string;
   nationalId?: string | null;
   grade?: string | null;
@@ -52,6 +62,11 @@ export type AssessmentAnalysisSummary = {
   excellentStudents: number;
   riskStudentsCount: number;
   needsSupportStudentsCount: number;
+
+  linkedStudentsCount: number;
+  unmatchedRowsCount: number;
+  ambiguousRowsCount: number;
+
   subjectAverages: AssessmentSubjectSummary[];
   classroomAverages: AssessmentGroupSummary[];
   gradeAverages: AssessmentGroupSummary[];

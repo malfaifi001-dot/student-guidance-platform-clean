@@ -4,6 +4,7 @@ import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { parseAssessmentExcel } from "@/lib/assessment-center/assessment-center-parser";
 import { analyzeAssessmentRows } from "@/engine/assessment-center/assessment-center-engine";
+import { linkAssessmentRowsToStudents } from "@/lib/assessment-center/assessment-center-student-linking";
 
 export const runtime = "nodejs";
 
@@ -67,9 +68,9 @@ export async function POST(request: Request) {
     }
 
     const buffer = await file.arrayBuffer();
-    const rows = await parseAssessmentExcel(buffer);
+    const parsedRows = await parseAssessmentExcel(buffer);
 
-    if (!rows.length) {
+    if (!parsedRows.length) {
       return NextResponse.json(
         {
           success: false,
@@ -80,7 +81,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const analysisOutput = analyzeAssessmentRows(rows);
+    const students = await prisma.student.findMany({
+      where: {
+        schoolAccountId: context.schoolAccountId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        nationalId: true,
+        grade: true,
+        classroom: true,
+      },
+    });
+
+    const linkedRows = linkAssessmentRowsToStudents({
+      rows: parsedRows,
+      students,
+    });
+
+    const analysisOutput = analyzeAssessmentRows(linkedRows);
     const summary = analysisOutput.summary;
 
     const analysis = await prisma.assessmentAnalysis.create({

@@ -50,9 +50,17 @@ function getStatusLabel(status?: string | null) {
   return "غير محدد";
 }
 
+function getLinkStatusLabel(row: AssessmentResultRow) {
+  if (row.studentId) return "مربوط";
+  if (row.linkStatus === "AMBIGUOUS") return "يحتاج مراجعة";
+  return "غير مربوط";
+}
+
 export function AssessmentAnalysisDetail({ analysis }: Props) {
   const summary = asSummary(analysis.summaryJson);
-  const rows = asRows(analysis.rowsJson).slice(0, 30);
+  const allRows = asRows(analysis.rowsJson);
+  const rows = allRows.slice(0, 30);
+  const linkedRowsCount = allRows.filter((row) => row.studentId).length;
   const smartNarrative = buildAssessmentSmartNarrative(summary);
 
   const kpis = [
@@ -79,6 +87,12 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
       value: summary?.riskStudentsCount || 0,
       note: "طلاب منخفضو الأداء",
       icon: Lightbulb,
+    },
+    {
+      label: "الربط",
+      value: linkedRowsCount,
+      note: "نتائج مرتبطة بالطلاب",
+      icon: UsersRound,
     },
   ];
 
@@ -120,7 +134,7 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {kpis.map((item) => {
           const Icon = item.icon;
 
@@ -345,6 +359,7 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
                 <th className="py-3 font-black">الدرجة</th>
                 <th className="py-3 font-black">النسبة</th>
                 <th className="py-3 font-black">الحالة</th>
+                <th className="py-3 font-black">الربط</th>
               </tr>
             </thead>
 
@@ -371,6 +386,21 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
                   </td>
                   <td className="py-3 font-bold text-slate-500">
                     {getStatusLabel(row.status)}
+                  </td>
+                  <td className="py-3">
+                    <span
+                      title={row.linkReason || undefined}
+                      className={[
+                        "rounded-full px-3 py-1 text-xs font-black",
+                        row.studentId
+                          ? "bg-emerald-50 text-emerald-700"
+                          : row.linkStatus === "AMBIGUOUS"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-slate-100 text-slate-500",
+                      ].join(" ")}
+                    >
+                      {getLinkStatusLabel(row)}
+                    </span>
                   </td>
                 </tr>
               ))}
