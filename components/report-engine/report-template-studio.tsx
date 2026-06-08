@@ -1,5 +1,6 @@
 "use client";
 
+import { workflowUploadServices } from "@/lib/constants/services";
 import { useEffect, useMemo, useState } from "react";
 import {
   ReportDesignRenderer,
@@ -152,14 +153,10 @@ type PreviewCaseData = {
   }>;
 };
 
-const SERVICE_OPTIONS = [
-  { slug: "guidance-programs", name: "البرامج الإرشادية" },
-  { slug: "family-school-communication", name: "التواصل بين الأسرة والمدرسة" },
-  { slug: "student-follow-up", name: "متابعة الطلاب" },
-  { slug: "committees-meetings", name: "اللجان والاجتماعات" },
-  { slug: "guidance-services", name: "الخدمات الإرشادية" },
-  { slug: "results-analysis", name: "تحليل النتائج" },
-];
+const SERVICE_OPTIONS = workflowUploadServices.map((service) => ({
+  slug: service.slug,
+  name: service.title,
+}));
 
 const statusLabels: Record<TemplateStatus, string> = {
   DRAFT: "مسودة",
@@ -1819,8 +1816,8 @@ export function ReportTemplateStudio() {
                         className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
                       >
                         <option value="">بدون ربط مباشر</option>
-                        {workflowFields.map((field) => (
-                          <option key={field.key} value={field.key}>
+                        {workflowFields.map((field, fieldIndex) => (
+                          <option key={`${field.stepTitle || "field"}-${field.key}-${fieldIndex}`} value={field.key}>
                             {field.stepTitle ? `${field.stepTitle} - ` : ""}
                             {field.label}
                           </option>
@@ -2231,13 +2228,13 @@ function WorkflowAwarenessPanel({
               </div>
 
               <div className="mt-3 space-y-2">
-                {group.fields.map((field) => {
+                {group.fields.map((field, fieldIndex) => {
                   const used = usedFieldKeys.has(field.key);
                   const variable = `{{field.${field.key}}}`;
 
                   return (
                     <div
-                      key={field.key}
+                      key={`${field.stepTitle || "field"}-${field.key}-${fieldIndex}`}
                       className="rounded-2xl border border-slate-200 bg-white p-3"
                     >
                       <div className="flex items-start justify-between gap-3">

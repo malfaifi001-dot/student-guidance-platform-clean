@@ -897,8 +897,7 @@ model ReportTemplate {
   serviceSlug String?
 
   type ReportTemplateType @default(SYSTEM)
-
-  content String
+  content      String? @db.LongText
 
   templateJson Json?
   version      Int   @default(1)

@@ -1,3 +1,4 @@
+import { workflowUploadServices } from "@/lib/constants/services";
 export type ReportTemplateScope =
   | "GLOBAL"
   | "SERVICE"
@@ -259,28 +260,10 @@ export const REPORT_WORKFLOW_FIELD_OPTIONS = [
   },
 ];
 
-export const REPORT_SERVICE_OPTIONS = [
-  {
-    slug: "guidance-programs",
-    name: "البرامج الإرشادية",
-  },
-  {
-    slug: "student-follow-up",
-    name: "متابعة الطلاب",
-  },
-  {
-    slug: "family-school-communication",
-    name: "التواصل بين الأسرة والمدرسة",
-  },
-  {
-    slug: "committees-meetings",
-    name: "اللجان والاجتماعات",
-  },
-  {
-    slug: "student-guidance-services",
-    name: "الخدمات الإرشادية",
-  },
-];
+export const REPORT_SERVICE_OPTIONS = workflowUploadServices.map((service) => ({
+  slug: service.slug,
+  name: service.title,
+}));
 
 export const REPORT_BLOCK_LIBRARY: ReportTemplateBlock[] = [
   {

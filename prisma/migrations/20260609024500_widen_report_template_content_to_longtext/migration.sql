@@ -1,0 +1,2 @@
+ALTER TABLE `ReportTemplate`
+  MODIFY COLUMN `content` LONGTEXT NULL;
