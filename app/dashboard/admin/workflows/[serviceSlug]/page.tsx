@@ -9,10 +9,11 @@ import { WorkflowPublishPanel } from "@/components/admin/workflows/workflow-publ
 import { WorkflowStudentPickerModeControl } from "@/components/admin/workflows/workflow-student-picker-mode-control";
 import { validateWorkflow } from "@/engine/workflow-validation/workflow-validator";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
-import { dashboardServices } from "@/lib/constants/services";
+
 import { prisma } from "@/lib/prisma";
 import {
   ensureDashboardWorkflowService,
+  getWorkflowUploadServices,
   isWorkflowUploadEligibleService,
 } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import {
@@ -95,7 +96,7 @@ export default async function ServiceWorkflowPage({ params }: PageProps) {
 
   const { serviceSlug } = await params;
 
-  const serviceConfig = dashboardServices.find(
+  const serviceConfig = getWorkflowUploadServices().find(
     (service) => service.slug === serviceSlug,
   );
 

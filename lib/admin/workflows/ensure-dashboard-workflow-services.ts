@@ -1,6 +1,6 @@
 import { ServiceStatus} from "@prisma/client";
 
-import { dashboardServices } from "@/lib/constants/services";
+import { workflowUploadServices } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";
 
 type DashboardWorkflowServiceConfig = {
@@ -69,11 +69,11 @@ export function isWorkflowUploadEligibleService(
 }
 
 export function getWorkflowUploadServices() {
-  return dashboardServices.filter(isWorkflowUploadEligibleService);
+  return workflowUploadServices.filter(isWorkflowUploadEligibleService);
 }
 
 function getServiceConfig(serviceSlug: string): DashboardWorkflowServiceConfig | null {
-  const config = dashboardServices.find((service) => service.slug === serviceSlug);
+  const config = workflowUploadServices.find((service) => service.slug === serviceSlug);
 
   if (!config || !isWorkflowUploadEligibleService(config)) {
     return null;

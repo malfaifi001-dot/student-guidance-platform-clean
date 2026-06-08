@@ -1257,3 +1257,21 @@ model AssessmentInterventionRule {
   @@index([isEnabled])
   @@index([isDefault])
 }
+model AssessmentInterventionWorkflowTarget {
+  id String @id @default(cuid())
+
+  serviceId  String
+  workflowId String
+  targetType String
+
+  isEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workflowId, targetType])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([targetType])
+  @@index([isEnabled])
+}

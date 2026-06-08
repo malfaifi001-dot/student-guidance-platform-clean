@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { WorkflowUploadCard } from "@/components/admin/workflow-upload-card";
-import { dashboardServices } from "@/lib/constants/services";
+import { getWorkflowUploadServices } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import { requireAdminPage } from "@/lib/admin/admin-page-guard";
 
 type PageProps = {
@@ -14,7 +14,7 @@ export default async function WorkflowUploadPage({ params }: PageProps) {
 
   const { serviceSlug } = await params;
 
-  const service = dashboardServices.find((item) => item.slug === serviceSlug);
+  const service = getWorkflowUploadServices().find((item) => item.slug === serviceSlug);
 
   if (!service) {
     notFound();

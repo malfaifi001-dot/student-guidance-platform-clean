@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import type { AssessmentInterventionPackage } from "@/lib/assessment-center/assessment-intervention-types";
+import {
+  SMART_INTERVENTION_SERVICE_SLUGS,
+  SMART_INTERVENTION_TARGET_SERVICE_SLUG_BY_TYPE,
+} from "@/lib/constants/services";
 
 export const runtime = "nodejs";
 
@@ -61,8 +65,23 @@ export async function POST(request: Request) {
     );
   }
 
-  const targetServiceGuard = await requireServiceAccessApi(service.slug);
-  if (targetServiceGuard) return targetServiceGuard;
+  const expectedServiceSlug =
+    SMART_INTERVENTION_TARGET_SERVICE_SLUG_BY_TYPE[interventionPackage.targetType];
+
+  if (expectedServiceSlug && service.slug !== expectedServiceSlug) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "الخدمة المختارة لا تطابق نوع حزمة التدخل.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (!SMART_INTERVENTION_SERVICE_SLUGS.includes(service.slug)) {
+    const targetServiceGuard = await requireServiceAccessApi(service.slug);
+    if (targetServiceGuard) return targetServiceGuard;
+  }
 
   const workflow = await prisma.workflow.findFirst({
     where: {

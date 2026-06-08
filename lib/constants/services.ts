@@ -44,6 +44,77 @@ export const workflowServices: AppService[] = [
   },
 ];
 
+export const smartInterventionWorkflowServices: AppService[] = [
+  {
+    slug: "smart-student-support",
+    title: "تدخل فردي ذكي",
+    description: "Workflow مستقل للتدخلات الفردية الناتجة من مركز التحليل.",
+    href: "/dashboard/smart-student-support",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-student-excellence",
+    title: "تعزيز وتميز ذكي",
+    description: "Workflow مستقل لرعاية الطلاب المتميزين وتعزيزهم.",
+    href: "/dashboard/smart-student-excellence",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-student-group-custom",
+    title: "خطة جماعية مخصصة",
+    description: "Workflow مستقل لخطة جماعية يحدد المستخدم طلابها يدويًا.",
+    href: "/dashboard/smart-student-group-custom",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-student-group-subject",
+    title: "خطة جماعية حسب مادة",
+    description: "Workflow مستقل لمجموعة طلاب لديهم ضعف مشترك في مادة.",
+    href: "/dashboard/smart-student-group-subject",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-classroom-support",
+    title: "خطة فصل ذكية",
+    description: "Workflow مستقل للتدخلات الصفية على مستوى الفصل.",
+    href: "/dashboard/smart-classroom-support",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-grade-support",
+    title: "خطة صف دراسي ذكية",
+    description: "Workflow مستقل للتدخلات على مستوى الصف الدراسي.",
+    href: "/dashboard/smart-grade-support",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-subject-support",
+    title: "تدخل علاجي لمادة",
+    description: "Workflow مستقل للتدخلات العلاجية على مستوى المادة.",
+    href: "/dashboard/smart-subject-support",
+    kind: "workflow",
+  },
+];
+
+export const SMART_INTERVENTION_SERVICE_SLUGS = smartInterventionWorkflowServices.map(
+  (service) => service.slug,
+);
+
+export const SMART_INTERVENTION_TARGET_SERVICE_SLUG_BY_TYPE: Record<string, string> = {
+  STUDENT_SUPPORT: "smart-student-support",
+  STUDENT_EXCELLENCE: "smart-student-excellence",
+  STUDENT_GROUP_CUSTOM: "smart-student-group-custom",
+  STUDENT_GROUP_SUBJECT: "smart-student-group-subject",
+  CLASSROOM_SUPPORT: "smart-classroom-support",
+  GRADE_SUPPORT: "smart-grade-support",
+  SUBJECT_SUPPORT: "smart-subject-support",
+};
+
+export const workflowUploadServices: AppService[] = [
+  ...workflowServices,
+  ...smartInterventionWorkflowServices,
+];
+
 export const standaloneServices: AppService[] = [
   {
     slug: "comprehensive-reference",

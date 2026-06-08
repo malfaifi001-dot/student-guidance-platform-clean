@@ -27,6 +27,7 @@ type WorkflowOption = {
   workflowType: string;
   status: string;
   isActive: boolean;
+  interventionTargetTypes?: AssessmentInterventionTargetType[];
 };
 
 type ServiceOption = {
@@ -84,6 +85,38 @@ function getTabForTarget(targetType: AssessmentInterventionTargetType): TabKey {
   if (targetType === "CLASSROOM_SUPPORT") return "classroom";
   if (targetType === "GRADE_SUPPORT") return "grade";
   return "subject";
+}
+
+function serviceSlugForTargetType(targetType: AssessmentInterventionTargetType) {
+  if (targetType === "STUDENT_SUPPORT") return "smart-student-support";
+  if (targetType === "STUDENT_EXCELLENCE") return "smart-student-excellence";
+  if (targetType === "STUDENT_GROUP_CUSTOM") return "smart-student-group-custom";
+  if (targetType === "STUDENT_GROUP_SUBJECT") return "smart-student-group-subject";
+  if (targetType === "CLASSROOM_SUPPORT") return "smart-classroom-support";
+  if (targetType === "GRADE_SUPPORT") return "smart-grade-support";
+  return "smart-subject-support";
+}
+
+function serviceSlugForTab(tab: TabKey, hasMultiSelection: boolean) {
+  if (hasMultiSelection) return "smart-student-group-custom";
+  if (tab === "student") return "smart-student-support";
+  if (tab === "excellence") return "smart-student-excellence";
+  if (tab === "student_group") return "smart-student-group-subject";
+  if (tab === "classroom") return "smart-classroom-support";
+  if (tab === "grade") return "smart-grade-support";
+  if (tab === "subject") return "smart-subject-support";
+  return "";
+}
+
+function targetTypesForTab(tab: TabKey, hasMultiSelection: boolean): AssessmentInterventionTargetType[] {
+  if (hasMultiSelection) return ["STUDENT_GROUP_CUSTOM"];
+  if (tab === "student") return ["STUDENT_SUPPORT"];
+  if (tab === "excellence") return ["STUDENT_EXCELLENCE"];
+  if (tab === "student_group") return ["STUDENT_GROUP_SUBJECT", "STUDENT_GROUP_CUSTOM"];
+  if (tab === "classroom") return ["CLASSROOM_SUPPORT"];
+  if (tab === "grade") return ["GRADE_SUPPORT"];
+  if (tab === "subject") return ["SUBJECT_SUPPORT"];
+  return [];
 }
 
 function targetLabel(targetType: AssessmentInterventionTargetType) {
@@ -176,6 +209,21 @@ export function AssessmentInterventionAssistant({
     [services, selectedServiceId]
   );
 
+  const visibleWorkflows = useMemo(() => {
+    const workflows = selectedService?.workflows || [];
+    const allowedTypes = targetTypesForTab(activeTab, selectedPackageIds.length >= 2);
+
+    if (!allowedTypes.length) return workflows;
+
+    return workflows.filter((workflow) => {
+      if (!workflow.interventionTargetTypes?.length) return true;
+
+      return workflow.interventionTargetTypes.some((targetType) =>
+        allowedTypes.includes(targetType)
+      );
+    });
+  }, [selectedService, activeTab, selectedPackageIds.length]);
+
   const selectedIndividualPackages = useMemo(
     () =>
       packages.filter(
@@ -234,6 +282,17 @@ export function AssessmentInterventionAssistant({
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const slug = serviceSlugForTab(activeTab, selectedPackageIds.length >= 2);
+    if (!slug || services.length === 0) return;
+
+    const service = services.find((item) => item.slug === slug);
+    if (!service || selectedServiceId === service.id) return;
+
+    setSelectedServiceId(service.id);
+    setSelectedWorkflowId("");
+  }, [activeTab, selectedPackageIds.length, services, selectedServiceId]);
 
   function togglePackageSelection(item: AssessmentInterventionPackage) {
     if (!isSelectableIndividual(item)) return;
@@ -365,7 +424,7 @@ export function AssessmentInterventionAssistant({
 
               <div className="mt-5 grid gap-4 lg:grid-cols-3">
                 <div>
-                  <label className="text-xs font-black text-slate-500">الخدمة</label>
+                  <label className="text-xs font-black text-slate-500">خدمة التدخل الذكي</label>
                   <select
                     value={selectedServiceId}
                     onChange={(event) => {
@@ -392,7 +451,7 @@ export function AssessmentInterventionAssistant({
                     className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none disabled:bg-slate-100"
                   >
                     <option value="">اختر Workflow</option>
-                    {(selectedService?.workflows || []).map((workflow) => (
+                    {visibleWorkflows.map((workflow) => (
                       <option key={workflow.id} value={workflow.id}>
                         {workflow.name} - v{workflow.version}
                       </option>
@@ -480,7 +539,10 @@ export function AssessmentInterventionAssistant({
                   <button
                     key={tab.key}
                     type="button"
-                    onClick={() => setActiveTab(tab.key)}
+                    onClick={() => {
+                      setActiveTab(tab.key);
+                      setSelectedWorkflowId("");
+                    }}
                     className={[
                       "rounded-2xl px-4 py-2 text-xs font-black transition",
                       activeTab === tab.key

@@ -1,14 +1,13 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
 import { logAdminActivity } from "@/lib/admin/activity-log";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import {
   ensureDashboardWorkflowService,
-  isWorkflowUploadEligibleService,
+  getWorkflowUploadServices,
 } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
-import { dashboardServices } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";
 import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
 import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
@@ -120,11 +119,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const serviceConfig = dashboardServices.find(
+    const serviceConfig = getWorkflowUploadServices().find(
       (service: any) => service.slug === serviceSlug,
     );
 
-    if (!serviceConfig || !isWorkflowUploadEligibleService(serviceConfig)) {
+    if (!serviceConfig) {
       return NextResponse.json(
         {
           success: false,

@@ -1,0 +1,1756 @@
+
+
+==============================
+lib\constants\services.ts
+EXISTS: True
+==============================
+
+export type AppService = {
+  slug: string;
+  title: string;
+  description: string;
+  href: string;
+  kind: "workflow" | "standalone" | "admin";
+};
+
+export const workflowServices: AppService[] = [
+  {
+    slug: "guidance-programs",
+    title: "البرامج الإرشادية",
+    description: "إدارة البرامج الإرشادية وخطط التنفيذ.",
+    href: "/dashboard/guidance-programs",
+    kind: "workflow",
+  },
+  {
+    slug: "student-follow-up",
+    title: "متابعة الطلاب",
+    description: "متابعة الطلاب والحالات الطلابية.",
+    href: "/dashboard/student-follow-up",
+    kind: "workflow",
+  },
+  {
+    slug: "committees-meetings",
+    title: "اللجان والاجتماعات",
+    description: "إدارة محاضر اللجان والاجتماعات والتوصيات.",
+    href: "/dashboard/committees-meetings",
+    kind: "workflow",
+  },
+  {
+    slug: "family-school-communication",
+    title: "التواصل بين الأسرة والمدرسة",
+    description: "توثيق التواصل بين الأسرة والمدرسة.",
+    href: "/dashboard/family-school-communication",
+    kind: "workflow",
+  },
+  {
+    slug: "student-guidance-services",
+    title: "الخدمات الإرشادية المقدمة للطلاب",
+    description: "إدارة الخدمات الإرشادية المقدمة للطلاب.",
+    href: "/dashboard/student-guidance-services",
+    kind: "workflow",
+  },
+];
+
+export const standaloneServices: AppService[] = [
+  {
+    slug: "comprehensive-reference",
+    title: "المرجع الشامل للموجه الطلابي",
+    description: "مرجع شامل للموجه الطلابي لمتابعة بيانات الطلاب وسجلاتهم.",
+    href: "/dashboard/comprehensive-reference",
+    kind: "standalone",
+  },
+  {
+    slug: "results-analysis",
+    title: "تحليل النتائج",
+    description: "رفع وتحليل نتائج الطلاب.",
+    href: "/dashboard/results-analysis",
+    kind: "standalone",
+  },
+  {
+    slug: "reports",
+    title: "التقارير",
+    description: "إنشاء ومعاينة واعتماد التقارير.",
+    href: "/dashboard/reports",
+    kind: "standalone",
+  },
+];
+
+export const dashboardServices = [
+  ...workflowServices,
+  ...standaloneServices,
+];
+
+
+==============================
+lib\admin\workflows\ensure-dashboard-workflow-services.ts
+EXISTS: True
+==============================
+
+import { ServiceStatus} from "@prisma/client";
+
+import { dashboardServices } from "@/lib/constants/services";
+import { prisma } from "@/lib/prisma";
+
+type DashboardWorkflowServiceConfig = {
+  slug: string;
+  title: string;
+  description?: string;
+  kind?: string;
+};
+
+const EXCLUDED_WORKFLOW_UPLOAD_SLUG_PARTS = [
+  "student-record",
+  "student-profile",
+  "comprehensive-record",
+  "comprehensive-reference",
+  "reference",
+  "reports",
+  "report",
+  "results-analysis",
+  "result-analysis",
+  "analysis-results",
+  "results",
+];
+
+const EXCLUDED_WORKFLOW_UPLOAD_TITLE_PARTS = [
+  "المرجع الشامل للموجه الطلابي",
+  "المرجع الشامل",
+  "التقارير",
+  "تحليل النتائج",
+];
+
+function normalizeArabicText(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeDescription(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  return text || null;
+}
+
+export function isWorkflowUploadEligibleService(
+  service: DashboardWorkflowServiceConfig,
+) {
+  const slug = String(service.slug || "").toLowerCase().trim();
+  const title = normalizeArabicText(service.title);
+
+  const isExplicitlyExcludedBySlug = EXCLUDED_WORKFLOW_UPLOAD_SLUG_PARTS.some(
+    (part) => slug.includes(part),
+  );
+
+  const isExplicitlyExcludedByTitle = EXCLUDED_WORKFLOW_UPLOAD_TITLE_PARTS.some(
+    (part) => title.includes(normalizeArabicText(part)),
+  );
+
+  if (isExplicitlyExcludedBySlug || isExplicitlyExcludedByTitle) {
+    return false;
+  }
+
+  return service.kind === "workflow";
+}
+
+export function getWorkflowUploadServices() {
+  return dashboardServices.filter(isWorkflowUploadEligibleService);
+}
+
+function getServiceConfig(serviceSlug: string): DashboardWorkflowServiceConfig | null {
+  const config = dashboardServices.find((service) => service.slug === serviceSlug);
+
+  if (!config || !isWorkflowUploadEligibleService(config)) {
+    return null;
+  }
+
+  return {
+    slug: config.slug,
+    title: config.title,
+    description: config.description,
+    kind: config.kind,
+  };
+}
+
+/**
+ * يضمن وجود سجل Service فقط للخدمات التي لها Workflow.
+ * لا ينشئ Workflow، ولا ينشر، ولا يغير النسخ القديمة.
+ */
+export async function ensureDashboardWorkflowService(serviceSlug: string) {
+  const serviceConfig = getServiceConfig(serviceSlug);
+
+  if (!serviceConfig) {
+    return null;
+  }
+
+  return prisma.service.upsert({
+    where: {
+      slug: serviceConfig.slug,
+    },
+    update: {
+      name: serviceConfig.title,
+      description: normalizeDescription(serviceConfig.description),
+    },
+    create: {
+      slug: serviceConfig.slug,
+      name: serviceConfig.title,
+      description: normalizeDescription(serviceConfig.description),
+      status: ServiceStatus.ACTIVE,
+    },
+  });
+}
+
+/**
+ * يهيئ خدمات Workflow فقط، ويستبعد:
+ * المرجع الشامل للموجه الطلابي، التقارير، تحليل النتائج.
+ */
+export async function ensureDashboardWorkflowServices() {
+  const results = [];
+
+  for (const service of getWorkflowUploadServices()) {
+    const ensured = await ensureDashboardWorkflowService(service.slug);
+
+    if (ensured) {
+      results.push(ensured);
+    }
+  }
+
+  return results;
+}
+
+
+==============================
+lib\workflows\workflow-types.ts
+EXISTS: True
+==============================
+
+export const WORKFLOW_PLACEMENTS = {
+  SERVICE_MAIN: "service-main",
+  GUARDIAN_SUMMONS: "guardian-summons",
+  CERTIFICATE: "certificate",
+  LETTER: "letter",
+  FORM: "form",
+} as const;
+
+export type WorkflowPlacement =
+  (typeof WORKFLOW_PLACEMENTS)[keyof typeof WORKFLOW_PLACEMENTS];
+
+export const WORKFLOW_TYPES = {
+  DEFAULT: WORKFLOW_PLACEMENTS.SERVICE_MAIN,
+  SERVICE_MAIN: WORKFLOW_PLACEMENTS.SERVICE_MAIN,
+  GUARDIAN_SUMMONS: WORKFLOW_PLACEMENTS.GUARDIAN_SUMMONS,
+  CERTIFICATE: WORKFLOW_PLACEMENTS.CERTIFICATE,
+  LETTER: WORKFLOW_PLACEMENTS.LETTER,
+  FORM: WORKFLOW_PLACEMENTS.FORM,
+} as const;
+
+export type WorkflowType = (typeof WORKFLOW_TYPES)[keyof typeof WORKFLOW_TYPES];
+
+export function normalizeWorkflowType(value?: string | null): WorkflowType {
+  if (!value || value === "default") {
+    return WORKFLOW_TYPES.SERVICE_MAIN;
+  }
+
+  if (value === WORKFLOW_TYPES.GUARDIAN_SUMMONS) {
+    return WORKFLOW_TYPES.GUARDIAN_SUMMONS;
+  }
+
+  if (value === WORKFLOW_TYPES.CERTIFICATE) {
+    return WORKFLOW_TYPES.CERTIFICATE;
+  }
+
+  if (value === WORKFLOW_TYPES.LETTER) {
+    return WORKFLOW_TYPES.LETTER;
+  }
+
+  if (value === WORKFLOW_TYPES.FORM) {
+    return WORKFLOW_TYPES.FORM;
+  }
+
+  return WORKFLOW_TYPES.SERVICE_MAIN;
+}
+
+export function getWorkflowPlacementLabel(value?: string | null) {
+  if (value === WORKFLOW_TYPES.GUARDIAN_SUMMONS) return "استدعاء ولي أمر";
+  if (value === WORKFLOW_TYPES.CERTIFICATE) return "شهادة";
+  if (value === WORKFLOW_TYPES.LETTER) return "خطاب";
+  if (value === WORKFLOW_TYPES.FORM) return "نموذج";
+
+  return "Workflow أساسي للخدمة";
+}
+
+export function isSecondaryWorkflow(value?: string | null) {
+  return normalizeWorkflowType(value) !== WORKFLOW_TYPES.SERVICE_MAIN;
+}
+
+
+==============================
+app\api\dashboard\assessment-center\interventions\options\route.ts
+EXISTS: True
+==============================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+
+export const runtime = "nodejs";
+
+export async function GET() {
+  const auth = await requireSchoolDashboardApiContext();
+  if (auth instanceof Response) return auth;
+
+  const serviceGuard = await requireServiceAccessApi("assessment-center");
+  if (serviceGuard) return serviceGuard;
+
+  const [services, targets] = await Promise.all([
+    prisma.service.findMany({
+      where: {
+        status: "ACTIVE",
+        slug: {
+          not: "assessment-center",
+        },
+      },
+      orderBy: {
+        name: "asc",
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        description: true,
+        workflows: {
+          where: {
+            isActive: true,
+          },
+          orderBy: [
+            { workflowType: "asc" },
+            { version: "desc" },
+          ],
+          select: {
+            id: true,
+            name: true,
+            version: true,
+            workflowType: true,
+            status: true,
+            isActive: true,
+          },
+        },
+      },
+    }),
+
+    prisma.assessmentInterventionWorkflowTarget.findMany({
+      where: {
+        isEnabled: true,
+      },
+      select: {
+        workflowId: true,
+        targetType: true,
+      },
+    }),
+  ]);
+
+  const targetMap = new Map<string, string[]>();
+
+  for (const target of targets) {
+    targetMap.set(target.workflowId, [
+      ...(targetMap.get(target.workflowId) || []),
+      target.targetType,
+    ]);
+  }
+
+  return NextResponse.json({
+    success: true,
+    services: services.map((service) => ({
+      ...service,
+      workflows: service.workflows.map((workflow) => ({
+        ...workflow,
+        interventionTargetTypes: targetMap.get(workflow.id) || [],
+      })),
+    })),
+  });
+}
+
+
+==============================
+components\assessment-center\assessment-intervention-assistant.tsx
+EXISTS: True
+==============================
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  BrainCircuit,
+  CheckCircle2,
+  FileSymlink,
+  Loader2,
+  Search,
+  UsersRound,
+} from "lucide-react";
+import type {
+  AssessmentInterventionPackage,
+  AssessmentInterventionPackageStudent,
+  AssessmentInterventionTargetType,
+} from "@/lib/assessment-center/assessment-intervention-types";
+import {
+  SmartActionFeedbackModal,
+  useSmartActionFeedback,
+} from "@/components/ui/smart-action-feedback";
+
+type WorkflowOption = {
+  id: string;
+  name: string;
+  version: number;
+  workflowType: string;
+  status: string;
+  isActive: boolean;
+  interventionTargetTypes?: AssessmentInterventionTargetType[];
+};
+
+type ServiceOption = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  workflows: WorkflowOption[];
+};
+
+type InterventionRule = {
+  id: string;
+  title: string;
+  targetServiceId: string;
+  targetWorkflowId?: string | null;
+  isDefault: boolean;
+  isEnabled: boolean;
+};
+
+type TabKey =
+  | "all"
+  | "student"
+  | "excellence"
+  | "student_group"
+  | "classroom"
+  | "grade"
+  | "subject";
+
+async function readApiResponse(response: Response) {
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      success: false,
+      error: text || "تعذر قراءة استجابة الخادم.",
+    };
+  }
+}
+
+function unique<T>(values: T[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function average(values: number[]) {
+  if (!values.length) return 0;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function getTabForTarget(targetType: AssessmentInterventionTargetType): TabKey {
+  if (targetType === "STUDENT_SUPPORT") return "student";
+  if (targetType === "STUDENT_EXCELLENCE") return "excellence";
+  if (targetType === "STUDENT_GROUP_SUBJECT") return "student_group";
+  if (targetType === "CLASSROOM_SUPPORT") return "classroom";
+  if (targetType === "GRADE_SUPPORT") return "grade";
+  return "subject";
+}
+
+function targetTypesForTab(tab: TabKey, hasMultiSelection: boolean): AssessmentInterventionTargetType[] {
+  if (hasMultiSelection) return ["STUDENT_GROUP_CUSTOM"];
+  if (tab === "student") return ["STUDENT_SUPPORT"];
+  if (tab === "excellence") return ["STUDENT_EXCELLENCE"];
+  if (tab === "student_group") return ["STUDENT_GROUP_SUBJECT", "STUDENT_GROUP_CUSTOM"];
+  if (tab === "classroom") return ["CLASSROOM_SUPPORT"];
+  if (tab === "grade") return ["GRADE_SUPPORT"];
+  if (tab === "subject") return ["SUBJECT_SUPPORT"];
+  return [];
+}
+
+function targetLabel(targetType: AssessmentInterventionTargetType) {
+  if (targetType === "STUDENT_SUPPORT") return "فردي";
+  if (targetType === "STUDENT_EXCELLENCE") return "تعزيز";
+  if (targetType === "STUDENT_GROUP_SUBJECT") return "مجموعة مادة";
+  if (targetType === "STUDENT_GROUP_CUSTOM") return "مجموعة مخصصة";
+  if (targetType === "CLASSROOM_SUPPORT") return "فصل";
+  if (targetType === "GRADE_SUPPORT") return "صف";
+  return "مادة";
+}
+
+function isSelectableIndividual(item: AssessmentInterventionPackage) {
+  return (
+    item.targetType === "STUDENT_SUPPORT" ||
+    item.targetType === "STUDENT_EXCELLENCE"
+  );
+}
+
+function buildCustomGroupPackage(
+  selected: AssessmentInterventionPackage[]
+): AssessmentInterventionPackage | null {
+  if (selected.length < 2) return null;
+
+  const studentsMap = new Map<string, AssessmentInterventionPackageStudent>();
+
+  for (const item of selected) {
+    for (const student of item.students) {
+      studentsMap.set(student.id, student);
+    }
+  }
+
+  const students = Array.from(studentsMap.values());
+  const subjects = unique(selected.flatMap((item) => item.subjects));
+  const grades = unique(selected.flatMap((item) => item.grades));
+  const classrooms = unique(selected.flatMap((item) => item.classrooms));
+  const averagePercentage = average(selected.map((item) => item.averagePercentage));
+
+  return {
+    id: `student-group-custom:${students.map((student) => student.id).join("-")}`,
+    targetType: "STUDENT_GROUP_CUSTOM",
+    title: `خطة جماعية مخصصة - ${students.length} طلاب`,
+    description:
+      "تم إنشاء هذه الحزمة يدويًا من مجموعة طلاب اختارهم المستخدم من نتائج التحليل.",
+    recommendedAction:
+      "فتح Workflow جماعي مناسب لتنفيذ خطة مشتركة للطلاب المحددين.",
+    riskLevel: averagePercentage < 50 ? "HIGH" : "MEDIUM",
+    primaryStudentId: null,
+    students,
+    subjects,
+    grades,
+    classrooms,
+    averagePercentage,
+    rowsCount: selected.reduce((sum, item) => sum + item.rowsCount, 0),
+  };
+}
+
+export function AssessmentInterventionAssistant({
+  analysisId,
+  analysisTitle,
+  packages,
+}: {
+  analysisId: string;
+  analysisTitle: string;
+  packages: AssessmentInterventionPackage[];
+}) {
+  const router = useRouter();
+
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [rules, setRules] = useState<InterventionRule[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState("");
+  const [saveAsDefault, setSaveAsDefault] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabKey>("all");
+  const [query, setQuery] = useState("");
+  const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
+
+  const {
+    actionState,
+    processing,
+    confirmAction,
+    closeActionFeedback,
+    runConfirmedAction,
+  } = useSmartActionFeedback();
+
+  const selectedService = useMemo(
+    () => services.find((service) => service.id === selectedServiceId),
+    [services, selectedServiceId]
+  );
+
+  const visibleWorkflows = useMemo(() => {
+    const workflows = selectedService?.workflows || [];
+    const allowedTypes = targetTypesForTab(activeTab, selectedPackageIds.length >= 2);
+
+    if (!allowedTypes.length) return workflows;
+
+    return workflows.filter((workflow) => {
+      if (!workflow.interventionTargetTypes?.length) return true;
+
+      return workflow.interventionTargetTypes.some((targetType) =>
+        allowedTypes.includes(targetType)
+      );
+    });
+  }, [selectedService, activeTab, selectedPackageIds.length]);
+
+  const selectedIndividualPackages = useMemo(
+    () =>
+      packages.filter(
+        (item) =>
+          selectedPackageIds.includes(item.id) && isSelectableIndividual(item)
+      ),
+    [packages, selectedPackageIds]
+  );
+
+  const customGroupPackage = useMemo(
+    () => buildCustomGroupPackage(selectedIndividualPackages),
+    [selectedIndividualPackages]
+  );
+
+  const filteredPackages = packages.filter((item) => {
+    const tabMatches =
+      activeTab === "all" || getTabForTarget(item.targetType) === activeTab;
+
+    if (!tabMatches) return false;
+
+    const search = query.trim().toLowerCase();
+    if (!search) return true;
+
+    const content = [
+      item.title,
+      item.description,
+      item.recommendedAction,
+      item.subjects.join(" "),
+      item.grades.join(" "),
+      item.classrooms.join(" "),
+      item.students.map((student) => student.name).join(" "),
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return content.includes(search);
+  });
+
+  async function loadData() {
+    setLoading(true);
+
+    const [optionsResponse, rulesResponse] = await Promise.all([
+      fetch("/api/dashboard/assessment-center/interventions/options"),
+      fetch("/api/dashboard/assessment-center/interventions/rules"),
+    ]);
+
+    const optionsData = await readApiResponse(optionsResponse);
+    const rulesData = await readApiResponse(rulesResponse);
+
+    if (optionsData.success) setServices(optionsData.services || []);
+    if (rulesData.success) setRules(rulesData.rules || []);
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  function togglePackageSelection(item: AssessmentInterventionPackage) {
+    if (!isSelectableIndividual(item)) return;
+
+    setSelectedPackageIds((current) =>
+      current.includes(item.id)
+        ? current.filter((id) => id !== item.id)
+        : [...current, item.id]
+    );
+  }
+
+  function handleCreateCase(item: AssessmentInterventionPackage) {
+    if (!selectedServiceId || !selectedWorkflowId) return;
+
+    let nextUrl = "";
+
+    confirmAction({
+      title: "إنشاء تدخل عبر Workflow؟",
+      description: `سيتم إنشاء تدخل "${item.title}" وفتح الـ Workflow لإكماله.`,
+      variant: "info",
+      confirmLabel: "إنشاء وفتح Workflow",
+      errorTitle: "تعذر إنشاء التدخل",
+      run: async () => {
+        const response = await fetch(
+          "/api/dashboard/assessment-center/interventions/create-case",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              analysisId,
+              analysisTitle,
+              package: item,
+              targetServiceId: selectedServiceId,
+              targetWorkflowId: selectedWorkflowId,
+              saveAsDefault,
+            }),
+          }
+        );
+
+        const data = await readApiResponse(response);
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "تعذر إنشاء التدخل.");
+        }
+
+        nextUrl = data.caseUrl;
+
+        return {
+          title: "تم إنشاء التدخل",
+          description: "سيتم نقلك إلى صفحة الـ Workflow لإكمال البيانات.",
+          variant: "success" as const,
+        };
+      },
+      afterSuccess: async () => {
+        if (nextUrl) router.push(nextUrl);
+      },
+    });
+  }
+
+  const tabs = [
+    { key: "all" as const, label: "الكل", count: packages.length },
+    {
+      key: "student" as const,
+      label: "دعم فردي",
+      count: packages.filter((p) => p.targetType === "STUDENT_SUPPORT").length,
+    },
+    {
+      key: "excellence" as const,
+      label: "تعزيز",
+      count: packages.filter((p) => p.targetType === "STUDENT_EXCELLENCE").length,
+    },
+    {
+      key: "student_group" as const,
+      label: "مجموعات طلاب",
+      count: packages.filter((p) => p.targetType === "STUDENT_GROUP_SUBJECT").length,
+    },
+    {
+      key: "classroom" as const,
+      label: "فصول",
+      count: packages.filter((p) => p.targetType === "CLASSROOM_SUPPORT").length,
+    },
+    {
+      key: "grade" as const,
+      label: "صفوف",
+      count: packages.filter((p) => p.targetType === "GRADE_SUPPORT").length,
+    },
+    {
+      key: "subject" as const,
+      label: "مواد",
+      count: packages.filter((p) => p.targetType === "SUBJECT_SUPPORT").length,
+    },
+  ];
+
+  return (
+    <>
+      <SmartActionFeedbackModal
+        state={actionState}
+        processing={processing}
+        onClose={closeActionFeedback}
+        onConfirm={runConfirmedAction}
+      />
+
+      <main className="space-y-8">
+        <section className="rounded-[2rem] border border-violet-100 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-cyan-600 p-8 text-white shadow-2xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/15 px-4 py-2 text-sm font-black">
+            <BrainCircuit className="h-4 w-4" />
+            Smart Intervention Assistant
+          </div>
+
+          <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
+            موجه التدخل الذكي
+          </h1>
+
+          <p className="mt-4 max-w-3xl text-base font-bold leading-8 text-violet-50">
+            كل تدخل يتم إنشاؤه كـ CaseEntry عبر الخدمة والـ Workflow المختار.
+          </p>
+        </section>
+
+        {loading ? (
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-sm">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-cyan-600" />
+          </section>
+        ) : (
+          <>
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-black text-slate-950">
+                إعداد التنفيذ عبر Workflow
+              </h2>
+
+              <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                <div>
+                  <label className="text-xs font-black text-slate-500">الخدمة</label>
+                  <select
+                    value={selectedServiceId}
+                    onChange={(event) => {
+                      setSelectedServiceId(event.target.value);
+                      setSelectedWorkflowId("");
+                    }}
+                    className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none"
+                  >
+                    <option value="">اختر الخدمة</option>
+                    {services.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black text-slate-500">Workflow</label>
+                  <select
+                    value={selectedWorkflowId}
+                    onChange={(event) => setSelectedWorkflowId(event.target.value)}
+                    disabled={!selectedService}
+                    className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none disabled:bg-slate-100"
+                  >
+                    <option value="">اختر Workflow</option>
+                    {visibleWorkflows.map((workflow) => (
+                      <option key={workflow.id} value={workflow.id}>
+                        {workflow.name} - v{workflow.version}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <label className="flex h-12 items-center gap-3 self-end rounded-2xl border border-cyan-100 bg-cyan-50 px-4 text-sm font-black text-cyan-800">
+                  <input
+                    type="checkbox"
+                    checked={saveAsDefault}
+                    onChange={(event) => setSaveAsDefault(event.target.checked)}
+                  />
+                  حفظ كقاعدة للحالات القادمة
+                </label>
+              </div>
+            </section>
+
+            {selectedIndividualPackages.length > 0 ? (
+              <section className="rounded-[2rem] border border-amber-100 bg-amber-50 p-5 shadow-sm">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-amber-950">
+                      خطة جماعية للمحددين
+                    </h2>
+                    <p className="mt-2 text-sm font-bold text-amber-800">
+                      تم تحديد {selectedIndividualPackages.length} طالب/طلاب. اختر طالبين فأكثر لإنشاء خطة واحدة.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPackageIds([])}
+                      className="h-11 rounded-2xl bg-white px-4 text-xs font-black text-amber-700"
+                    >
+                      مسح التحديد
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={
+                        !customGroupPackage ||
+                        !selectedServiceId ||
+                        !selectedWorkflowId ||
+                        processing
+                      }
+                      onClick={() => customGroupPackage && handleCreateCase(customGroupPackage)}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-amber-600 px-5 text-xs font-black text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      <FileSymlink className="h-4 w-4" />
+                      إنشاء خطة جماعية للمحددين
+                    </button>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            <section className="grid gap-4 md:grid-cols-3">
+              <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-sm font-black text-slate-400">حزم التدخل</p>
+                <p className="mt-3 text-4xl font-black text-slate-950">
+                  {packages.length}
+                </p>
+              </article>
+
+              <article className="rounded-[1.7rem] border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
+                <p className="text-sm font-black text-emerald-500">قواعد محفوظة</p>
+                <p className="mt-3 text-4xl font-black text-emerald-700">
+                  {rules.length}
+                </p>
+              </article>
+
+              <article className="rounded-[1.7rem] border border-violet-100 bg-violet-50 p-5 shadow-sm">
+                <p className="text-sm font-black text-violet-500">الخدمات</p>
+                <p className="mt-3 text-4xl font-black text-violet-700">
+                  {services.length}
+                </p>
+              </article>
+            </section>
+
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap gap-2">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.key);
+                      setSelectedWorkflowId("");
+                    }}
+                    className={[
+                      "rounded-2xl px-4 py-2 text-xs font-black transition",
+                      activeTab === tab.key
+                        ? "bg-violet-600 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                    ].join(" ")}
+                  >
+                    {tab.label} ({tab.count})
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4">
+                <Search className="h-5 w-5 text-slate-400" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="بحث في الحزم..."
+                  className="h-12 flex-1 bg-transparent text-sm font-bold outline-none"
+                />
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              {filteredPackages.length === 0 ? (
+                <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-sm">
+                  <UsersRound className="mx-auto h-10 w-10 text-slate-300" />
+                  <h2 className="mt-4 text-xl font-black text-slate-950">
+                    لا توجد حزم تدخل في هذا التصنيف
+                  </h2>
+                </div>
+              ) : null}
+
+              {filteredPackages.map((item) => {
+                const selectable = isSelectableIndividual(item);
+                const selected = selectedPackageIds.includes(item.id);
+
+                return (
+                  <article
+                    key={item.id}
+                    className={[
+                      "rounded-[2rem] border bg-white p-5 shadow-sm transition",
+                      selected ? "border-amber-300 ring-2 ring-amber-200" : "border-slate-200",
+                    ].join(" ")}
+                  >
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {selectable ? (
+                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => togglePackageSelection(item)}
+                              />
+                              تحديد
+                            </label>
+                          ) : null}
+
+                          <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700">
+                            {targetLabel(item.targetType)}
+                          </span>
+
+                          <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">
+                            {item.students.length} طالب
+                          </span>
+
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                            متوسط {item.averagePercentage}%
+                          </span>
+                        </div>
+
+                        <h2 className="mt-3 text-2xl font-black text-slate-950">
+                          {item.title}
+                        </h2>
+
+                        <p className="mt-3 text-sm font-bold leading-8 text-slate-500">
+                          {item.description}
+                        </p>
+
+                        <div className="mt-4 grid gap-2 text-sm font-bold text-slate-500 md:grid-cols-3">
+                          <p>المواد: {item.subjects.join("، ") || "غير محدد"}</p>
+                          <p>الصفوف: {item.grades.join("، ") || "غير محدد"}</p>
+                          <p>الفصول: {item.classrooms.join("، ") || "غير محدد"}</p>
+                        </div>
+
+                        <p className="mt-4 rounded-2xl bg-violet-50 p-4 text-sm font-bold leading-7 text-violet-900">
+                          {item.recommendedAction}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!selectedServiceId || !selectedWorkflowId || processing}
+                        onClick={() => handleCreateCase(item)}
+                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 text-sm font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 lg:w-[240px]"
+                      >
+                        <FileSymlink className="h-4 w-4" />
+                        إنشاء وفتح Workflow
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </section>
+          </>
+        )}
+      </main>
+    </>
+  );
+}
+
+
+==============================
+app\api\dashboard\assessment-center\interventions\create-case\route.ts
+EXISTS: True
+==============================
+
+import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import type { AssessmentInterventionPackage } from "@/lib/assessment-center/assessment-intervention-types";
+
+export const runtime = "nodejs";
+
+type CreateInterventionCaseBody = {
+  analysisId?: string;
+  analysisTitle?: string;
+  package?: AssessmentInterventionPackage;
+  targetServiceId?: string;
+  targetWorkflowId?: string | null;
+  saveAsDefault?: boolean;
+};
+
+async function readBody(request: Request): Promise<CreateInterventionCaseBody> {
+  try {
+    return (await request.json()) as CreateInterventionCaseBody;
+  } catch {
+    return {};
+  }
+}
+
+function shortValue(value: unknown) {
+  const text = String(value ?? "");
+  return text.length > 180 ? `${text.slice(0, 180)}...` : text;
+}
+
+export async function POST(request: Request) {
+  const auth = await requireSchoolDashboardApiContext();
+
+  if (auth instanceof Response) return auth;
+
+  const assessmentGuard = await requireServiceAccessApi("assessment-center");
+  if (assessmentGuard) return assessmentGuard;
+
+  const body = await readBody(request);
+  const interventionPackage = body.package;
+
+  if (!interventionPackage || !body.targetServiceId || !body.targetWorkflowId) {
+    return NextResponse.json(
+      { success: false, error: "حزمة التدخل والخدمة والـ Workflow مطلوبة." },
+      { status: 400 }
+    );
+  }
+
+  const service = await prisma.service.findFirst({
+    where: {
+      id: body.targetServiceId,
+      status: "ACTIVE",
+    },
+  });
+
+  if (!service) {
+    return NextResponse.json(
+      { success: false, error: "الخدمة المحددة غير موجودة أو غير مفعلة." },
+      { status: 404 }
+    );
+  }
+
+  const targetServiceGuard = await requireServiceAccessApi(service.slug);
+  if (targetServiceGuard) return targetServiceGuard;
+
+  const workflow = await prisma.workflow.findFirst({
+    where: {
+      id: body.targetWorkflowId,
+      serviceId: service.id,
+      isActive: true,
+    },
+    include: {
+      steps: {
+        orderBy: { order: "asc" },
+        include: {
+          fields: {
+            orderBy: { order: "asc" },
+            include: {
+              options: {
+                orderBy: { order: "asc" },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!workflow) {
+    return NextResponse.json(
+      { success: false, error: "الـ Workflow المحدد غير موجود أو غير مفعل لهذه الخدمة." },
+      { status: 404 }
+    );
+  }
+
+  const primaryStudentId =
+    interventionPackage.targetType === "STUDENT_SUPPORT" ||
+    interventionPackage.targetType === "STUDENT_EXCELLENCE"
+      ? interventionPackage.primaryStudentId || interventionPackage.students[0]?.id
+      : null;
+
+  const primaryStudent = primaryStudentId
+    ? await prisma.student.findFirst({
+        where: {
+          id: primaryStudentId,
+          schoolAccountId: auth.schoolAccountId,
+          isActive: true,
+        },
+      })
+    : null;
+
+  if (primaryStudentId && !primaryStudent) {
+    return NextResponse.json(
+      { success: false, error: "لم يتم العثور على الطالب داخل مركز البيانات." },
+      { status: 404 }
+    );
+  }
+
+  const workflowSnapshot = {
+    id: workflow.id,
+    name: workflow.name,
+    version: workflow.version,
+    workflowType: workflow.workflowType,
+    steps: workflow.steps,
+  };
+
+  const createdCase = await prisma.$transaction(async (tx) => {
+    const caseEntry = await tx.caseEntry.create({
+      data: {
+        schoolAccountId: auth.schoolAccountId,
+        serviceId: service.id,
+        workflowId: workflow.id,
+        workflowSnapshot: workflowSnapshot as Prisma.InputJsonValue,
+        studentId: primaryStudent?.id || null,
+        createdById: (auth as any).userId || null,
+        title: shortValue(interventionPackage.title),
+      },
+    });
+
+    await tx.caseValue.createMany({
+      data: [
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_source", value: "assessment-center" },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_analysis_id", value: shortValue(body.analysisId) },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_analysis_title", value: shortValue(body.analysisTitle) },
+
+        { caseEntryId: caseEntry.id, fieldKey: "intervention_target_type", value: interventionPackage.targetType },
+        { caseEntryId: caseEntry.id, fieldKey: "intervention_title", value: shortValue(interventionPackage.title) },
+        { caseEntryId: caseEntry.id, fieldKey: "intervention_description", value: shortValue(interventionPackage.description) },
+        { caseEntryId: caseEntry.id, fieldKey: "intervention_recommended_action", value: shortValue(interventionPackage.recommendedAction) },
+
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_average_percentage", value: String(interventionPackage.averagePercentage) },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_rows_count", value: String(interventionPackage.rowsCount) },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_subjects", value: shortValue(interventionPackage.subjects.join("، ")) },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_grades", value: shortValue(interventionPackage.grades.join("، ")) },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_classrooms", value: shortValue(interventionPackage.classrooms.join("، ")) },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_students_count", value: String(interventionPackage.students.length) },
+      ],
+    });
+
+    await tx.caseValue.create({
+      data: {
+        caseEntryId: caseEntry.id,
+        fieldKey: "assessment_students_json",
+        jsonValue: interventionPackage.students as Prisma.InputJsonValue,
+      },
+    });
+
+    await tx.caseValue.create({
+      data: {
+        caseEntryId: caseEntry.id,
+        fieldKey: "assessment_package_json",
+        jsonValue: interventionPackage as Prisma.InputJsonValue,
+      },
+    });
+
+    return caseEntry;
+  });
+
+  return NextResponse.json({
+    success: true,
+    caseId: createdCase.id,
+    caseUrl: `/dashboard/cases/${createdCase.id}/edit`,
+  });
+}
+
+
+==============================
+app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+EXISTS: True
+==============================
+
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowUpLeft } from "lucide-react";
+
+import { WorkflowHealthReport } from "@/components/admin/workflow-health/workflow-health-report";
+import { WorkflowHistoryActions } from "@/components/admin/workflows/workflow-history-actions";
+import { WorkflowInlineImportWorkbench } from "@/components/admin/workflows/workflow-inline-import-workbench";
+import { WorkflowInterventionTargetControl } from "@/components/admin/workflows/workflow-intervention-target-control";
+import { WorkflowPublishPanel } from "@/components/admin/workflows/workflow-publish-panel";
+import { WorkflowStudentPickerModeControl } from "@/components/admin/workflows/workflow-student-picker-mode-control";
+import { validateWorkflow } from "@/engine/workflow-validation/workflow-validator";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+import { dashboardServices } from "@/lib/constants/services";
+import { prisma } from "@/lib/prisma";
+import {
+  ensureDashboardWorkflowService,
+  isWorkflowUploadEligibleService,
+} from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
+import {
+  WORKFLOW_TYPES,
+  getWorkflowPlacementLabel,
+  isSecondaryWorkflow,
+} from "@/lib/workflows/workflow-types";
+
+type PageProps = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+function formatWorkflowDate(value: Date | string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function getWorkflowStatusLabel(status: string, isActive: boolean) {
+  if (isActive) return "مفعل حاليًا";
+  if (status === "DRAFT") return "مسودة";
+  if (status === "ACTIVE") return "منشور غير مفعل";
+  if (status === "ARCHIVED") return "مؤرشف";
+
+  return status || "غير محدد";
+}
+
+function getWorkflowStatusClass(status: string, isActive: boolean) {
+  if (isActive) {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
+  }
+
+  if (status === "DRAFT") {
+    return "bg-sky-50 text-sky-700 ring-1 ring-sky-100";
+  }
+
+  if (status === "ARCHIVED") {
+    return "bg-slate-100 text-slate-500 ring-1 ring-slate-200";
+  }
+
+  return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+}
+
+function countWorkflowFields(workflow: any) {
+  return workflow.steps.reduce(
+    (total: number, step: any) => total + step.fields.length,
+    0,
+  );
+}
+
+function countWorkflowOptions(workflow: any) {
+  return workflow.steps.reduce(
+    (total: number, step: any) =>
+      total +
+      step.fields.reduce(
+        (fieldTotal: number, field: any) =>
+          fieldTotal + field.options.length,
+        0,
+      ),
+    0,
+  );
+}
+
+function formatCasesUsageCount(count: number) {
+  return new Intl.NumberFormat("ar-SA").format(count);
+}
+
+export default async function ServiceWorkflowPage({ params }: PageProps) {
+  await requireAdminPage();
+
+  const { serviceSlug } = await params;
+
+  const serviceConfig = dashboardServices.find(
+    (service) => service.slug === serviceSlug,
+  );
+
+  if (!serviceConfig || !isWorkflowUploadEligibleService(serviceConfig)) {
+    notFound();
+  }
+
+  await ensureDashboardWorkflowService(serviceSlug);
+
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              cases: true,
+            },
+          },
+        },
+        orderBy: {
+          version: "desc",
+        },
+      },
+    },
+  });
+
+  if (!service) {
+    notFound();
+  }
+
+  const workflows = service.workflows;
+
+  const interventionTargets = await prisma.assessmentInterventionWorkflowTarget.findMany({
+    where: {
+      serviceId: service.id,
+      isEnabled: true,
+    },
+    select: {
+      workflowId: true,
+      targetType: true,
+    },
+  });
+
+  const interventionTargetsByWorkflow = new Map<string, string[]>();
+
+  for (const target of interventionTargets) {
+    interventionTargetsByWorkflow.set(target.workflowId, [
+      ...(interventionTargetsByWorkflow.get(target.workflowId) || []),
+      target.targetType,
+    ]);
+  }
+
+  const defaultWorkflows = workflows.filter(
+    (workflow) => workflow.workflowType === WORKFLOW_TYPES.DEFAULT,
+  );
+
+  const subWorkflows = workflows.filter((workflow) =>
+    isSecondaryWorkflow(workflow.workflowType),
+  );
+
+  const activeWorkflow = defaultWorkflows.find((workflow) => workflow.isActive);
+  const latestDraftWorkflow = defaultWorkflows.find(
+    (workflow) => workflow.status === "DRAFT",
+  );
+
+  const workflowForHealth = latestDraftWorkflow || activeWorkflow;
+
+  const healthReport = workflowForHealth
+    ? validateWorkflow({
+        id: workflowForHealth.id,
+        name: workflowForHealth.name,
+        steps: workflowForHealth.steps.map((step) => ({
+          id: step.id,
+          title: step.title,
+          fields: step.fields.map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            type: field.type,
+            isRequired: field.isRequired,
+            dependsOnFieldKey: field.dependsOnFieldKey,
+            linkedToValue: field.linkedToValue,
+            allowOther: field.allowOther,
+            options: field.options.map((option) => ({
+              id: option.id,
+              label: option.label,
+              value: option.value,
+              linkedToValue: option.linkedToValue,
+            })),
+          })),
+        })),
+      })
+    : null;
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-center">
+          <div>
+            <p className="text-xs font-black text-sky-700">Service Workflow</p>
+
+            <h1 className="mt-2 text-4xl font-black text-slate-950">
+              {serviceConfig.title}
+            </h1>
+
+            <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              ارفع Excel، راجع النموذج مباشرة، ثم احفظه كمسودة. النشر وحده هو
+              الذي يغير ما يظهر للموجهين.
+            </p>
+          </div>
+
+          <Link
+            href="/dashboard/admin/workflows"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            <ArrowUpLeft className="h-4 w-4" />
+            مركز Workflows
+          </Link>
+        </div>
+      </section>
+
+      <WorkflowInlineImportWorkbench
+        serviceId={service.id}
+        serviceSlug={serviceSlug}
+        serviceName={serviceConfig.title}
+      />
+
+      <WorkflowPublishPanel
+        serviceSlug={serviceSlug}
+        previewHref={`/dashboard/admin/workflows/${serviceSlug}/preview`}
+        hasDraft={Boolean(latestDraftWorkflow)}
+        draftWorkflowId={latestDraftWorkflow?.id}
+        draftWorkflowName={latestDraftWorkflow?.name}
+        draftVersion={latestDraftWorkflow?.version}
+        activeWorkflowName={activeWorkflow?.name}
+      />
+
+      <WorkflowUploadHistorySection
+        serviceSlug={serviceSlug}
+        workflows={workflows}
+        interventionTargetsByWorkflow={interventionTargetsByWorkflow}
+      />
+
+      {healthReport ? <WorkflowHealthReport report={healthReport} /> : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-emerald-700">
+              Workflow الأساسي
+            </p>
+
+            <h2 className="mt-1 text-2xl font-black text-slate-900">
+              النسخة المفعلة للموجه
+            </h2>
+          </div>
+
+          {activeWorkflow ? (
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+              مفعل
+            </span>
+          ) : (
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 ring-1 ring-amber-100">
+              غير مفعل
+            </span>
+          )}
+        </div>
+
+        {activeWorkflow ? (
+          <div className="mt-6 space-y-4">
+            <div className="rounded-3xl bg-slate-50 p-5">
+              <p className="text-xs font-black text-slate-400">الاسم</p>
+
+              <p className="mt-1 text-xl font-black text-slate-900">
+                {activeWorkflow.name}
+              </p>
+
+              <p className="mt-2 text-sm font-bold text-slate-500">
+                Version {activeWorkflow.version} ·{" "}
+                {activeWorkflow.steps.length} خطوات
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {activeWorkflow.steps
+                .sort((a, b) => a.order - b.order)
+                .map((step) => (
+                  <div
+                    key={step.id}
+                    className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
+                  >
+                    <h3 className="font-black text-slate-900">
+                      {step.order}. {step.title}
+                    </h3>
+
+                    <p className="mt-2 text-xs font-bold text-slate-500">
+                      {step.fields.length} حقول
+                    </p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl bg-amber-50 p-6 text-sm font-bold text-amber-700">
+            لا يوجد Workflow أساسي مفعل لهذه الخدمة. ارفع ملف Excel أو انشر آخر
+            مسودة.
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div>
+          <p className="text-xs font-black text-sky-700">
+            Workflows فرعية داخل الخدمة
+          </p>
+
+          <h2 className="mt-1 text-2xl font-black text-slate-900">
+            النماذج الفرعية
+          </h2>
+        </div>
+
+        {subWorkflows.length ? (
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {subWorkflows.map((workflow) => (
+              <article
+                key={workflow.id}
+                className="rounded-2xl border border-slate-100 bg-slate-50 p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black text-emerald-700">
+                      {getWorkflowPlacementLabel(workflow.workflowType)}
+                    </p>
+
+                    <h3 className="mt-1 text-lg font-black text-slate-900">
+                      {workflow.name}
+                    </h3>
+                  </div>
+
+                  <span
+                    className={[
+                      "rounded-full px-3 py-1 text-[11px] font-black",
+                      workflow.isActive
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-slate-100 text-slate-500",
+                    ].join(" ")}
+                  >
+                    {workflow.isActive ? "مفعل" : workflow.status}
+                  </span>
+                </div>
+
+                <p className="mt-3 text-sm font-bold text-slate-500">
+                  Version {workflow.version} · {workflow.steps.length} خطوات
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-sm font-bold text-slate-500">
+            لا توجد Workflows فرعية داخل هذه الخدمة.
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+
+function WorkflowUploadHistorySection({
+  serviceSlug,
+  workflows,
+  interventionTargetsByWorkflow,
+}: {
+  serviceSlug: string;
+  workflows: any[];
+  interventionTargetsByWorkflow: Map<string, string[]>;
+}) {
+  const sortedWorkflows = [...workflows].sort((a, b) => {
+    if (a.isActive && !b.isActive) return -1;
+    if (!a.isActive && b.isActive) return 1;
+
+    return b.version - a.version;
+  });
+
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-sky-700">
+            سجل المرفوعات السابقة
+          </p>
+
+          <h2 className="mt-1 text-2xl font-black text-slate-950">
+            كل Workflows المحفوظة لهذه الخدمة
+          </h2>
+
+          <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+            هنا تظهر كل النسخ التي تم حفظها كمسودات أو نشرها سابقًا، مع توضيح
+            النسخة المفعلّة حاليًا للموجهين.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-50 px-4 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+          {sortedWorkflows.length} نسخة محفوظة
+        </span>
+      </div>
+
+      {sortedWorkflows.length ? (
+        <div className="mt-6 grid gap-4 xl:grid-cols-2">
+          {sortedWorkflows.map((workflow) => {
+            const statusClass = getWorkflowStatusClass(
+              workflow.status,
+              workflow.isActive,
+            );
+
+            return (
+              <article
+                key={workflow.id}
+                className={[
+                  "rounded-3xl border p-5 transition",
+                  workflow.isActive
+                    ? "border-emerald-200 bg-emerald-50/40 shadow-sm"
+                    : "border-slate-200 bg-white hover:border-sky-200 hover:shadow-sm",
+                ].join(" ")}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={["rounded-full px-3 py-1 text-xs font-black", statusClass].join(" ")}>
+                        {getWorkflowStatusLabel(workflow.status, workflow.isActive)}
+                      </span>
+
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                        Version {workflow.version}
+                      </span>
+
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                        {getWorkflowPlacementLabel(workflow.workflowType)}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-3 text-xl font-black leading-8 text-slate-950">
+                      {workflow.name}
+                    </h3>
+
+                    <p className="mt-1 text-xs font-bold text-slate-500">
+                      آخر تحديث: {formatWorkflowDate(workflow.updatedAt)}
+                    </p>
+                  </div>
+
+                  {workflow.isActive ? (
+                    <div className="rounded-2xl bg-emerald-700 px-4 py-3 text-xs font-black text-white">
+                      يظهر للموجه الآن
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <WorkflowHistoryActions
+                    serviceSlug={serviceSlug}
+                    workflowId={workflow.id}
+                    workflowName={workflow.name}
+                    previewHref={`/dashboard/admin/workflows/${serviceSlug}/preview?workflowId=${workflow.id}`}
+                    isActive={workflow.isActive}
+                    casesCount={workflow._count?.cases || 0}
+                  />
+                </div>
+
+                <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                  <WorkflowHistoryMetric
+                    label="الخطوات"
+                    value={workflow.steps.length}
+                  />
+
+                  <WorkflowHistoryMetric
+                    label="الحقول"
+                    value={countWorkflowFields(workflow)}
+                  />
+
+                  <WorkflowHistoryMetric
+                    label="الخيارات"
+                    value={countWorkflowOptions(workflow)}
+                  />
+                </div>
+
+                <WorkflowStudentPickerModeControl
+                  serviceSlug={serviceSlug}
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  initialMode={workflow.studentPickerMode || "SERVICE_DEFAULT"}
+                  disabled={workflow.status === "ARCHIVED"}
+                  isActive={workflow.isActive}
+                />
+
+                {(workflow._count?.cases || 0) > 0 ? (
+                  <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-black leading-6 text-amber-800 ring-1 ring-amber-100">
+                    مستخدم في {formatCasesUsageCount(workflow._count?.cases || 0)} حالات — لا يمكن حذفه أو تعديله حفاظًا على الحالات السابقة.
+                  </div>
+                ) : null}
+
+                <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold leading-6 text-slate-500">
+                  {workflow.status === "DRAFT"
+                    ? "هذه نسخة مسودة. يمكن مراجعتها ونشرها لاحقًا بدون التأثير على النسخة المفعلة."
+                    : workflow.isActive
+                      ? "هذه هي النسخة المعتمدة التي يستخدمها الموجهون حاليًا."
+                      : "هذه نسخة محفوظة قديمة وليست هي التي تظهر للموجه الآن."}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+          <h3 className="text-xl font-black text-slate-800">
+            لا توجد مرفوعات محفوظة بعد
+          </h3>
+
+          <p className="mt-2 text-sm font-bold text-slate-500">
+            ارفع ملف Excel واحفظه كمسودة حتى يظهر هنا.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function WorkflowHistoryMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+      <p className="text-[11px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 text-lg font-black text-slate-950">{value}</p>
+    </div>
+  );
+}
