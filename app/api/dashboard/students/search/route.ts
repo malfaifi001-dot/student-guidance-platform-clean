@@ -6,15 +6,7 @@ import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth"
 
 export const runtime = "nodejs";
 
-function normalizeSearchQuery(value: string | null) {
-  return String(value || "").trim().slice(0, 80);
-}
-
-function isUnauthenticatedSchoolUser(error: unknown) {
-  return error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER";
-}
-
-function toStudentPickerItem(student: {
+type StudentSearchRow = {
   id: string;
   fullName: string;
   nationalId: string | null;
@@ -23,35 +15,112 @@ function toStudentPickerItem(student: {
   grade: string | null;
   classroom: string | null;
   phone: string | null;
-  guardian: {
-    id: string;
-    name: string;
-    phone: string | null;
-    relation: string | null;
-  } | null;
-}) {
+  guardianId: string | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  guardianRelation: string | null;
+};
+
+function normalizeSearchQuery(value: string | null) {
+  return String(value || "").trim().slice(0, 80);
+}
+
+function isUnauthenticatedSchoolUser(error: unknown) {
+  return error instanceof Error && error.message === "UNAUTHENTICATED_SCHOOL_USER";
+}
+
+function escapeLike(value: string) {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
+function toStudentPickerItem(row: StudentSearchRow) {
   return {
-    id: student.id,
-    fullName: student.fullName,
-    nationalId: student.nationalId,
-    gender: student.gender,
-    stage: student.stage,
-    grade: student.grade,
-    classroom: student.classroom,
-    phone: student.phone,
+    id: row.id,
+    fullName: row.fullName,
+    nationalId: row.nationalId,
+    gender: row.gender,
+    stage: row.stage,
+    grade: row.grade,
+    classroom: row.classroom,
+    phone: row.phone,
 
-    guardianName: student.guardian?.name ?? null,
-    guardianPhone: student.guardian?.phone ?? null,
+    guardianName: row.guardianName,
+    guardianPhone: row.guardianPhone,
 
-    guardian: student.guardian
+    guardian: row.guardianId
       ? {
-          id: student.guardian.id,
-          name: student.guardian.name,
-          phone: student.guardian.phone,
-          relation: student.guardian.relation,
+          id: row.guardianId,
+          name: row.guardianName,
+          phone: row.guardianPhone,
+          relation: row.guardianRelation,
         }
       : null,
   };
+}
+
+async function searchStudentsWithRawSql({
+  schoolAccountId,
+  q,
+}: {
+  schoolAccountId: string;
+  q: string;
+}) {
+  const pattern = `%${escapeLike(q)}%`;
+
+  if (!q) {
+    return prisma.$queryRaw<StudentSearchRow[]>`
+      SELECT
+        s.id,
+        s.fullName,
+        s.nationalId,
+        s.gender,
+        s.stage,
+        s.grade,
+        s.classroom,
+        s.phone,
+        s.guardianId,
+        g.name AS guardianName,
+        g.phone AS guardianPhone,
+        g.relation AS guardianRelation
+      FROM Student s
+      LEFT JOIN Guardian g ON g.id = s.guardianId
+      WHERE s.schoolAccountId = ${schoolAccountId}
+        AND s.isActive = 1
+      ORDER BY s.grade ASC, s.classroom ASC, s.fullName ASC
+      LIMIT 40
+    `;
+  }
+
+  return prisma.$queryRaw<StudentSearchRow[]>`
+    SELECT
+      s.id,
+      s.fullName,
+      s.nationalId,
+      s.gender,
+      s.stage,
+      s.grade,
+      s.classroom,
+      s.phone,
+      s.guardianId,
+      g.name AS guardianName,
+      g.phone AS guardianPhone,
+      g.relation AS guardianRelation
+    FROM Student s
+    LEFT JOIN Guardian g ON g.id = s.guardianId
+    WHERE s.schoolAccountId = ${schoolAccountId}
+      AND s.isActive = 1
+      AND (
+        s.fullName COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
+        OR s.nationalId COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
+        OR s.grade COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
+        OR s.classroom COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
+        OR s.phone COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
+        OR g.name COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
+        OR g.phone COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
+      )
+    ORDER BY s.grade ASC, s.classroom ASC, s.fullName ASC
+    LIMIT 40
+  `;
 }
 
 export async function GET(request: NextRequest) {
@@ -63,92 +132,9 @@ export async function GET(request: NextRequest) {
         request.nextUrl.searchParams.get("query"),
     );
 
-    const where: Prisma.StudentWhereInput = {
+    const students = await searchStudentsWithRawSql({
       schoolAccountId: context.schoolAccountId,
-      isActive: true,
-    };
-
-    if (q) {
-      const guardians = await prisma.guardian.findMany({
-        where: {
-          schoolAccountId: context.schoolAccountId,
-          OR: [
-            {
-              name: {
-                contains: q,
-              },
-            },
-            {
-              phone: {
-                contains: q,
-              },
-            },
-          ],
-        },
-        select: {
-          id: true,
-        },
-        take: 100,
-      });
-
-      const guardianIds = guardians.map((guardian) => guardian.id);
-
-      const searchOr: Prisma.StudentWhereInput[] = [
-        {
-          fullName: {
-            contains: q,
-          },
-        },
-        {
-          nationalId: {
-            contains: q,
-          },
-        },
-        {
-          grade: {
-            contains: q,
-          },
-        },
-        {
-          classroom: {
-            contains: q,
-          },
-        },
-        {
-          phone: {
-            contains: q,
-          },
-        },
-      ];
-
-      if (guardianIds.length > 0) {
-        searchOr.push({
-          guardianId: {
-            in: guardianIds,
-          },
-        });
-      }
-
-      where.OR = searchOr;
-    }
-
-    const students = await prisma.student.findMany({
-      where,
-      include: {
-        guardian: true,
-      },
-      orderBy: [
-        {
-          grade: "asc",
-        },
-        {
-          classroom: "asc",
-        },
-        {
-          fullName: "asc",
-        },
-      ],
-      take: 40,
+      q,
     });
 
     return NextResponse.json({
