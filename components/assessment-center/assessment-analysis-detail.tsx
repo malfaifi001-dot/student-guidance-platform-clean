@@ -1,15 +1,19 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowRight,
   BarChart3,
+  BrainCircuit,
   FileSpreadsheet,
   Lightbulb,
+  ListChecks,
   UsersRound,
 } from "lucide-react";
 import type {
   AssessmentAnalysisSummary,
   AssessmentResultRow,
 } from "@/lib/assessment-center/assessment-center-types";
+import { buildAssessmentSmartNarrative } from "@/lib/assessment-center/assessment-center-insights";
 
 type Props = {
   analysis: {
@@ -38,9 +42,18 @@ function asRows(value: unknown): AssessmentResultRow[] {
   return value as AssessmentResultRow[];
 }
 
+function getStatusLabel(status?: string | null) {
+  if (status === "EXCELLENT") return "متفوق";
+  if (status === "GOOD") return "جيد";
+  if (status === "NEEDS_SUPPORT") return "يحتاج دعم";
+  if (status === "RISK") return "خطر";
+  return "غير محدد";
+}
+
 export function AssessmentAnalysisDetail({ analysis }: Props) {
   const summary = asSummary(analysis.summaryJson);
   const rows = asRows(analysis.rowsJson).slice(0, 30);
+  const smartNarrative = buildAssessmentSmartNarrative(summary);
 
   const kpis = [
     {
@@ -89,6 +102,22 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
           {" "}
           {analysis.createdAt.toLocaleDateString("ar-SA")}
         </p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a
+            href={`/api/dashboard/assessment-center/${analysis.id}/export?format=excel`}
+            className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-cyan-700 transition hover:bg-cyan-50"
+          >
+            تصدير Excel
+          </a>
+
+          <a
+            href={`/api/dashboard/assessment-center/${analysis.id}/export?format=pdf`}
+            className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/15 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20"
+          >
+            تصدير PDF
+          </a>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -123,6 +152,107 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
         })}
       </section>
 
+      <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-50 text-cyan-600">
+              <BrainCircuit className="h-5 w-5" />
+            </div>
+
+            <div>
+              <p className="text-sm font-black text-cyan-600">الملخص الذكي</p>
+              <h2 className="text-2xl font-black text-slate-950">
+                قراءة تحليلية سريعة
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {smartNarrative.insights.map((item, index) => (
+              <p
+                key={`insight-${index}`}
+                className="rounded-2xl bg-cyan-50 p-4 text-sm font-bold leading-8 text-cyan-900"
+              >
+                {item}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <Lightbulb className="h-5 w-5" />
+            </div>
+
+            <div>
+              <p className="text-sm font-black text-emerald-600">
+                التوصيات العلاجية
+              </p>
+              <h2 className="text-2xl font-black text-slate-950">
+                إجراءات مقترحة
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {smartNarrative.recommendations.map((item, index) => (
+              <p
+                key={`recommendation-${index}`}
+                className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold leading-8 text-emerald-900"
+              >
+                {item}
+              </p>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-50 text-amber-600">
+            <ListChecks className="h-5 w-5" />
+          </div>
+
+          <div>
+            <p className="text-sm font-black text-amber-600">
+              تدخلات مقترحة مستقبلًا
+            </p>
+            <h2 className="text-2xl font-black text-slate-950">
+              تمهيد لقواعد التدخل الذكي
+            </h2>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {smartNarrative.interventions.length === 0 ? (
+            <p className="rounded-2xl bg-slate-50 p-4 text-sm font-bold leading-8 text-slate-500 md:col-span-2">
+              لا توجد تدخلات حرجة واضحة في هذا التحليل. ستفعل هذه المنطقة
+              لاحقًا عند ربط Assessment Center بمحرك الـ Workflow.
+            </p>
+          ) : (
+            smartNarrative.interventions.map((item, index) => (
+              <article
+                key={`intervention-${index}`}
+                className="rounded-[1.4rem] border border-amber-100 bg-amber-50 p-5"
+              >
+                <h3 className="text-base font-black text-slate-950">
+                  {item.title}
+                </h3>
+
+                <p className="mt-2 text-sm font-bold leading-7 text-amber-900">
+                  {item.description}
+                </p>
+
+                <p className="mt-3 rounded-2xl bg-white/70 p-3 text-xs font-black leading-6 text-amber-700">
+                  لاحقًا: {item.futureAction}
+                </p>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+
       <section className="grid gap-5 xl:grid-cols-2">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-black text-cyan-600">أضعف المواد</p>
@@ -144,7 +274,12 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                   <div
                     className="h-full rounded-full bg-cyan-600"
-                    style={{ width: `${Math.max(0, Math.min(item.averagePercentage, 100))}%` }}
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(item.averagePercentage, 100)
+                      )}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -235,7 +370,7 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
                     {row.percentage ?? "-"}%
                   </td>
                   <td className="py-3 font-bold text-slate-500">
-                    {row.status || "-"}
+                    {getStatusLabel(row.status)}
                   </td>
                 </tr>
               ))}

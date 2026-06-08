@@ -8,6 +8,7 @@ import type {
   AssessmentAnalysisSummary,
   AssessmentResultRow,
 } from "@/lib/assessment-center/assessment-center-types";
+import { buildAssessmentSmartNarrative } from "@/lib/assessment-center/assessment-center-insights";
 
 export const runtime = "nodejs";
 
@@ -43,6 +44,13 @@ function escapeHtml(value: unknown) {
     .replaceAll("'", "&#039;");
 }
 
+function toArrayBuffer(buffer: Buffer) {
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength
+  ) as ArrayBuffer;
+}
+
 function buildExcelBuffer({
   analysis,
   summary,
@@ -61,6 +69,7 @@ function buildExcelBuffer({
   rows: AssessmentResultRow[];
 }) {
   const workbook = XLSX.utils.book_new();
+  const smartNarrative = buildAssessmentSmartNarrative(summary);
 
   const overviewRows = [
     ["العنوان", analysis.title],
@@ -77,6 +86,42 @@ function buildExcelBuffer({
     workbook,
     XLSX.utils.aoa_to_sheet(overviewRows),
     "ملخص التحليل"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(
+      smartNarrative.insights.map((item, index) => ({
+        "#": index + 1,
+        "الملخص الذكي": item,
+      }))
+    ),
+    "الملخص الذكي"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(
+      smartNarrative.recommendations.map((item, index) => ({
+        "#": index + 1,
+        "التوصية العلاجية": item,
+      }))
+    ),
+    "التوصيات العلاجية"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(
+      smartNarrative.interventions.map((item, index) => ({
+        "#": index + 1,
+        "عنوان التدخل": item.title,
+        "الوصف": item.description,
+        "النوع": item.target,
+        "الإجراء المستقبلي": item.futureAction,
+      }))
+    ),
+    "التدخلات المقترحة"
   );
 
   XLSX.utils.book_append_sheet(
@@ -107,6 +152,18 @@ function buildExcelBuffer({
 
   XLSX.utils.book_append_sheet(
     workbook,
+    XLSX.utils.json_to_sheet(summary?.classroomAverages || []),
+    "متوسط الفصول"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(summary?.gradeAverages || []),
+    "متوسط الصفوف"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
     XLSX.utils.json_to_sheet(summary?.riskStudents || []),
     "طلاب يحتاجون متابعة"
   );
@@ -115,6 +172,16 @@ function buildExcelBuffer({
     type: "buffer",
     bookType: "xlsx",
   }) as Buffer;
+}
+
+function renderList(items: string[], emptyText: string) {
+  if (!items.length) {
+    return `<div class="empty">${escapeHtml(emptyText)}</div>`;
+  }
+
+  return items
+    .map((item) => `<div class="note">${escapeHtml(item)}</div>`)
+    .join("");
 }
 
 function buildPdfHtml({
@@ -134,8 +201,10 @@ function buildPdfHtml({
   summary: AssessmentAnalysisSummary | null;
   rows: AssessmentResultRow[];
 }) {
+  const smartNarrative = buildAssessmentSmartNarrative(summary);
+
   const subjectRows = (summary?.subjectAverages || [])
-    .slice(0, 8)
+    .slice(0, 10)
     .map(
       (item) => `
         <tr>
@@ -159,6 +228,19 @@ function buildPdfHtml({
           <td>${student.averagePercentage}%</td>
           <td>${escapeHtml(student.weakSubjects.join("، ") || "-")}</td>
         </tr>
+      `
+    )
+    .join("");
+
+  const interventionRows = smartNarrative.interventions
+    .slice(0, 8)
+    .map(
+      (item) => `
+        <div class="intervention">
+          <div class="intervention-title">${escapeHtml(item.title)}</div>
+          <div class="intervention-desc">${escapeHtml(item.description)}</div>
+          <div class="future-action">لاحقًا: ${escapeHtml(item.futureAction)}</div>
+        </div>
       `
     )
     .join("");
@@ -188,52 +270,75 @@ function buildPdfHtml({
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 32px;
-      font-family: Arial, sans-serif;
+      padding: 28px;
+      font-family: Arial, "Tahoma", sans-serif;
       color: #0f172a;
-      background: #f8fafc;
+      background: #eef2f7;
       direction: rtl;
     }
     .page {
       background: white;
       border: 1px solid #e2e8f0;
-      border-radius: 24px;
+      border-radius: 28px;
       padding: 28px;
     }
-    .hero {
-      background: linear-gradient(135deg, #0891b2, #2563eb);
+    .header {
+      background: linear-gradient(135deg, #0e7490, #2563eb);
       color: white;
-      border-radius: 24px;
-      padding: 28px;
-      margin-bottom: 24px;
+      border-radius: 26px;
+      padding: 30px;
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header:before {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+      left: -80px;
+      top: -100px;
+    }
+    .label {
+      display: inline-block;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 14px;
     }
     h1 {
       margin: 0;
       font-size: 30px;
       font-weight: 900;
+      line-height: 1.5;
     }
     .muted {
       color: #64748b;
       font-size: 13px;
-      line-height: 1.8;
+      line-height: 1.9;
     }
-    .hero .muted { color: #e0f2fe; }
+    .header .muted { color: #e0f2fe; }
     .kpis {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 12px;
-      margin: 20px 0;
+      margin: 18px 0 22px;
     }
     .kpi {
       border: 1px solid #e2e8f0;
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 16px;
       background: #f8fafc;
     }
     .kpi-label {
       color: #64748b;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
     }
     .kpi-value {
       margin-top: 8px;
@@ -242,9 +347,69 @@ function buildPdfHtml({
       color: #0f172a;
     }
     h2 {
-      font-size: 20px;
-      margin: 26px 0 12px;
+      font-size: 21px;
+      margin: 28px 0 12px;
       font-weight: 900;
+      color: #0f172a;
+    }
+    .section {
+      border: 1px solid #e2e8f0;
+      border-radius: 22px;
+      padding: 18px;
+      margin-bottom: 18px;
+      background: #ffffff;
+    }
+    .note {
+      background: #ecfeff;
+      border: 1px solid #cffafe;
+      color: #155e75;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.9;
+      margin-bottom: 8px;
+    }
+    .recommendation {
+      background: #ecfdf5;
+      border-color: #d1fae5;
+      color: #065f46;
+    }
+    .intervention {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .intervention-title {
+      font-weight: 900;
+      color: #0f172a;
+      font-size: 14px;
+    }
+    .intervention-desc {
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.8;
+      color: #92400e;
+      font-weight: 700;
+    }
+    .future-action {
+      margin-top: 8px;
+      background: rgba(255,255,255,0.7);
+      border-radius: 12px;
+      padding: 8px;
+      font-size: 11px;
+      color: #92400e;
+      font-weight: 900;
+    }
+    .empty {
+      background: #f8fafc;
+      color: #64748b;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 700;
     }
     table {
       width: 100%;
@@ -266,23 +431,26 @@ function buildPdfHtml({
       padding: 10px;
       border-bottom: 1px solid #f1f5f9;
       color: #334155;
+      font-weight: 700;
     }
     .footer {
-      margin-top: 24px;
+      margin-top: 26px;
       padding-top: 16px;
       border-top: 1px solid #e2e8f0;
       color: #94a3b8;
       font-size: 12px;
       text-align: center;
+      line-height: 1.8;
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <section class="hero">
+    <section class="header">
+      <div class="label">مركز التحليل والاختبارات</div>
       <h1>${escapeHtml(analysis.title)}</h1>
       <p class="muted">
-        مركز التحليل والاختبارات — مصدر الملف: ${escapeHtml(analysis.sourceFile || "غير محدد")}
+        مصدر الملف: ${escapeHtml(analysis.sourceFile || "غير محدد")}
         <br />
         تاريخ التحليل: ${analysis.createdAt.toLocaleDateString("ar-SA")}
       </p>
@@ -293,6 +461,21 @@ function buildPdfHtml({
       <div class="kpi"><div class="kpi-label">عدد النتائج</div><div class="kpi-value">${analysis.totalRows}</div></div>
       <div class="kpi"><div class="kpi-label">عدد المواد</div><div class="kpi-value">${analysis.totalSubjects}</div></div>
       <div class="kpi"><div class="kpi-label">المتوسط</div><div class="kpi-value">${Math.round(Number(analysis.averagePercentage || 0))}%</div></div>
+    </section>
+
+    <section class="section">
+      <h2>الملخص الذكي</h2>
+      ${renderList(smartNarrative.insights, "لا يوجد ملخص ذكي لهذا التحليل.")}
+    </section>
+
+    <section class="section">
+      <h2>التوصيات العلاجية</h2>
+      ${smartNarrative.recommendations.length ? smartNarrative.recommendations.map((item) => `<div class="note recommendation">${escapeHtml(item)}</div>`).join("") : '<div class="empty">لا توجد توصيات علاجية.</div>'}
+    </section>
+
+    <section class="section">
+      <h2>التدخلات المقترحة مستقبلًا</h2>
+      ${interventionRows || '<div class="empty">لا توجد تدخلات مقترحة في هذا التحليل.</div>'}
     </section>
 
     <h2>متوسط المواد</h2>
@@ -338,7 +521,9 @@ function buildPdfHtml({
     </table>
 
     <div class="footer">
-      منصة التوجيه الطلابي — تقرير صادر من مركز التحليل والاختبارات
+      منصة التوجيه الطلابي
+      <br />
+      تقرير صادر من مركز التحليل والاختبارات
     </div>
   </div>
 </body>
@@ -389,6 +574,7 @@ export async function GET(request: Request, context: RouteContext) {
 
     try {
       const page = await browser.newPage();
+
       await page.setContent(
         buildPdfHtml({
           analysis,
@@ -402,14 +588,16 @@ export async function GET(request: Request, context: RouteContext) {
         format: "A4",
         printBackground: true,
         margin: {
-          top: "12mm",
-          right: "10mm",
-          bottom: "12mm",
-          left: "10mm",
+          top: "10mm",
+          right: "8mm",
+          bottom: "10mm",
+          left: "8mm",
         },
       });
 
-      return new Response(pdf, {
+      const pdfBuffer = Buffer.from(pdf);
+
+      return new Response(toArrayBuffer(pdfBuffer), {
         headers: {
           "Content-Type": "application/pdf",
           "Content-Disposition": `attachment; filename="${fileBaseName}.pdf"`,
@@ -426,7 +614,7 @@ export async function GET(request: Request, context: RouteContext) {
     rows,
   });
 
-  return new Response(excelBuffer, {
+  return new Response(toArrayBuffer(excelBuffer), {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
