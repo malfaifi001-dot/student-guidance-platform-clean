@@ -1,0 +1,1156 @@
+﻿Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+Line: 165
+Code: status: "ACTIVE",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+Line: 166
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\cancel\route.ts
+Line: 72
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\codes\route.ts
+Line: 98
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\manual\route.ts
+Line: 53
+Code: if (!plan || !plan.isActive) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\manual\route.ts
+Line: 69
+Code: status: "ACTIVE",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\manual\route.ts
+Line: 70
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activity\metrics\route.ts
+Line: 86
+Code: const activeUserIds = new Set(
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activity\metrics\route.ts
+Line: 191
+Code: activeUsers: activeUserIds.size,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 59
+Code: const inactiveSince = addDays(now, -14);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 65
+Code: inactiveCounselors,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 73
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 81
+Code: in: ["TRIAL", "ACTIVE", "PAST_DUE"],
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 93
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 104
+Code: lt: inactiveSince,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 121
+Code: isActive: false,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 174
+Code: if (inactiveCounselors > 0) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 176
+Code: id: "inactive-counselors",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\operational-alerts\route.ts
+Line: 181
+Code: count: inactiveCounselors,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\export\route.ts
+Line: 173
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 61
+Code: const activeWhere: Prisma.InvoiceWhereInput = {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 74
+Code: activeWhere,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 95
+Code: const { baseWhere, listWhere, activeWhere, canceledWhere, limit, filters } =
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 102
+Code: activeCount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 104
+Code: activeTotals,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 134
+Code: where: activeWhere,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 140
+Code: where: activeWhere,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 163
+Code: activeCount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 166
+Code: activeSubtotalAmount: activeTotals._sum.subtotalAmount || 0,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 167
+Code: activeTaxAmount: activeTotals._sum.taxAmount || 0,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\route.ts
+Line: 168
+Code: activeTotalAmount: activeTotals._sum.totalAmount || 0,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 114
+Code: const activeInvoices = invoices.filter((invoice) => invoice.status === "ISSUED");
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 117
+Code: const activeTotalAmount = activeInvoices.reduce(
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 121
+Code: const activeTaxAmount = activeInvoices.reduce(
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 125
+Code: const activeSubtotalAmount = activeInvoices.reduce(
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 155
+Code: { label: "عدد الفواتير السارية", value: activeInvoices.length },
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 157
+Code: { label: "المجموع الساري قبل الضريبة", value: activeSubtotalAmount },
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 158
+Code: { label: "ضريبة الفواتير السارية", value: activeTaxAmount },
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 159
+Code: { label: "إجمالي الفواتير السارية", value: activeTotalAmount },
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 235
+Code: activeCount: activeInvoices.length,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 237
+Code: activeTotalAmount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts
+Line: 238
+Code: activeTaxAmount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\[invoiceId]\route.ts
+Line: 37
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\providers\route.ts
+Line: 63
+Code: const isActive = Boolean(body.isActive);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\providers\route.ts
+Line: 79
+Code: isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\providers\route.ts
+Line: 85
+Code: isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\providers\route.ts
+Line: 100
+Code: isActive: provider.isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\providers\[providerId]\route.ts
+Line: 55
+Code: isActive:
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\providers\[providerId]\route.ts
+Line: 56
+Code: typeof body.isActive === "boolean" ? body.isActive : existing.isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\providers\[providerId]\route.ts
+Line: 97
+Code: isActive: provider.isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\reconciliation\route.ts
+Line: 77
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\[transactionId]\route.ts
+Line: 40
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscribers\route.ts
+Line: 14
+Code: | "ACTIVE"
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscribers\route.ts
+Line: 24
+Code: isActive: boolean;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscribers\route.ts
+Line: 100
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscribers\route.ts
+Line: 118
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscribers\route.ts
+Line: 170
+Code: isActive: account.isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscribers\route.ts
+Line: 206
+Code: active: subscribers.filter(
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscribers\route.ts
+Line: 207
+Code: (item: SubscriberItem) => item.computedStatus === "ACTIVE"
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 136
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 156
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 257
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 301
+Code: const isActive = Boolean(payload?.isActive);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 308
+Code: isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 313
+Code: message: isActive ? "تم تفعيل الباقة." : "تم إيقاف الباقة.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 321
+Code: const status = String(payload?.status || "ACTIVE") as
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 323
+Code: | "ACTIVE"
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 392
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 435
+Code: status: "ACTIVE",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 443
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 42
+Code: const inactiveSince = addDays(now, -14);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 233
+Code: const isInactive =
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 235
+Code: user.isActive &&
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 236
+Code: (!lastSeenAt || lastSeenAt.getTime() < inactiveSince.getTime());
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 238
+Code: const isVeryActive =
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 256
+Code: isActive: user.isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 276
+Code: inactive: isInactive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 277
+Code: veryActive: isVeryActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 296
+Code: !user.isActive
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 306
+Code: : isInactive
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 307
+Code: ? "INACTIVE"
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 318
+Code: activeUsers: mappedUsers.filter((user: any) => user.isActive).length,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 319
+Code: disabledUsers: mappedUsers.filter((user: any) => !user.isActive).length,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 327
+Code: inactiveCounselors: mappedUsers.filter((user: any) => user.flags.inactive).length,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 328
+Code: veryActiveCounselors: mappedUsers.filter((user: any) => user.flags.veryActive).length,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 382
+Code: if (targetUser.email === "admin@student-guidance.local" && action !== "activate-user") {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 389
+Code: if (action === "activate-user" || action === "disable-user") {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 390
+Code: const isActive = action === "activate-user";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 397
+Code: isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 401
+Code: if (!isActive) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 405
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 408
+Code: isActive: false,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 420
+Code: severity: isActive ? "SUCCESS" : "WARNING",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 421
+Code: title: isActive
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 431
+Code: message: isActive ? "تم تفعيل المستخدم." : "تم إيقاف المستخدم وتسجيل خروجه.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 477
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 480
+Code: isActive: false,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\[userId]\route.ts
+Line: 88
+Code: isActive: Boolean(body.isActive),
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\[userId]\impersonate\route.ts
+Line: 76
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\[userId]\impersonate\route.ts
+Line: 86
+Code: if (!targetUser || !targetUser.isActive) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\[userId]\password\route.ts
+Line: 73
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\[userId]\password\route.ts
+Line: 100
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\[userId]\password\route.ts
+Line: 103
+Code: isActive: false,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\[userId]\password\route.ts
+Line: 120
+Code: targetIsActive: targetUser.isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 3
+Code: import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 4
+Code: import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 7
+Code: ensureDashboardWorkflowService,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 8
+Code: isWorkflowUploadEligibleService,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 9
+Code: } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 11
+Code: import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 28
+Code: const MAX_WORKFLOW_FILE_SIZE = 5 * 1024 * 1024;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 30
+Code: const ALLOWED_WORKFLOW_FILE_TYPES = new Set([
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 41
+Code: function validateWorkflowFile(file: File) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 43
+Code: return "ملف Workflow فارغ.";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 46
+Code: if (file.size > MAX_WORKFLOW_FILE_SIZE) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 47
+Code: return "حجم ملف Workflow يجب ألا يتجاوز 5MB.";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 51
+Code: return "صيغة ملف Workflow غير مدعومة. استخدم xlsx أو xls.";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 54
+Code: if (!ALLOWED_WORKFLOW_FILE_TYPES.has(file.type)) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 55
+Code: return "نوع ملف Workflow غير مسموح.";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 75
+Code: const workflowType = normalizeWorkflowType(
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 76
+Code: String(formData.get("workflowType") ?? "")
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 104
+Code: const validationError = validateWorkflowFile(file);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 120
+Code: if (!serviceConfig || !isWorkflowUploadEligibleService(serviceConfig)) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 124
+Code: error: "هذه الخدمة لا تستخدم Workflow من Excel.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 130
+Code: await ensureDashboardWorkflowService(serviceSlug);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 133
+Code: const rows = await parseWorkflowExcel(buffer);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 139
+Code: error: "لم يتم العثور على صفوف Workflow صالحة داخل الملف.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 145
+Code: const result = await uploadWorkflowForService({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 149
+Code: workflowType,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 152
+Code: const uploadedWorkflow = await prisma.workflow.findFirst({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 157
+Code: workflowType,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 167
+Code: if (uploadedWorkflow) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 168
+Code: await prisma.workflow.update({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 170
+Code: id: uploadedWorkflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 178
+Code: // WORKFLOW_UPLOAD_STUDENT_PICKER_MODE_MARKER
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 183
+Code: category: "WORKFLOW",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 184
+Code: action: "workflow-uploaded",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 186
+Code: title: `تم رفع Workflow للخدمة ${serviceConfig.title}`,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 189
+Code: workflowType,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 198
+Code: message: "تم رفع Workflow وتفعيله بنجاح.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 205
+Code: category: "WORKFLOW",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 206
+Code: action: "workflow-upload-failed",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 208
+Code: title: "فشل رفع Workflow",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 220
+Code: : "حدث خطأ أثناء رفع Workflow.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 26
+Code: const workflowId = clean(body?.workflowId);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 28
+Code: if (!workflowId) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 32
+Code: error: "workflowId مطلوب.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 38
+Code: const workflow = await prisma.workflow.findFirst({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 40
+Code: id: workflowId,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 56
+Code: if (!workflow) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 60
+Code: error: "Workflow غير موجود داخل هذه الخدمة.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 66
+Code: if (workflow.isActive && workflow.status === "ACTIVE") {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 69
+Code: message: "Workflow مفعل مسبقًا.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 74
+Code: await tx.workflow.updateMany({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 76
+Code: serviceId: workflow.serviceId,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 77
+Code: workflowType: workflow.workflowType,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 78
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 81
+Code: isActive: false,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 86
+Code: await tx.workflow.update({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 88
+Code: id: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 91
+Code: status: "ACTIVE",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 92
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 98
+Code: category: "WORKFLOW",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 99
+Code: action: "WORKFLOW_ACTIVATED",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 101
+Code: title: "تم تفعيل Workflow",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 103
+Code: serviceSlug: workflow.service.slug,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 104
+Code: serviceName: workflow.service.name,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 105
+Code: workflowId: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 106
+Code: workflowName: workflow.name,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 107
+Code: workflowType: workflow.workflowType,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 108
+Code: version: workflow.version,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 116
+Code: message: "تم تفعيل Workflow بنجاح.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 117
+Code: workflowId: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 126
+Code: : "حدث خطأ أثناء تفعيل Workflow.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 26
+Code: const workflowId = clean(body?.workflowId);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 28
+Code: if (!workflowId) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 32
+Code: error: "workflowId مطلوب.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 38
+Code: const workflow = await prisma.workflow.findFirst({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 40
+Code: id: workflowId,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 61
+Code: if (!workflow) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 65
+Code: error: "Workflow غير موجود داخل هذه الخدمة.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 71
+Code: if (workflow.isActive) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 81
+Code: if (workflow._count.cases > 0) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 86
+Code: "لا يمكن حذف هذا Workflow لأنه مرتبط بحالات محفوظة. يمكن تركه كنسخة محفوظة أو أرشفته.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 93
+Code: await tx.workflow.delete({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 95
+Code: id: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 101
+Code: category: "WORKFLOW",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 102
+Code: action: "WORKFLOW_DELETED",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 104
+Code: title: "تم حذف Workflow غير مفعل",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 106
+Code: serviceSlug: workflow.service.slug,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 107
+Code: serviceName: workflow.service.name,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 108
+Code: workflowId: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 109
+Code: workflowName: workflow.name,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 110
+Code: workflowType: workflow.workflowType,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 111
+Code: version: workflow.version,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 119
+Code: message: "تم حذف Workflow بنجاح.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 128
+Code: : "حدث خطأ أثناء حذف Workflow.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 19
+Code: import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 97
+Code: const name = clean(body?.name) || `${service.name} Workflow`;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 98
+Code: const workflowType = normalizeWorkflowType(body?.workflowType);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 106
+Code: error: "لا يمكن إنشاء Workflow بدون خطوات.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 124
+Code: const versionAggregate = await prisma.workflow.aggregate({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 127
+Code: workflowType,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 136
+Code: const workflow = await prisma.workflow.create({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 141
+Code: workflowType,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 144
+Code: isActive: false,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 202
+Code: category: "WORKFLOW",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 205
+Code: title: "تم إنشاء مسودة Workflow",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 209
+Code: workflowId: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 210
+Code: workflowName: workflow.name,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 211
+Code: workflowType,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 212
+Code: version: workflow.version,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 213
+Code: stepsCount: workflow.steps.length,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 221
+Code: message: "تم إنشاء مسودة Workflow بنجاح.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 222
+Code: workflowId: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 223
+Code: version: workflow.version,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 226
+Code: console.error("WORKFLOW_DRAFT_CREATE_ERROR", error);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 234
+Code: : "حدث خطأ أثناء إنشاء مسودة Workflow.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 27
+Code: const workflowId = clean(body?.workflowId);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 30
+Code: if (!workflowId || !name) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 32
+Code: { error: "workflowId و name مطلوبة." },
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 37
+Code: const workflow = await prisma.workflow.findFirst({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 39
+Code: id: workflowId,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 55
+Code: if (!workflow) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 62
+Code: if (workflow._count.cases > 0) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 66
+Code: "لا يمكن تعديل اسم Workflow مستخدم في حالات محفوظة حفاظًا على السجلات السابقة.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 72
+Code: const updatedWorkflow = await prisma.workflow.update({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 74
+Code: id: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 84
+Code: category: "WORKFLOW",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 87
+Code: title: "تم تعديل اسم مسودة Workflow",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 90
+Code: workflowId,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 91
+Code: workflowName: name,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 99
+Code: workflowId: updatedWorkflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 100
+Code: name: updatedWorkflow.name,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 4
+Code: import { WORKFLOW_TYPES } from "@/lib/workflows/workflow-types";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 35
+Code: const draftWorkflow = await prisma.workflow.findFirst({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 38
+Code: workflowType: WORKFLOW_TYPES.DEFAULT,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 46
+Code: if (!draftWorkflow) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 48
+Code: { error: "لا يوجد Workflow مسودة لاعتماده." },
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 53
+Code: await prisma.workflow.updateMany({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 55
+Code: serviceId: draftWorkflow.serviceId,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 56
+Code: workflowType: WORKFLOW_TYPES.DEFAULT,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 57
+Code: status: "ACTIVE",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 61
+Code: isActive: false,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 65
+Code: const publishedWorkflow = await prisma.workflow.update({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 67
+Code: id: draftWorkflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 70
+Code: status: "ACTIVE",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 71
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 77
+Code: workflowId: publishedWorkflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\publish\route.ts
+Line: 85
+Code: : "حدث خطأ أثناء اعتماد Workflow.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 23
+Code: async function findWorkflow(args: {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 25
+Code: workflowId?: string | null;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 27
+Code: if (args.workflowId) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 28
+Code: return prisma.workflow.findFirst({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 30
+Code: id: args.workflowId,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 40
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 52
+Code: return prisma.workflow.findFirst({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 67
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 88
+Code: const workflowId = url.searchParams.get("workflowId");
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 90
+Code: const workflow = await findWorkflow({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 92
+Code: workflowId,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 95
+Code: if (!workflow) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 99
+Code: error: "لم يتم العثور على Workflow.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 107
+Code: workflow: {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 108
+Code: id: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 109
+Code: name: workflow.name,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 110
+Code: version: workflow.version,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 111
+Code: status: workflow.status,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 112
+Code: isActive: workflow.isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 113
+Code: studentPickerMode: workflow.studentPickerMode,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 129
+Code: const workflowId = String(body?.workflowId ?? "").trim();
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 132
+Code: if (!workflowId) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 136
+Code: error: "workflowId مطلوب.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 142
+Code: const workflow = await findWorkflow({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 144
+Code: workflowId,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 147
+Code: if (!workflow) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 151
+Code: error: "لم يتم العثور على Workflow.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 157
+Code: if (workflow.status === "ARCHIVED") {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 161
+Code: error: "لا يمكن تعديل Workflow مؤرشف.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 167
+Code: const updated = await prisma.workflow.update({
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 169
+Code: id: workflow.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 179
+Code: isActive: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 187
+Code: category: "WORKFLOW",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 190
+Code: title: "تم تحديث إعداد اختيار الطالب في Workflow",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 193
+Code: workflowId: updated.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 194
+Code: workflowName: updated.name,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 197
+Code: isActive: updated.isActive,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 198
+Code: previousStudentPickerMode: workflow.studentPickerMode,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 208
+Code: workflow: updated,
+---

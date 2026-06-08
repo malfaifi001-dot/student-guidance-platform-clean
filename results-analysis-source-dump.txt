@@ -1,0 +1,1696 @@
+RESULTS ANALYSIS SOURCE DUMP
+GeneratedAt: 2026-06-08T06:57:27.9728061+03:00
+
+
+============================================================
+FILE: engine\results-analysis\results-analysis-engine.ts
+============================================================
+import type {
+  ResultsAnalysisOutput,
+  ResultsAnalysisSummary,
+  StudentResultRow,
+  StudentResultStatus,
+} from "@/lib/results-analysis/results-analysis-types";
+
+function normalizePercentage(row: StudentResultRow): number | null {
+  if (typeof row.percentage === "number") return row.percentage;
+
+  if (
+    typeof row.score === "number" &&
+    typeof row.maxScore === "number" &&
+    row.maxScore > 0
+  ) {
+    return Math.round((row.score / row.maxScore) * 100);
+  }
+
+  return null;
+}
+
+function detectStatus(percentage: number | null): StudentResultStatus {
+  if (percentage === null) return "UNKNOWN";
+  if (percentage >= 50) return "PASS";
+  if (percentage >= 35) return "NEEDS_SUPPORT";
+  return "FAIL";
+}
+
+export function analyzeStudentResults(
+  rows: StudentResultRow[],
+): ResultsAnalysisOutput {
+  const normalizedRows = rows.map((row) => {
+    const percentage = normalizePercentage(row);
+    const status = row.status ?? detectStatus(percentage);
+
+    return {
+      ...row,
+      percentage,
+      status,
+    };
+  });
+
+  const percentages = normalizedRows
+    .map((row) => row.percentage)
+    .filter((value): value is number => typeof value === "number");
+
+  const summary: ResultsAnalysisSummary = {
+    totalStudents: normalizedRows.length,
+    passedStudents: normalizedRows.filter((row) => row.status === "PASS").length,
+    failedStudents: normalizedRows.filter((row) => row.status === "FAIL").length,
+    needsSupportStudents: normalizedRows.filter(
+      (row) => row.status === "NEEDS_SUPPORT",
+    ).length,
+    unknownStudents: normalizedRows.filter((row) => row.status === "UNKNOWN")
+      .length,
+    averagePercentage:
+      percentages.length > 0
+        ? Math.round(
+            percentages.reduce((sum, value) => sum + value, 0) /
+              percentages.length,
+          )
+        : 0,
+    highestPercentage: percentages.length > 0 ? Math.max(...percentages) : 0,
+    lowestPercentage: percentages.length > 0 ? Math.min(...percentages) : 0,
+  };
+
+  return {
+    summary,
+    rows: normalizedRows,
+  };
+}
+
+============================================================
+FILE: lib\results-analysis\results-analysis-types.ts
+============================================================
+export type StudentResultStatus = "PASS" | "FAIL" | "NEEDS_SUPPORT" | "UNKNOWN";
+
+export type StudentResultRow = {
+  id: string;
+  studentId?: string | null;
+  studentName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  semester?: string | null;
+  subject?: string | null;
+  score?: number | null;
+  maxScore?: number | null;
+  percentage?: number | null;
+  status?: StudentResultStatus;
+};
+
+export type ResultsAnalysisSummary = {
+  totalStudents: number;
+  passedStudents: number;
+  failedStudents: number;
+  needsSupportStudents: number;
+  unknownStudents: number;
+  averagePercentage: number;
+  highestPercentage: number;
+  lowestPercentage: number;
+};
+
+export type ResultsAnalysisOutput = {
+  summary: ResultsAnalysisSummary;
+  rows: StudentResultRow[];
+};
+
+============================================================
+FILE: lib\results-analysis\results-analysis-parser.ts
+============================================================
+import * as XLSX from "xlsx";
+import type { StudentResultRow } from "./results-analysis-types";
+
+function normalizeKey(value: string) {
+  return value.replace(/\s+/g, "").trim().toLowerCase();
+}
+
+function getValue(row: Record<string, unknown>, keys: string[]) {
+  const normalized = Object.entries(row).map(([key, value]) => ({
+    key,
+    normalizedKey: normalizeKey(key),
+    value,
+  }));
+
+  for (const wanted of keys) {
+    const found = normalized.find((item) => item.normalizedKey === normalizeKey(wanted));
+    if (found) return found.value;
+  }
+
+  return "";
+}
+
+export async function parseResultsExcel(buffer: ArrayBuffer): Promise<StudentResultRow[]> {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+    defval: "",
+  });
+return rows
+  .map((row) => ({
+    id: crypto.randomUUID(),
+    studentName: String(getValue(row, ["اسم الطالب", "الطالب", "الاسم", "name", "studentName"])).trim(),
+      subject: String(getValue(row, ["المادة", "اسم المادة", "subject"])).trim(),
+      score: Number(getValue(row, ["الدرجة", "درجة الطالب", "score"]) || 0),
+      maxScore: Number(getValue(row, ["النهاية العظمى", "الدرجة العظمى", "maxScore"]) || 100),
+      grade: String(getValue(row, ["الصف", "grade"]) || "").trim() || null,
+      classroom: String(getValue(row, ["الفصل", "الشعبة", "classroom", "section"]) || "").trim() || null,
+      semester: String(getValue(row, ["الفصل الدراسي", "الترم", "semester", "term"]) || "").trim() || null,
+    }))
+    .filter((row) => row.studentName && row.subject);
+}
+
+============================================================
+FILE: components\results-analysis\results-analysis-kpi-grid.tsx
+============================================================
+type ProgressItem = {
+  label: string;
+  value: number;
+};
+
+type Props = {
+  title?: string;
+  items?: ProgressItem[];
+};
+
+export function ResultsAnalysisCharts({
+  title = "الرسوم التحليلية",
+  items = [],
+}: Props) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-2xl font-black text-slate-900">{title}</h2>
+
+      <div className="mt-5 space-y-4">
+        {items.length === 0 ? (
+          <p className="text-sm text-slate-400">لا توجد بيانات للعرض.</p>
+        ) : (
+          items.map((item) => (
+            <div key={item.label} className="rounded-2xl bg-slate-50 p-4">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900">{item.label}</span>
+                <span className="font-black text-blue-600">{item.value}%</span>
+              </div>
+
+              <div className="mt-3 h-2 rounded-full bg-slate-200">
+                <div
+                  className="h-2 rounded-full bg-blue-600"
+                  style={{ width: `${Math.max(0, Math.min(item.value, 100))}%` }}
+                />
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+============================================================
+FILE: components\results-analysis\results-analysis-insights.tsx
+============================================================
+type Props = {
+  insights?: string[];
+  recommendations?: string[];
+};
+
+export function ResultsAnalysisInsights({
+  insights = [],
+  recommendations = [],
+}: Props) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-2xl font-black text-slate-900">
+        الملخص والتوصيات
+      </h2>
+
+      <div className="mt-5 space-y-4">
+        {insights.length === 0 && recommendations.length === 0 ? (
+          <p className="text-sm text-slate-400">
+            لا توجد توصيات أو ملخصات حالية.
+          </p>
+        ) : null}
+
+        {insights.map((item, index) => (
+          <p
+            key={`insight-${index}`}
+            className="rounded-2xl bg-blue-50 p-4 text-sm leading-7 text-blue-900"
+          >
+            {item}
+          </p>
+        ))}
+
+        {recommendations.map((item, index) => (
+          <p
+            key={`recommendation-${index}`}
+            className="rounded-2xl bg-emerald-50 p-4 text-sm leading-7 text-emerald-800"
+          >
+            {item}
+          </p>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+============================================================
+FILE: components\results-analysis\results-analysis-charts.tsx
+============================================================
+type ProgressItem = {
+  label: string;
+  value: number;
+};
+
+type Props = {
+  title?: string;
+  items?: ProgressItem[];
+};
+
+export function ResultsAnalysisCharts({
+  title = "الرسوم التحليلية",
+  items = [],
+}: Props) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-2xl font-black text-slate-900">{title}</h2>
+
+      <div className="mt-5 space-y-4">
+        {items.length === 0 ? (
+          <p className="text-sm text-slate-400">لا توجد بيانات للعرض.</p>
+        ) : (
+          items.map((item) => (
+            <div key={item.label} className="rounded-2xl bg-slate-50 p-4">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900">{item.label}</span>
+                <span className="font-black text-blue-600">{item.value}%</span>
+              </div>
+
+              <div className="mt-3 h-2 rounded-full bg-slate-200">
+                <div
+                  className="h-2 rounded-full bg-blue-600"
+                  style={{ width: `${Math.max(0, Math.min(item.value, 100))}%` }}
+                />
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+============================================================
+FILE: app\api\dashboard\results-analysis\route.ts
+============================================================
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { parseResultsExcel } from "@/lib/results-analysis/results-analysis-parser";
+import { analyzeStudentResults } from "@/engine/results-analysis/results-analysis-engine";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+
+export const runtime = "nodejs";
+
+const MAX_RESULTS_FILE_SIZE = 8 * 1024 * 1024;
+const MAX_RESULTS_FILES = 5;
+
+const ALLOWED_RESULTS_FILE_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/octet-stream",
+  "",
+]);
+
+type ResultRowWithSource = {
+  id: string;
+  studentId?: string | null;
+  studentName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  semester?: string | null;
+  subject?: string | null;
+  score?: number | null;
+  maxScore?: number | null;
+  percentage?: number | null;
+  status?: "PASS" | "FAIL" | "NEEDS_SUPPORT" | "UNKNOWN";
+  sourceFile?: string | null;
+};
+
+function hasExcelExtension(fileName: string) {
+  return /\.(xlsx|xls|csv)$/i.test(fileName);
+}
+
+function validateResultsFile(file: File) {
+  if (file.size <= 0) {
+    return "ملف النتائج فارغ.";
+  }
+
+  if (file.size > MAX_RESULTS_FILE_SIZE) {
+    return "حجم ملف النتائج أكبر من الحد المسموح 8MB.";
+  }
+
+  if (!hasExcelExtension(file.name)) {
+    return "صيغة ملف النتائج غير مدعومة. ارفع ملف xlsx أو xls أو csv.";
+  }
+
+  if (!ALLOWED_RESULTS_FILE_TYPES.has(file.type)) {
+    return "نوع ملف النتائج غير مسموح.";
+  }
+
+  return null;
+}
+
+export async function POST(request: Request) {
+  const authResult = await requireSchoolDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  const serviceGuard = await requireServiceAccessApi("results-analysis");
+  if (serviceGuard) return serviceGuard;
+
+  try {
+    const formData = await request.formData();
+
+    const uploadedFiles = formData.getAll("files");
+    const fallbackFile = formData.get("file");
+
+    const files =
+      uploadedFiles.length > 0
+        ? uploadedFiles
+        : fallbackFile
+          ? [fallbackFile]
+          : [];
+
+    const title = String(formData.get("title") || "").trim();
+    const grade = String(formData.get("grade") || "").trim();
+    const classroom = String(formData.get("classroom") || "").trim();
+    const semester = String(formData.get("semester") || "").trim();
+
+    const excelFiles = files.filter(
+      (file): file is File => file instanceof File
+    );
+
+    if (excelFiles.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "ملف Excel مطلوب.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (excelFiles.length > MAX_RESULTS_FILES) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `يمكن رفع ${MAX_RESULTS_FILES} ملفات كحد أقصى في كل تحليل.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    for (const file of excelFiles) {
+      const validationError = validateResultsFile(file);
+
+      if (validationError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: validationError,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const allRows: ResultRowWithSource[] = [];
+
+    for (const file of excelFiles) {
+      const buffer = await file.arrayBuffer();
+      const rows = await parseResultsExcel(buffer);
+
+      allRows.push(
+        ...rows.map((row): ResultRowWithSource => ({
+          ...row,
+          semester: row.semester ?? (semester || null),
+          sourceFile: file.name,
+        }))
+      );
+    }
+
+    if (!allRows.length) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لم يتم العثور على بيانات نتائج صالحة داخل الملف.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const analysisOutput = analyzeStudentResults(allRows);
+    const summary = analysisOutput.summary;
+
+    const analysis = await prisma.resultsAnalysis.create({
+      data: {
+        schoolAccountId: authResult.schoolAccountId,
+        title:
+          title ||
+          `تحليل نتائج - ${new Date().toLocaleDateString("ar-SA")}`,
+        grade: grade || null,
+        classroom: classroom || null,
+        sourceFile: excelFiles.map((file: any) => file.name).join("، "),
+        totalStudents: summary.totalStudents,
+        totalSubjects: new Set(allRows.map((row: any) => row.subject).filter(Boolean))
+          .size,
+        averageScore: summary.averagePercentage,
+        summaryJson: analysisOutput,
+        rowsJson: allRows,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      analysisId: analysis.id,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تحليل النتائج.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+============================================================
+FILE: prisma\schema.prisma
+============================================================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum StudentPickerMode {
+  SERVICE_DEFAULT
+  REQUIRED
+  DISABLED
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum CalendarReminderStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+enum CalendarReminderPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum CalendarReminderLinkType {
+  GENERAL
+  SERVICE
+  CASE
+  STUDENT
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+  users                 User[]
+
+  profile           SchoolProfile?
+  students          Student[]
+  guardians         Guardian[]
+  staff             StaffMember[]
+  services          ServiceAccess[]
+  cases             CaseEntry[]
+  subscription      Subscription?
+  resultsAnalyses   ResultsAnalysis[]
+  calendarReminders CalendarReminder[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  officialName String?
+  jobTitle     String?
+  isActive     Boolean  @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases             CaseEntry[]
+  sessions          UserSession[]
+  calendarReminders CalendarReminder[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName          String
+  principalName       String?
+  educationDepartment String?
+  educationOffice     String?
+  city                String?
+  district            String?
+  stage               String?
+  academicYear        String?
+  currentSemester     String?
+  logoUrl             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases             CaseEntry[]
+  calendarReminders CalendarReminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows         Workflow[]
+  cases             CaseEntry[]
+  access            ServiceAccess[]
+  calendarReminders CalendarReminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name         String
+  version      Int            @default(1)
+  status       WorkflowStatus @default(DRAFT)
+  isActive     Boolean        @default(false)
+  workflowType String         @default("default")
+
+  studentPickerMode StudentPickerMode @default(SERVICE_DEFAULT)
+  steps             WorkflowStep[]
+  cases             CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([serviceId, workflowType, isActive])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId       String?
+  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+  workflowSnapshot Json?
+  guidanceReports  GuidanceReport[]
+  studentId        String?
+  student          Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values            CaseValue[]
+  evidences         Evidence[]
+  calendarReminders CalendarReminder[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String?
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model CalendarReminder {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title String
+  note  String?
+
+  status   CalendarReminderStatus   @default(PENDING)
+  priority CalendarReminderPriority @default(NORMAL)
+  linkType CalendarReminderLinkType @default(GENERAL)
+
+  scheduledAt         DateTime
+  remindBeforeMinutes Int?
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  completedAt   DateTime?
+  completedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledAt])
+  @@index([serviceId])
+  @@index([caseEntryId])
+  @@index([studentId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  invoice Invoice?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+model ResultsAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title      String
+  grade      String?
+  classroom  String?
+  sourceFile String?
+  status     String  @default("COMPLETED")
+
+  totalStudents Int    @default(0)
+  totalSubjects Int    @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+model GuidanceReport {
+  id          String @id @default(cuid())
+  title       String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String
+  renderedContent String?
+
+  evidenceEnabled Boolean @default(true)
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  approvedAt DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([templateId])
+  @@index([generatedAt])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+
+  mimeType String?
+  size     Int?
+
+  sortOrder Int     @default(0)
+  visible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([visible])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+
+  content String
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  academicYear      String?
+  term              String?
+  importMode        String    @default("FULL_SYNC")
+  committedByUserId String?
+  isArchived        Boolean   @default(false)
+  archivedAt        DateTime?
+  archivedByUserId  String?
+  cycleId           String?
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  planAction String?
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  startsAt   DateTime?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model StudentImportChange {
+  id String @id @default(cuid())
+
+  sessionId String
+  rowId     String?
+  studentId String?
+
+  action String
+
+  beforeJson Json?
+  afterJson  Json?
+
+  rolledBackAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([studentId])
+  @@index([action])
+}
+
+model NoorImportCycle {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  academicYear    String
+  term            String
+  title           String
+  status          String @default("DRAFT")
+
+  totalStudents     Int @default(0)
+  totalSessions     Int @default(0)
+  pendingSessions   Int @default(0)
+  committedSessions Int @default(0)
+
+  latestSessionId   String?
+  latestCommittedAt DateTime?
+
+  isArchived       Boolean   @default(false)
+  archivedAt       DateTime?
+  archivedByUserId String?
+  createdByUserId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([schoolAccountId, academicYear, term])
+  @@index([status])
+}
+
+model InvoiceSettings {
+  id                     String   @id @default(cuid())
+  singletonKey           String   @unique @default("default")
+  sellerName             String   @default("منصة التوجيه الطلابي")
+  sellerDomain           String?  @default("smstudents.com")
+  sellerCountry          String?  @default("المملكة العربية السعودية")
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+  vatEnabled             Boolean  @default(false)
+  vatRate                Int      @default(0)
+  invoicePrefix          String   @default("INV")
+  invoiceNote            String?  @db.Text
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model InvoiceNumberSequence {
+  id         String   @id @default(cuid())
+  year       Int
+  month      Int
+  nextNumber Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+model Invoice {
+  id                   String             @id @default(cuid())
+  invoiceNumber        String             @unique
+  paymentTransactionId String             @unique
+  paymentTransaction   PaymentTransaction @relation(fields: [paymentTransactionId], references: [id], onDelete: Cascade)
+  issuedById           String?
+  status               String             @default("ISSUED")
+
+  sellerName             String
+  sellerDomain           String?
+  sellerCountry          String?
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+
+  buyerName        String
+  buyerEmail       String?
+  buyerJobTitle    String?
+  buyerSchoolName  String?
+  buyerAccountName String?
+
+  itemTitle      String
+  subtotalAmount Int
+  taxRate        Int    @default(0)
+  taxAmount      Int    @default(0)
+  totalAmount    Int
+  currency       String @default("SAR")
+
+  pdfUrl       String?
+  snapshotJson Json?
+  creditNotes  CreditNote[]
+  issuedAt     DateTime     @default(now())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([paymentTransactionId])
+  @@index([issuedAt])
+  @@index([status])
+}
+
+model CreditNote {
+  id               String  @id @default(cuid())
+  creditNoteNumber String  @unique
+  invoiceId        String
+  invoice          Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  issuedById String?
+  status     String  @default("ISSUED")
+  reason     String? @db.Text
+
+  subtotalAmount Int
+  taxRate        Int    @default(0)
+  taxAmount      Int    @default(0)
+  totalAmount    Int
+  currency       String @default("SAR")
+
+  snapshotJson Json?
+  issuedAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([issuedAt])
+  @@index([status])
+}

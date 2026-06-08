@@ -1,0 +1,664 @@
+﻿Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\bank-transfer\[requestId]\approve\route.ts
+Line: 166
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\cancel\route.ts
+Line: 72
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\activations\manual\route.ts
+Line: 70
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\[invoiceId]\pdf\route.ts
+Line: 343
+Code: <p>الفواتير الملغاة محفوظة للأثر المالي، ولا تدخل ضمن إجمالي الفواتير السارية.</p>
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 392
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\subscriptions\route.ts
+Line: 443
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 382
+Code: if (targetUser.email === "admin@student-guidance.local" && action !== "activate-user") {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 389
+Code: if (action === "activate-user" || action === "disable-user") {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\users\route.ts
+Line: 390
+Code: const isActive = action === "activate-user";
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 20
+Code: function normalizeStudentPickerMode(value: unknown): string {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 78
+Code: const studentPickerMode = normalizeStudentPickerMode(
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 79
+Code: formData.get("studentPickerMode")
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+Line: 173
+Code: studentPickerMode: studentPickerMode as any,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 103
+Code: action: "WORKFLOW_ACTIVATED",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\activate\route.ts
+Line: 124
+Code: console.error("WORKFLOW_ACTIVATE_ERROR", error);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\delete\route.ts
+Line: 86
+Code: "لا يمكن حذف هذا Workflow لأنه مرتبط بحالات محفوظة. يمكن تركه كنسخة محفوظة أو أرشفته.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 31
+Code: function normalizeStudentPickerMode(value: unknown): string {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 99
+Code: const studentPickerMode = normalizeStudentPickerMode(body?.studentPickerMode);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft\route.ts
+Line: 142
+Code: studentPickerMode: studentPickerMode as any,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\draft-name\route.ts
+Line: 66
+Code: "لا يمكن تعديل اسم Workflow مستخدم في حالات محفوظة حفاظًا على السجلات السابقة.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 15
+Code: function normalizeStudentPickerMode(value: unknown): string {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 41
+Code: studentPickerMode: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 68
+Code: studentPickerMode: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 113
+Code: studentPickerMode: workflow.studentPickerMode,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 130
+Code: const studentPickerMode = normalizeStudentPickerMode(body?.studentPickerMode);
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 172
+Code: studentPickerMode: studentPickerMode as any,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 180
+Code: studentPickerMode: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 198
+Code: previousStudentPickerMode: workflow.studentPickerMode,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\[serviceSlug]\student-picker-mode\route.ts
+Line: 199
+Code: studentPickerMode: updated.studentPickerMode,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\archive\route.ts
+Line: 58
+Code: description: "تمت أرشفة جلسة معتمدة مع إبقاء أثرها محفوظًا.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 75
+Code: const deactivateMissing = body?.deactivateMissing === true;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 120
+Code: let deactivatedCount = 0;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 287
+Code: if (deactivateMissing && incomingNationalIds.length > 0) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 311
+Code: deactivatedCount += 1;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 318
+Code: action: "DEACTIVATED_MISSING_FROM_IMPORT",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 353
+Code: deactivatedCount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 362
+Code: description: `تم إنشاء ${result.createdCount} طالب/طالبة وتحديث ${result.updatedCount} وتعطيل ${result.deactivatedCount} غير موجودين في الملف الجديد.`,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 368
+Code: deactivatedCount: result.deactivatedCount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 369
+Code: deactivateMissing,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+Line: 375
+Code: deactivatedCount: result.deactivatedCount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\archive\route.ts
+Line: 58
+Code: description: "تمت أرشفة جلسة معتمدة مع إبقاء أثرها محفوظًا.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 75
+Code: const deactivateMissing = body?.deactivateMissing === true;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 120
+Code: let deactivatedCount = 0;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 287
+Code: if (deactivateMissing && incomingNationalIds.length > 0) {
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 311
+Code: deactivatedCount += 1;
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 318
+Code: action: "DEACTIVATED_MISSING_FROM_IMPORT",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 353
+Code: deactivatedCount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 362
+Code: description: `تم إنشاء ${result.createdCount} طالب/طالبة وتحديث ${result.updatedCount} وتعطيل ${result.deactivatedCount} غير موجودين في الملف الجديد.`,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 368
+Code: deactivatedCount: result.deactivatedCount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 369
+Code: deactivateMissing,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+Line: 375
+Code: deactivatedCount: result.deactivatedCount,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\plans\route.ts
+Line: 165
+Code: activatedById: current.user.id,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\plans\route.ts
+Line: 171
+Code: activated: true,
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+Line: 88
+Code: "قالب تقرير محفوظ من صانع قوالب التقارير.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+Line: 93
+Code: description || "قالب تقرير محفوظ.",
+---
+Path: D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+Line: 133
+Code: data.content = toOptionalString(payload.content) || "قالب تقرير محفوظ.";
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\guardian-summons\page.tsx
+Line: 26
+Code: هذه الصفحة تعرض آخر نسخة محفوظة من نموذج استدعاء ولي أمر. التعديل
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\page.tsx
+Line: 185
+Code: label="النماذج المحفوظة"
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\page.tsx
+Line: 364
+Code: Workflow محفوظة.
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+Line: 9
+Code: import { WorkflowStudentPickerModeControl } from "@/components/admin/workflows/workflow-student-picker-mode-control";
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+Line: 372
+Code: كل Workflows المحفوظة لهذه الخدمة
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+Line: 382
+Code: {sortedWorkflows.length} نسخة محفوظة
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+Line: 431
+Code: يظهر للموجه الآن
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+Line: 464
+Code: <WorkflowStudentPickerModeControl
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+Line: 468
+Code: initialMode={workflow.studentPickerMode || "SERVICE_DEFAULT"}
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+Line: 484
+Code: : "هذه نسخة محفوظة قديمة وليست هي التي تظهر للموجه الآن."}
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+Line: 493
+Code: لا توجد مرفوعات محفوظة بعد
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx
+Line: 110
+Code: ارفع ملف Excel أو اختر نسخة محفوظة من سجل المرفوعات.
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx
+Line: 122
+Code: studentPickerMode: workflow.studentPickerMode || "SERVICE_DEFAULT",
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx
+Line: 264
+Code: هذه الحالة تستخدم نسخة محفوظة من Workflow وقت إنشاء الحالة، لذلك لن
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx
+Line: 14
+Code: type RuntimeWorkflowWithStudentPickerMode = RuntimeWorkflow & {
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx
+Line: 15
+Code: studentPickerMode?: string | null;
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx
+Line: 21
+Code: ): RuntimeWorkflowWithStudentPickerMode {
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx
+Line: 57
+Code: studentPickerMode: workflow.studentPickerMode || "DISABLED",
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\guidance-programs\new\page.tsx
+Line: 90
+Code: studentPickerMode: workflow.studentPickerMode || "SERVICE_DEFAULT",
+---
+Path: D:\student-guidance-platform-clean\app\dashboard\results-analysis\page.tsx
+Line: 34
+Code: رفع وتحليل نتائج الطلاب من ملفات Excel مع مؤشرات أداء ورسوم وتحليلات محفوظة.
+---
+Path: D:\student-guidance-platform-clean\components\activation\admin-activations-center.tsx
+Line: 238
+Code: async function manualActivate() {
+---
+Path: D:\student-guidance-platform-clean\components\activation\admin-activations-center.tsx
+Line: 461
+Code: run: manualActivate,
+---
+Path: D:\student-guidance-platform-clean\components\admin\admin-users-command-center.tsx
+Line: 380
+Code: onClick={() => runAction("activate-user", selectedUser)}
+---
+Path: D:\student-guidance-platform-clean\components\admin\admin-users-command-center.tsx
+Line: 612
+Code: onClick={() => runAction("activate-user", selectedUser)}
+---
+Path: D:\student-guidance-platform-clean\components\admin\payments\admin-invoice-detail-page.tsx
+Line: 223
+Code: فتح PDF محفوظ
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-history-actions.tsx
+Line: 32
+Code: async function activateWorkflow() {
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-history-actions.tsx
+Line: 40
+Code: `/api/dashboard/admin/workflows/${serviceSlug}/activate`,
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-history-actions.tsx
+Line: 122
+Code: onClick={activateWorkflow}
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 15
+Code: type StudentPickerMode = "SERVICE_DEFAULT" | "REQUIRED" | "DISABLED";
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 27
+Code: const studentPickerModeOptions: Array<{
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 28
+Code: value: StudentPickerMode;
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 61
+Code: const [savingStudentPickerMode, setSavingStudentPickerMode] = useState(false);
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 63
+Code: const [studentPickerMode, setStudentPickerMode] =
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 64
+Code: useState<StudentPickerMode>("SERVICE_DEFAULT");
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 74
+Code: setStudentPickerMode("SERVICE_DEFAULT");
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 81
+Code: async function loadStudentPickerMode() {
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 94
+Code: const mode = data?.workflow?.studentPickerMode;
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 100
+Code: setStudentPickerMode(mode);
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 104
+Code: setStudentPickerMode("SERVICE_DEFAULT");
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 109
+Code: loadStudentPickerMode();
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 153
+Code: async function saveStudentPickerMode() {
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 157
+Code: setSavingStudentPickerMode(true);
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 170
+Code: studentPickerMode,
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 186
+Code: setSavingStudentPickerMode(false);
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 320
+Code: {studentPickerModeOptions.map((option) => (
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 324
+Code: onClick={() => setStudentPickerMode(option.value)}
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 327
+Code: studentPickerMode === option.value
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 344
+Code: onClick={saveStudentPickerMode}
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 345
+Code: disabled={savingStudentPickerMode || !draftWorkflowId}
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-publish-panel.tsx
+Line: 348
+Code: {savingStudentPickerMode ? (
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 6
+Code: type StudentPickerMode = "SERVICE_DEFAULT" | "REQUIRED" | "DISABLED";
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 8
+Code: type WorkflowStudentPickerModeControlProps = {
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 12
+Code: initialMode?: StudentPickerMode | string | null;
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 17
+Code: const studentPickerModeOptions: Array<{
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 18
+Code: value: StudentPickerMode;
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 39
+Code: function normalizeMode(value: unknown): StudentPickerMode {
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 45
+Code: export function WorkflowStudentPickerModeControl({
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 52
+Code: }: WorkflowStudentPickerModeControlProps) {
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 58
+Code: const [mode, setMode] = useState<StudentPickerMode>(normalizedInitialMode);
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 60
+Code: useState<StudentPickerMode>(normalizedInitialMode);
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 84
+Code: studentPickerMode: mode,
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 149
+Code: {isDirty ? "حفظ الإعداد" : "محفوظ"}
+---
+Path: D:\student-guidance-platform-clean\components\admin\workflows\workflow-student-picker-mode-control.tsx
+Line: 154
+Code: {studentPickerModeOptions.map((option) => (
+---
+Path: D:\student-guidance-platform-clean\components\cases\case-details-view.tsx
+Line: 430
+Code: return "بيانات محفوظة";
+---
+Path: D:\student-guidance-platform-clean\components\cases\case-details-view.tsx
+Line: 798
+Code: <EmptySimpleBox text="لا يوجد جدول اجتماع محفوظ." />
+---
+Path: D:\student-guidance-platform-clean\components\cases\case-details-view.tsx
+Line: 1011
+Code: لا توجد بيانات محفوظة.
+---
+Path: D:\student-guidance-platform-clean\components\cases\case-value-renderer.tsx
+Line: 44
+Code: {stringifySimple(itemValue) || "بيانات محفوظة"}
+---
+Path: D:\student-guidance-platform-clean\components\cases\case-value-renderer.tsx
+Line: 72
+Code: return "بيانات محفوظة";
+---
+Path: D:\student-guidance-platform-clean\components\dashboard\creative-dashboard.tsx
+Line: 51
+Code: description: "ابدأ من حالة محفوظة، واسحب البيانات والشواهد تلقائيًا.",
+---
+Path: D:\student-guidance-platform-clean\components\dashboard\creative-dashboard.tsx
+Line: 270
+Code: description="سجلات محفوظة من مختلف الخدمات."
+---
+Path: D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx
+Line: 438
+Code: آخر جلسة محفوظة
+---
+Path: D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx
+Line: 217
+Code: كل تحديثات هذه السنة والفصل الدراسي محفوظة هنا. ارفع ملف بيانات الطلاب، راجع التحديث، ثم اعتمده.
+---
+Path: D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-session-detail-client.tsx
+Line: 156
+Code: const deactivatedCount = toSafeNumber(result?.deactivatedCount ?? session.deactivatedCount);
+---
+Path: D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-session-detail-client.tsx
+Line: 169
+Code: deactivatedCount > 0
+---
+Path: D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-session-detail-client.tsx
+Line: 170
+Code: ? `تم تعطيل ${deactivatedCount} طالب/طالبة غير موجودين في الملف الجديد.`
+---
+Path: D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-session-detail-client.tsx
+Line: 301
+Code: deactivateMissing: false,
+---
+Path: D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-client.tsx
+Line: 218
+Code: عدد الاستدعاءات المحفوظة: {records.length} — المعروضة:{" "}
+---
+Path: D:\student-guidance-platform-clean\components\marketing\marketing-footer.tsx
+Line: 57
+Code: © 2026 منصة التوجيه الطلابي — جميع الحقوق محفوظة
+---
+Path: D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+Line: 102
+Code: "قالب تقرير رسمي ذكي محفوظ في النظام.",
+---
+Path: D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+Line: 362
+Code: هنا تتابع القوالب المحفوظة، حالتها، الخدمة أو Workflow المرتبط،
+---
+Path: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+Line: 387
+Code: description="قراءة قالب محفوظ وتجهيزه كمسودة لاحقًا."
+---
+Path: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+Line: 540
+Code: النسخ المحفوظة Snapshot
+---
+Path: D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+Line: 725
+Code: status: value.status || "محفوظ",
+---
+Path: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+Line: 405
+Code: updatedAt: "غير محفوظ",
+---
+Path: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+Line: 566
+Code: description: page.description || "صفحة مستوردة من قالب محفوظ.",
+---
+Path: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+Line: 710
+Code: message: "تم فتح القالب المحفوظ داخل الاستديو.",
+---
+Path: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+Line: 739
+Code: message: "تم تحميل القالب المحفوظ داخل الاستديو.",
+---
+Path: D:\student-guidance-platform-clean\components\reports\new-report-case-picker.tsx
+Line: 522
+Code: البيانات المحفوظة مسبقًا.
+---
+Path: D:\student-guidance-platform-clean\components\reports\new-report-case-picker.tsx
+Line: 703
+Code: <p className="text-sm text-slate-500">لا توجد قيم محفوظة.</p>
+---
+Path: D:\student-guidance-platform-clean\components\reports\new-report-case-picker.tsx.tsx
+Line: 108
+Code: إنشاء تقرير من سجل محفوظ
+---
+Path: D:\student-guidance-platform-clean\components\reports\report-list.tsx
+Line: 26
+Code: <h2 className="text-3xl font-black text-slate-900">التقارير المحفوظة</h2>
+---
+Path: D:\student-guidance-platform-clean\components\reports\report-list.tsx
+Line: 34
+Code: لا توجد تقارير محفوظة حتى الآن.
+---
+Path: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+Line: 876
+Code: {locked ? "مغلق" : hasChanges ? "غير محفوظ" : "محفوظ"}
+---
+Path: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+Line: 975
+Code: {locked ? "مغلق" : hasChanges ? "غير محفوظ" : "محفوظ"}
+---
+Path: D:\student-guidance-platform-clean\components\reports\reports-dashboard.tsx
+Line: 222
+Code: التقارير المحفوظة
+---
+Path: D:\student-guidance-platform-clean\components\reports\reports-dashboard.tsx
+Line: 333
+Code: غيّر البحث أو الفلاتر، أو أنشئ تقريرًا جديدًا من حالة محفوظة.
+---
+Path: D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+Line: 30
+Code: لا توجد قوالب محفوظة حتى الآن.
+---
+Path: D:\student-guidance-platform-clean\components\results-analysis\results-analysis-list.tsx
+Line: 29
+Code: كل تحليل محفوظ يمكن فتحه أو حذفه لاحقًا.
+---
+Path: D:\student-guidance-platform-clean\components\results-analysis\results-analysis-list.tsx
+Line: 35
+Code: لا توجد تحليلات محفوظة حتى الآن.
+---
+Path: D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx
+Line: 356
+Code: {hasChanges ? "يوجد تغييرات غير محفوظة" : "كل التغييرات محفوظة"}
+---
+Path: D:\student-guidance-platform-clean\components\students\student-record-summary-cards.tsx
+Line: 39
+Code: helper="تقارير صادرة أو محفوظة"
+---
+Path: D:\student-guidance-platform-clean\components\subscription\counselor-plans-page.tsx
+Line: 282
+Code: const activatedImmediately = Boolean(result.activated) || isSelectedPlanFree;
+---
+Path: D:\student-guidance-platform-clean\components\subscription\counselor-plans-page.tsx
+Line: 288
+Code: (activatedImmediately
+---
+Path: D:\student-guidance-platform-clean\components\subscription\counselor-plans-page.tsx
+Line: 298
+Code: if (activatedImmediately) {
+---
+Path: D:\student-guidance-platform-clean\components\subscription\counselor-plans-page.tsx
+Line: 404
+Code: لا تقلق، بياناتك محفوظة. بعد اختيار الباقة المناسبة سيتم فتح الخدمة تلقائيًا عند اكتمال التفعيل.
+---
+Path: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+Line: 444
+Code: const workflowStudentPickerMode =
+---
+Path: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+Line: 445
+Code: typeof (workflow as any).studentPickerMode === "string"
+---
+Path: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+Line: 446
+Code: ? (workflow as any).studentPickerMode
+---
+Path: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+Line: 450
+Code: workflowStudentPickerMode === "REQUIRED"
+---
+Path: D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx
+Line: 452
+Code: : workflowStudentPickerMode === "DISABLED"
+---

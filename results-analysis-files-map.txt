@@ -1,0 +1,151 @@
+RESULTS ANALYSIS FILES MAP
+GeneratedAt: 2026-06-08T06:53:00.2793846+03:00
+
+
+============================================================
+FOLDER: app\dashboard\results-analysis
+============================================================
+app\dashboard\results-analysis\[analysisId]\page.tsx
+app\dashboard\results-analysis\compare\page.tsx
+app\dashboard\results-analysis\layout.tsx
+app\dashboard\results-analysis\new\page.tsx
+app\dashboard\results-analysis\page.tsx
+
+============================================================
+FOLDER: app\api\dashboard\results-analysis
+============================================================
+app\api\dashboard\results-analysis\[analysisId]\delete\route.ts
+app\api\dashboard\results-analysis\[analysisId]\export\route.ts
+app\api\dashboard\results-analysis\route.ts
+
+============================================================
+FOLDER: components\results-analysis
+============================================================
+components\results-analysis\delete-results-analysis-button.tsx
+components\results-analysis\results-analysis-chart-card.tsx
+components\results-analysis\results-analysis-charts.tsx
+components\results-analysis\results-analysis-dashboard.tsx
+components\results-analysis\results-analysis-filters.tsx
+components\results-analysis\results-analysis-insights.tsx
+components\results-analysis\results-analysis-kpi-grid.tsx
+components\results-analysis\results-analysis-list.tsx
+components\results-analysis\results-analysis-upload-card.tsx
+
+============================================================
+FOLDER: lib\results-analysis
+============================================================
+lib\results-analysis\results-analysis-access.ts
+lib\results-analysis\results-analysis-parser.ts
+lib\results-analysis\results-analysis-types.ts
+lib\results-analysis\results-analysis-utils.ts
+
+============================================================
+FOLDER: types
+============================================================
+NOT FOUND
+
+============================================================
+REFERENCES
+============================================================
+
+FILE: app\api\dashboard\results-analysis\[analysisId]\delete\route.ts
+
+FILE: app\api\dashboard\results-analysis\[analysisId]\export\route.ts
+
+FILE: app\api\dashboard\results-analysis\route.ts
+L3: import { parseResultsExcel } from "@/lib/results-analysis/results-analysis-parser";
+L4: import { analyzeStudentResults } from "@/engine/results-analysis/results-analysis-engine";
+L67: const serviceGuard = await requireServiceAccessApi("results-analysis");
+L183: : "حدث خطأ أثناء تحليل النتائج.",
+
+FILE: app\dashboard\admin\workflows\page.tsx
+L228: الشامل، التقارير، وتحليل النتائج.
+
+FILE: app\dashboard\results-analysis\compare\page.tsx
+L35: href={`/dashboard/results-analysis/${analysis.id}`}
+
+FILE: app\dashboard\results-analysis\new\page.tsx
+L1: import { ResultsAnalysisUploadCard } from "@/components/results-analysis/results-analysis-upload-card";
+
+FILE: app\dashboard\results-analysis\[analysisId]\page.tsx
+
+FILE: app\dashboard\results-analysis\layout.tsx
+L9: await requireServiceAccessForCurrentUser("results-analysis");
+
+FILE: app\dashboard\results-analysis\page.tsx
+L6: } from "@/lib/results-analysis/results-analysis-access";
+L7: import { ResultsAnalysisList } from "@/components/results-analysis/results-analysis-list";
+L26: Academic Results Analytics
+L30: تحليل النتائج
+L39: href="/dashboard/results-analysis/new"
+
+FILE: components\admin\admin-activity-metrics-panel.tsx
+L97: "results-analysis": "تحليل النتائج",
+L132: const response = await fetch("/api/dashboard/admin/activity/metrics", {
+
+FILE: components\dashboard\creative-dashboard.tsx
+L372: href="/dashboard/results-analysis"
+
+FILE: components\dashboard\soft-blue-dashboard.tsx
+L192: href="/dashboard/results-analysis"
+L194: title="تحليل النتائج"
+
+FILE: components\layout\dashboard-sidebar.tsx
+L89: label: "تحليل النتائج",
+L90: href: "/dashboard/results-analysis",
+
+FILE: components\report-engine\report-template-studio.tsx
+L161: { slug: "results-analysis", name: "تحليل النتائج" },
+L717: const response = await fetch(
+L785: const response = await fetch(
+L971: const response = await fetch(
+L1093: ? await fetch(`/api/dashboard/report-templates/${savedTemplateId}`, {
+L1100: : await fetch("/api/dashboard/report-templates", {
+
+FILE: components\results-analysis\delete-results-analysis-button.tsx
+L21: const response = await fetch(
+L22: `/api/dashboard/results-analysis/${analysisId}/delete`,
+
+FILE: components\results-analysis\results-analysis-dashboard.tsx
+L140: href="/dashboard/results-analysis/compare"
+
+FILE: components\results-analysis\results-analysis-list.tsx
+L2: import { DeleteResultsAnalysisButton } from "./delete-results-analysis-button";
+L109: href={`/dashboard/results-analysis/${analysis.id}`}
+
+FILE: components\results-analysis\results-analysis-upload-card.tsx
+L37: const response = await fetch("/api/dashboard/results-analysis", {
+L50: router.push(`/dashboard/results-analysis/${data.analysisId}`);
+
+FILE: components\subscription\counselor-plans-page.tsx
+L85: "results-analysis": "تحليل النتائج",
+L186: const response = await fetch("/api/dashboard/plans", {
+L261: const response = await fetch("/api/dashboard/plans", {
+
+FILE: lib\admin\workflows\ensure-dashboard-workflow-services.ts
+L21: "results-analysis",
+L31: "تحليل النتائج",
+L120: * المرجع الشامل للموجه الطلابي، التقارير، تحليل النتائج.
+
+FILE: lib\constants\services.ts
+L56: slug: "results-analysis",
+L57: title: "تحليل النتائج",
+L59: href: "/dashboard/results-analysis",
+
+FILE: lib\design\tokens.ts
+L32: "results-analysis": "from-rose-500 to-pink-500",
+
+FILE: lib\results-analysis\results-analysis-access.ts
+L21: throw new Error("لا يمكن الوصول لتحليل النتائج بدون ربط المستخدم بمدرسة.");
+
+FILE: lib\results-analysis\results-analysis-parser.ts
+L2: import type { StudentResultRow } from "./results-analysis-types";
+
+FILE: lib\security\permissions.ts
+L17: "results-analysis:read",
+L18: "results-analysis:create",
+L19: "results-analysis:export",
+L38: "results-analysis:read",
+L39: "results-analysis:create",
+L40: "results-analysis:export",
+L50: "results-analysis:read",

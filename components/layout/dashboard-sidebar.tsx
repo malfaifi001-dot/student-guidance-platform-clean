@@ -8,6 +8,7 @@ import {
   Activity,
   BarChart3,
   BookOpen,
+  BrainCircuit,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -89,6 +90,11 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     label: "تحليل النتائج",
     href: "/dashboard/results-analysis",
     icon: BarChart3,
+  },
+  {
+    label: "مركز التحليل والاختبارات",
+    href: "/dashboard/assessment-center",
+    icon: BrainCircuit,
   },
   {
     label: "التواصل بين الأسرة والمدرسة",

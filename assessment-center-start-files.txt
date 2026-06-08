@@ -1,0 +1,1250 @@
+ASSESSMENT CENTER START FILES
+GeneratedAt: 2026-06-08T14:13:38.4436106+03:00
+
+
+============================================================
+FILE: components\layout\dashboard-sidebar.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import type { ComponentType, ReactNode } from "react";
+import {
+  Activity,
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Crown,
+  FilePlus2,
+  FileText,
+  FolderKanban,
+  GitBranch,
+  Home,
+  KeyRound,
+  LayoutDashboard,
+  MessageCircle,
+  PenTool,
+  School,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  UserRound,
+  Users,
+  WalletCards,
+} from "lucide-react";
+
+type SidebarUser = {
+  role?: string | null;
+  name?: string | null;
+  officialName?: string | null;
+};
+
+type SidebarLinkItem = {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+};
+
+const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
+
+const counselorImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard", icon: Home },
+  { label: "الحالات", href: "/dashboard/cases", icon: FolderKanban },
+  { label: "التقارير", href: "/dashboard/reports", icon: FileText },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+];
+
+const counselorServiceLinks: SidebarLinkItem[] = [
+  {
+    label: "البرامج الإرشادية",
+    href: "/dashboard/guidance-programs",
+    icon: ClipboardList,
+  },
+  {
+    label: "اللجان والاجتماعات",
+    href: "/dashboard/committees-meetings",
+    icon: ShieldCheck,
+  },
+  {
+    label: "متابعة الطلاب",
+    href: "/dashboard/student-follow-up",
+    icon: Users,
+  },
+  {
+    label: "الخدمات الإرشادية المقدمة للطلاب",
+    href: "/dashboard/student-guidance-services",
+    icon: FileText,
+  },
+  {
+    label: "المرجع الشامل للطالب",
+    href: "/dashboard/student-comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "المرجع الشامل للموجه الطلابي",
+    href: "/dashboard/comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "تحليل النتائج",
+    href: "/dashboard/results-analysis",
+    icon: BarChart3,
+  },
+  {
+    label: "التواصل بين الأسرة والمدرسة",
+    href: "/dashboard/family-school-communication",
+    icon: MessageCircle,
+  },
+];
+
+const counselorToolsLinks: SidebarLinkItem[] = [
+  { label: "رفع بيانات الطلاب", href: "/dashboard/student-import", icon: UploadCloud },
+];
+
+const counselorAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const adminMainLinks: SidebarLinkItem[] = [
+  { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
+  { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
+  { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
+  { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
+  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
+  { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
+  { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
+];
+
+const adminPaymentLinks: SidebarLinkItem[] = [
+  { label: "عمليات الدفع", href: "/dashboard/admin/payments", icon: WalletCards },
+  { label: "مزودو الدفع", href: "/dashboard/admin/payments/providers", icon: WalletCards },
+  { label: "التسوية المالية", href: "/dashboard/admin/payments/reconciliation", icon: WalletCards },
+  { label: "الفواتير", href: "/dashboard/admin/payments/invoices", icon: FileText },
+  {
+    label: "إعدادات الفواتير والضريبة",
+    href: "/dashboard/admin/payments/invoice-settings",
+    icon: Settings,
+  },
+];
+
+const adminBuilderLinks: SidebarLinkItem[] = [
+  {
+    label: "مصمم Workflow",
+    href: "/dashboard/admin/workflow-builder",
+    icon: PenTool,
+  },
+  {
+    label: "قوالب التقارير",
+    href: "/dashboard/admin/report-templates",
+    icon: FileText,
+  },
+  {
+    label: "قالب تقرير جديد",
+    href: "/dashboard/admin/report-templates/new",
+    icon: FilePlus2,
+  },
+];
+
+const adminAccountLinks: SidebarLinkItem[] = [
+  { label: "حساب الأدمن", href: "/dashboard/account", icon: UserRound },
+  { label: "هوية المنصة", href: "/dashboard/settings/school", icon: Settings },
+];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function hasActive(pathname: string, items: SidebarLinkItem[]) {
+  return items.some((item) => isActivePath(pathname, item.href));
+}
+
+export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+
+  useEffect(() => {
+    const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    setCollapsed(savedValue === "true");
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  }, [collapsed, ready]);
+
+  return (
+    <aside
+      className={[
+        "hidden min-h-screen shrink-0 bg-transparent py-5 transition-all duration-300 xl:block",
+        collapsed ? "w-[96px] px-3" : "w-[320px] px-4",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "sticky top-5 flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300",
+          collapsed ? "p-2" : "p-4",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "flex items-center gap-2 border-b border-slate-100 pb-3",
+            collapsed ? "justify-center" : "justify-between",
+          ].join(" ")}
+        >
+          <Link
+            href={isAdmin ? "/dashboard/admin" : "/dashboard"}
+            className={[
+              "flex min-w-0 items-center rounded-[1.35rem] transition",
+              collapsed ? "justify-center p-1" : "flex-1 gap-3 px-2 py-2",
+              isAdmin ? "hover:bg-slate-50" : "hover:bg-sky-50/60",
+            ].join(" ")}
+            title={isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+          >
+            <div
+              className={[
+                "flex shrink-0 items-center justify-center rounded-2xl ring-1",
+                collapsed ? "h-11 w-11" : "h-12 w-12",
+                isAdmin
+                  ? "bg-slate-950 text-white ring-slate-900"
+                  : "bg-sky-50 text-sky-600 ring-sky-100",
+              ].join(" ")}
+            >
+              {isAdmin ? (
+                <ShieldCheck className="h-5 w-5" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
+            </div>
+
+            {!collapsed ? (
+              <div className="min-w-0">
+                <h1 className="truncate text-[15px] font-black text-slate-950">
+                  {isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+                </h1>
+                <p className="mt-1 truncate text-[11px] font-black text-slate-400">
+                  {isAdmin ? "Admin Center" : "Counselor"}
+                </p>
+              </div>
+            ) : null}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            aria-label={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+            title={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+          >
+            {collapsed ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+
+        {isAdmin ? (
+          <AdminSidebar pathname={pathname} collapsed={collapsed} />
+        ) : (
+          <CounselorSidebar pathname={pathname} collapsed={collapsed} />
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function AdminSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الإدارة" collapsed={collapsed}>
+          {adminMainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="المدفوعات"
+          defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
+          admin
+          collapsed={collapsed}
+        >
+          {adminPaymentLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="أدوات البناء"
+          defaultOpen={hasActive(pathname, adminBuilderLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminBuilderLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والإعدادات"
+          defaultOpen={hasActive(pathname, adminAccountLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 p-4 text-xs leading-6 text-emerald-900">
+          <p className="font-black">Admin Mode</p>
+          <p className="mt-1 text-emerald-700">
+            إدارة التفعيل، الاشتراكات، المدفوعات، الفواتير، النماذج، والتقارير.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function CounselorSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {counselorImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="الخدمات" collapsed={collapsed}>
+          {counselorServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="أدوات إضافية"
+          defaultOpen={hasActive(pathname, counselorToolsLinks)}
+          collapsed={collapsed}
+        >
+          {counselorToolsLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {counselorAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4">
+          <p className="text-xs font-black text-sky-700">اقتراح سريع</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80">
+            ابدأ بالتقويم، ثم افتح الحالة أو المرجع الشامل عند الحاجة.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function SidebarSection({
+  title,
+  children,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  collapsed: boolean;
+}) {
+  return (
+    <section>
+      {!collapsed ? (
+        <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400">
+          {title}
+        </p>
+      ) : null}
+
+      <div className={collapsed ? "space-y-2" : "space-y-1.5"}>{children}</div>
+    </section>
+  );
+}
+
+function SidebarDropdown({
+  title,
+  children,
+  defaultOpen = false,
+  admin,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  admin?: boolean;
+  collapsed: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (collapsed) {
+    return <div className="space-y-2">{children}</div>;
+  }
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={[
+          "mb-2 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black tracking-wide transition",
+          admin
+            ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+            : "text-slate-400 hover:bg-sky-50 hover:text-sky-700",
+        ].join(" ")}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={["h-4 w-4 transition", open ? "rotate-180" : ""].join(
+            " "
+          )}
+        />
+      </button>
+
+      {open ? <div className="space-y-1.5">{children}</div> : null}
+    </section>
+  );
+}
+
+function SidebarLink({
+  item,
+  active,
+  admin,
+  compact,
+  collapsed,
+}: {
+  item: SidebarLinkItem;
+  active: boolean;
+  admin?: boolean;
+  compact?: boolean;
+  collapsed: boolean;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      className={[
+        "group relative flex items-center rounded-2xl transition",
+        collapsed
+          ? "h-11 justify-center px-0"
+          : "min-h-11 gap-3 px-4 py-2.5",
+        compact && !collapsed ? "py-2" : "",
+        active
+          ? admin
+            ? "bg-slate-950 text-white shadow-sm"
+            : "bg-sky-50 text-sky-700 shadow-sm"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950",
+      ].join(" ")}
+    >
+      {active && !collapsed ? (
+        <span
+          className={[
+            "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
+            admin ? "bg-white" : "bg-sky-500",
+          ].join(" ")}
+        />
+      ) : null}
+
+      <div
+        className={[
+          "flex shrink-0 items-center justify-center rounded-xl transition",
+          collapsed ? "h-9 w-9" : compact ? "h-8 w-8" : "h-9 w-9",
+          active
+            ? admin
+              ? "bg-white/10 text-white"
+              : "bg-white text-sky-600"
+            : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600",
+        ].join(" ")}
+      >
+        <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
+      </div>
+
+      {!collapsed ? (
+        <span className="min-w-0 flex-1 whitespace-normal break-words text-right text-[14px] font-black leading-6">
+          {item.label}
+        </span>
+      ) : (
+        <span className="pointer-events-none fixed right-[105px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">
+          {item.label}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+============================================================
+FILE: lib\constants\services.ts
+============================================================
+export type AppService = {
+  slug: string;
+  title: string;
+  description: string;
+  href: string;
+  kind: "workflow" | "standalone" | "admin";
+};
+
+export const workflowServices: AppService[] = [
+  {
+    slug: "guidance-programs",
+    title: "البرامج الإرشادية",
+    description: "إدارة البرامج الإرشادية وخطط التنفيذ.",
+    href: "/dashboard/guidance-programs",
+    kind: "workflow",
+  },
+  {
+    slug: "student-follow-up",
+    title: "متابعة الطلاب",
+    description: "متابعة الطلاب والحالات الطلابية.",
+    href: "/dashboard/student-follow-up",
+    kind: "workflow",
+  },
+  {
+    slug: "committees-meetings",
+    title: "اللجان والاجتماعات",
+    description: "إدارة محاضر اللجان والاجتماعات والتوصيات.",
+    href: "/dashboard/committees-meetings",
+    kind: "workflow",
+  },
+  {
+    slug: "family-school-communication",
+    title: "التواصل بين الأسرة والمدرسة",
+    description: "توثيق التواصل بين الأسرة والمدرسة.",
+    href: "/dashboard/family-school-communication",
+    kind: "workflow",
+  },
+  {
+    slug: "student-guidance-services",
+    title: "الخدمات الإرشادية المقدمة للطلاب",
+    description: "إدارة الخدمات الإرشادية المقدمة للطلاب.",
+    href: "/dashboard/student-guidance-services",
+    kind: "workflow",
+  },
+];
+
+export const standaloneServices: AppService[] = [
+  {
+    slug: "comprehensive-reference",
+    title: "المرجع الشامل للموجه الطلابي",
+    description: "مرجع شامل للموجه الطلابي لمتابعة بيانات الطلاب وسجلاتهم.",
+    href: "/dashboard/comprehensive-reference",
+    kind: "standalone",
+  },
+  {
+    slug: "results-analysis",
+    title: "تحليل النتائج",
+    description: "رفع وتحليل نتائج الطلاب.",
+    href: "/dashboard/results-analysis",
+    kind: "standalone",
+  },
+  {
+    slug: "reports",
+    title: "التقارير",
+    description: "إنشاء ومعاينة واعتماد التقارير.",
+    href: "/dashboard/reports",
+    kind: "standalone",
+  },
+];
+
+export const dashboardServices = [
+  ...workflowServices,
+  ...standaloneServices,
+];
+
+
+============================================================
+FILE: lib\security\permissions.ts
+============================================================
+import type { UserRole } from "./roles";
+
+export const PERMISSIONS = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "workflows:read",
+  "workflows:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "cases:close",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+  "subscription:manage",
+  "admin:manage",
+] as const;
+
+export type Permission = (typeof PERMISSIONS)[number];
+
+const COUNSELOR_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+];
+
+const STAFF_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "cases:read",
+  "evidence:read",
+  "reports:read",
+  "results-analysis:read",
+  "subscription:read",
+];
+
+const SCHOOL_OWNER_PERMISSIONS: Permission[] = [
+  ...COUNSELOR_PERMISSIONS,
+  "workflows:read",
+  "subscription:manage",
+];
+
+const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  ADMIN: [...PERMISSIONS],
+  COUNSELOR: COUNSELOR_PERMISSIONS,
+  SCHOOL_OWNER: SCHOOL_OWNER_PERMISSIONS,
+  STAFF: STAFF_PERMISSIONS,
+};
+
+export function hasPermission(role: UserRole, permission: Permission) {
+  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+export function getRolePermissions(role: UserRole) {
+  return ROLE_PERMISSIONS[role] ?? [];
+}
+
+
+============================================================
+FILE: lib\subscription\subscription-api-guard.ts
+============================================================
+import { NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+export async function requireActiveSubscriptionApi() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.schoolAccountId) {
+    return NextResponse.json(
+      {
+        error: "يجب تسجيل الدخول أولًا.",
+        code: "UNAUTHENTICATED",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (current.user.role === "ADMIN") {
+    return null;
+  }
+
+  const overview = await getSchoolSubscriptionOverview(
+    current.user.schoolAccountId
+  );
+
+  if (!overview.usable) {
+    return NextResponse.json(
+      {
+        error: "حسابك يحتاج تفعيلًا للاستمرار في إنشاء الحالات أو التقارير.",
+        code: "SUBSCRIPTION_INACTIVE",
+        redirectTo: "/dashboard/plans?reason=activation-required",
+      },
+      {
+        status: 402,
+      }
+    );
+  }
+
+  return null;
+}
+
+export async function requireServiceAccessApi(serviceSlug: string) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.schoolAccountId) {
+    return NextResponse.json(
+      {
+        error: "يجب تسجيل الدخول أولًا.",
+        code: "UNAUTHENTICATED",
+      },
+      {
+        status: 401,
+      }
+    );
+  }
+
+  if (current.user.role === "ADMIN") {
+    return null;
+  }
+
+  const result = await isServiceAllowedForSchool({
+    schoolAccountId: current.user.schoolAccountId,
+    serviceSlug,
+  });
+
+  if (!result.ok) {
+    const reason =
+      result.reason === "SUBSCRIPTION_INACTIVE"
+        ? "activation-required"
+        : "service-not-in-plan";
+
+    return NextResponse.json(
+      {
+        error:
+          result.reason === "SUBSCRIPTION_INACTIVE"
+            ? "حسابك يحتاج تفعيلًا للاستمرار."
+            : "هذه الخدمة غير مشمولة في باقتك الحالية.",
+        code: result.reason,
+        serviceSlug,
+        redirectTo: `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+          serviceSlug
+        )}`,
+      },
+      {
+        status: 402,
+      }
+    );
+  }
+
+  return null;
+}
+
+
+============================================================
+FILE: lib\subscription\subscription-page-guard.ts
+============================================================
+NOT FOUND
+
+============================================================
+FILE: app\dashboard\results-analysis\layout.tsx
+============================================================
+import type { ReactNode } from "react";
+import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+
+export default async function ServiceAccessLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  await requireServiceAccessForCurrentUser("results-analysis");
+
+  return <>{children}</>;
+}
+
+
+============================================================
+FILE: app\dashboard\results-analysis\page.tsx
+============================================================
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import {
+  buildResultsAnalysisListWhere,
+} from "@/lib/results-analysis/results-analysis-access";
+import { ResultsAnalysisList } from "@/components/results-analysis/results-analysis-list";
+
+export default async function ResultsAnalysisPage() {
+  const context = await requireDashboardPageContext();
+
+  const analyses = await prisma.resultsAnalysis.findMany({
+    where: buildResultsAnalysisListWhere({
+      schoolAccountId: context.schoolAccountId,
+      isAdmin: context.isAdmin,
+    }),
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return (
+    <main className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-indigo-600 to-blue-500 p-10 text-white shadow-2xl">
+        <p className="text-sm font-bold text-blue-100">
+          Academic Results Analytics
+        </p>
+
+        <h1 className="mt-4 text-5xl font-black">
+          تحليل النتائج
+        </h1>
+
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-blue-50">
+          رفع وتحليل نتائج الطلاب من ملفات Excel مع مؤشرات أداء ورسوم وتحليلات محفوظة.
+        </p>
+
+        <div className="mt-8">
+          <Link
+            href="/dashboard/results-analysis/new"
+            className="rounded-2xl bg-white px-6 py-3 text-sm font-black text-blue-700 transition hover:bg-blue-50"
+          >
+            تحليل جديد
+          </Link>
+        </div>
+      </section>
+
+      <ResultsAnalysisList analyses={analyses} />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: app\dashboard\results-analysis\new\page.tsx
+============================================================
+import { ResultsAnalysisUploadCard } from "@/components/results-analysis/results-analysis-upload-card";
+
+export default function NewResultsAnalysisPage() {
+  return (
+    <main className="space-y-8">
+      <section className="rounded-[2rem] bg-gradient-to-br from-indigo-600 to-blue-500 p-10 text-white shadow-2xl">
+        <p className="text-sm font-bold text-blue-100">
+          Results Analysis Runtime
+        </p>
+
+        <h1 className="mt-4 text-5xl font-black">تحليل نتائج جديد</h1>
+
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-blue-50">
+          ارفع ملف Excel وحدد بيانات التحليل ليتم حفظه وعرض لوحة مؤشرات تفصيلية.
+        </p>
+      </section>
+
+      <ResultsAnalysisUploadCard />
+    </main>
+  );
+}
+
+============================================================
+FILE: components\ui\smart-action-feedback.tsx
+============================================================
+"use client";
+
+import { useCallback, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  Loader2,
+  X,
+  XCircle,
+} from "lucide-react";
+
+export type SmartActionVariant =
+  | "info"
+  | "success"
+  | "warning"
+  | "danger"
+  | "error";
+
+type SmartActionMode = "feedback" | "confirm";
+
+type SmartActionRunResult = {
+  title?: string;
+  description?: string;
+  variant?: SmartActionVariant;
+};
+
+type SmartActionState = {
+  open: boolean;
+  mode: SmartActionMode;
+  title: string;
+  description?: string;
+  variant: SmartActionVariant;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  run?: () => Promise<void | SmartActionRunResult> | void | SmartActionRunResult;
+  successTitle?: string;
+  successDescription?: string;
+  errorTitle?: string;
+  afterSuccess?: () => void | Promise<void>;
+};
+
+type ShowFeedbackInput = {
+  title: string;
+  description?: string;
+  variant?: SmartActionVariant;
+};
+
+type ConfirmActionInput = {
+  title: string;
+  description: string;
+  variant?: Exclude<SmartActionVariant, "success" | "error"> | "danger";
+  confirmLabel?: string;
+  cancelLabel?: string;
+  run: () => Promise<void | SmartActionRunResult> | void | SmartActionRunResult;
+  successTitle?: string;
+  successDescription?: string;
+  errorTitle?: string;
+  afterSuccess?: () => void | Promise<void>;
+};
+
+const emptyActionState: SmartActionState = {
+  open: false,
+  mode: "feedback",
+  title: "",
+  variant: "info",
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "حدث خطأ غير متوقع أثناء تنفيذ العملية.";
+}
+
+function getVariantClasses(variant: SmartActionVariant) {
+  if (variant === "success") {
+    return {
+      iconWrap: "bg-emerald-50 text-emerald-600 ring-emerald-100",
+      title: "text-slate-950",
+      confirm: "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-100",
+      border: "from-emerald-400 to-sky-300",
+    };
+  }
+
+  if (variant === "danger" || variant === "error") {
+    return {
+      iconWrap: "bg-rose-50 text-rose-600 ring-rose-100",
+      title: "text-slate-950",
+      confirm: "bg-rose-600 hover:bg-rose-700 focus:ring-rose-100",
+      border: "from-rose-400 to-amber-300",
+    };
+  }
+
+  if (variant === "warning") {
+    return {
+      iconWrap: "bg-amber-50 text-amber-600 ring-amber-100",
+      title: "text-slate-950",
+      confirm: "bg-amber-600 hover:bg-amber-700 focus:ring-amber-100",
+      border: "from-amber-300 to-rose-300",
+    };
+  }
+
+  return {
+    iconWrap: "bg-sky-50 text-sky-600 ring-sky-100",
+    title: "text-slate-950",
+    confirm: "bg-sky-600 hover:bg-sky-700 focus:ring-sky-100",
+    border: "from-sky-400 to-cyan-300",
+  };
+}
+
+function VariantIcon({ variant }: { variant: SmartActionVariant }) {
+  if (variant === "success") return <CheckCircle2 className="h-6 w-6" />;
+  if (variant === "danger" || variant === "error") {
+    return <XCircle className="h-6 w-6" />;
+  }
+  if (variant === "warning") return <AlertTriangle className="h-6 w-6" />;
+
+  return <Info className="h-6 w-6" />;
+}
+
+export function useSmartActionFeedback() {
+  const [state, setState] = useState<SmartActionState>(emptyActionState);
+  const [processing, setProcessing] = useState(false);
+
+  const close = useCallback(() => {
+    if (processing) return;
+    setState(emptyActionState);
+  }, [processing]);
+
+  const showFeedback = useCallback((input: ShowFeedbackInput) => {
+    setState({
+      open: true,
+      mode: "feedback",
+      title: input.title,
+      description: input.description,
+      variant: input.variant || "info",
+      confirmLabel: "تم",
+    });
+  }, []);
+
+  const confirmAction = useCallback((input: ConfirmActionInput) => {
+    setState({
+      open: true,
+      mode: "confirm",
+      title: input.title,
+      description: input.description,
+      variant: input.variant || "warning",
+      confirmLabel: input.confirmLabel || "تأكيد",
+      cancelLabel: input.cancelLabel || "إلغاء",
+      run: input.run,
+      successTitle: input.successTitle,
+      successDescription: input.successDescription,
+      errorTitle: input.errorTitle,
+      afterSuccess: input.afterSuccess,
+    });
+  }, []);
+
+  const runConfirmedAction = useCallback(async () => {
+    if (!state.run) return;
+
+    setProcessing(true);
+
+    try {
+      const actionResult = await state.run();
+      const resultFeedback =
+        actionResult && typeof actionResult === "object"
+          ? (actionResult as SmartActionRunResult)
+          : null;
+
+      const afterSuccess = state.afterSuccess;
+
+      setState({
+        open: true,
+        mode: "feedback",
+        title: resultFeedback?.title || state.successTitle || "تم تنفيذ العملية",
+        description:
+          resultFeedback?.description ||
+          state.successDescription ||
+          "تم تنفيذ الإجراء بنجاح.",
+        variant: resultFeedback?.variant || "success",
+        confirmLabel: "تم",
+      });
+
+      if (afterSuccess) {
+        await afterSuccess();
+      }
+    } catch (error) {
+      setState({
+        open: true,
+        mode: "feedback",
+        title: state.errorTitle || "تعذر تنفيذ العملية",
+        description: getErrorMessage(error),
+        variant: "error",
+        confirmLabel: "إغلاق",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  }, [state]);
+
+  return {
+    actionState: state,
+    processing,
+    closeActionFeedback: close,
+    showFeedback,
+    confirmAction,
+    runConfirmedAction,
+  };
+}
+
+export function SmartActionFeedbackModal({
+  state,
+  processing,
+  onClose,
+  onConfirm,
+}: {
+  state: SmartActionState;
+  processing?: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!state.open) return null;
+
+  const classes = getVariantClasses(state.variant);
+  const isConfirm = state.mode === "confirm";
+
+  return (
+    <div
+      dir="rtl"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+    >
+      <section className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 text-right shadow-2xl shadow-slate-950/20">
+        <div
+          className={[
+            "absolute inset-x-0 top-0 h-1 bg-gradient-to-l",
+            classes.border,
+          ].join(" ")}
+        />
+
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={processing}
+          className="absolute left-4 top-4 grid h-9 w-9 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label="إغلاق"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div
+          className={[
+            "mx-auto grid h-16 w-16 place-items-center rounded-full ring-1",
+            classes.iconWrap,
+          ].join(" ")}
+        >
+          <VariantIcon variant={state.variant} />
+        </div>
+
+        <div className="mt-5 text-center">
+          <h2 className={["text-2xl font-black", classes.title].join(" ")}>
+            {state.title}
+          </h2>
+
+          {state.description ? (
+            <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-7 text-slate-500">
+              {state.description}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
+          {isConfirm ? (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={processing}
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-6 text-sm font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {state.cancelLabel || "إلغاء"}
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={isConfirm ? onConfirm : onClose}
+            disabled={processing}
+            className={[
+              "inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-7 text-sm font-black text-white shadow-lg transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60",
+              classes.confirm,
+            ].join(" ")}
+          >
+            {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isConfirm
+              ? state.confirmLabel || "تأكيد"
+              : state.confirmLabel || "تم"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
