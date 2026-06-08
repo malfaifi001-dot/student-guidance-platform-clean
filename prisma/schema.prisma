@@ -1225,3 +1225,35 @@ model CreditNote {
   @@index([issuedAt])
   @@index([status])
 }
+
+model AssessmentInterventionRule {
+  id String @id @default(cuid())
+
+  schoolAccountId String?
+
+  title            String
+  sourceType       String @default("ASSESSMENT_RISK_STUDENT")
+  interventionType String @default("ACADEMIC_RISK")
+
+  targetServiceId  String
+  targetWorkflowId String?
+
+  isEnabled Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  conditionJson    Json?
+  fieldMappingJson Json?
+
+  createdByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([sourceType])
+  @@index([interventionType])
+  @@index([targetServiceId])
+  @@index([targetWorkflowId])
+  @@index([isEnabled])
+  @@index([isDefault])
+}
