@@ -1,5 +1,4 @@
-﻿import { Prisma } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
@@ -65,8 +64,6 @@ async function searchStudentsWithRawSql({
   schoolAccountId: string;
   q: string;
 }) {
-  const pattern = `%${escapeLike(q)}%`;
-
   if (!q) {
     return prisma.$queryRaw<StudentSearchRow[]>`
       SELECT
@@ -91,6 +88,8 @@ async function searchStudentsWithRawSql({
     `;
   }
 
+  const pattern = `%${escapeLike(q)}%`;
+
   return prisma.$queryRaw<StudentSearchRow[]>`
     SELECT
       s.id,
@@ -110,13 +109,13 @@ async function searchStudentsWithRawSql({
     WHERE s.schoolAccountId = ${schoolAccountId}
       AND s.isActive = 1
       AND (
-        s.fullName COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
-        OR s.nationalId COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
-        OR s.grade COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
-        OR s.classroom COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
-        OR s.phone COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
-        OR g.name COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
-        OR g.phone COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci ESCAPE '\\'
+        s.fullName COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        OR s.nationalId COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        OR s.grade COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        OR s.classroom COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        OR s.phone COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        OR g.name COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
+        OR g.phone COLLATE utf8mb4_unicode_ci LIKE CONVERT(${pattern} USING utf8mb4) COLLATE utf8mb4_unicode_ci
       )
     ORDER BY s.grade ASC, s.classroom ASC, s.fullName ASC
     LIMIT 40
