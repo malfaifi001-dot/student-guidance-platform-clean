@@ -443,7 +443,7 @@ model CaseValue {
   field   DynamicField? @relation(fields: [fieldId], references: [id])
 
   fieldKey  String
-  value     String?
+  value     String? @db.Text
   jsonValue Json?
 
   createdAt DateTime @default(now())

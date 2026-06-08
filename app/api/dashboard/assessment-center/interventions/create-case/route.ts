@@ -136,6 +136,81 @@ export async function POST(request: Request) {
     );
   }
 
+  const studentsForReport = interventionPackage.students.map((student, index) => ({
+    index: index + 1,
+    id: student.id,
+    name: student.name,
+    nationalId: student.nationalId || null,
+    grade: student.grade || null,
+    classroom: student.classroom || null,
+  }));
+
+  const studentNames = studentsForReport.map((student) => student.name);
+
+  const numberedStudentNames = studentsForReport.map((student) => ({
+    index: student.index,
+    text: `${student.index}. ${student.name}`,
+    name: student.name,
+  }));
+
+  const studentsNamesText = studentNames.join("، ");
+  const studentsNumberedText = numberedStudentNames
+    .map((student) => student.text)
+    .join("\n");
+
+  const subjectsText = interventionPackage.subjects.join("، ") || "غير محدد";
+  const gradesText = interventionPackage.grades.join("، ") || "غير محدد";
+  const classroomsText = interventionPackage.classrooms.join("، ") || "غير محدد";
+
+  const packageSummaryText = [
+    `عنوان التدخل: ${interventionPackage.title}`,
+    `نوع التدخل: ${interventionPackage.targetType}`,
+    `عدد الطلاب: ${studentsForReport.length}`,
+    `أسماء الطلاب: ${studentsNamesText || "غير محدد"}`,
+    `الصفوف: ${gradesText}`,
+    `الفصول: ${classroomsText}`,
+    `المواد: ${subjectsText}`,
+    `متوسط التحليل: ${interventionPackage.averagePercentage}%`,
+    `الإجراء المقترح: ${interventionPackage.recommendedAction}`,
+  ].join("\n");
+
+  const cleanPackageForReports = {
+    id: interventionPackage.id,
+    targetType: interventionPackage.targetType,
+    title: interventionPackage.title,
+    description: interventionPackage.description,
+    recommendedAction: interventionPackage.recommendedAction,
+    riskLevel: interventionPackage.riskLevel,
+    averagePercentage: interventionPackage.averagePercentage,
+    rowsCount: interventionPackage.rowsCount,
+    studentsCount: studentsForReport.length,
+    studentsNames: studentNames,
+    students: studentsForReport,
+    subjects: interventionPackage.subjects,
+    grades: interventionPackage.grades,
+    classrooms: interventionPackage.classrooms,
+  };
+
+  const reportPayload = {
+    source: "assessment-center",
+    analysisId: body.analysisId || null,
+    analysisTitle: body.analysisTitle || null,
+    intervention: cleanPackageForReports,
+    reportFields: {
+      interventionTitle: interventionPackage.title,
+      interventionTargetType: interventionPackage.targetType,
+      studentsCount: studentsForReport.length,
+      studentsNames: studentNames,
+      numberedStudentNames,
+      subjects: interventionPackage.subjects,
+      grades: interventionPackage.grades,
+      classrooms: interventionPackage.classrooms,
+      averagePercentage: interventionPackage.averagePercentage,
+      rowsCount: interventionPackage.rowsCount,
+      recommendedAction: interventionPackage.recommendedAction,
+    },
+  };
+
   const workflowSnapshot = {
     id: workflow.id,
     name: workflow.name,
@@ -173,24 +248,43 @@ export async function POST(request: Request) {
         { caseEntryId: caseEntry.id, fieldKey: "assessment_subjects", value: shortValue(interventionPackage.subjects.join("، ")) },
         { caseEntryId: caseEntry.id, fieldKey: "assessment_grades", value: shortValue(interventionPackage.grades.join("، ")) },
         { caseEntryId: caseEntry.id, fieldKey: "assessment_classrooms", value: shortValue(interventionPackage.classrooms.join("، ")) },
-        { caseEntryId: caseEntry.id, fieldKey: "assessment_students_count", value: String(interventionPackage.students.length) },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_students_count", value: String(studentsForReport.length) },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_students_names_preview", value: shortValue(studentsNamesText) },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_students_names_text", value: studentsNamesText },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_students_numbered_text", value: studentsNumberedText },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_package_summary_text", value: packageSummaryText },
+        { caseEntryId: caseEntry.id, fieldKey: "assessment_report_ready_text", value: packageSummaryText },
       ],
     });
 
-    await tx.caseValue.create({
-      data: {
-        caseEntryId: caseEntry.id,
-        fieldKey: "assessment_students_json",
-        jsonValue: interventionPackage.students as Prisma.InputJsonValue,
-      },
-    });
-
-    await tx.caseValue.create({
-      data: {
-        caseEntryId: caseEntry.id,
-        fieldKey: "assessment_package_json",
-        jsonValue: interventionPackage as Prisma.InputJsonValue,
-      },
+    await tx.caseValue.createMany({
+      data: [
+        {
+          caseEntryId: caseEntry.id,
+          fieldKey: "assessment_students_json",
+          jsonValue: studentsForReport as Prisma.InputJsonValue,
+        },
+        {
+          caseEntryId: caseEntry.id,
+          fieldKey: "assessment_students_names_json",
+          jsonValue: studentNames as Prisma.InputJsonValue,
+        },
+        {
+          caseEntryId: caseEntry.id,
+          fieldKey: "assessment_students_numbered_json",
+          jsonValue: numberedStudentNames as Prisma.InputJsonValue,
+        },
+        {
+          caseEntryId: caseEntry.id,
+          fieldKey: "assessment_package_json",
+          jsonValue: cleanPackageForReports as Prisma.InputJsonValue,
+        },
+        {
+          caseEntryId: caseEntry.id,
+          fieldKey: "assessment_report_payload_json",
+          jsonValue: reportPayload as Prisma.InputJsonValue,
+        },
+      ],
     });
 
     return caseEntry;

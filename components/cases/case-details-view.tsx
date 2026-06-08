@@ -86,9 +86,13 @@ function cleanText(value: unknown) {
 }
 
 function shouldHideCaseValue(fieldKey: string) {
+  const key = String(fieldKey || "").trim();
+
   return (
-    ["student", "guardian", "metadata", "selectedStudent"].includes(fieldKey) ||
-    fieldKey.endsWith("__other")
+    ["student", "guardian", "metadata", "selectedStudent"].includes(key) ||
+    key.endsWith("__other") ||
+    key.startsWith("assessment_") ||
+    key.startsWith("intervention_")
   );
 }
 
@@ -578,6 +582,221 @@ function formatCommitteeMembers(value: unknown): CommitteeMemberRow[] {
     );
 }
 
+
+type AssessmentStudentSummary = {
+  index: number;
+  name: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+};
+
+type AssessmentInterventionSummary = {
+  title: string;
+  targetType: string;
+  studentsCount: string;
+  students: AssessmentStudentSummary[];
+  studentsNamesText: string;
+  subjects: string;
+  grades: string;
+  classrooms: string;
+  averagePercentage: string;
+  recommendedAction: string;
+};
+
+function getValueByKey(values: WorkflowValueLike[], key: string) {
+  return values.find((value) => (value.field?.key || value.fieldKey) === key);
+}
+
+function getValueTextByKey(values: WorkflowValueLike[], key: string) {
+  const value = getValueByKey(values, key);
+
+  if (!value) return "";
+
+  if (typeof value.value === "string" && value.value.trim()) {
+    return value.value.trim();
+  }
+
+  if (typeof value.jsonValue === "string" && value.jsonValue.trim()) {
+    return value.jsonValue.trim();
+  }
+
+  return "";
+}
+
+function getValueJsonByKey(values: WorkflowValueLike[], key: string) {
+  return getValueByKey(values, key)?.jsonValue;
+}
+
+function formatAssessmentTargetType(value: string) {
+  if (value === "STUDENT_SUPPORT") return "تدخل فردي";
+  if (value === "STUDENT_EXCELLENCE") return "تعزيز وتميز";
+  if (value === "STUDENT_GROUP_CUSTOM") return "خطة جماعية مخصصة";
+  if (value === "STUDENT_GROUP_SUBJECT") return "خطة جماعية حسب مادة";
+  if (value === "CLASSROOM_SUPPORT") return "خطة فصل";
+  if (value === "GRADE_SUPPORT") return "خطة صف دراسي";
+  if (value === "SUBJECT_SUPPORT") return "تدخل علاجي لمادة";
+
+  return value || "غير محدد";
+}
+
+function buildAssessmentStudents(value: unknown): AssessmentStudentSummary[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item) => item && typeof item === "object")
+    .map((item, index) => {
+      const record = item as Record<string, unknown>;
+
+      return {
+        index: Number(record.index) || index + 1,
+        name: cleanText(record.name) || cleanText(record.fullName) || "طالب غير محدد",
+        nationalId: cleanText(record.nationalId) || null,
+        grade: cleanText(record.grade) || null,
+        classroom: cleanText(record.classroom) || null,
+      };
+    });
+}
+
+function buildAssessmentInterventionSummary(
+  values: WorkflowValueLike[],
+): AssessmentInterventionSummary | null {
+  const source = getValueTextByKey(values, "assessment_source");
+
+  if (source !== "assessment-center") {
+    return null;
+  }
+
+  const students = buildAssessmentStudents(
+    getValueJsonByKey(values, "assessment_students_json"),
+  );
+
+  const studentsNamesText =
+    getValueTextByKey(values, "assessment_students_names_text") ||
+    students.map((student) => student.name).join("، ");
+
+  return {
+    title:
+      getValueTextByKey(values, "intervention_title") ||
+      getValueTextByKey(values, "assessment_analysis_title") ||
+      "تدخل من مركز التحليل",
+    targetType: formatAssessmentTargetType(
+      getValueTextByKey(values, "intervention_target_type"),
+    ),
+    studentsCount:
+      getValueTextByKey(values, "assessment_students_count") ||
+      String(students.length || 0),
+    students,
+    studentsNamesText,
+    subjects: getValueTextByKey(values, "assessment_subjects") || "غير محدد",
+    grades: getValueTextByKey(values, "assessment_grades") || "غير محدد",
+    classrooms: getValueTextByKey(values, "assessment_classrooms") || "غير محدد",
+    averagePercentage:
+      getValueTextByKey(values, "assessment_average_percentage") || "غير محدد",
+    recommendedAction:
+      getValueTextByKey(values, "intervention_recommended_action") || "غير محدد",
+  };
+}
+
+function AssessmentInterventionSummaryCard({
+  summary,
+}: {
+  summary: AssessmentInterventionSummary;
+}) {
+  const visibleStudents = summary.students.slice(0, 8);
+  const hiddenStudentsCount = Math.max(summary.students.length - visibleStudents.length, 0);
+
+  return (
+    <section className="rounded-[2rem] border border-emerald-100 bg-emerald-50/40 p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-black text-emerald-700">
+            بيانات التدخل من مركز التحليل
+          </p>
+
+          <h2 className="mt-1 text-2xl font-black text-slate-950">
+            {summary.title}
+          </h2>
+
+          <p className="mt-2 text-sm font-bold leading-7 text-slate-600">
+            {summary.recommendedAction}
+          </p>
+        </div>
+
+        <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+          {summary.targetType}
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-4">
+        <SummaryCard
+          icon={<UsersRound className="h-5 w-5" />}
+          label="عدد الطلاب"
+          value={summary.studentsCount}
+        />
+
+        <SummaryCard
+          icon={<ClipboardList className="h-5 w-5" />}
+          label="المواد"
+          value={summary.subjects}
+        />
+
+        <SummaryCard
+          icon={<ClipboardList className="h-5 w-5" />}
+          label="الصفوف"
+          value={summary.grades}
+        />
+
+        <SummaryCard
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          label="متوسط التحليل"
+          value={`${summary.averagePercentage}%`}
+        />
+      </div>
+
+      <div className="mt-5 rounded-[1.5rem] border border-emerald-100 bg-white p-4">
+        <p className="text-sm font-black text-slate-950">
+          الطلاب المستهدفون
+        </p>
+
+        {visibleStudents.length ? (
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {visibleStudents.map((student) => (
+              <div
+                key={`${student.index}-${student.name}`}
+                className="rounded-2xl bg-slate-50 px-4 py-3"
+              >
+                <p className="text-sm font-black text-slate-950">
+                  {student.index}. {student.name}
+                </p>
+
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  {[
+                    student.grade,
+                    student.classroom ? `فصل ${student.classroom}` : null,
+                    student.nationalId ? `هوية ${student.nationalId}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "بيانات الطالب غير مكتملة"}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm font-bold text-slate-500">
+            {summary.studentsNamesText || "لا توجد أسماء طلاب محفوظة."}
+          </p>
+        )}
+
+        {hiddenStudentsCount > 0 ? (
+          <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-black text-amber-700">
+            ويوجد {hiddenStudentsCount} طلاب آخرون محفوظون للتقرير.
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
 export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
   const displayTitle = getSmartCaseDisplayTitle(caseEntry);
   const fieldMap = buildFieldMap(caseEntry);

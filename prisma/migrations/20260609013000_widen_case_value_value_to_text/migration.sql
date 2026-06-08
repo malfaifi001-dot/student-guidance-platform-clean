@@ -1,0 +1,2 @@
+ALTER TABLE `CaseValue`
+  MODIFY COLUMN `value` TEXT NULL;
