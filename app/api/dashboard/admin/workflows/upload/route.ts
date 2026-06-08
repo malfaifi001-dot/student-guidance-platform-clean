@@ -1,28 +1,35 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
-import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
 import { uploadWorkflowForService } from "@/engine/workflow-upload/workflow-upload-engine";
-import { dashboardServices } from "@/lib/constants/services";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import {
   ensureDashboardWorkflowService,
   isWorkflowUploadEligibleService,
 } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
-import { requireAdminApi } from "@/lib/admin/admin-api-guard";
-import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
-import { logAdminActivity } from "@/lib/admin/activity-log";
+import { dashboardServices } from "@/lib/constants/services";
 import { prisma } from "@/lib/prisma";
+import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
+import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
 
 export const runtime = "nodejs";
 
-const STUDENT_PICKER_MODES = new Set(["NONE", "DISABLED", "OPTIONAL", "REQUIRED", "SINGLE", "MULTIPLE", "SMART"]);
+const STUDENT_PICKER_MODES = new Set([
+  "SERVICE_DEFAULT",
+  "NONE",
+  "DISABLED",
+  "OPTIONAL",
+  "REQUIRED",
+  "SINGLE",
+  "MULTIPLE",
+  "SMART",
+]);
 
 function normalizeStudentPickerMode(value: unknown): string {
   const text = String(value ?? "").trim().toUpperCase();
 
-  return STUDENT_PICKER_MODES.has(text as string)
-    ? (text as string)
-    : "SERVICE_DEFAULT";
+  return STUDENT_PICKER_MODES.has(text) ? text : "SERVICE_DEFAULT";
 }
 
 const MAX_WORKFLOW_FILE_SIZE = 5 * 1024 * 1024;
@@ -73,10 +80,10 @@ export async function POST(request: Request) {
 
     const serviceSlug = String(formData.get("serviceSlug") ?? "").trim();
     const workflowType = normalizeWorkflowType(
-      String(formData.get("workflowType") ?? "")
+      String(formData.get("workflowType") ?? ""),
     );
     const studentPickerMode = normalizeStudentPickerMode(
-      formData.get("studentPickerMode")
+      formData.get("studentPickerMode"),
     );
 
     const file = formData.get("file");
@@ -87,7 +94,7 @@ export async function POST(request: Request) {
           success: false,
           error: "serviceSlug مطلوب.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -97,7 +104,7 @@ export async function POST(request: Request) {
           success: false,
           error: "ملف Excel مطلوب.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -109,12 +116,12 @@ export async function POST(request: Request) {
           success: false,
           error: validationError,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const serviceConfig = dashboardServices.find(
-      (service: any) => service.slug === serviceSlug
+      (service: any) => service.slug === serviceSlug,
     );
 
     if (!serviceConfig || !isWorkflowUploadEligibleService(serviceConfig)) {
@@ -123,7 +130,7 @@ export async function POST(request: Request) {
           success: false,
           error: "هذه الخدمة لا تستخدم Workflow من Excel.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -138,7 +145,7 @@ export async function POST(request: Request) {
           success: false,
           error: "لم يتم العثور على صفوف Workflow صالحة داخل الملف.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -149,44 +156,28 @@ export async function POST(request: Request) {
       workflowType,
     });
 
-    const uploadedWorkflow = await prisma.workflow.findFirst({
+    await prisma.workflow.update({
       where: {
-        service: {
-          slug: serviceSlug,
-        },
-        workflowType,
+        id: result.workflow.id,
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-      select: {
-        id: true,
+      data: {
+        status: "DRAFT",
+        isActive: false,
+        studentPickerMode: studentPickerMode as any,
       },
     });
-
-    if (uploadedWorkflow) {
-      await prisma.workflow.update({
-        where: {
-          id: uploadedWorkflow.id,
-        },
-        data: {
-          studentPickerMode: studentPickerMode as any,
-        },
-      });
-    }
-
-    // WORKFLOW_UPLOAD_STUDENT_PICKER_MODE_MARKER
 
     await logAdminActivity({
       actorUserId: admin?.id || null,
       schoolAccountId: admin?.schoolAccountId || null,
       category: "WORKFLOW",
-      action: "workflow-uploaded",
+      action: "workflow-draft-uploaded",
       severity: "SUCCESS",
-      title: `تم رفع Workflow للخدمة ${serviceConfig.title}`,
+      title: `تم رفع مسودة Workflow للخدمة ${serviceConfig.title}`,
       details: {
         serviceSlug,
         workflowType,
+        workflowId: result.workflow.id,
         fileName: file.name,
         fileSize: file.size,
         rowsCount: rows.length,
@@ -195,7 +186,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "تم رفع Workflow وتفعيله بنجاح.",
+      message: "تم رفع Workflow كمسودة بنجاح. راجع النسخة ثم فعّلها عند الاعتماد.",
       result,
     });
   } catch (error) {
@@ -219,7 +210,7 @@ export async function POST(request: Request) {
             ? error.message
             : "حدث خطأ أثناء رفع Workflow.",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

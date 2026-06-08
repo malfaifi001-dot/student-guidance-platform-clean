@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,11 +26,12 @@ export function WorkflowHistoryActions({
   const [activating, setActivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const isUsedByCases = casesCount > 0;
   const deleteDisabled = isActive || isUsedByCases || deleting;
 
   async function activateWorkflow() {
-    if (isActive || activating) return;
+    if (activating) return;
 
     try {
       setError(null);
@@ -57,7 +58,9 @@ export function WorkflowHistoryActions({
 
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "حدث خطأ أثناء التفعيل.");
+      setError(
+        err instanceof Error ? err.message : "حدث خطأ أثناء التفعيل.",
+      );
     } finally {
       setActivating(false);
     }
@@ -97,7 +100,9 @@ export function WorkflowHistoryActions({
 
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "حدث خطأ أثناء الحذف.");
+      setError(
+        err instanceof Error ? err.message : "حدث خطأ أثناء الحذف.",
+      );
     } finally {
       setDeleting(false);
     }
@@ -117,14 +122,22 @@ export function WorkflowHistoryActions({
 
         <button
           type="button"
-          title={isActive ? "مفعل حاليًا" : "تفعيل"}
-          aria-label={isActive ? "Workflow مفعل حاليًا" : "تفعيل Workflow"}
-          onClick={activateWorkflow}
-          disabled={isActive || activating}
-          className={[
-            "inline-flex h-9 w-9 items-center justify-center rounded-xl border transition disabled:cursor-not-allowed",
+          title={
             isActive
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              ? "إعادة اعتماد هذه النسخة وتنظيف أي تكرار"
+              : "تفعيل هذه النسخة"
+          }
+          aria-label={
+            isActive
+              ? "إعادة اعتماد هذا Workflow وتنظيف أي تكرار"
+              : "تفعيل Workflow"
+          }
+          onClick={activateWorkflow}
+          disabled={activating}
+          className={[
+            "inline-flex h-9 w-9 items-center justify-center rounded-xl border transition disabled:cursor-wait",
+            isActive
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
               : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700",
           ].join(" ")}
         >

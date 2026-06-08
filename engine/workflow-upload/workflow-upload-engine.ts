@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import {
   WORKFLOW_TYPES,
   normalizeWorkflowType,
@@ -117,17 +117,6 @@ export async function uploadWorkflowForService(params: {
     },
   });
 
-  await prisma.workflow.updateMany({
-    where: {
-      serviceId: service.id,
-      workflowType,
-      isActive: true,
-    },
-    data: {
-      isActive: false,
-      status: "ARCHIVED",
-    },
-  });
 
   const latestWorkflow = await prisma.workflow.findFirst({
     where: {
@@ -146,8 +135,8 @@ export async function uploadWorkflowForService(params: {
         workflowType,
       }),
       version: latestWorkflow ? latestWorkflow.version + 1 : 1,
-      status: "ACTIVE",
-      isActive: true,
+      status: "DRAFT",
+      isActive: false,
     },
   });
 

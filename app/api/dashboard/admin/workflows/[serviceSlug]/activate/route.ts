@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { prisma } from "@/lib/prisma";
@@ -63,19 +63,22 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
-    if (workflow.isActive && workflow.status === "ACTIVE") {
-      return NextResponse.json({
-        success: true,
-        message: "Workflow مفعل مسبقًا.",
-      });
-    }
-
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx) => {
       await tx.workflow.updateMany({
         where: {
           serviceId: workflow.serviceId,
           workflowType: workflow.workflowType,
-          isActive: true,
+          id: {
+            not: workflow.id,
+          },
+          OR: [
+            {
+              isActive: true,
+            },
+            {
+              status: "ACTIVE",
+            },
+          ],
         },
         data: {
           isActive: false,
@@ -117,6 +120,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       workflowId: workflow.id,
     });
   } catch (error) {
+    console.error("WORKFLOW_ACTIVATE_ERROR", error);
+
     return NextResponse.json(
       {
         success: false,
