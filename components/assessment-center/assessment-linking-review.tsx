@@ -7,6 +7,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Link2,
+  RefreshCw,
   Search,
   ShieldAlert,
   UserCheck,
@@ -304,6 +305,41 @@ export function AssessmentLinkingReview({
     });
   }
 
+
+  function handleAutoLink() {
+    confirmAction({
+      title: "إعادة محاولة الربط التلقائي؟",
+      description:
+        "سيحاول النظام ربط النتائج غير المربوطة فقط مع طلاب مركز البيانات، ولن يغيّر النتائج المربوطة حاليًا.",
+      variant: "info",
+      confirmLabel: "إعادة الربط",
+      errorTitle: "تعذر إعادة الربط",
+      run: async () => {
+        const response = await fetch(
+          `/api/dashboard/assessment-center/${analysis.id}/student-linking/auto`,
+          {
+            method: "PATCH",
+          }
+        );
+
+        const data = await readApiResponse(response);
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "تعذر إعادة محاولة الربط.");
+        }
+
+        return {
+          title: "اكتملت محاولة الربط",
+          description: `تم ربط ${data.linkedCount || 0} نتيجة إضافية تلقائيًا.`,
+          variant: "success" as const,
+        };
+      },
+      afterSuccess: async () => {
+        router.refresh();
+      },
+    });
+  }
+
   return (
     <>
       <SmartActionFeedbackModal
@@ -335,6 +371,29 @@ export function AssessmentLinkingReview({
           <p className="mt-4 max-w-3xl text-base font-bold leading-8 text-cyan-50/90">
             {analysis.title}
           </p>
+        </section>
+
+        <section className="rounded-[2rem] border border-cyan-100 bg-cyan-50 p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-cyan-950">
+                إعادة محاولة الربط التلقائي
+              </h2>
+              <p className="mt-2 text-sm font-bold leading-7 text-cyan-900">
+                يحاول النظام ربط النتائج غير المربوطة فقط مع طلاب مركز البيانات.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAutoLink}
+              disabled={processing || reviewGroups.length === 0}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-5 text-sm font-black text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              <RefreshCw className="h-4 w-4" />
+              إعادة الربط
+            </button>
+          </div>
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

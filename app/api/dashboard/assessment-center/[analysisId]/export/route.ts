@@ -44,6 +44,15 @@ function escapeHtml(value: unknown) {
     .replaceAll("'", "&#039;");
 }
 
+function buildAttachmentContentDisposition(
+  fileBaseName: string,
+  extension: "pdf" | "xlsx"
+) {
+  const encodedFileName = encodeURIComponent(`${fileBaseName}.${extension}`);
+
+  return `attachment; filename="assessment-analysis.${extension}"; filename*=UTF-8''${encodedFileName}`;
+}
+
 function toArrayBuffer(buffer: Buffer) {
   return buffer.buffer.slice(
     buffer.byteOffset,
@@ -600,7 +609,7 @@ export async function GET(request: Request, context: RouteContext) {
       return new Response(toArrayBuffer(pdfBuffer), {
         headers: {
           "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${fileBaseName}.pdf"`,
+          "Content-Disposition": buildAttachmentContentDisposition(fileBaseName, "pdf"),
         },
       });
     } finally {
@@ -618,7 +627,7 @@ export async function GET(request: Request, context: RouteContext) {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="${fileBaseName}.xlsx"`,
+      "Content-Disposition": buildAttachmentContentDisposition(fileBaseName, "xlsx"),
     },
   });
 }

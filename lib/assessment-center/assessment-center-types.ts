@@ -16,6 +16,7 @@ export type AssessmentResultRow = {
   matchedStudentName?: string | null;
   linkStatus?: AssessmentStudentLinkStatus;
   linkReason?: string | null;
+  linkConfidence?: number | null;
 
   studentName: string;
   nationalId?: string | null;

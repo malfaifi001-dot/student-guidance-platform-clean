@@ -92,55 +92,17 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     icon: BarChart3,
   },
   {
+    label: "مركز التحليل والاختبارات",
+    href: "/dashboard/assessment-center",
+    icon: BrainCircuit,
+  },
+  {
     label: "التواصل بين الأسرة والمدرسة",
     href: "/dashboard/family-school-communication",
     icon: MessageCircle,
   },
 ];
 
-
-const assessmentCenterLinks: SidebarLinkItem[] = [
-  {
-    label: "لوحة المركز",
-    href: "/dashboard/assessment-center",
-    icon: BarChart3,
-  },
-  {
-    label: "تحليل جديد",
-    href: "/dashboard/assessment-center/new",
-    icon: UploadCloud,
-  },
-  {
-    label: "التحليلات السابقة",
-    href: "/dashboard/assessment-center/analyses",
-    icon: FileText,
-  },
-  {
-    label: "تحليل المواد",
-    href: "/dashboard/assessment-center/subjects",
-    icon: BookOpen,
-  },
-  {
-    label: "تحليل الصفوف والفصول",
-    href: "/dashboard/assessment-center/classes",
-    icon: School,
-  },
-  {
-    label: "الطلاب المعرضون للخطر",
-    href: "/dashboard/assessment-center/risk-students",
-    icon: Users,
-  },
-  {
-    label: "التوصيات العلاجية",
-    href: "/dashboard/assessment-center/recommendations",
-    icon: Sparkles,
-  },
-  {
-    label: "تقارير التحليل",
-    href: "/dashboard/assessment-center/reports",
-    icon: FileText,
-  },
-];
 const counselorToolsLinks: SidebarLinkItem[] = [
   { label: "رفع بيانات الطلاب", href: "/dashboard/student-import", icon: UploadCloud },
 ];
@@ -435,26 +397,6 @@ function CounselorSidebar({
             />
           ))}
         </SidebarSection>
-
-        <SidebarDropdown
-          title="مركز التحليل والاختبارات"
-          defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
-          collapsed={collapsed}
-        >
-          {assessmentCenterLinks.map((item) => (
-            <SidebarLink
-              key={item.href}
-              item={item}
-              active={
-                item.href === "/dashboard/assessment-center"
-                  ? pathname === item.href
-                  : isActivePath(pathname, item.href)
-              }
-              compact
-              collapsed={collapsed}
-            />
-          ))}
-        </SidebarDropdown>
 
         <SidebarDropdown
           title="أدوات إضافية"
