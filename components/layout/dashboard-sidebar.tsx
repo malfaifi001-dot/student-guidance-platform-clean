@@ -44,6 +44,7 @@ type SidebarLinkItem = {
   label: string;
   href: string;
   icon: ComponentType<{ className?: string }>;
+  shortLabel?: string;
 };
 
 const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
@@ -106,39 +107,14 @@ const assessmentCenterLinks: SidebarLinkItem[] = [
     icon: BarChart3,
   },
   {
-    label: "تحليل جديد",
-    href: "/dashboard/assessment-center/new",
-    icon: UploadCloud,
+    label: "ربط الطلاب",
+    href: "/dashboard/assessment-center/linking",
+    icon: GitBranch,
   },
   {
-    label: "التحليلات السابقة",
-    href: "/dashboard/assessment-center/analyses",
-    icon: FileText,
-  },
-  {
-    label: "تحليل المواد",
-    href: "/dashboard/assessment-center/subjects",
-    icon: BookOpen,
-  },
-  {
-    label: "تحليل الصفوف والفصول",
-    href: "/dashboard/assessment-center/classes",
-    icon: School,
-  },
-  {
-    label: "الطلاب المعرضون للخطر",
-    href: "/dashboard/assessment-center/risk-students",
-    icon: Users,
-  },
-  {
-    label: "التوصيات العلاجية",
-    href: "/dashboard/assessment-center/recommendations",
+    label: "الموجه الذكي",
+    href: "/dashboard/assessment-center/smart-counselor",
     icon: Sparkles,
-  },
-  {
-    label: "تقارير التحليل",
-    href: "/dashboard/assessment-center/reports",
-    icon: FileText,
   },
 ];
 const counselorToolsLinks: SidebarLinkItem[] = [
@@ -205,6 +181,60 @@ function hasActive(pathname: string, items: SidebarLinkItem[]) {
   return items.some((item) => isActivePath(pathname, item.href));
 }
 
+const collapsedLabelByLabel: Record<string, string> = {
+  "الرئيسية": "الرئيسية",
+  "الحالات": "الحالات",
+  "التقارير": "التقارير",
+  "التقويم والتنبيهات": "التقويم",
+
+  "البرامج الإرشادية": "البرامج",
+  "اللجان والاجتماعات": "اللجان",
+  "متابعة الطلاب": "المتابعة",
+  "الخدمات الإرشادية المقدمة للطلاب": "الإرشاد",
+  "المرجع الشامل للطالب": "مرجع الطالب",
+  "المرجع الشامل للموجه الطلابي": "مرجع الموجه",
+  "تحليل النتائج": "التحليل",
+  "التواصل بين الأسرة والمدرسة": "الأسرة",
+
+  "لوحة المركز": "المركز",
+  "تحليل جديد": "تحليل جديد",
+  "التحليلات السابقة": "السابقة",
+  "تحليل المواد": "المواد",
+  "تحليل الصفوف والفصول": "الصفوف",
+  "الطلاب المعرضون للخطر": "الخطر",
+  "التوصيات العلاجية": "التوصيات",
+  "تقارير التحليل": "تقارير",
+
+  "رفع بيانات الطلاب": "رفع الطلاب",
+  "الباقات": "الباقات",
+  "حسابي": "حسابي",
+  "إعدادات المدرسة": "المدرسة",
+
+  "مركز الإدارة": "الإدارة",
+  "المستخدمين": "المستخدمون",
+  "سجل العمليات": "السجل",
+  "التفعيلات": "التفعيلات",
+  "الاشتراكات": "الاشتراكات",
+  "المشتركين": "المشتركون",
+  "Workflows": "Workflows",
+
+  "عمليات الدفع": "الدفع",
+  "مزودو الدفع": "المزودون",
+  "التسوية المالية": "التسوية",
+  "الفواتير": "الفواتير",
+  "إعدادات الفواتير والضريبة": "الضريبة",
+
+  "مصمم Workflow": "المصمم",
+  "قوالب التقارير": "القوالب",
+  "قالب تقرير جديد": "قالب جديد",
+  "حساب الأدمن": "حساب الأدمن",
+  "هوية المنصة": "الهوية",
+};
+
+function getCollapsedLabel(item: SidebarLinkItem) {
+  return item.shortLabel || collapsedLabelByLabel[item.label] || item.label;
+}
+
 export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -227,8 +257,8 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
   return (
     <aside
       className={[
-        "hidden min-h-screen shrink-0 bg-transparent py-5 transition-all duration-300 xl:block",
-        collapsed ? "w-[96px] px-3" : "w-[320px] px-4",
+        "hidden min-h-screen shrink-0 bg-transparent py-4 transition-all duration-300 md:block xl:py-5",
+        collapsed ? "w-[92px] px-2 lg:w-[96px] xl:w-[104px] xl:px-3" : "w-[232px] px-2 lg:w-[280px] lg:px-3 xl:w-[320px] xl:px-4",
       ].join(" ")}
     >
       <div
@@ -317,7 +347,7 @@ function AdminSidebar({
       <nav
         className={[
           "mt-4 flex-1 overflow-y-auto",
-          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
         <SidebarSection title="الإدارة" collapsed={collapsed}>
@@ -411,7 +441,7 @@ function CounselorSidebar({
       <nav
         className={[
           "mt-4 flex-1 overflow-y-auto",
-          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
         <SidebarSection title="الأهم" collapsed={collapsed}>
@@ -522,7 +552,7 @@ function SidebarSection({
         </p>
       ) : null}
 
-      <div className={collapsed ? "space-y-2" : "space-y-1.5"}>{children}</div>
+      <div className={collapsed ? "space-y-1.5" : "space-y-1.5"}>{children}</div>
     </section>
   );
 }
@@ -543,7 +573,7 @@ function SidebarDropdown({
   const [open, setOpen] = useState(defaultOpen);
 
   if (collapsed) {
-    return <div className="space-y-2">{children}</div>;
+    return <div className="space-y-1.5">{children}</div>;
   }
 
   return (
@@ -585,6 +615,7 @@ function SidebarLink({
   collapsed: boolean;
 }) {
   const Icon = item.icon;
+  const collapsedLabel = getCollapsedLabel(item);
 
   return (
     <Link
@@ -593,7 +624,7 @@ function SidebarLink({
       className={[
         "group relative flex items-center rounded-2xl transition",
         collapsed
-          ? "h-11 justify-center px-0"
+          ? "min-h-[66px] flex-col justify-center gap-1 px-1 py-1.5 text-center"
           : "min-h-11 gap-3 px-4 py-2.5",
         compact && !collapsed ? "py-2" : "",
         active
@@ -623,7 +654,7 @@ function SidebarLink({
             : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600",
         ].join(" ")}
       >
-        <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
+        <Icon className={collapsed ? "h-5 w-5" : compact ? "h-4 w-4" : "h-5 w-5"} />
       </div>
 
       {!collapsed ? (
@@ -631,9 +662,15 @@ function SidebarLink({
           {item.label}
         </span>
       ) : (
-        <span className="pointer-events-none fixed right-[105px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">
-          {item.label}
-        </span>
+        <>
+          <span className="line-clamp-2 max-w-[64px] text-center text-[9px] font-black leading-[11px] text-current">
+            {collapsedLabel}
+          </span>
+
+          <span className="pointer-events-none fixed right-[112px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">
+            {item.label}
+          </span>
+        </>
       )}
     </Link>
   );
