@@ -505,10 +505,102 @@ export function DynamicFormRenderer({
     });
   }
 
+  function shouldShowFieldForValues(field: RuntimeField, currentValues: RuntimeValues) {
+    if (!field.dependsOnFieldKey) return true;
+
+    const parentValue = currentValues[field.dependsOnFieldKey];
+
+    if (isEmptyValue(parentValue)) return false;
+
+    if (!field.linkedToValue) return true;
+
+    if (Array.isArray(parentValue)) {
+      return parentValue.map(String).includes(String(field.linkedToValue));
+    }
+
+    return String(parentValue) === String(field.linkedToValue);
+  }
+
+  function normalizeDefaultList(value: unknown) {
+    if (Array.isArray(value)) {
+      return value.map(String).map((item) => item.trim()).filter(Boolean);
+    }
+
+    if (typeof value === "string") {
+      const text = value.trim();
+
+      if (!text) {
+        return [];
+      }
+
+      return text
+        .split(/[\n|,،;]+/g)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    return [];
+  }
+
+  function getFieldDefaultValue(field: RuntimeField) {
+    const defaultJson = (field as any).defaultJson;
+
+    if (defaultJson !== undefined && defaultJson !== null) {
+      return defaultJson;
+    }
+
+    const defaultValue = (field as any).defaultValue;
+
+    if (defaultValue === undefined || defaultValue === null || defaultValue === "") {
+      return undefined;
+    }
+
+    if (field.type === "MULTI_SELECT" || field.type === "CHECKBOX") {
+      return normalizeDefaultList(defaultValue);
+    }
+
+    return String(defaultValue);
+  }
+
+  function applyAutoSelectedDefaults(currentValues: RuntimeValues) {
+    const allFields = steps.flatMap((step) => step.fields);
+    const next: RuntimeValues = { ...currentValues };
+
+    let changed = true;
+
+    while (changed) {
+      changed = false;
+
+      for (const field of allFields) {
+        if (!(field as any).autoSelectWhenLinked) {
+          continue;
+        }
+
+        if (!shouldShowFieldForValues(field, next)) {
+          continue;
+        }
+
+        if (!isEmptyValue(next[field.key])) {
+          continue;
+        }
+
+        const defaultValue = getFieldDefaultValue(field);
+
+        if (defaultValue === undefined || isEmptyValue(defaultValue)) {
+          continue;
+        }
+
+        next[field.key] = defaultValue;
+        changed = true;
+      }
+    }
+
+    return next;
+  }
+
   /**
-   * يمسح القيم التابعة عند تغيير القيمة الأب.
-   * مثال:
-   * البرنامج تغيّر → يمسح الإجراء التنفيذي والآلية والمؤشر المرتبط بها.
+   * يمسح القيم التابعة عند تغيير القيمة الأب، ثم يعبئ القيم الافتراضية
+   * للحقول التابعة التي تحمل autoSelectWhenLinked.
    */
   function updateValue(fieldKey: string, value: unknown) {
     setValues((current) => {
@@ -546,7 +638,11 @@ export function DynamicFormRenderer({
         delete next[`${key}__other`];
       }
 
-      return next;
+      if (dependentKeys.size === 0) {
+        return next;
+      }
+
+      return applyAutoSelectedDefaults(next);
     });
   }
 

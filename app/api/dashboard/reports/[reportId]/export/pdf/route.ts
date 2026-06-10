@@ -59,10 +59,11 @@ export async function GET(request: Request, context: RouteContext) {
 
   try {
     const { reportId } = await context.params;
-
     const reportAccess = await getReportAccess(reportId, {
       schoolAccountId: authResult.schoolAccountId,
       isAdmin: authResult.isAdmin,
+      userId: authResult.user.id,
+      userRole: authResult.user.role,
     });
 
     if (!reportAccess) {
@@ -129,6 +130,52 @@ export async function GET(request: Request, context: RouteContext) {
       timeout: 45_000,
     }).catch(() => null);
 
+    await page.addStyleTag({
+      content: `
+        /* PDF_PAGE_GUARD_STYLE */
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 210mm !important;
+          background: #ffffff !important;
+          overflow: visible !important;
+        }
+
+        .pdf-report-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          margin: 0 !important;
+          box-sizing: border-box !important;
+          overflow: hidden !important;
+          break-after: page !important;
+          page-break-after: always !important;
+          page-break-inside: avoid !important;
+          box-shadow: none !important;
+          transform: none !important;
+        }
+
+        .pdf-report-page:last-child {
+          break-after: auto !important;
+          page-break-after: auto !important;
+        }
+
+        .pdf-report-page *,
+        .pdf-report-page *::before,
+        .pdf-report-page *::after {
+          box-sizing: border-box !important;
+        }
+      `,
+    });
     const hasReportPage = await page
       .locator(".pdf-report-page")
       .first()
@@ -169,20 +216,46 @@ export async function GET(request: Request, context: RouteContext) {
 
       if (!pages.length) return;
 
+      document.documentElement.style.margin = "0";
+      document.documentElement.style.padding = "0";
+      document.documentElement.style.width = "210mm";
+      document.documentElement.style.background = "white";
+
       document.body.innerHTML = "";
+      document.body.style.margin = "0";
+      document.body.style.padding = "0";
+      document.body.style.width = "210mm";
+      document.body.style.background = "white";
+      document.body.style.overflow = "visible";
 
       const root = document.createElement("main");
       root.style.margin = "0";
       root.style.padding = "0";
+      root.style.width = "210mm";
       root.style.background = "white";
 
-      pages.forEach((reportPage: any) => {
-        root.appendChild(reportPage.cloneNode(true));
+      pages.forEach((reportPage, index) => {
+        const clonedPage = reportPage.cloneNode(true) as HTMLElement;
+
+        clonedPage.style.width = "210mm";
+        clonedPage.style.minWidth = "210mm";
+        clonedPage.style.maxWidth = "210mm";
+        clonedPage.style.height = "297mm";
+        clonedPage.style.minHeight = "297mm";
+        clonedPage.style.maxHeight = "297mm";
+        clonedPage.style.margin = "0";
+        clonedPage.style.boxSizing = "border-box";
+        clonedPage.style.overflow = "hidden";
+        clonedPage.style.boxShadow = "none";
+        clonedPage.style.breakAfter = index === pages.length - 1 ? "auto" : "page";
+        clonedPage.style.pageBreakAfter = index === pages.length - 1 ? "auto" : "always";
+        clonedPage.style.pageBreakInside = "avoid";
+
+        root.appendChild(clonedPage);
       });
 
       document.body.appendChild(root);
     });
-
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,

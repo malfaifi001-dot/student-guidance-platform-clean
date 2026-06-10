@@ -366,6 +366,10 @@ model DynamicField {
   allowOther        Boolean @default(false)
   isRepeater        Boolean @default(false)
 
+  defaultValue         String? @db.Text
+  defaultJson          Json?
+  autoSelectWhenLinked Boolean @default(false)
+
   options DynamicFieldOption[]
   values  CaseValue[]
 
@@ -840,8 +844,8 @@ model GuidanceReport {
 
   genderMode String @default("MALE")
 
-  editableContent String
-  renderedContent String?
+  editableContent String  @db.LongText
+  renderedContent String? @db.LongText
 
   evidenceEnabled Boolean @default(true)
 

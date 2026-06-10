@@ -1,4 +1,4 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export type RuntimeOption = {
   id: string;
@@ -20,6 +20,9 @@ export type RuntimeField = {
   dependsOnFieldKey?: string | null;
   linkedToValue?: string | null;
   allowOther: boolean;
+  defaultValue?: string | null;
+  defaultJson?: unknown | null;
+  autoSelectWhenLinked?: boolean;
   options: RuntimeOption[];
 };
 
@@ -120,6 +123,9 @@ export async function getRuntimeWorkflowByServiceSlug(
           allowOther: field.allowOther,
           dependsOnFieldKey: field.dependsOnFieldKey,
           linkedToValue: field.linkedToValue,
+          defaultValue: field.defaultValue,
+          defaultJson: field.defaultJson,
+          autoSelectWhenLinked: field.autoSelectWhenLinked,
           options: field.options.map((option) => ({
             id: option.id,
             label: option.label,

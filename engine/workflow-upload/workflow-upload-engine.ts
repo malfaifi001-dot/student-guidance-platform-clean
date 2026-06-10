@@ -29,6 +29,42 @@ function normalizeText(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function parseDefaultValues(value: unknown) {
+  const text = normalizeText(value);
+
+  if (!text) {
+    return null;
+  }
+
+  if (
+    (text.startsWith("[") && text.endsWith("]")) ||
+    (text.startsWith("{") && text.endsWith("}"))
+  ) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      // fallback to separator parsing below
+    }
+  }
+
+  const values = text
+    .split(/[\n|,،;]+/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return values.length > 0 ? values : null;
+}
+
+function getFieldDefaultJson(row: ParsedWorkflowRow) {
+  const parsed = parseDefaultValues(row.defaultValues);
+
+  if (parsed !== null) {
+    return parsed;
+  }
+
+  return null;
+}
+
 function normalizeFieldType(type: string) {
   const normalized = normalizeText(type).toUpperCase();
   return allowedFieldTypes.has(normalized) ? normalized : "TEXT";
@@ -192,6 +228,9 @@ export async function uploadWorkflowForService(params: {
           allowOther: first.allowOther,
           dependsOnFieldKey: first.dependsOnFieldKey ?? null,
           linkedToValue: fieldLinkedToValue,
+          defaultValue: first.defaultValue ?? null,
+          defaultJson: getFieldDefaultJson(first) as any,
+          autoSelectWhenLinked: first.autoSelectWhenLinked,
         },
       });
 

@@ -1,0 +1,5237 @@
+
+===== FILE: components\report-engine\report-template-studio.tsx =====
+"use client";
+
+import { workflowUploadServices } from "@/lib/constants/services";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ReportDesignRenderer,
+  reportDesignTemplates,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+
+type TemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+type TemplateScope = "GLOBAL" | "SERVICE" | "WORKFLOW" | "LOCATION";
+type PageKind = "content" | "recommendations" | "evidence" | "approval" | "custom";
+
+
+type BlockKind =
+  | "hero-title"
+  | "meta-strip"
+  | "plain-text"
+  | "section-text"
+  | "multi-paragraph"
+  | "highlight-note"
+  | "bullet-list"
+  | "dynamic-fields"
+  | "evidence-gallery"
+  | "closing-note";
+
+type BlockVariant =
+  | "hero"
+  | "plain"
+  | "card"
+  | "soft"
+  | "highlight"
+  | "outline"
+  | "quote";
+type BlockPlacement =
+  | "flow"
+  | "top"
+  | "middle"
+  | "bottom"
+  | "top-right"
+  | "top-center"
+  | "top-left"
+  | "middle-right"
+  | "middle-center"
+  | "middle-left"
+  | "bottom-right"
+  | "bottom-center"
+  | "bottom-left";
+
+type TextSource = "manual" | "library" | "workflow";
+
+type EvidenceLayout = "ONE_PER_PAGE" | "TWO_PER_PAGE" | "GRID_2X2" | "ATTACHMENT_LIST";
+type EvidenceFit = "contain" | "cover";
+type EvidenceEmptyBehavior = "hide" | "message";
+type EvidenceAspectRatio = "LANDSCAPE_4_3" | "LANDSCAPE_16_9" | "PORTRAIT_3_4" | "SQUARE_1_1";
+
+type StudioTextSnippet = {
+  id: string;
+  title: string;
+  category: "مقدمة" | "هدف" | "إجراء" | "نتيجة" | "توصية" | "خاتمة";
+  content: string;
+};
+
+type StudioBlock = {
+  id: string;
+  kind: BlockKind;
+  title: string;
+  content: string;
+  variant: BlockVariant;
+  source: TextSource;
+  snippetId?: string;
+  boundFieldKey?: string;
+  hideWhenMissing?: boolean;
+  showTitle: boolean;
+  showMeta: boolean;
+  align: "right" | "center";
+  placement: BlockPlacement;
+  evidenceLayout?: EvidenceLayout;
+  evidenceFit?: EvidenceFit;
+  evidenceAspectRatio?: EvidenceAspectRatio;
+  evidenceShowCaptions?: boolean;
+  evidenceAutoCreatePages?: boolean;
+  evidenceEmptyBehavior?: EvidenceEmptyBehavior;
+  evidenceStartIndex?: number;
+};
+
+type StudioPage = {
+  id: string;
+  kind: PageKind;
+  title: string;
+  description: string;
+  blocks: StudioBlock[];
+};
+
+type StudioTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  status: TemplateStatus;
+  designTemplateId?: ReportDesignId;
+  scope: TemplateScope;
+  serviceSlug?: string;
+  workflowSlug?: string;
+  locationKey?: string;
+  previewCaseId: string;
+  documentType: "REPORT";
+  updatedAt: string;
+  pages: StudioPage[];
+};
+
+type WorkflowFieldOption = {
+  key: string;
+  label: string;
+  type?: string;
+  source?: string;
+  stepTitle?: string;
+  isRequired?: boolean;
+  required?: boolean;
+};
+
+type PreviewCaseValue = {
+  fieldKey?: string | null;
+  fieldLabel?: string | null;
+  value?: string | null;
+};
+
+type PreviewCaseData = {
+  found?: boolean;
+  caseId?: string;
+  serviceSlug?: string;
+  serviceName?: string;
+  title?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  student?: {
+    name?: string;
+    nationalId?: string;
+    grade?: string;
+    classroom?: string;
+    stage?: string;
+    guardianName?: string;
+    guardianPhone?: string;
+  };
+  values?: PreviewCaseValue[];
+  evidences?: Array<{
+    id?: string;
+    title?: string;
+    fileUrl?: string;
+    imageUrl?: string;
+    caption?: string;
+  }>;
+};
+
+const SERVICE_OPTIONS = workflowUploadServices.map((service) => ({
+  slug: service.slug,
+  name: service.title,
+}));
+
+const statusLabels: Record<TemplateStatus, string> = {
+  DRAFT: "مسودة",
+  PUBLISHED: "منشور",
+  ARCHIVED: "مؤرشف",
+};
+
+const scopeLabels: Record<TemplateScope, string> = {
+  GLOBAL: "عام لكل المنصة",
+  SERVICE: "موجه لخدمة",
+  WORKFLOW: "موجه لـ Workflow",
+  LOCATION: "موجه لمكان محدد",
+};
+
+const pageKindLabels: Record<PageKind, string> = {
+  content: "محتوى",
+  recommendations: "توصيات",
+  evidence: "شواهد",
+  approval: "اعتماد",
+  custom: "مخصصة",
+};
+
+const textSnippets: StudioTextSnippet[] = [
+  {
+    id: "intro-official",
+    title: "مقدمة رسمية مختصرة",
+    category: "مقدمة",
+    content:
+      "بناءً على ما تم رصده في {{service.name}}، تم إعداد هذا التقارير لتوثيق الإجراء المتخذ وبيان أبرز النتائج والتوصيات.",
+  },
+  {
+    id: "meeting-summary",
+    title: "صياغة اجتماع",
+    category: "إجراء",
+    content:
+      "تم عقد اجتماع {{field.meetingName}} بتاريخ {{field.meetingDate}}، وذلك لمناقشة {{field.discussionTopic}} واتخاذ ما يلزم من توصيات.",
+  },
+  {
+    id: "student-followup",
+    title: "صياغة متابعة طالب",
+    category: "إجراء",
+    content:
+      "تمت متابعة حالة الطالب/الطالبة {{student.name}} في الصف {{student.grade}}، وجرى توثيق الإجراء وفق البيانات المسجلة في الحالة.",
+  },
+  {
+    id: "result-positive",
+    title: "نتيجة إيجابية",
+    category: "نتيجة",
+    content:
+      "أسهمت الجهود المنفذة في تعزيز الوعي وتحسين مستوى التفاعل الإيجابي داخل البيئة التعليمية.",
+  },
+  {
+    id: "recommendation-general",
+    title: "توصية عامة",
+    category: "توصية",
+    content:
+      "يوصى بمتابعة الحالة خلال الفترة القادمة، وتوثيق أي مستجدات، والتنسيق مع الأطراف ذات العلاقة عند الحاجة.",
+  },
+  {
+    id: "closing-official",
+    title: "خاتمة رسمية",
+    category: "خاتمة",
+    content:
+      "جرى إعداد هذا التقارير من خلال منصة التوجيه الطلابي، وفق البيانات المدخلة والمعتمدة في الحالة.",
+  },
+];
+
+const blockLibrary: Array<{
+  kind: BlockKind;
+  title: string;
+  description: string;
+  defaultContent: string;
+  defaultVariant: BlockVariant;
+  defaultAlign?: "right" | "center";
+}> = [
+  {
+    kind: "hero-title",
+    title: "عنوان رئيسي في المنتصف",
+    description: "عنوان كبير للتقرير أو النموذج، مع تاريخ ومعد التقارير اختياريًا.",
+    defaultContent: "{{case.title}}",
+    defaultVariant: "hero",
+    defaultAlign: "center",
+  },
+  {
+    kind: "meta-strip",
+    title: "بيانات مختصرة تحت العنوان",
+    description: "تاريخ، معد التقارير، الخدمة، رقم الحالة.",
+    defaultContent:
+      "التاريخ: {{case.createdAt}}\nالمعد: {{identity.counselorName}}\nالخدمة: {{service.name}}\nرقم الحالة: {{case.id}}",
+    defaultVariant: "soft",
+  },
+  {
+    kind: "plain-text",
+    title: "فقرة بدون عنوان",
+    description: "نص عادي داخل التقارير بدون عنوان ظاهر.",
+    defaultContent:
+      "اكتب هنا نصًا رسميًا، أو اختر نصًا من مكتبة النصوص. يمكنك استخدام متغيرات مثل {{case.title}} و {{student.name}}.",
+    defaultVariant: "plain",
+  },
+  {
+    kind: "section-text",
+    title: "بلوك نص مع عنوان",
+    description: "عنوان صغير وتحته فقرة رسمية.",
+    defaultContent:
+      "تم توثيق هذا الجزء بناءً على البيانات المدخلة في الحالة، ويمكن ربط النص بمتغيرات ديناميكية من Workflow.",
+    defaultVariant: "card",
+  },
+  {
+    kind: "multi-paragraph",
+    title: "نص فقرات متعددة",
+    description: "مناسب للوصف التفصيلي أو دراسة الحالة أو محاور الاجتماع.",
+    defaultContent:
+      "الفقرة الأولى: يتم هنا عرض وصف مختصر للسياق العام.\n\nالفقرة الثانية: يتم هنا توضيح الإجراء أو المعالجة أو التوصيات.",
+    defaultVariant: "outline",
+  },
+  {
+    kind: "highlight-note",
+    title: "بلوك مميز للنتيجة",
+    description: "مربع بصري هادئ لإظهار نتيجة أو ملاحظة مهمة.",
+    defaultContent:
+      "أسهمت الجهود المنفذة في تعزيز الوعي وتحسين مستوى التفاعل الإيجابي داخل البيئة التعليمية.",
+    defaultVariant: "highlight",
+  },
+  {
+    kind: "bullet-list",
+    title: "قائمة نقاط",
+    description: "مناسب للأهداف أو الإجراءات أو التوصيات.",
+    defaultContent:
+      "تعزيز الوعي لدى الفئة المستهدفة\nتوثيق الإجراءات المتخذة\nمتابعة النتائج خلال الفترة القادمة",
+    defaultVariant: "card",
+  },
+  {
+    kind: "dynamic-fields",
+    title: "حقول ديناميكية من الحالة",
+    description: "يعرض أهم قيم Case ID وWorkflow بشكل مرتب.",
+    defaultContent:
+      "هذا البلوك يعرض بيانات الحالة والطالب والحقول المتاحة عند اختبار Case ID.",
+    defaultVariant: "soft",
+  },
+  {
+    kind: "evidence-gallery",
+    title: "الشواهد والمرفقات",
+    description: "يعرض الشواهد المرتبطة بالحالة. إذا زادت الشواهد عن سعة الصفحة يتم إنشاء صفحات إضافية.",
+    defaultContent:
+      "يعرض هذا البلوك الشواهد المرتبطة بـ Case ID. لا تظهر الشواهد إلا إذا أضفت هذا البلوك.",
+    defaultVariant: "card",
+  },
+  {
+    kind: "closing-note",
+    title: "خاتمة واعتماد",
+    description: "خاتمة رسمية ومساحة اعتماد خفيفة.",
+    defaultContent:
+      "تم إعداد التقارير واعتماده وفق البيانات المتاحة في منصة التوجيه الطلابي.",
+    defaultVariant: "quote",
+  },
+];
+
+function makeId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createBlock(kind: BlockKind): StudioBlock {
+  const item = blockLibrary.find((block) => block.kind === kind) || blockLibrary[2];
+
+  return {
+    id: makeId(kind),
+    kind: item.kind,
+    title: item.title,
+    content: item.defaultContent,
+    variant: item.defaultVariant,
+    source: "manual",
+    boundFieldKey: undefined,
+    hideWhenMissing: false,
+    showTitle: item.kind !== "plain-text" && item.kind !== "hero-title",
+    showMeta: item.kind === "hero-title" || item.kind === "meta-strip",
+    align: item.defaultAlign || "right",
+    placement: item.kind === "hero-title" ? "middle-center" : "flow",
+    evidenceLayout: item.kind === "evidence-gallery" ? "TWO_PER_PAGE" : undefined,
+    evidenceFit: item.kind === "evidence-gallery" ? "contain" : undefined,
+    evidenceAspectRatio: item.kind === "evidence-gallery" ? "LANDSCAPE_4_3" : undefined,
+    evidenceShowCaptions: item.kind === "evidence-gallery" ? true : undefined,
+    evidenceAutoCreatePages: item.kind === "evidence-gallery" ? true : undefined,
+    evidenceEmptyBehavior: item.kind === "evidence-gallery" ? "message" : undefined,
+  };
+}
+
+function createPage(kind: PageKind, index: number): StudioPage {
+  const presets: Record<PageKind, Omit<StudioPage, "id" | "blocks"> & { blockKinds: BlockKind[] }> = {
+    content: {
+      kind: "content",
+      title: index === 1 ? "صفحة العنوان والمحتوى" : `صفحة محتوى ${index}`,
+      description: "صفحة A4 رسمية تحتوي بلوكات نصية ذكية.",
+      blockKinds: index === 1 ? ["hero-title", "meta-strip", "section-text"] : ["section-text"],
+    },
+    recommendations: {
+      kind: "recommendations",
+      title: "التوصيات والنتائج",
+      description: "صفحة مخصصة لعرض النتائج والتوصيات.",
+      blockKinds: ["highlight-note", "bullet-list"],
+    },
+    evidence: {
+      kind: "evidence",
+      title: "الشواهد والمرفقات",
+      description: "صفحة مستقلة لعرض الشواهد وتقسيمها تلقائيًا على صفحات A4 عند كثرتها.",
+      blockKinds: ["evidence-gallery"],
+    },
+    approval: {
+      kind: "approval",
+      title: "الاعتماد والتوقيع",
+      description: "صفحة ختامية للاعتماد.",
+      blockKinds: ["closing-note"],
+    },
+    custom: {
+      kind: "custom",
+      title: `صفحة مخصصة ${index}`,
+      description: "صفحة مخصصة يمكن بناؤها بالبلوكات.",
+      blockKinds: ["plain-text"],
+    },
+  };
+
+  const preset = presets[kind];
+
+  return {
+    id: makeId(`page-${kind}`),
+    kind: preset.kind,
+    title: preset.title,
+    description: preset.description,
+    blocks: preset.blockKinds.map(createBlock),
+  };
+}
+
+function createInitialTemplate(): StudioTemplate {
+  return {
+    id: "official-smart-template",
+    name: "القالب الرسمي الذكي",
+    description:
+      "قالب رسمي متعدد الصفحات بهوية ثابتة، يتم بناء محتواه من بلوكات نصية ذكية ومتغيرات ديناميكية.",
+    status: "DRAFT",
+    designTemplateId: "ministry-form",
+    scope: "GLOBAL",
+    previewCaseId: "",
+    documentType: "REPORT",
+    updatedAt: "غير محفوظ",
+    pages: [createPage("content", 1)],
+  };
+}
+
+function buildRuntimeContext(template: StudioTemplate, previewCase: PreviewCaseData | null) {
+  const values: Record<string, string> = {};
+
+  for (const item of previewCase?.values || []) {
+    if (item.fieldKey) {
+      values[`field.${item.fieldKey}`] = item.value || "";
+    }
+  }
+
+  return {
+    "identity.ministryName": "وزارة التعليم",
+    "identity.educationDepartment": "الإدارة العامة للتعليم",
+    "identity.educationOffice": "مكتب التعليم",
+    "identity.schoolName": "اسم المدرسة",
+    "identity.counselorName": "اسم الموجه/الموجهة",
+    "identity.principalName": "اسم مدير/مديرة المدرسة",
+
+    "template.name": template.name,
+    "template.description": template.description,
+
+    "case.id": previewCase?.caseId || "CASE-ID",
+    "case.title": previewCase?.title || "عنوان التقارير",
+    "case.status": previewCase?.status || "مسودة",
+    "case.createdAt": formatDate(previewCase?.createdAt) || "1447/01/01 هـ",
+    "case.updatedAt": formatDate(previewCase?.updatedAt) || "1447/01/01 هـ",
+
+    "service.name": previewCase?.serviceName || getServiceName(template.serviceSlug) || "الخدمة الإرشادية",
+    "service.slug": previewCase?.serviceSlug || template.serviceSlug || "general",
+
+    "student.name": previewCase?.student?.name || "اسم الطالب/الطالبة",
+    "student.grade": previewCase?.student?.grade || "الصف",
+    "student.classroom": previewCase?.student?.classroom || "الفصل",
+    "student.stage": previewCase?.student?.stage || "المرحلة",
+    "student.guardianName": previewCase?.student?.guardianName || "اسم ولي الأمر",
+    "student.guardianPhone": previewCase?.student?.guardianPhone || "رقم ولي الأمر",
+
+    "evidence.count": String(previewCase?.evidences?.length || 0),
+
+    ...values,
+  };
+}
+
+
+
+function getServiceName(slug?: string) {
+  return SERVICE_OPTIONS.find((service) => service.slug === slug)?.name || "";
+}
+
+function formatDate(value?: string) {
+  if (!value) return "";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function renderText(text: string, context: Record<string, string>) {
+  return text.replace(/{{\s*([^}]+)\s*}}/g, (_, key: string) => {
+    const cleanKey = key.trim();
+    return context[cleanKey] || `{{${cleanKey}}}`;
+  });
+}
+
+function splitLines(text: string) {
+  return text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function splitParagraphs(text: string) {
+  return text
+    .split(/\n\s*\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function extractUsedWorkflowFieldKeys(template: StudioTemplate) {
+  const keys = new Set<string>();
+  const regex = /{{\s*field\.([^}\s]+)\s*}}/g;
+
+  for (const page of template.pages) {
+    for (const block of page.blocks) {
+      const content = `${block.title}\n${block.content}`;
+      let match = regex.exec(content);
+
+      while (match) {
+        keys.add(match[1]);
+        match = regex.exec(content);
+      }
+    }
+  }
+
+  return keys;
+}
+
+function groupWorkflowFields(fields: WorkflowFieldOption[]) {
+  const groups = new Map<string, WorkflowFieldOption[]>();
+
+  for (const field of fields) {
+    const groupName = field.stepTitle || "حقول عامة";
+    const current = groups.get(groupName) || [];
+    current.push(field);
+    groups.set(groupName, current);
+  }
+
+  return Array.from(groups.entries()).map(([stepTitle, items]) => ({
+    stepTitle,
+    fields: items,
+  }));
+}
+
+function parseSavedTemplateJson(item: any) {
+  const raw = item?.templateJson ?? item?.content ?? null;
+
+  if (!raw) return null;
+
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof raw === "object") {
+    return raw;
+  }
+
+  return null;
+}
+
+function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
+  const templateJson = parseSavedTemplateJson(item) || {};
+  const smartStudio = templateJson?.smartStudio || {};
+  const fallback = createInitialTemplate();
+
+  const pages =
+    Array.isArray(smartStudio?.pages) && smartStudio.pages.length
+      ? smartStudio.pages
+      : Array.isArray(templateJson?.pages) && templateJson.pages.length
+        ? templateJson.pages.map((page: any, pageIndex: number) => ({
+            id: page.id || makeId("page-loaded"),
+            kind:
+              page.kind === "approval"
+                ? "approval"
+                : page.kind === "evidence"
+                  ? "evidence"
+                  : pageIndex === 0
+                    ? "content"
+                    : "custom",
+            title: page.title || `صفحة ${pageIndex + 1}`,
+            description: page.description || "صفحة مستوردة من قالب محفوظ.",
+            blocks: Array.isArray(page.blocks)
+              ? page.blocks.map((block: any) => ({
+                  id: block.id || makeId("block-loaded"),
+                  kind:
+                    block.settings?.smartBlockKind ||
+                    block.source?.fieldKey ||
+                    "section-text",
+                  title: block.title || block.customTitle || "بلوك",
+                  content:
+                    block.customContent ||
+                    block.content ||
+                    block.source?.description ||
+                    "",
+                  variant: block.settings?.style || "card",
+                  source:
+                    block.source?.source === "library" ||
+                    block.source?.source === "workflow"
+                      ? block.source.source
+                      : "manual",
+                  snippetId: block.settings?.snippetId || undefined,
+                  boundFieldKey: block.settings?.boundFieldKey || undefined,
+                  hideWhenMissing: Boolean(block.settings?.hideWhenMissing),
+                  showTitle: block.settings?.showTitle !== false,
+                  showMeta: Boolean(block.settings?.showMeta),
+                  align: block.settings?.align || "right",
+                  placement: block.settings?.placement || "flow",
+                  evidenceLayout: block.settings?.evidenceLayout || undefined,
+                  evidenceFit: block.settings?.evidenceFit || undefined,
+                  evidenceAspectRatio: block.settings?.evidenceAspectRatio || "LANDSCAPE_4_3",
+                  evidenceShowCaptions: block.settings?.evidenceShowCaptions !== false,
+                  evidenceAutoCreatePages: block.settings?.evidenceAutoCreatePages !== false,
+                  evidenceEmptyBehavior: block.settings?.evidenceEmptyBehavior || "message",
+                }))
+              : [createBlock("section-text")],
+          }))
+        : fallback.pages;
+
+  return {
+    ...fallback,
+    id: templateJson.id || item?.id || fallback.id,
+    designTemplateId:
+      templateJson.designTemplateId ||
+      smartStudio.designTemplateId ||
+      "ministry-form",
+    name: item?.name || templateJson.name || fallback.name,
+    description:
+      item?.description || templateJson.description || fallback.description,
+    status:
+      templateJson.status === "PUBLISHED" ||
+      templateJson.status === "ARCHIVED" ||
+      templateJson.status === "DRAFT"
+        ? templateJson.status
+        : item?.isActive === false
+          ? "ARCHIVED"
+          : "DRAFT",
+    scope:
+      templateJson.scope ||
+      templateJson?.workflowBinding?.scope ||
+      (item?.serviceSlug ? "SERVICE" : "GLOBAL"),
+    serviceSlug:
+      item?.serviceSlug ||
+      templateJson.serviceSlug ||
+      templateJson?.workflowBinding?.serviceSlug ||
+      undefined,
+    workflowSlug:
+      templateJson.workflowSlug ||
+      templateJson?.workflowBinding?.workflowSlug ||
+      undefined,
+    locationKey:
+      templateJson.locationKey ||
+      templateJson?.workflowBinding?.locationKey ||
+      undefined,
+    previewCaseId: templateJson.previewCaseId || "",
+    updatedAt:
+      item?.updatedAt ||
+      templateJson.updatedAt ||
+      new Date().toISOString().slice(0, 10),
+    pages,
+  } as StudioTemplate;
+}
+
+export function ReportTemplateStudio() {
+  const [template, setTemplate] = useState<StudioTemplate>(() => createInitialTemplate());
+  const [activePageId, setActivePageId] = useState(() => template.pages[0]?.id || "");
+  const [selectedBlockId, setSelectedBlockId] = useState(() => template.pages[0]?.blocks[0]?.id || "");
+  const [savedTemplateId, setSavedTemplateId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [testingCase, setTestingCase] = useState(false);
+  const [previewCase, setPreviewCase] = useState<PreviewCaseData | null>(null);
+  const [workflowFields, setWorkflowFields] = useState<WorkflowFieldOption[]>([]);
+  const [workflowMessage, setWorkflowMessage] = useState("اختر خدمة أو Workflow لعرض الحقول المتاحة.");
+  const [loadingWorkflow, setLoadingWorkflow] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+
+  const activePage = useMemo(
+    () => template.pages.find((page) => page.id === activePageId) || template.pages[0],
+    [template.pages, activePageId],
+  );
+
+  const selectedBlock = useMemo(
+    () =>
+      activePage?.blocks.find((block) => block.id === selectedBlockId) ||
+      template.pages.flatMap((page) => page.blocks).find((block) => block.id === selectedBlockId) ||
+      null,
+    [activePage?.blocks, selectedBlockId, template.pages],
+  );
+
+  const runtimeContext = useMemo(
+    () => buildRuntimeContext(template, previewCase),
+    [template, previewCase],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadTemplateFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const templateId = params.get("templateId");
+
+      if (!templateId) return;
+
+      try {
+        const cached = sessionStorage.getItem("template-studio-selected");
+
+        if (cached) {
+          const cachedItem = JSON.parse(cached);
+
+          if (String(cachedItem?.id || "") === templateId) {
+            const hydrated = hydrateStudioTemplateFromSavedItem(cachedItem);
+
+            if (!isMounted) return;
+
+            setTemplate(hydrated);
+            setSavedTemplateId(templateId);
+            setActivePageId(hydrated.pages[0]?.id || "");
+            setSelectedBlockId(hydrated.pages[0]?.blocks[0]?.id || "");
+            sessionStorage.removeItem("template-studio-selected");
+
+            setFeedback({
+              type: "success",
+              message: "تم فتح القالب المحفوظ داخل الاستديو.",
+            });
+
+            return;
+          }
+        }
+
+        const response = await fetch(
+          `/api/dashboard/report-templates/${encodeURIComponent(templateId)}`,
+          { cache: "no-store" },
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result?.error || result?.message || "تعذر تحميل القالب.");
+        }
+
+        const item = result?.template || result?.data || result;
+        const hydrated = hydrateStudioTemplateFromSavedItem(item);
+
+        if (!isMounted) return;
+
+        setTemplate(hydrated);
+        setSavedTemplateId(templateId);
+        setActivePageId(hydrated.pages[0]?.id || "");
+        setSelectedBlockId(hydrated.pages[0]?.blocks[0]?.id || "");
+        setFeedback({
+          type: "success",
+          message: "تم تحميل القالب المحفوظ داخل الاستديو.",
+        });
+      } catch (error) {
+        if (!isMounted) return;
+
+        setFeedback({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "تعذر فتح القالب من المكتبة.",
+        });
+      }
+    }
+
+    loadTemplateFromQuery();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const usedWorkflowFieldKeys = useMemo(
+    () => extractUsedWorkflowFieldKeys(template),
+    [template],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadWorkflowFields() {
+      if (template.scope === "GLOBAL" || template.scope === "LOCATION") {
+        setWorkflowFields([]);
+        setWorkflowMessage("هذا القالب غير مربوط بخدمة أو Workflow حاليًا.");
+        return;
+      }
+
+      if (!template.serviceSlug) {
+        setWorkflowFields([]);
+        setWorkflowMessage("اختر الخدمة أولًا حتى تظهر حقول الـ Workflow المرتبطة بها.");
+        return;
+      }
+
+      try {
+        setLoadingWorkflow(true);
+
+        const response = await fetch(
+          `/api/admin/report-templates/workflow-fields?serviceSlug=${encodeURIComponent(
+            template.serviceSlug,
+          )}`,
+          { cache: "no-store" },
+        );
+
+        const result = await response.json();
+
+        if (!isMounted) return;
+
+        setWorkflowFields(Array.isArray(result?.fields) ? result.fields : []);
+        setWorkflowMessage(
+          result?.message ||
+            "تم جلب الحقول المتاحة. اختر المتغيرات المناسبة وأدرجها في البلوكات.",
+        );
+      } catch {
+        if (!isMounted) return;
+
+        setWorkflowFields([]);
+        setWorkflowMessage("تعذر جلب حقول الـ Workflow. يمكن الاستمرار بالنصوص اليدوية مؤقتًا.");
+      } finally {
+        if (isMounted) {
+          setLoadingWorkflow(false);
+        }
+      }
+    }
+
+    loadWorkflowFields();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [template.scope, template.serviceSlug, template.workflowSlug]);
+
+  function updateTemplate(next: Partial<StudioTemplate>) {
+    setTemplate((current) => ({
+      ...current,
+      ...next,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }));
+  }
+
+  function updatePage(pageId: string, updater: (page: StudioPage) => StudioPage) {
+    setTemplate((current) => ({
+      ...current,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      pages: current.pages.map((page) => (page.id === pageId ? updater(page) : page)),
+    }));
+  }
+
+  function updateBlock(blockId: string, updater: (block: StudioBlock) => StudioBlock) {
+    setTemplate((current) => ({
+      ...current,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      pages: current.pages.map((page) => ({
+        ...page,
+        blocks: page.blocks.map((block) =>
+          block.id === blockId ? updater(block) : block,
+        ),
+      })),
+    }));
+  }
+
+  function addPage(kind: PageKind) {
+    const page = createPage(kind, template.pages.length + 1);
+
+    setTemplate((current) => ({
+      ...current,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      pages: [...current.pages, page],
+    }));
+
+    setActivePageId(page.id);
+    setSelectedBlockId(page.blocks[0]?.id || "");
+  }
+
+  function removeActivePage() {
+    if (!activePage || template.pages.length <= 1) {
+      return;
+    }
+
+    const remainingPages = template.pages.filter((page) => page.id !== activePage.id);
+
+    setTemplate((current) => ({
+      ...current,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      pages: remainingPages,
+    }));
+
+    setActivePageId(remainingPages[0]?.id || "");
+    setSelectedBlockId(remainingPages[0]?.blocks[0]?.id || "");
+  }
+
+  function addBlock(kind: BlockKind) {
+    if (!activePage) return;
+
+    const block = createBlock(kind);
+
+    updatePage(activePage.id, (page) => ({
+      ...page,
+      blocks: [...page.blocks, block],
+    }));
+
+    setSelectedBlockId(block.id);
+  }
+
+  function removeSelectedBlock() {
+    if (!selectedBlock || !activePage || activePage.blocks.length <= 1) {
+      return;
+    }
+
+    const remaining = activePage.blocks.filter((block) => block.id !== selectedBlock.id);
+
+    updatePage(activePage.id, (page) => ({
+      ...page,
+      blocks: remaining,
+    }));
+
+    setSelectedBlockId(remaining[0]?.id || "");
+  }
+
+  function moveBlock(direction: "up" | "down") {
+    if (!selectedBlock || !activePage) return;
+
+    const index = activePage.blocks.findIndex((block) => block.id === selectedBlock.id);
+    if (index === -1) return;
+
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= activePage.blocks.length) return;
+
+    const nextBlocks = [...activePage.blocks];
+    const [block] = nextBlocks.splice(index, 1);
+    nextBlocks.splice(targetIndex, 0, block);
+
+    updatePage(activePage.id, (page) => ({
+      ...page,
+      blocks: nextBlocks,
+    }));
+  }
+
+  function applySnippet(snippetId: string) {
+    if (!selectedBlock) return;
+
+    const snippet = textSnippets.find((item) => item.id === snippetId);
+    if (!snippet) return;
+
+    updateBlock(selectedBlock.id, (block) => ({
+      ...block,
+      source: "library",
+      snippetId,
+      title: block.title || snippet.title,
+      content: snippet.content,
+    }));
+  }
+
+  function insertVariable(variable: string) {
+    if (!selectedBlock) {
+      setFeedback({
+        type: "info",
+        message: "اختر بلوكًا أولًا حتى يتم إدراج المتغير داخله.",
+      });
+      return;
+    }
+
+    updateBlock(selectedBlock.id, (block) => ({
+      ...block,
+      content: `${block.content}${block.content.trim() ? " " : ""}${variable}`,
+    }));
+  }
+
+  async function runCaseTest() {
+    const caseId = template.previewCaseId.trim();
+
+    if (!caseId) {
+      setPreviewCase(null);
+      setFeedback({
+        type: "info",
+        message: "لم يتم إدخال Case ID. سيتم عرض بيانات تجريبية داخل المعاينة.",
+      });
+      return;
+    }
+
+    try {
+      setTestingCase(true);
+
+      const response = await fetch(
+        `/api/admin/report-templates/preview-case?caseId=${encodeURIComponent(
+          caseId,
+        )}`,
+        { cache: "no-store" },
+      );
+
+      const result = await response.json();
+
+      setPreviewCase(result?.data || null);
+      setFeedback({
+        type: result?.data ? "success" : "info",
+        message:
+          result?.message ||
+          "تم تنفيذ الاختبار. إذا لم توجد حالة فعلية ستبقى المعاينة على بيانات تجريبية.",
+      });
+    } catch {
+      setPreviewCase(null);
+      setFeedback({
+        type: "error",
+        message: "تعذر اختبار Case ID. راجع الرقم أو جرّب لاحقًا.",
+      });
+    } finally {
+      setTestingCase(false);
+    }
+  }
+
+  function toReportTemplateJson(status: TemplateStatus) {
+    return {
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      scope: template.scope,
+      serviceSlug: template.serviceSlug || undefined,
+      workflowSlug: template.workflowSlug || undefined,
+      locationKey: template.locationKey || undefined,
+      status,
+      documentType: template.documentType,
+      designTemplateId: template.designTemplateId || "ministry-form",
+      designPreset: "official-smart-multi-page",
+      previewCaseId: template.previewCaseId,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      officialLayout: {
+        pageSize: "A4",
+        ministryLogoOnly: true,
+        headerLocked: true,
+        identityLocked: true,
+        multiPage: true,
+      },
+      workflowBinding: {
+        scope: template.scope,
+        serviceSlug: template.serviceSlug || null,
+        workflowSlug: template.workflowSlug || null,
+        locationKey: template.locationKey || null,
+        fields: workflowFields,
+        usedFieldKeys: Array.from(usedWorkflowFieldKeys),
+      },
+      pages: template.pages.map((page) => ({
+        id: page.id,
+        kind: page.kind === "approval" ? "approval" : page.kind === "evidence" ? "evidence" : "narrative",
+        title: page.title,
+        description: page.description,
+        blocks: page.blocks.map((block) => ({
+          id: block.id,
+          kind: "custom-paragraph",
+          title: block.title,
+          customTitle: block.showTitle ? block.title : "",
+          customContent: block.content,
+          required: false,
+          source: {
+            source: block.source,
+            label: block.source === "library" ? "مكتبة النصوص" : "كتابة مباشرة",
+            description: "بلوك من الاستديو الرسمي الذكي متعدد الصفحات",
+            fieldKey: block.kind,
+          },
+          settings: {
+            smartBlockKind: block.kind,
+            style: block.variant,
+            showTitle: block.showTitle,
+            showMeta: block.showMeta,
+            align: block.align,
+            placement: block.placement || "flow",
+            evidenceLayout: block.evidenceLayout || null,
+            evidenceFit: block.evidenceFit || null,
+            evidenceAspectRatio: block.evidenceAspectRatio || "LANDSCAPE_4_3",
+            evidenceShowCaptions: block.evidenceShowCaptions !== false,
+            evidenceAutoCreatePages: block.evidenceAutoCreatePages !== false,
+            evidenceEmptyBehavior: block.evidenceEmptyBehavior || "message",
+            snippetId: block.snippetId || null,
+          },
+        })),
+      })),
+      smartStudio: {
+        version: 2,
+        mode: "multi-page-workflow-aware",
+        designTemplateId: template.designTemplateId || "ministry-form",
+        pages: template.pages,
+      },
+    };
+  }
+
+  async function saveTemplate(nextStatus: TemplateStatus = template.status) {
+    try {
+      setSaving(true);
+
+      const templateJson = toReportTemplateJson(nextStatus);
+
+      const payload = {
+        name: template.name || "القالب الرسمي الذكي",
+        description: template.description || "قالب رسمي ذكي متعدد الصفحات.",
+        serviceSlug:
+          template.scope === "SERVICE" || template.scope === "WORKFLOW"
+            ? template.serviceSlug || null
+            : null,
+        type: "SCHOOL",
+        content: JSON.stringify(templateJson),
+        templateJson,
+        genderAware: true,
+        isActive: nextStatus !== "ARCHIVED",
+      };
+
+      const response = savedTemplateId
+        ? await fetch(`/api/dashboard/report-templates/${savedTemplateId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/dashboard/report-templates", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error || result?.message || "تعذر حفظ القالب.");
+      }
+
+      const nextSavedId =
+        result?.template?.id || result?.data?.id || result?.id || savedTemplateId;
+
+      if (nextSavedId) {
+        setSavedTemplateId(nextSavedId);
+      }
+
+      setTemplate((current) => ({
+        ...current,
+        status: nextStatus,
+        updatedAt: new Date().toISOString().slice(0, 10),
+      }));
+
+      setFeedback({
+        type: "success",
+        message:
+          nextStatus === "PUBLISHED"
+            ? "تم حفظ القالب ونشره بنجاح."
+            : "تم حفظ مسودة القالب بنجاح.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ غير متوقع أثناء حفظ القالب.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f5f8f6]" dir="rtl">
+      <header className="border-b border-emerald-100 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-[1640px] flex-col gap-4 px-6 py-5 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p className="text-sm font-black text-emerald-700">
+              استديو القوالب الرسمي
+            </p>
+
+            <h1 className="mt-1 text-2xl font-black text-slate-950">
+              قالب رسمي ذكي متعدد الصفحات
+            </h1>
+
+            <p className="mt-2 max-w-4xl text-sm leading-7 text-slate-500">
+              الهوية ثابتة، والصفحات والبلوكات هي منطقة التحكم. عند ربط القالب
+              بخدمة أو Workflow ستظهر خريطة الحقول المتاحة حتى تعرف ماذا تستخدم
+              داخل التقارير.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+              {statusLabels[template.status]}
+            </span>
+
+            <a
+              href="/dashboard/admin/report-templates/designs"
+              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-100"
+            >
+              معرض التصاميم
+            </a>
+
+            <a
+              href="/dashboard/admin/report-templates/library"
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              مكتبة القوالب
+            </a>
+
+            <button
+              type="button"
+              onClick={() => saveTemplate("DRAFT")}
+              disabled={saving}
+              className="rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:bg-emerald-50 disabled:opacity-60"
+            >
+              حفظ مسودة
+            </button>
+
+            <button
+              type="button"
+              onClick={() => saveTemplate("PUBLISHED")}
+              disabled={saving}
+              className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60"
+            >
+              حفظ ونشر
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto grid max-w-[1640px] gap-5 px-6 py-6 xl:grid-cols-[315px_minmax(0,1fr)_390px]">
+        <aside className="space-y-4">
+          <section className="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-black text-slate-900">
+                  صفحات القالب
+                </h2>
+                <p className="mt-1 text-xs leading-6 text-slate-500">
+                  تنقل بين الصفحات بالاسم بدل السكرول الطويل.
+                </p>
+              </div>
+
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
+                {template.pages.length}
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {template.pages.map((page, index) => (
+                <button
+                  key={page.id}
+                  type="button"
+                  onClick={() => {
+                    setActivePageId(page.id);
+                    setSelectedBlockId(page.blocks[0]?.id || "");
+                  }}
+                  className={[
+                    "w-full rounded-2xl border p-3 text-right transition",
+                    page.id === activePageId
+                      ? "border-emerald-600 bg-emerald-50"
+                      : "border-slate-200 bg-white hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  <span className="text-[11px] font-black text-slate-400">
+                    صفحة {index + 1} · {pageKindLabels[page.kind]}
+                  </span>
+                  <strong className="mt-1 block text-xs font-black text-slate-900">
+                    {page.title}
+                  </strong>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              <select
+                onChange={(event) => {
+                  const value = event.target.value as PageKind;
+                  if (value) {
+                    addPage(value);
+                    event.target.value = "";
+                  }
+                }}
+                className="w-full rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-xs font-black text-emerald-900 outline-none"
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  + إضافة صفحة
+                </option>
+                <option value="content">صفحة محتوى</option>
+                <option value="recommendations">صفحة توصيات ونتائج</option>
+                <option value="evidence">صفحة شواهد</option>
+                <option value="approval">صفحة اعتماد</option>
+                <option value="custom">صفحة مخصصة</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={removeActivePage}
+                disabled={template.pages.length <= 1}
+                className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                حذف الصفحة الحالية
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              مكتبة البلوكات
+            </h2>
+
+            <p className="mt-1 text-xs leading-6 text-slate-500">
+              تتم إضافة البلوك داخل الصفحة المحددة فقط.
+            </p>
+
+            <div className="mt-4 space-y-2">
+              {blockLibrary.map((block) => (
+                <button
+                  key={block.kind}
+                  type="button"
+                  onClick={() => addBlock(block.kind)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-right transition hover:border-emerald-300 hover:bg-emerald-50"
+                >
+                  <strong className="text-xs font-black text-slate-900">
+                    {block.title}
+                  </strong>
+
+                  <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                    {block.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              بلوكات الصفحة الحالية
+            </h2>
+
+            <div className="mt-4 space-y-2">
+              {activePage?.blocks.map((block, index) => (
+                <button
+                  key={block.id}
+                  type="button"
+                  onClick={() => setSelectedBlockId(block.id)}
+                  className={[
+                    "w-full rounded-2xl border p-3 text-right transition",
+                    block.id === selectedBlockId
+                      ? "border-emerald-600 bg-emerald-50"
+                      : "border-slate-200 bg-white hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  <span className="text-[11px] font-black text-slate-400">
+                    بلوك {index + 1}
+                  </span>
+                  <strong className="mt-1 block text-xs font-black text-slate-900">
+                    {block.title}
+                  </strong>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => moveBlock("up")}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
+              >
+                أعلى
+              </button>
+
+              <button
+                type="button"
+                onClick={() => moveBlock("down")}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"
+              >
+                أسفل
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={removeSelectedBlock}
+              disabled={!activePage || activePage.blocks.length <= 1}
+              className="mt-2 w-full rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              حذف البلوك المحدد
+            </button>
+          </section>
+        </aside>
+
+        <section className="space-y-5">
+          <details className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+              <div>
+                <p className="text-sm font-black text-slate-900">إعدادات القالب والربط</p>
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  اضغط لعرض أو إخفاء اسم القالب، التوجيه، الخدمة، Workflow، و Case ID.
+                </p>
+              </div>
+
+              <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                فتح / إخفاء
+              </span>
+            </summary>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_220px_220px]">
+              <label className="block">
+                <span className="text-xs font-black text-slate-500">
+                  اسم القالب
+                </span>
+                <input
+                  value={template.name}
+                  onChange={(event) => updateTemplate({ name: event.target.value })}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-black text-slate-500">
+                  التوجيه
+                </span>
+                <select
+                  value={template.scope}
+                  onChange={(event) =>
+                    updateTemplate({
+                      scope: event.target.value as TemplateScope,
+                      serviceSlug:
+                        event.target.value === "GLOBAL" ||
+                        event.target.value === "LOCATION"
+                          ? undefined
+                          : template.serviceSlug,
+                    })
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                >
+                  <option value="GLOBAL">عام</option>
+                  <option value="SERVICE">خدمة</option>
+                  <option value="WORKFLOW">Workflow</option>
+                  <option value="LOCATION">مكان محدد</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-black text-slate-500">
+                  Case ID للاختبار
+                </span>
+                <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+                  <input
+                    value={template.previewCaseId}
+                    onChange={(event) =>
+                      updateTemplate({ previewCaseId: event.target.value })
+                    }
+                    placeholder="اختياري"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={runCaseTest}
+                    disabled={testingCase}
+                    className="rounded-2xl bg-slate-900 px-4 py-3 text-xs font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  >
+                    اختبار
+                  </button>
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_220px_220px]">
+              <label className="block">
+                <span className="text-xs font-black text-slate-500">
+                  وصف القالب
+                </span>
+                <input
+                  value={template.description}
+                  onChange={(event) =>
+                    updateTemplate({ description: event.target.value })
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-emerald-600"
+                />
+              </label>
+
+              {template.scope === "SERVICE" || template.scope === "WORKFLOW" ? (
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    الخدمة
+                  </span>
+                  <select
+                    value={template.serviceSlug || ""}
+                    onChange={(event) =>
+                      updateTemplate({ serviceSlug: event.target.value || undefined })
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  >
+                    <option value="">اختر الخدمة</option>
+                    {SERVICE_OPTIONS.map((service) => (
+                      <option key={service.slug} value={service.slug}>
+                        {service.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+
+              {template.scope === "WORKFLOW" ? (
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    Workflow
+                  </span>
+                  <input
+                    value={template.workflowSlug || ""}
+                    onChange={(event) =>
+                      updateTemplate({ workflowSlug: event.target.value })
+                    }
+                    placeholder="guardian-summons"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+                </label>
+              ) : null}
+
+              {template.scope === "LOCATION" ? (
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    مكان الاستخدام
+                  </span>
+                  <input
+                    value={template.locationKey || ""}
+                    onChange={(event) =>
+                      updateTemplate({ locationKey: event.target.value })
+                    }
+                    placeholder="reports.issue"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+                </label>
+              ) : null}
+            </div>
+
+            
+
+
+            {feedback ? (
+              <div
+                className={[
+                  "mt-4 rounded-2xl px-4 py-3 text-sm font-bold leading-7",
+                  feedback.type === "success"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : feedback.type === "error"
+                      ? "bg-red-50 text-red-700"
+                      : "bg-slate-50 text-slate-600",
+                ].join(" ")}
+              >
+                {feedback.message}
+              </div>
+            ) : null}
+          </details>
+
+          <WorkflowAwarenessPanel
+            template={template}
+            fields={workflowFields}
+            loading={loadingWorkflow}
+            message={workflowMessage}
+            usedFieldKeys={usedWorkflowFieldKeys}
+            onInsertVariable={insertVariable}
+          />
+
+          
+
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-sm font-black text-emerald-700">
+                  معرض التصاميم الحقيقية
+                </p>
+                <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                  هذه ليست ألوان فقط؛ كل تصميم يرسم الصفحة بطريقة مختلفة. اختر التصميم وستتغير بنية المعاينة مباشرة.
+                </p>
+              </div>
+
+              <select
+                value={template.designTemplateId || "ministry-form"}
+                onChange={(event) =>
+                  updateTemplate({
+                    designTemplateId: event.target.value as ReportDesignId,
+                  })
+                }
+                className="min-w-72 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+              >
+                {reportDesignTemplates.map((design) => (
+                  <option key={design.id} value={design.id}>
+                    {design.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+              {reportDesignTemplates.map((design) => {
+                const active = (template.designTemplateId || "ministry-form") === design.id;
+
+                return (
+                  <button
+                    key={design.id}
+                    type="button"
+                    onClick={() =>
+                      updateTemplate({
+                        designTemplateId: design.id,
+                      })
+                    }
+                    className={[
+                      "rounded-2xl border p-3 text-right transition",
+                      active
+                        ? design.activeCardClass
+                        : design.cardClass,
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <strong className="text-xs font-black text-slate-900">
+                        {design.name}
+                      </strong>
+
+                      <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-black text-slate-600">
+                        {design.badge}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-[11px] font-bold leading-5 text-slate-500">
+                      {design.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <OfficialPagePreview
+            template={template}
+            activePage={activePage}
+            activePageId={activePageId}
+            context={runtimeContext}
+            previewCase={previewCase}
+            onActivePageChange={(pageId) => {
+              const page = template.pages.find((item) => item.id === pageId);
+              setActivePageId(pageId);
+              setSelectedBlockId(page?.blocks[0]?.id || "");
+            }}
+            onAddPage={() => addPage("content")}
+          />
+        </section>
+
+        <aside className="space-y-4">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              إعدادات الصفحة
+            </h2>
+
+            {activePage ? (
+              <div className="mt-4 space-y-3">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    اسم الصفحة
+                  </span>
+                  <input
+                    value={activePage.title}
+                    onChange={(event) =>
+                      updatePage(activePage.id, (page) => ({
+                        ...page,
+                        title: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    نوع الصفحة
+                  </span>
+                  <select
+                    value={activePage.kind}
+                    onChange={(event) =>
+                      updatePage(activePage.id, (page) => ({
+                        ...page,
+                        kind: event.target.value as PageKind,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  >
+                    <option value="content">محتوى</option>
+                    <option value="recommendations">توصيات</option>
+                    <option value="evidence">شواهد</option>
+                    <option value="approval">اعتماد</option>
+                    <option value="custom">مخصصة</option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    وصف الصفحة
+                  </span>
+                  <textarea
+                    value={activePage.description}
+                    onChange={(event) =>
+                      updatePage(activePage.id, (page) => ({
+                        ...page,
+                        description: event.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-600"
+                  />
+                </label>
+              </div>
+            ) : null}
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900">
+              إعدادات البلوك
+            </h2>
+
+            {selectedBlock ? (
+              <div className="mt-4 space-y-4">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    عنوان البلوك
+                  </span>
+                  <input
+                    value={selectedBlock.title}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        title: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-3 text-xs font-black text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedBlock.showTitle}
+                      onChange={(event) =>
+                        updateBlock(selectedBlock.id, (block) => ({
+                          ...block,
+                          showTitle: event.target.checked,
+                        }))
+                      }
+                    />
+                    إظهار العنوان
+                  </label>
+
+                  <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-3 text-xs font-black text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedBlock.showMeta}
+                      onChange={(event) =>
+                        updateBlock(selectedBlock.id, (block) => ({
+                          ...block,
+                          showMeta: event.target.checked,
+                        }))
+                      }
+                    />
+                    إظهار معلومات
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    مصدر النص
+                  </span>
+                  <select
+                    value={selectedBlock.source}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        source: event.target.value as TextSource,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                  >
+                    <option value="manual">كتابة مباشرة</option>
+                    <option value="library">مكتبة النصوص</option>
+                    <option value="workflow">حقل من Workflow</option>
+                  </select>
+                </label>
+
+                {selectedBlock.source === "library" ? (
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      اختر نصًا من المكتبة
+                    </span>
+                    <select
+                      value={selectedBlock.snippetId || ""}
+                      onChange={(event) => applySnippet(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                    >
+                      <option value="">اختر النص</option>
+                      {textSnippets.map((snippet) => (
+                        <option key={snippet.id} value={snippet.id}>
+                          {snippet.category} - {snippet.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+
+                {workflowFields.length ? (
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                    <p className="text-xs font-black text-emerald-900">
+                      ربط البلوك بحقل Workflow
+                    </p>
+
+                    <p className="mt-1 text-[11px] font-bold leading-6 text-emerald-800">
+                      استخدم هذا الربط إذا كان ظهور البلوك يعتمد على قيمة معينة
+                      من الحالة. مثل: نتيجة التواصل، مؤشر الأداء، سبب الاستدعاء.
+                    </p>
+
+                    <label className="mt-3 block">
+                      <span className="text-xs font-black text-slate-500">
+                        الحقل المسؤول عن هذا البلوك
+                      </span>
+
+                      <select
+                        value={selectedBlock.boundFieldKey || ""}
+                        onChange={(event) => {
+                          const fieldKey = event.target.value;
+
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            boundFieldKey: fieldKey || undefined,
+                            content:
+                              block.source === "workflow" && fieldKey
+                                ? `{{field.${fieldKey}}}`
+                                : block.content,
+                          }));
+                        }}
+                        className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+                      >
+                        <option value="">بدون ربط مباشر</option>
+                        {workflowFields.map((field, fieldIndex) => (
+                          <option key={`${field.stepTitle || "field"}-${field.key}-${fieldIndex}`} value={field.key}>
+                            {field.stepTitle ? `${field.stepTitle} - ` : ""}
+                            {field.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="mt-3 flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-black text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(selectedBlock.hideWhenMissing)}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            hideWhenMissing: event.target.checked,
+                          }))
+                        }
+                      />
+                      لا تعرض هذا البلوك إذا لم توجد قيمة في الحقل المرتبط
+                    </label>
+                  </div>
+                ) : null}
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    نص البلوك
+                  </span>
+                  <textarea
+                    value={selectedBlock.content}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        content: event.target.value,
+                      }))
+                    }
+                    rows={8}
+                    className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700 outline-none focus:border-emerald-600"
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      التصميم
+                    </span>
+                    <select
+                      value={selectedBlock.variant}
+                      onChange={(event) =>
+                        updateBlock(selectedBlock.id, (block) => ({
+                          ...block,
+                          variant: event.target.value as BlockVariant,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                    >
+                      <option value="hero">عنوان كبير</option>
+                      <option value="plain">نص عادي</option>
+                      <option value="card">بطاقة</option>
+                      <option value="soft">هادئ</option>
+                      <option value="highlight">مميز</option>
+                      <option value="outline">إطار فقط</option>
+                      <option value="quote">خاتمة</option>
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      المحاذاة
+                    </span>
+                    <select
+                      value={selectedBlock.align}
+                      onChange={(event) =>
+                        updateBlock(selectedBlock.id, (block) => ({
+                          ...block,
+                          align: event.target.value as "right" | "center",
+                        }))
+                      }
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                    >
+                      <option value="right">يمين</option>
+                      <option value="center">وسط</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    موضع البلوك داخل الصفحة
+                  </span>
+
+                  <select
+                    value={selectedBlock.placement || "flow"}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        placement: event.target.value as BlockPlacement,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                  >
+                    <option value="flow">حسب الترتيب الطبيعي</option>
+
+                    <option value="top">أعلى الصفحة</option>
+                    <option value="middle">وسط الصفحة</option>
+                    <option value="bottom">أسفل الصفحة</option>
+
+                    <option value="top-right">أعلى يمين</option>
+                    <option value="top-center">أعلى وسط</option>
+                    <option value="top-left">أعلى يسار</option>
+
+                    <option value="middle-right">وسط يمين</option>
+                    <option value="middle-center">وسط الصفحة - محدد</option>
+                    <option value="middle-left">وسط يسار</option>
+
+                    <option value="bottom-right">أسفل يمين</option>
+                    <option value="bottom-center">أسفل وسط</option>
+                    <option value="bottom-left">أسفل يسار</option>
+                  </select>
+
+                  <p className="mt-2 text-[11px] font-bold leading-6 text-slate-500">
+                    استخدم الموضع الثابت للعنوان أو الفقرة المهمة. يمكنك اختيار موضع عام مثل أعلى/وسط/أسفل، أو موضع دقيق مثل أعلى يمين أو أسفل وسط. إذا وضعت أكثر من بلوك في نفس المكان قد تتداخل.
+                  </p>
+                </label>
+
+                {selectedBlock.kind === "evidence-gallery" ? (
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                    <p className="text-xs font-black text-emerald-900">
+                      إعدادات عرض الشواهد
+                    </p>
+
+                    <p className="mt-1 text-[11px] font-bold leading-6 text-emerald-800">
+                      القالب هو الذي يقرر كيف تظهر الشواهد. إذا زاد عدد الشواهد
+                      عن سعة الصفحة، يتم إنشاء صفحات شواهد إضافية تلقائيًا.
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <label className="block">
+                        <span className="text-xs font-black text-slate-500">
+                          طريقة العرض
+                        </span>
+
+                        <select
+                          value={selectedBlock.evidenceLayout || "TWO_PER_PAGE"}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceLayout: event.target.value as EvidenceLayout,
+                            }))
+                          }
+                          className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                        >
+                          <option value="ONE_PER_PAGE">شاهد واحد في الصفحة</option>
+                          <option value="TWO_PER_PAGE">شاهدان في الصفحة</option>
+                          <option value="GRID_2X2">4 شواهد في الصفحة</option>
+                          <option value="ATTACHMENT_LIST">قائمة مرفقات فقط</option>
+                        </select>
+                      </label>
+
+                      <label className="block">
+                        <span className="text-xs font-black text-slate-500">
+                          عرض الصورة
+                        </span>
+
+                        <select
+                          value={selectedBlock.evidenceFit || "contain"}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceFit: event.target.value as EvidenceFit,
+                            }))
+                          }
+                          className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                        >
+                          <option value="contain">احتواء كامل</option>
+                          <option value="cover">تعبئة الإطار</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <label className="mt-3 block">
+                      <span className="text-xs font-black text-slate-500">
+                        أبعاد الصورة المتوقعة
+                      </span>
+
+                      <select
+                        value={selectedBlock.evidenceAspectRatio || "LANDSCAPE_4_3"}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            evidenceAspectRatio: event.target.value as EvidenceAspectRatio,
+                          }))
+                        }
+                        className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                      >
+                        <option value="LANDSCAPE_4_3">أفقي 4:3 - تصوير عادي</option>
+                        <option value="LANDSCAPE_16_9">أفقي عريض 16:9</option>
+                        <option value="PORTRAIT_3_4">طولي 3:4</option>
+                        <option value="SQUARE_1_1">مربع 1:1</option>
+                      </select>
+
+                      <p className="mt-2 text-[11px] font-bold leading-6 text-slate-500">
+                        هذا لا يجبر الموجه على قص الصورة، لكنه يحدد مساحة عرض الشاهد داخل التقارير حتى تظهر المعاينة بنفس تصورك.
+                      </p>
+                    </label>
+
+                    <div className="mt-3 grid gap-2">
+                      <label className="flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-black text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={selectedBlock.evidenceAutoCreatePages !== false}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceAutoCreatePages: event.target.checked,
+                            }))
+                          }
+                        />
+                        إنشاء صفحات إضافية تلقائيًا عند زيادة عدد الشواهد
+                      </label>
+
+                      <label className="flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-xs font-black text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={selectedBlock.evidenceShowCaptions !== false}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceShowCaptions: event.target.checked,
+                            }))
+                          }
+                        />
+                        إظهار التعليقات وأسماء الشواهد
+                      </label>
+
+                      <label className="block">
+                        <span className="text-xs font-black text-slate-500">
+                          إذا لا توجد شواهد
+                        </span>
+
+                        <select
+                          value={selectedBlock.evidenceEmptyBehavior || "message"}
+                          onChange={(event) =>
+                            updateBlock(selectedBlock.id, (block) => ({
+                              ...block,
+                              evidenceEmptyBehavior: event.target.value as EvidenceEmptyBehavior,
+                            }))
+                          }
+                          className="mt-2 w-full rounded-2xl border border-emerald-100 bg-white px-3 py-3 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                        >
+                          <option value="message">إظهار رسالة لا توجد شواهد</option>
+                          <option value="hide">إخفاء البلوك بالكامل</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="rounded-2xl bg-emerald-50 p-3 text-xs font-bold leading-6 text-emerald-800">
+                  المتغيرات العامة: {"{{case.title}}"}، {"{{service.name}}"}،{" "}
+                  {"{{student.name}}"}، {"{{identity.counselorName}}"}.
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">
+                اختر بلوكًا من الصفحة الحالية لتعديله.
+              </p>
+            )}
+          </section>
+
+          <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
+            <h3 className="text-sm font-black text-emerald-900">
+              الهوية ثابتة
+            </h3>
+
+            <p className="mt-2 text-xs font-bold leading-7 text-emerald-800">
+              مكان الترويسة، شعار وزارة التعليم، الإطار العام، الحواف، والفوتر
+              جزء من التصميم الرسمي ولا يتم تعديلها من الاستديو.
+            </p>
+
+            <div className="mt-3 rounded-2xl bg-white p-3 text-xs font-black text-emerald-700">
+              التوجيه الحالي: {scopeLabels[template.scope]}
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+function WorkflowAwarenessPanel({
+  template,
+  fields,
+  loading,
+  message,
+  usedFieldKeys,
+  onInsertVariable,
+}: {
+  template: StudioTemplate;
+  fields: WorkflowFieldOption[];
+  loading: boolean;
+  message: string;
+  usedFieldKeys: Set<string>;
+  onInsertVariable: (variable: string) => void;
+}) {
+  const groups = groupWorkflowFields(fields);
+  const usedCount = fields.filter((field) => usedFieldKeys.has(field.key)).length;
+  const [expanded, setExpanded] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  if (!panelOpen) {
+    return (
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setPanelOpen(true)}
+          className="flex w-full items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3 text-right transition hover:bg-emerald-50"
+        >
+          <div>
+            <p className="text-sm font-black text-emerald-700">خريطة الربط مع Workflow</p>
+            <p className="mt-1 text-xs font-bold text-slate-500">
+              مخفية حاليًا حتى لا تزحم المعاينة. اضغط لعرض الحقول والخطوات.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-100">
+              {fields.length} حقول
+            </span>
+            <span className="rounded-full bg-emerald-700 px-4 py-2 text-xs font-black text-white">
+              عرض
+            </span>
+          </div>
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-sm font-black text-emerald-700">
+            خريطة الربط مع Workflow
+          </p>
+
+          <h2 className="mt-1 text-xl font-black text-slate-900">
+            اعرف الحقول قبل بناء التقارير
+          </h2>
+
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+            عند ربط القالب بخدمة أو Workflow، تظهر لك خطواته وحقوله. الحقول
+            المستخدمة داخل النصوص تظهر بعلامة مستخدم، والبقية تظل واضحة حتى لا
+            تنساها أثناء بناء التقارير.
+          </p>
+        </div>
+
+        <div className="grid min-w-64 grid-cols-3 gap-2 text-center">
+          <Metric label="الحقول" value={`${fields.length}`} />
+          <Metric label="المستخدم" value={`${usedCount}`} />
+          <Metric label="الحالة" value={loading ? "جلب" : "جاهز"} />
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-slate-50 p-3 text-xs font-bold leading-6 text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        <span>{message}</span>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            className="rounded-xl bg-white px-4 py-2 text-xs font-black text-emerald-800 ring-1 ring-emerald-100 transition hover:bg-emerald-50"
+          >
+            {expanded ? "إخفاء التفاصيل" : "عرض التفاصيل"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPanelOpen(false)}
+            className="rounded-xl bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100"
+          >
+            إخفاء اللوحة
+          </button>
+        </div>
+      </div>
+
+      {expanded && (template.scope === "GLOBAL" || template.scope === "LOCATION") ? (
+        <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm font-bold leading-7 text-amber-800">
+          هذا القالب غير موجه لخدمة أو Workflow حاليًا. إذا أردت ظهور الحقول،
+          اختر التوجيه "خدمة" أو "Workflow" وحدد الخدمة.
+        </div>
+      ) : null}
+
+      {expanded && groups.length ? (
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {groups.map((group, groupIndex) => (
+            <div
+              key={group.stepTitle}
+              className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-black text-slate-900">
+                  {groupIndex + 1}. {group.stepTitle}
+                </h3>
+
+                <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-500">
+                  {group.fields.length} حقول
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {group.fields.map((field, fieldIndex) => {
+                  const used = usedFieldKeys.has(field.key);
+                  const variable = `{{field.${field.key}}}`;
+
+                  return (
+                    <div
+                      key={`${field.stepTitle || "field"}-${field.key}-${fieldIndex}`}
+                      className="rounded-2xl border border-slate-200 bg-white p-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-black text-slate-900">
+                            {field.label}
+                          </p>
+                          <p className="mt-1 text-[11px] font-bold text-slate-400">
+                            {variable}
+                          </p>
+                        </div>
+
+                        <span
+                          className={[
+                            "rounded-full px-3 py-1 text-[10px] font-black",
+                            used
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-amber-50 text-amber-700",
+                          ].join(" ")}
+                        >
+                          {used ? "مستخدم" : "غير مستخدم"}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onInsertVariable(variable)}
+                        className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-800 transition hover:bg-emerald-100"
+                      >
+                        إدراج المتغير في البلوك المحدد
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="text-[10px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-black text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function OfficialPagePreview({
+  template,
+  activePage,
+  activePageId,
+  context,
+  previewCase,
+  onActivePageChange,
+  onAddPage,
+}: {
+  template: StudioTemplate;
+  activePage?: StudioPage;
+  activePageId: string;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+  onActivePageChange: (pageId: string) => void;
+  onAddPage: () => void;
+}) {
+  return (
+    <ReportDesignRenderer
+      designId={template.designTemplateId || "ministry-form"}
+      template={template}
+      activePage={activePage}
+      activePageId={activePageId}
+      context={context}
+      previewCase={previewCase}
+      onActivePageChange={onActivePageChange}
+      onAddPage={onAddPage}
+    />
+  );
+}
+
+function PreviewBlock({
+  block,
+  context,
+  previewCase,
+}: {
+  block: StudioBlock;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+}) {
+  const rendered = renderText(block.content, context);
+  const textAlign = block.align === "center" ? "text-center" : "text-right";
+
+  if (block.hideWhenMissing && block.boundFieldKey) {
+    const fieldValue = String(context[`field.${block.boundFieldKey}`] || "").trim();
+
+    if (!fieldValue) {
+      return null;
+    }
+  }
+
+  if (block.kind === "hero-title") {
+    return (
+      <section className="flex flex-col items-center justify-center py-5 text-center">
+        <p className="text-xs font-black text-emerald-700">
+          {context["service.name"]}
+        </p>
+        <h1 className="mx-auto mt-3 max-w-[145mm] text-3xl font-black leading-[1.7] text-slate-950">
+          {rendered}
+        </h1>
+        {block.showMeta ? (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] font-black text-slate-500">
+            <span className="rounded-full bg-emerald-50 px-3 py-1">
+              {context["case.createdAt"]}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1">
+              {context["identity.counselorName"]}
+            </span>
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
+  if (block.kind === "meta-strip") {
+    return (
+      <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
+        <div className="grid gap-2 md:grid-cols-2">
+          {splitLines(rendered).map((line) => (
+            <div
+              key={line}
+              className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm font-bold text-slate-700"
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "bullet-list") {
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <ul className="space-y-2">
+          {splitLines(rendered).map((line) => (
+            <li key={line} className="flex gap-2 text-sm leading-7 text-slate-700">
+              <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-600" />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+
+  if (block.kind === "multi-paragraph") {
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <div className="space-y-3">
+          {splitParagraphs(rendered).map((paragraph) => (
+            <p key={paragraph} className="text-sm leading-8 text-slate-700">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.kind === "dynamic-fields") {
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <div className="grid gap-2 md:grid-cols-2">
+          {[
+            ["الخدمة", context["service.name"]],
+            ["عنوان الحالة", context["case.title"]],
+            ["الطالب/الطالبة", context["student.name"]],
+            ["الصف", context["student.grade"]],
+            ["ولي الأمر", context["student.guardianName"]],
+            ["عدد الشواهد", context["evidence.count"]],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="rounded-2xl border border-slate-100 bg-white px-4 py-3"
+            >
+              <p className="text-[11px] font-black text-slate-400">{label}</p>
+              <p className="mt-1 text-sm font-black text-slate-800">
+                {value || "غير متوفر"}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {previewCase?.values?.length ? (
+          <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs leading-6 text-slate-500">
+            تم جلب {previewCase.values.length} قيمة من Case ID.
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
+  if (block.kind === "evidence-gallery") {
+    const realEvidences = previewCase?.evidences || [];
+    const perPage = getEvidencePerPage(block);
+    const startIndex = block.evidenceStartIndex || 0;
+    const placeholderEvidences = createEvidencePlaceholders(perPage, startIndex);
+    const sourceEvidences = realEvidences.length ? realEvidences : placeholderEvidences;
+
+    if (!realEvidences.length && block.evidenceEmptyBehavior === "hide") {
+      return null;
+    }
+
+    const visibleEvidences = sourceEvidences.slice(startIndex, startIndex + perPage);
+    const hiddenCount = Math.max(realEvidences.length - (startIndex + perPage), 0);
+    const isPlaceholderMode = !realEvidences.length;
+
+    if (block.evidenceLayout === "ATTACHMENT_LIST") {
+      return (
+        <section className={getBlockClass(block.variant, textAlign)}>
+          {block.showTitle ? <BlockTitle title={block.title} /> : null}
+
+          <div className="space-y-2">
+            {visibleEvidences.map((evidence, index) => (
+              <div
+                key={evidence.id || evidence.fileUrl || String(index)}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700"
+              >
+                <span>
+                  {evidence.caption || evidence.title || "مرفق " + (startIndex + index + 1)}
+                </span>
+
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">
+                  {isPlaceholderMode ? "معاينة" : "شاهد"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+
+        <div className={getEvidenceGridClass(block)}>
+          {visibleEvidences.map((evidence, index) => {
+            const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+
+            return (
+              <figure
+                key={evidence.id || imageUrl || String(index)}
+                className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white"
+              >
+                {imageUrl && !isPlaceholderMode ? (
+                  <img
+                    src={imageUrl}
+                    alt={evidence.title || "شاهد " + (startIndex + index + 1)}
+                    className={getEvidenceImageClass(block) + " bg-slate-50"}
+                  />
+                ) : (
+                  <div className={getEvidenceImageHeightClass(block) + " flex w-full flex-col items-center justify-center bg-slate-50 text-center"}>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">
+                      📎
+                    </div>
+                    <p className="mt-3 text-xs font-black text-slate-500">
+                      {isPlaceholderMode ? "مساحة شاهد للمعاينة" : "شاهد بدون صورة"}
+                    </p>
+                  </div>
+                )}
+
+                {block.evidenceShowCaptions !== false ? (
+                  <figcaption className="max-h-12 overflow-hidden border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
+                    {evidence.caption || evidence.title || "شاهد " + (startIndex + index + 1)}
+                  </figcaption>
+                ) : null}
+              </figure>
+            );
+          })}
+        </div>
+
+        {hiddenCount > 0 && block.evidenceAutoCreatePages === false ? (
+          <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
+            يوجد {hiddenCount} شاهد إضافي. سيتم نقله إلى صفحة شواهد إضافية حتى لا يتمدد إطار A4.
+          </p>
+        ) : null}
+
+        {isPlaceholderMode ? (
+          <p className="mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
+            هذه مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
+          </p>
+        ) : null}
+      </section>
+    );
+  }
+
+  if (block.kind === "closing-note") {
+    return (
+      <section className={getBlockClass(block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <p className="text-sm leading-8 text-slate-700">{rendered}</p>
+
+        <div className="mt-5 grid grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs font-black text-slate-400">
+              الموجه/الموجهة الطلابية
+            </p>
+            <p className="mt-4 text-sm font-black text-slate-800">
+              {context["identity.counselorName"]}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs font-black text-slate-400">
+              مدير/مديرة المدرسة
+            </p>
+            <p className="mt-4 text-sm font-black text-slate-800">
+              {context["identity.principalName"]}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className={getBlockClass(block.variant, textAlign)}>
+      {block.showTitle ? <BlockTitle title={block.title} /> : null}
+      <p className="whitespace-pre-line text-sm leading-8 text-slate-700">
+        {rendered}
+      </p>
+    </section>
+  );
+}
+
+
+function createEvidencePlaceholders(
+  count: number,
+  startIndex: number,
+): NonNullable<PreviewCaseData["evidences"]> {
+  return Array.from({ length: count }).map((_, index) => {
+    const evidenceNumber = startIndex + index + 1;
+
+    return {
+      id: "placeholder-evidence-" + evidenceNumber,
+      title: "شاهد تجريبي " + evidenceNumber,
+      caption: "مكان الشاهد داخل التقارير",
+      fileUrl: "",
+      imageUrl: "",
+    };
+  });
+}
+
+function getEvidencePerPage(block: any) {
+  return getSmartEvidencePerPage(block);
+}
+
+function getSmartEvidencePerPage(block: any) {
+  const layout = String(block?.evidenceLayout || "TWO_PER_PAGE");
+  const ratio = String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
+  const fit = String(block?.evidenceFit || "contain");
+
+  if (layout === "ATTACHMENT_LIST") return 10;
+  if (layout === "ONE_PER_PAGE") return 1;
+  if (layout === "TWO_PER_PAGE") return 2;
+
+  /*
+    GRID_2X2 is a maximum capacity, not a forced capacity.
+    The system must keep every evidence card inside the A4 frame.
+    Portrait images are tall, so 4 cards can overflow the page.
+  */
+  if (layout === "GRID_2X2") {
+    if (ratio === "PORTRAIT_3_4") return 2;
+    if (ratio === "SQUARE_1_1" && fit === "cover") return 4;
+    if (ratio === "SQUARE_1_1") return 4;
+    if (ratio === "LANDSCAPE_16_9") return 4;
+    return 4;
+  }
+
+  return 2;
+}
+
+function getEvidenceGridClass(block: any) {
+  const perPage = getEvidencePerPage(block);
+
+  if (block.evidenceLayout === "ATTACHMENT_LIST") {
+    return "grid gap-2";
+  }
+
+  if (perPage <= 1) {
+    return "grid gap-3";
+  }
+
+  return "grid gap-3 md:grid-cols-2";
+}
+
+
+function getEvidenceAspectRatioClass(block: StudioBlock) {
+  switch (block.evidenceAspectRatio || "LANDSCAPE_4_3") {
+    case "LANDSCAPE_16_9":
+      return "aspect-video";
+    case "PORTRAIT_3_4":
+      return "aspect-[3/4]";
+    case "SQUARE_1_1":
+      return "aspect-square";
+    case "LANDSCAPE_4_3":
+    default:
+      return "aspect-[4/3]";
+  }
+}
+
+function getEvidenceImageHeightClass(block: any) {
+  const perPage = getEvidencePerPage(block);
+  const ratio = block.evidenceAspectRatio || "LANDSCAPE_4_3";
+
+  /*
+    Fixed heights are intentional:
+    they keep evidence inside the printable A4 area.
+    Extra evidence must go to a new Evidence Page instead of stretching A4.
+  */
+  if (perPage <= 1) {
+    switch (ratio) {
+      case "PORTRAIT_3_4":
+        return "h-[185mm]";
+      case "SQUARE_1_1":
+        return "h-[160mm]";
+      case "LANDSCAPE_16_9":
+        return "h-[122mm]";
+      case "LANDSCAPE_4_3":
+      default:
+        return "h-[138mm]";
+    }
+  }
+
+  if (perPage === 2) {
+    switch (ratio) {
+      case "PORTRAIT_3_4":
+        return "h-[92mm]";
+      case "SQUARE_1_1":
+        return "h-[82mm]";
+      case "LANDSCAPE_16_9":
+        return "h-[58mm]";
+      case "LANDSCAPE_4_3":
+      default:
+        return "h-[66mm]";
+    }
+  }
+
+  switch (ratio) {
+    case "SQUARE_1_1":
+      return "h-[56mm]";
+    case "LANDSCAPE_16_9":
+      return "h-[42mm]";
+    case "PORTRAIT_3_4":
+      return "h-[82mm]";
+    case "LANDSCAPE_4_3":
+    default:
+      return "h-[48mm]";
+  }
+}
+
+function getEvidenceImageClass(block: any) {
+  const fit = block.evidenceFit === "cover" ? "object-cover" : "object-contain";
+  return `${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+}
+
+function EmptyEvidenceMessage() {
+  return (
+    <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50 p-6 text-center">
+      <p className="text-sm font-black text-emerald-800">
+        لا توجد شواهد مرتبطة بالـ Case ID الحالي
+      </p>
+
+      <p className="mt-2 text-xs font-bold leading-6 text-emerald-700">
+        هذا البلوك لن يعرض أي مرفقات في التقارير النهائي إلا إذا كانت الحالة تحتوي على شواهد.
+      </p>
+    </div>
+  );
+}
+
+function BlockTitle({ title }: { title: string }) {
+  return (
+    <h3 className="mb-3 text-base font-black text-slate-950">
+      {title}
+    </h3>
+  );
+}
+
+function getPlacementClass(placement: BlockPlacement) {
+  const fullCenteredBase = "absolute left-0 right-0 w-full";
+  const centeredBase = "absolute left-1/2 w-full max-w-[78%] -translate-x-1/2";
+  const sideBase = "absolute w-full max-w-[58%]";
+
+  const classes: Record<BlockPlacement, string> = {
+    flow: "",
+
+    // الخيارات العامة: تبقى بعرضها الطبيعي الكامل مثل وضع الترتيب الطبيعي
+    top: `${fullCenteredBase} top-0`,
+    middle: `${fullCenteredBase} top-1/2 -translate-y-1/2`,
+    bottom: `${fullCenteredBase} bottom-0`,
+
+    // الخيارات الدقيقة: يمين/وسط/يسار بعرض مخصص حتى لا تملأ الصفحة كاملة
+    "top-right": `${sideBase} right-0 top-0`,
+    "top-center": `${centeredBase} top-0`,
+    "top-left": `${sideBase} left-0 top-0`,
+
+    "middle-right": `${sideBase} right-0 top-1/2 -translate-y-1/2`,
+    "middle-center": `${centeredBase} top-1/2 -translate-y-1/2`,
+    "middle-left": `${sideBase} left-0 top-1/2 -translate-y-1/2`,
+
+    "bottom-right": `${sideBase} bottom-0 right-0`,
+    "bottom-center": `${centeredBase} bottom-0`,
+    "bottom-left": `${sideBase} bottom-0 left-0`,
+  };
+
+  return classes[placement];
+}
+
+function getBlockClass(variant: BlockVariant, textAlign: string) {
+  const base = `break-inside-avoid ${textAlign}`;
+
+  const classes: Record<BlockVariant, string> = {
+    hero: `${base} py-5`,
+    plain: `${base} px-1 py-2`,
+    card: `${base} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm`,
+    soft: `${base} rounded-3xl border border-emerald-100 bg-emerald-50 p-5`,
+    highlight: `${base} rounded-3xl border border-emerald-200 bg-gradient-to-l from-emerald-50 to-white p-5`,
+    outline: `${base} rounded-3xl border border-dashed border-slate-300 bg-white p-5`,
+    quote: `${base} rounded-3xl border border-slate-200 bg-slate-50 p-5`,
+  };
+
+  return classes[variant];
+}
+
+
+
+
+
+
+
+
+===== FILE: lib\report-engine\report-builder-template-runtime.ts =====
+import { prisma } from "@/lib/prisma";
+
+type LegacyReportTemplateId =
+  | "official-long"
+  | "visual-activity"
+  | "executive-brief";
+
+const LEGACY_REPORT_TEMPLATE_IDS: LegacyReportTemplateId[] = [
+  "official-long",
+  "visual-activity",
+  "executive-brief",
+];
+
+export function isLegacyReportTemplateId(value?: string | null) {
+  return Boolean(
+    value &&
+      LEGACY_REPORT_TEMPLATE_IDS.includes(value as LegacyReportTemplateId)
+  );
+}
+
+export function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+export function getBuilderTemplateFromSnapshot(snapshot: unknown) {
+  const data = snapshot as
+    | {
+        source?: string;
+        builderTemplate?: any;
+      }
+    | null
+    | undefined;
+
+  if (data?.source !== "TEMPLATE_BUILDER") {
+    return null;
+  }
+
+  if (!data.builderTemplate || !Array.isArray(data.builderTemplate.pages)) {
+    return null;
+  }
+
+  return data.builderTemplate;
+}
+
+export async function getBuilderTemplateFromDatabase(templateId?: string | null) {
+  if (!templateId || isLegacyReportTemplateId(templateId)) {
+    return null;
+  }
+
+  const templateRecord = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  if (!templateRecord) {
+    return null;
+  }
+
+  const templateJson =
+    parseBuilderTemplateJson(templateRecord.templateJson) ||
+    parseBuilderTemplateJson(templateRecord.content);
+
+  if (!templateJson || !Array.isArray(templateJson.pages)) {
+    return null;
+  }
+
+  return {
+    ...templateJson,
+    id: templateRecord.id,
+    name: templateRecord.name || templateJson.name,
+    description:
+      templateRecord.description ||
+      templateJson.description ||
+      "قالب تقرير محفوظ من صانع القوالب.",
+    serviceSlug: templateRecord.serviceSlug || templateJson.serviceSlug || null,
+    status: templateJson.status || "PUBLISHED",
+  };
+}
+
+export async function resolveBuilderTemplateForReport(
+  report: {
+    templateId?: string | null;
+    templateSnapshot?: unknown;
+  },
+  options?: {
+    templateIdOverride?: string | null;
+  }
+) {
+  const snapshotTemplate = getBuilderTemplateFromSnapshot(report.templateSnapshot);
+
+  if (snapshotTemplate) {
+    return snapshotTemplate;
+  }
+
+  return getBuilderTemplateFromDatabase(
+    options?.templateIdOverride || report.templateId
+  );
+}
+
+export function buildBuilderPreviewCaseData(
+  report: any,
+  values: Array<{
+    fieldKey: string;
+    fieldLabel: string;
+    value?: string;
+    displayValue?: string;
+  }>
+) {
+  const student = report.caseEntry.student;
+  const guardian = student?.guardian;
+
+  const reportEvidenceItems = Array.isArray(report.evidenceItems)
+    ? report.evidenceItems
+    : [];
+
+  const caseEvidenceItems = Array.isArray(report.caseEntry?.evidences)
+    ? report.caseEntry.evidences
+    : [];
+
+  const evidences = reportEvidenceItems.length
+    ? reportEvidenceItems
+        .filter((item: any) => item.visible !== false)
+        .map((item: any) => ({
+          id: item.id,
+          title: item.caption || item.fileName,
+          fileName: item.fileName,
+          fileUrl: item.fileUrl || "",
+          imageUrl:
+            item.mimeType?.startsWith("image/") || /\.(png|jpg|jpeg|webp|gif)$/i.test(item.fileName || "")
+              ? item.fileUrl || ""
+              : undefined,
+          mimeType: item.mimeType || "",
+          note: item.caption || "",
+        }))
+    : caseEvidenceItems.map((item: any) => ({
+        id: item.id,
+        title: item.note || item.fileName || "شاهد",
+        fileName: item.fileName || "مرفق",
+        fileUrl: item.fileUrl || "",
+        imageUrl:
+          item.mimeType?.startsWith("image/") || /\.(png|jpg|jpeg|webp|gif)$/i.test(item.fileName || "")
+            ? item.fileUrl || ""
+            : undefined,
+        mimeType: item.mimeType || "",
+        note: item.note || "",
+      }));
+
+  return {
+    id: report.caseEntry.id,
+    title: report.caseEntry.title || report.title,
+    status: report.caseEntry.status,
+    createdAt: report.caseEntry.createdAt?.toISOString?.() || "",
+    updatedAt: report.caseEntry.updatedAt?.toISOString?.() || "",
+    submittedAt: report.caseEntry.submittedAt?.toISOString?.() || null,
+    serviceName: report.caseEntry.service.name,
+    serviceSlug: report.caseEntry.service.slug,
+
+    service: {
+      id: report.caseEntry.service.id,
+      name: report.caseEntry.service.name,
+      slug: report.caseEntry.service.slug,
+    },
+
+    student: student
+      ? {
+          id: student.id,
+          fullName: student.fullName,
+          nationalId: student.nationalId,
+          stage: student.stage,
+          grade: student.grade,
+          classroom: student.classroom,
+          guardianName: guardian?.name || student.guardianName || null,
+          guardianPhone: guardian?.phone || student.guardianPhone || null,
+        }
+      : null,
+
+    values: values.map((item) => ({
+      fieldKey: item.fieldKey,
+      fieldLabel: item.fieldLabel,
+      value: item.displayValue ?? item.value ?? "",
+    })),
+
+    evidences,
+  };
+}
+
+
+===== FILE: lib\report-engine\report-template-runtime.ts =====
+NOT FOUND
+
+===== FILE: lib\report-engine\report-data.ts =====
+NOT FOUND
+
+===== FILE: lib\report-engine\report-snapshot.ts =====
+import type { ReportMappedCase } from "@/lib/report-engine/report-case-data-mapper";
+
+export type ReportTemplateSnapshot = {
+  templateId: string;
+  templateName: string;
+  version: number;
+  capturedAt: string;
+  source: "DEFAULT_RUNTIME_TEMPLATE" | "TEMPLATE_BUILDER";
+  settings: {
+    showCover: boolean;
+    defaultTemplate: string;
+    defaultEvidenceLayout: string;
+    pageSize: "A4";
+    direction: "rtl";
+  };
+};
+
+export type ReportDataSnapshot = {
+  capturedAt: string;
+  caseId: string;
+  caseTitle: string;
+  caseStatus: string;
+  service: ReportMappedCase["service"];
+  student: ReportMappedCase["student"];
+  values: ReportMappedCase["values"];
+  evidences: ReportMappedCase["evidences"];
+  submittedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function createDefaultTemplateSnapshot(
+  templateId = "official-long"
+): ReportTemplateSnapshot {
+  return {
+    templateId,
+    templateName:
+      templateId === "visual-activity"
+        ? "القالب البصري"
+        : templateId === "executive-brief"
+          ? "القالب المختصر"
+          : "القالب الرسمي",
+    version: 1,
+    capturedAt: new Date().toISOString(),
+    source: "DEFAULT_RUNTIME_TEMPLATE",
+    settings: {
+      showCover: true,
+      defaultTemplate: templateId,
+      defaultEvidenceLayout: "grid-2x2",
+      pageSize: "A4",
+      direction: "rtl",
+    },
+  };
+}
+
+export function createReportDataSnapshot(
+  reportData: ReportMappedCase
+): ReportDataSnapshot {
+  return {
+    capturedAt: new Date().toISOString(),
+    caseId: reportData.id,
+    caseTitle: reportData.title,
+    caseStatus: reportData.status,
+    service: reportData.service,
+    student: reportData.student,
+    values: reportData.values,
+    evidences: reportData.evidences,
+    submittedAt: reportData.submittedAt,
+    createdAt: reportData.createdAt,
+    updatedAt: reportData.updatedAt,
+  };
+}
+
+===== FILE: lib\report-engine\report-renderer.ts =====
+NOT FOUND
+
+===== FILE: lib\report-engine\report-blocks.ts =====
+NOT FOUND
+
+===== FILE: lib\report-engine\report-designs.ts =====
+NOT FOUND
+
+===== FILE: app\dashboard\reports\new\page.tsx =====
+import { prisma } from "@/lib/prisma";
+import { NewReportCasePicker } from "@/components/reports/new-report-case-picker";
+
+type NewReportPageProps = {
+  searchParams?: Promise<{
+    caseId?: string;
+  }>;
+};
+
+function parseTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+
+const REPORT_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
+  positive_behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+  behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+};
+
+function normalizeReportCaseTitleText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanReportCaseTitle(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  if (!text || text === "null" || text === "undefined" || text.length > 140) {
+    return "";
+  }
+
+  return text;
+}
+
+function stringifyReportCaseTitleCandidate(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return cleanReportCaseTitle(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const candidate = stringifyReportCaseTitleCandidate(item);
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    for (const key of [
+      "program_name",
+      "programName",
+      "program",
+      "guidanceProgram",
+      "guidance_program",
+      "selectedProgram",
+      "activityName",
+      "activity_name",
+      "title",
+      "name",
+      "label",
+      "value",
+    ]) {
+      const candidate = stringifyReportCaseTitleCandidate(record[key]);
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+  }
+
+  return "";
+}
+
+function isGenericReportCaseTitle(title: string) {
+  const normalized = normalizeReportCaseTitleText(title);
+
+  return (
+    !normalized ||
+    normalized === "بدون عنوان" ||
+    normalized === "حاله بدون عنوان" ||
+    normalized === "حالة بدون عنوان" ||
+    normalized === "حاله جديده" ||
+    normalized === "حالة جديدة" ||
+    normalized.includes("برنامج ارشادي جديد")
+  );
+}
+
+function isReportCaseTitleField(value: any) {
+  const text = normalizeReportCaseTitleText(
+    [value?.fieldKey, value?.field?.key, value?.field?.label]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  return (
+    text.includes("program") ||
+    text.includes("activity") ||
+    text.includes("title") ||
+    text.includes("برنامج") ||
+    text.includes("النشاط") ||
+    text.includes("عنوان") ||
+    text.includes("موضوع")
+  );
+}
+
+function extractReportCaseTitleSelectedValues(value: unknown): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return [String(value)];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractReportCaseTitleSelectedValues(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return [
+      ...extractReportCaseTitleSelectedValues(record.value),
+      ...extractReportCaseTitleSelectedValues(record.id),
+      ...extractReportCaseTitleSelectedValues(record.key),
+      ...extractReportCaseTitleSelectedValues(record.slug),
+      ...extractReportCaseTitleSelectedValues(record.label),
+      ...extractReportCaseTitleSelectedValues(record.name),
+    ];
+  }
+
+  return [];
+}
+
+function getReportCaseOptionLabel(value: any) {
+  const selectedValues = extractReportCaseTitleSelectedValues(
+    value?.jsonValue ?? value?.value,
+  );
+
+  const options = Array.isArray(value?.field?.options)
+    ? value.field.options
+    : [];
+
+  for (const selectedValue of selectedValues) {
+    const cleanSelected = String(selectedValue).trim();
+
+    if (!cleanSelected) {
+      continue;
+    }
+
+    const fallbackLabel = REPORT_CASE_TITLE_FALLBACK_LABELS[cleanSelected];
+
+    if (fallbackLabel) {
+      return fallbackLabel;
+    }
+
+    const option = options.find((item: any) => {
+      return (
+        String(item?.value || "").trim() === cleanSelected ||
+        String(item?.label || "").trim() === cleanSelected
+      );
+    });
+
+    if (option?.label) {
+      return cleanReportCaseTitle(option.label);
+    }
+  }
+
+  return "";
+}
+
+function getReportCaseValueTitle(value: any) {
+  return (
+    getReportCaseOptionLabel(value) ||
+    stringifyReportCaseTitleCandidate(value?.jsonValue) ||
+    stringifyReportCaseTitleCandidate(value?.value)
+  );
+}
+
+function getSmartReportCaseTitle(caseEntry: any) {
+  const values = Array.isArray(caseEntry.values) ? caseEntry.values : [];
+
+  for (const value of values) {
+    if (!isReportCaseTitleField(value)) {
+      continue;
+    }
+
+    const candidate = getReportCaseValueTitle(value);
+
+    if (candidate && !isGenericReportCaseTitle(candidate)) {
+      return candidate;
+    }
+  }
+
+  const savedTitle = cleanReportCaseTitle(caseEntry.title);
+
+  if (savedTitle && !isGenericReportCaseTitle(savedTitle)) {
+    return savedTitle;
+  }
+
+  return caseEntry.service?.name || "حالة جديدة";
+}
+
+
+export default async function NewReportPage({
+  searchParams,
+}: NewReportPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const selectedCaseId = params.caseId?.trim() || "";
+
+  const [cases, reportTemplates] = await Promise.all([
+    prisma.caseEntry.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 100,
+      include: {
+        service: true,
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+        values: {
+          include: {
+            field: {
+              include: {
+                options: {
+                  orderBy: {
+                    order: "asc",
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    }),
+
+    prisma.reportTemplate.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    }),
+  ]);
+
+  const normalizedCases = cases.map((caseEntry) => ({
+    id: caseEntry.id,
+    title: getSmartReportCaseTitle(caseEntry),
+    status: caseEntry.status,
+    createdAt: caseEntry.createdAt.toISOString(),
+    updatedAt: caseEntry.updatedAt.toISOString(),
+    submittedAt: caseEntry.submittedAt?.toISOString() || null,
+
+    service: {
+      id: caseEntry.service.id,
+      name: caseEntry.service.name,
+      slug: caseEntry.service.slug,
+    },
+
+    student: caseEntry.student
+      ? {
+          id: caseEntry.student.id,
+          fullName: caseEntry.student.fullName,
+          nationalId: caseEntry.student.nationalId,
+          stage: caseEntry.student.stage,
+          grade: caseEntry.student.grade,
+          classroom: caseEntry.student.classroom,
+          guardianName: caseEntry.student.guardian?.name || null,
+          guardianPhone: caseEntry.student.guardian?.phone || null,
+        }
+      : null,
+
+    valuesCount: caseEntry.values.length,
+    evidencesCount: caseEntry.evidences.length,
+  }));
+
+  const publishedTemplates = reportTemplates
+    .map((template) => {
+      const templateJson = parseTemplateJson(template.templateJson) || parseTemplateJson(template.content);
+
+      const status =
+        templateJson?.status === "PUBLISHED"
+          ? "PUBLISHED"
+          : templateJson?.status || "DRAFT";
+
+      return {
+        id: template.id,
+        name: template.name,
+        description:
+          template.description ||
+          templateJson?.description ||
+          "قالب تقرير منشور من صانع القوالب.",
+        serviceSlug: template.serviceSlug || templateJson?.serviceSlug || null,
+        scope:
+          templateJson?.scope === "SERVICE" || template.serviceSlug
+            ? ("SERVICE" as const)
+            : ("GLOBAL" as const),
+        status,
+        pagesCount: Array.isArray(templateJson?.pages)
+          ? templateJson.pages.length
+          : 0,
+      };
+    })
+    .filter((template) => template.status === "PUBLISHED");
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <NewReportCasePicker
+        cases={normalizedCases}
+        initialCaseId={selectedCaseId}
+        publishedTemplates={publishedTemplates}
+      />
+    </main>
+  );
+}
+
+
+===== FILE: app\api\dashboard\reports\route.ts =====
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { logReportCreatedEvent } from "@/lib/admin/activity-events";
+import {
+  mapCaseEntryToReportData,
+  type ReportMappedCase,
+} from "@/lib/report-engine/report-case-data-mapper";
+import {
+  createDefaultTemplateSnapshot,
+  createReportDataSnapshot,
+} from "@/lib/report-engine/report-snapshot";
+
+type CreateReportBody = {
+  caseEntryId?: string;
+  caseId?: string;
+  title?: string;
+  templateId?: string;
+};
+
+function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+function isPublishedBuilderTemplate(templateJson: Record<string, any> | null) {
+  return templateJson?.status === "PUBLISHED" && Array.isArray(templateJson?.pages);
+}
+
+async function createTemplateSnapshotFromDatabase(templateId: string) {
+  const builderTemplate = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  const templateJson =
+    parseBuilderTemplateJson(builderTemplate?.templateJson) ||
+    parseBuilderTemplateJson(builderTemplate?.content);
+
+  if (!builderTemplate || !isPublishedBuilderTemplate(templateJson)) {
+    return createDefaultTemplateSnapshot(templateId);
+  }
+
+  const safeTemplateJson = templateJson as Record<string, any>;
+
+  return {
+    templateId: builderTemplate.id,
+    templateName: builderTemplate.name,
+    version: 1,
+    capturedAt: new Date().toISOString(),
+    source: "TEMPLATE_BUILDER",
+    settings: {
+      showCover: true,
+      defaultTemplate: builderTemplate.id,
+      defaultEvidenceLayout: "grid-2x2",
+      pageSize: "A4",
+      direction: "rtl",
+    },
+    builderTemplate: {
+      ...safeTemplateJson,
+      id: builderTemplate.id,
+      name: builderTemplate.name || safeTemplateJson.name,
+      description:
+        builderTemplate.description ||
+        safeTemplateJson.description ||
+        "Ù‚Ø§Ù„Ø¨ ØªÙ‚Ø±ÙŠØ± Ù…Ø­ÙÙˆØ¸ Ù…Ù† ØµØ§Ù†Ø¹ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨.",
+      serviceSlug:
+        builderTemplate.serviceSlug || safeTemplateJson.serviceSlug || null,
+      status: "PUBLISHED",
+    },
+  };
+}
+
+function buildReportContent(reportData: ReportMappedCase) {
+  const studentLines = reportData.student
+    ? [
+        `Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©: ${reportData.student.fullName}`,
+        `Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©: ${reportData.student.nationalId || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø§Ù„Ù…Ø±Ø­Ù„Ø©: ${reportData.student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ØµÙ: ${reportData.student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ÙØµÙ„: ${reportData.student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianName || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianPhone || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+      ].join("\n")
+    : "Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø·Ø§Ù„Ø¨/Ø·Ø§Ù„Ø¨Ø© Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const valuesLines = reportData.values.length
+    ? reportData.values
+        .map((item: any, index: any) => {
+          return `${index + 1}. ${item.fieldLabel}: ${item.value || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ù…Ø­ÙÙˆØ¸Ø© ÙÙŠ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const evidencesLines = reportData.evidences.length
+    ? reportData.evidences
+        .map((item: any, index: any) => {
+          return `${index + 1}. ${item.title || item.fileName || "Ø´Ø§Ù‡Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´ÙˆØ§Ù‡Ø¯ Ù…Ø±ÙÙ‚Ø©.";
+
+  return `
+ØªÙ‚Ø±ÙŠØ±: ${reportData.title}
+
+Ø§Ù„Ø®Ø¯Ù…Ø©:
+${reportData.service.name}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©:
+${studentLines}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©:
+Ø±Ù‚Ù… Ø§Ù„Ø­Ø§Ù„Ø©: ${reportData.id}
+Ø­Ø§Ù„Ø© Ø§Ù„Ø³Ø¬Ù„: ${reportData.status}
+ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡: ${new Date(reportData.createdAt).toLocaleDateString("ar-SA")}
+
+Ø§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø³Ø¬Ù„Ø©:
+${valuesLines}
+
+Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯:
+${evidencesLines}
+
+Ù…Ù„Ø®Øµ Ø§Ù„ØªÙ‚Ø±ÙŠØ±:
+ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ù‡Ø°Ø§ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³Ø¬Ù„Ø© ÙÙŠ Ù…Ù†ØµØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØŒ ÙˆÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©ØŒ ÙˆØ§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø¯Ø®Ù„Ø©ØŒ ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…Ø±ÙÙ‚Ø©.
+`.trim();
+}
+
+export async function POST(request: Request) {
+  // subscription-api-guard:POST:requireActiveSubscriptionApi()
+  const subscriptionGuard = await requireActiveSubscriptionApi();
+  if (subscriptionGuard) return subscriptionGuard;
+
+  try {
+    const body = (await request.json()) as CreateReportBody;
+
+    const caseEntryId = body.caseEntryId || body.caseId;
+
+    if (!caseEntryId) {
+      return NextResponse.json(
+        {
+          error: "caseEntryId Ù…Ø·Ù„ÙˆØ¨ Ù„Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const templateId = body.templateId || "official-long";
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: caseEntryId,
+      },
+      include: {
+        service: true,
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+        values: {
+          include: {
+            field: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        caseEvidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const serviceGuard = await requireServiceAccessApi(caseEntry.service.slug);
+    if (serviceGuard) return serviceGuard;
+
+    const reportData = mapCaseEntryToReportData(caseEntry);
+
+    const reportTitle =
+      body.title?.trim() ||
+      `ØªÙ‚Ø±ÙŠØ± - ${reportData.title || reportData.service.name}`;
+
+    const initialContent = buildReportContent(reportData);
+
+    const templateSnapshot = await createTemplateSnapshotFromDatabase(templateId);
+    const reportDataSnapshot = createReportDataSnapshot(reportData);
+
+    const report = await prisma.guidanceReport.create({
+      data: {
+        title: reportTitle,
+        serviceSlug: reportData.service.slug,
+        caseEntryId: reportData.id,
+        genderMode: caseEntry.student?.gender === "FEMALE" ? "FEMALE" : "MALE",
+
+        editableContent: initialContent,
+        renderedContent: initialContent,
+
+        templateId,
+        templateSnapshot,
+        reportDataSnapshot,
+        generatedAt: new Date(),
+
+        evidenceItems: {
+          create: reportData.evidences.map((item: any, index: any) => ({
+            fileName: item.fileName || `evidence-${index + 1}`,
+            fileUrl: item.fileUrl,
+            caption: item.note || item.title || item.fileName || null,
+            sortOrder: index,
+            visible: true,
+          })),
+        },
+      },
+      include: {
+        evidenceItems: true,
+      },
+    });
+
+    
+    // audit-log:report-created
+    await logReportCreatedEvent({
+      reportId: report.id,
+      caseEntryId: reportData.id,
+      title: report.title,
+      templateId,
+      serviceSlug: reportData.service.slug,
+      evidenceCount: Array.isArray(report.evidenceItems)
+        ? report.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
+      success: true,
+      reportId: report.id,
+      previewUrl: `/dashboard/reports/${report.id}/preview?template=${templateId}`,
+    });
+  } catch (error) {
+    console.error("create report error:", error);
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+===== FILE: app\api\dashboard\reports\prepare\route.ts =====
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { mapCaseEntryToReportData } from "@/lib/report-engine/report-case-data-mapper";
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldKey,
+  getWorkflowFieldLabel,
+  type WorkflowValueLike,
+} from "@/lib/workflow-values/workflow-display-value";
+
+type FieldLookupItem = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: Array<{
+    label?: string | null;
+    value?: string | null;
+  }> | null;
+};
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const caseId = searchParams.get("caseId")?.trim();
+
+    if (!caseId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "caseId Ù…Ø·Ù„ÙˆØ¨ Ù„ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: caseId,
+      },
+      include: {
+        service: true,
+
+        workflow: {
+          include: {
+            steps: {
+              include: {
+                fields: {
+                  include: {
+                    options: {
+                      orderBy: {
+                        order: "asc",
+                      },
+                    },
+                  },
+                  orderBy: {
+                    order: "asc",
+                  },
+                },
+              },
+              orderBy: {
+                order: "asc",
+              },
+            },
+          },
+        },
+
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+
+        values: {
+          include: {
+            field: {
+              include: {
+                options: {
+                  orderBy: {
+                    order: "asc",
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+
+        caseEvidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const rawReportData = mapCaseEntryToReportData(caseEntry as any);
+    const localizedValues = buildLocalizedValues(caseEntry as any);
+
+    const reportData = {
+      ...rawReportData,
+      values: localizedValues,
+    };
+
+    return NextResponse.json({
+      ok: true,
+      reportData,
+    });
+  } catch (error) {
+    console.error("prepare report error:", error);
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "ØªØ¹Ø°Ø± ØªØ¬Ù‡ÙŠØ² Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+function buildFieldMap(caseEntry: any) {
+  const map = new Map<string, FieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function normalizeCaseValue(
+  value: any,
+  fieldMap: Map<string, FieldLookupItem>
+): WorkflowValueLike {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label: value.field.label || fieldFromWorkflow?.label || fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: fieldKey,
+            options: [],
+          },
+  };
+}
+
+function shouldHideValue(item: WorkflowValueLike) {
+  const key = getWorkflowFieldKey(item);
+
+  return (
+    !key ||
+    key === "selectedStudent" ||
+    key.endsWith("__other") ||
+    ["student", "guardian", "metadata"].includes(key)
+  );
+}
+
+function buildLocalizedValues(caseEntry: any) {
+  const fieldMap = buildFieldMap(caseEntry);
+
+  const normalizedValues = caseEntry.values.map((value: any) =>
+    normalizeCaseValue(value, fieldMap)
+  );
+
+  return normalizedValues
+    .filter((item: WorkflowValueLike) => !shouldHideValue(item))
+    .map((item: WorkflowValueLike, index: number) => {
+      const fieldKey = getWorkflowFieldKey(item);
+      const fieldLabel = getWorkflowFieldLabel(item, index);
+      const displayValue = formatWorkflowDisplayValue(item, normalizedValues);
+
+      return {
+        fieldKey,
+        fieldLabel,
+        value: displayValue || "â€”",
+      };
+    });
+}
+
+
+===== FILE: app\dashboard\reports\[id]\preview\page.tsx =====
+NOT FOUND
+
+===== FILE: app\dashboard\reports\[id]\studio\page.tsx =====
+NOT FOUND
+
+===== FILE: prisma\schema.prisma =====
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  ADMIN
+  COUNSELOR
+  SCHOOL_OWNER
+  STAFF
+}
+
+enum ImportSessionStatus {
+  DRAFT
+  PARSED
+  COMMITTED
+  FAILED
+  CANCELED
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  CONFLICT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum StudentPickerMode {
+  SERVICE_DEFAULT
+  REQUIRED
+  DISABLED
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  FILE_UPLOAD
+  IMAGE_UPLOAD
+  STUDENT_PICKER
+  PARENT_PICKER
+  STAFF_PICKER
+  REPEATER
+  SIGNATURE
+  RICH_TEXT
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum EvidenceType {
+  IMAGE
+  FILE
+  LINK
+}
+
+enum CalendarReminderStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+enum CalendarReminderPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum CalendarReminderLinkType {
+  GENERAL
+  SERVICE
+  CASE
+  STUDENT
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MANUAL
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+  users                 User[]
+
+  profile           SchoolProfile?
+  students          Student[]
+  guardians         Guardian[]
+  staff             StaffMember[]
+  services          ServiceAccess[]
+  cases             CaseEntry[]
+  subscription      Subscription?
+  resultsAnalyses   ResultsAnalysis[]
+  assessmentAnalyses AssessmentAnalysis[]
+  calendarReminders CalendarReminder[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  officialName String?
+  jobTitle     String?
+  isActive     Boolean  @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases             CaseEntry[]
+  sessions          UserSession[]
+  calendarReminders CalendarReminder[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+}
+
+model UserSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenId String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenId])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model SchoolProfile {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  schoolName          String
+  principalName       String?
+  educationDepartment String?
+  educationOffice     String?
+  city                String?
+  district            String?
+  stage               String?
+  academicYear        String?
+  currentSemester     String?
+  logoUrl             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guardian {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String?
+  relation String?
+
+  students Student[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  guardianId String?
+  guardian   Guardian? @relation(fields: [guardianId], references: [id])
+
+  fullName   String
+  nationalId String?
+  gender     Gender  @default(UNKNOWN)
+  stage      String?
+  grade      String?
+  classroom  String?
+  phone      String?
+  isActive   Boolean @default(true)
+
+  cases             CaseEntry[]
+  calendarReminders CalendarReminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([guardianId])
+  @@index([fullName])
+}
+
+model StaffMember {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  name      String
+  roleTitle String?
+  phone     String?
+  email     String?
+  gender    Gender  @default(UNKNOWN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows         Workflow[]
+  cases             CaseEntry[]
+  access            ServiceAccess[]
+  calendarReminders CalendarReminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name         String
+  version      Int            @default(1)
+  status       WorkflowStatus @default(DRAFT)
+  isActive     Boolean        @default(false)
+  workflowType String         @default("default")
+
+  studentPickerMode StudentPickerMode @default(SERVICE_DEFAULT)
+  steps             WorkflowStep[]
+  cases             CaseEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([serviceId, workflowType, isActive])
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  defaultValue         String? @db.Text
+  defaultJson          Json?
+  autoSelectWhenLinked Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId       String?
+  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+  workflowSnapshot Json?
+  guidanceReports  GuidanceReport[]
+  studentId        String?
+  student          Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values            CaseValue[]
+  evidences         Evidence[]
+  calendarReminders CalendarReminder[]
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String? @db.Text
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+model Evidence {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  type     EvidenceType
+  fileName String?
+  fileUrl  String?
+  mimeType String?
+  size     Int?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+}
+
+model CalendarReminder {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title String
+  note  String?
+
+  status   CalendarReminderStatus   @default(PENDING)
+  priority CalendarReminderPriority @default(NORMAL)
+  linkType CalendarReminderLinkType @default(GENERAL)
+
+  scheduledAt         DateTime
+  remindBeforeMinutes Int?
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  completedAt   DateTime?
+  completedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledAt])
+  @@index([serviceId])
+  @@index([caseEntryId])
+  @@index([studentId])
+}
+
+model ExportTemplate {
+  id          String  @id @default(cuid())
+  serviceSlug String?
+  name        String
+  content     String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceSlug])
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  isEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageLimit {
+  id         String @id @default(cuid())
+  planSlug   String
+  featureKey String
+  limit      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planSlug, featureKey])
+}
+
+model UsageRecord {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  featureKey      String
+  amount          Int    @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+  @@index([featureKey])
+}
+
+model PaymentProvider {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  isActive   Boolean @default(false)
+  configJson Json?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id             String        @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  providerId String?
+  provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+
+  amount       Int
+  currency     String        @default("SAR")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalRef  String?
+  metadataJson Json?
+
+  invoice Invoice?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model BankTransferRequest {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  amount          Int
+  currency        String        @default("SAR")
+  senderName      String?
+  receiptUrl      String?
+  status          PaymentStatus @default(PENDING)
+  adminNote       String?
+
+  planId          String?
+  durationDays    Int?
+  requesterUserId String?
+  billingCycle    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model ManualActivation {
+  id              String    @id @default(cuid())
+  schoolAccountId String
+  activatedById   String?
+  reason          String?
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolAccountId])
+}
+
+model IntegrationProvider {
+  id     String            @id @default(cuid())
+  name   String
+  slug   String            @unique
+  status IntegrationStatus @default(INACTIVE)
+
+  credentials ApiCredential[]
+  webhooks    WebhookEvent[]
+  syncLogs    ExternalSyncLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiCredential {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  label          String
+  keyName        String
+  encryptedValue String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model WebhookEvent {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  eventType   String
+  payloadJson Json?
+  processed   Boolean   @default(false)
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([processed])
+}
+
+model ExternalSyncLog {
+  id         String               @id @default(cuid())
+  providerId String?
+  provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+
+  entityType String
+  entityId   String?
+  status     String
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([providerId])
+  @@index([entityType])
+}
+
+
+model AssessmentAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title      String
+  sourceFile String?
+  status     String @default("COMPLETED")
+  uploadMode String @default("GENERAL")
+
+  totalStudents     Int    @default(0)
+  totalRows         Int    @default(0)
+  totalSubjects     Int    @default(0)
+  averagePercentage Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+  @@index([createdAt])
+}
+model ResultsAnalysis {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  title      String
+  grade      String?
+  classroom  String?
+  sourceFile String?
+  status     String  @default("COMPLETED")
+
+  totalStudents Int    @default(0)
+  totalSubjects Int    @default(0)
+  averageScore  Float?
+
+  summaryJson Json?
+  rowsJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([grade])
+  @@index([classroom])
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+model GuidanceReport {
+  id          String @id @default(cuid())
+  title       String
+  serviceSlug String
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  status ReportStatus @default(DRAFT)
+
+  genderMode String @default("MALE")
+
+  editableContent String  @db.LongText
+  renderedContent String? @db.LongText
+
+  evidenceEnabled Boolean @default(true)
+
+  templateId         String?
+  templateSnapshot   Json?
+  reportDataSnapshot Json?
+  generatedAt        DateTime?
+  generatedPdfUrl    String?
+
+  approvedAt DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evidenceItems ReportEvidence[]
+
+  @@index([caseEntryId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([templateId])
+  @@index([generatedAt])
+}
+
+model ReportEvidence {
+  id String @id @default(cuid())
+
+  reportId String
+  report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName String
+  fileUrl  String
+  caption  String?
+
+  mimeType String?
+  size     Int?
+
+  sortOrder Int     @default(0)
+  visible   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+  @@index([visible])
+}
+
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type ReportTemplateType @default(SYSTEM)
+  content      String? @db.LongText
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model StudentImportSession {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  title  String
+  source String              @default("NOOR_EXCEL")
+  status ImportSessionStatus @default(DRAFT)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  files StudentImportFile[]
+  rows  StudentImportRow[]
+
+  committedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  academicYear      String?
+  term              String?
+  importMode        String    @default("FULL_SYNC")
+  committedByUserId String?
+  isArchived        Boolean   @default(false)
+  archivedAt        DateTime?
+  archivedByUserId  String?
+  cycleId           String?
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model StudentImportFile {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileName String
+  mimeType String?
+  size     Int?
+  rowCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model StudentImportRow {
+  id        String               @id @default(cuid())
+  sessionId String
+  session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowIndex Int
+  status   ImportRowStatus @default(PENDING)
+
+  fullName      String
+  nationalId    String?
+  gender        Gender  @default(UNKNOWN)
+  stage         String?
+  grade         String?
+  classroom     String?
+  guardianName  String?
+  guardianPhone String?
+
+  matchedStudentId String?
+  errorMessage     String?
+  rawJson          Json?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  planAction String?
+
+  @@index([sessionId])
+  @@index([nationalId])
+  @@index([status])
+}
+
+model CaseEvidence {
+  id String @id @default(cuid())
+
+  caseEntryId String?
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+
+  fileName String
+  fileUrl  String
+  mimeType String
+  size     Int
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([caseEntryId])
+}
+
+model ActivationCode {
+  id String @id @default(cuid())
+
+  code String @unique
+
+  label        String?
+  durationDays Int     @default(30)
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+
+  schoolAccountId String?
+  createdById     String?
+  usedByUserId    String?
+
+  startsAt   DateTime?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([usedByUserId])
+}
+
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model StudentImportChange {
+  id String @id @default(cuid())
+
+  sessionId String
+  rowId     String?
+  studentId String?
+
+  action String
+
+  beforeJson Json?
+  afterJson  Json?
+
+  rolledBackAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([studentId])
+  @@index([action])
+}
+
+model NoorImportCycle {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  academicYear    String
+  term            String
+  title           String
+  status          String @default("DRAFT")
+
+  totalStudents     Int @default(0)
+  totalSessions     Int @default(0)
+  pendingSessions   Int @default(0)
+  committedSessions Int @default(0)
+
+  latestSessionId   String?
+  latestCommittedAt DateTime?
+
+  isArchived       Boolean   @default(false)
+  archivedAt       DateTime?
+  archivedByUserId String?
+  createdByUserId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([schoolAccountId, academicYear, term])
+  @@index([status])
+}
+
+model InvoiceSettings {
+  id                     String   @id @default(cuid())
+  singletonKey           String   @unique @default("default")
+  sellerName             String   @default("منصة التوجيه الطلابي")
+  sellerDomain           String?  @default("smstudents.com")
+  sellerCountry          String?  @default("المملكة العربية السعودية")
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+  vatEnabled             Boolean  @default(false)
+  vatRate                Int      @default(0)
+  invoicePrefix          String   @default("INV")
+  invoiceNote            String?  @db.Text
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model InvoiceNumberSequence {
+  id         String   @id @default(cuid())
+  year       Int
+  month      Int
+  nextNumber Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+model Invoice {
+  id                   String             @id @default(cuid())
+  invoiceNumber        String             @unique
+  paymentTransactionId String             @unique
+  paymentTransaction   PaymentTransaction @relation(fields: [paymentTransactionId], references: [id], onDelete: Cascade)
+  issuedById           String?
+  status               String             @default("ISSUED")
+
+  sellerName             String
+  sellerDomain           String?
+  sellerCountry          String?
+  sellerAddress          String?
+  commercialRegistration String?
+  taxNumber              String?
+
+  buyerName        String
+  buyerEmail       String?
+  buyerJobTitle    String?
+  buyerSchoolName  String?
+  buyerAccountName String?
+
+  itemTitle      String
+  subtotalAmount Int
+  taxRate        Int    @default(0)
+  taxAmount      Int    @default(0)
+  totalAmount    Int
+  currency       String @default("SAR")
+
+  pdfUrl       String?
+  snapshotJson Json?
+  creditNotes  CreditNote[]
+  issuedAt     DateTime     @default(now())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([paymentTransactionId])
+  @@index([issuedAt])
+  @@index([status])
+}
+
+model CreditNote {
+  id               String  @id @default(cuid())
+  creditNoteNumber String  @unique
+  invoiceId        String
+  invoice          Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  issuedById String?
+  status     String  @default("ISSUED")
+  reason     String? @db.Text
+
+  subtotalAmount Int
+  taxRate        Int    @default(0)
+  taxAmount      Int    @default(0)
+  totalAmount    Int
+  currency       String @default("SAR")
+
+  snapshotJson Json?
+  issuedAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([issuedAt])
+  @@index([status])
+}
+
+model AssessmentInterventionRule {
+  id String @id @default(cuid())
+
+  schoolAccountId String?
+
+  title            String
+  sourceType       String @default("ASSESSMENT_RISK_STUDENT")
+  interventionType String @default("ACADEMIC_RISK")
+
+  targetServiceId  String
+  targetWorkflowId String?
+
+  isEnabled Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  conditionJson    Json?
+  fieldMappingJson Json?
+
+  createdByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([sourceType])
+  @@index([interventionType])
+  @@index([targetServiceId])
+  @@index([targetWorkflowId])
+  @@index([isEnabled])
+  @@index([isDefault])
+}
+model AssessmentInterventionWorkflowTarget {
+  id String @id @default(cuid())
+
+  serviceId  String
+  workflowId String
+  targetType String
+
+  isEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workflowId, targetType])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([targetType])
+  @@index([isEnabled])
+}

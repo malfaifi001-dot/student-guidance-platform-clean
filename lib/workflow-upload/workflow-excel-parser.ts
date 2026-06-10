@@ -12,6 +12,10 @@ export type ParsedWorkflowRow = {
   fieldOrder?: number;
   allowOther: boolean;
 
+  defaultValue?: string;
+  defaultValues?: string;
+  autoSelectWhenLinked?: boolean;
+
   dependsOnFieldKey?: string;
 
   linkedToValue?: string;
@@ -139,6 +143,40 @@ const headerMap: Record<keyof ParsedWorkflowRow, string[]> = {
     "\u064a\u0633\u0645\u062d \u0623\u062e\u0631\u0649",
     "\u0627\u0644\u0633\u0645\u0627\u062d \u0628\u0627\u062e\u0631\u0649",
     "\u0627\u0644\u0633\u0645\u0627\u062d \u0628\u0623\u062e\u0631\u0649",
+  ],
+
+  defaultValue: [
+    "defaultvalue",
+    "default_value",
+    "default value",
+    "default",
+    "القيمة الافتراضية",
+    "القيمه الافتراضيه",
+    "قيمة افتراضية",
+    "قيمه افتراضيه",
+  ],
+
+  defaultValues: [
+    "defaultvalues",
+    "default_values",
+    "default values",
+    "defaults",
+    "القيم الافتراضية",
+    "القيم الافتراضيه",
+    "قيم افتراضية",
+    "قيم افتراضيه",
+  ],
+
+  autoSelectWhenLinked: [
+    "autoselectwhenlinked",
+    "auto_select_when_linked",
+    "auto select when linked",
+    "autoselect",
+    "auto_select",
+    "تحديد تلقائي",
+    "اختيار تلقائي",
+    "يحدد تلقائيا",
+    "يختار تلقائيا",
   ],
 
   dependsOnFieldKey: [

@@ -1,3 +1,5 @@
+
+===== FILE: components\report-engine\design-renderers\report-design-renderer.tsx =====
 "use client";
 
 export type ReportDesignId =
@@ -10,10 +12,8 @@ export type ReportDesignId =
   | "program-impact"
   | "girls-rose-official"
   | "girls-lilac-elegant"
-  | "girls-pearl-calm"
-  | "report-official-archive"
-  | "report-playful-cards"
-  | "report-calm-reader";
+  | "girls-pearl-calm";
+
 type FinalReportValueItem = {
   fieldKey: string;
   fieldLabel: string;
@@ -148,30 +148,6 @@ export const reportDesignTemplates: Array<{
     description: "تصميم فاتح وهادئ مناسب لتقارير الرعاية والدعم والمتابعة.",
     cardClass: "border-fuchsia-200 bg-fuchsia-50 hover:bg-white",
     activeCardClass: "border-fuchsia-700 bg-fuchsia-100 shadow-sm",
-  },
-  {
-    id: "report-official-archive",
-    name: "تقرير رسمي منظم",
-    badge: "رسمي",
-    description: "تصميم رسمي صارم: ترويسة أرشيفية، جدول بيانات، وخانات اعتماد واضحة.",
-    cardClass: "border-slate-300 bg-slate-50 hover:bg-white",
-    activeCardClass: "border-slate-950 bg-slate-100 shadow-sm",
-  },
-  {
-    id: "report-playful-cards",
-    name: "تقرير مرح بالبطاقات",
-    badge: "مرح",
-    description: "تصميم بطاقات نشاط: كروت كبيرة، شارات، وأسلوب بصري مناسب للبرامج.",
-    cardClass: "border-orange-200 bg-orange-50 hover:bg-white",
-    activeCardClass: "border-orange-600 bg-orange-100 shadow-sm",
-  },
-  {
-    id: "report-calm-reader",
-    name: "تقرير مريح للقراءة",
-    badge: "مريح",
-    description: "تصميم هادئ واسع: مساحات بيضاء، قراءة سهلة، وترتيب ناعم للقيم.",
-    cardClass: "border-stone-200 bg-stone-50 hover:bg-white",
-    activeCardClass: "border-stone-700 bg-stone-100 shadow-sm",
   },
 ];
 
@@ -1036,285 +1012,6 @@ function A4DesignPage({
   previewCase: PreviewCaseData | null;
   pageLabel: string;
 }) {
-  if (designId === "report-official-archive") {
-    return (
-      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-300 bg-white p-[10mm] shadow-xl">
-        <div className="relative min-h-[277mm] border-[3px] border-slate-900 p-[8mm]">
-          <header className="grid grid-cols-[115px_1fr_115px] items-start gap-4 border-b-[3px] border-slate-900 pb-5">
-            <div className="text-right text-[11px] font-black leading-6 text-slate-800">
-              <p>وزارة التعليم</p>
-              <p>الإدارة العامة للتعليم</p>
-              <p>مكتب التعليم</p>
-            </div>
-
-            <div className="text-center">
-              <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain" />
-              <p className="mt-3 inline-flex rounded-full border border-slate-900 px-4 py-1 text-[11px] font-black text-slate-900">
-                تقرير رسمي معتمد
-              </p>
-              <h1 className="mt-4 text-2xl font-black leading-[1.6] text-slate-950">
-                {context["case.title"] || pageLabel}
-              </h1>
-            </div>
-
-            <div className="text-left text-[11px] font-black leading-6 text-slate-800">
-              <p>رقم الحالة</p>
-              <p className="truncate">{context["case.id"]}</p>
-              <p>{context["case.createdAt"]}</p>
-            </div>
-          </header>
-
-          <section className="mt-5 grid grid-cols-4 border border-slate-900 text-xs font-black text-slate-800">
-            <div className="border-l border-slate-900 bg-slate-100 p-3">الخدمة</div>
-            <div className="border-l border-slate-900 p-3">{context["service.name"] || "غير محدد"}</div>
-            <div className="border-l border-slate-900 bg-slate-100 p-3">الشواهد</div>
-            <div className="p-3">{context["evidence.count"] || "0"}</div>
-          </section>
-
-          <main className="mt-6">
-            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="min-h-[184mm]" />
-          </main>
-
-          <footer className="absolute bottom-[8mm] left-[8mm] right-[8mm]">
-            <div className="grid grid-cols-3 gap-4 text-center text-xs font-black text-slate-800">
-              <div className="border-t-2 border-slate-900 pt-3">معد التقرير</div>
-              <div className="border-t-2 border-slate-900 pt-3">مدير/مديرة المدرسة</div>
-              <div className="border-t-2 border-slate-900 pt-3">الختم</div>
-            </div>
-          </footer>
-        </div>
-      </article>
-    );
-  }
-
-  if (designId === "report-playful-cards") {
-    const workflowValues = collectFinalValues(previewCase as any).filter((item) =>
-      String(item.value || "").trim(),
-    );
-
-    const reportTitle =
-      context["case.title"] ||
-      context.programTitle ||
-      "تقرير أسبوع القراءة";
-
-    const activityValues = workflowValues.slice(0, 5);
-    const metricValues = workflowValues.slice(0, 4);
-    const detailValues = workflowValues.slice(0, 12);
-    const evidenceCount = previewCase?.evidences?.length || 0;
-
-    return (
-      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden bg-white p-[7mm] shadow-2xl">
-        <div className="relative min-h-[283mm] overflow-hidden bg-white px-[8mm] py-[7mm] text-slate-900">
-          <div className="absolute left-[8mm] top-[7mm] h-[52mm] w-[48mm] bg-gradient-to-br from-blue-600 to-blue-400 p-5 text-white">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-white/80 text-3xl">
-              📖
-            </div>
-            <h2 className="mt-5 text-center text-xl font-black leading-8">
-              أسبوع القراءة
-            </h2>
-            <p className="mt-2 text-center text-[11px] font-bold leading-5 text-white/85">
-              القراءة، اكتشاف لا ينتهي
-            </p>
-          </div>
-
-          <header className="mr-[54mm] flex min-h-[52mm] items-center justify-between gap-7">
-            <div className="flex-1 text-center">
-              <h1 className="text-4xl font-black leading-[1.45] tracking-tight text-slate-900">
-                {reportTitle}
-              </h1>
-              <p className="mt-3 text-base font-bold text-blue-500">
-                تعزيز عادة القراءة وبناء مجتمع معرفي
-              </p>
-            </div>
-
-            <div className="w-[45mm] rounded-[5mm] bg-slate-50 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-              <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
-                <span className="text-2xl">📅</span>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400">التاريخ</p>
-                  <p className="mt-1 text-[12px] font-black text-slate-800">
-                    {context["case.createdAt"] || "غير محدد"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center gap-3">
-                <span className="text-2xl">📍</span>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400">الخدمة</p>
-                  <p className="mt-1 text-[12px] font-black text-slate-800">
-                    {context["service.name"] || "البرامج الإرشادية"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </header>
-
-          <section className="mt-2 grid grid-cols-[112mm_1fr] gap-[8mm]">
-            <div>
-              <div className="relative h-[76mm] overflow-hidden bg-slate-100">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_25%,rgba(59,130,246,0.18),transparent_34%),linear-gradient(135deg,#eef6ff,#ffffff_46%,#e8f1fb)]" />
-                <div className="absolute bottom-8 left-8 right-8 h-[22mm] rounded-t-full border-2 border-blue-200 border-b-0" />
-                <div className="absolute bottom-8 left-10 right-10 h-[16mm] rounded-t-full border border-blue-100 border-b-0" />
-                <div className="absolute bottom-8 left-12 right-12 h-[10mm] rounded-t-full border border-blue-100 border-b-0" />
-                <div className="absolute bottom-5 left-[32mm] h-[12mm] w-[48mm] rounded-full bg-white/80 blur-sm" />
-                <div className="absolute bottom-12 right-12 h-20 w-20 rounded-full bg-blue-100/80" />
-                <div className="absolute bottom-16 right-20 h-2 w-20 rounded-full bg-blue-200" />
-                <div className="absolute bottom-20 right-20 h-2 w-24 rounded-full bg-blue-100" />
-                <div className="absolute bottom-24 right-20 h-2 w-16 rounded-full bg-blue-100" />
-              </div>
-
-              <div className="mt-5 grid grid-cols-4 gap-4">
-                {[
-                  ["المشاركون", context.targetGroup || metricValues[0]?.value || "—", "👥"],
-                  ["الكتب/المصادر", metricValues[1]?.value || String(workflowValues.length), "📘"],
-                  ["ساعات القراءة", metricValues[2]?.value || "—", "⏱️"],
-                  ["الشواهد", String(evidenceCount), "🏆"],
-                ].map(([label, value, icon]) => (
-                  <div key={label} className="rounded-[4mm] border border-slate-100 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.05)]">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-xl">
-                      {icon}
-                    </div>
-                    <p className="mt-3 text-[10px] font-black text-slate-400">{label}</p>
-                    <p className="mt-1 line-clamp-1 text-xl font-black text-slate-900">{value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <aside className="pt-8">
-              <div className="text-7xl font-black leading-none text-blue-500">“</div>
-              <p className="mt-2 text-xl font-black leading-[2] text-slate-900">
-                القراءة تمنحنا مكانًا نذهب إليه حين نحتاج إلى أن نبقى.
-              </p>
-              <div className="mt-5 h-1 w-10 bg-blue-500" />
-
-              <div className="mt-10 rounded-[5mm] border border-blue-100 bg-blue-50/50 p-5">
-                <p className="text-[11px] font-black text-blue-500">ملخص بصري</p>
-                <p className="mt-3 text-sm font-bold leading-8 text-slate-600">
-                  يعرض هذا التقرير أهم بيانات أسبوع القراءة في صفحة واحدة هادئة، مع إبراز المؤشرات والأنشطة والقيم المسجلة من Workflow بدون ازدحام.
-                </p>
-              </div>
-            </aside>
-          </section>
-
-          <section className="mt-6 grid grid-cols-[82mm_1fr] gap-[7mm]">
-            <div className="rounded-[4mm] border border-slate-100 bg-white p-6 shadow-[0_8px_35px_rgba(15,23,42,0.05)]">
-              <h3 className="text-center text-xl font-black text-slate-900">أبرز الأنشطة</h3>
-              <div className="mx-auto mt-3 h-1 w-10 bg-blue-500" />
-
-              <div className="mt-6 space-y-4">
-                {(activityValues.length ? activityValues : [
-                  { fieldLabel: "ركن الكتاب المفضل", value: "مشاركة الكتب المفضلة لدى الطلاب" },
-                  { fieldLabel: "تحدي القراءة", value: "مسابقة فردية لعدد الصفحات المقروءة" },
-                  { fieldLabel: "جلسة نقاش", value: "حوار حول كتاب مختار" },
-                  { fieldLabel: "معرض الإبداع", value: "عرض ملخصات ومراجعات الطلاب" },
-                ]).map((item: any, index: number) => (
-                  <div key={`${item.fieldLabel}-${index}`} className="grid grid-cols-[13mm_1fr] gap-4">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl text-blue-700">
-                      {["♡", "🏆", "👥", "🖼️", "✦"][index] || "✦"}
-                    </div>
-                    <div>
-                      <p className="line-clamp-1 text-sm font-black text-slate-900">
-                        {item.fieldLabel || item.fieldKey || `نشاط ${index + 1}`}
-                      </p>
-                      <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-5 text-slate-500">
-                        {item.value || "—"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-[4mm] border border-slate-100 bg-white p-6 shadow-[0_8px_35px_rgba(15,23,42,0.05)]">
-              <h3 className="text-center text-xl font-black text-slate-900">قيم Workflow</h3>
-              <div className="mx-auto mt-3 h-1 w-10 bg-blue-500" />
-
-              {detailValues.length ? (
-                <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3">
-                  {detailValues.map((item, index) => (
-                    <div key={`${item.fieldKey}-${index}`} className="border-b border-slate-100 pb-3">
-                      <p className="line-clamp-1 text-[10px] font-black text-blue-500">
-                        {item.fieldLabel || item.fieldKey}
-                      </p>
-                      <p className="mt-1 line-clamp-2 text-[12px] font-bold leading-6 text-slate-700">
-                        {item.value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-6 grid h-[74mm] place-items-center rounded-[4mm] bg-slate-50 text-center">
-                  <div>
-                    <p className="text-sm font-black text-slate-800">لا توجد قيم Workflow محفوظة</p>
-                    <p className="mt-2 text-xs font-bold text-slate-400">اختر حالة تحتوي على بيانات.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className="mt-6 grid grid-cols-[1fr_70mm] gap-[7mm]">
-            <div className="rounded-[4mm] bg-gradient-to-l from-blue-50 to-white p-6">
-              <div className="text-5xl font-black leading-none text-blue-500">”</div>
-              <p className="mt-2 text-lg font-black leading-9 text-slate-800">
-                أقرأ، عش ألف حياة قبل أن تموت.
-              </p>
-              <p className="mt-2 text-xs font-bold text-slate-400">— عبارة تحفيزية لأسبوع القراءة</p>
-            </div>
-
-            <div className="relative overflow-hidden rounded-[4mm] bg-slate-100">
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,#dbeafe,#ffffff_55%,#eff6ff)]" />
-              <div className="absolute bottom-6 left-6 right-6 h-[18mm] rounded-t-full border-2 border-blue-200 border-b-0" />
-              <div className="absolute bottom-9 right-10 h-3 w-28 rounded-full bg-blue-100" />
-              <div className="absolute bottom-14 right-10 h-3 w-20 rounded-full bg-blue-100" />
-            </div>
-          </section>
-
-          <footer className="absolute bottom-[6mm] left-[8mm] right-[8mm] flex items-center justify-between border-t border-slate-200 pt-4 text-[11px] font-black text-slate-500">
-            <span>قسم النشاط الطلابي</span>
-            <span className="h-px flex-1 bg-slate-200 mx-6" />
-            <span className="text-blue-600">معًا نقرأ.. لنرتقي</span>
-          </footer>
-        </div>
-      </article>
-    );
-  }
-  if (designId === "report-calm-reader") {
-    return (
-      <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[20px] border border-stone-200 bg-stone-50 p-[8mm] shadow-xl">
-        <div className="grid min-h-[279mm] grid-cols-[38mm_1fr] overflow-hidden rounded-[18px] bg-white">
-          <aside className="border-l border-stone-200 bg-stone-100 p-5">
-            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain opacity-80" />
-
-            <div className="mt-10 space-y-4">
-              <SideMeta label="الخدمة" value={context["service.name"]} />
-              <SideMeta label="التاريخ" value={context["case.createdAt"]} />
-              <SideMeta label="الطالب/ـة" value={context["student.name"]} />
-              <SideMeta label="الشواهد" value={context["evidence.count"]} />
-            </div>
-          </aside>
-
-          <div className="relative p-[12mm]">
-            <header className="border-b border-stone-200 pb-6">
-              <p className="text-xs font-black text-stone-500">تقرير مريح للقراءة</p>
-              <h1 className="mt-3 max-w-[135mm] text-3xl font-black leading-[1.7] text-stone-950">
-                {context["case.title"] || pageLabel}
-              </h1>
-              <p className="mt-3 text-xs font-bold leading-6 text-stone-500">
-                تم ترتيب هذا التقرير بأسلوب هادئ ليسهل استعراض البيانات والقيم دون ازدحام بصري.
-              </p>
-            </header>
-
-            <PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} className="mt-7 min-h-[192mm]" />
-            <DesignFooter text="تقرير مريح للقراءة" barClass="from-stone-700 to-stone-300" />
-          </div>
-        </div>
-      </article>
-    );
-  }
-
   if (designId === "modern-official") {
     return (
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[30px] border border-sky-100 bg-sky-50 p-[8mm] shadow-xl">
@@ -1760,120 +1457,6 @@ function DesignBlock({
   );
 }
 
-function DesignFieldValueBlock({
-  title,
-  showTitle,
-  variant,
-  textAlign,
-  designId,
-  items,
-}: {
-  title: string;
-  showTitle?: boolean;
-  variant: string;
-  textAlign: string;
-  designId: ReportDesignId;
-  items: Array<{
-    key?: string;
-    label: string;
-    value?: string | null;
-  }>;
-}) {
-  const visibleItems = items.filter((item) => String(item.value || "").trim());
-
-  return (
-    <section className={getBlockShellClass(designId, variant, textAlign)}>
-      {showTitle ? <BlockTitle title={title} /> : null}
-
-      {visibleItems.length ? (
-        <DesignValueGrid designId={designId} items={visibleItems} />
-      ) : (
-        <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
-          لا توجد قيم مرتبطة بهذا البلوك.
-        </p>
-      )}
-    </section>
-  );
-}
-
-function DesignValueGrid({
-  designId,
-  items,
-}: {
-  designId: ReportDesignId;
-  items: Array<{
-    key?: string;
-    label: string;
-    value?: string | null;
-  }>;
-}) {
-  if (designId === "report-official-archive") {
-    return (
-      <div className="overflow-hidden border border-slate-900 text-xs">
-        {items.map((item, index) => (
-          <div key={item.key || item.label || index} className="grid grid-cols-[42mm_1fr] border-b border-slate-300 last:border-b-0">
-            <div className="border-l border-slate-900 bg-slate-100 px-3 py-3 font-black text-slate-900">
-              {item.label}
-            </div>
-            <div className="px-3 py-3 font-bold leading-7 text-slate-800">
-              {String(item.value || "غير متوفر")}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (designId === "report-playful-cards") {
-    return (
-      <div className="grid gap-3 md:grid-cols-2">
-        {items.map((item, index) => (
-          <div key={item.key || item.label || index} className="rounded-[28px] border border-orange-100 bg-gradient-to-l from-orange-50 to-white p-4 shadow-sm">
-            <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-sm font-black text-white">
-                {index + 1}
-              </span>
-              <div>
-                <p className="text-[11px] font-black text-orange-700">{item.label}</p>
-                <p className="mt-2 text-sm font-bold leading-7 text-slate-800">
-                  {String(item.value || "غير متوفر")}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (designId === "report-calm-reader") {
-    return (
-      <div className="space-y-3">
-        {items.map((item, index) => (
-          <div key={item.key || item.label || index} className="rounded-2xl border border-stone-200 bg-white px-5 py-4">
-            <p className="text-[11px] font-black tracking-wide text-stone-500">{item.label}</p>
-            <p className="mt-2 text-sm font-medium leading-8 text-stone-800">
-              {String(item.value || "غير متوفر")}
-            </p>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-2 md:grid-cols-2">
-      {items.map((item, index) => (
-        <MetaCard
-          key={item.key || item.label || index}
-          label={item.label}
-          value={String(item.value || "غير متوفر")}
-        />
-      ))}
-    </div>
-  );
-}
-
 function EvidenceBlock({
   block,
   previewCase,
@@ -2093,67 +1676,20 @@ function normalizeDesignId(value: string): ReportDesignId {
     value === "program-impact" ||
     value === "girls-rose-official" ||
     value === "girls-lilac-elegant" ||
-    value === "girls-pearl-calm" ||
-    value === "report-official-archive" ||
-    value === "report-playful-cards" ||
-    value === "report-calm-reader"
+    value === "girls-pearl-calm"
   ) {
     return value;
   }
 
   return "ministry-form";
 }
+
 function getDesignName(designId: ReportDesignId) {
   return reportDesignTemplates.find((design) => design.id === designId)?.name || "تصميم رسمي";
 }
 
 function getDesignAccentClasses(designId: ReportDesignId) {
   switch (designId) {
-    case "report-official-archive":
-      return {
-        subtleTextClass: "text-slate-900",
-        dotClass: "bg-slate-900",
-        iconClass: "bg-slate-100 text-slate-900",
-        badgeClass: "bg-slate-100 text-slate-800",
-        noticeClass: "bg-slate-100 text-slate-800",
-        cardShellClass: "border-b border-slate-300 bg-white px-1 py-4",
-        softShellClass: "border border-slate-300 bg-slate-50 p-4",
-        highlightShellClass: "border-2 border-slate-900 bg-slate-50 p-5",
-        outlineShellClass: "border border-dashed border-slate-500 bg-white p-5",
-        quoteShellClass: "border-r-4 border-slate-900 bg-slate-50 p-5",
-        heroShellClass: "border-b-2 border-slate-900 bg-white px-1 py-5",
-      };
-
-    case "report-playful-cards":
-      return {
-        subtleTextClass: "text-orange-700",
-        dotClass: "bg-orange-500",
-        iconClass: "bg-orange-50 text-orange-700",
-        badgeClass: "bg-orange-50 text-orange-700",
-        noticeClass: "bg-orange-50 text-orange-700",
-        cardShellClass: "rounded-[30px] border border-orange-100 bg-white p-5 shadow-sm",
-        softShellClass: "rounded-[30px] border border-orange-100 bg-orange-50 p-5",
-        highlightShellClass: "rounded-[30px] border border-orange-200 bg-gradient-to-l from-orange-50 to-cyan-50 p-5 shadow-sm",
-        outlineShellClass: "rounded-[30px] border border-dashed border-orange-300 bg-white p-5",
-        quoteShellClass: "rounded-[30px] border border-orange-100 bg-amber-50 p-5",
-        heroShellClass: "rounded-[30px] border border-orange-100 bg-gradient-to-l from-orange-50 to-white p-5",
-      };
-
-    case "report-calm-reader":
-      return {
-        subtleTextClass: "text-stone-600",
-        dotClass: "bg-stone-500",
-        iconClass: "bg-stone-100 text-stone-700",
-        badgeClass: "bg-stone-100 text-stone-700",
-        noticeClass: "bg-stone-100 text-stone-700",
-        cardShellClass: "rounded-2xl border border-stone-200 bg-white p-5",
-        softShellClass: "rounded-2xl border border-stone-200 bg-stone-50 p-5",
-        highlightShellClass: "rounded-2xl border border-stone-200 bg-gradient-to-l from-stone-50 to-white p-5",
-        outlineShellClass: "rounded-2xl border border-dashed border-stone-300 bg-white p-5",
-        quoteShellClass: "rounded-2xl border border-stone-200 bg-stone-50 p-5",
-        heroShellClass: "rounded-2xl border border-stone-200 bg-white p-5",
-      };
-
     case "modern-official":
       return {
         subtleTextClass: "text-sky-700",
@@ -2451,4 +1987,856 @@ function getEvidenceImageHeightClass(block: any) {
 function getEvidenceImageClass(block: any) {
   const fit = block.evidenceFit === "cover" ? "object-cover" : "object-contain";
   return `${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+}
+
+
+===== FILE: app\dashboard\reports\new\page.tsx =====
+import { prisma } from "@/lib/prisma";
+import { NewReportCasePicker } from "@/components/reports/new-report-case-picker";
+
+type NewReportPageProps = {
+  searchParams?: Promise<{
+    caseId?: string;
+  }>;
+};
+
+function parseTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+
+const REPORT_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
+  positive_behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+  behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+};
+
+function normalizeReportCaseTitleText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanReportCaseTitle(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  if (!text || text === "null" || text === "undefined" || text.length > 140) {
+    return "";
+  }
+
+  return text;
+}
+
+function stringifyReportCaseTitleCandidate(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return cleanReportCaseTitle(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const candidate = stringifyReportCaseTitleCandidate(item);
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    for (const key of [
+      "program_name",
+      "programName",
+      "program",
+      "guidanceProgram",
+      "guidance_program",
+      "selectedProgram",
+      "activityName",
+      "activity_name",
+      "title",
+      "name",
+      "label",
+      "value",
+    ]) {
+      const candidate = stringifyReportCaseTitleCandidate(record[key]);
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+  }
+
+  return "";
+}
+
+function isGenericReportCaseTitle(title: string) {
+  const normalized = normalizeReportCaseTitleText(title);
+
+  return (
+    !normalized ||
+    normalized === "بدون عنوان" ||
+    normalized === "حاله بدون عنوان" ||
+    normalized === "حالة بدون عنوان" ||
+    normalized === "حاله جديده" ||
+    normalized === "حالة جديدة" ||
+    normalized.includes("برنامج ارشادي جديد")
+  );
+}
+
+function isReportCaseTitleField(value: any) {
+  const text = normalizeReportCaseTitleText(
+    [value?.fieldKey, value?.field?.key, value?.field?.label]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  return (
+    text.includes("program") ||
+    text.includes("activity") ||
+    text.includes("title") ||
+    text.includes("برنامج") ||
+    text.includes("النشاط") ||
+    text.includes("عنوان") ||
+    text.includes("موضوع")
+  );
+}
+
+function extractReportCaseTitleSelectedValues(value: unknown): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return [String(value)];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractReportCaseTitleSelectedValues(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return [
+      ...extractReportCaseTitleSelectedValues(record.value),
+      ...extractReportCaseTitleSelectedValues(record.id),
+      ...extractReportCaseTitleSelectedValues(record.key),
+      ...extractReportCaseTitleSelectedValues(record.slug),
+      ...extractReportCaseTitleSelectedValues(record.label),
+      ...extractReportCaseTitleSelectedValues(record.name),
+    ];
+  }
+
+  return [];
+}
+
+function getReportCaseOptionLabel(value: any) {
+  const selectedValues = extractReportCaseTitleSelectedValues(
+    value?.jsonValue ?? value?.value,
+  );
+
+  const options = Array.isArray(value?.field?.options)
+    ? value.field.options
+    : [];
+
+  for (const selectedValue of selectedValues) {
+    const cleanSelected = String(selectedValue).trim();
+
+    if (!cleanSelected) {
+      continue;
+    }
+
+    const fallbackLabel = REPORT_CASE_TITLE_FALLBACK_LABELS[cleanSelected];
+
+    if (fallbackLabel) {
+      return fallbackLabel;
+    }
+
+    const option = options.find((item: any) => {
+      return (
+        String(item?.value || "").trim() === cleanSelected ||
+        String(item?.label || "").trim() === cleanSelected
+      );
+    });
+
+    if (option?.label) {
+      return cleanReportCaseTitle(option.label);
+    }
+  }
+
+  return "";
+}
+
+function getReportCaseValueTitle(value: any) {
+  return (
+    getReportCaseOptionLabel(value) ||
+    stringifyReportCaseTitleCandidate(value?.jsonValue) ||
+    stringifyReportCaseTitleCandidate(value?.value)
+  );
+}
+
+function getSmartReportCaseTitle(caseEntry: any) {
+  const values = Array.isArray(caseEntry.values) ? caseEntry.values : [];
+
+  for (const value of values) {
+    if (!isReportCaseTitleField(value)) {
+      continue;
+    }
+
+    const candidate = getReportCaseValueTitle(value);
+
+    if (candidate && !isGenericReportCaseTitle(candidate)) {
+      return candidate;
+    }
+  }
+
+  const savedTitle = cleanReportCaseTitle(caseEntry.title);
+
+  if (savedTitle && !isGenericReportCaseTitle(savedTitle)) {
+    return savedTitle;
+  }
+
+  return caseEntry.service?.name || "حالة جديدة";
+}
+
+
+export default async function NewReportPage({
+  searchParams,
+}: NewReportPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const selectedCaseId = params.caseId?.trim() || "";
+
+  const [cases, reportTemplates] = await Promise.all([
+    prisma.caseEntry.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 100,
+      include: {
+        service: true,
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+        values: {
+          include: {
+            field: {
+              include: {
+                options: {
+                  orderBy: {
+                    order: "asc",
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    }),
+
+    prisma.reportTemplate.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    }),
+  ]);
+
+  const normalizedCases = cases.map((caseEntry) => ({
+    id: caseEntry.id,
+    title: getSmartReportCaseTitle(caseEntry),
+    status: caseEntry.status,
+    createdAt: caseEntry.createdAt.toISOString(),
+    updatedAt: caseEntry.updatedAt.toISOString(),
+    submittedAt: caseEntry.submittedAt?.toISOString() || null,
+
+    service: {
+      id: caseEntry.service.id,
+      name: caseEntry.service.name,
+      slug: caseEntry.service.slug,
+    },
+
+    student: caseEntry.student
+      ? {
+          id: caseEntry.student.id,
+          fullName: caseEntry.student.fullName,
+          nationalId: caseEntry.student.nationalId,
+          stage: caseEntry.student.stage,
+          grade: caseEntry.student.grade,
+          classroom: caseEntry.student.classroom,
+          guardianName: caseEntry.student.guardian?.name || null,
+          guardianPhone: caseEntry.student.guardian?.phone || null,
+        }
+      : null,
+
+    valuesCount: caseEntry.values.length,
+    evidencesCount: caseEntry.evidences.length,
+  }));
+
+  const publishedTemplates = reportTemplates
+    .map((template) => {
+      const templateJson = parseTemplateJson(template.templateJson) || parseTemplateJson(template.content);
+
+      const status =
+        templateJson?.status === "PUBLISHED"
+          ? "PUBLISHED"
+          : templateJson?.status || "DRAFT";
+
+      return {
+        id: template.id,
+        name: template.name,
+        description:
+          template.description ||
+          templateJson?.description ||
+          "قالب تقرير منشور من صانع القوالب.",
+        serviceSlug: template.serviceSlug || templateJson?.serviceSlug || null,
+        scope:
+          templateJson?.scope === "SERVICE" || template.serviceSlug
+            ? ("SERVICE" as const)
+            : ("GLOBAL" as const),
+        status,
+        pagesCount: Array.isArray(templateJson?.pages)
+          ? templateJson.pages.length
+          : 0,
+      };
+    })
+    .filter((template) => template.status === "PUBLISHED");
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      <NewReportCasePicker
+        cases={normalizedCases}
+        initialCaseId={selectedCaseId}
+        publishedTemplates={publishedTemplates}
+      />
+    </main>
+  );
+}
+
+
+===== FILE: app\api\dashboard\reports\route.ts =====
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireActiveSubscriptionApi, requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { logReportCreatedEvent } from "@/lib/admin/activity-events";
+import {
+  mapCaseEntryToReportData,
+  type ReportMappedCase,
+} from "@/lib/report-engine/report-case-data-mapper";
+import {
+  createDefaultTemplateSnapshot,
+  createReportDataSnapshot,
+} from "@/lib/report-engine/report-snapshot";
+
+type CreateReportBody = {
+  caseEntryId?: string;
+  caseId?: string;
+  title?: string;
+  templateId?: string;
+};
+
+function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+function isPublishedBuilderTemplate(templateJson: Record<string, any> | null) {
+  return templateJson?.status === "PUBLISHED" && Array.isArray(templateJson?.pages);
+}
+
+async function createTemplateSnapshotFromDatabase(templateId: string) {
+  const builderTemplate = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  const templateJson =
+    parseBuilderTemplateJson(builderTemplate?.templateJson) ||
+    parseBuilderTemplateJson(builderTemplate?.content);
+
+  if (!builderTemplate || !isPublishedBuilderTemplate(templateJson)) {
+    return createDefaultTemplateSnapshot(templateId);
+  }
+
+  const safeTemplateJson = templateJson as Record<string, any>;
+
+  return {
+    templateId: builderTemplate.id,
+    templateName: builderTemplate.name,
+    version: 1,
+    capturedAt: new Date().toISOString(),
+    source: "TEMPLATE_BUILDER",
+    settings: {
+      showCover: true,
+      defaultTemplate: builderTemplate.id,
+      defaultEvidenceLayout: "grid-2x2",
+      pageSize: "A4",
+      direction: "rtl",
+    },
+    builderTemplate: {
+      ...safeTemplateJson,
+      id: builderTemplate.id,
+      name: builderTemplate.name || safeTemplateJson.name,
+      description:
+        builderTemplate.description ||
+        safeTemplateJson.description ||
+        "Ù‚Ø§Ù„Ø¨ ØªÙ‚Ø±ÙŠØ± Ù…Ø­ÙÙˆØ¸ Ù…Ù† ØµØ§Ù†Ø¹ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨.",
+      serviceSlug:
+        builderTemplate.serviceSlug || safeTemplateJson.serviceSlug || null,
+      status: "PUBLISHED",
+    },
+  };
+}
+
+function buildReportContent(reportData: ReportMappedCase) {
+  const studentLines = reportData.student
+    ? [
+        `Ø§Ø³Ù… Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©: ${reportData.student.fullName}`,
+        `Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©: ${reportData.student.nationalId || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø§Ù„Ù…Ø±Ø­Ù„Ø©: ${reportData.student.stage || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ØµÙ: ${reportData.student.grade || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `Ø§Ù„ÙØµÙ„: ${reportData.student.classroom || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`,
+        `ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianName || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+        `Ø¬ÙˆØ§Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${reportData.student.guardianPhone || "ØºÙŠØ± Ù…ØªÙˆÙØ±"}`,
+      ].join("\n")
+    : "Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø·Ø§Ù„Ø¨/Ø·Ø§Ù„Ø¨Ø© Ù…Ø±ØªØ¨Ø· Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const valuesLines = reportData.values.length
+    ? reportData.values
+        .map((item: any, index: any) => {
+          return `${index + 1}. ${item.fieldLabel}: ${item.value || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚ÙŠÙ… Ù…Ø­ÙÙˆØ¸Ø© ÙÙŠ Ø§Ù„Ø­Ø§Ù„Ø©.";
+
+  const evidencesLines = reportData.evidences.length
+    ? reportData.evidences
+        .map((item: any, index: any) => {
+          return `${index + 1}. ${item.title || item.fileName || "Ø´Ø§Ù‡Ø¯"}`;
+        })
+        .join("\n")
+    : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´ÙˆØ§Ù‡Ø¯ Ù…Ø±ÙÙ‚Ø©.";
+
+  return `
+ØªÙ‚Ø±ÙŠØ±: ${reportData.title}
+
+Ø§Ù„Ø®Ø¯Ù…Ø©:
+${reportData.service.name}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©:
+${studentLines}
+
+Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø©:
+Ø±Ù‚Ù… Ø§Ù„Ø­Ø§Ù„Ø©: ${reportData.id}
+Ø­Ø§Ù„Ø© Ø§Ù„Ø³Ø¬Ù„: ${reportData.status}
+ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡: ${new Date(reportData.createdAt).toLocaleDateString("ar-SA")}
+
+Ø§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø³Ø¬Ù„Ø©:
+${valuesLines}
+
+Ø§Ù„Ø´ÙˆØ§Ù‡Ø¯:
+${evidencesLines}
+
+Ù…Ù„Ø®Øµ Ø§Ù„ØªÙ‚Ø±ÙŠØ±:
+ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ù‡Ø°Ø§ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³Ø¬Ù„Ø© ÙÙŠ Ù…Ù†ØµØ© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø·Ù„Ø§Ø¨ÙŠØŒ ÙˆÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ø®Ø¯Ù…Ø©ØŒ ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø·Ø§Ù„Ø¨/Ø§Ù„Ø·Ø§Ù„Ø¨Ø©ØŒ ÙˆØ§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø¯Ø®Ù„Ø©ØŒ ÙˆØ§Ù„Ø´ÙˆØ§Ù‡Ø¯ Ø§Ù„Ù…Ø±ÙÙ‚Ø©.
+`.trim();
+}
+
+export async function POST(request: Request) {
+  // subscription-api-guard:POST:requireActiveSubscriptionApi()
+  const subscriptionGuard = await requireActiveSubscriptionApi();
+  if (subscriptionGuard) return subscriptionGuard;
+
+  try {
+    const body = (await request.json()) as CreateReportBody;
+
+    const caseEntryId = body.caseEntryId || body.caseId;
+
+    if (!caseEntryId) {
+      return NextResponse.json(
+        {
+          error: "caseEntryId Ù…Ø·Ù„ÙˆØ¨ Ù„Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const templateId = body.templateId || "official-long";
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: caseEntryId,
+      },
+      include: {
+        service: true,
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+        values: {
+          include: {
+            field: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        caseEvidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          error: "Ø§Ù„Ø­Ø§Ù„Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const serviceGuard = await requireServiceAccessApi(caseEntry.service.slug);
+    if (serviceGuard) return serviceGuard;
+
+    const reportData = mapCaseEntryToReportData(caseEntry);
+
+    const reportTitle =
+      body.title?.trim() ||
+      `ØªÙ‚Ø±ÙŠØ± - ${reportData.title || reportData.service.name}`;
+
+    const initialContent = buildReportContent(reportData);
+
+    const templateSnapshot = await createTemplateSnapshotFromDatabase(templateId);
+    const reportDataSnapshot = createReportDataSnapshot(reportData);
+
+    const report = await prisma.guidanceReport.create({
+      data: {
+        title: reportTitle,
+        serviceSlug: reportData.service.slug,
+        caseEntryId: reportData.id,
+        genderMode: caseEntry.student?.gender === "FEMALE" ? "FEMALE" : "MALE",
+
+        editableContent: initialContent,
+        renderedContent: initialContent,
+
+        templateId,
+        templateSnapshot,
+        reportDataSnapshot,
+        generatedAt: new Date(),
+
+        evidenceItems: {
+          create: reportData.evidences.map((item: any, index: any) => ({
+            fileName: item.fileName || `evidence-${index + 1}`,
+            fileUrl: item.fileUrl,
+            caption: item.note || item.title || item.fileName || null,
+            sortOrder: index,
+            visible: true,
+          })),
+        },
+      },
+      include: {
+        evidenceItems: true,
+      },
+    });
+
+    
+    // audit-log:report-created
+    await logReportCreatedEvent({
+      reportId: report.id,
+      caseEntryId: reportData.id,
+      title: report.title,
+      templateId,
+      serviceSlug: reportData.service.slug,
+      evidenceCount: Array.isArray(report.evidenceItems)
+        ? report.evidenceItems.length
+        : 0,
+    });
+
+return NextResponse.json({
+      success: true,
+      reportId: report.id,
+      previewUrl: `/dashboard/reports/${report.id}/preview?template=${templateId}`,
+    });
+  } catch (error) {
+    console.error("create report error:", error);
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+
+===== FILE: lib\report-engine\report-builder-template-runtime.ts =====
+import { prisma } from "@/lib/prisma";
+
+type LegacyReportTemplateId =
+  | "official-long"
+  | "visual-activity"
+  | "executive-brief";
+
+const LEGACY_REPORT_TEMPLATE_IDS: LegacyReportTemplateId[] = [
+  "official-long",
+  "visual-activity",
+  "executive-brief",
+];
+
+export function isLegacyReportTemplateId(value?: string | null) {
+  return Boolean(
+    value &&
+      LEGACY_REPORT_TEMPLATE_IDS.includes(value as LegacyReportTemplateId)
+  );
+}
+
+export function parseBuilderTemplateJson(value: unknown) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as Record<string, any>;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value as Record<string, any>;
+  }
+
+  return null;
+}
+
+export function getBuilderTemplateFromSnapshot(snapshot: unknown) {
+  const data = snapshot as
+    | {
+        source?: string;
+        builderTemplate?: any;
+      }
+    | null
+    | undefined;
+
+  if (data?.source !== "TEMPLATE_BUILDER") {
+    return null;
+  }
+
+  if (!data.builderTemplate || !Array.isArray(data.builderTemplate.pages)) {
+    return null;
+  }
+
+  return data.builderTemplate;
+}
+
+export async function getBuilderTemplateFromDatabase(templateId?: string | null) {
+  if (!templateId || isLegacyReportTemplateId(templateId)) {
+    return null;
+  }
+
+  const templateRecord = await prisma.reportTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  if (!templateRecord) {
+    return null;
+  }
+
+  const templateJson =
+    parseBuilderTemplateJson(templateRecord.templateJson) ||
+    parseBuilderTemplateJson(templateRecord.content);
+
+  if (!templateJson || !Array.isArray(templateJson.pages)) {
+    return null;
+  }
+
+  return {
+    ...templateJson,
+    id: templateRecord.id,
+    name: templateRecord.name || templateJson.name,
+    description:
+      templateRecord.description ||
+      templateJson.description ||
+      "قالب تقرير محفوظ من صانع القوالب.",
+    serviceSlug: templateRecord.serviceSlug || templateJson.serviceSlug || null,
+    status: templateJson.status || "PUBLISHED",
+  };
+}
+
+export async function resolveBuilderTemplateForReport(
+  report: {
+    templateId?: string | null;
+    templateSnapshot?: unknown;
+  },
+  options?: {
+    templateIdOverride?: string | null;
+  }
+) {
+  const snapshotTemplate = getBuilderTemplateFromSnapshot(report.templateSnapshot);
+
+  if (snapshotTemplate) {
+    return snapshotTemplate;
+  }
+
+  return getBuilderTemplateFromDatabase(
+    options?.templateIdOverride || report.templateId
+  );
+}
+
+export function buildBuilderPreviewCaseData(
+  report: any,
+  values: Array<{
+    fieldKey: string;
+    fieldLabel: string;
+    value?: string;
+    displayValue?: string;
+  }>
+) {
+  const student = report.caseEntry.student;
+  const guardian = student?.guardian;
+
+  const reportEvidenceItems = Array.isArray(report.evidenceItems)
+    ? report.evidenceItems
+    : [];
+
+  const caseEvidenceItems = Array.isArray(report.caseEntry?.evidences)
+    ? report.caseEntry.evidences
+    : [];
+
+  const evidences = reportEvidenceItems.length
+    ? reportEvidenceItems
+        .filter((item: any) => item.visible !== false)
+        .map((item: any) => ({
+          id: item.id,
+          title: item.caption || item.fileName,
+          fileName: item.fileName,
+          fileUrl: item.fileUrl || "",
+          imageUrl:
+            item.mimeType?.startsWith("image/") || /\.(png|jpg|jpeg|webp|gif)$/i.test(item.fileName || "")
+              ? item.fileUrl || ""
+              : undefined,
+          mimeType: item.mimeType || "",
+          note: item.caption || "",
+        }))
+    : caseEvidenceItems.map((item: any) => ({
+        id: item.id,
+        title: item.note || item.fileName || "شاهد",
+        fileName: item.fileName || "مرفق",
+        fileUrl: item.fileUrl || "",
+        imageUrl:
+          item.mimeType?.startsWith("image/") || /\.(png|jpg|jpeg|webp|gif)$/i.test(item.fileName || "")
+            ? item.fileUrl || ""
+            : undefined,
+        mimeType: item.mimeType || "",
+        note: item.note || "",
+      }));
+
+  return {
+    id: report.caseEntry.id,
+    title: report.caseEntry.title || report.title,
+    status: report.caseEntry.status,
+    createdAt: report.caseEntry.createdAt?.toISOString?.() || "",
+    updatedAt: report.caseEntry.updatedAt?.toISOString?.() || "",
+    submittedAt: report.caseEntry.submittedAt?.toISOString?.() || null,
+    serviceName: report.caseEntry.service.name,
+    serviceSlug: report.caseEntry.service.slug,
+
+    service: {
+      id: report.caseEntry.service.id,
+      name: report.caseEntry.service.name,
+      slug: report.caseEntry.service.slug,
+    },
+
+    student: student
+      ? {
+          id: student.id,
+          fullName: student.fullName,
+          nationalId: student.nationalId,
+          stage: student.stage,
+          grade: student.grade,
+          classroom: student.classroom,
+          guardianName: guardian?.name || student.guardianName || null,
+          guardianPhone: guardian?.phone || student.guardianPhone || null,
+        }
+      : null,
+
+    values: values.map((item) => ({
+      fieldKey: item.fieldKey,
+      fieldLabel: item.fieldLabel,
+      value: item.displayValue ?? item.value ?? "",
+    })),
+
+    evidences,
+  };
 }
