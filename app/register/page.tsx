@@ -2,15 +2,27 @@
 
 import { useState } from "react";
 
+type AccountType = "COUNSELOR" | "ACTIVITY_LEADER";
+
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState<"MALE" | "FEMALE">("MALE");
+  const [accountType, setAccountType] = useState<AccountType>("COUNSELOR");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const selectedJobTitle =
+    accountType === "ACTIVITY_LEADER"
+      ? gender === "FEMALE"
+        ? "رائدة النشاط"
+        : "رائد النشاط"
+      : gender === "FEMALE"
+        ? "موجهة طلابية"
+        : "موجه طلابي";
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,6 +46,7 @@ export default function RegisterPage() {
           email,
           phone,
           gender,
+          accountType,
           password,
         }),
       });
@@ -58,10 +71,10 @@ export default function RegisterPage() {
         <div className="flex flex-col justify-center rounded-[2rem] bg-slate-950 p-8 text-white shadow-xl">
           <p className="text-sm font-black text-sky-200">منصة التوجيه الطلابي</p>
           <h1 className="mt-4 text-4xl font-black leading-[1.7]">
-            أنشئ حسابك كموجه أو موجهة خلال أقل من دقيقة
+            أنشئ حسابك واختر لوحة التحكم المناسبة لعملك
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-8 text-slate-300">
-            نطلب بيانات أساسية فقط الآن. بعد الدخول ستكمل بيانات المدرسة والهوية الرسمية للتقارير من داخل المنصة.
+            اختر المسمى الوظيفي المناسب. سيتم توجيهك تلقائيًا للوحة تحكم تناسب مهامك اليومية داخل المدرسة.
           </p>
         </div>
 
@@ -71,7 +84,7 @@ export default function RegisterPage() {
         >
           <h2 className="text-2xl font-black text-slate-950">إنشاء حساب جديد</h2>
           <p className="mt-2 text-sm leading-7 text-slate-500">
-            استخدم بريدك ورقم جوالك لإنشاء حساب فردي للموجه/الموجهة.
+            الحساب مستقل ومرتبط باشتراكه وبيانات مدرسته.
           </p>
 
           {error ? (
@@ -88,7 +101,25 @@ export default function RegisterPage() {
             <AuthInput label="تأكيد كلمة المرور" type="password" value={confirmPassword} onChange={setConfirmPassword} />
 
             <div>
-              <p className="text-sm font-black text-slate-700">الصفة</p>
+              <p className="text-sm font-black text-slate-700">المسمى الوظيفي</p>
+              <div className="mt-2 grid gap-2">
+                <RoleButton
+                  active={accountType === "COUNSELOR"}
+                  title="التوجيه الطلابي"
+                  description="لوحة الموجه الطلابي والخدمات الإرشادية والتقارير."
+                  onClick={() => setAccountType("COUNSELOR")}
+                />
+                <RoleButton
+                  active={accountType === "ACTIVITY_LEADER"}
+                  title="ريادة النشاط"
+                  description="لوحة رائد النشاط للبرامج والفعاليات والمشاركات."
+                  onClick={() => setAccountType("ACTIVITY_LEADER")}
+                />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-black text-slate-700">الصياغة</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -100,7 +131,7 @@ export default function RegisterPage() {
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
                   ].join(" ")}
                 >
-                  موجه طلابي
+                  مذكر
                 </button>
 
                 <button
@@ -113,9 +144,13 @@ export default function RegisterPage() {
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
                   ].join(" ")}
                 >
-                  موجهة طلابية
+                  مؤنث
                 </button>
               </div>
+
+              <p className="mt-2 rounded-2xl bg-sky-50 px-4 py-3 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                سيظهر مسماك في المنصة: {selectedJobTitle}
+              </p>
             </div>
 
             <button
@@ -135,6 +170,36 @@ export default function RegisterPage() {
         </form>
       </section>
     </main>
+  );
+}
+
+function RoleButton({
+  active,
+  title,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-2xl border px-4 py-3 text-right transition",
+        active
+          ? "border-slate-950 bg-slate-950 text-white"
+          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+      ].join(" ")}
+    >
+      <span className="block text-sm font-black">{title}</span>
+      <span className={["mt-1 block text-xs font-bold leading-6", active ? "text-slate-300" : "text-slate-500"].join(" ")}>
+        {description}
+      </span>
+    </button>
   );
 }
 

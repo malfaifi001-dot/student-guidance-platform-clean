@@ -41,6 +41,16 @@ const COUNSELOR_PERMISSIONS: Permission[] = [
   "subscription:read",
 ];
 
+const ACTIVITY_LEADER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "subscription:read",
+];
+
 const STAFF_PERMISSIONS: Permission[] = [
   "dashboard:read",
   "students:read",
@@ -60,6 +70,7 @@ const SCHOOL_OWNER_PERMISSIONS: Permission[] = [
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ADMIN: [...PERMISSIONS],
   COUNSELOR: COUNSELOR_PERMISSIONS,
+  ACTIVITY_LEADER: ACTIVITY_LEADER_PERMISSIONS,
   SCHOOL_OWNER: SCHOOL_OWNER_PERMISSIONS,
   STAFF: STAFF_PERMISSIONS,
 };

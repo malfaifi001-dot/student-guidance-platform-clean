@@ -36,7 +36,12 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isAdmin = user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+
+  const isActivityLeader =
+    user?.role === "ACTIVITY_LEADER" ||
+    pathname.startsWith("/dashboard/activity-leader");
 
   const displayName = user?.officialName || user?.name || "حسابي";
 
@@ -49,7 +54,25 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   const roleText = isAdmin
     ? "مدير النظام"
     : user?.jobTitle ||
-      (user?.gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي");
+      (isActivityLeader
+        ? user?.gender === "FEMALE"
+          ? "رائدة النشاط"
+          : "رائد النشاط"
+        : user?.gender === "FEMALE"
+          ? "موجهة طلابية"
+          : "موجه طلابي");
+
+  const searchPlaceholder = isAdmin
+    ? "ابحث عن حساب، باقة، طلب تفعيل، Workflow..."
+    : isActivityLeader
+      ? "ابحث عن برنامج، فعالية، مشاركة أو تقرير نشاط..."
+      : "ابحث عن طالب، خدمة، حالة أو تقرير...";
+
+  const headerBadgeText = isAdmin
+    ? "Admin Center"
+    : isActivityLeader
+      ? "ريادة النشاط"
+      : "منصة التوجيه الطلابي";
 
   async function logout() {
     await fetch("/api/auth/logout", {
@@ -68,11 +91,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             <input
               suppressHydrationWarning
               type="search"
-              placeholder={
-                isAdmin
-                  ? "ابحث عن حساب، باقة، طلب تفعيل، Workflow..."
-                  : "ابحث عن طالب، خدمة، حالة أو تقرير..."
-              }
+              placeholder={searchPlaceholder}
               className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-12 text-[15px] font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
             />
           </div>
@@ -92,7 +111,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             ) : (
               <Sparkles className="h-4 w-4 text-sky-500" />
             )}
-            {isAdmin ? "Admin Center" : "منصة التوجيه الطلابي"}
+            {headerBadgeText}
           </div>
 
           <ThemeToggleButton />
@@ -162,13 +181,11 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                   />
 
                   {!isAdmin ? (
-                    <>
-                      <HeaderMenuLink
-                        href="/dashboard/plans"
-                        icon={<WalletCards className="h-4 w-4" />}
-                        label="الباقات"
-                      />
-                    </>
+                    <HeaderMenuLink
+                      href="/dashboard/plans"
+                      icon={<WalletCards className="h-4 w-4" />}
+                      label="الباقات"
+                    />
                   ) : null}
                 </div>
 

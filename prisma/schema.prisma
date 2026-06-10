@@ -9,6 +9,7 @@ datasource db {
 enum UserRole {
   ADMIN
   COUNSELOR
+  ACTIVITY_LEADER
   SCHOOL_OWNER
   STAFF
 }
@@ -74,6 +75,15 @@ enum FieldType {
   RICH_TEXT
 }
 
+enum ActivityAssignmentStatus {
+  SENT
+  OPENED
+  SUBMITTED
+  APPROVED
+  RETURNED
+  EXPIRED
+  CANCELED
+}
 enum CaseStatus {
   DRAFT
   SUBMITTED
@@ -151,6 +161,7 @@ model SchoolAccount {
   resultsAnalyses   ResultsAnalysis[]
   assessmentAnalyses AssessmentAnalysis[]
   calendarReminders CalendarReminder[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsBySchool")
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 }
@@ -177,6 +188,7 @@ model User {
   cases             CaseEntry[]
   sessions          UserSession[]
   calendarReminders CalendarReminder[]
+  createdActivityAssignments ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
 
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -217,6 +229,19 @@ model SchoolProfile {
 
   schoolName          String
   principalName       String?
+  principalPhone      String?
+  principalSignatureUrl String?
+  principalSignatureToken String? @unique
+  principalSignatureRequestedAt DateTime?
+  principalSignatureSignedAt DateTime?
+
+  activityLeaderName String?
+  activityLeaderSignatureUrl String?
+  activityLeaderSignedAt DateTime?
+
+  counselorSignatureUrl String?
+  counselorSignedAt DateTime?
+
   educationDepartment String?
   educationOffice     String?
   city                String?
@@ -303,6 +328,7 @@ model Service {
   cases             CaseEntry[]
   access            ServiceAccess[]
   calendarReminders CalendarReminder[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -322,6 +348,7 @@ model Workflow {
   studentPickerMode StudentPickerMode @default(SERVICE_DEFAULT)
   steps             WorkflowStep[]
   cases             CaseEntry[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -424,6 +451,7 @@ model CaseEntry {
   values            CaseValue[]
   evidences         Evidence[]
   calendarReminders CalendarReminder[]
+  activityAssignment  ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
 
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -476,6 +504,67 @@ model Evidence {
   @@index([caseEntryId])
 }
 
+
+model ActivityAssignment {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("ActivityAssignmentsBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User? @relation("ActivityAssignmentsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  serviceId String
+  service   Service @relation("ActivityAssignmentsService", fields: [serviceId], references: [id])
+
+  workflowId String
+  workflow   Workflow @relation("ActivityAssignmentsWorkflow", fields: [workflowId], references: [id])
+
+  caseEntryId String?    @unique
+  caseEntry   CaseEntry? @relation("ActivityAssignmentCaseEntry", fields: [caseEntryId], references: [id], onDelete: SetNull)
+
+  domainSlug  String
+  domainTitle String
+
+  teacherName  String
+  teacherPhone String
+  teacherEmail String?
+
+  teacherSignatureUrl String?
+  teacherSignedName   String?
+  teacherSignedAt     DateTime?
+
+  dueDate DateTime?
+  note    String?   @db.Text
+
+  submittedValues       Json?
+  submittedEvidenceItems Json?
+  returnedReason        String? @db.Text
+
+  token          String    @unique
+  tokenExpiresAt DateTime?
+
+  openedAt    DateTime?
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  returnedAt  DateTime?
+  canceledAt  DateTime?
+
+  status ActivityAssignmentStatus @default(SENT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([domainSlug])
+  @@index([teacherPhone])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+}
 model CalendarReminder {
   id String @id @default(cuid())
 

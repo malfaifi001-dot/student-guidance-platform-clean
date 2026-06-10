@@ -6,6 +6,7 @@ import { getRequestDeviceInfo } from "@/lib/auth/current-user";
 import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
 import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";
 import { logAuthLoginEvent } from "@/lib/admin/activity-events";
+import { getPostLoginRedirectPath } from "@/lib/auth/dashboard-redirects";
 import {
   createSessionToken,
   createTokenId,
@@ -97,12 +98,7 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       success: true,
-      redirectTo:
-        user.role === "ADMIN"
-          ? "/dashboard/admin"
-          : user.onboardingCompleted || user.onboardingSkippedAt
-            ? "/dashboard"
-            : "/dashboard/onboarding",
+      redirectTo: getPostLoginRedirectPath(user),
     });
 
     response.cookies.set(
@@ -128,6 +124,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-
-

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { SoftBlueDashboard } from "@/components/dashboard/soft-blue-dashboard";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import { prisma } from "@/lib/prisma";
 
 function getAttentionWindow() {
@@ -17,9 +18,10 @@ function getAttentionWindow() {
 export default async function DashboardPage() {
   const current = await requireDashboardUser();
 
-  if (current.user.role === "ADMIN") {
-    redirect("/dashboard/admin");
+  if (current.user.role === "ADMIN" || current.user.role === "ACTIVITY_LEADER") {
+    redirect(getDashboardHomePath(current.user.role));
   }
+
   const schoolAccountId = current.user.schoolAccountId;
   const { nextSevenDays } = getAttentionWindow();
 

@@ -4,6 +4,7 @@ import { saveRuntimeCase } from "@/engine/cases/case-runtime-engine";
 import { logCaseSavedEvent } from "@/lib/admin/activity-events";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 
 export async function POST(request: Request) {
   const authResult = await requireSchoolDashboardApiContext();
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const serviceGuard = await requireServiceAccessApi(service.slug);
+    const serviceGuard = await requireServiceAccessApi(getActivityProgramsBillingServiceSlug(service.slug));
     if (serviceGuard) return serviceGuard;
 
     const result = await saveRuntimeCase({

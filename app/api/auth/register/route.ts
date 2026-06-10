@@ -9,6 +9,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { getRequestDeviceInfo } from "@/lib/auth/current-user";
 import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
 import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";
+import { getOnboardingPathForRole } from "@/lib/auth/dashboard-redirects";
 import {
   createSessionToken,
   createTokenId,
@@ -32,6 +33,18 @@ function createSlugFromName(name: string) {
   return `${base || "school"}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function normalizeAccountRole(value: unknown) {
+  return value === "ACTIVITY_LEADER" ? "ACTIVITY_LEADER" : "COUNSELOR";
+}
+
+function getJobTitle(role: string, gender: "MALE" | "FEMALE") {
+  if (role === "ACTIVITY_LEADER") {
+    return gender === "FEMALE" ? "رائدة النشاط" : "رائد النشاط";
+  }
+
+  return gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي";
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -41,6 +54,8 @@ export async function POST(request: Request) {
     const phone = String(body?.phone || "").trim();
     const password = String(body?.password || "");
     const gender = body?.gender === "FEMALE" ? "FEMALE" : "MALE";
+    const role = normalizeAccountRole(body?.accountType);
+    const jobTitle = getJobTitle(role, gender);
 
     const rateLimitResponse = enforceRateLimit(request, {
       namespace: "auth-register",
@@ -113,9 +128,9 @@ export async function POST(request: Request) {
           email,
           phone,
           passwordHash: hashPassword(password),
-          role: "COUNSELOR",
+          role,
           gender,
-          jobTitle: gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي",
+          jobTitle,
           onboardingCompleted: false,
         },
       });
@@ -148,7 +163,7 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       success: true,
-      redirectTo: "/dashboard/onboarding",
+      redirectTo: getOnboardingPathForRole(result.user.role),
     });
 
     response.cookies.set(
@@ -174,4 +189,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

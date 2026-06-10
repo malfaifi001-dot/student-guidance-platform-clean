@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
 import type { ComponentType, ReactNode } from "react";
 import {
   Activity,
@@ -51,7 +52,7 @@ const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
 
 const counselorImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard", icon: Home },
-  { label: "الحالات", href: "/dashboard/cases", icon: FolderKanban },
+  { label: "مركز الأنشطة", href: "/dashboard/cases", icon: FolderKanban },
   { label: "التقارير", href: "/dashboard/reports", icon: FileText },
   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
 ];
@@ -127,6 +128,40 @@ const counselorAccountLinks: SidebarLinkItem[] = [
   { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
 ];
 
+const activityLeaderImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard/activity-leader", icon: Home },
+  { label: "مركز الأنشطة", href: "/dashboard/cases", icon: FolderKanban, shortLabel: "الأنشطة" },
+  { label: "البرامج والفعاليات", href: "/dashboard/activity-leader/programs", icon: ClipboardList },
+  { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+];
+
+const activityProgramDomainLinks: SidebarLinkItem[] = [
+  {
+    label: "كل برامج النشاط",
+    href: "/dashboard/activity-leader/programs",
+    icon: ClipboardList,
+    shortLabel: "البرامج",
+  },
+  ...ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
+    label: domain.title,
+    href: `/dashboard/activity-leader/programs/${domain.slug}`,
+    icon: ClipboardList,
+    shortLabel: domain.shortLabel,
+  })),
+];
+const activityLeaderServiceLinks: SidebarLinkItem[] = [
+  { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
+  { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
+  { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
+  { label: "تقارير النشاط", href: "/dashboard/activity-leader/reports", icon: FileText },
+];
+
+const activityLeaderAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
 const adminMainLinks: SidebarLinkItem[] = [
   { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
   { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
@@ -184,6 +219,8 @@ function hasActive(pathname: string, items: SidebarLinkItem[]) {
 const collapsedLabelByLabel: Record<string, string> = {
   "الرئيسية": "الرئيسية",
   "الحالات": "الحالات",
+  "مركز الأنشطة": "الأنشطة",
+  "متابعة أنشطة المعلمين": "المعلمون",
   "التقارير": "التقارير",
   "التقويم والتنبيهات": "التقويم",
 
@@ -242,8 +279,28 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
 
   const isAdmin =
     user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+  const isActivityLeader =
+    user?.role === "ACTIVITY_LEADER" ||
+    pathname.startsWith("/dashboard/activity-leader");
 
-  useEffect(() => {
+  const dashboardHomeHref = isAdmin
+    ? "/dashboard/admin"
+    : isActivityLeader
+      ? "/dashboard/activity-leader"
+      : "/dashboard";
+
+  const dashboardTitle = isAdmin
+    ? "إدارة المنصة"
+    : isActivityLeader
+      ? "ريادة النشاط"
+      : "التوجيه الطلابي";
+
+  const dashboardSubtitle = isAdmin
+    ? "Admin Center"
+    : isActivityLeader
+      ? "Activity Leader"
+      : "Counselor";
+useEffect(() => {
     const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
     setCollapsed(savedValue === "true");
     setReady(true);
@@ -274,13 +331,13 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
           ].join(" ")}
         >
           <Link
-            href={isAdmin ? "/dashboard/admin" : "/dashboard"}
+            href={dashboardHomeHref}
             className={[
               "flex min-w-0 items-center rounded-[1.35rem] transition",
               collapsed ? "justify-center p-1" : "flex-1 gap-3 px-2 py-2",
               isAdmin ? "hover:bg-slate-50" : "hover:bg-sky-50/60",
             ].join(" ")}
-            title={isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+            title={dashboardTitle}
           >
             <div
               className={[
@@ -301,10 +358,10 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
             {!collapsed ? (
               <div className="min-w-0">
                 <h1 className="truncate text-[15px] font-black text-slate-950">
-                  {isAdmin ? "إدارة المنصة" : "التوجيه الطلابي"}
+                  {dashboardTitle}
                 </h1>
                 <p className="mt-1 truncate text-[11px] font-black text-slate-400">
-                  {isAdmin ? "Admin Center" : "Counselor"}
+                  {dashboardSubtitle}
                 </p>
               </div>
             ) : null}
@@ -327,6 +384,8 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
 
         {isAdmin ? (
           <AdminSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isActivityLeader ? (
+          <ActivityLeaderSidebar pathname={pathname} collapsed={collapsed} />
         ) : (
           <CounselorSidebar pathname={pathname} collapsed={collapsed} />
         )}
@@ -429,6 +488,95 @@ function AdminSidebar({
   );
 }
 
+function ActivityLeaderSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {activityLeaderImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="برامج النشاط"
+          defaultOpen={pathname.startsWith("/dashboard/activity-leader/programs")}
+          collapsed={collapsed}
+        >
+          {activityProgramDomainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/activity-leader/programs"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarSection title="إدارة النشاط" collapsed={collapsed}>
+          {activityLeaderServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {activityLeaderAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4">
+          <p className="text-xs font-black text-sky-700">اقتراح سريع</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80">
+            ابدأ ببرنامج أو فعالية، ثم أضف الشواهد والتقرير عند اكتمال التنفيذ.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
 function CounselorSidebar({
   pathname,
   collapsed,

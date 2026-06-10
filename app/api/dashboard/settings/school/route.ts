@@ -8,7 +8,7 @@ export async function GET() {
   if (!current) {
     return NextResponse.json(
       { success: false, error: "يلزم تسجيل الدخول." },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -20,8 +20,24 @@ export async function GET() {
       officialName: current.user.officialName || current.user.name || "",
       jobTitle: current.user.jobTitle || "",
       phone: current.user.phone || "",
+
       schoolName: profile?.schoolName || "",
       principalName: profile?.principalName || "",
+      principalPhone: profile?.principalPhone || "",
+      principalSignatureUrl: profile?.principalSignatureUrl || "",
+      principalSignatureRequestedAt:
+        profile?.principalSignatureRequestedAt?.toISOString() || "",
+      principalSignatureSignedAt:
+        profile?.principalSignatureSignedAt?.toISOString() || "",
+
+      activityLeaderName: profile?.activityLeaderName || "",
+      activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || "",
+      activityLeaderSignedAt:
+        profile?.activityLeaderSignedAt?.toISOString() || "",
+
+      counselorSignatureUrl: profile?.counselorSignatureUrl || "",
+      counselorSignedAt: profile?.counselorSignedAt?.toISOString() || "",
+
       educationDepartment: profile?.educationDepartment || "",
       educationOffice: profile?.educationOffice || "",
       city: profile?.city || "",
@@ -42,7 +58,7 @@ export async function PATCH(request: Request) {
     if (!current || !current.user.schoolAccountId) {
       return NextResponse.json(
         { success: false, error: "يلزم تسجيل الدخول." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -51,8 +67,12 @@ export async function PATCH(request: Request) {
     const officialName = String(body?.officialName || "").trim();
     const jobTitle = String(body?.jobTitle || "").trim();
     const phone = String(body?.phone || "").trim();
+
     const schoolName = String(body?.schoolName || "").trim();
     const principalName = String(body?.principalName || "").trim();
+    const principalPhone = String(body?.principalPhone || "").trim();
+    const activityLeaderName = String(body?.activityLeaderName || "").trim();
+
     const educationDepartment = String(body?.educationDepartment || "").trim();
     const educationOffice = String(body?.educationOffice || "").trim();
     const city = String(body?.city || "").trim();
@@ -68,7 +88,7 @@ export async function PATCH(request: Request) {
           success: false,
           error: "الاسم الرسمي، المسمى الوظيفي، واسم المدرسة مطلوبة.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,6 +122,8 @@ export async function PATCH(request: Request) {
         update: {
           schoolName,
           principalName,
+          principalPhone,
+          activityLeaderName,
           educationDepartment,
           educationOffice,
           city,
@@ -115,6 +137,8 @@ export async function PATCH(request: Request) {
           schoolAccountId: current.user.schoolAccountId,
           schoolName,
           principalName,
+          principalPhone,
+          activityLeaderName,
           educationDepartment,
           educationOffice,
           city,
@@ -136,8 +160,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(
       { success: false, error: "حدث خطأ أثناء حفظ إعدادات المدرسة." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

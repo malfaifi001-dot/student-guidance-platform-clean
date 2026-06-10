@@ -1,3 +1,8 @@
+import {
+  ACTIVITY_PROGRAM_PARENT_SERVICE,
+  ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+} from "@/lib/activity-programs/activity-program-catalog";
+
 export type AppService = {
   slug: string;
   title: string;
@@ -7,6 +12,7 @@ export type AppService = {
 };
 
 export const workflowServices: AppService[] = [
+  ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
   {
     slug: "guidance-programs",
     title: "البرامج الإرشادية",
@@ -116,6 +122,7 @@ export const workflowUploadServices: AppService[] = [
 ];
 
 export const standaloneServices: AppService[] = [
+  ACTIVITY_PROGRAM_PARENT_SERVICE,
   {
     slug: "comprehensive-reference",
     title: "المرجع الشامل للموجه الطلابي",

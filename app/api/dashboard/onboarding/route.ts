@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import {
   SESSION_COOKIE_NAME,
   verifySessionToken,

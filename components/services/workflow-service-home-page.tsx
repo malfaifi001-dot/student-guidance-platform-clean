@@ -51,6 +51,10 @@ function getCaseStatusLabel(status: string) {
   return status || "غير محدد";
 }
 
+function isActivityProgramServiceSlug(serviceSlug: string) {
+  return serviceSlug.startsWith("activity-programs-");
+}
+
 function getCaseStatusClass(status: string) {
   if (status === "DRAFT") {
     return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
@@ -97,6 +101,18 @@ function getCaseTitle(
   }
 
   return `${caseSingularName} - ${formatDate(caseItem.createdAt)}`;
+}
+
+function getAssignedTeacherName(caseItem: {
+  values?: {
+    fieldKey: string;
+    value: string | null;
+  }[];
+}) {
+  return (
+    caseItem.values?.find((item) => item.fieldKey === "assigned_teacher_name")
+      ?.value || ""
+  ).trim();
 }
 
 function getNextActionText(caseItem: {
@@ -210,6 +226,16 @@ export async function WorkflowServiceHomePage({
           values: true,
           evidences: true,
           guidanceReports: true,
+        },
+      },
+      values: {
+        where: {
+          fieldKey: "assigned_teacher_name",
+        },
+        take: 1,
+        select: {
+          fieldKey: true,
+          value: true,
         },
       },
       guidanceReports: {

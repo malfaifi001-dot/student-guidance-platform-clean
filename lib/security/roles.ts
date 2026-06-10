@@ -1,6 +1,7 @@
 export const USER_ROLES = [
   "ADMIN",
   "COUNSELOR",
+  "ACTIVITY_LEADER",
   "SCHOOL_OWNER",
   "STAFF",
 ] as const;
@@ -20,5 +21,10 @@ export function isAdminRole(role?: string | null) {
 }
 
 export function isSchoolScopedRole(role?: string | null) {
-  return role === "COUNSELOR" || role === "SCHOOL_OWNER" || role === "STAFF";
+  return (
+    role === "COUNSELOR" ||
+    role === "ACTIVITY_LEADER" ||
+    role === "SCHOOL_OWNER" ||
+    role === "STAFF"
+  );
 }

@@ -68,6 +68,7 @@ const SERVICES_WITH_EVIDENCE = new Set([
   "family-school-communication",
   "student-guidance-services",
   "committees-meetings",
+  "activity-programs",
 ]);
 
 /**
@@ -224,6 +225,14 @@ const RUNTIME_SERVICE_LABELS: Record<string, string> = {
   "family-school-communication": "التواصل بين الأسرة والمدرسة",
   "student-guidance-services": "الخدمات الإرشادية",
   "committees-meetings": "اللجان والاجتماعات",
+  "activity-programs": "برامج النشاط",
+  "activity-programs-citizenship-life": "برامج النشاط - المواطنة والحياة",
+  "activity-programs-science-technology": "برامج النشاط - العلوم والتقنية",
+  "activity-programs-culture-arts": "برامج النشاط - الثقافة والفنون",
+  "activity-programs-sports-health": "برامج النشاط - الرياضة والصحة",
+  "activity-programs-scouting": "برامج النشاط - النشاط الكشفي",
+  "activity-programs-events-occasions": "برامج النشاط - الأيام والمناسبات",
+  "activity-programs-non-class-periods": "برامج النشاط - الفترات اللاصفية",
 };
 
 const RUNTIME_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
