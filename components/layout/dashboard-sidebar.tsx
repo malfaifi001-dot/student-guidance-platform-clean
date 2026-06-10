@@ -120,6 +120,7 @@ const assessmentCenterLinks: SidebarLinkItem[] = [
 ];
 const counselorToolsLinks: SidebarLinkItem[] = [
   { label: "رفع بيانات الطلاب", href: "/dashboard/student-import", icon: UploadCloud },
+  { label: "الاستبيانات", href: "/dashboard/surveys", icon: ClipboardList },
 ];
 
 const counselorAccountLinks: SidebarLinkItem[] = [
@@ -152,6 +153,7 @@ const activityProgramDomainLinks: SidebarLinkItem[] = [
 ];
 const activityLeaderServiceLinks: SidebarLinkItem[] = [
   { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
+  { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
   { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
   { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
   { label: "تقارير النشاط", href: "/dashboard/activity-leader/reports", icon: FileText },
@@ -166,6 +168,7 @@ const adminMainLinks: SidebarLinkItem[] = [
   { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
   { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
   { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
+  { label: "الاستبيانات", href: "/dashboard/admin/surveys", icon: ClipboardList },
   { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
   { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
   { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },

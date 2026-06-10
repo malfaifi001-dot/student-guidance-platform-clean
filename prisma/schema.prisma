@@ -142,6 +142,24 @@ enum IntegrationStatus {
   INACTIVE
   ERROR
 }
+enum SurveyStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum SurveyQuestionType {
+  TEXT
+  TEXTAREA
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  YES_NO
+  RATING
+  SCALE
+  NUMBER
+  DATE
+}
 
 model SchoolAccount {
   id                    String                 @id @default(cuid())
@@ -162,6 +180,8 @@ model SchoolAccount {
   assessmentAnalyses AssessmentAnalysis[]
   calendarReminders CalendarReminder[]
   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsBySchool")
+  surveys             Survey[]           @relation("SurveysBySchool")
+  surveyResponses     SurveyResponse[]   @relation("SurveyResponsesBySchool")
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 }
@@ -189,6 +209,7 @@ model User {
   sessions          UserSession[]
   calendarReminders CalendarReminder[]
   createdActivityAssignments ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
+  createdSurveys            Survey[]             @relation("SurveysCreatedBy")
 
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -329,6 +350,7 @@ model Service {
   access            ServiceAccess[]
   calendarReminders CalendarReminder[]
   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
+  surveys             Survey[]             @relation("SurveysService")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1131,7 +1153,6 @@ model ActivationCode {
   createdById     String?
   usedByUserId    String?
 
-  startsAt   DateTime?
   expiresAt  DateTime?
   lastUsedAt DateTime?
 
@@ -1366,4 +1387,133 @@ model AssessmentInterventionWorkflowTarget {
   @@index([workflowId])
   @@index([targetType])
   @@index([isEnabled])
+}
+
+model Survey {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("SurveysBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User? @relation("SurveysCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  serviceId String?
+  service   Service? @relation("SurveysService", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  title       String
+  description String? @db.Text
+
+  audienceType String @default("GENERAL")
+  ownerRole    String?
+  boardPath    String?
+
+  isAnonymous Boolean @default(false)
+  token       String  @unique
+
+  status      SurveyStatus @default(DRAFT)
+  endsAt      DateTime?
+  publishedAt DateTime?
+  closedAt    DateTime?
+  opensAt              DateTime?
+
+  questions SurveyQuestion[]
+  responses SurveyResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([serviceId])
+  @@index([status])
+  @@index([audienceType])
+}
+
+model SurveyQuestion {
+  id String @id @default(cuid())
+
+  surveyId String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  key      String
+  label    String
+  type     SurveyQuestionType
+  helpText String? @db.Text
+
+  isRequired Boolean @default(false)
+  order      Int
+
+  scaleMin Int?
+  scaleMax Int?
+
+  options SurveyOption[]
+  answers SurveyAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([surveyId, key])
+  @@index([surveyId])
+  @@index([order])
+}
+
+model SurveyOption {
+  id String @id @default(cuid())
+
+  questionId String
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  label String
+  value String
+  order Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([questionId])
+  @@index([order])
+}
+
+model SurveyResponse {
+  id String @id @default(cuid())
+
+  surveyId String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation("SurveyResponsesBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  respondentType  String @default("GENERAL")
+  respondentName  String?
+  respondentPhone String?
+  metadata        Json?
+
+  answers SurveyAnswer[]
+
+  submittedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([surveyId])
+  @@index([schoolAccountId])
+  @@index([respondentType])
+  @@index([submittedAt])
+}
+
+model SurveyAnswer {
+  id String @id @default(cuid())
+
+  responseId String
+  response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  value     String? @db.Text
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+
+  @@unique([responseId, questionId])
+  @@index([questionId])
 }

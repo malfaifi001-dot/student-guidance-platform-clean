@@ -131,6 +131,13 @@ export const standaloneServices: AppService[] = [
     kind: "standalone",
   },
   {
+    slug: "surveys",
+    title: "الاستبيانات",
+    description: "إنشاء الاستبيانات ونشرها وتحليل ردود المستفيدين.",
+    href: "/dashboard/surveys",
+    kind: "standalone",
+  },
+  {
     slug: "results-analysis",
     title: "تحليل النتائج",
     description: "رفع وتحليل نتائج الطلاب.",

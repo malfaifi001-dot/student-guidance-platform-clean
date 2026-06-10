@@ -1,0 +1,2 @@
+ALTER TABLE `Survey`
+  ADD COLUMN `opensAt` DATETIME(3) NULL;
