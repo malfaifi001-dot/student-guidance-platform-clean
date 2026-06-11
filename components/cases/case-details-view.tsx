@@ -822,7 +822,7 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
     })) || [];
 
   const primaryReportHref =
-    latestReportUrl || `/dashboard/reports/new?caseId=${caseEntry.id}`;
+    latestReportUrl || `/dashboard/reports/cases/${caseEntry.id}/prepare`;
 
   const isCommitteesCase = caseEntry.service?.slug === COMMITTEE_SERVICE_SLUG;
 
