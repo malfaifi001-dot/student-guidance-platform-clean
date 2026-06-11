@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 import { logPlanOrderCreatedEvent } from "@/lib/admin/activity-events";
+import { getPlanAudience, getAllowedPlanAudiencesForRole } from "@/lib/subscription/plan-audience";
 import {
   assignPlanToSchool,
   getPlanFeatureValue,
@@ -56,11 +57,20 @@ export async function GET() {
     }),
   ]);
 
-  const mappedPlans = plans.map((plan: any) => {
+  const role = current.user.role;
+  const allowedAudiences = getAllowedPlanAudiencesForRole(role);
+
+  const visiblePlans = plans.filter((plan: any) => {
+    const audience = getPlanAudience(plan.features);
+    return allowedAudiences.includes(audience);
+  });
+
+  const mappedPlans = visiblePlans.map((plan: any) => {
     const serviceSlugs = getPlanServiceSlugs(plan.features);
     const planServices = services.filter((service: any) =>
       serviceSlugs.includes(service.slug)
     );
+    const audience = getPlanAudience(plan.features);
 
     return {
       id: plan.id,
@@ -72,6 +82,7 @@ export async function GET() {
       maxStudents: getPlanFeatureValue(plan.features, "maxStudents", "0"),
       maxUsers: getPlanFeatureValue(plan.features, "maxUsers", "0"),
       maxReports: getPlanFeatureValue(plan.features, "maxReports", "0"),
+      targetAudience: audience,
       services: planServices.map((service: any) => ({
         id: service.id,
         slug: service.slug,

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
+import type { PlanAudience } from "@/lib/subscription/plan-audience";
 
 function getSchoolDisplayName(account: {
   profile?: {
@@ -221,6 +222,12 @@ export async function POST(request: Request) {
       ? payload.enabledServiceSlugs.map(String)
       : [];
 
+    const targetAudienceRaw = String(payload?.targetAudience || "ALL").trim();
+    const targetAudience: PlanAudience =
+      targetAudienceRaw === "GUIDANCE" || targetAudienceRaw === "ACTIVITY"
+        ? targetAudienceRaw
+        : "ALL";
+
     if (!name) {
       return NextResponse.json(
         { error: "اكتب اسم الباقة." },
@@ -257,6 +264,11 @@ export async function POST(request: Request) {
         isActive: true,
         features: {
           create: [
+            {
+              key: "targetAudience",
+              label: "الجمهور المستهدف",
+              value: targetAudience,
+            },
             {
               key: "durationDays",
               label: "مدة الاشتراك بالأيام",

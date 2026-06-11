@@ -1,6 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { PlanAudience } from "@/lib/subscription/plan-audience";
+import {
+  getPlanAudience,
+  getPlanAudienceLabel,
+  filterServicesByPlanAudience,
+} from "@/lib/subscription/plan-audience";
+
 import {
   AlertTriangle,
   CheckCircle2,
@@ -118,6 +125,7 @@ export function AdminSubscriptionsControlCenter() {
     text: string;
   } | null>(null);
 
+  const [planAudience, setPlanAudience] = useState<PlanAudience>("ALL");
   const [planName, setPlanName] = useState("باقة الموجه الشهرية");
   const [planSlug, setPlanSlug] = useState("counselor-monthly");
   const [priceMonthly, setPriceMonthly] = useState("99");
@@ -186,6 +194,11 @@ export function AdminSubscriptionsControlCenter() {
     });
   }, [data?.subscriptions, search]);
 
+  const visibleServices = useMemo(() => {
+    if (!data?.services) return [];
+    return filterServicesByPlanAudience(data.services, planAudience);
+  }, [data?.services, planAudience]);
+
   async function runAction(payload: Record<string, unknown>) {
     setMessage(null);
 
@@ -221,9 +234,18 @@ export function AdminSubscriptionsControlCenter() {
     );
   }
 
+  function handleAudienceChange(audience: PlanAudience) {
+    setPlanAudience(audience);
+    if (data?.services) {
+      const filtered = filterServicesByPlanAudience(data.services, audience);
+      setEnabledServiceSlugs(filtered.map((s) => s.slug));
+    }
+  }
+
   async function createPlan() {
     await runAction({
       action: "create-plan",
+      targetAudience: planAudience,
       name: planName,
       slug: planSlug,
       priceMonthly,
@@ -412,11 +434,37 @@ export function AdminSubscriptionsControlCenter() {
 
             <div className="mt-5">
               <p className="text-[13px] font-black text-slate-700">
+                الجمهور المستهدف
+              </p>
+
+              <div className="mt-2 flex gap-2">
+                {(["GUIDANCE", "ACTIVITY", "ALL"] as PlanAudience[]).map(
+                  (value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => handleAudienceChange(value)}
+                      className={[
+                        "flex-1 rounded-2xl border p-3 text-center text-sm font-black transition",
+                        planAudience === value
+                          ? "border-sky-100 bg-sky-50 text-sky-700 shadow-sm"
+                          : "border-slate-100 bg-slate-50 text-slate-500 hover:bg-white",
+                      ].join(" ")}
+                    >
+                      {getPlanAudienceLabel(value)}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <p className="text-[13px] font-black text-slate-700">
                 الخدمات المشمولة في الباقة
               </p>
 
               <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {data?.services.map((service) => {
+                {visibleServices.map((service) => {
                   const active = enabledServiceSlugs.includes(service.slug);
 
                   return (
@@ -471,20 +519,31 @@ export function AdminSubscriptionsControlCenter() {
               {data?.plans.map((plan) => {
                 const services = getPlanServices(plan);
 
-                return (
-                  <article
-                    key={plan.id}
-                    className="rounded-[1.35rem] border border-slate-100 bg-slate-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-[16px] font-black text-slate-950">
-                          {plan.name}
-                        </h3>
-                        <p className="mt-1 text-[12px] font-bold text-slate-400">
-                          {plan.slug}
-                        </p>
-                      </div>
+                  const audience =
+                    getPlanAudience(plan.features);
+                  const audienceLabel =
+                    getPlanAudienceLabel(audience);
+
+                  return (
+                    <article
+                      key={plan.id}
+                      className="rounded-[1.35rem] border border-slate-100 bg-slate-50 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-[16px] font-black text-slate-950">
+                            {plan.name}
+                          </h3>
+                          <p className="mt-1 text-[12px] font-bold text-slate-400">
+                            {plan.slug}
+                          </p>
+
+                          {audience !== "ALL" ? (
+                            <span className="mt-2 inline-block rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-black text-sky-700">
+                              {audienceLabel}
+                            </span>
+                          ) : null}
+                        </div>
 
                       <button
                         type="button"

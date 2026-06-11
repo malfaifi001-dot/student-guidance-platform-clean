@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { getPlanAudienceLabel, type PlanAudience } from "@/lib/subscription/plan-audience";
+
 import {
   AlertCircle,
   CheckCircle2,
@@ -23,6 +25,7 @@ type CounselorPlan = {
   maxStudents: string;
   maxUsers: string;
   maxReports: string;
+  targetAudience: string;
   services: Array<{
     id: string;
     slug: string;
@@ -601,9 +604,17 @@ export function CounselorPlansPage() {
                 <Sparkles className="h-7 w-7" />
               </div>
 
-              <h2 className="mt-5 text-2xl font-black text-slate-950">
-                {plan.name}
-              </h2>
+              <div className="mt-5 flex items-center gap-2">
+                <h2 className="text-2xl font-black text-slate-950">
+                  {plan.name}
+                </h2>
+
+                {plan.targetAudience && plan.targetAudience !== "ALL" ? (
+                  <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-black text-sky-700">
+                    {getPlanAudienceLabel(plan.targetAudience as PlanAudience)}
+                  </span>
+                ) : null}
+              </div>
 
               <div className="mt-4 flex items-end gap-2">
                 <p className="text-5xl font-black text-slate-950">{price}</p>

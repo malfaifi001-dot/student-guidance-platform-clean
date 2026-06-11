@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { SubscriptionStatus } from "@prisma/client";
+import type { PlanAudience } from "./plan-audience";
 
 type PlanFeatureLike = {
   key: string;
@@ -54,6 +55,14 @@ export function getPlanServiceSlugs(features: PlanFeatureLike[]) {
         .filter(Boolean)
     )
   );
+}
+
+export function getPlanAudienceFromFeatures(
+  features: Array<{ key: string; value: string | null }>,
+): PlanAudience {
+  const value = features.find((f) => f.key === "targetAudience")?.value;
+  if (value === "GUIDANCE" || value === "ACTIVITY") return value;
+  return "ALL";
 }
 
 function hasPlanServiceRules(features: PlanFeatureLike[]) {
