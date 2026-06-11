@@ -167,6 +167,7 @@ const activityLeaderAccountLinks: SidebarLinkItem[] = [
 ];
 const adminMainLinks: SidebarLinkItem[] = [
   { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
+  { label: "صحة النظام", href: "/dashboard/admin/system-health", icon: Activity },
   { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
   { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
   { label: "الاستبيانات", href: "/dashboard/admin/surveys", icon: ClipboardList },
@@ -252,6 +253,7 @@ const collapsedLabelByLabel: Record<string, string> = {
   "إعدادات المدرسة": "المدرسة",
 
   "مركز الإدارة": "الإدارة",
+  "صحة النظام": "الصحة",
   "المستخدمين": "المستخدمون",
   "سجل العمليات": "السجل",
   "التفعيلات": "التفعيلات",
