@@ -84,7 +84,7 @@ export function ActivityLeaderDashboard({
                 </h1>
 
                 <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
-                  هنا مساحة رائد النشاط لتنظيم البرامج والفعاليات، متابعة المشاركات، وتجهيز الشواهد والتقارير.
+                  ابدأ من برامج النشاط، ثم تابع الحالات والشواهد، وبعد اكتمال التنفيذ أصدر التقارير من المحرك الموحد.
                 </p>
               </div>
 
@@ -97,15 +97,15 @@ export function ActivityLeaderDashboard({
                 />
 
                 <HeroButton
-                  href="/dashboard/activity-leader/evidence"
-                  icon={<UploadCloud className="h-4 w-4" />}
-                  label="رفع شاهد"
+                  href="/dashboard/cases"
+                  icon={<FolderKanban className="h-4 w-4" />}
+                  label="مركز الأنشطة"
                 />
 
                 <HeroButton
-                  href="/dashboard/activity-leader/reports"
+                  href="/dashboard/reports"
                   icon={<FileText className="h-4 w-4" />}
-                  label="تقارير النشاط"
+                  label="مركز التقارير"
                 />
               </div>
             </div>
@@ -187,9 +187,9 @@ export function ActivityLeaderDashboard({
 
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <QuietLink
-                  href="/dashboard/activity-leader/reports"
+                  href="/dashboard/reports"
                   icon={<FileText className="h-5 w-5" />}
-                  title="تقارير النشاط"
+                  title="التقارير"
                 />
 
                 <QuietLink
@@ -223,7 +223,7 @@ export function ActivityLeaderDashboard({
             <h2 className="mt-5 text-2xl font-black">نشاطك اليوم</h2>
 
             <p className="mt-3 text-sm font-bold leading-7 text-sky-50">
-              ابدأ بتجهيز البرنامج، ثم أضف الشواهد والتقارير عند اكتمال التنفيذ.
+              ابدأ بتجهيز البرنامج، ثم تابع الحالة والشواهد، وبعد اكتمال التنفيذ أصدر التقرير من مركز التقارير.
             </p>
 
             <div className="mt-5 rounded-2xl bg-white/15 p-4">
@@ -243,10 +243,10 @@ export function ActivityLeaderDashboard({
             </div>
 
             <Link
-              href="/dashboard/activity-leader/evidence"
+              href="/dashboard/cases"
               className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
             >
-              تنظيم الشواهد
+              فتح مركز الأنشطة
             </Link>
           </section>
 
