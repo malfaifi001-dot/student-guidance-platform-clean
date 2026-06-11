@@ -153,6 +153,7 @@ const activityProgramDomainLinks: SidebarLinkItem[] = [
 ];
 const activityLeaderServiceLinks: SidebarLinkItem[] = [
   { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
+  { label: "رفع بيانات الطلاب", href: "/dashboard/data-center/student-data-import", icon: UploadCloud, shortLabel: "رفع الطلاب" },
   { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
   { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
   { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
