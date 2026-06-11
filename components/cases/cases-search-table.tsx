@@ -75,6 +75,7 @@ type CaseRow = {
 type CasesSearchTableProps = {
   cases: CaseRow[];
   viewerName?: string;
+  viewerRole?: string;
   isAdmin?: boolean;
 };
 
@@ -102,7 +103,7 @@ function normalizeText(value: string) {
 }
 
 function getReportUrl(caseItem: CaseRow) {
-  return `/dashboard/reports/new?caseId=${encodeURIComponent(caseItem.id)}`;
+  return `/dashboard/reports/cases/${encodeURIComponent(caseItem.id)}/prepare`;
 }
 
 function getCasePrimaryAction(caseItem: CaseRow) {
@@ -152,10 +153,42 @@ function statLabel(value: number) {
   return new Intl.NumberFormat("ar-SA").format(value);
 }
 
+
+
+function getCaseCenterCopy(viewerRole?: string, isAdmin?: boolean) {
+  if (isAdmin || viewerRole === "ADMIN") {
+    return {
+      badge: "واجهة إدارة الحالات",
+      title: "مركز متابعة الحالات",
+      description:
+        "راجع الحالات على مستوى المنصة، وتابع التقارير والشواهد حسب الصلاحيات.",
+    };
+  }
+
+  if (viewerRole === "ACTIVITY_LEADER") {
+    return {
+      badge: "واجهة رائد النشاط",
+      title: "مركز متابعة الأنشطة",
+      description:
+        "راجع برامج النشاط، واستكمل المسودات، وأصدر التقارير أو تابع الشواهد المرتبطة بالأنشطة.",
+    };
+  }
+
+  return {
+    badge: "واجهة عمل الموجه",
+    title: "مركز متابعة الحالات",
+    description:
+      "ركز على ما يحتاج إجراء: استكمال مسودة، إصدار تقرير، أو مراجعة حالة مرتبطة بطالب أو شواهد.",
+  };
+}
+
 export function CasesSearchTable({
   cases,
   viewerName = "الموجه/الموجهة",
+  viewerRole,
+  isAdmin = false,
 }: CasesSearchTableProps) {
+  const caseCenterCopy = getCaseCenterCopy(viewerRole, isAdmin);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<CaseTab>("all");
   const [selectedService, setSelectedService] = useState("all");
@@ -310,11 +343,11 @@ export function CasesSearchTable({
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
                 <ClipboardList className="h-4 w-4" />
-                مركز متابعة الحالات
+                {caseCenterCopy.title}
               </span>
 
               <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
-                واجهة عمل الموجه
+                {caseCenterCopy.badge}
               </span>
             </div>
 

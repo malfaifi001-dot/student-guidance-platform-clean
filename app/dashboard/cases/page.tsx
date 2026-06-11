@@ -497,6 +497,7 @@ export default async function CasesPage() {
         cases={rows}
         viewerName={viewerName}
         isAdmin={viewerRole === "ADMIN"}
+        viewerRole={viewerRole}
       />
     </main>
   );
