@@ -156,7 +156,7 @@ const activityLeaderServiceLinks: SidebarLinkItem[] = [
   { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
   { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
   { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
-  { label: "تقارير النشاط", href: "/dashboard/activity-leader/reports", icon: FileText },
+  { label: "التقارير", href: "/dashboard/reports", icon: FileText },
 ];
 
 const activityLeaderAccountLinks: SidebarLinkItem[] = [

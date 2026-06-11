@@ -1,11 +1,5 @@
-import { ActivityLeaderFeaturePage } from "@/components/dashboard/activity-leader-feature-page";
+import { redirect } from "next/navigation";
 
-export default function ActivityLeaderReportsPage() {
-  return (
-    <ActivityLeaderFeaturePage
-      badge="تقارير النشاط"
-      title="تقارير النشاط"
-      description="ستكون هذه الصفحة مخصصة لإصدار تقارير النشاط المدرسي وربطها بالشواهد والبرامج."
-    />
-  );
+export default function ActivityLeaderReportsRedirectPage() {
+  redirect("/dashboard/reports");
 }
