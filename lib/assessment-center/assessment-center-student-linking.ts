@@ -216,39 +216,14 @@ export function linkAssessmentRowsToStudents({
       };
     }
 
-    const margin = second ? top.score - second.score : top.score;
-
-    if (top.score >= 90 && margin >= 8) {
+    if (top.score >= 50) {
       return {
         ...row,
         studentId: top.student.id,
         matchedStudentName: top.student.fullName,
         nationalId: row.nationalId || top.student.nationalId || null,
         linkStatus: "LINKED",
-        linkReason: top.reason,
-        linkConfidence: top.score,
-      };
-    }
-
-    if (top.score >= 82 && !second) {
-      return {
-        ...row,
-        studentId: top.student.id,
-        matchedStudentName: top.student.fullName,
-        nationalId: row.nationalId || top.student.nationalId || null,
-        linkStatus: "LINKED",
-        linkReason: top.reason,
-        linkConfidence: top.score,
-      };
-    }
-
-    if (top.score >= 65) {
-      return {
-        ...row,
-        studentId: null,
-        matchedStudentName: null,
-        linkStatus: "AMBIGUOUS",
-        linkReason: `يوجد مرشح قريب: ${top.student.fullName}. ${top.reason}`,
+        linkReason: `${top.reason} تم اعتماد الربط تلقائيًا لأن درجة الثقة ${top.score}% وهي 50% أو أكثر.`,
         linkConfidence: top.score,
       };
     }
@@ -258,7 +233,7 @@ export function linkAssessmentRowsToStudents({
       studentId: null,
       matchedStudentName: null,
       linkStatus: "UNMATCHED",
-      linkReason: "لا توجد درجة ثقة كافية للربط التلقائي.",
+      linkReason: "لا توجد درجة ثقة كافية للربط التلقائي. الحد الأدنى المعتمد 50%.",
       linkConfidence: top.score,
     };
   });
