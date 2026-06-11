@@ -74,7 +74,7 @@ export function SoftBlueDashboard({
                 </h1>
 
                 <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
-                  أهم شيء الآن: أكمل المسودات، ثم أصدر التقارير الجاهزة.
+                  ابدأ من مركز الحالات: أكمل المسودات، راجع الحالات المرسلة، ثم أصدر التقارير واحفظها.
                 </p>
               </div>
 
@@ -114,7 +114,7 @@ export function SoftBlueDashboard({
               icon={<FileText className="h-5 w-5" />}
               label="تقارير جاهزة للإصدار"
               value={formatCount(stats.readyForReport)}
-              helper="حالات مرسلة بلا تقرير."
+              helper="من مركز الحالات تصدر التقرير."
               href="/dashboard/cases"
             />
 
