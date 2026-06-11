@@ -4,20 +4,29 @@ import Link from "next/link";
 import { ArrowRight, Printer } from "lucide-react";
 
 import { SmartReportDocumentRenderer } from "@/components/report-engine/smart-report-document-renderer";
+import { SmartReportVariantSelector } from "@/components/report-engine/smart-report-variant-selector";
+import type {
+  ReportVariantConfig,
+  ReportVariantId,
+} from "@/lib/report-engine/report-variant-registry";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 
 type SmartReportCasePreviewPageProps = {
   payload: SmartReportPayload;
+  selectedVariantId: ReportVariantId;
+  variants: ReportVariantConfig[];
 };
 
 export function SmartReportCasePreviewPage({
   payload,
+  selectedVariantId,
+  variants,
 }: SmartReportCasePreviewPageProps) {
   return (
     <main className="min-h-screen bg-[#eef3ef] px-6 py-6" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between print:hidden">
-          <div>
+        <section className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm lg:flex-row lg:items-start lg:justify-between print:hidden">
+          <div className="min-w-0">
             <p className="text-sm font-black text-emerald-700">
               تجهيز التقرير
             </p>
@@ -27,8 +36,16 @@ export function SmartReportCasePreviewPage({
             </h1>
 
             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              يتم عرض التقرير من بيانات الحالة مباشرة بنفس القالب الرسمي.
+              اختر شكل التقرير، ثم راجع المعاينة قبل الحفظ أو الطباعة.
             </p>
+
+            <div className="mt-4">
+              <SmartReportVariantSelector
+                caseId={payload.caseInfo.id}
+                selectedVariantId={selectedVariantId}
+                variants={variants}
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -43,9 +60,7 @@ export function SmartReportCasePreviewPage({
             <button
               type="button"
               onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.print();
-                }
+                window.print();
               }}
               className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
             >
@@ -56,7 +71,10 @@ export function SmartReportCasePreviewPage({
         </section>
 
         <section className="rounded-[2rem] bg-slate-100 p-4 print:bg-white print:p-0">
-          <SmartReportDocumentRenderer payload={payload} />
+          <SmartReportDocumentRenderer
+            payload={payload}
+            variantId={selectedVariantId}
+          />
         </section>
       </div>
     </main>

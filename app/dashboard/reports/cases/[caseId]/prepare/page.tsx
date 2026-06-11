@@ -6,15 +6,27 @@ import {
   isServiceAllowedForSchool,
 } from "@/lib/subscription/subscription-service";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  reportVariants,
+  resolveReportVariantId,
+} from "@/lib/report-engine/report-variant-registry";
 import { SmartReportCasePreviewPage } from "@/components/report-engine/smart-report-case-preview-page";
 
 type PageProps = {
   params: Promise<{
     caseId: string;
   }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function SmartReportPreparePage({ params }: PageProps) {
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function SmartReportPreparePage({
+  params,
+  searchParams,
+}: PageProps) {
   const current = await requireDashboardUser();
 
   if (current.user.role !== "ADMIN") {
@@ -32,7 +44,11 @@ export default async function SmartReportPreparePage({ params }: PageProps) {
   }
 
   const resolvedParams = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
   const caseId = String(resolvedParams.caseId || "").trim();
+  const selectedVariantId = resolveReportVariantId(
+    firstParam(resolvedSearchParams.variant),
+  );
 
   const result = await buildSmartReportPayloadForCase({
     caseId,
@@ -72,5 +88,11 @@ export default async function SmartReportPreparePage({ params }: PageProps) {
     }
   }
 
-  return <SmartReportCasePreviewPage payload={result.payload} />;
+  return (
+    <SmartReportCasePreviewPage
+      payload={result.payload}
+      selectedVariantId={selectedVariantId}
+      variants={reportVariants}
+    />
+  );
 }

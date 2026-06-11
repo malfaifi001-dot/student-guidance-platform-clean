@@ -2,6 +2,11 @@ import {
   ActivityExecutionCardReport,
   type ActivityExecutionCardReportData,
 } from "@/components/activity-programs/reports/activity-execution-card-report";
+import { SmartGeneralA4Report } from "@/components/report-engine/smart-general-a4-report";
+import {
+  DEFAULT_REPORT_VARIANT_ID,
+  type ReportVariantId,
+} from "@/lib/report-engine/report-variant-registry";
 import type {
   SmartReportField,
   SmartReportPayload,
@@ -10,6 +15,7 @@ import type {
 type SmartReportDocumentRendererProps = {
   payload: SmartReportPayload;
   className?: string;
+  variantId?: ReportVariantId;
 };
 
 function renderFieldValue(value: SmartReportField["value"]) {
@@ -25,6 +31,20 @@ function getField(payload: SmartReportPayload, key: string) {
 
 function getFieldValue(payload: SmartReportPayload, key: string) {
   return renderFieldValue(getField(payload, key)?.value ?? "");
+}
+
+function getDetailFieldValue(payload: SmartReportPayload, keys: string[]) {
+  for (const key of keys) {
+    const field =
+      payload.primaryFields.find((item) => item.key === key) ||
+      payload.detailFields.find((item) => item.key === key);
+
+    const value = renderFieldValue(field?.value ?? "");
+
+    if (value) return value;
+  }
+
+  return "";
 }
 
 function getSignature(payload: SmartReportPayload, key: string) {
@@ -116,14 +136,17 @@ function mapSmartPayloadToActivityReportData(
         payload.student?.grade ||
         payload.student?.stage ||
         "",
-      beneficiaryCount:
-        getFieldValue(payload, "beneficiary_count") ||
-        getFieldValue(payload, "students_count") ||
-        "",
-      location:
-        getFieldValue(payload, "location") ||
-        getFieldValue(payload, "place") ||
-        "",
+      beneficiaryCount: getDetailFieldValue(payload, [
+        "beneficiary_count",
+        "beneficiaries_count",
+        "students_count",
+        "student_count",
+      ]),
+      location: getDetailFieldValue(payload, [
+        "location",
+        "place",
+        "execution_location",
+      ]),
       implementationDescription: payload.narrative.body || "",
       objectives: [],
       procedures: [],
@@ -152,7 +175,16 @@ function mapSmartPayloadToActivityReportData(
 export function SmartReportDocumentRenderer({
   payload,
   className = "",
+  variantId = DEFAULT_REPORT_VARIANT_ID,
 }: SmartReportDocumentRendererProps) {
+  if (variantId === "smart-general-a4") {
+    return (
+      <div className={className}>
+        <SmartGeneralA4Report payload={payload} />
+      </div>
+    );
+  }
+
   const data = mapSmartPayloadToActivityReportData(payload);
 
   return (
