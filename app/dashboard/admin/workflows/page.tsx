@@ -1,42 +1,19 @@
-import Link from "next/link";
 import {
-  ArrowUpLeft,
   CheckCircle2,
   Clock3,
-  FileSpreadsheet,
   Layers3,
   ShieldCheck,
   UploadCloud,
   Workflow,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 import {
   ensureDashboardWorkflowServices,
   getWorkflowUploadServices,
 } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import { prisma } from "@/lib/prisma";
-
-function formatDate(value: Date | string | null | undefined) {
-  if (!value) return "لم يتم الرفع بعد";
-
-  try {
-    return new Date(value).toLocaleDateString("ar-SA", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return String(value);
-  }
-}
-
-function getWorkflowStatusLabel(status: string | null | undefined, isActive: boolean) {
-  if (isActive) return "منشور للموجهين";
-  if (status === "DRAFT") return "مسودة جاهزة للمراجعة";
-  if (status === "ACTIVE") return "منشور غير مفعل";
-  if (status === "ARCHIVED") return "مؤرشف";
-  return "غير مهيأ";
-}
+import { AdminWorkflowsFilterBar } from "@/components/admin/admin-workflows-filter-bar";
 
 function countWorkflowFields(workflow: any) {
   return workflow.steps.reduce(
@@ -55,6 +32,19 @@ function countWorkflowOptions(workflow: any) {
       ),
     0,
   );
+}
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return "لم يتم الرفع بعد";
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(value);
+  }
 }
 
 function formatNumber(value: number) {
@@ -234,116 +224,13 @@ export default async function AdminWorkflowsPage() {
           </span>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {workflowUploadServices.map((service) => {
-            const serviceWorkflows = workflows.filter(
-              (workflow) => workflow.service.slug === service.slug,
-            );
-
-            const activeWorkflow = serviceWorkflows.find(
-              (workflow) => workflow.isActive,
-            );
-
-            const latestServiceWorkflow = serviceWorkflows[0] || null;
-
-            const draftCount = serviceWorkflows.filter(
-              (workflow) => workflow.status === "DRAFT",
-            ).length;
-
-            const fieldsCount = latestServiceWorkflow
-              ? countWorkflowFields(latestServiceWorkflow)
-              : 0;
-
-            const optionsCount = latestServiceWorkflow
-              ? countWorkflowOptions(latestServiceWorkflow)
-              : 0;
-
-            return (
-              <Link
-                key={service.slug}
-                href={`/dashboard/admin/workflows/${service.slug}`}
-                className={[
-                  "group flex min-h-[270px] flex-col justify-between rounded-[2rem] border p-6 transition hover:-translate-y-1 hover:shadow-xl",
-                  activeWorkflow
-                    ? "border-emerald-200 bg-emerald-50/40"
-                    : draftCount > 0
-                      ? "border-sky-200 bg-sky-50/40"
-                      : "border-slate-200 bg-white",
-                ].join(" ")}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-black text-sky-700 ring-1 ring-slate-100">
-                        <FileSpreadsheet className="h-3.5 w-3.5" />
-                        Workflow Service
-                      </p>
-
-                      <h3 className="mt-4 text-2xl font-black leading-8 text-slate-950">
-                        {service.title}
-                      </h3>
-                    </div>
-
-                    <ArrowUpLeft className="h-5 w-5 text-slate-400 transition group-hover:text-sky-600" />
-                  </div>
-
-                  <p className="mt-3 text-sm font-bold leading-7 text-slate-500">
-                    {service.description}
-                  </p>
-                </div>
-
-                <div className="mt-6 space-y-4">
-                  <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-black text-slate-400">
-                        الحالة
-                      </span>
-
-                      <span
-                        className={[
-                          "rounded-full px-3 py-1 text-[11px] font-black",
-                          activeWorkflow
-                            ? "bg-emerald-50 text-emerald-700"
-                            : draftCount > 0
-                              ? "bg-sky-50 text-sky-700"
-                              : "bg-slate-100 text-slate-500",
-                        ].join(" ")}
-                      >
-                        {activeWorkflow
-                          ? getWorkflowStatusLabel(
-                              activeWorkflow.status,
-                              activeWorkflow.isActive,
-                            )
-                          : draftCount > 0
-                            ? `${draftCount} مسودة`
-                            : "جاهز لاستقبال الرفع"}
-                      </span>
-                    </div>
-
-                    <p className="mt-2 text-sm font-black text-slate-900">
-                      {activeWorkflow?.name ||
-                        latestServiceWorkflow?.name ||
-                        "لا يوجد Workflow مرفوع"}
-                    </p>
-
-                    <p className="mt-1 text-xs font-bold text-slate-400">
-                      آخر تحديث: {formatDate(latestServiceWorkflow?.updatedAt)}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    <SmallWorkflowStat
-                      label="النسخ"
-                      value={serviceWorkflows.length}
-                    />
-                    <SmallWorkflowStat label="الحقول" value={fieldsCount} />
-                    <SmallWorkflowStat label="الخيارات" value={optionsCount} />
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <AdminWorkflowsFilterBar
+          services={workflowUploadServices}
+          workflows={workflows.map((wf) => ({
+            ...wf,
+            serviceSlug: wf.service.slug,
+          }))}
+        />
       </section>
 
       <section className="rounded-[2rem] border border-amber-100 bg-amber-50 p-5">
@@ -394,7 +281,7 @@ function AdminWorkflowMetricCard({
   value,
   hint,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: number | string;
   hint: string;
