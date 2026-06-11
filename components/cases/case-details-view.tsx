@@ -797,11 +797,120 @@ function AssessmentInterventionSummaryCard({
     </section>
   );
 }
+
+function getSavedReports(caseEntry: any) {
+  return Array.isArray(caseEntry.guidanceReports)
+    ? caseEntry.guidanceReports.filter((report: any) => Boolean(report?.id))
+    : [];
+}
+
+function asReportSnapshotRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function getReportVariantName(report: any) {
+  const snapshot = asReportSnapshotRecord(report?.templateSnapshot);
+
+  return (
+    String(snapshot.variantShortName || snapshot.variantName || "").trim() ||
+    "تقرير محفوظ"
+  );
+}
+
+function getReportDateLabel(report: any) {
+  return formatDate(report?.generatedAt || report?.createdAt || null);
+}
+
+function SavedReportsPanel({
+  caseId,
+  reports,
+}: {
+  caseId: string;
+  reports: any[];
+}) {
+  if (!reports.length) {
+    return null;
+  }
+
+  const visibleReports = reports.slice(0, 6);
+
+  return (
+    <section className="rounded-[2rem] border border-emerald-100 bg-emerald-50/40 p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-emerald-700">
+            التقارير المحفوظة
+          </p>
+
+          <h2 className="mt-1 text-xl font-black text-slate-950">
+            آخر التقارير الصادرة لهذه الحالة
+          </h2>
+
+          <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+            افتح نسخة محفوظة ثابتة، أو أصدر تقريرًا جديدًا من بيانات الحالة الحالية.
+          </p>
+        </div>
+
+        <Link
+          href={`/dashboard/reports/cases/${caseId}/prepare`}
+          className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
+        >
+          <FileText className="h-4 w-4" />
+          إصدار تقرير جديد
+        </Link>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {visibleReports.map((report: any) => (
+          <Link
+            key={report.id}
+            href={`/dashboard/reports/${report.id}/preview`}
+            className="group rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-black text-slate-950">
+                  {report.title || "تقرير محفوظ"}
+                </p>
+
+                <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                  {getReportVariantName(report)}
+                </p>
+              </div>
+
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700 ring-1 ring-emerald-100">
+                {getReportStatusLabel(report.status)}
+              </span>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3 text-xs font-black text-slate-500">
+              <span>{getReportDateLabel(report)}</span>
+              <span className="text-emerald-700 transition group-hover:translate-x-[-3px]">
+                فتح التقرير ←
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {reports.length > visibleReports.length ? (
+        <p className="mt-3 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-500 ring-1 ring-emerald-100">
+          يوجد {reports.length - visibleReports.length} تقارير أخرى محفوظة لهذه الحالة.
+        </p>
+      ) : null}
+    </section>
+  );
+}
 export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
   const displayTitle = getSmartCaseDisplayTitle(caseEntry);
   const fieldMap = buildFieldMap(caseEntry);
   const latestReport = getLatestReport(caseEntry);
   const latestReportUrl = getReportPreviewUrl(latestReport);
+  const savedReports = getSavedReports(caseEntry);
 
   const workflowValues: WorkflowValueLike[] = (caseEntry.values || []).map(
     (value: any) => normalizeCaseValue(value, fieldMap),
@@ -821,8 +930,7 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
       size: item.size || 0,
     })) || [];
 
-  const primaryReportHref =
-    latestReportUrl || `/dashboard/reports/cases/${caseEntry.id}/prepare`;
+  const primaryReportHref = `/dashboard/reports/cases/${caseEntry.id}/prepare`;
 
   const isCommitteesCase = caseEntry.service?.slug === COMMITTEE_SERVICE_SLUG;
 
@@ -939,7 +1047,7 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
                 className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
               >
                 <FileText className="h-4 w-4" />
-                {latestReport ? "فتح التقارير" : "إصدار تقرير"}
+                إصدار تقرير جديد
               </Link>
             </div>
           </div>
@@ -1157,7 +1265,7 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
               className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
             >
               <FileText className="h-4 w-4" />
-              {latestReport ? "فتح التقارير" : "إصدار تقرير"}
+              إصدار تقرير جديد
             </Link>
           </div>
         </div>
