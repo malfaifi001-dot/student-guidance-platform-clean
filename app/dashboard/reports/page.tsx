@@ -5,6 +5,7 @@ import { FileText, FolderOpen, LayoutTemplate, Plus } from "lucide-react";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
 import { reportVariants } from "@/lib/report-engine/report-variant-registry";
+import { buildGuidanceReportWhereForUser } from "@/lib/report-engine/report-access-scope";
 import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
 
 function getRoleLabel(role: string) {
@@ -34,16 +35,7 @@ export default async function ReportsHubPage() {
     }
   }
 
-  const where =
-    current.user.role === "ADMIN"
-      ? {}
-      : {
-          caseEntry: {
-            is: {
-              schoolAccountId: current.user.schoolAccountId || "",
-            },
-          },
-        };
+  const where = buildGuidanceReportWhereForUser(current.user);
 
   const [reportsCount, latestReports] = await Promise.all([
     prisma.guidanceReport.count({

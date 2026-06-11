@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
 import type {
   SmartReportEvidenceItem,
   SmartReportField,
@@ -416,11 +417,7 @@ export async function buildSmartReportPayloadForCase({
   const caseEntry = await prisma.caseEntry.findFirst({
     where: {
       id: caseId,
-      ...(isAdmin
-        ? {}
-        : {
-            schoolAccountId: current.user.schoolAccountId || "",
-          }),
+      ...buildCaseEntryReportWhereForUser(current.user),
     },
     include: {
       schoolAccount: {

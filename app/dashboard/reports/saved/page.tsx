@@ -4,6 +4,7 @@ import { SavedReportsListPage } from "@/components/report-engine/saved-reports-l
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
 import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+import { buildGuidanceReportWhereForUser } from "@/lib/report-engine/report-access-scope";
 
 export default async function SavedReportsRoutePage() {
   const current = await requireDashboardUser();
@@ -23,16 +24,7 @@ export default async function SavedReportsRoutePage() {
   }
 
   const reports = await prisma.guidanceReport.findMany({
-    where:
-      current.user.role === "ADMIN"
-        ? {}
-        : {
-            caseEntry: {
-              is: {
-                schoolAccountId: current.user.schoolAccountId || "",
-              },
-            },
-          },
+    where: buildGuidanceReportWhereForUser(current.user),
     include: {
       caseEntry: {
         include: {

@@ -8,6 +8,7 @@ import {
   isServiceAllowedForSchool,
 } from "@/lib/subscription/subscription-service";
 import { resolveReportVariantId } from "@/lib/report-engine/report-variant-registry";
+import { buildGuidanceReportWhereForUser } from "@/lib/report-engine/report-access-scope";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 
 type PageProps = {
@@ -69,15 +70,7 @@ export default async function SavedSmartReportPreviewRoute({
   const report = await prisma.guidanceReport.findFirst({
     where: {
       id: reportId,
-      ...(current.user.role === "ADMIN"
-        ? {}
-        : {
-            caseEntry: {
-              is: {
-                schoolAccountId: current.user.schoolAccountId || "",
-              },
-            },
-          }),
+      ...buildGuidanceReportWhereForUser(current.user),
     },
     include: {
       caseEntry: {

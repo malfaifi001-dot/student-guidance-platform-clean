@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { CasesSearchTable } from "@/components/cases/cases-search-table";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
 import { prisma } from "@/lib/prisma";
 
 function formatDate(value: Date | string | null | undefined) {
@@ -283,10 +284,37 @@ function getViewerName(context: unknown) {
   ) as string;
 }
 
+function getViewerRole(context: unknown) {
+  const record = context as Record<string, any>;
+
+  return (
+    record?.user?.role ||
+    record?.currentUser?.role ||
+    record?.sessionUser?.role ||
+    record?.role ||
+    (record?.isAdmin ? "ADMIN" : "COUNSELOR")
+  ) as string;
+}
+
+function getViewerSchoolAccountId(context: unknown) {
+  const record = context as Record<string, any>;
+
+  return (
+    record?.user?.schoolAccountId ||
+    record?.currentUser?.schoolAccountId ||
+    record?.sessionUser?.schoolAccountId ||
+    record?.schoolAccountId ||
+    null
+  ) as string | null;
+}
+
 export default async function CasesPage() {
   const context = await requireDashboardPageContext();
 
-  if (!context.isAdmin && !context.schoolAccountId) {
+  const viewerRole = getViewerRole(context);
+  const viewerSchoolAccountId = getViewerSchoolAccountId(context);
+
+  if (viewerRole !== "ADMIN" && !viewerSchoolAccountId) {
     redirect("/dashboard/onboarding?required=true");
   }
 
@@ -294,11 +322,11 @@ export default async function CasesPage() {
   const viewerName = getViewerName(context);
 
   const cases = await prisma.caseEntry.findMany({
-    where: context.isAdmin
-      ? {}
-      : {
-          schoolAccountId: context.schoolAccountId as string,
-        },
+    where: buildCaseEntryWhereForUser({
+      id: viewerId || "__NO_USER__",
+      role: viewerRole,
+      schoolAccountId: viewerSchoolAccountId,
+    }),
     include: {
       service: {
         select: {
@@ -468,7 +496,7 @@ export default async function CasesPage() {
       <CasesSearchTable
         cases={rows}
         viewerName={viewerName}
-        isAdmin={context.isAdmin}
+        isAdmin={viewerRole === "ADMIN"}
       />
     </main>
   );
