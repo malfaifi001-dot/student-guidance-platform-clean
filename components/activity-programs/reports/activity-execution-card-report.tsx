@@ -1,4 +1,20 @@
-import { BookOpen, CalendarDays, CalendarRange, ClipboardCheck, Clock3, Hash, MapPin, UserRound, UsersRound } from "lucide-react";
+import {
+  BookOpen,
+  CalendarDays,
+  CalendarRange,
+  ClipboardCheck,
+  Clock3,
+  Hash,
+  MapPin,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
+
+import type { ReportBlock } from "@/lib/report-engine/report-block-types";
+import type {
+  ReportEvidenceConfig,
+  SmartReportEvidenceItem,
+} from "@/lib/report-engine/smart-report-types";
 
 export type ActivityExecutionCardReportData = {
   identity: {
@@ -37,6 +53,13 @@ export type ActivityExecutionCardReportData = {
     fileName?: string;
   }[];
 
+  customBlocks?: {
+    id: string;
+    type: "PARAGRAPH" | "BULLET_LIST";
+    title: string;
+    body: string;
+  }[];
+
   approvals: {
     teacherSignedName: string;
     teacherSignatureUrl?: string;
@@ -47,7 +70,14 @@ export type ActivityExecutionCardReportData = {
 
 type ActivityExecutionCardReportProps = {
   data: ActivityExecutionCardReportData;
+  blocks?: ReportBlock[];
+  evidenceConfig?: ReportEvidenceConfig;
+  showApprovals?: boolean;
+  showEvidenceHeading?: boolean;
+  pageMode?: "full" | "evidence" | "signatures";
 };
+
+type EvidenceItem = ActivityExecutionCardReportData["evidences"][number];
 
 function cleanText(value: unknown) {
   return String(value ?? "").trim();
@@ -84,16 +114,6 @@ function hasUsefulValue(value: unknown) {
   );
 }
 
-function chunkArray<T>(items: T[], size: number) {
-  const chunks: T[][] = [];
-
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-
-  return chunks;
-}
-
 function getUniqueMetaItems(
   items: Array<{
     label: string;
@@ -104,39 +124,234 @@ function getUniqueMetaItems(
   const seen = new Set<string>();
 
   return items.filter((item) => {
-    if (!hasUsefulValue(item.value)) {
-      return false;
-    }
+    if (!hasUsefulValue(item.value)) return false;
 
     const key = normalizeText(`${item.label}-${item.value}`);
 
-    if (seen.has(key)) {
-      return false;
-    }
+    if (seen.has(key)) return false;
 
     seen.add(key);
     return true;
   });
 }
 
+function getInfoIcon(label: string) {
+  const text = normalizeText(label);
+
+  if (text.includes("تاريخ")) return <CalendarDays />;
+  if (text.includes("يوم")) return <Clock3 />;
+  if (text.includes("فصل")) return <CalendarRange />;
+  if (text.includes("معلم")) return <UserRound />;
+  if (text.includes("فئه") || text.includes("مستهدف")) return <UsersRound />;
+  if (text.includes("عدد") || text.includes("حصص") || text.includes("اسبوع")) {
+    return <Hash />;
+  }
+  if (text.includes("مكان")) return <MapPin />;
+  if (text.includes("طريقه") || text.includes("تنفيذ")) {
+    return <ClipboardCheck />;
+  }
+
+  return <BookOpen />;
+}
+
+function mapSmartEvidenceToActivityEvidence(
+  items: SmartReportEvidenceItem[] | undefined,
+): EvidenceItem[] {
+  return (items || []).map((item, index) => ({
+    id: item.id || `evidence-${index + 1}`,
+    title: item.title || `شاهد ${index + 1}`,
+    imageUrl: item.type === "IMAGE" ? item.url : undefined,
+    fileName: item.title || `شاهد ${index + 1}`,
+  }));
+}
+
+function buildDefaultBlocks(
+  data: ActivityExecutionCardReportData,
+  pageMode: ActivityExecutionCardReportProps["pageMode"],
+  showApprovals: boolean,
+): ReportBlock[] {
+  const isFullPage = pageMode === "full";
+
+  const blocks: ReportBlock[] = [];
+
+  if (isFullPage) {
+    blocks.push({
+      id: "meta-fields",
+      type: "META_FIELDS",
+      estimatedHeight: 40,
+      placement: "CONTENT",
+      movable: false,
+      editable: true,
+    });
+
+    if (hasUsefulValue(data.activity.implementationDescription)) {
+      blocks.push({
+        id: "narrative",
+        type: "NARRATIVE",
+        title: "وصف التنفيذ",
+        body: data.activity.implementationDescription,
+        estimatedHeight: 40,
+        placement: "CONTENT",
+        movable: false,
+        editable: true,
+      });
+    }
+
+    for (const block of data.customBlocks || []) {
+      if (!hasUsefulValue(block.title) && !hasUsefulValue(block.body)) continue;
+
+      blocks.push({
+        id: `custom-${block.id}`,
+        type:
+          block.type === "BULLET_LIST"
+            ? "CUSTOM_BULLET_LIST"
+            : "CUSTOM_PARAGRAPH",
+        title: block.title,
+        body: block.body,
+        estimatedHeight: 34,
+        placement: "CONTENT",
+        movable: true,
+        editable: true,
+        sourceCustomBlockId: block.id,
+      });
+    }
+  }
+
+  if (data.evidences.length > 0) {
+    blocks.push({
+      id: "evidence",
+      type: "EVIDENCE_GRID",
+      evidenceItems: data.evidences.map((item) => ({
+        id: item.id,
+        title: item.title,
+        url: item.imageUrl,
+        type: item.imageUrl ? "IMAGE" : "FILE",
+      })),
+      estimatedHeight: 90,
+      placement: "CONTENT",
+      movable: false,
+      editable: true,
+    });
+  }
+
+  if (showApprovals) {
+    blocks.push({
+      id: "signatures",
+      type: "SIGNATURES",
+      estimatedHeight: 34,
+      placement: "END",
+      movable: false,
+      editable: false,
+    });
+  }
+
+  return blocks;
+}
+
 export function ActivityExecutionCardReport({
   data,
+  blocks,
+  evidenceConfig,
+  showApprovals = true,
+  showEvidenceHeading = true,
+  pageMode = "full",
 }: ActivityExecutionCardReportProps) {
-  const firstPageEvidenceLimit = 4;
-  const firstPageEvidences = data.evidences.slice(0, firstPageEvidenceLimit);
-  const remainingEvidencePages = chunkArray(
-    data.evidences.slice(firstPageEvidenceLimit),
-    4,
-  );
+  const evidenceVisible = evidenceConfig?.visible ?? true;
+  const evidencesPerPage = evidenceConfig?.itemsPerPage ?? 2;
+  const evidenceImageSize = evidenceConfig?.imageSize ?? "small-squares";
 
+  const visualBlocks =
+    blocks && blocks.length > 0
+      ? blocks.filter((block) => !["HEADER", "FOOTER"].includes(block.type))
+      : buildDefaultBlocks(data, pageMode, showApprovals);
+
+  return (
+    <main className="activity-execution-report-root" dir="rtl">
+      <ActivityExecutionCardReportStyles />
+
+      <section className="activity-a4-page">
+        <OfficialHeader data={data} />
+
+        {visualBlocks.map((block) => {
+          if (block.type === "META_FIELDS") {
+            return <MetaFieldsBlock key={block.id} data={data} />;
+          }
+
+          if (block.type === "NARRATIVE") {
+            return (
+              <TextBlock
+                key={block.id}
+                title={block.title || "وصف التنفيذ"}
+                body={block.body || data.activity.implementationDescription}
+              />
+            );
+          }
+
+          if (
+            block.type === "CUSTOM_PARAGRAPH" ||
+            block.type === "CUSTOM_BULLET_LIST"
+          ) {
+            return (
+              <CustomTextBlock
+                key={block.id}
+                type={
+                  block.type === "CUSTOM_BULLET_LIST"
+                    ? "BULLET_LIST"
+                    : "PARAGRAPH"
+                }
+                title={block.title || ""}
+                body={block.body || ""}
+              />
+            );
+          }
+
+          if (block.type === "EVIDENCE_GRID") {
+            const blockEvidences = evidenceVisible
+              ? mapSmartEvidenceToActivityEvidence(block.evidenceItems)
+              : [];
+
+            if (!blockEvidences.length) return null;
+
+            return (
+              <section
+                key={block.id}
+                className="activity-section activity-evidence-section"
+              >
+                {showEvidenceHeading ? (
+                  <SectionHeading title="الشواهد والمرفقات" />
+                ) : null}
+
+                <EvidenceGrid
+                  evidences={blockEvidences}
+                  itemsPerPage={evidencesPerPage}
+                  imageSize={evidenceImageSize}
+                />
+              </section>
+            );
+          }
+
+          if (block.type === "SIGNATURES") {
+            return <ApprovalGrid key={block.id} data={data} />;
+          }
+
+          return null;
+        })}
+
+        <ReportFooter data={data} />
+      </section>
+    </main>
+  );
+}
+
+function MetaFieldsBlock({ data }: { data: ActivityExecutionCardReportData }) {
   const extraItems = data.activity.extraItems || [];
 
   const dayItem = extraItems.find(
     (item) => normalizeText(item.label) === "اليوم",
   );
 
-  const semesterItem = extraItems.find(
-    (item) => normalizeText(item.label).includes("الفصل الدراسي"),
+  const semesterItem = extraItems.find((item) =>
+    normalizeText(item.label).includes("الفصل الدراسي"),
   );
 
   const remainingExtraItems = extraItems.filter((item) => {
@@ -181,130 +396,20 @@ export function ActivityExecutionCardReport({
     ...remainingExtraItems,
   ]);
 
+  if (!metaItems.length) return null;
+
   return (
-    <main className="activity-execution-report-root" dir="rtl">
-      <ActivityExecutionCardReportStyles />
-
-      <section className="activity-a4-page">
-        <OfficialHeader data={data} />
-
-        <section className="activity-meta-grid">
-          {metaItems.map((item) => (
-            <InfoCell
-              key={`${item.label}-${item.value}`}
-              label={item.label}
-              value={item.value}
-              wide={item.wide}
-            />
-          ))}
-        </section>
-
-        {hasUsefulValue(data.activity.implementationDescription) ? (
-          <section className="activity-section">
-            <SectionHeading title="وصف التنفيذ" />
-            <p className="activity-paragraph">
-              {data.activity.implementationDescription}
-            </p>
-          </section>
-        ) : null}
-
-        <section className="activity-section activity-evidence-section">
-          <SectionHeading title="الشواهد والمرفقات" />
-
-          <EvidenceGrid evidences={firstPageEvidences} />
-
-
-        </section>
-
-        {remainingEvidencePages.length === 0 ? (
-          <ApprovalGrid data={data} />
-        ) : null}
-
-        <ReportFooter data={data} />
-      </section>
-
-      {remainingEvidencePages.map((evidences, index) => (
-        <section
-          key={`evidence-page-${index}`}
-          className="activity-a4-page activity-evidence-page"
-        >
-          <OfficialHeader data={data} compact />
-
-
-          <section className="activity-section activity-evidence-section evidence-full-page">
-            <EvidenceGrid evidences={evidences} large />
-          </section>
-
-          {index === remainingEvidencePages.length - 1 ? (
-            <ApprovalGrid data={data} />
-          ) : null}
-
-          <ReportFooter data={data} />
-        </section>
-      ))}</main>
+    <section className="activity-meta-grid">
+      {metaItems.map((item) => (
+        <InfoCell
+          key={`${item.label}-${item.value}`}
+          label={item.label}
+          value={item.value}
+          wide={item.wide}
+        />
+      ))}
+    </section>
   );
-}
-
-function OfficialHeader({
-  data,
-  compact = false,
-}: {
-  data: ActivityExecutionCardReportData;
-  compact?: boolean;
-}) {
-  return (
-    <header
-      className={
-        compact
-          ? "activity-report-header compact"
-          : "activity-report-header"
-      }
-    >
-      <div className="activity-header-text">
-        <span>تقرير برنامج نشاط طلابي</span>
-        <strong>{data.activity.title}</strong>
-        <b>{data.activity.domain} - {data.identity.schoolName}</b>
-      </div>
-
-      <LogoBox src={data.identity.ministryLogoUrl} label="وزارة التعليم" />
-    </header>
-  );
-}
-
-function LogoBox({
-  src,
-  label,
-}: {
-  src?: string;
-  label: string;
-}) {
-  return (
-    <div className="activity-logo-box">
-      {src ? <img src={src} alt={label} /> : <span>{label}</span>}
-    </div>
-  );
-}
-
-
-
-
-function getInfoIcon(label: string) {
-  const text = normalizeText(label);
-
-  if (text.includes("تاريخ")) return <CalendarDays />;
-  if (text.includes("يوم")) return <Clock3 />;
-  if (text.includes("فصل")) return <CalendarRange />;
-  if (text.includes("معلم")) return <UserRound />;
-  if (text.includes("فئه") || text.includes("مستهدف")) return <UsersRound />;
-  if (text.includes("عدد") || text.includes("حصص") || text.includes("اسبوع")) {
-    return <Hash />;
-  }
-  if (text.includes("مكان")) return <MapPin />;
-  if (text.includes("طريقه") || text.includes("تنفيذ")) {
-    return <ClipboardCheck />;
-  }
-
-  return <BookOpen />;
 }
 
 function InfoCell({
@@ -327,6 +432,7 @@ function InfoCell({
     </div>
   );
 }
+
 function SectionHeading({ title }: { title: string }) {
   return (
     <div className="activity-section-heading">
@@ -336,29 +442,68 @@ function SectionHeading({ title }: { title: string }) {
   );
 }
 
-function EvidenceGrid({
-  evidences,
-  large = false,
-}: {
-  evidences: ActivityExecutionCardReportData["evidences"];
-  large?: boolean;
-}) {
-  if (!evidences.length) {
-    return (
-      <p className="activity-empty-evidence">
-        لا توجد شواهد مرفقة.
-      </p>
-    );
-  }
+function TextBlock({ title, body }: { title: string; body: string }) {
+  if (!hasUsefulValue(body)) return null;
 
   return (
-    <div
-      className={
-        large
-          ? "activity-evidence-grid large"
-          : "activity-evidence-grid"
-      }
-    >
+    <section className="activity-section">
+      <SectionHeading title={title} />
+      <p className="activity-paragraph">{body}</p>
+    </section>
+  );
+}
+
+function CustomTextBlock({
+  type,
+  title,
+  body,
+}: {
+  type: "PARAGRAPH" | "BULLET_LIST";
+  title: string;
+  body: string;
+}) {
+  if (!hasUsefulValue(title) && !hasUsefulValue(body)) return null;
+
+  const lines = body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (
+    <section className="activity-custom-blocks">
+      <article className="activity-custom-block">
+        {hasUsefulValue(title) ? <h3>{title}</h3> : null}
+
+        {type === "BULLET_LIST" ? (
+          <ul>
+            {lines.map((line, index) => (
+              <li key={`${title}-${index}`}>{line}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>{body}</p>
+        )}
+      </article>
+    </section>
+  );
+}
+
+function EvidenceGrid({
+  evidences,
+  itemsPerPage,
+  imageSize,
+}: {
+  evidences: EvidenceItem[];
+  itemsPerPage: 1 | 2 | 4;
+  imageSize: ReportEvidenceConfig["imageSize"];
+}) {
+  if (!evidences.length) return null;
+
+  const layoutClass =
+    itemsPerPage === 1 ? "one" : itemsPerPage === 4 ? "four" : "two";
+
+  return (
+    <div className={`activity-evidence-grid ${layoutClass} ${imageSize}`}>
       {evidences.map((evidence) => (
         <article key={evidence.id} className="activity-evidence-card">
           <div className="activity-evidence-frame">
@@ -368,18 +513,13 @@ function EvidenceGrid({
               <span>{evidence.fileName || "شاهد مرفق"}</span>
             )}
           </div>
-
         </article>
       ))}
     </div>
   );
 }
 
-function ApprovalGrid({
-  data,
-}: {
-  data: ActivityExecutionCardReportData;
-}) {
+function ApprovalGrid({ data }: { data: ActivityExecutionCardReportData }) {
   return (
     <section className="activity-approval-grid">
       <div className="activity-signature-box">
@@ -412,15 +552,47 @@ function ApprovalGrid({
   );
 }
 
-function ReportFooter({
+function OfficialHeader({
   data,
+  compact = false,
 }: {
   data: ActivityExecutionCardReportData;
+  compact?: boolean;
 }) {
+  return (
+    <header
+      className={
+        compact ? "activity-report-header compact" : "activity-report-header"
+      }
+    >
+      <div className="activity-header-text">
+        <span>تقرير برنامج نشاط طلابي</span>
+        <strong>{data.activity.title}</strong>
+        <b>
+          {data.activity.domain} - {data.identity.schoolName}
+        </b>
+      </div>
+
+      <LogoBox src={data.identity.ministryLogoUrl} label="وزارة التعليم" />
+    </header>
+  );
+}
+
+function LogoBox({ src, label }: { src?: string; label: string }) {
+  return (
+    <div className="activity-logo-box">
+      {src ? <img src={src} alt={label} /> : <span>{label}</span>}
+    </div>
+  );
+}
+
+function ReportFooter({ data }: { data: ActivityExecutionCardReportData }) {
   return (
     <footer className="activity-report-footer">
       <span>{data.identity.schoolName}</span>
-      <span>{data.identity.academicYear} - {data.identity.semester}</span>
+      <span>
+        {data.identity.academicYear} - {data.identity.semester}
+      </span>
       <span>منصة التوجيه الطلابي</span>
     </footer>
   );
@@ -476,113 +648,93 @@ function ActivityExecutionCardReportStyles() {
       }
 
       .activity-report-header {
+        min-height: 31mm;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14mm;
+        border: 0;
+        border-radius: 24px 24px 0 0;
+        padding: 12px 18mm;
+        background: linear-gradient(135deg, #0f172a, #0f5132, #047857);
+        overflow: hidden;
         position: relative;
         z-index: 1;
-        min-height: 22mm;
-        display: grid;
-        grid-template-columns: 28mm 1fr 28mm;
-        align-items: center;
-        gap: 8mm;
-        border: 1px solid var(--activity-border);
-        border-radius: 20px;
-        padding: 8px 14px;
-        background: linear-gradient(135deg, var(--activity-soft), #fff);
       }
 
       .activity-report-header.compact {
-        min-height: 20mm;
+        min-height: 27mm;
+      }
+
+      .activity-report-header::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: -40px;
+        top: -60px;
+        width: 180px;
+        height: 180px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .activity-header-text {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: right;
+        color: #fff;
+        gap: 5px;
+        position: relative;
+        z-index: 2;
+        line-height: 1.45;
+      }
+
+      .activity-header-text span {
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .activity-header-text strong {
+        color: #fff;
+        font-size: 27px;
+        line-height: 1.25;
+        font-weight: 900;
+      }
+
+      .activity-report-header.compact .activity-header-text strong {
+        font-size: 22px;
+      }
+
+      .activity-header-text b {
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 12px;
+        font-weight: 900;
       }
 
       .activity-logo-box {
-        width: 23mm;
-        height: 16mm;
-        border-radius: 14px;
-        background: #fff;
-        border: 1px solid var(--activity-border);
+        width: 36mm;
+        height: 22mm;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        position: relative;
+        z-index: 2;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        color: var(--activity-muted);
-        font-size: 10px;
         text-align: center;
-        padding: 4px;
       }
 
       .activity-logo-box img {
         width: 100%;
         height: 100%;
         object-fit: contain;
-      }
-
-      .activity-header-text {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        text-align: center;
-        line-height: 1.45;
-      }
-
-      .activity-header-text strong {
-        color: var(--activity-primary-dark);
-        font-size: 15px;
-      }
-
-      .activity-header-text span {
-        color: var(--activity-muted);
-        font-size: 11px;
-        font-weight: 700;
-      }
-
-      .activity-header-text b {
-        color: var(--activity-text);
-        font-size: 13px;
-      }
-
-      .activity-report-title {
-        position: relative;
-        z-index: 1;
-        text-align: center;
-        border-radius: 24px;
-        background: var(--activity-primary-dark);
-        color: white;
-        padding: 10px 16px;
-      }
-
-      .activity-report-title.compact {
-        padding: 10px 14px;
-      }
-
-      .activity-report-title p,
-      .activity-report-title h1 {
-        margin: 0;
-      }
-
-      .activity-report-title p {
-        font-size: 12px;
-        font-weight: 900;
-        color: rgba(255,255,255,0.78);
-      }
-
-      .activity-report-title h1 {
-        margin-top: 4px;
-        font-size: 23px;
-        font-weight: 900;
-      }
-
-      .activity-report-title.compact h1 {
-        font-size: 18px;
-      }
-
-      .activity-report-title span {
-        display: inline-flex;
-        margin-top: 5px;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.14);
-        padding: 5px 14px;
-        font-size: 12px;
-        font-weight: 900;
+        filter: brightness(0) invert(1);
       }
 
       .activity-meta-grid {
@@ -601,6 +753,7 @@ function ActivityExecutionCardReportStyles() {
         flex-direction: column;
         justify-content: center;
         gap: 4px;
+        position: relative;
       }
 
       .activity-info-cell.wide {
@@ -678,20 +831,78 @@ function ActivityExecutionCardReportStyles() {
         font-weight: 700;
       }
 
+      .activity-custom-blocks {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .activity-custom-block * {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      .activity-custom-block {
+        border: 1px solid var(--activity-border);
+        border-radius: 18px;
+        background: #fff;
+        padding: 13px 16px;
+      }
+
+      .activity-custom-block h3 {
+        margin: 0 0 8px;
+        color: var(--activity-primary-dark);
+        font-size: 17px;
+        font-weight: 900;
+      }
+
+      .activity-custom-block p {
+        margin: 0;
+        color: #34423a;
+        font-size: 14px;
+        line-height: 2;
+        font-weight: 700;
+        text-align: justify;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+
+      .activity-custom-block ul {
+        margin: 0;
+        padding-inline-start: 20px;
+        color: #34423a;
+        font-size: 14px;
+        line-height: 2;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+
+      .activity-custom-block li {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
       .activity-evidence-section {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
         min-height: 0;
       }
 
       .activity-evidence-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 9px;
       }
 
-      .activity-evidence-grid.large {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .activity-evidence-grid.one {
+        grid-template-columns: 1fr;
         gap: 12px;
+      }
+
+      .activity-evidence-grid.two,
+      .activity-evidence-grid.four {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .activity-evidence-card {
@@ -715,43 +926,42 @@ function ActivityExecutionCardReportStyles() {
         font-weight: 800;
       }
 
-      .activity-evidence-grid.large .activity-evidence-frame {
-        height: 67mm;
+      .activity-evidence-grid.one .activity-evidence-frame {
+        height: 178mm;
+      }
+
+      .activity-evidence-grid.two .activity-evidence-frame {
+        height: 82mm;
+      }
+
+      .activity-evidence-grid.four .activity-evidence-frame {
+        height: 45mm;
+      }
+
+      .activity-evidence-grid.portrait .activity-evidence-frame {
+        height: 95mm;
+      }
+
+      .activity-evidence-grid.landscape .activity-evidence-frame {
+        height: 58mm;
+      }
+
+      .activity-evidence-grid.one.landscape .activity-evidence-frame,
+      .activity-evidence-grid.one.large-square .activity-evidence-frame,
+      .activity-evidence-grid.one.small-squares .activity-evidence-frame,
+      .activity-evidence-grid.one.portrait .activity-evidence-frame {
+        height: 178mm;
       }
 
       .activity-evidence-frame img {
         width: 100%;
         height: 100%;
         object-fit: contain;
-      }
-
-      .activity-evidence-card strong {
-        display: block;
-        margin-top: 6px;
-        color: var(--activity-text);
-        font-size: 11px;
-        line-height: 1.45;
-        word-break: break-word;
-      }
-
-      .activity-empty-evidence,
-      .activity-more-evidence-note {
-        margin: 0;
-        border-radius: 14px;
-        background: #f8faf9;
-        padding: 12px;
-        color: var(--activity-muted);
-        font-weight: 900;
-        font-size: 12px;
-      }
-
-      .activity-more-evidence-note {
-        margin-top: 8px;
-        background: #fff7ed;
-        color: #9a3412;
+        object-position: center;
       }
 
       .activity-approval-grid {
+        margin-top: auto !important;
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 9px;
@@ -795,61 +1005,8 @@ function ActivityExecutionCardReportStyles() {
         font-weight: 900;
       }
 
-      .activity-signature-page {
-        justify-content: space-between;
-      }
-
-      .activity-final-approval-body {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 8mm;
-      }
-
-      .activity-final-approval-note {
-        border: 1px solid var(--activity-border);
-        border-radius: 24px;
-        background: linear-gradient(135deg, var(--activity-soft), #fff);
-        padding: 22px;
-        text-align: center;
-      }
-
-      .activity-final-approval-note h2 {
-        margin: 0;
-        color: var(--activity-primary-dark);
-        font-size: 24px;
-        font-weight: 900;
-      }
-
-      .activity-final-approval-note p {
-        margin: 12px auto 0;
-        max-width: 130mm;
-        color: var(--activity-muted);
-        font-size: 14px;
-        font-weight: 700;
-        line-height: 2;
-      }
-
-      .activity-signature-page .activity-approval-grid {
-        gap: 14px;
-      }
-
-      .activity-signature-page .activity-signature-box {
-        min-height: 42mm;
-        padding: 16px;
-      }
-
-      .activity-signature-page .activity-signature-box img {
-        max-width: 58mm;
-        height: 18mm;
-      }
-
-      .activity-evidence-page .activity-approval-grid {
-        margin-top: auto;
-      }
-
       .activity-report-footer {
+        margin-top: auto;
         border-top: 3px solid var(--activity-primary-dark);
         padding-top: 5px;
         display: flex;
@@ -858,91 +1015,6 @@ function ActivityExecutionCardReportStyles() {
         font-size: 10px;
         font-weight: 800;
         flex: 0 0 auto;
-      }
-
-      .evidence-full-page {
-        flex: 1 1 auto;
-      }
-
-      /* MINISTRY_ONLY_ACTIVITY_HEADER */
-      .activity-report-header {
-        min-height: 31mm;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14mm;
-        border: 0;
-        border-radius: 24px 24px 0 0;
-        padding: 12px 18mm;
-        background: linear-gradient(135deg, #0f172a, #0f5132, #047857);
-        overflow: hidden;
-      }
-
-      .activity-report-header.compact {
-        min-height: 27mm;
-      }
-
-      .activity-report-header::before {
-        content: "";
-        position: absolute;
-        inset-inline-start: -40px;
-        top: -60px;
-        width: 180px;
-        height: 180px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.08);
-      }
-
-      .activity-report-header .activity-header-text {
-        align-items: flex-start;
-        text-align: right;
-        color: #fff;
-        gap: 5px;
-        position: relative;
-        z-index: 2;
-      }
-
-      .activity-report-header .activity-header-text span {
-        color: rgba(255, 255, 255, 0.86);
-        font-size: 12px;
-        font-weight: 900;
-      }
-
-      .activity-report-header .activity-header-text strong {
-        color: #fff;
-        font-size: 27px;
-        line-height: 1.25;
-        font-weight: 900;
-      }
-
-      .activity-report-header.compact .activity-header-text strong {
-        font-size: 22px;
-      }
-
-      .activity-report-header .activity-header-text b {
-        color: rgba(255, 255, 255, 0.88);
-        font-size: 12px;
-        font-weight: 900;
-      }
-
-      .activity-report-header .activity-logo-box {
-        width: 36mm;
-        height: 22mm;
-        border: 0;
-        border-radius: 0;
-        background: transparent;
-        color: #fff;
-        font-size: 12px;
-        font-weight: 900;
-        position: relative;
-        z-index: 2;
-      }
-
-      .activity-report-header .activity-logo-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        filter: brightness(0) invert(1);
       }
 
       @media screen and (max-width: 900px) {

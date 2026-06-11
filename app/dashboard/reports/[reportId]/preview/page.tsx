@@ -122,7 +122,7 @@ export default async function SavedSmartReportPreviewRoute({
   }
 
   const templateSnapshot = asRecord(report.templateSnapshot);
-  const variantId = resolveReportVariantId(templateSnapshot.variantId);
+  const variantId = resolveReportVariantId(templateSnapshot.variantId as string | null | undefined);
   const payload = report.reportDataSnapshot;
 
   return (

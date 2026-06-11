@@ -370,6 +370,102 @@ function isStopSubjectRow(subject: string) {
   ].some((item) => normalizedSubject.includes(normalizeKey(item)));
 }
 
+function detectArabicGradeFromText(value: unknown) {
+  const text = normalizeText(value);
+  const key = normalizeKey(text);
+
+  const level =
+    key.includes(normalizeKey("ابتدائي"))
+      ? "الابتدائي"
+      : key.includes(normalizeKey("متوسط"))
+        ? "المتوسط"
+        : key.includes(normalizeKey("ثانوي"))
+          ? "الثانوي"
+          : "";
+
+  if (!level) return "";
+
+  const gradeWords: Array<[string[], string]> = [
+    [["الأول", "الاول"], "الأول"],
+    [["الثاني"], "الثاني"],
+    [["الثالث"], "الثالث"],
+    [["الرابع"], "الرابع"],
+    [["الخامس"], "الخامس"],
+    [["السادس"], "السادس"],
+  ];
+
+  for (const [aliases, label] of gradeWords) {
+    if (aliases.some((alias) => key.includes(normalizeKey(alias)))) {
+      return `${label} ${level}`;
+    }
+  }
+
+  return "";
+}
+
+function detectEnglishGradeFromText(value: unknown) {
+  const key = normalizeKey(value);
+
+  const level =
+    key.includes("elementary")
+      ? "الابتدائي"
+      : key.includes("intermediate") || key.includes("middle")
+        ? "المتوسط"
+        : key.includes("secondary") || key.includes("high")
+          ? "الثانوي"
+          : "";
+
+  if (!level) return "";
+
+  const grades: Array<[string[], string]> = [
+    [["first", "1st"], "الأول"],
+    [["second", "2nd"], "الثاني"],
+    [["third", "3rd"], "الثالث"],
+    [["fourth", "4th"], "الرابع"],
+    [["fifth", "5th"], "الخامس"],
+    [["sixth", "6th"], "السادس"],
+  ];
+
+  for (const [aliases, label] of grades) {
+    if (aliases.some((alias) => key.includes(alias))) {
+      return `${label} ${level}`;
+    }
+  }
+
+  return "";
+}
+
+function findStudentReportGrade(rows: SheetRow[]) {
+  for (const row of rows.slice(0, 30)) {
+    for (const cell of row) {
+      const arabicGrade = detectArabicGradeFromText(cell);
+      if (arabicGrade) return arabicGrade;
+
+      const englishGrade = detectEnglishGradeFromText(cell);
+      if (englishGrade) return englishGrade;
+    }
+  }
+
+  return "";
+}
+
+function isValidGradeValue(value: string) {
+  const key = normalizeKey(value);
+
+  if (!key) return false;
+  if (/^\d+$/.test(key)) return false;
+
+  return (
+    key.includes(normalizeKey("ابتدائي")) ||
+    key.includes(normalizeKey("متوسط")) ||
+    key.includes(normalizeKey("ثانوي")) ||
+    key.includes("elementary") ||
+    key.includes("intermediate") ||
+    key.includes("secondary") ||
+    key.includes("middle") ||
+    key.includes("high")
+  );
+}
 function extractStudentSheetMeta(
   rows: SheetRow[],
   sheetName: string
@@ -392,8 +488,11 @@ function extractStudentSheetMeta(
       "رقم السجل المدني",
     ]) || null;
 
+  const detectedGrade = findStudentReportGrade(rows);
+  const labeledGrade = findLabeledValue(rows, ["الصف الدراسي", "المرحلة", "الصف"]);
+
   const grade =
-    findLabeledValue(rows, ["الصف", "الصف الدراسي", "المرحلة"]) || null;
+    detectedGrade || (isValidGradeValue(labeledGrade) ? labeledGrade : null);
 
   const classroom =
     findLabeledValue(rows, ["الفصل", "الشعبة", "القسم"]) || null;

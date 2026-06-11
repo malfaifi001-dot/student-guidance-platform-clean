@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import { applyReportDraftAdjustments } from "@/lib/report-engine/report-draft-merger";
+import type { ReportDraftAdjustments } from "@/lib/report-engine/smart-report-types";
 import {
   getReportVariantById,
   resolveReportVariantId,
@@ -51,7 +53,9 @@ export async function POST(request: Request, context: RouteContext) {
     const params = await context.params;
     const caseId = String(params.caseId || "").trim();
     const body = toJsonRecord(await request.json().catch(() => ({})));
-    const variantId = resolveReportVariantId(body.variantId);
+    const variantId = resolveReportVariantId(
+      typeof body.variantId === "string" ? body.variantId : undefined,
+    );
     const variant = getReportVariantById(variantId);
 
     const result = await buildSmartReportPayloadForCase({
@@ -75,6 +79,17 @@ export async function POST(request: Request, context: RouteContext) {
       if (serviceGuard) {
         return serviceGuard;
       }
+    }
+
+    const rawAdjustments = body.reportDraftAdjustments as ReportDraftAdjustments | null | undefined;
+
+    const adjustedPayload = applyReportDraftAdjustments(
+      result.payload,
+      rawAdjustments
+    );
+
+    if (rawAdjustments?.evidenceConfig) {
+      adjustedPayload.evidenceConfig = rawAdjustments.evidenceConfig;
     }
 
     const caseEntry = await prisma.caseEntry.findUnique({
@@ -101,7 +116,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const report = await prisma.guidanceReport.create({
       data: {
-        title: result.payload.title || "تقرير حالة",
+        title: adjustedPayload.title || "تقرير حالة",
         serviceSlug: result.serviceSlug,
         caseEntryId: result.caseEntryId,
         status: "GENERATED",
@@ -122,7 +137,7 @@ export async function POST(request: Request, context: RouteContext) {
           variantShortName: variant.shortName,
           generatedFrom: "case",
         },
-        reportDataSnapshot: result.payload,
+        reportDataSnapshot: adjustedPayload,
         generatedAt: new Date(),
       },
       select: {

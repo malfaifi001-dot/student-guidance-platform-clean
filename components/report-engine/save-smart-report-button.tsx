@@ -4,15 +4,18 @@ import { useState } from "react";
 import { Save } from "lucide-react";
 
 import type { ReportVariantId } from "@/lib/report-engine/report-variant-registry";
+import type { ReportDraftAdjustments } from "@/lib/report-engine/smart-report-types";
 
 type SaveSmartReportButtonProps = {
   caseId: string;
   variantId: ReportVariantId;
+  adjustments?: ReportDraftAdjustments | null;
 };
 
 export function SaveSmartReportButton({
   caseId,
   variantId,
+  adjustments,
 }: SaveSmartReportButtonProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -31,6 +34,7 @@ export function SaveSmartReportButton({
           },
           body: JSON.stringify({
             variantId,
+            reportDraftAdjustments: adjustments,
           }),
         },
       );

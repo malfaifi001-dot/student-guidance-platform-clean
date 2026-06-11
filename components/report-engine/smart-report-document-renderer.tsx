@@ -2,7 +2,7 @@ import {
   ActivityExecutionCardReport,
   type ActivityExecutionCardReportData,
 } from "@/components/activity-programs/reports/activity-execution-card-report";
-import { SmartGeneralA4Report } from "@/components/report-engine/smart-general-a4-report";
+import type { ReportBlock } from "@/lib/report-engine/report-block-types";
 import {
   DEFAULT_REPORT_VARIANT_ID,
   type ReportVariantId,
@@ -14,19 +14,97 @@ import type {
 
 type SmartReportDocumentRendererProps = {
   payload: SmartReportPayload;
+  blocks?: ReportBlock[];
   className?: string;
   variantId?: ReportVariantId;
 };
 
+const ARABIC_VALUE_MAP: Record<string, string> = {
+  term_1: "الفصل الدراسي الأول",
+  term_2: "الفصل الدراسي الثاني",
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+  yes: "نعم",
+  no: "لا",
+  activity_leader: "رائد النشاط",
+  counselor: "الموجه الطلابي",
+  citizenship_life: "المواطنة والحياة",
+  science_technology: "العلوم والتقنية",
+  culture_arts: "الثقافة والفنون",
+  sports_health: "الرياضة والصحة",
+  scouting: "النشاط الكشفي",
+  events_occasions: "الأيام والمناسبات",
+  non_class_periods: "الفترات اللاصفية",
+};
+
+const ARABIC_LABEL_MAP: Record<string, string> = {
+  activity_domain: "مجال النشاط",
+  execution_mode: "طريقة التنفيذ",
+  execution_method: "طريقة التنفيذ",
+  planned_sessions: "عدد اللقاءات",
+  start_day: "يوم البداية",
+  end_day: "يوم النهاية",
+  end_week: "أسبوع النهاية",
+  end_date: "تاريخ النهاية",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  parents_participated: "مشاركة أولياء الأمور",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  semester: "الفصل الدراسي",
+  week: "الأسبوع",
+  execution_date: "تاريخ التنفيذ",
+  target_group: "الفئة المستهدفة",
+  executor: "المعلم المنفذ",
+};
+
+function normalizeTechnicalText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function translateTechnicalValue(value: string) {
+  const normalized = normalizeTechnicalText(value);
+  const translated = ARABIC_VALUE_MAP[normalized] || ARABIC_VALUE_MAP[value];
+
+  if (translated) return translated;
+
+  if (/^[a-z0-9_]+$/i.test(value) && value.includes("_")) {
+    return "";
+  }
+
+  return value;
+}
+
+function translateFieldLabel(key: string, label: string) {
+  if (label && label !== key && !/^[a-z0-9_]+$/i.test(label)) return label;
+
+  return ARABIC_LABEL_MAP[key] || "";
+}
+
 function renderFieldValue(value: SmartReportField["value"]) {
   if (value === null || value === undefined || value === "") return "";
-  if (Array.isArray(value)) return value.length ? value.join("، ") : "";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => translateTechnicalValue(String(item)))
+      .filter(Boolean)
+      .join("، ");
+  }
+
   if (typeof value === "boolean") return value ? "نعم" : "لا";
-  return String(value);
+
+  return translateTechnicalValue(String(value));
 }
 
 function getField(payload: SmartReportPayload, key: string) {
-  return payload.primaryFields.find((field) => field.key === key);
+  return (
+    payload.primaryFields.find((field) => field.key === key) ||
+    payload.detailFields.find((field) => field.key === key)
+  );
 }
 
 function getFieldValue(payload: SmartReportPayload, key: string) {
@@ -35,11 +113,7 @@ function getFieldValue(payload: SmartReportPayload, key: string) {
 
 function getDetailFieldValue(payload: SmartReportPayload, keys: string[]) {
   for (const key of keys) {
-    const field =
-      payload.primaryFields.find((item) => item.key === key) ||
-      payload.detailFields.find((item) => item.key === key);
-
-    const value = renderFieldValue(field?.value ?? "");
+    const value = getFieldValue(payload, key);
 
     if (value) return value;
   }
@@ -82,10 +156,7 @@ function mapSmartPayloadToActivityReportData(
   const extraItems = [
     {
       label: "الفصل الدراسي",
-      value:
-        getFieldValue(payload, "semester") ||
-        payload.identity.currentSemester ||
-        "",
+      value: getFieldValue(payload, "semester"),
     },
     {
       label: "طريقة التنفيذ",
@@ -95,11 +166,11 @@ function mapSmartPayloadToActivityReportData(
       label: "الأسبوع",
       value: getFieldValue(payload, "week"),
     },
-    ...payload.detailFields.slice(0, 8).map((field) => ({
-      label: field.label,
+    ...payload.detailFields.slice(0, 12).map((field) => ({
+      label: translateFieldLabel(field.key, field.label),
       value: renderFieldValue(field.value),
     })),
-  ].filter((item) => item.value);
+  ].filter((item) => item.label && item.value);
 
   return {
     identity: {
@@ -112,7 +183,7 @@ function mapSmartPayloadToActivityReportData(
       semester:
         payload.identity.currentSemester ||
         getFieldValue(payload, "semester") ||
-        "الفصل الدراسي",
+        "",
       ministryLogoUrl:
         payload.identity.schoolLogoUrl || "/uploads/school-logos/MOE.png",
       schoolLogoUrl: undefined,
@@ -121,16 +192,8 @@ function mapSmartPayloadToActivityReportData(
     activity: {
       domain: payload.service.name || "مجال النشاط",
       title: payload.title || payload.caseInfo.title || "تقرير",
-      teacherName:
-        getFieldValue(payload, "executor") ||
-        teacherSignature?.signerName ||
-        payload.caseInfo.issuedBy ||
-        "",
-      activityDate:
-        getFieldValue(payload, "execution_date") ||
-        payload.caseInfo.issuedAt ||
-        payload.caseInfo.createdAt ||
-        "",
+      teacherName: getFieldValue(payload, "executor"),
+      activityDate: getFieldValue(payload, "execution_date"),
       targetGroup:
         getFieldValue(payload, "target_group") ||
         payload.student?.grade ||
@@ -141,6 +204,7 @@ function mapSmartPayloadToActivityReportData(
         "beneficiaries_count",
         "students_count",
         "student_count",
+        "participant_students_count",
       ]),
       location: getDetailFieldValue(payload, [
         "location",
@@ -155,6 +219,8 @@ function mapSmartPayloadToActivityReportData(
     },
 
     evidences: evidenceItems,
+
+    customBlocks: payload.customBlocks || [],
 
     approvals: {
       teacherSignedName:
@@ -174,22 +240,22 @@ function mapSmartPayloadToActivityReportData(
 
 export function SmartReportDocumentRenderer({
   payload,
+  blocks,
   className = "",
   variantId = DEFAULT_REPORT_VARIANT_ID,
 }: SmartReportDocumentRendererProps) {
-  if (variantId === "smart-general-a4") {
-    return (
-      <div className={className}>
-        <SmartGeneralA4Report payload={payload} />
-      </div>
-    );
-  }
-
   const data = mapSmartPayloadToActivityReportData(payload);
 
   return (
-    <div className={className}>
-      <ActivityExecutionCardReport data={data} />
+    <div className={className} data-report-variant={variantId}>
+      <ActivityExecutionCardReport
+        data={data}
+        blocks={blocks}
+        evidenceConfig={payload.evidenceConfig}
+        showApprovals={payload.signatures.length > 0}
+        showEvidenceHeading
+        pageMode="full"
+      />
     </div>
   );
 }

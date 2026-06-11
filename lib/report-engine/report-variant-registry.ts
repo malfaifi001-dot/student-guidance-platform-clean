@@ -9,8 +9,6 @@ export type ReportVariantConfig = {
   name: string;
   shortName: string;
   description: string;
-  category: string;
-  isDefault?: boolean;
 };
 
 export const reportVariants: ReportVariantConfig[] = [
@@ -18,32 +16,28 @@ export const reportVariants: ReportVariantConfig[] = [
     id: "official-activity-card",
     name: "بطاقة نشاط رسمية",
     shortName: "بطاقة نشاط",
-    description: "نموذج A4 رسمي مناسب لبرامج النشاط والشواهد والتوقيعات.",
-    category: "رسمي",
-    isDefault: true,
-  },
-  {
-    id: "smart-general-a4",
-    name: "تقرير عام A4",
-    shortName: "تقرير عام",
-    description: "نموذج عام للحالات والخدمات المختلفة مع عرض الحقول والشواهد.",
-    category: "عام",
+    description: "تقرير رسمي لبرامج النشاط الطلابي بتصميم A4.",
   },
 ];
 
-export function isReportVariantId(value: unknown): value is ReportVariantId {
-  return reportVariants.some((variant) => variant.id === value);
+export function resolveReportVariantId(
+  value: string | null | undefined,
+): ReportVariantId {
+  if (value === "smart-general-a4") {
+    return "smart-general-a4";
+  }
+
+  return DEFAULT_REPORT_VARIANT_ID;
 }
 
-export function resolveReportVariantId(value: unknown): ReportVariantId {
-  return isReportVariantId(value) ? value : DEFAULT_REPORT_VARIANT_ID;
-}
-
-export function getReportVariantById(value: unknown) {
-  const id = resolveReportVariantId(value);
+export function getReportVariantById(
+  id: ReportVariantId | string | null | undefined,
+) {
+  const resolvedId = resolveReportVariantId(id);
 
   return (
-    reportVariants.find((variant) => variant.id === id) ||
+    reportVariants.find((variant) => variant.id === resolvedId) ||
+    reportVariants.find((variant) => variant.id === DEFAULT_REPORT_VARIANT_ID) ||
     reportVariants[0]
   );
 }

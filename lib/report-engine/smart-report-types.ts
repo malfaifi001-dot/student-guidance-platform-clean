@@ -94,6 +94,31 @@ export type SmartReportReadiness = {
   notes: string[];
 };
 
+export type ReportEvidenceImageSize =
+  | "large-square"
+  | "small-squares"
+  | "portrait"
+  | "landscape";
+
+export type ReportEvidenceConfig = {
+  visible: boolean;
+  itemsPerPage: 1 | 2 | 4;
+  showCaptions: boolean;
+  imageSize: ReportEvidenceImageSize;
+};
+
+export type SmartReportCustomBlockType = "PARAGRAPH" | "BULLET_LIST";
+
+export type SmartReportCustomBlock = {
+  id: string;
+  type: SmartReportCustomBlockType;
+  title: string;
+  body: string;
+  targetPageIndex?: number;
+  targetZone?: SmartReportCustomBlockZone;
+  order?: number;
+};
+
 export type SmartReportPayload = {
   reportType: SmartReportType;
   title: string;
@@ -113,4 +138,28 @@ export type SmartReportPayload = {
   };
   signatures: SmartReportSignature[];
   readiness: SmartReportReadiness;
+  evidenceConfig?: ReportEvidenceConfig;
+  customBlocks?: SmartReportCustomBlock[];
+};
+
+export type ReportDraftAdjustments = {
+  title?: string;
+  narrative?: {
+    title?: string;
+    body?: string;
+  };
+  primaryFields?: Array<{
+    key: string;
+    value: string;
+  }>;
+  detailFields?: Array<{
+    key: string;
+    value: string;
+  }>;
+  caseInfo?: {
+    issuedAt?: string;
+    issuedBy?: string;
+  };
+  evidenceConfig?: ReportEvidenceConfig;
+  customBlocks?: SmartReportCustomBlock[];
 };
