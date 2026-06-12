@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -269,6 +269,53 @@ function PanelSection({
   );
 }
 
+
+function getReportLiveDraftKey(caseId: string, variantId: string) {
+  return `smart-report-live-draft:${caseId}:${variantId}`;
+}
+
+function saveReportLiveDraft({
+  caseId,
+  variantId,
+  payload,
+  evidenceConfig,
+}: {
+  caseId: string;
+  variantId: string;
+  payload: SmartReportPayload;
+  evidenceConfig: ReportEvidenceConfig;
+}) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(
+    getReportLiveDraftKey(caseId, variantId),
+    JSON.stringify({
+      savedAt: new Date().toISOString(),
+      payload,
+      evidenceConfig,
+    }),
+  );
+}
+
+function loadReportLiveDraft(caseId: string, variantId: string) {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.localStorage.getItem(
+    getReportLiveDraftKey(caseId, variantId),
+  );
+
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as {
+      savedAt?: string;
+      payload?: SmartReportPayload;
+      evidenceConfig?: ReportEvidenceConfig;
+    };
+  } catch {
+    return null;
+  }
+}
 export function SmartReportCasePreviewPage({
   payload: initialPayload,
   selectedVariantId,
@@ -290,6 +337,69 @@ export function SmartReportCasePreviewPage({
       },
   );
 
+  const reportLiveDraftBootedRef = useRef(false);
+  const reportLiveDraftKey = `smart-report-live-draft:${initialPayload.caseInfo.id}:${selectedVariantId}`;
+
+  useEffect(() => {
+    try {
+      const rawDraft = window.localStorage.getItem(reportLiveDraftKey);
+
+      if (rawDraft) {
+        const draft = JSON.parse(rawDraft) as {
+          payload?: SmartReportPayload;
+          evidenceConfig?: ReportEvidenceConfig;
+        };
+
+        if (draft.payload?.caseInfo?.id === initialPayload.caseInfo.id) {
+          setEditablePayload(draft.payload);
+
+          if (draft.evidenceConfig) {
+            setEvidenceConfig(draft.evidenceConfig);
+          }
+        }
+      }
+    } catch {
+      // تجاهل أي مسودة تالفة
+    } finally {
+      reportLiveDraftBootedRef.current = true;
+    }
+  }, [initialPayload.caseInfo.id, reportLiveDraftKey]);
+
+  useEffect(() => {
+    if (!reportLiveDraftBootedRef.current) return;
+
+    const timer = window.setTimeout(() => {
+      window.localStorage.setItem(
+        reportLiveDraftKey,
+        JSON.stringify({
+          updatedAt: new Date().toISOString(),
+          payload: editablePayload,
+          evidenceConfig,
+        }),
+      );
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [editablePayload, evidenceConfig, reportLiveDraftKey]);
+
+  useEffect(() => {
+    const saveBeforeLeave = () => {
+      if (!reportLiveDraftBootedRef.current) return;
+
+      window.localStorage.setItem(
+        reportLiveDraftKey,
+        JSON.stringify({
+          updatedAt: new Date().toISOString(),
+          payload: editablePayload,
+          evidenceConfig,
+        }),
+      );
+    };
+
+    window.addEventListener("beforeunload", saveBeforeLeave);
+
+    return () => window.removeEventListener("beforeunload", saveBeforeLeave);
+  }, [editablePayload, evidenceConfig, reportLiveDraftKey]);
   const pages = useMemo(
     () => buildReportPages(editablePayload, evidenceConfig),
     [editablePayload, evidenceConfig],

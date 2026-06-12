@@ -318,7 +318,7 @@ export function ActivityExecutionCardReport({
                 className="activity-section activity-evidence-section"
               >
                 {showEvidenceHeading ? (
-                  <SectionHeading title="الشواهد والمرفقات" />
+                  <SectionHeading title="الشواهد" />
                 ) : null}
 
                 <EvidenceGrid
@@ -1006,7 +1006,7 @@ function ActivityExecutionCardReportStyles() {
       }
 
       .activity-report-footer {
-        margin-top: auto;
+        margin-top: 0;
         border-top: 3px solid var(--activity-primary-dark);
         padding-top: 5px;
         display: flex;
@@ -1017,6 +1017,28 @@ function ActivityExecutionCardReportStyles() {
         flex: 0 0 auto;
       }
 
+      .activity-a4-page:not(:has(.activity-approval-grid)) .activity-report-footer {
+        margin-top: auto;
+      }
+
+      .activity-paragraph,
+      .activity-custom-block p,
+      .activity-custom-block ul,
+      .activity-custom-block li {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-all !important;
+        white-space: pre-wrap !important;
+      }
+
+      .activity-section,
+      .activity-custom-block,
+      .activity-custom-blocks {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+      }
       @media screen and (max-width: 900px) {
         .activity-execution-report-root {
           padding: 12px;

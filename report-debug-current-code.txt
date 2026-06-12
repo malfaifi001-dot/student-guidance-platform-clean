@@ -1,0 +1,3200 @@
+
+===== lib\report-engine\smart-report-types.ts =====
+export type SmartReportType =
+  | "GENERAL_CASE_REPORT"
+  | "ACTIVITY_REPORT"
+  | "MEETING_REPORT"
+  | "FAMILY_COMMUNICATION_REPORT"
+  | "STUDENT_FOLLOWUP_REPORT"
+  | "EVIDENCE_REPORT"
+  | "SUMMARY_REPORT";
+
+export type SmartReportFieldImportance =
+  | "PRIMARY"
+  | "DETAIL"
+  | "NARRATIVE"
+  | "EVIDENCE_RELATED"
+  | "SIGNATURE_RELATED"
+  | "HIDDEN"
+  | "TECHNICAL";
+
+export type SmartReportReadinessStatus =
+  | "READY"
+  | "NEEDS_REVIEW"
+  | "BLOCKED";
+
+export type SmartReportEvidenceLayout =
+  | "ONE_PER_PAGE"
+  | "TWO_PER_PAGE"
+  | "GRID_2X2"
+  | "ATTACHMENT_LIST";
+
+export type SmartReportField = {
+  key: string;
+  label: string;
+  value: string | string[] | number | boolean | null;
+  importance: SmartReportFieldImportance;
+  group?: string;
+};
+
+export type SmartReportEvidenceItem = {
+  id: string;
+  title: string;
+  url?: string;
+  caption?: string;
+  type?: "IMAGE" | "FILE";
+};
+
+export type SmartReportSignature = {
+  key: string;
+  label: string;
+  signerName?: string | null;
+  signerTitle?: string | null;
+  signedAt?: string | null;
+  imageUrl?: string | null;
+  required?: boolean;
+};
+
+export type SmartReportIdentity = {
+  ministryName?: string;
+  educationDepartment?: string;
+  educationOffice?: string;
+  schoolName?: string;
+  schoolLogoUrl?: string;
+  academicYear?: string;
+  currentSemester?: string;
+};
+
+export type SmartReportCaseInfo = {
+  id: string;
+  title: string;
+  status?: string;
+  createdAt?: string;
+  issuedAt?: string;
+  issuedBy?: string;
+};
+
+export type SmartReportServiceInfo = {
+  slug: string;
+  name: string;
+};
+
+export type SmartReportStudentInfo = {
+  name?: string;
+  nationalId?: string;
+  grade?: string;
+  classroom?: string;
+  stage?: string;
+  guardianName?: string;
+  guardianPhone?: string;
+};
+
+export type SmartReportReadiness = {
+  status: SmartReportReadinessStatus;
+  percentage: number;
+  missingItems: string[];
+  notes: string[];
+};
+
+export type ReportEvidenceImageSize =
+  | "large-square"
+  | "small-squares"
+  | "portrait"
+  | "landscape";
+
+export type ReportEvidenceConfig = {
+  visible: boolean;
+  itemsPerPage: 1 | 2 | 4;
+  showCaptions: boolean;
+  imageSize: ReportEvidenceImageSize;
+};
+
+export type SmartReportCustomBlockType = "PARAGRAPH" | "BULLET_LIST";
+
+export type SmartReportCustomBlockZone =
+  | "PAGE_TOP"
+  | "BEFORE_EVIDENCE"
+  | "AFTER_EVIDENCE"
+  | "BEFORE_SIGNATURES";
+
+export type SmartReportCustomBlock = {
+  id: string;
+  type: SmartReportCustomBlockType;
+  title: string;
+  body: string;
+  targetPageIndex?: number;
+  targetZone?: SmartReportCustomBlockZone;
+  order?: number;
+};
+
+export type SmartReportPayload = {
+  reportType: SmartReportType;
+  title: string;
+  identity: SmartReportIdentity;
+  caseInfo: SmartReportCaseInfo;
+  service: SmartReportServiceInfo;
+  student?: SmartReportStudentInfo | null;
+  primaryFields: SmartReportField[];
+  detailFields: SmartReportField[];
+  narrative: {
+    title: string;
+    body: string;
+  };
+  evidence: {
+    layout: SmartReportEvidenceLayout;
+    items: SmartReportEvidenceItem[];
+  };
+  signatures: SmartReportSignature[];
+  readiness: SmartReportReadiness;
+  evidenceConfig?: ReportEvidenceConfig;
+  customBlocks?: SmartReportCustomBlock[];
+};
+
+export type ReportDraftAdjustments = {
+  title?: string;
+  narrative?: {
+    title?: string;
+    body?: string;
+  };
+  primaryFields?: Array<{
+    key: string;
+    value: string;
+  }>;
+  detailFields?: Array<{
+    key: string;
+    value: string;
+  }>;
+  caseInfo?: {
+    issuedAt?: string;
+    issuedBy?: string;
+  };
+  evidenceConfig?: ReportEvidenceConfig;
+  customBlocks?: SmartReportCustomBlock[];
+};
+
+===== lib\report-engine\report-block-types.ts =====
+import type {
+  ReportEvidenceConfig,
+  SmartReportEvidenceItem,
+  SmartReportField,
+  SmartReportPayload,
+  SmartReportSignature,
+} from "@/lib/report-engine/smart-report-types";
+
+export type ReportBlockType =
+  | "HEADER"
+  | "META_FIELDS"
+  | "NARRATIVE"
+  | "CUSTOM_PARAGRAPH"
+  | "CUSTOM_BULLET_LIST"
+  | "EVIDENCE_GRID"
+  | "SIGNATURES"
+  | "FOOTER";
+
+export type ReportBlockPlacement = "LOCKED" | "CONTENT" | "END";
+
+export type ReportBlock = {
+  id: string;
+  type: ReportBlockType;
+  title?: string;
+  body?: string;
+  fields?: SmartReportField[];
+  evidenceItems?: SmartReportEvidenceItem[];
+  signatures?: SmartReportSignature[];
+  estimatedHeight: number;
+  placement: ReportBlockPlacement;
+  movable: boolean;
+  editable: boolean;
+  sourceCustomBlockId?: string;
+  targetPageIndex?: number;
+  targetZone?: "PAGE_TOP" | "BEFORE_EVIDENCE" | "AFTER_EVIDENCE" | "BEFORE_SIGNATURES";
+  order?: number;
+};
+
+export type ReportPage = {
+  key: string;
+  title: string;
+  index: number;
+  blocks: ReportBlock[];
+  payload: SmartReportPayload;
+};
+
+export type ReportPaginationOptions = {
+  evidenceConfig?: ReportEvidenceConfig;
+  pageCapacity?: number;
+};
+
+===== lib\report-engine\report-block-builder.ts =====
+import type { ReportBlock } from "@/lib/report-engine/report-block-types";
+import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function hasValue(value: unknown) {
+  return cleanText(value).length > 0;
+}
+
+function estimatedTextHeight(title: string | undefined, body: string | undefined) {
+  const titleLength = cleanText(title).length;
+  const bodyLength = cleanText(body).length;
+  const totalLength = titleLength + bodyLength;
+
+  if (totalLength <= 0) return 0;
+
+  const titleHeight = titleLength > 0 ? 10 : 0;
+  const lineCount = Math.max(1, Math.ceil(bodyLength / 58));
+
+  return 16 + titleHeight + lineCount * 7;
+}
+
+function estimatedFieldsHeight(count: number) {
+  if (count <= 0) return 0;
+  return 18 + Math.ceil(count / 4) * 20;
+}
+
+export function buildReportBlocks(payload: SmartReportPayload): ReportBlock[] {
+  const primaryFields = payload.primaryFields.filter((field) =>
+    hasValue(field.value),
+  );
+
+  const detailFields = payload.detailFields.filter((field) =>
+    hasValue(field.value),
+  );
+
+  const allFields = [...primaryFields, ...detailFields];
+
+  const blocks: ReportBlock[] = [
+    {
+      id: "header",
+      type: "HEADER",
+      placement: "LOCKED",
+      estimatedHeight: 0,
+      movable: false,
+      editable: false,
+      order: 0,
+    },
+  ];
+
+  if (allFields.length > 0) {
+    blocks.push({
+      id: "meta-fields",
+      type: "META_FIELDS",
+      fields: allFields,
+      placement: "CONTENT",
+      estimatedHeight: estimatedFieldsHeight(allFields.length),
+      movable: false,
+      editable: true,
+      order: 100,
+    });
+  }
+
+  if (hasValue(payload.narrative?.body)) {
+    blocks.push({
+      id: "narrative",
+      type: "NARRATIVE",
+      title: payload.narrative.title || "وصف التنفيذ",
+      body: payload.narrative.body,
+      placement: "CONTENT",
+      estimatedHeight: estimatedTextHeight(
+        payload.narrative.title,
+        payload.narrative.body,
+      ),
+      movable: false,
+      editable: true,
+      order: 200,
+    });
+  }
+
+  for (const [index, customBlock] of (payload.customBlocks || []).entries()) {
+    if (!hasValue(customBlock.title) && !hasValue(customBlock.body)) continue;
+
+    blocks.push({
+      id: `custom-${customBlock.id}`,
+      type:
+        customBlock.type === "BULLET_LIST"
+          ? "CUSTOM_BULLET_LIST"
+          : "CUSTOM_PARAGRAPH",
+      title: customBlock.title,
+      body: customBlock.body,
+      placement: "CONTENT",
+      estimatedHeight: estimatedTextHeight(
+        customBlock.title,
+        customBlock.body,
+      ),
+      movable: true,
+      editable: true,
+      sourceCustomBlockId: customBlock.id,
+      targetPageIndex: customBlock.targetPageIndex,
+      targetZone: customBlock.targetZone,
+      order: customBlock.order ?? 300 + index * 10,
+    });
+  }
+
+  if (payload.evidence.items.length > 0) {
+    blocks.push({
+      id: "evidence",
+      type: "EVIDENCE_GRID",
+      evidenceItems: payload.evidence.items,
+      placement: "CONTENT",
+      estimatedHeight: 90,
+      movable: false,
+      editable: true,
+      order: 800,
+    });
+  }
+
+  if (payload.signatures.length > 0) {
+    blocks.push({
+      id: "signatures",
+      type: "SIGNATURES",
+      signatures: payload.signatures,
+      placement: "END",
+      estimatedHeight: 34,
+      movable: false,
+      editable: false,
+      order: 900,
+    });
+  }
+
+  blocks.push({
+    id: "footer",
+    type: "FOOTER",
+    placement: "LOCKED",
+    estimatedHeight: 0,
+    movable: false,
+    editable: false,
+    order: 1000,
+  });
+
+  return blocks;
+}
+
+===== lib\report-engine\report-block-paginator.ts =====
+import type {
+  ReportBlock,
+  ReportPage,
+  ReportPaginationOptions,
+} from "@/lib/report-engine/report-block-types";
+import type {
+  ReportEvidenceConfig,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+
+const DEFAULT_PAGE_CAPACITY = 210;
+const MAX_TEXT_BLOCK_HEIGHT = 92;
+const APPROX_CHARS_PER_TEXT_PAGE = 520;
+
+function clonePayload(payload: SmartReportPayload): SmartReportPayload {
+  return JSON.parse(JSON.stringify(payload));
+}
+
+function chunkArray<T>(items: T[], size: number) {
+  const result: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size));
+  }
+
+  return result;
+}
+
+function splitText(value: string, maxLength: number) {
+  const text = String(value || "").trim();
+
+  if (text.length <= maxLength) return text ? [text] : [];
+
+  const chunks: string[] = [];
+  let remaining = text;
+
+  while (remaining.length > maxLength) {
+    let cutIndex = remaining.lastIndexOf(" ", maxLength);
+
+    if (cutIndex < Math.floor(maxLength * 0.6)) {
+      cutIndex = maxLength;
+    }
+
+    chunks.push(remaining.slice(0, cutIndex).trim());
+    remaining = remaining.slice(cutIndex).trim();
+  }
+
+  if (remaining) {
+    chunks.push(remaining);
+  }
+
+  return chunks;
+}
+
+function estimateTextHeight(title: string | undefined, body: string | undefined) {
+  const titleLength = String(title || "").trim().length;
+  const bodyLength = String(body || "").trim().length;
+  const titleHeight = titleLength > 0 ? 10 : 0;
+  const lineCount = Math.max(1, Math.ceil(bodyLength / 58));
+
+  return 16 + titleHeight + lineCount * 7;
+}
+
+function getEvidenceBlockHeight(config?: ReportEvidenceConfig) {
+  const itemsPerPage = config?.itemsPerPage ?? 2;
+
+  if (itemsPerPage === 1) return 165;
+  if (itemsPerPage === 2) return 108;
+
+  return 84;
+}
+
+function getPageTitle(baseTitle: string, index: number) {
+  return index === 0 ? baseTitle : `${baseTitle} ${index + 1}`;
+}
+
+function isCustomBlock(block: ReportBlock) {
+  return (
+    block.type === "CUSTOM_PARAGRAPH" ||
+    block.type === "CUSTOM_BULLET_LIST"
+  );
+}
+
+function getPageHeight(blocks: ReportBlock[]) {
+  return blocks.reduce((total, block) => total + block.estimatedHeight, 0);
+}
+
+function expandEvidenceBlocks(
+  block: ReportBlock,
+  evidenceConfig?: ReportEvidenceConfig,
+): ReportBlock[] {
+  const items = block.evidenceItems || [];
+  const visible = evidenceConfig?.visible ?? true;
+
+  if (!visible || items.length === 0) return [];
+
+  const itemsPerPage = evidenceConfig?.itemsPerPage ?? 2;
+  const chunks = chunkArray(items, itemsPerPage);
+
+  return chunks.map((chunk, index) => ({
+    ...block,
+    id: `${block.id}-${index + 1}`,
+    evidenceItems: chunk,
+    estimatedHeight: getEvidenceBlockHeight(evidenceConfig),
+  }));
+}
+
+function splitOversizedTextBlock(block: ReportBlock): ReportBlock[] {
+  if (!isCustomBlock(block)) return [block];
+
+  const body = String(block.body || "").trim();
+  const title = String(block.title || "").trim();
+  const chunks = splitText(body, APPROX_CHARS_PER_TEXT_PAGE);
+
+  if (chunks.length <= 1 && block.estimatedHeight <= MAX_TEXT_BLOCK_HEIGHT) {
+    return [block];
+  }
+
+  if (chunks.length === 0) {
+    return [block];
+  }
+
+  return chunks.map((chunk, index) => ({
+    ...block,
+    id: `${block.id}-part-${index + 1}`,
+    title: index === 0 ? title : `${title || "فقرة"} - تابع`,
+    body: chunk,
+    estimatedHeight: Math.min(
+      MAX_TEXT_BLOCK_HEIGHT,
+      estimateTextHeight(index === 0 ? title : `${title || "فقرة"} - تابع`, chunk),
+    ),
+  }));
+}
+
+function normalizeContentBlock(
+  block: ReportBlock,
+  evidenceConfig?: ReportEvidenceConfig,
+): ReportBlock[] {
+  if (block.type === "EVIDENCE_GRID") {
+    return expandEvidenceBlocks(block, evidenceConfig);
+  }
+
+  return splitOversizedTextBlock(block);
+}
+
+function buildPayloadForPage(
+  basePayload: SmartReportPayload,
+  pageTitle: string,
+  blocks: ReportBlock[],
+  evidenceConfig?: ReportEvidenceConfig,
+): SmartReportPayload {
+  const payload = clonePayload(basePayload);
+
+  const metaBlock = blocks.find((block) => block.type === "META_FIELDS");
+  const narrativeBlock = blocks.find((block) => block.type === "NARRATIVE");
+  const evidenceItems = blocks.flatMap((block) => block.evidenceItems || []);
+  const signatures = blocks.flatMap((block) => block.signatures || []);
+
+  const customBlocks = blocks
+    .filter(isCustomBlock)
+    .map((block) => ({
+      id: block.sourceCustomBlockId || block.id,
+      type:
+        block.type === "CUSTOM_BULLET_LIST"
+          ? ("BULLET_LIST" as const)
+          : ("PARAGRAPH" as const),
+      title: block.title || "",
+      body: block.body || "",
+      targetPageIndex: block.targetPageIndex,
+    }));
+
+  payload.title = pageTitle;
+  payload.caseInfo = {
+    ...payload.caseInfo,
+    title: pageTitle,
+  };
+
+  payload.primaryFields = metaBlock ? payload.primaryFields : [];
+  payload.detailFields = metaBlock ? payload.detailFields : [];
+
+  payload.narrative = narrativeBlock
+    ? {
+        title: narrativeBlock.title || payload.narrative.title || "وصف التنفيذ",
+        body: narrativeBlock.body || "",
+      }
+    : {
+        title: "",
+        body: "",
+      };
+
+  payload.customBlocks = customBlocks;
+  payload.evidence = {
+    layout: payload.evidence.layout,
+    items: evidenceItems,
+  };
+  payload.signatures = signatures;
+  payload.evidenceConfig = evidenceConfig;
+
+  return payload;
+}
+
+function insertBlockInPageFlow(
+  pages: ReportBlock[][],
+  block: ReportBlock,
+  targetPageIndex: number,
+  pageCapacity: number,
+) {
+  while (pages.length <= targetPageIndex) {
+    pages.push([]);
+  }
+
+  let pageIndex = targetPageIndex;
+
+  while (true) {
+    const targetPage = pages[pageIndex] || [];
+    pages[pageIndex] = targetPage;
+
+    const currentHeight = getPageHeight(targetPage);
+
+    if (targetPage.length === 0 || currentHeight + block.estimatedHeight <= pageCapacity) {
+      targetPage.push(block);
+      return;
+    }
+
+    pageIndex++;
+
+    if (!pages[pageIndex]) {
+      pages[pageIndex] = [];
+    }
+  }
+}
+
+function insertAnchoredBlocks(
+  pages: ReportBlock[][],
+  anchoredBlocks: ReportBlock[],
+  pageCapacity: number,
+) {
+  const nextPages = pages.length > 0 ? pages.map((page) => [...page]) : [[]];
+
+  for (const block of anchoredBlocks) {
+    const targetPageIndex =
+      typeof block.targetPageIndex === "number" && block.targetPageIndex >= 0
+        ? block.targetPageIndex
+        : 0;
+
+    const parts = splitOversizedTextBlock(block);
+
+    for (const part of parts) {
+      insertBlockInPageFlow(nextPages, part, targetPageIndex, pageCapacity);
+    }
+  }
+
+  return nextPages;
+}
+
+export function paginateReportBlocks(
+  payload: SmartReportPayload,
+  blocks: ReportBlock[],
+  options: ReportPaginationOptions = {},
+): ReportPage[] {
+  const pageCapacity = options.pageCapacity ?? DEFAULT_PAGE_CAPACITY;
+  const evidenceConfig = options.evidenceConfig;
+  const baseTitle = payload.title || payload.caseInfo.title || "التقرير";
+
+  const anchoredCustomBlocks = blocks.filter(
+    (block) => isCustomBlock(block) && typeof block.targetPageIndex === "number",
+  );
+
+  const normalContentBlocks = blocks
+    .filter(
+      (block) =>
+        block.placement === "CONTENT" &&
+        !(isCustomBlock(block) && typeof block.targetPageIndex === "number"),
+    )
+    .sort((a, b) => (a.order ?? 500) - (b.order ?? 500))
+    .flatMap((block) => normalizeContentBlock(block, evidenceConfig));
+
+  const endBlocks = blocks.filter((block) => block.placement === "END");
+
+  const pages: ReportBlock[][] = [];
+  let currentPage: ReportBlock[] = [];
+  let currentHeight = 0;
+
+  function closePage() {
+    if (currentPage.length > 0) {
+      pages.push(currentPage);
+    }
+
+    currentPage = [];
+    currentHeight = 0;
+  }
+
+  function addBlock(block: ReportBlock) {
+    const blockHeight = Math.min(block.estimatedHeight, pageCapacity);
+
+    if (
+      currentPage.length > 0 &&
+      currentHeight + blockHeight > pageCapacity
+    ) {
+      closePage();
+    }
+
+    currentPage.push({
+      ...block,
+      estimatedHeight: blockHeight,
+    });
+    currentHeight += blockHeight;
+  }
+
+  for (const block of normalContentBlocks) {
+    addBlock(block);
+  }
+
+  closePage();
+
+  const pagesWithAnchoredBlocks = insertAnchoredBlocks(
+    pages.length > 0 ? pages : [[]],
+    anchoredCustomBlocks,
+    pageCapacity,
+  );
+
+  for (const signatureBlock of endBlocks) {
+    let lastPage = pagesWithAnchoredBlocks[pagesWithAnchoredBlocks.length - 1];
+
+    if (!lastPage) {
+      lastPage = [];
+      pagesWithAnchoredBlocks.push(lastPage);
+    }
+
+    const lastPageHeight = getPageHeight(lastPage);
+
+    if (lastPage.length > 0 && lastPageHeight + signatureBlock.estimatedHeight <= pageCapacity) {
+      lastPage.push(signatureBlock);
+    } else {
+      pagesWithAnchoredBlocks.push([signatureBlock]);
+    }
+  }
+
+  return pagesWithAnchoredBlocks.map((pageBlocks, index) => {
+    const title = getPageTitle(baseTitle, index);
+
+    return {
+      key: index === 0 ? "main" : `page-${index + 1}`,
+      title,
+      index,
+      blocks: pageBlocks,
+      payload: buildPayloadForPage(payload, title, pageBlocks, evidenceConfig),
+    };
+  });
+}
+
+===== lib\report-engine\report-page-builder.ts =====
+import { buildReportBlocks } from "@/lib/report-engine/report-block-builder";
+import { paginateReportBlocks } from "@/lib/report-engine/report-block-paginator";
+import type { ReportPage } from "@/lib/report-engine/report-block-types";
+import type {
+  ReportEvidenceConfig,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+
+export type { ReportPage };
+
+export function buildReportPages(
+  payload: SmartReportPayload,
+  evidenceConfig?: ReportEvidenceConfig,
+): ReportPage[] {
+  const blocks = buildReportBlocks(payload);
+
+  return paginateReportBlocks(payload, blocks, {
+    evidenceConfig,
+  });
+}
+
+===== lib\report-engine\report-draft-merger.ts =====
+import type {
+  ReportDraftAdjustments,
+  SmartReportCustomBlock,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+
+function normalizeValue(value: unknown) {
+  if (typeof value === "string") return value;
+  if (value === null || value === undefined) return "";
+
+  return String(value);
+}
+
+function applyFieldAdjustments(
+  fields: SmartReportPayload["primaryFields"],
+  adjustments: Array<{ key: string; value: string }> | undefined,
+) {
+  if (!adjustments?.length) return fields;
+
+  return fields.map((field) => {
+    const override = adjustments.find((item) => item.key === field.key);
+
+    return override ? { ...field, value: override.value } : field;
+  });
+}
+
+function normalizeCustomBlocks(
+  blocks: SmartReportCustomBlock[] | undefined,
+): SmartReportCustomBlock[] {
+  return (blocks || [])
+    .map((block) => ({
+      id: block.id,
+      type: block.type,
+      title: block.title.trim(),
+      body: block.body.trim(),
+      targetPageIndex:
+        typeof block.targetPageIndex === "number"
+          ? block.targetPageIndex
+          : undefined,
+    }))
+    .filter((block) => block.title || block.body);
+}
+
+function getChangedFields(
+  originalFields: SmartReportPayload["primaryFields"],
+  editedFields: SmartReportPayload["primaryFields"],
+) {
+  return editedFields
+    .filter((field) => {
+      const original = originalFields.find((item) => item.key === field.key);
+
+      return (
+        original &&
+        normalizeValue(original.value) !== normalizeValue(field.value)
+      );
+    })
+    .map((field) => ({
+      key: field.key,
+      value: normalizeValue(field.value),
+    }));
+}
+
+export function applyReportDraftAdjustments(
+  basePayload: SmartReportPayload,
+  adjustments: ReportDraftAdjustments | null | undefined,
+): SmartReportPayload {
+  if (!adjustments) return basePayload;
+
+  const nextPayload: SmartReportPayload = {
+    ...basePayload,
+    ...(adjustments.title !== undefined ? { title: adjustments.title } : {}),
+    ...(adjustments.evidenceConfig !== undefined
+      ? { evidenceConfig: adjustments.evidenceConfig }
+      : {}),
+    ...(adjustments.customBlocks !== undefined
+      ? { customBlocks: normalizeCustomBlocks(adjustments.customBlocks) }
+      : {}),
+    caseInfo: {
+      ...basePayload.caseInfo,
+      ...(adjustments.title !== undefined ? { title: adjustments.title } : {}),
+      ...(adjustments.caseInfo?.issuedAt !== undefined
+        ? { issuedAt: adjustments.caseInfo.issuedAt }
+        : {}),
+      ...(adjustments.caseInfo?.issuedBy !== undefined
+        ? { issuedBy: adjustments.caseInfo.issuedBy }
+        : {}),
+    },
+    narrative: {
+      ...basePayload.narrative,
+      ...(adjustments.narrative?.title !== undefined
+        ? { title: adjustments.narrative.title }
+        : {}),
+      ...(adjustments.narrative?.body !== undefined
+        ? { body: adjustments.narrative.body }
+        : {}),
+    },
+    primaryFields: applyFieldAdjustments(
+      basePayload.primaryFields,
+      adjustments.primaryFields,
+    ),
+    detailFields: applyFieldAdjustments(
+      basePayload.detailFields,
+      adjustments.detailFields,
+    ),
+  };
+
+  return nextPayload;
+}
+
+export function computeReportDraftAdjustments(
+  original: SmartReportPayload,
+  edited: SmartReportPayload,
+): ReportDraftAdjustments {
+  const adjustments: ReportDraftAdjustments = {};
+
+  if (edited.title !== original.title) {
+    adjustments.title = edited.title;
+  }
+
+  if (edited.narrative.title !== original.narrative.title) {
+    adjustments.narrative = {
+      ...adjustments.narrative,
+      title: edited.narrative.title,
+    };
+  }
+
+  if (edited.narrative.body !== original.narrative.body) {
+    adjustments.narrative = {
+      ...adjustments.narrative,
+      body: edited.narrative.body,
+    };
+  }
+
+  const primaryFields = getChangedFields(
+    original.primaryFields,
+    edited.primaryFields,
+  );
+
+  if (primaryFields.length > 0) {
+    adjustments.primaryFields = primaryFields;
+  }
+
+  const detailFields = getChangedFields(
+    original.detailFields,
+    edited.detailFields,
+  );
+
+  if (detailFields.length > 0) {
+    adjustments.detailFields = detailFields;
+  }
+
+  if (edited.caseInfo.issuedAt !== original.caseInfo.issuedAt) {
+    adjustments.caseInfo = {
+      ...adjustments.caseInfo,
+      issuedAt: edited.caseInfo.issuedAt,
+    };
+  }
+
+  if (edited.caseInfo.issuedBy !== original.caseInfo.issuedBy) {
+    adjustments.caseInfo = {
+      ...adjustments.caseInfo,
+      issuedBy: edited.caseInfo.issuedBy,
+    };
+  }
+
+  if (
+    JSON.stringify(original.customBlocks || []) !==
+    JSON.stringify(edited.customBlocks || [])
+  ) {
+    adjustments.customBlocks = normalizeCustomBlocks(edited.customBlocks);
+  }
+
+  return adjustments;
+}
+
+===== components\activity-programs\reports\activity-execution-card-report.tsx =====
+import {
+  BookOpen,
+  CalendarDays,
+  CalendarRange,
+  ClipboardCheck,
+  Clock3,
+  Hash,
+  MapPin,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
+
+import type { ReportBlock } from "@/lib/report-engine/report-block-types";
+import type {
+  ReportEvidenceConfig,
+  SmartReportEvidenceItem,
+} from "@/lib/report-engine/smart-report-types";
+
+export type ActivityExecutionCardReportData = {
+  identity: {
+    ministryName: string;
+    educationDepartment: string;
+    educationOffice: string;
+    schoolName: string;
+    academicYear: string;
+    semester: string;
+    ministryLogoUrl?: string;
+    schoolLogoUrl?: string;
+  };
+
+  activity: {
+    domain: string;
+    title: string;
+    teacherName: string;
+    activityDate: string;
+    targetGroup: string;
+    beneficiaryCount: string;
+    location: string;
+    implementationDescription: string;
+    objectives: string[];
+    procedures: string[];
+    indicators: string[];
+    extraItems?: {
+      label: string;
+      value: string;
+    }[];
+  };
+
+  evidences: {
+    id: string;
+    title: string;
+    imageUrl?: string;
+    fileName?: string;
+  }[];
+
+  customBlocks?: {
+    id: string;
+    type: "PARAGRAPH" | "BULLET_LIST";
+    title: string;
+    body: string;
+  }[];
+
+  approvals: {
+    teacherSignedName: string;
+    teacherSignatureUrl?: string;
+    activityLeaderName: string;
+    principalName?: string;
+  };
+};
+
+type ActivityExecutionCardReportProps = {
+  data: ActivityExecutionCardReportData;
+  blocks?: ReportBlock[];
+  evidenceConfig?: ReportEvidenceConfig;
+  showApprovals?: boolean;
+  showEvidenceHeading?: boolean;
+  pageMode?: "full" | "evidence" | "signatures";
+};
+
+type EvidenceItem = ActivityExecutionCardReportData["evidences"][number];
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasUsefulValue(value: unknown) {
+  const text = cleanText(value);
+  const normalized = normalizeText(text);
+
+  return Boolean(
+    text &&
+      ![
+        "0",
+        "غير محدد",
+        "غير مدخل",
+        "غير متوفر",
+        "لا يوجد",
+        "null",
+        "undefined",
+        "-",
+        "—",
+      ].includes(normalized),
+  );
+}
+
+function getUniqueMetaItems(
+  items: Array<{
+    label: string;
+    value: string;
+    wide?: boolean;
+  }>,
+) {
+  const seen = new Set<string>();
+
+  return items.filter((item) => {
+    if (!hasUsefulValue(item.value)) return false;
+
+    const key = normalizeText(`${item.label}-${item.value}`);
+
+    if (seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function getInfoIcon(label: string) {
+  const text = normalizeText(label);
+
+  if (text.includes("تاريخ")) return <CalendarDays />;
+  if (text.includes("يوم")) return <Clock3 />;
+  if (text.includes("فصل")) return <CalendarRange />;
+  if (text.includes("معلم")) return <UserRound />;
+  if (text.includes("فئه") || text.includes("مستهدف")) return <UsersRound />;
+  if (text.includes("عدد") || text.includes("حصص") || text.includes("اسبوع")) {
+    return <Hash />;
+  }
+  if (text.includes("مكان")) return <MapPin />;
+  if (text.includes("طريقه") || text.includes("تنفيذ")) {
+    return <ClipboardCheck />;
+  }
+
+  return <BookOpen />;
+}
+
+function mapSmartEvidenceToActivityEvidence(
+  items: SmartReportEvidenceItem[] | undefined,
+): EvidenceItem[] {
+  return (items || []).map((item, index) => ({
+    id: item.id || `evidence-${index + 1}`,
+    title: item.title || `شاهد ${index + 1}`,
+    imageUrl: item.type === "IMAGE" ? item.url : undefined,
+    fileName: item.title || `شاهد ${index + 1}`,
+  }));
+}
+
+function buildDefaultBlocks(
+  data: ActivityExecutionCardReportData,
+  pageMode: ActivityExecutionCardReportProps["pageMode"],
+  showApprovals: boolean,
+): ReportBlock[] {
+  const isFullPage = pageMode === "full";
+
+  const blocks: ReportBlock[] = [];
+
+  if (isFullPage) {
+    blocks.push({
+      id: "meta-fields",
+      type: "META_FIELDS",
+      estimatedHeight: 40,
+      placement: "CONTENT",
+      movable: false,
+      editable: true,
+    });
+
+    if (hasUsefulValue(data.activity.implementationDescription)) {
+      blocks.push({
+        id: "narrative",
+        type: "NARRATIVE",
+        title: "وصف التنفيذ",
+        body: data.activity.implementationDescription,
+        estimatedHeight: 40,
+        placement: "CONTENT",
+        movable: false,
+        editable: true,
+      });
+    }
+
+    for (const block of data.customBlocks || []) {
+      if (!hasUsefulValue(block.title) && !hasUsefulValue(block.body)) continue;
+
+      blocks.push({
+        id: `custom-${block.id}`,
+        type:
+          block.type === "BULLET_LIST"
+            ? "CUSTOM_BULLET_LIST"
+            : "CUSTOM_PARAGRAPH",
+        title: block.title,
+        body: block.body,
+        estimatedHeight: 34,
+        placement: "CONTENT",
+        movable: true,
+        editable: true,
+        sourceCustomBlockId: block.id,
+      });
+    }
+  }
+
+  if (data.evidences.length > 0) {
+    blocks.push({
+      id: "evidence",
+      type: "EVIDENCE_GRID",
+      evidenceItems: data.evidences.map((item) => ({
+        id: item.id,
+        title: item.title,
+        url: item.imageUrl,
+        type: item.imageUrl ? "IMAGE" : "FILE",
+      })),
+      estimatedHeight: 90,
+      placement: "CONTENT",
+      movable: false,
+      editable: true,
+    });
+  }
+
+  if (showApprovals) {
+    blocks.push({
+      id: "signatures",
+      type: "SIGNATURES",
+      estimatedHeight: 34,
+      placement: "END",
+      movable: false,
+      editable: false,
+    });
+  }
+
+  return blocks;
+}
+
+export function ActivityExecutionCardReport({
+  data,
+  blocks,
+  evidenceConfig,
+  showApprovals = true,
+  showEvidenceHeading = true,
+  pageMode = "full",
+}: ActivityExecutionCardReportProps) {
+  const evidenceVisible = evidenceConfig?.visible ?? true;
+  const evidencesPerPage = evidenceConfig?.itemsPerPage ?? 2;
+  const evidenceImageSize = evidenceConfig?.imageSize ?? "small-squares";
+
+  const visualBlocks =
+    blocks && blocks.length > 0
+      ? blocks.filter((block) => !["HEADER", "FOOTER"].includes(block.type))
+      : buildDefaultBlocks(data, pageMode, showApprovals);
+
+  return (
+    <main className="activity-execution-report-root" dir="rtl">
+      <ActivityExecutionCardReportStyles />
+
+      <section className="activity-a4-page">
+        <OfficialHeader data={data} />
+
+        {visualBlocks.map((block) => {
+          if (block.type === "META_FIELDS") {
+            return <MetaFieldsBlock key={block.id} data={data} />;
+          }
+
+          if (block.type === "NARRATIVE") {
+            return (
+              <TextBlock
+                key={block.id}
+                title={block.title || "وصف التنفيذ"}
+                body={block.body || data.activity.implementationDescription}
+              />
+            );
+          }
+
+          if (
+            block.type === "CUSTOM_PARAGRAPH" ||
+            block.type === "CUSTOM_BULLET_LIST"
+          ) {
+            return (
+              <CustomTextBlock
+                key={block.id}
+                type={
+                  block.type === "CUSTOM_BULLET_LIST"
+                    ? "BULLET_LIST"
+                    : "PARAGRAPH"
+                }
+                title={block.title || ""}
+                body={block.body || ""}
+              />
+            );
+          }
+
+          if (block.type === "EVIDENCE_GRID") {
+            const blockEvidences = evidenceVisible
+              ? mapSmartEvidenceToActivityEvidence(block.evidenceItems)
+              : [];
+
+            if (!blockEvidences.length) return null;
+
+            return (
+              <section
+                key={block.id}
+                className="activity-section activity-evidence-section"
+              >
+                {showEvidenceHeading ? (
+                  <SectionHeading title="الشواهد والمرفقات" />
+                ) : null}
+
+                <EvidenceGrid
+                  evidences={blockEvidences}
+                  itemsPerPage={evidencesPerPage}
+                  imageSize={evidenceImageSize}
+                />
+              </section>
+            );
+          }
+
+          if (block.type === "SIGNATURES") {
+            return <ApprovalGrid key={block.id} data={data} />;
+          }
+
+          return null;
+        })}
+
+        <ReportFooter data={data} />
+      </section>
+    </main>
+  );
+}
+
+function MetaFieldsBlock({ data }: { data: ActivityExecutionCardReportData }) {
+  const extraItems = data.activity.extraItems || [];
+
+  const dayItem = extraItems.find(
+    (item) => normalizeText(item.label) === "اليوم",
+  );
+
+  const semesterItem = extraItems.find((item) =>
+    normalizeText(item.label).includes("الفصل الدراسي"),
+  );
+
+  const remainingExtraItems = extraItems.filter((item) => {
+    const label = normalizeText(item.label);
+
+    return label !== "اليوم" && !label.includes("الفصل الدراسي");
+  });
+
+  const dateAndDay = hasUsefulValue(dayItem?.value)
+    ? `${data.activity.activityDate} - ${dayItem?.value}`
+    : data.activity.activityDate;
+
+  const metaItems = getUniqueMetaItems([
+    {
+      label: "تاريخ التنفيذ / اليوم",
+      value: dateAndDay,
+    },
+    ...(semesterItem
+      ? [
+          {
+            label: "الفصل الدراسي",
+            value: semesterItem.value,
+          },
+        ]
+      : []),
+    {
+      label: "المعلم المنفذ",
+      value: data.activity.teacherName,
+    },
+    {
+      label: "الفئة المستهدفة",
+      value: data.activity.targetGroup,
+    },
+    {
+      label: "عدد المستفيدين",
+      value: data.activity.beneficiaryCount,
+    },
+    {
+      label: "مكان التنفيذ",
+      value: data.activity.location,
+    },
+    ...remainingExtraItems,
+  ]);
+
+  if (!metaItems.length) return null;
+
+  return (
+    <section className="activity-meta-grid">
+      {metaItems.map((item) => (
+        <InfoCell
+          key={`${item.label}-${item.value}`}
+          label={item.label}
+          value={item.value}
+          wide={item.wide}
+        />
+      ))}
+    </section>
+  );
+}
+
+function InfoCell({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className={wide ? "activity-info-cell wide" : "activity-info-cell"}>
+      <span className="activity-info-icon" aria-hidden="true">
+        {getInfoIcon(label)}
+      </span>
+
+      <span className="activity-info-label">{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function SectionHeading({ title }: { title: string }) {
+  return (
+    <div className="activity-section-heading">
+      <span />
+      <h2>{title}</h2>
+    </div>
+  );
+}
+
+function TextBlock({ title, body }: { title: string; body: string }) {
+  if (!hasUsefulValue(body)) return null;
+
+  return (
+    <section className="activity-section">
+      <SectionHeading title={title} />
+      <p className="activity-paragraph">{body}</p>
+    </section>
+  );
+}
+
+function CustomTextBlock({
+  type,
+  title,
+  body,
+}: {
+  type: "PARAGRAPH" | "BULLET_LIST";
+  title: string;
+  body: string;
+}) {
+  if (!hasUsefulValue(title) && !hasUsefulValue(body)) return null;
+
+  const lines = body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (
+    <section className="activity-custom-blocks">
+      <article className="activity-custom-block">
+        {hasUsefulValue(title) ? <h3>{title}</h3> : null}
+
+        {type === "BULLET_LIST" ? (
+          <ul>
+            {lines.map((line, index) => (
+              <li key={`${title}-${index}`}>{line}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>{body}</p>
+        )}
+      </article>
+    </section>
+  );
+}
+
+function EvidenceGrid({
+  evidences,
+  itemsPerPage,
+  imageSize,
+}: {
+  evidences: EvidenceItem[];
+  itemsPerPage: 1 | 2 | 4;
+  imageSize: ReportEvidenceConfig["imageSize"];
+}) {
+  if (!evidences.length) return null;
+
+  const layoutClass =
+    itemsPerPage === 1 ? "one" : itemsPerPage === 4 ? "four" : "two";
+
+  return (
+    <div className={`activity-evidence-grid ${layoutClass} ${imageSize}`}>
+      {evidences.map((evidence) => (
+        <article key={evidence.id} className="activity-evidence-card">
+          <div className="activity-evidence-frame">
+            {evidence.imageUrl ? (
+              <img src={evidence.imageUrl} alt={evidence.title} />
+            ) : (
+              <span>{evidence.fileName || "شاهد مرفق"}</span>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ApprovalGrid({ data }: { data: ActivityExecutionCardReportData }) {
+  return (
+    <section className="activity-approval-grid">
+      <div className="activity-signature-box">
+        <span>توقيع المعلم المنفذ</span>
+
+        {data.approvals.teacherSignatureUrl ? (
+          <img
+            src={data.approvals.teacherSignatureUrl}
+            alt={`توقيع ${data.approvals.teacherSignedName}`}
+          />
+        ) : (
+          <em>............................</em>
+        )}
+
+        <strong>{data.approvals.teacherSignedName}</strong>
+      </div>
+
+      <div className="activity-signature-box">
+        <span>رائد النشاط</span>
+        <em>............................</em>
+        <strong>{data.approvals.activityLeaderName}</strong>
+      </div>
+
+      <div className="activity-signature-box">
+        <span>مدير المدرسة</span>
+        <em>............................</em>
+        <strong>{data.approvals.principalName || "............................"}</strong>
+      </div>
+    </section>
+  );
+}
+
+function OfficialHeader({
+  data,
+  compact = false,
+}: {
+  data: ActivityExecutionCardReportData;
+  compact?: boolean;
+}) {
+  return (
+    <header
+      className={
+        compact ? "activity-report-header compact" : "activity-report-header"
+      }
+    >
+      <div className="activity-header-text">
+        <span>تقرير برنامج نشاط طلابي</span>
+        <strong>{data.activity.title}</strong>
+        <b>
+          {data.activity.domain} - {data.identity.schoolName}
+        </b>
+      </div>
+
+      <LogoBox src={data.identity.ministryLogoUrl} label="وزارة التعليم" />
+    </header>
+  );
+}
+
+function LogoBox({ src, label }: { src?: string; label: string }) {
+  return (
+    <div className="activity-logo-box">
+      {src ? <img src={src} alt={label} /> : <span>{label}</span>}
+    </div>
+  );
+}
+
+function ReportFooter({ data }: { data: ActivityExecutionCardReportData }) {
+  return (
+    <footer className="activity-report-footer">
+      <span>{data.identity.schoolName}</span>
+      <span>
+        {data.identity.academicYear} - {data.identity.semester}
+      </span>
+      <span>منصة التوجيه الطلابي</span>
+    </footer>
+  );
+}
+
+function ActivityExecutionCardReportStyles() {
+  return (
+    <style>{`
+      .activity-execution-report-root {
+        --activity-primary: #155f3b;
+        --activity-primary-dark: #0f5132;
+        --activity-soft: #eef8f2;
+        --activity-border: #d9e7df;
+        --activity-text: #17231d;
+        --activity-muted: #647067;
+        --activity-gold: #d4af37;
+
+        min-height: 100%;
+        background: #edf2ef;
+        padding: 24px;
+        color: var(--activity-text);
+        font-family: Tajawal, Cairo, "IBM Plex Sans Arabic", Arial, sans-serif;
+      }
+
+      .activity-a4-page {
+        width: 210mm;
+        min-height: 297mm;
+        max-height: 297mm;
+        margin: 0 auto 24px;
+        box-sizing: border-box;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at top left, rgba(212, 175, 55, 0.14), transparent 220px),
+          #ffffff;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.16);
+        padding: 10mm 14mm 8mm;
+        display: flex;
+        flex-direction: column;
+        gap: 5mm;
+        position: relative;
+        page-break-after: always;
+      }
+
+      .activity-a4-page::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: -60px;
+        top: -70px;
+        width: 210px;
+        height: 210px;
+        border-radius: 999px;
+        background: rgba(21, 95, 59, 0.08);
+      }
+
+      .activity-report-header {
+        min-height: 31mm;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14mm;
+        border: 0;
+        border-radius: 24px 24px 0 0;
+        padding: 12px 18mm;
+        background: linear-gradient(135deg, #0f172a, #0f5132, #047857);
+        overflow: hidden;
+        position: relative;
+        z-index: 1;
+      }
+
+      .activity-report-header.compact {
+        min-height: 27mm;
+      }
+
+      .activity-report-header::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: -40px;
+        top: -60px;
+        width: 180px;
+        height: 180px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .activity-header-text {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: right;
+        color: #fff;
+        gap: 5px;
+        position: relative;
+        z-index: 2;
+        line-height: 1.45;
+      }
+
+      .activity-header-text span {
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .activity-header-text strong {
+        color: #fff;
+        font-size: 27px;
+        line-height: 1.25;
+        font-weight: 900;
+      }
+
+      .activity-report-header.compact .activity-header-text strong {
+        font-size: 22px;
+      }
+
+      .activity-header-text b {
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .activity-logo-box {
+        width: 36mm;
+        height: 22mm;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        text-align: center;
+      }
+
+      .activity-logo-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+      }
+
+      .activity-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 7px;
+      }
+
+      .activity-info-cell {
+        min-height: 41px;
+        border: 1px solid var(--activity-border);
+        border-radius: 14px;
+        background: #fff;
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        position: relative;
+      }
+
+      .activity-info-cell.wide {
+        grid-column: span 2;
+      }
+
+      .activity-info-label {
+        color: var(--activity-muted);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .activity-info-icon {
+        position: absolute;
+        top: 8px;
+        left: 9px;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: var(--activity-soft);
+        color: var(--activity-primary-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--activity-border);
+      }
+
+      .activity-info-icon svg {
+        width: 13px;
+        height: 13px;
+        stroke-width: 2.4;
+      }
+
+      .activity-info-cell strong {
+        color: var(--activity-text);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .activity-section {
+        break-inside: avoid;
+      }
+
+      .activity-section-heading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 9px;
+      }
+
+      .activity-section-heading span {
+        width: 7px;
+        height: 23px;
+        border-radius: 999px;
+        background: var(--activity-gold);
+      }
+
+      .activity-section-heading h2 {
+        margin: 0;
+        color: var(--activity-primary-dark);
+        font-size: 19px;
+        font-weight: 900;
+      }
+
+      .activity-paragraph {
+        margin: 0;
+        border: 1px solid var(--activity-border);
+        border-radius: 16px;
+        background: #fff;
+        padding: 13px 16px;
+        font-size: 15px;
+        line-height: 2.15;
+        color: #34423a;
+        text-align: justify;
+        font-weight: 700;
+      }
+
+      .activity-custom-blocks {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .activity-custom-block * {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      .activity-custom-block {
+        border: 1px solid var(--activity-border);
+        border-radius: 18px;
+        background: #fff;
+        padding: 13px 16px;
+      }
+
+      .activity-custom-block h3 {
+        margin: 0 0 8px;
+        color: var(--activity-primary-dark);
+        font-size: 17px;
+        font-weight: 900;
+      }
+
+      .activity-custom-block p {
+        margin: 0;
+        color: #34423a;
+        font-size: 14px;
+        line-height: 2;
+        font-weight: 700;
+        text-align: justify;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+
+      .activity-custom-block ul {
+        margin: 0;
+        padding-inline-start: 20px;
+        color: #34423a;
+        font-size: 14px;
+        line-height: 2;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+
+      .activity-custom-block li {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .activity-evidence-section {
+        flex: 0 0 auto;
+        min-height: 0;
+      }
+
+      .activity-evidence-grid {
+        display: grid;
+        gap: 9px;
+      }
+
+      .activity-evidence-grid.one {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .activity-evidence-grid.two,
+      .activity-evidence-grid.four {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .activity-evidence-card {
+        border: 1px solid var(--activity-border);
+        border-radius: 16px;
+        background: #fff;
+        padding: 7px;
+        min-height: 0;
+      }
+
+      .activity-evidence-frame {
+        height: 35mm;
+        border-radius: 12px;
+        background: #f4f7f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        color: var(--activity-muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .activity-evidence-grid.one .activity-evidence-frame {
+        height: 178mm;
+      }
+
+      .activity-evidence-grid.two .activity-evidence-frame {
+        height: 82mm;
+      }
+
+      .activity-evidence-grid.four .activity-evidence-frame {
+        height: 45mm;
+      }
+
+      .activity-evidence-grid.portrait .activity-evidence-frame {
+        height: 95mm;
+      }
+
+      .activity-evidence-grid.landscape .activity-evidence-frame {
+        height: 58mm;
+      }
+
+      .activity-evidence-grid.one.landscape .activity-evidence-frame,
+      .activity-evidence-grid.one.large-square .activity-evidence-frame,
+      .activity-evidence-grid.one.small-squares .activity-evidence-frame,
+      .activity-evidence-grid.one.portrait .activity-evidence-frame {
+        height: 178mm;
+      }
+
+      .activity-evidence-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
+      }
+
+      .activity-approval-grid {
+        margin-top: auto !important;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+        flex: 0 0 auto;
+      }
+
+      .activity-signature-box {
+        min-height: 24mm;
+        border: 1px solid var(--activity-border);
+        border-radius: 18px;
+        background: #fff;
+        padding: 9px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        text-align: center;
+      }
+
+      .activity-signature-box span {
+        color: var(--activity-muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .activity-signature-box img {
+        max-width: 43mm;
+        height: 11mm;
+        object-fit: contain;
+      }
+
+      .activity-signature-box em {
+        font-size: 13px;
+        color: var(--activity-muted);
+        font-style: normal;
+      }
+
+      .activity-signature-box strong {
+        color: var(--activity-text);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .activity-report-footer {
+        margin-top: auto;
+        border-top: 3px solid var(--activity-primary-dark);
+        padding-top: 5px;
+        display: flex;
+        justify-content: space-between;
+        color: var(--activity-muted);
+        font-size: 10px;
+        font-weight: 800;
+        flex: 0 0 auto;
+      }
+
+      @media screen and (max-width: 900px) {
+        .activity-execution-report-root {
+          padding: 12px;
+          overflow-x: auto;
+        }
+      }
+
+      @media print {
+        body {
+          margin: 0;
+          background: #fff;
+        }
+
+        .no-print {
+          display: none !important;
+        }
+
+        .activity-execution-report-root {
+          padding: 0;
+          background: #fff;
+        }
+
+        .activity-a4-page {
+          margin: 0;
+          box-shadow: none;
+          width: 210mm;
+          min-height: 297mm;
+          max-height: 297mm;
+          page-break-after: always;
+          break-after: page;
+        }
+
+        @page {
+          size: A4;
+          margin: 0;
+        }
+      }
+    `}</style>
+  );
+}
+
+===== components\report-engine\smart-report-document-renderer.tsx =====
+import {
+  ActivityExecutionCardReport,
+  type ActivityExecutionCardReportData,
+} from "@/components/activity-programs/reports/activity-execution-card-report";
+import type { ReportBlock } from "@/lib/report-engine/report-block-types";
+import {
+  DEFAULT_REPORT_VARIANT_ID,
+  type ReportVariantId,
+} from "@/lib/report-engine/report-variant-registry";
+import type {
+  SmartReportField,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+
+type SmartReportDocumentRendererProps = {
+  payload: SmartReportPayload;
+  blocks?: ReportBlock[];
+  className?: string;
+  variantId?: ReportVariantId;
+};
+
+const ARABIC_VALUE_MAP: Record<string, string> = {
+  term_1: "الفصل الدراسي الأول",
+  term_2: "الفصل الدراسي الثاني",
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+  yes: "نعم",
+  no: "لا",
+  activity_leader: "رائد النشاط",
+  counselor: "الموجه الطلابي",
+  citizenship_life: "المواطنة والحياة",
+  science_technology: "العلوم والتقنية",
+  culture_arts: "الثقافة والفنون",
+  sports_health: "الرياضة والصحة",
+  scouting: "النشاط الكشفي",
+  events_occasions: "الأيام والمناسبات",
+  non_class_periods: "الفترات اللاصفية",
+};
+
+const ARABIC_LABEL_MAP: Record<string, string> = {
+  activity_domain: "مجال النشاط",
+  execution_mode: "طريقة التنفيذ",
+  execution_method: "طريقة التنفيذ",
+  planned_sessions: "عدد اللقاءات",
+  start_day: "يوم البداية",
+  end_day: "يوم النهاية",
+  end_week: "أسبوع النهاية",
+  end_date: "تاريخ النهاية",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  parents_participated: "مشاركة أولياء الأمور",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  semester: "الفصل الدراسي",
+  week: "الأسبوع",
+  execution_date: "تاريخ التنفيذ",
+  target_group: "الفئة المستهدفة",
+  executor: "المعلم المنفذ",
+};
+
+function normalizeTechnicalText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function translateTechnicalValue(value: string) {
+  const normalized = normalizeTechnicalText(value);
+  const translated = ARABIC_VALUE_MAP[normalized] || ARABIC_VALUE_MAP[value];
+
+  if (translated) return translated;
+
+  if (/^[a-z0-9_]+$/i.test(value) && value.includes("_")) {
+    return "";
+  }
+
+  return value;
+}
+
+function translateFieldLabel(key: string, label: string) {
+  if (label && label !== key && !/^[a-z0-9_]+$/i.test(label)) return label;
+
+  return ARABIC_LABEL_MAP[key] || "";
+}
+
+function renderFieldValue(value: SmartReportField["value"]) {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => translateTechnicalValue(String(item)))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "boolean") return value ? "نعم" : "لا";
+
+  return translateTechnicalValue(String(value));
+}
+
+function getField(payload: SmartReportPayload, key: string) {
+  return (
+    payload.primaryFields.find((field) => field.key === key) ||
+    payload.detailFields.find((field) => field.key === key)
+  );
+}
+
+function getFieldValue(payload: SmartReportPayload, key: string) {
+  return renderFieldValue(getField(payload, key)?.value ?? "");
+}
+
+function getDetailFieldValue(payload: SmartReportPayload, keys: string[]) {
+  for (const key of keys) {
+    const value = getFieldValue(payload, key);
+
+    if (value) return value;
+  }
+
+  return "";
+}
+
+function getSignature(payload: SmartReportPayload, key: string) {
+  return payload.signatures.find((signature) => signature.key === key);
+}
+
+function getFirstUsefulSignature(payload: SmartReportPayload) {
+  return (
+    payload.signatures.find((signature) => signature.signerName) ||
+    payload.signatures[0] ||
+    null
+  );
+}
+
+function mapSmartPayloadToActivityReportData(
+  payload: SmartReportPayload,
+): ActivityExecutionCardReportData {
+  const principalSignature = getSignature(payload, "principal");
+  const activityLeaderSignature =
+    getSignature(payload, "activity_leader") ||
+    getSignature(payload, "counselor") ||
+    getFirstUsefulSignature(payload);
+  const teacherSignature =
+    getSignature(payload, "teacher") ||
+    getSignature(payload, "assigned_teacher") ||
+    activityLeaderSignature;
+
+  const evidenceItems = payload.evidence.items.map((item, index) => ({
+    id: item.id || `evidence-${index + 1}`,
+    title: item.title || `شاهد ${index + 1}`,
+    imageUrl: item.type === "IMAGE" ? item.url : undefined,
+    fileName: item.title || `شاهد ${index + 1}`,
+  }));
+
+  const extraItems = [
+    {
+      label: "الفصل الدراسي",
+      value: getFieldValue(payload, "semester"),
+    },
+    {
+      label: "طريقة التنفيذ",
+      value: getFieldValue(payload, "execution_method"),
+    },
+    {
+      label: "الأسبوع",
+      value: getFieldValue(payload, "week"),
+    },
+    ...payload.detailFields.slice(0, 12).map((field) => ({
+      label: translateFieldLabel(field.key, field.label),
+      value: renderFieldValue(field.value),
+    })),
+  ].filter((item) => item.label && item.value);
+
+  return {
+    identity: {
+      ministryName: payload.identity.ministryName || "وزارة التعليم",
+      educationDepartment:
+        payload.identity.educationDepartment || "إدارة التعليم",
+      educationOffice: payload.identity.educationOffice || "مكتب التعليم",
+      schoolName: payload.identity.schoolName || "اسم المدرسة",
+      academicYear: payload.identity.academicYear || "العام الدراسي",
+      semester:
+        payload.identity.currentSemester ||
+        getFieldValue(payload, "semester") ||
+        "",
+      ministryLogoUrl:
+        payload.identity.schoolLogoUrl || "/uploads/school-logos/MOE.png",
+      schoolLogoUrl: undefined,
+    },
+
+    activity: {
+      domain: payload.service.name || "مجال النشاط",
+      title: payload.title || payload.caseInfo.title || "تقرير",
+      teacherName: getFieldValue(payload, "executor"),
+      activityDate: getFieldValue(payload, "execution_date"),
+      targetGroup:
+        getFieldValue(payload, "target_group") ||
+        payload.student?.grade ||
+        payload.student?.stage ||
+        "",
+      beneficiaryCount: getDetailFieldValue(payload, [
+        "beneficiary_count",
+        "beneficiaries_count",
+        "students_count",
+        "student_count",
+        "participant_students_count",
+      ]),
+      location: getDetailFieldValue(payload, [
+        "location",
+        "place",
+        "execution_location",
+      ]),
+      implementationDescription: payload.narrative.body || "",
+      objectives: [],
+      procedures: [],
+      indicators: [],
+      extraItems,
+    },
+
+    evidences: evidenceItems,
+
+    customBlocks: payload.customBlocks || [],
+
+    approvals: {
+      teacherSignedName:
+        teacherSignature?.signerName ||
+        getFieldValue(payload, "executor") ||
+        payload.caseInfo.issuedBy ||
+        "المعلم المنفذ",
+      teacherSignatureUrl: teacherSignature?.imageUrl || undefined,
+      activityLeaderName:
+        activityLeaderSignature?.signerName ||
+        payload.caseInfo.issuedBy ||
+        "رائد النشاط",
+      principalName: principalSignature?.signerName || undefined,
+    },
+  };
+}
+
+export function SmartReportDocumentRenderer({
+  payload,
+  blocks,
+  className = "",
+  variantId = DEFAULT_REPORT_VARIANT_ID,
+}: SmartReportDocumentRendererProps) {
+  const data = mapSmartPayloadToActivityReportData(payload);
+
+  return (
+    <div className={className} data-report-variant={variantId}>
+      <ActivityExecutionCardReport
+        data={data}
+        blocks={blocks}
+        evidenceConfig={payload.evidenceConfig}
+        showApprovals={payload.signatures.length > 0}
+        showEvidenceHeading
+        pageMode="full"
+      />
+    </div>
+  );
+}
+
+===== components\report-engine\smart-report-case-preview-page.tsx =====
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import Link from "next/link";
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Printer,
+  Trash2,
+  X,
+} from "lucide-react";
+
+import { SaveSmartReportButton } from "@/components/report-engine/save-smart-report-button";
+import { SmartReportDocumentRenderer } from "@/components/report-engine/smart-report-document-renderer";
+import { SmartReportVariantSelector } from "@/components/report-engine/smart-report-variant-selector";
+import { computeReportDraftAdjustments } from "@/lib/report-engine/report-draft-merger";
+import { buildReportPages } from "@/lib/report-engine/report-page-builder";
+import type {
+  ReportVariantConfig,
+  ReportVariantId,
+} from "@/lib/report-engine/report-variant-registry";
+import type {
+  ReportEvidenceConfig,
+  SmartReportCustomBlock,
+  SmartReportCustomBlockType,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+
+type SmartReportCasePreviewPageProps = {
+  payload: SmartReportPayload;
+  selectedVariantId: ReportVariantId;
+  variants: ReportVariantConfig[];
+};
+
+type EditableReportField = {
+  key: string;
+  label: string;
+  value: unknown;
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  activity_domain: "مجال النشاط",
+  execution_mode: "طريقة التنفيذ",
+  execution_method: "طريقة التنفيذ",
+  planned_sessions: "عدد اللقاءات",
+  start_day: "يوم البداية",
+  end_day: "يوم النهاية",
+  end_week: "أسبوع النهاية",
+  end_date: "تاريخ النهاية",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  parents_participated: "مشاركة أولياء الأمور",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  semester: "الفصل الدراسي",
+  week: "الأسبوع",
+  execution_date: "تاريخ التنفيذ",
+  target_group: "الفئة المستهدفة",
+  executor: "المعلم المنفذ",
+};
+
+const VALUE_LABELS: Record<string, string> = {
+  term_1: "الفصل الدراسي الأول",
+  term_2: "الفصل الدراسي الثاني",
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+  yes: "نعم",
+  no: "لا",
+  activity_leader: "رائد النشاط",
+  counselor: "الموجه الطلابي",
+  citizenship_life: "المواطنة والحياة",
+  science_technology: "العلوم والتقنية",
+  culture_arts: "الثقافة والفنون",
+  sports_health: "الرياضة والصحة",
+  scouting: "النشاط الكشفي",
+  events_occasions: "الأيام والمناسبات",
+  non_class_periods: "الفترات اللاصفية",
+};
+
+const IMAGE_SIZE_LABELS: Record<ReportEvidenceConfig["imageSize"], string> = {
+  "large-square": "كبير 178×160",
+  "small-squares": "عادي 82×82",
+  portrait: "طولي 70×95",
+  landscape: "عرضي 120×58",
+};
+
+const IMAGE_SIZE_ORDER: Array<ReportEvidenceConfig["imageSize"]> = [
+  "large-square",
+  "small-squares",
+  "portrait",
+  "landscape",
+];
+
+function getReportOrderItems(payload: SmartReportPayload) {
+  const items: Array<{
+    id: string;
+    type: "SYSTEM" | "CUSTOM";
+    label: string;
+    order: number;
+  }> = [];
+
+  if (payload.primaryFields.length || payload.detailFields.length) {
+    items.push({
+      id: "meta-fields",
+      type: "SYSTEM",
+      label: "بيانات التقرير",
+      order: 100,
+    });
+  }
+
+  if (payload.narrative?.body) {
+    items.push({
+      id: "narrative",
+      type: "SYSTEM",
+      label: "وصف التنفيذ",
+      order: 200,
+    });
+  }
+
+  for (const [index, block] of (payload.customBlocks || []).entries()) {
+    items.push({
+      id: block.id,
+      type: "CUSTOM",
+      label: block.title || (block.type === "BULLET_LIST" ? "قائمة نقاط" : "فقرة نصية"),
+      order: block.order ?? 300 + index * 10,
+    });
+  }
+
+  if (payload.evidence.items.length) {
+    items.push({
+      id: "evidence",
+      type: "SYSTEM",
+      label: "الشواهد",
+      order: 800,
+    });
+  }
+
+  return items.sort((a, b) => a.order - b.order);
+}
+
+function getNewOrderBetween(
+  previousOrder: number | null,
+  nextOrder: number | null,
+) {
+  if (previousOrder === null && nextOrder === null) return 300;
+  if (previousOrder === null) return nextOrder! - 10;
+  if (nextOrder === null) return previousOrder + 10;
+
+  return (previousOrder + nextOrder) / 2;
+}
+function getFieldLabel(key: string, label: string) {
+  if (label && label !== key && !/^[a-z0-9_]+$/i.test(label)) return label;
+
+  return FIELD_LABELS[key] || "";
+}
+
+function getFieldValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => getFieldValue(item))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  const text = String(value).trim();
+  const translated = VALUE_LABELS[text.toLowerCase()] || VALUE_LABELS[text];
+
+  if (translated) return translated;
+  if (/^[a-z0-9_]+$/i.test(text) && text.includes("_")) return "";
+
+  return text;
+}
+
+function isVisibleField(field: EditableReportField) {
+  return Boolean(getFieldLabel(field.key, field.label) && getFieldValue(field.value));
+}
+
+function createBlock(
+  type: SmartReportCustomBlockType,
+  targetPageIndex: number,
+): SmartReportCustomBlock {
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `block-${Date.now()}`;
+
+  if (type === "BULLET_LIST") {
+    return {
+      id,
+      type,
+      title: "قائمة نقاط",
+      body: "النقطة الأولى\nالنقطة الثانية\nالنقطة الثالثة",
+      targetPageIndex,
+    };
+  }
+
+  return {
+    id,
+    type,
+    title: "عنوان الفقرة",
+    body: "اكتب نص الفقرة هنا.",
+    targetPageIndex,
+  };
+}
+
+function ToggleButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-xl px-3 py-2 text-xs font-black transition",
+        active
+          ? "bg-emerald-700 text-white shadow-sm"
+          : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PanelSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <details
+      open
+      className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-slate-50 px-4 py-3">
+        <div>
+          <p className="text-sm font-black text-slate-900">{title}</p>
+          <p className="mt-0.5 text-[11px] font-bold text-slate-400">
+            {description}
+          </p>
+        </div>
+
+        <ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" />
+      </summary>
+
+      <div className="space-y-4 border-t border-slate-100 p-4">{children}</div>
+    </details>
+  );
+}
+
+export function SmartReportCasePreviewPage({
+  payload: initialPayload,
+  selectedVariantId,
+  variants,
+}: SmartReportCasePreviewPageProps) {
+  const [editablePayload, setEditablePayload] = useState<SmartReportPayload>(
+    () => JSON.parse(JSON.stringify(initialPayload)),
+  );
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [activePage, setActivePage] = useState(0);
+  const [addBlockOpen, setAddBlockOpen] = useState(false);
+  const [evidenceConfig, setEvidenceConfig] = useState<ReportEvidenceConfig>(
+    () =>
+      initialPayload.evidenceConfig || {
+        visible: true,
+        itemsPerPage: 2,
+        showCaptions: false,
+        imageSize: "small-squares",
+      },
+  );
+
+  const pages = useMemo(
+    () => buildReportPages(editablePayload, evidenceConfig),
+    [editablePayload, evidenceConfig],
+  );
+
+  useEffect(() => {
+    const lastIndex = Math.max(0, pages.length - 1);
+
+    if (activePage > lastIndex) {
+      setActivePage(lastIndex);
+    }
+  }, [activePage, pages.length]);
+
+  const activeReportPage = pages[activePage] || pages[0];
+
+  const visiblePrimaryFields = useMemo(
+    () => editablePayload.primaryFields.filter(isVisibleField),
+    [editablePayload.primaryFields],
+  );
+
+  const visibleDetailFields = useMemo(
+    () => editablePayload.detailFields.filter(isVisibleField),
+    [editablePayload.detailFields],
+  );
+
+  const customBlocks = editablePayload.customBlocks || [];
+
+  const adjustments = useMemo(
+    () => computeReportDraftAdjustments(initialPayload, editablePayload),
+    [initialPayload, editablePayload],
+  );
+
+  const saveAdjustments = useMemo(
+    () => ({
+      ...adjustments,
+      evidenceConfig,
+    }),
+    [adjustments, evidenceConfig],
+  );
+
+  const updateCustomBlocks = useCallback((blocks: SmartReportCustomBlock[]) => {
+    setEditablePayload((prev) => ({
+      ...prev,
+      customBlocks: blocks,
+    }));
+  }, []);
+
+  const addCustomBlock = useCallback(
+    (type: SmartReportCustomBlockType) => {
+      const orderItems = getReportOrderItems(editablePayload);
+      const evidenceItem = orderItems.find((item) => item.id === "evidence");
+      const beforeEvidenceItems = orderItems.filter(
+        (item) => item.order < (evidenceItem?.order ?? 800),
+      );
+      const previousOrder =
+        beforeEvidenceItems.at(-1)?.order ?? null;
+      const nextOrder = evidenceItem?.order ?? null;
+      const newBlock = {
+        ...createBlock(type, activePage),
+        order: getNewOrderBetween(previousOrder, nextOrder),
+      };
+
+      updateCustomBlocks([...customBlocks, newBlock]);
+      setAddBlockOpen(false);
+      setActivePage(activePage);
+    },
+    [activePage, customBlocks, editablePayload, updateCustomBlocks],
+  );
+
+  const updateCustomBlock = useCallback(
+    (id: string, patch: Partial<SmartReportCustomBlock>) => {
+      updateCustomBlocks(
+        customBlocks.map((block) =>
+          block.id === id ? { ...block, ...patch } : block,
+        ),
+      );
+      setActivePage(activePage);
+    },
+    [activePage, customBlocks, editablePayload, updateCustomBlocks],
+  );
+
+  const removeCustomBlock = useCallback(
+    (id: string) => {
+      updateCustomBlocks(customBlocks.filter((block) => block.id !== id));
+      setActivePage(activePage);
+    },
+    [activePage, customBlocks, editablePayload, updateCustomBlocks],
+  );
+
+  const moveCustomBlock = useCallback(
+    (id: string, direction: "up" | "down") => {
+      const orderItems = getReportOrderItems(editablePayload);
+      const currentIndex = orderItems.findIndex((item) => item.id === id);
+
+      if (currentIndex < 0) return;
+
+      const targetIndex =
+        direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+      if (targetIndex < 0 || targetIndex >= orderItems.length) return;
+
+      const reorderedItems = [...orderItems];
+      const [currentItem] = reorderedItems.splice(currentIndex, 1);
+      reorderedItems.splice(targetIndex, 0, currentItem);
+
+      const newIndex = reorderedItems.findIndex((item) => item.id === id);
+      const previousOrder =
+        newIndex > 0 ? reorderedItems[newIndex - 1].order : null;
+      const nextOrder =
+        newIndex < reorderedItems.length - 1
+          ? reorderedItems[newIndex + 1].order
+          : null;
+      const nextOrderValue = getNewOrderBetween(previousOrder, nextOrder);
+
+      updateCustomBlocks(
+        customBlocks.map((block) =>
+          block.id === id ? { ...block, order: nextOrderValue } : block,
+        ),
+      );
+      setActivePage(activePage);
+    },
+    [activePage, customBlocks, editablePayload, updateCustomBlocks],
+  );
+
+  const handleTitleChange = useCallback((value: string) => {
+    setEditablePayload((prev) => ({
+      ...prev,
+      title: value,
+      caseInfo: { ...prev.caseInfo, title: value },
+    }));
+  }, []);
+
+  const handleNarrativeChange = useCallback((value: string) => {
+    setEditablePayload((prev) => ({
+      ...prev,
+      narrative: { ...prev.narrative, body: value },
+    }));
+  }, []);
+
+  const handlePrimaryFieldChange = useCallback((key: string, value: string) => {
+    setEditablePayload((prev) => ({
+      ...prev,
+      primaryFields: prev.primaryFields.map((field) =>
+        field.key === key ? { ...field, value } : field,
+      ),
+    }));
+  }, []);
+
+  const handleDetailFieldChange = useCallback((key: string, value: string) => {
+    setEditablePayload((prev) => ({
+      ...prev,
+      detailFields: prev.detailFields.map((field) =>
+        field.key === key ? { ...field, value } : field,
+      ),
+    }));
+  }, []);
+
+  return (
+    <main className="min-h-screen bg-[#eef3ef] px-5 py-5" dir="rtl">
+      <div className="mx-auto max-w-[1600px] space-y-4">
+        <section className="rounded-[1.5rem] border border-emerald-100 bg-white px-5 py-4 shadow-sm print:hidden">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-black text-emerald-700">
+                تجهيز التقرير
+              </p>
+
+              <h1 className="mt-0.5 text-xl font-black text-slate-950">
+                {editablePayload.title || "تقرير"}
+              </h1>
+
+              <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                التقرير مبني من بلوكات قابلة للتعديل، والمعاينة تتحدث مباشرة.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+              <p className="text-[11px] font-black text-slate-500">
+                شكل التقرير
+              </p>
+
+              {variants.length > 1 ? (
+                <div className="mt-2">
+                  <SmartReportVariantSelector
+                    caseId={editablePayload.caseInfo.id}
+                    selectedVariantId={selectedVariantId}
+                    variants={variants}
+                  />
+                </div>
+              ) : (
+                <span className="mt-2 inline-flex rounded-full bg-emerald-700 px-4 py-2 text-xs font-black text-white">
+                  {variants[0]?.shortName || "بطاقة نشاط"}
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div className="grid gap-4 lg:grid-cols-[430px_minmax(0,1fr)] lg:items-start">
+          <aside className="print:hidden">
+            <div className="overflow-hidden rounded-[1.5rem] border border-emerald-100 bg-white shadow-sm">
+              <button
+                type="button"
+                onClick={() => setPanelOpen(!panelOpen)}
+                className="flex w-full items-center justify-between px-5 py-4 text-sm font-black text-slate-900 transition hover:bg-slate-50"
+              >
+                لوحة التعديل
+                {panelOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+
+              {panelOpen ? (
+                <div className="space-y-3 border-t border-slate-100 bg-slate-50/60 px-4 py-4">
+                  <PanelSection
+                    title="١. تعديل الحقول"
+                    description="غيّر النصوص والقيم، والتقرير يتحدث مباشرة."
+                  >
+                    <div>
+                      <label className="text-xs font-black text-slate-500">
+                        عنوان التقرير
+                      </label>
+
+                      <input
+                        type="text"
+                        value={editablePayload.title}
+                        onChange={(event) => handleTitleChange(event.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                    </div>
+
+                    {editablePayload.narrative?.body !== undefined ? (
+                      <div>
+                        <label className="text-xs font-black text-slate-500">
+                          وصف / ملخص التقرير
+                        </label>
+
+                        <textarea
+                          value={editablePayload.narrative.body}
+                          onChange={(event) =>
+                            handleNarrativeChange(event.target.value)
+                          }
+                          rows={6}
+                          className="mt-1 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black leading-8 text-slate-950 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        />
+                      </div>
+                    ) : null}
+
+                    {visiblePrimaryFields.map((field) => (
+                      <div key={field.key}>
+                        <label className="text-xs font-black text-slate-500">
+                          {getFieldLabel(field.key, field.label)}
+                        </label>
+
+                        <input
+                          type="text"
+                          value={getFieldValue(field.value)}
+                          onChange={(event) =>
+                            handlePrimaryFieldChange(field.key, event.target.value)
+                          }
+                          className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        />
+                      </div>
+                    ))}
+
+                    {visibleDetailFields.length > 0 ? (
+                      <div className="border-t border-slate-100 pt-4">
+                        <p className="text-xs font-black text-slate-500">
+                          الحقول الإضافية
+                        </p>
+
+                        <div className="mt-3 space-y-3">
+                          {visibleDetailFields.map((field) => (
+                            <div key={field.key}>
+                              <label className="text-xs font-black text-slate-500">
+                                {getFieldLabel(field.key, field.label)}
+                              </label>
+
+                              <input
+                                type="text"
+                                value={getFieldValue(field.value)}
+                                onChange={(event) =>
+                                  handleDetailFieldChange(
+                                    field.key,
+                                    event.target.value,
+                                  )
+                                }
+                                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </PanelSection>
+
+                  <PanelSection
+                    title="٢. إعدادات الشواهد"
+                    description="اختر ظهور الشواهد وعددها وحجم الصورة."
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-black text-slate-600">
+                          عرض الشواهد
+                        </span>
+
+                        <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+                          <ToggleButton
+                            active={evidenceConfig.visible}
+                            onClick={() =>
+                              setEvidenceConfig((prev) => ({
+                                ...prev,
+                                visible: true,
+                              }))
+                            }
+                          >
+                            ظاهر
+                          </ToggleButton>
+                          <ToggleButton
+                            active={!evidenceConfig.visible}
+                            onClick={() =>
+                              setEvidenceConfig((prev) => ({
+                                ...prev,
+                                visible: false,
+                              }))
+                            }
+                          >
+                            مخفي
+                          </ToggleButton>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-black text-slate-600">
+                          عدد الشواهد في الصفحة
+                        </span>
+
+                        <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+                          {([1, 2, 4] as const).map((value) => (
+                            <ToggleButton
+                              key={value}
+                              active={evidenceConfig.itemsPerPage === value}
+                              onClick={() =>
+                                setEvidenceConfig((prev) => ({
+                                  ...prev,
+                                  itemsPerPage: value,
+                                }))
+                              }
+                            >
+                              {value}
+                            </ToggleButton>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-black text-slate-600">
+                          التسميات
+                        </span>
+
+                        <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+                          <ToggleButton
+                            active={evidenceConfig.showCaptions}
+                            onClick={() =>
+                              setEvidenceConfig((prev) => ({
+                                ...prev,
+                                showCaptions: true,
+                              }))
+                            }
+                          >
+                            ظاهر
+                          </ToggleButton>
+                          <ToggleButton
+                            active={!evidenceConfig.showCaptions}
+                            onClick={() =>
+                              setEvidenceConfig((prev) => ({
+                                ...prev,
+                                showCaptions: false,
+                              }))
+                            }
+                          >
+                            مخفي
+                          </ToggleButton>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-black text-slate-600">
+                          أبعاد الصورة
+                        </p>
+
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          {IMAGE_SIZE_ORDER.map((size) => (
+                            <ToggleButton
+                              key={size}
+                              active={evidenceConfig.imageSize === size}
+                              onClick={() =>
+                                setEvidenceConfig((prev) => ({
+                                  ...prev,
+                                  imageSize: size,
+                                }))
+                              }
+                            >
+                              {IMAGE_SIZE_LABELS[size]}
+                            </ToggleButton>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </PanelSection>
+
+                  <PanelSection
+                    title="٣. فقرات التقرير"
+                    description="أضف بلوكات نصية تظهر داخل التقرير حسب ترتيبها."
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setAddBlockOpen(true)}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+                    >
+                      <Plus className="h-4 w-4" />
+                      إضافة بلوك
+                    </button>
+
+                    {customBlocks.length > 0 ? (
+                      <div className="space-y-3">
+                        {customBlocks.map((block, index) => (
+                          <article
+                            key={block.id}
+                            className="rounded-2xl border border-slate-100 bg-slate-50 p-3"
+                          >
+                            <div className="mb-3 flex items-center justify-between gap-2">
+                              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-500">
+                                {block.type === "BULLET_LIST"
+                                  ? "قائمة نقاط"
+                                  : "فقرة نصية"}
+                              </span>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => moveCustomBlock(block.id, "up")}
+                                  disabled={index === 0}
+                                  className="rounded-xl bg-white p-2 text-slate-500 disabled:opacity-30"
+                                  title="تحريك لأعلى"
+                                >
+                                  <ArrowUp className="h-4 w-4" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => moveCustomBlock(block.id, "down")}
+                                  disabled={index === customBlocks.length - 1}
+                                  className="rounded-xl bg-white p-2 text-slate-500 disabled:opacity-30"
+                                  title="تحريك لأسفل"
+                                >
+                                  <ArrowDown className="h-4 w-4" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => removeCustomBlock(block.id)}
+                                  className="rounded-xl bg-white p-2 text-rose-500"
+                                  title="حذف"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-xs font-black text-slate-500">
+                                  العنوان
+                                </label>
+
+                                <input
+                                  type="text"
+                                  value={block.title}
+                                  onChange={(event) =>
+                                    updateCustomBlock(block.id, {
+                                      title: event.target.value,
+                                    })
+                                  }
+                                  className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-950 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-xs font-black text-slate-500">
+                                  {block.type === "BULLET_LIST"
+                                    ? "النقاط، كل نقطة في سطر"
+                                    : "النص"}
+                                </label>
+
+                                <textarea
+                                  value={block.body}
+                                  onChange={(event) =>
+                                    updateCustomBlock(block.id, {
+                                      body: event.target.value,
+                                    })
+                                  }
+                                  rows={block.type === "BULLET_LIST" ? 5 : 4}
+                                  className="mt-1 w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black leading-8 text-slate-950 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </div>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="rounded-2xl bg-slate-50 px-4 py-3 text-center text-xs font-bold text-slate-400">
+                        لا توجد فقرات إضافية حتى الآن.
+                      </p>
+                    )}
+                  </PanelSection>
+
+                  <div className="sticky bottom-0 -mx-4 -mb-4 flex flex-wrap gap-2 border-t border-slate-100 bg-white/95 px-4 py-3 backdrop-blur">
+                    <Link
+                      href={`/dashboard/cases/${editablePayload.caseInfo.id}`}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                      العودة
+                    </Link>
+
+                    <SaveSmartReportButton
+                      caseId={editablePayload.caseInfo.id}
+                      variantId={selectedVariantId}
+                      adjustments={saveAdjustments}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
+                    >
+                      <Printer className="h-4 w-4" />
+                      طباعة
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </aside>
+
+          <section className="min-w-0">
+            <div className="mb-3 flex items-center gap-2 overflow-x-auto rounded-[1.5rem] border border-emerald-100 bg-white/80 p-2 print:hidden">
+              <span className="shrink-0 px-2 text-xs font-black text-slate-500">
+                صفحات التقرير
+              </span>
+
+              {pages.map((page, index) => (
+                <button
+                  key={page.key}
+                  type="button"
+                  onClick={() => setActivePage(index)}
+                  className={[
+                    "whitespace-nowrap rounded-2xl px-4 py-2 text-xs font-black transition",
+                    activePage === index
+                      ? "bg-emerald-700 text-white shadow-sm"
+                      : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100",
+                  ].join(" ")}
+                >
+                  {page.title}
+                </button>
+              ))}
+            </div>
+
+            {activeReportPage ? (
+              <div className="rounded-[2rem] bg-slate-100 p-4">
+                <div className="mx-auto w-fit">
+                  <SmartReportDocumentRenderer
+                    payload={activeReportPage.payload}
+                    blocks={activeReportPage.blocks}
+                    variantId={selectedVariantId}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </section>
+        </div>
+      </div>
+
+      {addBlockOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 print:hidden">
+          <div className="w-full max-w-3xl rounded-[2rem] bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-black text-emerald-700">
+                  إضافة بلوك جديد
+                </p>
+                <h2 className="mt-1 text-xl font-black text-slate-950">
+                  اختر نوع البلوك
+                </h2>
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  سيظهر البلوك داخل التقرير ويمكنك تعديله وتحريكه بعد الإضافة.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAddBlockOpen(false)}
+                className="rounded-2xl border border-slate-200 p-2 text-slate-600"
+                aria-label="إغلاق"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => addCustomBlock("PARAGRAPH")}
+                className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-4 text-right transition hover:border-emerald-300"
+              >
+                <p className="text-base font-black text-emerald-900">
+                  فقرة بعنوان ونص
+                </p>
+                <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-black text-slate-950">
+                    عنوان الفقرة
+                  </h3>
+                  <p className="mt-2 text-xs font-bold leading-7 text-slate-500">
+                    نص قصير أو شرح يظهر داخل التقرير بتصميم القالب الرسمي.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => addCustomBlock("BULLET_LIST")}
+                className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-4 text-right transition hover:border-emerald-300"
+              >
+                <p className="text-base font-black text-emerald-900">
+                  عنوان وقائمة نقاط
+                </p>
+                <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-black text-slate-950">
+                    قائمة نقاط
+                  </h3>
+                  <ul className="mt-2 space-y-1 text-xs font-bold leading-7 text-slate-500">
+                    <li>• نقطة أولى</li>
+                    <li>• نقطة ثانية</li>
+                    <li>• نقطة ثالثة</li>
+                  </ul>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </main>
+  );
+}
+
+===== git status --short =====
+ M lib/report-engine/smart-report-types.ts

@@ -109,6 +109,12 @@ export type ReportEvidenceConfig = {
 
 export type SmartReportCustomBlockType = "PARAGRAPH" | "BULLET_LIST";
 
+export type SmartReportCustomBlockZone =
+  | "PAGE_TOP"
+  | "BEFORE_EVIDENCE"
+  | "AFTER_EVIDENCE"
+  | "BEFORE_SIGNATURES";
+
 export type SmartReportCustomBlock = {
   id: string;
   type: SmartReportCustomBlockType;

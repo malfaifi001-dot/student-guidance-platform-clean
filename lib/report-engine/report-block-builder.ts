@@ -12,19 +12,19 @@ function hasValue(value: unknown) {
 function estimatedTextHeight(title: string | undefined, body: string | undefined) {
   const titleLength = cleanText(title).length;
   const bodyLength = cleanText(body).length;
-  const totalLength = titleLength + bodyLength;
 
-  if (totalLength <= 0) return 0;
+  if (titleLength + bodyLength <= 0) return 0;
 
-  const titleHeight = titleLength > 0 ? 10 : 0;
-  const lineCount = Math.max(1, Math.ceil(bodyLength / 58));
+  const titleHeight = titleLength > 0 ? 14 : 0;
+  const lineCount = Math.max(1, Math.ceil(bodyLength / 34));
 
-  return 16 + titleHeight + lineCount * 7;
+  return 22 + titleHeight + lineCount * 10;
 }
 
 function estimatedFieldsHeight(count: number) {
   if (count <= 0) return 0;
-  return 18 + Math.ceil(count / 4) * 20;
+
+  return 14 + Math.ceil(count / 4) * 14;
 }
 
 export function buildReportBlocks(payload: SmartReportPayload): ReportBlock[] {

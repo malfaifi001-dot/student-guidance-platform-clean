@@ -8,9 +8,10 @@ import type {
   SmartReportPayload,
 } from "@/lib/report-engine/smart-report-types";
 
-const DEFAULT_PAGE_CAPACITY = 210;
-const MAX_TEXT_BLOCK_HEIGHT = 92;
-const APPROX_CHARS_PER_TEXT_PAGE = 520;
+const DEFAULT_PAGE_CAPACITY = 260;
+const MAX_TEXT_BLOCK_HEIGHT = 82;
+const APPROX_CHARS_PER_TEXT_PAGE = 280;
+const BULLET_LINES_PER_PAGE = 7;
 
 function clonePayload(payload: SmartReportPayload): SmartReportPayload {
   return JSON.parse(JSON.stringify(payload));
@@ -45,9 +46,7 @@ function splitText(value: string, maxLength: number) {
     remaining = remaining.slice(cutIndex).trim();
   }
 
-  if (remaining) {
-    chunks.push(remaining);
-  }
+  if (remaining) chunks.push(remaining);
 
   return chunks;
 }
@@ -55,10 +54,10 @@ function splitText(value: string, maxLength: number) {
 function estimateTextHeight(title: string | undefined, body: string | undefined) {
   const titleLength = String(title || "").trim().length;
   const bodyLength = String(body || "").trim().length;
-  const titleHeight = titleLength > 0 ? 10 : 0;
-  const lineCount = Math.max(1, Math.ceil(bodyLength / 58));
+  const titleHeight = titleLength > 0 ? 12 : 0;
+  const lineCount = Math.max(1, Math.ceil(bodyLength / 38));
 
-  return 16 + titleHeight + lineCount * 7;
+  return 20 + titleHeight + lineCount * 9;
 }
 
 function getEvidenceBlockHeight(config?: ReportEvidenceConfig) {
@@ -72,6 +71,13 @@ function getEvidenceBlockHeight(config?: ReportEvidenceConfig) {
 
 function getPageTitle(baseTitle: string, index: number) {
   return index === 0 ? baseTitle : `${baseTitle} ${index + 1}`;
+}
+
+function isCustomTextBlock(block: ReportBlock) {
+  return (
+    block.type === "CUSTOM_PARAGRAPH" ||
+    block.type === "CUSTOM_BULLET_LIST"
+  );
 }
 
 function isCustomBlock(block: ReportBlock) {
@@ -106,30 +112,42 @@ function expandEvidenceBlocks(
 }
 
 function splitOversizedTextBlock(block: ReportBlock): ReportBlock[] {
-  if (!isCustomBlock(block)) return [block];
+  if (!isCustomTextBlock(block)) return [block];
 
   const body = String(block.body || "").trim();
   const title = String(block.title || "").trim();
-  const chunks = splitText(body, APPROX_CHARS_PER_TEXT_PAGE);
+
+  const chunks =
+    block.type === "CUSTOM_BULLET_LIST"
+      ? chunkArray(
+          body
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean),
+          BULLET_LINES_PER_PAGE,
+        ).map((chunk) => chunk.join("\n"))
+      : splitText(body, APPROX_CHARS_PER_TEXT_PAGE);
 
   if (chunks.length <= 1 && block.estimatedHeight <= MAX_TEXT_BLOCK_HEIGHT) {
     return [block];
   }
 
-  if (chunks.length === 0) {
-    return [block];
-  }
+  if (chunks.length === 0) return [block];
 
-  return chunks.map((chunk, index) => ({
-    ...block,
-    id: `${block.id}-part-${index + 1}`,
-    title: index === 0 ? title : `${title || "فقرة"} - تابع`,
-    body: chunk,
-    estimatedHeight: Math.min(
-      MAX_TEXT_BLOCK_HEIGHT,
-      estimateTextHeight(index === 0 ? title : `${title || "فقرة"} - تابع`, chunk),
-    ),
-  }));
+  return chunks.map((chunk, index) => {
+    const partTitle = index === 0 ? title : `${title || "فقرة"} - تابع`;
+
+    return {
+      ...block,
+      id: `${block.id}-part-${index + 1}`,
+      title: partTitle,
+      body: chunk,
+      estimatedHeight: Math.min(
+        MAX_TEXT_BLOCK_HEIGHT,
+        estimateTextHeight(partTitle, chunk),
+      ),
+    };
+  });
 }
 
 function normalizeContentBlock(
@@ -141,6 +159,65 @@ function normalizeContentBlock(
   }
 
   return splitOversizedTextBlock(block);
+}
+
+function pushBlockWithCapacity(
+  pages: ReportBlock[][],
+  block: ReportBlock,
+  pageCapacity: number,
+) {
+  let currentPage = pages[pages.length - 1];
+
+  if (!currentPage) {
+    currentPage = [];
+    pages.push(currentPage);
+  }
+
+  const currentHeight = getPageHeight(currentPage);
+
+  if (currentPage.length > 0 && currentHeight + block.estimatedHeight > pageCapacity) {
+    pages.push([block]);
+    return;
+  }
+
+  currentPage.push(block);
+}
+
+function insertAnchoredBlock(
+  pages: ReportBlock[][],
+  block: ReportBlock,
+  pageCapacity: number,
+) {
+  const targetPageIndex =
+    typeof block.targetPageIndex === "number" && block.targetPageIndex >= 0
+      ? block.targetPageIndex
+      : 0;
+
+  while (pages.length <= targetPageIndex) {
+    pages.push([]);
+  }
+
+  let pageIndex = targetPageIndex;
+
+  while (true) {
+    const page = pages[pageIndex] || [];
+    pages[pageIndex] = page;
+
+    const pageHeight = getPageHeight(page);
+    const relaxedCapacity =
+      pageIndex === targetPageIndex ? pageCapacity + 45 : pageCapacity;
+
+    if (page.length === 0 || pageHeight + block.estimatedHeight <= relaxedCapacity) {
+      page.push(block);
+      return;
+    }
+
+    pageIndex++;
+
+    if (!pages[pageIndex]) {
+      pages[pageIndex] = [];
+    }
+  }
 }
 
 function buildPayloadForPage(
@@ -167,6 +244,8 @@ function buildPayloadForPage(
       title: block.title || "",
       body: block.body || "",
       targetPageIndex: block.targetPageIndex,
+      targetZone: block.targetZone,
+      order: block.order,
     }));
 
   payload.title = pageTitle;
@@ -199,60 +278,6 @@ function buildPayloadForPage(
   return payload;
 }
 
-function insertBlockInPageFlow(
-  pages: ReportBlock[][],
-  block: ReportBlock,
-  targetPageIndex: number,
-  pageCapacity: number,
-) {
-  while (pages.length <= targetPageIndex) {
-    pages.push([]);
-  }
-
-  let pageIndex = targetPageIndex;
-
-  while (true) {
-    const targetPage = pages[pageIndex] || [];
-    pages[pageIndex] = targetPage;
-
-    const currentHeight = getPageHeight(targetPage);
-
-    if (targetPage.length === 0 || currentHeight + block.estimatedHeight <= pageCapacity) {
-      targetPage.push(block);
-      return;
-    }
-
-    pageIndex++;
-
-    if (!pages[pageIndex]) {
-      pages[pageIndex] = [];
-    }
-  }
-}
-
-function insertAnchoredBlocks(
-  pages: ReportBlock[][],
-  anchoredBlocks: ReportBlock[],
-  pageCapacity: number,
-) {
-  const nextPages = pages.length > 0 ? pages.map((page) => [...page]) : [[]];
-
-  for (const block of anchoredBlocks) {
-    const targetPageIndex =
-      typeof block.targetPageIndex === "number" && block.targetPageIndex >= 0
-        ? block.targetPageIndex
-        : 0;
-
-    const parts = splitOversizedTextBlock(block);
-
-    for (const part of parts) {
-      insertBlockInPageFlow(nextPages, part, targetPageIndex, pageCapacity);
-    }
-  }
-
-  return nextPages;
-}
-
 export function paginateReportBlocks(
   payload: SmartReportPayload,
   blocks: ReportBlock[],
@@ -275,68 +300,42 @@ export function paginateReportBlocks(
     .sort((a, b) => (a.order ?? 500) - (b.order ?? 500))
     .flatMap((block) => normalizeContentBlock(block, evidenceConfig));
 
-  const endBlocks = blocks.filter((block) => block.placement === "END");
+  const signatureBlock =
+    blocks.find((block) => block.placement === "END" && block.type === "SIGNATURES") ||
+    null;
 
-  const pages: ReportBlock[][] = [];
-  let currentPage: ReportBlock[] = [];
-  let currentHeight = 0;
-
-  function closePage() {
-    if (currentPage.length > 0) {
-      pages.push(currentPage);
-    }
-
-    currentPage = [];
-    currentHeight = 0;
-  }
-
-  function addBlock(block: ReportBlock) {
-    const blockHeight = Math.min(block.estimatedHeight, pageCapacity);
-
-    if (
-      currentPage.length > 0 &&
-      currentHeight + blockHeight > pageCapacity
-    ) {
-      closePage();
-    }
-
-    currentPage.push({
-      ...block,
-      estimatedHeight: blockHeight,
-    });
-    currentHeight += blockHeight;
-  }
+  const pages: ReportBlock[][] = [[]];
 
   for (const block of normalContentBlocks) {
-    addBlock(block);
+    pushBlockWithCapacity(pages, block, pageCapacity);
   }
 
-  closePage();
+  for (const anchoredBlock of anchoredCustomBlocks) {
+    const parts = splitOversizedTextBlock(anchoredBlock);
 
-  const pagesWithAnchoredBlocks = insertAnchoredBlocks(
-    pages.length > 0 ? pages : [[]],
-    anchoredCustomBlocks,
-    pageCapacity,
-  );
-
-  for (const signatureBlock of endBlocks) {
-    let lastPage = pagesWithAnchoredBlocks[pagesWithAnchoredBlocks.length - 1];
-
-    if (!lastPage) {
-      lastPage = [];
-      pagesWithAnchoredBlocks.push(lastPage);
+    for (const part of parts) {
+      insertAnchoredBlock(pages, part, pageCapacity);
     }
+  }
 
+  const safePages = pages.filter((page) => page.length > 0);
+
+  if (safePages.length === 0) {
+    safePages.push([]);
+  }
+
+  if (signatureBlock) {
+    const lastPage = safePages[safePages.length - 1];
     const lastPageHeight = getPageHeight(lastPage);
 
     if (lastPage.length > 0 && lastPageHeight + signatureBlock.estimatedHeight <= pageCapacity) {
       lastPage.push(signatureBlock);
     } else {
-      pagesWithAnchoredBlocks.push([signatureBlock]);
+      safePages.push([signatureBlock]);
     }
   }
 
-  return pagesWithAnchoredBlocks.map((pageBlocks, index) => {
+  return safePages.map((pageBlocks, index) => {
     const title = getPageTitle(baseTitle, index);
 
     return {
