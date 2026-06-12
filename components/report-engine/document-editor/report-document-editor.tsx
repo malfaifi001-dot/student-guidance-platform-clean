@@ -7,7 +7,6 @@ import { ReportAddBlockMenu } from "@/components/report-engine/document-editor/r
 import { ReportPageCanvas } from "@/components/report-engine/document-editor/report-page-canvas";
 import { ReportPageTabs } from "@/components/report-engine/document-editor/report-page-tabs";
 import { ReportTableEditorModal } from "@/components/report-engine/document-editor/report-table-editor-modal";
-import { ReportFinalPreviewModal } from "@/components/report-engine/document-editor/report-final-preview-modal";
 import type {
   ReportDocumentBlock,
   ReportDocumentBlockInsertType,
@@ -62,7 +61,7 @@ export function ReportDocumentEditor({
   const [activePageId, setActivePageId] = useState("");
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [editingTable, setEditingTable] = useState<ReportTableBlock | null>(null);
-  const [finalPreviewOpen, setFinalPreviewOpen] = useState(false);
+  const [reportApproved, setReportApproved] = useState(false);
 
   const renderedPages = useMemo(
     () => paginateReportDocumentDraftForA4(draft),
@@ -102,7 +101,13 @@ export function ReportDocumentEditor({
   }, [draft]);
 
   function commitDraft(nextDraft: ReportDocumentDraft) {
+    if (reportApproved) {
+      window.alert("تم حفظ واعتماد التقرير. لا يمكن التعديل بعد الاعتماد والتصدير.");
+      return;
+    }
+
     setDraft(nextDraft);
+    onDraftChange?.(nextDraft);
   }
 
   function getSourcePageId(renderedPageId: string) {
@@ -228,6 +233,53 @@ export function ReportDocumentEditor({
     setEditingTable(null);
   }
 
+  function sanitizeFileName(value: string) {
+    return String(value || "")
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, "-")
+      .replace(/\s+/g, " ")
+      .slice(0, 120);
+  }
+
+  function getReportPdfFileName() {
+    const serviceName = draft.payload.service.name || draft.title || "تقرير";
+    const academicYear = draft.payload.identity.academicYear || "العام الدراسي";
+
+    return `${sanitizeFileName(serviceName)} - ${sanitizeFileName(academicYear)}`;
+  }
+
+  function handleApproveReport() {
+    const confirmed = window.confirm(
+      "سيتم حفظ واعتماد التقرير. بعد الاعتماد والتصدير لا يمكن التعديل على التقرير. هل تريد المتابعة؟",
+    );
+
+    if (!confirmed) return;
+
+    saveReportDocumentDraft(draft);
+    onDraftChange?.(draft);
+    setReportApproved(true);
+
+    window.alert("تم حفظ واعتماد التقرير. يمكنك الآن تحميل التقرير PDF.");
+  }
+
+  function handleDownloadReport() {
+    if (!reportApproved) {
+      window.alert("يجب حفظ واعتماد التقرير أولاً قبل التحميل.");
+      return;
+    }
+
+    const previousTitle = document.title;
+    document.title = getReportPdfFileName();
+
+    window.setTimeout(() => {
+      window.print();
+
+      window.setTimeout(() => {
+        document.title = previousTitle;
+      }, 1000);
+    }, 100);
+  }
+
   return (
     <div className="grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
             <aside className="space-y-4 print:hidden">
@@ -235,7 +287,7 @@ export function ReportDocumentEditor({
           <div className="mb-4 border-b border-emerald-50 pb-4">
             <h2 className="text-base font-black text-slate-950">لوحة التحكم والمعاينة</h2>
             <p className="mt-1 text-xs font-bold leading-6 text-slate-400">
-              رتّب محتوى التقرير وعدّل البيانات والشواهد قبل المعاينة النهائية.
+              رتّب محتوى التقرير وعدّل البيانات والشواهد قبل تحميل التقرير PDF.
             </p>
           </div>
 
@@ -482,19 +534,31 @@ export function ReportDocumentEditor({
               ) : null}
             </section>
 
-            <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/60 p-4">
-              <h3 className="text-sm font-black text-slate-900">٥. المعاينة والاعتماد</h3>
+                        <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/60 p-4">
+              <h3 className="text-sm font-black text-slate-900">٥. حفظ واعتماد التقرير</h3>
               <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                اعرض نسخة نهائية نظيفة قبل الاعتماد أو التصدير PDF.
+                احفظ واعتمد التقرير أولاً، ثم حمّله PDF من نفس الصفحة. بعد الاعتماد لا يمكن التعديل.
               </p>
 
-              <button
-                type="button"
-                onClick={() => setFinalPreviewOpen(true)}
-                className="mt-3 w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
-              >
-                معاينة نهائية
-              </button>
+              <div className="mt-3 grid gap-2">
+                <button
+                  type="button"
+                  onClick={handleApproveReport}
+                  disabled={reportApproved}
+                  className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {reportApproved ? "تم حفظ واعتماد التقرير" : "حفظ واعتماد التقرير"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadReport}
+                  disabled={!reportApproved}
+                  className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                >
+                  تحميل التقرير PDF
+                </button>
+              </div>
             </section>
           </div>
         </div>
@@ -536,12 +600,6 @@ export function ReportDocumentEditor({
         open={Boolean(editingTable)}
         onClose={() => setEditingTable(null)}
         onSave={handleSaveTable}
-      />
-
-      <ReportFinalPreviewModal
-        draft={draft}
-        open={finalPreviewOpen}
-        onClose={() => setFinalPreviewOpen(false)}
       />
     </div>
   );

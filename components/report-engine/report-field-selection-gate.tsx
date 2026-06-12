@@ -54,18 +54,28 @@ const TECHNICAL_FIELD_PATTERNS = [
 ];
 
 const FIELD_LABEL_TRANSLATIONS: Record<string, string> = {
+  execution_date: "تاريخ التنفيذ / اليوم",
+  semester: "الفصل الدراسي",
+  week: "الأسبوع",
+  executor: "المعلم المنفذ",
+  target_group: "الفئة المستهدفة",
+  execution_method: "طريقة التنفيذ",
+  execution_mode: "طريقة التنفيذ",
   problem_type: "نوع المشكلة",
   academic_classification: "التصنيف الأكاديمي",
   action_taken: "الإجراء المتخذ",
   result: "النتيجة",
-  execution_method: "طريقة التنفيذ",
-  execution_mode: "طريقة التنفيذ",
-  target_group: "الفئة المستهدفة",
-  semester: "الفصل الدراسي",
-  week: "الأسبوع",
-  execution_date: "تاريخ التنفيذ",
-  executor: "المعلم المنفذ",
+  discussion_summary: "ملخص المناقشة",
+  contact_method: "طريقة التواصل",
+  contact_reason: "سبب التواصل",
+  contact_result: "نتيجة التواصل",
   activity_domain: "مجال النشاط",
+  beneficiary_count: "عدد المستفيدين",
+  beneficiaries_count: "عدد المستفيدين",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  parents_participated: "مشاركة أولياء الأمور",
+  community_partnership_count: "عدد الشراكات المجتمعية",
   studentSnapshot: "اسم الطالب",
   selectedStudent: "اسم الطالب",
   student: "اسم الطالب",
@@ -94,17 +104,6 @@ const VALUE_TRANSLATIONS: Record<string, string> = {
   term_2: "الفصل الدراسي الثاني",
   first_semester: "الفصل الدراسي الأول",
   second_semester: "الفصل الدراسي الثاني",
-  elementary: "الابتدائية",
-  intermediate: "المتوسطة",
-  secondary: "الثانوية",
-  primary: "الأول",
-  middle: "المتوسط",
-  high: "الثانوي",
-  all: "الكل",
-  student: "طالب",
-  students: "طلاب",
-  counselor: "الموجه الطلابي",
-  activity_leader: "رائد النشاط",
   sunday: "الأحد",
   monday: "الإثنين",
   tuesday: "الثلاثاء",
@@ -112,10 +111,43 @@ const VALUE_TRANSLATIONS: Record<string, string> = {
   thursday: "الخميس",
   friday: "الجمعة",
   saturday: "السبت",
+  phone: "اتصال هاتفي",
+  call: "اتصال هاتفي",
+  message: "رسالة",
+  meeting: "اجتماع",
+  elementary: "المرحلة الابتدائية",
+  intermediate: "المرحلة المتوسطة",
+  secondary: "المرحلة الثانوية",
+  primary: "الأول الابتدائي",
+  middle: "المتوسط",
+  high: "الثانوي",
+  all: "الكل",
+  student: "طالب",
+  students: "طلاب",
+  counselor: "الموجه الطلابي",
+  activity_leader: "رائد النشاط",
 };
+
+function hasArabicText(value: string) {
+  return /[\u0600-\u06FF]/.test(value);
+}
+
+function isEnglishTechnicalText(value: string) {
+  return /^[a-z0-9_\-.@:/]+$/i.test(value.trim());
+}
 
 function isTechnicalKey(key: string) {
   const normalizedKey = String(key || "").replace(/\s+/g, "").toLowerCase();
+
+  if (
+    normalizedKey === "studentsnapshot" ||
+    normalizedKey === "selectedstudent" ||
+    normalizedKey === "student" ||
+    normalizedKey === "student_name" ||
+    normalizedKey === "guardiansnapshot"
+  ) {
+    return false;
+  }
 
   return TECHNICAL_FIELD_PATTERNS.some((pattern) => pattern.test(normalizedKey));
 }
@@ -156,10 +188,12 @@ function getOptionLabel(options: FieldOptionLike[] | undefined, value: unknown) 
     matchedOption.text ||
     matchedOption.title;
 
-  return typeof label === "string" ? label.trim() : "";
+  const labelText = typeof label === "string" ? label.trim() : "";
+
+  return hasArabicText(labelText) ? labelText : "";
 }
 
-function extractStudentArabicName(value: unknown): string {
+function extractArabicNameFromSnapshot(value: unknown): string {
   if (value === null || value === undefined || value === "") return "";
 
   if (typeof value === "string") {
@@ -167,13 +201,13 @@ function extractStudentArabicName(value: unknown): string {
 
     if (looksLikeJson(text)) {
       try {
-        return extractStudentArabicName(JSON.parse(text));
+        return extractArabicNameFromSnapshot(JSON.parse(text));
       } catch {
         return "";
       }
     }
 
-    return /[\u0600-\u06FF]/.test(text) ? text : "";
+    return hasArabicText(text) ? text : "";
   }
 
   if (typeof value !== "object") return "";
@@ -183,12 +217,16 @@ function extractStudentArabicName(value: unknown): string {
   const directName =
     record.fullName ||
     record.studentName ||
+    record.guardianName ||
+    record.guardianFullName ||
+    record.parentName ||
+    record.fatherName ||
     record.name ||
     record.arabicName ||
     record.nameAr;
 
   if (typeof directName === "string" && directName.trim()) {
-    return directName.trim();
+    return hasArabicText(directName) ? directName.trim() : "";
   }
 
   return "";
@@ -239,22 +277,37 @@ function extractDisplayValue(value: unknown): string {
     }
   }
 
-  if (/^[a-z0-9_\-.@:/]+$/i.test(text)) {
-    return VALUE_TRANSLATIONS[normalized] || "";
-  }
+  if (isEnglishTechnicalText(text)) return "";
 
-  return text;
+  return hasArabicText(text) ? text : "";
 }
 
 function getFieldLabel(field: SmartReportField) {
   const key = field.key || "";
-  const label = field.label || "";
+  const normalizedKey = String(key).toLowerCase();
 
-  if (label && label !== key && !/^[a-z0-9_]+$/i.test(label)) {
-    return label;
+  if (
+    normalizedKey === "studentsnapshot" ||
+    normalizedKey === "selectedstudent" ||
+    normalizedKey === "student" ||
+    normalizedKey === "student_name"
+  ) {
+    return "اسم الطالب";
   }
 
-  return FIELD_LABEL_TRANSLATIONS[key] || label || key;
+  if (normalizedKey === "guardiansnapshot") {
+    return "اسم ولي الأمر";
+  }
+
+  const directTranslation = FIELD_LABEL_TRANSLATIONS[key];
+
+  if (directTranslation) return directTranslation;
+
+  const label = field.label || "";
+
+  if (label && label !== key && hasArabicText(label)) return label;
+
+  return "";
 }
 
 function getFieldArabicValue(field: SmartReportField) {
@@ -265,13 +318,10 @@ function getFieldArabicValue(field: SmartReportField) {
     normalizedKey === "studentsnapshot" ||
     normalizedKey === "selectedstudent" ||
     normalizedKey === "student" ||
-    normalizedKey === "student_name"
+    normalizedKey === "student_name" ||
+    normalizedKey === "guardiansnapshot"
   ) {
-    return extractStudentArabicName(field.value);
-  }
-
-  if (normalizedKey === "guardiansnapshot") {
-    return extractStudentArabicName(field.value);
+    return extractArabicNameFromSnapshot(field.value);
   }
 
   const directDisplay =
@@ -325,11 +375,13 @@ function createInitialFields(payload: SmartReportPayload): SelectedReportField[]
   const uniqueFields = new Map<string, SelectedReportField>();
 
   for (const field of [...primary, ...detail]) {
+    const label = String(field.label || "").trim();
     const value = String(field.value || "").trim();
 
-    if (!value) continue;
+    if (!label || !value) continue;
+    if (isTechnicalKey(field.key)) continue;
 
-    const uniqueKey = `${field.label.trim()}::${value}`;
+    const uniqueKey = `${label}::${value}`;
 
     if (!uniqueFields.has(uniqueKey)) {
       uniqueFields.set(uniqueKey, field);
@@ -347,17 +399,7 @@ export function ReportFieldSelectionGate({
 
   const [fields, setFields] = useState<SelectedReportField[]>(initialFields);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () =>
-      new Set(
-        initialFields
-          .filter((field) => !isTechnicalKey(field.key))
-          .map((field) => field.id),
-      ),
-  );
-  const [showTechnical, setShowTechnical] = useState(false);
-
-  const visibleFields = fields.filter(
-    (field) => showTechnical || !isTechnicalKey(field.key),
+    () => new Set(initialFields.map((field) => field.id)),
   );
 
   const selectedCount = selectedIds.size;
@@ -392,34 +434,11 @@ export function ReportFieldSelectionGate({
     );
   }
 
-  function selectAllVisible() {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-
-      for (const field of visibleFields) {
-        next.add(field.id);
-      }
-
-      return next;
-    });
-  }
-
-  function clearAllVisible() {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-
-      for (const field of visibleFields) {
-        next.delete(field.id);
-      }
-
-      return next;
-    });
-  }
-
   function continueToReport() {
     const selectedFields = fields
       .filter((field) => selectedIds.has(field.id))
-      .filter((field) => String(field.value || "").trim().length > 0);
+      .filter((field) => String(field.value || "").trim().length > 0)
+      .filter((field) => String(field.label || "").trim().length > 0);
 
     onContinue(selectedFields);
   }
@@ -437,58 +456,29 @@ export function ReportFieldSelectionGate({
                 اختر الحقول التي تريد ظهورها داخل التقرير
               </h1>
               <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-                يتم عرض القيم العربية أو مسميات الخيارات بدل القيم التقنية
-                المستخدمة داخل الـ Workflow.
+                لا يتم عرض أي قيمة تقنية أو إنجليزية من Workflow؛ تظهر فقط
+                العناوين والقيم العربية.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setShowTechnical((value) => !value)}
-                className="rounded-2xl bg-slate-100 px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-200"
-              >
-                {showTechnical ? "إخفاء الحقول التقنية" : "إظهار الحقول التقنية"}
-              </button>
-
-              <button
-                type="button"
-                onClick={selectAllVisible}
-                className="rounded-2xl bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 ring-1 ring-emerald-100"
-              >
-                تحديد الظاهر
-              </button>
-
-              <button
-                type="button"
-                onClick={clearAllVisible}
-                className="rounded-2xl bg-rose-50 px-4 py-3 text-xs font-black text-rose-700 ring-1 ring-rose-100"
-              >
-                إلغاء الظاهر
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={continueToReport}
+              disabled={selectedCount === 0}
+              className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              متابعة إلى محرر التقرير
+            </button>
           </div>
 
           <div className="mt-6 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="text-sm font-black text-slate-900">
-                الحقول المختارة: {selectedCount}
-              </div>
-
-              <button
-                type="button"
-                onClick={continueToReport}
-                disabled={selectedCount === 0}
-                className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                متابعة إلى محرر التقرير
-              </button>
+            <div className="mb-4 text-sm font-black text-slate-900">
+              الحقول المختارة: {selectedCount}
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              {visibleFields.map((field) => {
+              {fields.map((field) => {
                 const selected = selectedIds.has(field.id);
-                const technical = isTechnicalKey(field.key);
 
                 return (
                   <article
@@ -512,12 +502,6 @@ export function ReportFieldSelectionGate({
                           عرض في التقرير
                         </span>
                       </label>
-
-                      {technical ? (
-                        <span className="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black text-amber-700 ring-1 ring-amber-100">
-                          تقني
-                        </span>
-                      ) : null}
                     </div>
 
                     <label className="mb-1 block text-[10px] font-black text-slate-500">

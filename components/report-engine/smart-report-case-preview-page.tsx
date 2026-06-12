@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -9,7 +9,6 @@ import {
   ReportFieldSelectionGate,
   type SelectedReportField,
 } from "@/components/report-engine/report-field-selection-gate";
-import { SaveSmartReportButton } from "@/components/report-engine/save-smart-report-button";
 import { SmartReportVariantSelector } from "@/components/report-engine/smart-report-variant-selector";
 import { buildReportDocumentDraftFromPayload } from "@/lib/report-engine/document-draft/report-document-builder";
 import type { ReportDocumentDraft } from "@/lib/report-engine/document-draft/report-document-types";
@@ -17,7 +16,6 @@ import {
   loadReportDocumentDraft,
   saveReportDocumentDraft,
 } from "@/lib/report-engine/document-draft/report-draft-storage";
-import { computeReportDocumentDraftAdjustments } from "@/lib/report-engine/document-draft/report-document-serializer";
 import type {
   ReportVariantConfig,
   ReportVariantId,
@@ -110,12 +108,6 @@ export function SmartReportCasePreviewPage({
     setHydratedFromLocalDraft(true);
   }, [hydratedFromLocalDraft, reportPayload, selectedVariantId]);
 
-  const saveAdjustments = useMemo(() => {
-    if (!reportPayload || !documentDraft) return null;
-
-    return computeReportDocumentDraftAdjustments(reportPayload, documentDraft);
-  }, [documentDraft, reportPayload]);
-
   function handleSelectedFields(selectedFields: SelectedReportField[]) {
     const nextPayload = applySelectedFieldsToPayload(
       initialPayload,
@@ -186,18 +178,6 @@ export function SmartReportCasePreviewPage({
                 <ArrowRight className="h-4 w-4" />
                 العودة
               </Link>
-
-              {saveAdjustments ? (
-                <SaveSmartReportButton
-                  caseId={reportPayload.caseInfo.id}
-                  variantId={selectedVariantId}
-                  adjustments={saveAdjustments}
-                />
-              ) : null}
-
-              <div className="inline-flex items-center gap-2 rounded-2xl bg-emerald-50 px-5 py-3 text-xs font-black text-emerald-800 ring-1 ring-emerald-100">
-                المعاينة النهائية من لوحة التحرير
-              </div>
             </div>
           </div>
         </section>

@@ -6,6 +6,10 @@ import type {
   ReportTableBlock,
 } from "@/lib/report-engine/document-draft/report-document-types";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+import {
+  MinistryReportFooter,
+  MinistryReportHeader,
+} from "@/components/report-engine/document-renderers/ministry-report-shell";
 import { ReportBlockFrame } from "@/components/report-engine/document-editor/report-block-frame";
 
 type ReportPageCanvasProps = {
@@ -148,71 +152,10 @@ function ReportA4Header({
   payload: SmartReportPayload;
   page: ReportDocumentPage;
 }) {
-  const schoolName =
-    payload.identity.schoolName || "مدرسة عنوان المتوسطة والثانوية";
-  const educationDepartment =
-    payload.identity.educationDepartment || "الإدارة العامة للتعليم بمنطقة";
-  const educationOffice =
-    payload.identity.educationOffice || "مكتب التعليم";
-  const logoUrl = payload.identity.schoolLogoUrl || "/uploads/school-logos/MOE.png";
-
-  return (
-    <header className="relative h-[126px] shrink-0 border-t-[4px] border-white bg-white">
-      <div className="relative h-[106px] overflow-hidden rounded-b-[2.4rem] bg-[#143840] text-white">
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-white/90" />
-        <div className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute -right-20 -top-16 h-64 w-64 rounded-full bg-white/5" />
-
-        <div dir="rtl" className="relative mx-auto flex h-full w-[78%] items-center justify-between gap-8">
-          <img
-            src={logoUrl}
-            alt="شعار وزارة التعليم"
-            className="h-[76px] w-[154px] object-contain"
-          />
-
-          <div className="text-center text-[14px] font-black leading-7 text-white/95">
-            <div>{educationDepartment}</div>
-            <div>{educationOffice}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="absolute inset-x-0 bottom-0 mx-auto flex h-[34px] w-[430px] items-center justify-center rounded-b-[1rem] bg-[#143840] px-6 text-center text-[15px] font-black text-white">
-        {schoolName}
-      </div>
-    </header>
-  );
+  return <MinistryReportHeader payload={payload} page={page} />;
 }
 function ReportA4Footer({ payload }: { payload: SmartReportPayload }) {
-  const schoolName =
-    payload.identity.schoolName || "مدرسة عنوان المتوسطة والثانوية";
-  const serviceName = payload.service.name || "برامج النشاط";
-  const title = payload.title || payload.caseInfo.title || "التقرير";
-  const logoUrl = payload.identity.schoolLogoUrl || "/uploads/school-logos/MOE.png";
-
-  return (
-    <footer className="h-[54px] shrink-0 px-8 pb-4">
-      <div className="relative overflow-hidden border-b-[6px] border-[#143840]">
-        <div dir="rtl" className="grid h-[24px] grid-cols-[74px_minmax(0,1fr)_170px] items-center bg-[#dfeee1]">
-          <div className="flex h-full items-center justify-center bg-white">
-            <img
-              src={logoUrl}
-              alt="شعار وزارة التعليم"
-              className="h-[18px] w-[54px] object-contain"
-            />
-          </div>
-
-          <div className="flex h-full min-w-0 items-center justify-center overflow-hidden bg-[#6f9f73] px-4 text-[10px] font-black leading-none text-white">
-            <span className="max-w-full truncate">
-              {title} - {serviceName} - {schoolName}
-            </span>
-          </div>
-
-          <div className="h-full bg-[linear-gradient(135deg,rgba(34,115,75,0.25),rgba(255,255,255,0.1))]" />
-        </div>
-      </div>
-    </footer>
-  );
+  return <MinistryReportFooter payload={payload} />;
 }
 function getEvidenceCardClass(itemsPerPage?: number) {
   if (itemsPerPage === 1) return "h-[520px] w-full";
@@ -333,12 +276,12 @@ export function ReportPageCanvas({
                         {block.fields.map((field) => (
                           <div
                             key={field.key}
-                            className="min-h-[58px] overflow-hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-right"
+                            className="flex min-h-[54px] flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-center"
                           >
                             <div className="text-[10px] font-black text-slate-500">
                               {translateFieldLabel(field.key, field.label)}
                             </div>
-                            <div className="mt-1 break-words text-xs font-black leading-5 text-slate-950">
+                            <div className="mt-1 break-words text-center text-[11px] font-black leading-5 text-slate-950">
                               {renderValue(field.value) || "—"}
                             </div>
                           </div>
@@ -436,19 +379,19 @@ export function ReportPageCanvas({
                   ) : null}
 
                   {block.type === "SIGNATURES" ? (
-                    <section className={["mt-auto pt-4", getSignatureLayoutClass(block.signatures.length)].join(" ")}>
+                    <section className={["mt-auto pt-3", getSignatureLayoutClass(block.signatures.length)].join(" ")}>
                       {block.signatures.map((signature) => (
                         <div
                           key={signature.key}
-                          className="min-h-[92px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center"
+                          className="min-h-[74px] rounded-xl border border-slate-200 bg-white px-3 py-3 text-center"
                         >
-                          <div className="text-xs font-black text-slate-500">
+                          <div className="text-[10px] font-bold text-slate-500">
                             {signature.label}
                           </div>
 
-                          <div className="my-5 border-b border-dashed border-slate-400" />
+                          <div className="my-3 border-b border-dashed border-slate-400" />
 
-                          <div className="text-sm font-black text-slate-950">
+                          <div className="text-[12px] font-bold text-slate-950">
                             {signature.signerName || "—"}
                           </div>
                         </div>
