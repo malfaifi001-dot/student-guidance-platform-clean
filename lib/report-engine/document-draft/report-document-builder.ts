@@ -20,6 +20,148 @@ import type {
   SmartReportPayload,
 } from "@/lib/report-engine/smart-report-types";
 
+
+const TECHNICAL_META_FIELD_PATTERNS = [
+  /(^|_)id$/i,
+  /snapshot/i,
+  /selectedstudent/i,
+  /studentsearch/i,
+  /guardian/i,
+  /email/i,
+  /phone/i,
+  /token/i,
+  /url/i,
+  /icon/i,
+  /resource/i,
+  /bank/i,
+  /raw/i,
+  /json/i,
+];
+
+const REPORT_VALUE_TRANSLATIONS: Record<string, string> = {
+  academic: "أكاديمي",
+  behavioral: "سلوكي",
+  social: "اجتماعي",
+  psychological: "نفسي",
+  improved: "تحسن",
+  not_improved: "لم يتحسن",
+  low_achievement: "تدنّي التحصيل",
+  attendance: "حضور وغياب",
+  exists: "يوجد",
+  none: "لا يوجد",
+  yes: "نعم",
+  no: "لا",
+  true: "نعم",
+  false: "لا",
+  term_1: "الفصل الدراسي الأول",
+  term_2: "الفصل الدراسي الثاني",
+};
+
+function isTechnicalMetaFieldKey(key: string) {
+  const normalizedKey = String(key || "").replace(/\s+/g, "").toLowerCase();
+
+  if (
+    normalizedKey === "studentsnapshot" ||
+    normalizedKey === "selectedstudent" ||
+    normalizedKey === "student" ||
+    normalizedKey === "student_name" ||
+    normalizedKey === "guardiansnapshot"
+  ) {
+    return false;
+  }
+
+  return TECHNICAL_META_FIELD_PATTERNS.some((pattern) =>
+    pattern.test(normalizedKey),
+  );
+}
+
+function looksLikeJsonText(value: string) {
+  const text = value.trim();
+
+  return (
+    (text.startsWith("{") && text.endsWith("}")) ||
+    (text.startsWith("[") && text.endsWith("]")) ||
+    text.includes('","') ||
+    text.includes('":')
+  );
+}
+
+function extractArabicText(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (typeof value === "boolean") return value ? "نعم" : "لا";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => extractArabicText(item))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const preferredValues = [
+      record.fullName,
+      record.name,
+      record.studentName,
+      record.grade,
+      record.stage,
+      record.className,
+    ]
+      .map((item) => extractArabicText(item))
+      .filter(Boolean);
+
+    return Array.from(new Set(preferredValues)).join("، ");
+  }
+
+  const text = String(value).trim();
+  const normalized = text.toLowerCase();
+
+  if (REPORT_VALUE_TRANSLATIONS[normalized]) {
+    return REPORT_VALUE_TRANSLATIONS[normalized];
+  }
+
+  if (looksLikeJsonText(text)) {
+    try {
+      return extractArabicText(JSON.parse(text));
+    } catch {
+      return "";
+    }
+  }
+
+  if (/^[a-z0-9_\-.@:/]+$/i.test(text)) {
+    return REPORT_VALUE_TRANSLATIONS[normalized] || "";
+  }
+
+  return text;
+}
+
+function normalizeReportMetaField<T extends { key: string; label: string; value: unknown }>(
+  field: T,
+): T | null {
+  if (isTechnicalMetaFieldKey(field.key)) return null;
+
+  const normalizedKey = String(field.key || "").replace(/\s+/g, "").toLowerCase();
+  const value = extractArabicText(field.value);
+
+  if (!value) return null;
+
+  const label =
+    normalizedKey === "studentsnapshot" ||
+    normalizedKey === "selectedstudent" ||
+    normalizedKey === "student" ||
+    normalizedKey === "student_name" ||
+    normalizedKey === "guardiansnapshot"
+      ? "اسم الطالب"
+      : field.label;
+
+  return {
+    ...field,
+    label,
+    value,
+  };
+}
+
 function hasValue(value: unknown) {
   if (value === null || value === undefined) return false;
 
@@ -44,9 +186,10 @@ export function getDefaultReportEvidenceConfig(
 }
 
 function buildMetaFieldsBlock(payload: SmartReportPayload): ReportMetaFieldsBlock | null {
-  const fields = [...payload.primaryFields, ...payload.detailFields].filter((field) =>
-    hasValue(field.value),
-  );
+    const fields = [...payload.primaryFields, ...payload.detailFields]
+    .map(normalizeReportMetaField)
+    .filter((field): field is NonNullable<typeof field> => Boolean(field))
+    .filter((field) => hasValue(field.value));
 
   if (fields.length === 0) return null;
 

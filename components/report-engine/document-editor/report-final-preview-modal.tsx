@@ -246,12 +246,12 @@ function FinalBlock({ block }: { block: ReportDocumentBlock }) {
           {block.fields.map((field) => (
             <div
               key={field.key}
-              className="min-h-[62px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right"
+              className="min-h-[62px] overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right"
             >
               <div className="text-[12px] font-black text-slate-500">
                 {translateFieldLabel(field.key, field.label)}
               </div>
-              <div className="mt-1 text-[15px] font-black leading-6 text-slate-950">
+              <div className="mt-1 break-words text-[15px] font-black leading-6 text-slate-950">
                 {renderValue(field.value) || "—"}
               </div>
             </div>

@@ -333,12 +333,12 @@ export function ReportPageCanvas({
                         {block.fields.map((field) => (
                           <div
                             key={field.key}
-                            className="min-h-[58px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-right"
+                            className="min-h-[58px] overflow-hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-right"
                           >
                             <div className="text-[10px] font-black text-slate-500">
                               {translateFieldLabel(field.key, field.label)}
                             </div>
-                            <div className="mt-1 text-xs font-black leading-5 text-slate-950">
+                            <div className="mt-1 break-words text-xs font-black leading-5 text-slate-950">
                               {renderValue(field.value) || "—"}
                             </div>
                           </div>
