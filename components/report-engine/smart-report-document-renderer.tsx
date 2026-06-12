@@ -220,7 +220,16 @@ function mapSmartPayloadToActivityReportData(
 
     evidences: evidenceItems,
 
-    customBlocks: payload.customBlocks || [],
+    customBlocks: (payload.customBlocks || [])
+      .filter(
+        (block) => block.type === "PARAGRAPH" || block.type === "BULLET_LIST",
+      )
+      .map((block) => ({
+        id: block.id,
+        type: block.type as "PARAGRAPH" | "BULLET_LIST",
+        title: block.title,
+        body: block.body,
+      })),
 
     approvals: {
       teacherSignedName:

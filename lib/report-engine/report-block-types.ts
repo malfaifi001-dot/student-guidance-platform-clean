@@ -12,6 +12,7 @@ export type ReportBlockType =
   | "NARRATIVE"
   | "CUSTOM_PARAGRAPH"
   | "CUSTOM_BULLET_LIST"
+  | "MANUAL_PAGE_BREAK"
   | "EVIDENCE_GRID"
   | "SIGNATURES"
   | "FOOTER";

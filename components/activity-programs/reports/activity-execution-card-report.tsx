@@ -262,7 +262,7 @@ export function ActivityExecutionCardReport({
 
   const visualBlocks =
     blocks && blocks.length > 0
-      ? blocks.filter((block) => !["HEADER", "FOOTER"].includes(block.type))
+      ? blocks.filter((block) => !["HEADER", "FOOTER", "MANUAL_PAGE_BREAK"].includes(block.type))
       : buildDefaultBlocks(data, pageMode, showApprovals);
 
   return (
@@ -864,7 +864,7 @@ function ActivityExecutionCardReportStyles() {
         font-weight: 700;
         text-align: justify;
         overflow-wrap: anywhere;
-        word-break: break-word;
+        word-break: normal;
         white-space: pre-wrap;
       }
 
@@ -876,13 +876,13 @@ function ActivityExecutionCardReportStyles() {
         line-height: 2;
         font-weight: 700;
         overflow-wrap: anywhere;
-        word-break: break-word;
+        word-break: normal;
         white-space: pre-wrap;
       }
 
       .activity-custom-block li {
         overflow-wrap: anywhere;
-        word-break: break-word;
+        word-break: normal;
       }
 
       .activity-evidence-section {
@@ -1028,7 +1028,7 @@ function ActivityExecutionCardReportStyles() {
         max-width: 100% !important;
         min-width: 0 !important;
         overflow-wrap: anywhere !important;
-        word-break: break-all !important;
+        word-break: normal !important;
         white-space: pre-wrap !important;
       }
 
@@ -1038,6 +1038,15 @@ function ActivityExecutionCardReportStyles() {
         max-width: 100% !important;
         min-width: 0 !important;
         overflow: hidden !important;
+      }
+      .activity-paragraph,
+      .activity-custom-block p,
+      .activity-custom-block ul,
+      .activity-custom-block li {
+        line-break: auto !important;
+        word-break: normal !important;
+        overflow-wrap: break-word !important;
+        white-space: pre-wrap !important;
       }
       @media screen and (max-width: 900px) {
         .activity-execution-report-root {

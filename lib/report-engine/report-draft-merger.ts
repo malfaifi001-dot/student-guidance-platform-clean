@@ -37,8 +37,10 @@ function normalizeCustomBlocks(
         typeof block.targetPageIndex === "number"
           ? block.targetPageIndex
           : undefined,
+      targetZone: block.targetZone,
+      order: typeof block.order === "number" ? block.order : undefined,
     }))
-    .filter((block) => block.title || block.body);
+    .filter((block) => block.type === "PAGE_BREAK" || block.title || block.body);
 }
 
 function getChangedFields(

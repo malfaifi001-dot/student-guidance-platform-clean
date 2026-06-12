@@ -291,12 +291,9 @@ export function paginateReportBlocks(
     (block) => isCustomBlock(block) && typeof block.targetPageIndex === "number",
   );
 
-  const normalContentBlocks = blocks
-    .filter(
-      (block) =>
-        block.placement === "CONTENT" &&
-        !(isCustomBlock(block) && typeof block.targetPageIndex === "number"),
-    )
+  const contentBlocks = blocks
+    .filter((block) => block.placement === "CONTENT")
+    .filter((block) => !(isCustomBlock(block) && typeof block.targetPageIndex === "number"))
     .sort((a, b) => (a.order ?? 500) - (b.order ?? 500))
     .flatMap((block) => normalizeContentBlock(block, evidenceConfig));
 
@@ -306,7 +303,12 @@ export function paginateReportBlocks(
 
   const pages: ReportBlock[][] = [[]];
 
-  for (const block of normalContentBlocks) {
+  for (const block of contentBlocks) {
+    if (block.type === "MANUAL_PAGE_BREAK") {
+      pages.push([block]);
+      continue;
+    }
+
     pushBlockWithCapacity(pages, block, pageCapacity);
   }
 
@@ -318,11 +320,7 @@ export function paginateReportBlocks(
     }
   }
 
-  const safePages = pages.filter((page) => page.length > 0);
-
-  if (safePages.length === 0) {
-    safePages.push([]);
-  }
+  const safePages = pages.length > 0 ? pages : [[]];
 
   if (signatureBlock) {
     const lastPage = safePages[safePages.length - 1];

@@ -107,7 +107,7 @@ export type ReportEvidenceConfig = {
   imageSize: ReportEvidenceImageSize;
 };
 
-export type SmartReportCustomBlockType = "PARAGRAPH" | "BULLET_LIST";
+export type SmartReportCustomBlockType = "PARAGRAPH" | "BULLET_LIST" | "PAGE_BREAK";
 
 export type SmartReportCustomBlockZone =
   | "PAGE_TOP"
