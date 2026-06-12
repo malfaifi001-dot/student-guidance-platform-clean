@@ -31,8 +31,9 @@ function normalizeCustomBlocks(
     .map((block) => ({
       id: block.id,
       type: block.type,
-      title: block.title.trim(),
-      body: block.body.trim(),
+      title: String(block.title || "").trim(),
+      body: String(block.body || "").trim(),
+      table: block.type === "TABLE" ? block.table : undefined,
       targetPageIndex:
         typeof block.targetPageIndex === "number"
           ? block.targetPageIndex
@@ -40,7 +41,11 @@ function normalizeCustomBlocks(
       targetZone: block.targetZone,
       order: typeof block.order === "number" ? block.order : undefined,
     }))
-    .filter((block) => block.type === "PAGE_BREAK" || block.title || block.body);
+    .filter((block) => {
+      if (block.type === "TABLE") return Boolean(block.table);
+
+      return block.type === "PAGE_BREAK" || block.title || block.body;
+    });
 }
 
 function getChangedFields(

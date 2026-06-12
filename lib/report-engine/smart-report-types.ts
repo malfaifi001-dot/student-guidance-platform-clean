@@ -107,7 +107,29 @@ export type ReportEvidenceConfig = {
   imageSize: ReportEvidenceImageSize;
 };
 
-export type SmartReportCustomBlockType = "PARAGRAPH" | "BULLET_LIST" | "PAGE_BREAK";
+export type SmartReportCustomBlockType = "PARAGRAPH" | "BULLET_LIST" | "TABLE" | "PAGE_BREAK";
+
+export type SmartReportCustomTableData = {
+  settings: {
+    highlightHeaderRow: boolean;
+    highlightFirstColumn: boolean;
+    repeatHeaderOnPageBreak: boolean;
+    rounded: boolean;
+    compact: boolean;
+  };
+  columns: Array<{
+    id: string;
+    title: string;
+    width?: number;
+  }>;
+  rows: Array<{
+    id: string;
+    cells: Array<{
+      id: string;
+      value: string;
+    }>;
+  }>;
+};
 
 export type SmartReportCustomBlockZone =
   | "PAGE_TOP"
@@ -120,6 +142,7 @@ export type SmartReportCustomBlock = {
   type: SmartReportCustomBlockType;
   title: string;
   body: string;
+  table?: SmartReportCustomTableData;
   targetPageIndex?: number;
   targetZone?: SmartReportCustomBlockZone;
   order?: number;
