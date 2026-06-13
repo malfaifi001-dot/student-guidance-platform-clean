@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReportDesignRenderer,
   reportDesignTemplates,
@@ -54,8 +54,10 @@ function ReportTwoCollapsibleCard({
         </div>
       ) : null}
     </section>
-  );
+
+            );
 }
+
 type TemplateOption = {
   id: string;
   name: string;
@@ -173,6 +175,50 @@ type StudioTemplate = {
   pages: StudioPage[];
 };
 
+type ReportTwoDraftSnapshot = {
+  version: 1;
+  savedAt: string;
+  selectedTemplateOptionId: string;
+  activeSavedRuntimeTemplateId: string;
+  runtimeTemplateName: string;
+  template: StudioTemplate;
+  headerValues: ReportTwoHeaderValues | null;
+  headerAlignments: ReportTwoHeaderAlignments | null;
+  logoSettings: ReportTwoLogoSettings | null;
+  hiddenRuntimePageIds: string[];
+  runtimePageOrder: string[];
+  activePageId: string;
+  selectedBlockId: string;
+  finalCheckConfirmedAt?: string | null;
+};
+
+type ReportTwoSmartAlertType = "success" | "info" | "warning" | "error";
+
+type ReportTwoSmartAlertAction =
+  | "hide-technical-fields"
+  | "restore-header"
+  | "focus-preview"
+  | "open-page"
+  | "open-block";
+
+type ReportTwoSmartAlert = {
+  id: string;
+  type: ReportTwoSmartAlertType;
+  title: string;
+  description: string;
+  pageId?: string;
+  blockId?: string;
+  action?: ReportTwoSmartAlertAction;
+};
+
+type ReportTwoFinalCheckItem = {
+  id: string;
+  label: string;
+  description: string;
+  passed: boolean;
+  required: boolean;
+};
+
 type ReportTwoSavedRuntimeTemplate = {
   id: string;
   name: string;
@@ -234,6 +280,40 @@ function writeReportTwoSavedTemplates(
 
 function cloneReportTwoTemplate(template: StudioTemplate): StudioTemplate {
   return JSON.parse(JSON.stringify(template)) as StudioTemplate;
+}
+
+function getReportTwoDraftStorageKey(serviceSlug: string, caseId: string) {
+  return `report-2:draft:${serviceSlug || "general"}:${caseId || "unknown"}`;
+}
+
+function formatReportTwoSavedAt(value: string) {
+  if (!value) return "لم يتم الحفظ بعد";
+
+  try {
+    return new Date(value).toLocaleString("ar-SA", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return "تم الحفظ";
+  }
+}
+
+function parseReportTwoDraftSnapshot(value: string | null) {
+  if (!value) return null;
+
+  try {
+    const parsed = JSON.parse(value) as ReportTwoDraftSnapshot;
+
+    if (!parsed || parsed.version !== 1 || !parsed.template?.pages) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -1226,6 +1306,337 @@ function updateReportTwoTableSetting(
     },
   };
 }
+
+function isReportTwoTechnicalValue(value: unknown) {
+  const text = cleanText(value);
+
+  if (!text) return false;
+
+  return /^[a-z0-9_./-]+$/i.test(text) && /[a-z_]/i.test(text);
+}
+
+function getReportTwoFilledTableCells(block: StudioBlock) {
+  const columns = normalizeReportTwoTableColumns(block.columns);
+  const rows = normalizeReportTwoTableRows(block.rows, columns.length);
+
+  return countReportTwoFilledCells(rows);
+}
+
+function getReportTwoSmartAlertSortValue(type: ReportTwoSmartAlertType) {
+  if (type === "error") return 0;
+  if (type === "warning") return 1;
+  if (type === "info") return 2;
+
+  return 3;
+}
+
+function getReportTwoSmartAlerts({
+  visiblePreviewTemplate,
+  previewCase,
+  activeHeaderValues,
+  activeLogoSettings,
+  hiddenRuntimePageIds,
+}: {
+  visiblePreviewTemplate: StudioTemplate;
+  previewCase: ReturnType<typeof getPreviewCase>;
+  activeHeaderValues: ReportTwoHeaderValues;
+  activeLogoSettings: ReportTwoLogoSettings;
+  hiddenRuntimePageIds: string[];
+}) {
+  const alerts: ReportTwoSmartAlert[] = [];
+  const pages = visiblePreviewTemplate.pages || [];
+
+  if (!pages.length) {
+    alerts.push({
+      id: "no-pages",
+      type: "error",
+      title: "لا توجد صفحات في التقرير",
+      description: "أضف صفحة محتوى حتى يظهر التقرير بشكل صحيح.",
+      action: "open-page",
+    });
+
+    return alerts;
+  }
+
+  if (!cleanText(activeLogoSettings.url)) {
+    alerts.push({
+      id: "missing-logo",
+      type: "warning",
+      title: "الشعار غير محدد",
+      description: "ضع شعارًا للتقرير أو استخدم الشعار الافتراضي.",
+      action: "restore-header",
+    });
+  }
+
+  const missingHeaderFields = Object.entries(activeHeaderValues).filter(
+    ([, value]) => !cleanText(value),
+  );
+
+  if (missingHeaderFields.length) {
+    alerts.push({
+      id: "missing-header-values",
+      type: "warning",
+      title: "الترويسة غير مكتملة",
+      description: "بعض قيم أعلى الصفحة فارغة. يمكن استعادتها من بيانات الحالة.",
+      action: "restore-header",
+    });
+  }
+
+  if (hiddenRuntimePageIds.length) {
+    alerts.push({
+      id: "hidden-pages",
+      type: "info",
+      title: "توجد صفحات مخفية",
+      description: "هناك صفحات تم إخفاؤها من المعاينة. تأكد أنها غير مطلوبة قبل الاعتماد.",
+      action: "focus-preview",
+    });
+  }
+
+  pages.forEach((page, pageIndex) => {
+    if (!page.blocks.length) {
+      alerts.push({
+        id: `empty-page-${page.id}`,
+        type: "warning",
+        title: "صفحة بدون محتوى",
+        description: `الصفحة ${pageIndex + 1} لا تحتوي على بلوكات.`,
+        pageId: page.id,
+        action: "open-page",
+      });
+    }
+
+    page.blocks.forEach((block) => {
+      if (isReportTwoDynamicFieldsBlock(block)) {
+        const fields = getDynamicFieldsForBlock(block, previewCase);
+        const visibleFields = fields.filter((field) => field.visible !== false);
+        const technicalFields = visibleFields.filter(
+          (field) =>
+            isReportTwoTechnicalValue(field.label) ||
+            isReportTwoTechnicalValue(field.value),
+        );
+
+        if (!visibleFields.length) {
+          alerts.push({
+            id: `no-visible-fields-${page.id}-${block.id}`,
+            type: "warning",
+            title: "لا توجد حقول ظاهرة",
+            description: "بلوك الحقول موجود، لكن كل الحقول مخفية أو فارغة.",
+            pageId: page.id,
+            blockId: block.id,
+            action: "open-block",
+          });
+        }
+
+        if (visibleFields.length > 14) {
+          alerts.push({
+            id: `too-many-fields-${page.id}-${block.id}`,
+            type: "warning",
+            title: "حقول كثيرة في صفحة واحدة",
+            description: "عدد الحقول كبير وقد يصعّب قراءة التقرير. أخفِ غير المهم أو انقل جزءًا لصفحة أخرى.",
+            pageId: page.id,
+            blockId: block.id,
+            action: "open-block",
+          });
+        }
+
+        if (technicalFields.length) {
+          alerts.push({
+            id: `technical-fields-${page.id}-${block.id}`,
+            type: "warning",
+            title: "حقول تقنية ظاهرة",
+            description: "توجد أسماء أو قيم تقنية مثل activity_domain أو program_02. يمكن إخفاؤها تلقائيًا.",
+            pageId: page.id,
+            blockId: block.id,
+            action: "hide-technical-fields",
+          });
+        }
+      }
+
+      if (block.kind === "evidence-gallery") {
+        const evidenceCount = previewCase.evidences.length;
+        const perPage = getEvidencePerPageFromBlock(block);
+
+        if (!evidenceCount) {
+          alerts.push({
+            id: `no-evidence-${page.id}-${block.id}`,
+            type: "info",
+            title: "لا توجد شواهد",
+            description: "التقرير يحتوي على بلوك شواهد، لكن لا توجد مرفقات في الحالة.",
+            pageId: page.id,
+            blockId: block.id,
+            action: "open-block",
+          });
+        }
+
+        if (evidenceCount > perPage) {
+          alerts.push({
+            id: `evidence-overflow-${page.id}-${block.id}`,
+            type: "info",
+            title: "الشواهد موزعة على صفحات",
+            description: `يوجد ${evidenceCount} شواهد، ويظهر ${perPage} في الصفحة. الباقي ينتقل تلقائيًا لصفحات شواهد.`,
+            pageId: page.id,
+            blockId: block.id,
+            action: "focus-preview",
+          });
+        }
+      }
+
+      if (block.kind === "report-one-table") {
+        const columns = normalizeReportTwoTableColumns(block.columns);
+        const rows = normalizeReportTwoTableRows(block.rows, columns.length);
+        const filledCells = getReportTwoFilledTableCells(block);
+
+        if (!filledCells) {
+          alerts.push({
+            id: `empty-table-${page.id}-${block.id}`,
+            type: "info",
+            title: "جدول فارغ",
+            description: "يوجد جدول بدون محتوى. عدّله أو احذفه إذا لم يكن مطلوبًا.",
+            pageId: page.id,
+            blockId: block.id,
+            action: "open-block",
+          });
+        }
+
+        if (columns.length > 4 || rows.length > 7) {
+          alerts.push({
+            id: `large-table-${page.id}-${block.id}`,
+            type: "warning",
+            title: "جدول كبير",
+            description: "الجدول كبير وقد لا يكون مريحًا داخل A4. يفضّل تقليل الأعمدة أو نقله لصفحة مستقلة.",
+            pageId: page.id,
+            blockId: block.id,
+            action: "open-block",
+          });
+        }
+      }
+
+      if (
+        (block.kind === "section-text" || block.kind === "multi-paragraph") &&
+        cleanText(block.content).length > 700
+      ) {
+        alerts.push({
+          id: `long-text-${page.id}-${block.id}`,
+          type: "warning",
+          title: "فقرة طويلة",
+          description: "الفقرة طويلة وقد تضغط الصفحة. اختصرها أو انقل جزءًا منها لبلوك جديد.",
+          pageId: page.id,
+          blockId: block.id,
+          action: "open-block",
+        });
+      }
+    });
+  });
+
+  if (!alerts.length) {
+    alerts.push({
+      id: "ready",
+      type: "success",
+      title: "التقرير يبدو جيدًا",
+      description: "لا توجد تنبيهات مهمة حاليًا. يمكنك المتابعة بأمان.",
+      action: "focus-preview",
+    });
+  }
+
+  return alerts.sort(
+    (firstAlert, secondAlert) =>
+      getReportTwoSmartAlertSortValue(firstAlert.type) -
+      getReportTwoSmartAlertSortValue(secondAlert.type),
+  );
+}
+
+function getReportTwoFinalCheckItems({
+  smartAlerts,
+  visiblePreviewTemplate,
+  activeHeaderValues,
+  activeLogoSettings,
+  lastAutoSavedAt,
+}: {
+  smartAlerts: ReportTwoSmartAlert[];
+  visiblePreviewTemplate: StudioTemplate;
+  activeHeaderValues: ReportTwoHeaderValues;
+  activeLogoSettings: ReportTwoLogoSettings;
+  lastAutoSavedAt: string;
+}): ReportTwoFinalCheckItem[] {
+  const errors = smartAlerts.filter((alert) => alert.type === "error");
+  const warnings = smartAlerts.filter((alert) => alert.type === "warning");
+  const pages = visiblePreviewTemplate.pages || [];
+  const hasPages = pages.length > 0;
+  const hasBlocks = pages.some((page) => page.blocks.length > 0);
+  const headerComplete = Object.values(activeHeaderValues).every((value) =>
+    Boolean(cleanText(value)),
+  );
+  const logoReady = Boolean(cleanText(activeLogoSettings.url));
+
+  return [
+    {
+      id: "pages",
+      label: "صفحات التقرير موجودة",
+      description: hasPages
+        ? `عدد الصفحات الحالية: ${pages.length}.`
+        : "لا توجد صفحات داخل التقرير.",
+      passed: hasPages,
+      required: true,
+    },
+    {
+      id: "blocks",
+      label: "يوجد محتوى داخل التقرير",
+      description: hasBlocks
+        ? "التقرير يحتوي على بلوكات ومحتوى قابل للعرض."
+        : "أضف بلوكًا واحدًا على الأقل قبل الاعتماد.",
+      passed: hasBlocks,
+      required: true,
+    },
+    {
+      id: "header",
+      label: "ترويسة التقرير مكتملة",
+      description: headerComplete
+        ? "قيم الترويسة الأساسية مكتملة."
+        : "هناك قيمة أو أكثر فارغة في الترويسة.",
+      passed: headerComplete,
+      required: true,
+    },
+    {
+      id: "logo",
+      label: "الشعار جاهز",
+      description: logoReady
+        ? "يوجد شعار مستخدم في الترويسة."
+        : "اختر شعارًا أو استعد الشعار الافتراضي.",
+      passed: logoReady,
+      required: false,
+    },
+    {
+      id: "errors",
+      label: "لا توجد أخطاء مانعة",
+      description: errors.length
+        ? `يوجد ${errors.length} خطأ مانع يحتاج إصلاحًا.`
+        : "لا توجد أخطاء مانعة حاليًا.",
+      passed: errors.length === 0,
+      required: true,
+    },
+    {
+      id: "warnings",
+      label: "التنبيهات تمت مراجعتها",
+      description: warnings.length
+        ? `يوجد ${warnings.length} تنبيه. يمكن الاعتماد بعد مراجعتها.`
+        : "لا توجد تنبيهات مهمة.",
+      passed: warnings.length === 0,
+      required: false,
+    },
+    {
+      id: "draft",
+      label: "المسودة محفوظة",
+      description: lastAutoSavedAt
+        ? `آخر حفظ: ${formatReportTwoSavedAt(lastAutoSavedAt)}.`
+        : "سيتم حفظ المسودة تلقائيًا قبل التأكيد.",
+      passed: Boolean(lastAutoSavedAt),
+      required: false,
+    },
+  ];
+}
+
+function getReportTwoFinalCheckPassed(items: ReportTwoFinalCheckItem[]) {
+  return items.every((item) => !item.required || item.passed);
+}
 function getBlockKindName(kind: StudioBlockKind) {
   if (kind === "hero-title") return "عنوان رئيسي";
   if (kind === "meta-strip") return "شريط بيانات";
@@ -1261,12 +1672,23 @@ export function ReportTwoStudioRuntime({
     (payload as any)?.service?.slug || (payload as any)?.serviceSlug || "general",
   );
 
+  const reportTwoDraftStorageKey = getReportTwoDraftStorageKey(
+    serviceSlugForSavedTemplates,
+    caseId,
+  );
+
   const [savedRuntimeTemplates, setSavedRuntimeTemplates] = useState<
     ReportTwoSavedRuntimeTemplate[]
-  >(() => readReportTwoSavedTemplates(serviceSlugForSavedTemplates));
+  >([]);
+
+  const [savedRuntimeTemplatesLoaded, setSavedRuntimeTemplatesLoaded] =
+    useState(false);
 
   const [runtimeTemplateName, setRuntimeTemplateName] = useState("");
   const [activeSavedRuntimeTemplateId, setActiveSavedRuntimeTemplateId] =
+    useState("");
+
+  const [selectedQuickSavedTemplateId, setSelectedQuickSavedTemplateId] =
     useState("");
 
   const [template, setTemplate] = useState<StudioTemplate>(() =>
@@ -1287,8 +1709,18 @@ export function ReportTwoStudioRuntime({
 
   const [hiddenRuntimePageIds, setHiddenRuntimePageIds] = useState<string[]>([]);
   const [runtimePageOrder, setRuntimePageOrder] = useState<string[]>([]);
+
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState("");
+  const [undoSnapshots, setUndoSnapshots] = useState<ReportTwoDraftSnapshot[]>([]);
+  const lastDraftSerializedRef = useRef("");
+  const restoringDraftRef = useRef(false);
   const [editingTableDraft, setEditingTableDraft] =
     useState<ReportTwoTableDraft | null>(null);
+
+  const [finalWizardOpen, setFinalWizardOpen] = useState(false);
+  const [finalChecklistConfirmed, setFinalChecklistConfirmed] = useState(false);
+  const [finalCheckConfirmedAt, setFinalCheckConfirmedAt] = useState<string | null>(null);
 
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
@@ -1411,6 +1843,172 @@ export function ReportTwoStudioRuntime({
 
 
 
+
+  const smartAlerts = useMemo(
+    () =>
+      getReportTwoSmartAlerts({
+        visiblePreviewTemplate,
+        previewCase,
+        activeHeaderValues,
+        activeLogoSettings,
+        hiddenRuntimePageIds,
+      }),
+    [
+      visiblePreviewTemplate,
+      previewCase,
+      activeHeaderValues,
+      activeLogoSettings,
+      hiddenRuntimePageIds,
+    ],
+  );
+
+  const smartAlertsSummary = useMemo(
+    () => ({
+      errors: smartAlerts.filter((alert) => alert.type === "error").length,
+      warnings: smartAlerts.filter((alert) => alert.type === "warning").length,
+      infos: smartAlerts.filter((alert) => alert.type === "info").length,
+      success: smartAlerts.filter((alert) => alert.type === "success").length,
+    }),
+    [smartAlerts],
+  );
+
+  function focusReportTwoSmartAlert(alert: ReportTwoSmartAlert) {
+    if (alert.pageId) {
+      setActivePageId(alert.pageId);
+    }
+
+    if (alert.blockId) {
+      setSelectedBlockId(alert.blockId);
+    }
+
+    if (alert.action === "focus-preview") {
+      setRightSidebarCollapsed(true);
+      setLeftSidebarCollapsed(true);
+    }
+
+    if (alert.action === "open-block") {
+      setLeftSidebarCollapsed(false);
+    }
+
+    window.setTimeout(() => {
+      document
+        .querySelector(".report-two-a4-host")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  function fixReportTwoSmartAlert(alert: ReportTwoSmartAlert) {
+    if (alert.action === "hide-technical-fields") {
+      setTemplate((current) => ({
+        ...current,
+        pages: current.pages.map((page) => ({
+          ...page,
+          blocks: page.blocks.map((block) => {
+            if (!isReportTwoDynamicFieldsBlock(block)) {
+              return block;
+            }
+
+            const fields = getDynamicFieldsForBlock(block, previewCase).map(
+              (field) => ({
+                ...field,
+                visible:
+                  field.visible !== false &&
+                  !isReportTwoTechnicalValue(field.label) &&
+                  !isReportTwoTechnicalValue(field.value),
+              }),
+            );
+
+            return {
+              ...block,
+              dynamicFields: fields,
+            };
+          }),
+        })),
+      }));
+
+      return;
+    }
+
+    if (alert.action === "restore-header") {
+      setHeaderValues(null);
+      setHeaderAlignments(null);
+      setLogoSettings(null);
+      return;
+    }
+
+    focusReportTwoSmartAlert(alert);
+  }
+
+  const finalCheckItems = useMemo(
+    () =>
+      getReportTwoFinalCheckItems({
+        smartAlerts,
+        visiblePreviewTemplate,
+        activeHeaderValues,
+        activeLogoSettings,
+        lastAutoSavedAt,
+      }),
+    [
+      smartAlerts,
+      visiblePreviewTemplate,
+      activeHeaderValues,
+      activeLogoSettings,
+      lastAutoSavedAt,
+    ],
+  );
+
+  const finalCheckPassed = useMemo(
+    () => getReportTwoFinalCheckPassed(finalCheckItems),
+    [finalCheckItems],
+  );
+
+  const finalCheckBlockingItems = useMemo(
+    () => finalCheckItems.filter((item) => item.required && !item.passed),
+    [finalCheckItems],
+  );
+
+  function openReportTwoFinalWizard() {
+    saveReportTwoDraftNow(false);
+    setFinalWizardOpen(true);
+  }
+
+  function confirmReportTwoFinalWizard() {
+    if (!finalCheckPassed) {
+      window.alert("لا يمكن تأكيد الجاهزية قبل إصلاح البنود المطلوبة.");
+      return;
+    }
+
+    if (!finalChecklistConfirmed) {
+      window.alert("ضع علامة التأكيد بعد مراجعة المعاينة.");
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const snapshot: ReportTwoDraftSnapshot = {
+      ...createReportTwoDraftSnapshot(),
+      savedAt: now,
+      finalCheckConfirmedAt: now,
+    };
+    const serialized = JSON.stringify(snapshot);
+
+    window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+    lastDraftSerializedRef.current = serialized;
+    setLastAutoSavedAt(now);
+    setFinalCheckConfirmedAt(now);
+    setFinalWizardOpen(false);
+
+    window.alert("تم تأكيد جاهزية التقرير. يمكنك المتابعة للاعتماد أو التصدير لاحقًا.");
+  }
+
+  function fixAllReportTwoSmartAlerts() {
+    smartAlerts
+      .filter((alert) =>
+        ["hide-technical-fields", "restore-header", "focus-preview"].includes(
+          alert.action || "",
+        ),
+      )
+      .forEach((alert) => fixReportTwoSmartAlert(alert));
+  }
   function updateReportTwoLogoSettings(
     patch: Partial<ReportTwoLogoSettings>,
   ) {
@@ -1479,6 +2077,77 @@ export function ReportTwoStudioRuntime({
     setHeaderAlignments(null);
   }
 
+
+  function createReportTwoDraftSnapshot(): ReportTwoDraftSnapshot {
+    return {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      selectedTemplateOptionId,
+      activeSavedRuntimeTemplateId,
+      runtimeTemplateName,
+      template: cloneReportTwoTemplate(template),
+      headerValues,
+      headerAlignments,
+      logoSettings,
+      hiddenRuntimePageIds,
+      runtimePageOrder,
+      activePageId,
+      selectedBlockId,
+      finalCheckConfirmedAt,
+    };
+  }
+
+  function restoreReportTwoDraftSnapshot(snapshot: ReportTwoDraftSnapshot) {
+    restoringDraftRef.current = true;
+
+    setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+    setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+    setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+    setTemplate(cloneReportTwoTemplate(snapshot.template));
+    setHeaderValues(snapshot.headerValues || null);
+    setHeaderAlignments(snapshot.headerAlignments || null);
+    setLogoSettings(snapshot.logoSettings || null);
+    setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+    setRuntimePageOrder(snapshot.runtimePageOrder || []);
+    setActivePageId(snapshot.activePageId || snapshot.template.pages[0]?.id || "");
+    setSelectedBlockId(
+      snapshot.selectedBlockId ||
+        snapshot.template.pages[0]?.blocks[0]?.id ||
+        "",
+    );
+    setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+    setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+  }
+
+  function saveReportTwoDraftNow(showMessage = true) {
+    const snapshot = createReportTwoDraftSnapshot();
+    const serialized = JSON.stringify(snapshot);
+
+    window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+    lastDraftSerializedRef.current = serialized;
+    setLastAutoSavedAt(snapshot.savedAt);
+
+    if (showMessage) {
+      window.alert("تم حفظ المسودة الحالية.");
+    }
+  }
+
+  function undoReportTwoLastChange() {
+    const previous = undoSnapshots[0];
+
+    if (!previous) {
+      window.alert("لا يوجد تعديل سابق للرجوع إليه.");
+      return;
+    }
+
+    restoreReportTwoDraftSnapshot(previous);
+
+    const serialized = JSON.stringify(previous);
+    window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+    lastDraftSerializedRef.current = serialized;
+    setLastAutoSavedAt(previous.savedAt);
+    setUndoSnapshots((current) => current.slice(1));
+  }
   function persistSavedRuntimeTemplates(items: ReportTwoSavedRuntimeTemplate[]) {
     setSavedRuntimeTemplates(items);
     writeReportTwoSavedTemplates(serviceSlugForSavedTemplates, items);
@@ -1538,6 +2207,7 @@ export function ReportTwoStudioRuntime({
     setHiddenRuntimePageIds(saved.hiddenRuntimePageIds || []);
     setRuntimePageOrder(saved.runtimePageOrder || []);
     setActiveSavedRuntimeTemplateId(saved.id);
+    setSelectedQuickSavedTemplateId(saved.id);
     setRuntimeTemplateName(saved.name);
 
     const firstPage = saved.template.pages[0];
@@ -1559,6 +2229,7 @@ export function ReportTwoStudioRuntime({
 
     if (activeSavedRuntimeTemplateId === templateId) {
       setActiveSavedRuntimeTemplateId("");
+      setSelectedQuickSavedTemplateId("");
       setRuntimeTemplateName("");
     }
   }
@@ -1570,6 +2241,7 @@ export function ReportTwoStudioRuntime({
 
     setSelectedTemplateOptionId(nextTemplateOption?.id || "");
     setActiveSavedRuntimeTemplateId("");
+    setSelectedQuickSavedTemplateId("");
     setRuntimeTemplateName("");
     setTemplate(nextTemplate);
     setProtectedPageIds(nextTemplate.pages.map((page) => page.id));
@@ -1913,6 +2585,77 @@ export function ReportTwoStudioRuntime({
     }));
   }
 
+
+  useEffect(() => {
+    const items = readReportTwoSavedTemplates(serviceSlugForSavedTemplates);
+    setSavedRuntimeTemplates(items);
+    setSavedRuntimeTemplatesLoaded(true);
+  }, [serviceSlugForSavedTemplates]);
+
+  useEffect(() => {
+    if (draftRestored) return;
+
+    const snapshot = parseReportTwoDraftSnapshot(
+      window.localStorage.getItem(reportTwoDraftStorageKey),
+    );
+
+    if (snapshot) {
+      const ok = window.confirm(
+        "يوجد مسودة محفوظة لهذا التقرير. هل تريد استعادتها؟",
+      );
+
+      if (ok) {
+        restoreReportTwoDraftSnapshot(snapshot);
+        lastDraftSerializedRef.current = JSON.stringify(snapshot);
+        setLastAutoSavedAt(snapshot.savedAt);
+      }
+    }
+
+    setDraftRestored(true);
+    // استعادة مسودة report-2
+  }, [draftRestored, reportTwoDraftStorageKey]);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+
+    const timer = window.setTimeout(() => {
+      const snapshot = createReportTwoDraftSnapshot();
+      const serialized = JSON.stringify(snapshot);
+
+      if (lastDraftSerializedRef.current !== serialized) {
+        const previous = parseReportTwoDraftSnapshot(
+          lastDraftSerializedRef.current,
+        );
+
+        if (previous && !restoringDraftRef.current) {
+          setUndoSnapshots((current) => [previous, ...current].slice(0, 20));
+        }
+
+        window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+        lastDraftSerializedRef.current = serialized;
+        setLastAutoSavedAt(snapshot.savedAt);
+      }
+
+      restoringDraftRef.current = false;
+    }, 900);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    draftRestored,
+    reportTwoDraftStorageKey,
+    selectedTemplateOptionId,
+    activeSavedRuntimeTemplateId,
+    runtimeTemplateName,
+    template,
+    headerValues,
+    headerAlignments,
+    logoSettings,
+    hiddenRuntimePageIds,
+    runtimePageOrder,
+    activePageId,
+    selectedBlockId,
+    finalCheckConfirmedAt,
+  ]);
   const reportTwoLayoutGridClass = [
     "mx-auto grid max-w-[1760px] gap-4 transition-all",
     rightSidebarCollapsed && leftSidebarCollapsed
@@ -2004,6 +2747,101 @@ export function ReportTwoStudioRuntime({
           </button>
         </div>
       </div>
+      <section className="report-two-productivity-card mx-auto mb-4 grid max-w-[1760px] gap-3 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-black text-slate-950">
+                الحفظ التلقائي والتراجع
+              </h2>
+              <p className="mt-1 text-xs font-bold text-slate-500">
+                يتم حفظ تعديلاتك تلقائيًا حتى لا تضيع، ويمكنك الرجوع عن آخر تعديل.
+              </p>
+            </div>
+
+            <span className="rounded-full bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+              آخر حفظ: {formatReportTwoSavedAt(lastAutoSavedAt)}
+            </span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={undoReportTwoLastChange}
+              className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white transition hover:bg-slate-800"
+            >
+              رجوع عن آخر تعديل
+              {undoSnapshots.length ? ` (${undoSnapshots.length})` : ""}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => saveReportTwoDraftNow(true)}
+              className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+            >
+              حفظ الآن
+            </button>
+
+            <button
+              type="button"
+              onClick={openReportTwoFinalWizard}
+              className="rounded-2xl bg-indigo-700 px-4 py-2 text-xs font-black text-white transition hover:bg-indigo-800"
+            >
+              فحص نهائي قبل الاعتماد
+            </button>
+
+            {finalCheckConfirmedAt ? (
+              <span className="rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+                جاهز منذ {formatReportTwoSavedAt(finalCheckConfirmedAt)}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-black text-slate-950">
+            تطبيق قالب محفوظ
+          </h2>
+
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            اختر قالبًا محفوظًا لهذه الخدمة وطبقه مباشرة.
+          </p>
+
+          <div className="mt-3 flex gap-2">
+            <select
+              value={selectedQuickSavedTemplateId}
+              onChange={(event) =>
+                setSelectedQuickSavedTemplateId(event.target.value)
+              }
+              className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black outline-none focus:border-emerald-600"
+            >
+              <option value="">
+                {!savedRuntimeTemplatesLoaded
+                  ? "جاري تحميل القوالب..."
+                  : savedRuntimeTemplates.length
+                    ? "اختر قالبًا محفوظًا"
+                    : "لا توجد قوالب محفوظة"}
+              </option>
+
+              {savedRuntimeTemplates.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              disabled={!selectedQuickSavedTemplateId}
+              onClick={() => applySavedRuntimeTemplate(selectedQuickSavedTemplateId)}
+              className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              تطبيق
+            </button>
+          </div>
+        </div>
+      </section>
+      
       <div className={reportTwoLayoutGridClass}>
         {!rightSidebarCollapsed ? (
         <aside className="space-y-4">
@@ -3036,6 +3874,155 @@ export function ReportTwoStudioRuntime({
         ) : null}
       </div>
 
+      {finalWizardOpen ? (
+        <div
+          className="final-wizard-modal fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <section className="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-xs font-black text-emerald-700">
+                  معالج الاعتماد
+                </p>
+
+                <h2 className="mt-1 text-2xl font-black text-slate-950">
+                  فحص نهائي قبل الاعتماد
+                </h2>
+
+                <p className="mt-1 text-sm font-bold text-slate-500">
+                  راجع البنود التالية قبل حفظ التقرير كنسخة جاهزة.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setFinalWizardOpen(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-sm font-black text-slate-500 transition hover:bg-slate-100"
+              >
+                ×
+              </button>
+            </header>
+
+            <main className="max-h-[calc(90vh-170px)] overflow-y-auto px-6 py-5">
+              <div className="grid gap-3 md:grid-cols-2">
+                {finalCheckItems.map((item) => (
+                  <article
+                    key={item.id}
+                    className={[
+                      "rounded-[1.5rem] border p-4",
+                      item.passed
+                        ? "border-emerald-100 bg-emerald-50"
+                        : item.required
+                          ? "border-red-100 bg-red-50"
+                          : "border-amber-100 bg-amber-50",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p
+                          className={[
+                            "text-sm font-black",
+                            item.passed
+                              ? "text-emerald-800"
+                              : item.required
+                                ? "text-red-700"
+                                : "text-amber-800",
+                          ].join(" ")}
+                        >
+                          {item.passed ? "✓ " : item.required ? "× " : "! "}
+                          {item.label}
+                        </p>
+
+                        <p className="mt-2 text-xs font-bold leading-6 text-slate-600">
+                          {item.description}
+                        </p>
+                      </div>
+
+                      <span className="shrink-0 rounded-full bg-white px-3 py-1 text-[10px] font-black text-slate-500">
+                        {item.required ? "مطلوب" : "اختياري"}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {finalCheckBlockingItems.length ? (
+                <div className="mt-5 rounded-[1.5rem] border border-red-100 bg-red-50 p-4">
+                  <h3 className="text-sm font-black text-red-700">
+                    عناصر يجب إصلاحها قبل الاعتماد
+                  </h3>
+
+                  <ul className="mt-3 space-y-2 text-xs font-bold leading-6 text-red-700">
+                    {finalCheckBlockingItems.map((item) => (
+                      <li key={item.id}>• {item.label}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="mt-5 rounded-[1.5rem] border border-emerald-100 bg-emerald-50 p-4">
+                  <h3 className="text-sm font-black text-emerald-800">
+                    التقرير جاهز من ناحية البنود المطلوبة
+                  </h3>
+
+                  <p className="mt-2 text-xs font-bold leading-6 text-emerald-700">
+                    تأكد بصريًا من المعاينة ثم ضع علامة التأكيد.
+                  </p>
+                </div>
+              )}
+
+              <label className="mt-5 flex items-center gap-3 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4 text-sm font-black text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={finalChecklistConfirmed}
+                  onChange={(event) =>
+                    setFinalChecklistConfirmed(event.target.checked)
+                  }
+                />
+                راجعت المعاينة والشواهد والحقول، والتقرير جاهز للاعتماد.
+              </label>
+            </main>
+
+            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-6 py-4">
+              <div className="text-xs font-bold text-slate-500">
+                {finalCheckPassed
+                  ? "كل البنود المطلوبة جاهزة."
+                  : "أصلح البنود المطلوبة ثم أعد الفحص."}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={fixAllReportTwoSmartAlerts}
+                  className="rounded-2xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+                >
+                  إصلاح سريع للتنبيهات
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRightSidebarCollapsed(true);
+                    setLeftSidebarCollapsed(true);
+                  }}
+                  className="rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
+                >
+                  تركيز المعاينة
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!finalCheckPassed}
+                  onClick={confirmReportTwoFinalWizard}
+                  className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  تأكيد الجاهزية
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      ) : null}
       {editingTableDraft ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
