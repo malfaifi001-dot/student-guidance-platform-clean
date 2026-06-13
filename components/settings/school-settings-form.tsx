@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { calculateSchoolIdentityReadiness } from "@/lib/school-identity-readiness";
 
 type SchoolSettingsFormState = {
@@ -9,6 +9,15 @@ type SchoolSettingsFormState = {
   phone: string;
   schoolName: string;
   principalName: string;
+  principalPhone: string;
+  principalSignatureUrl: string;
+  principalSignatureRequestedAt: string;
+  principalSignatureSignedAt: string;
+  activityLeaderName: string;
+  activityLeaderSignatureUrl: string;
+  activityLeaderSignedAt: string;
+  counselorSignatureUrl: string;
+  counselorSignedAt: string;
   educationDepartment: string;
   educationOffice: string;
   city: string;
@@ -27,6 +36,15 @@ function normalizeSchoolSettingsData(data: Partial<SchoolSettingsFormState> | nu
     phone: data?.phone || "",
     schoolName: data?.schoolName || "",
     principalName: data?.principalName || "",
+    principalPhone: data?.principalPhone || "",
+    principalSignatureUrl: data?.principalSignatureUrl || "",
+    principalSignatureRequestedAt: data?.principalSignatureRequestedAt || "",
+    principalSignatureSignedAt: data?.principalSignatureSignedAt || "",
+    activityLeaderName: data?.activityLeaderName || "",
+    activityLeaderSignatureUrl: data?.activityLeaderSignatureUrl || "",
+    activityLeaderSignedAt: data?.activityLeaderSignedAt || "",
+    counselorSignatureUrl: data?.counselorSignatureUrl || "",
+    counselorSignedAt: data?.counselorSignedAt || "",
     educationDepartment: data?.educationDepartment || "",
     educationOffice: data?.educationOffice || "",
     city: data?.city || "",
@@ -45,6 +63,15 @@ const EMPTY_FORM: SchoolSettingsFormState = {
   phone: "",
   schoolName: "",
   principalName: "",
+  principalPhone: "",
+  principalSignatureUrl: "",
+  principalSignatureRequestedAt: "",
+  principalSignatureSignedAt: "",
+  activityLeaderName: "",
+  activityLeaderSignatureUrl: "",
+  activityLeaderSignedAt: "",
+  counselorSignatureUrl: "",
+  counselorSignedAt: "",
   educationDepartment: "",
   educationOffice: "",
   city: "",
@@ -67,6 +94,22 @@ export function SchoolSettingsForm() {
     type: "success" | "error" | "warning";
     message: string;
   } | null>(null);
+  const [schoolSignaturePadOpen, setSchoolSignaturePadOpen] =
+    useState<"activityLeader" | null>(null);
+  const [signatureSavingKind, setSignatureSavingKind] = useState<
+    "activityLeader" | ""
+  >("");
+  const [sendingPrincipalRequest, setSendingPrincipalRequest] = useState(false);
+  const [principalSignatureLink, setPrincipalSignatureLink] = useState("");
+  const [principalPhoneModalOpen, setPrincipalPhoneModalOpen] = useState(false);
+  const [principalPhoneDraft, setPrincipalPhoneDraft] = useState("");
+  const [principalSignatureRequestModal, setPrincipalSignatureRequestModal] =
+    useState<null | {
+      signatureUrl: string;
+      whatsappUrl: string;
+      messageText: string;
+    }>(null);
+  const [principalWhatsAppLink, setPrincipalWhatsAppLink] = useState("");
 
   const requiredCompleted = useMemo(() => {
     return Boolean(
@@ -228,6 +271,176 @@ export function SchoolSettingsForm() {
     }
   }
 
+  async function reloadSchoolSettingsFromApi() {
+    try {
+      const response = await fetch("/api/dashboard/settings/school", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر تحديث بيانات المدرسة.");
+      }
+
+      const normalizedData = normalizeSchoolSettingsData(data.data);
+
+      setForm(normalizedData);
+      setInitialForm(normalizedData);
+
+      setFeedback({
+        type: "success",
+        message: "تم تحديث حالة التواقيع.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "تعذر تحديث حالة التواقيع.",
+      });
+    }
+  }
+
+  async function saveActivityLeaderSignature(dataUrl: string) {
+    setFeedback(null);
+
+    try {
+      setSignatureSavingKind("activityLeader");
+
+      const response = await fetch("/api/dashboard/settings/school/signature", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "activityLeader",
+          dataUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر حفظ توقيع رائد النشاط.");
+      }
+
+      const patch = {
+        activityLeaderSignatureUrl: data.signatureUrl || "",
+        activityLeaderSignedAt: data.signedAt || "",
+      };
+
+      setForm((current) => ({
+        ...current,
+        ...patch,
+      }));
+
+      setInitialForm((current) => ({
+        ...current,
+        ...patch,
+      }));
+
+      setSchoolSignaturePadOpen(null);
+
+      setFeedback({
+        type: "success",
+        message: "تم حفظ توقيع رائد النشاط وسيظهر تلقائيًا في التقارير.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "تعذر حفظ توقيع رائد النشاط.",
+      });
+    } finally {
+      setSignatureSavingKind("");
+    }
+  }
+
+  async function sendPrincipalSignatureRequest(phoneOverride?: string) {
+    setFeedback(null);
+    const principalPhone = String(phoneOverride ?? form.principalPhone).trim();
+
+    if (!principalPhone) {
+      setPrincipalPhoneDraft(form.principalPhone || "");
+      setPrincipalPhoneModalOpen(true);
+      return;
+    }
+if (!form.principalName.trim()) {
+      setFeedback({
+        type: "warning",
+        message: "اكتب اسم مدير المدرسة أولًا.",
+      });
+      return;
+    }
+
+    try {
+      setSendingPrincipalRequest(true);
+
+      const response = await fetch(
+        "/api/dashboard/settings/school/principal-signature-request",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            principalName: form.principalName,
+            principalPhone,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر إنشاء رابط توقيع المدير.");
+      }
+
+      const signatureUrl = String(data.signatureUrl || "");
+      const whatsappUrl = String(data.whatsappUrl || "");
+      const messageText = `السلام عليكم
+فضلاً اعتماد توقيع مدير المدرسة في منصة التوجيه الطلابي عبر الرابط:
+${signatureUrl}`;
+
+      setPrincipalSignatureLink(signatureUrl);
+      setPrincipalSignatureRequestModal({
+        signatureUrl,
+        whatsappUrl,
+        messageText,
+      });const patch = {
+        principalSignatureRequestedAt: data.requestedAt || "",
+      };
+
+      setForm((current) => ({
+        ...current,
+        ...patch,
+      }));
+
+      setInitialForm((current) => ({
+        ...current,
+        ...patch,
+      }));
+
+      setFeedback({
+        type: "success",
+        message: "تم إنشاء رابط توقيع المدير. افتح رابط الواتساب لإرساله.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "تعذر إرسال رابط توقيع المدير.",
+      });
+    } finally {
+      setSendingPrincipalRequest(false);
+    }
+  }
   if (loading) {
     return (
       <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-sm font-bold text-slate-500">
@@ -256,6 +469,56 @@ export function SchoolSettingsForm() {
       <IdentityReadinessCard readiness={readiness} />
 
       <ReportIdentityPreviewCard form={form} />
+
+      <SchoolSignaturesCard
+        form={form}
+        sendingPrincipalRequest={sendingPrincipalRequest}
+        signatureSavingKind={signatureSavingKind}
+        principalSignatureLink={principalSignatureLink}
+        principalWhatsAppLink={principalWhatsAppLink}
+        onSendPrincipalSignatureRequest={sendPrincipalSignatureRequest}
+        onOpenActivityLeaderSignature={() => setSchoolSignaturePadOpen("activityLeader")}
+        onRefresh={reloadSchoolSettingsFromApi}
+      />
+
+      {principalPhoneModalOpen ? (
+        <PrincipalPhoneModal
+          defaultValue={principalPhoneDraft || form.principalPhone}
+          loading={sendingPrincipalRequest}
+          onClose={() => setPrincipalPhoneModalOpen(false)}
+          onSubmit={(phone) => {
+            const cleanedPhone = phone.trim();
+
+            setPrincipalPhoneDraft(cleanedPhone);
+            setPrincipalPhoneModalOpen(false);
+            setForm((current) => ({
+              ...current,
+              principalPhone: cleanedPhone,
+            }));
+
+            void sendPrincipalSignatureRequest(cleanedPhone);
+          }}
+        />
+      ) : null}
+      {principalSignatureRequestModal ? (
+        <PrincipalSignatureRequestModal
+          signatureUrl={principalSignatureRequestModal.signatureUrl}
+          whatsappUrl={principalSignatureRequestModal.whatsappUrl}
+          messageText={principalSignatureRequestModal.messageText}
+          onClose={() => setPrincipalSignatureRequestModal(null)}
+        />
+      ) : null}
+
+
+      {schoolSignaturePadOpen === "activityLeader" ? (
+        <SchoolSignaturePadModal
+          title="توقيع رائد النشاط"
+          signerName={form.activityLeaderName || form.officialName || "رائد النشاط"}
+          saving={signatureSavingKind === "activityLeader"}
+          onClose={() => setSchoolSignaturePadOpen(null)}
+          onSave={saveActivityLeaderSignature}
+        />
+      ) : null}
 <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -374,6 +637,593 @@ export function SchoolSettingsForm() {
   );
 }
 
+function formatSignatureDate(value: string) {
+  if (!value) return "";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function SignatureStatusBadge({
+  signed,
+}: {
+  signed: boolean;
+}) {
+  return (
+    <span
+      className={[
+        "rounded-full px-3 py-1 text-xs font-black",
+        signed
+          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+          : "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+      ].join(" ")}
+    >
+      {signed ? "محفوظ" : "غير محفوظ"}
+    </span>
+  );
+}
+
+function SchoolSignaturesCard({
+  form,
+  sendingPrincipalRequest,
+  signatureSavingKind,
+  principalSignatureLink,
+  principalWhatsAppLink,
+  onSendPrincipalSignatureRequest,
+  onOpenActivityLeaderSignature,
+  onRefresh,
+}: {
+  form: SchoolSettingsFormState;
+  sendingPrincipalRequest: boolean;
+  signatureSavingKind: "activityLeader" | "";
+  principalSignatureLink: string;
+  principalWhatsAppLink: string;
+  onSendPrincipalSignatureRequest: () => void;
+  onOpenActivityLeaderSignature: () => void;
+  onRefresh: () => void;
+}) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-black text-blue-700">تواقيع المدرسة</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">
+            اعتماد التواقيع المستخدمة في التقارير
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+            توقيع رائد النشاط يحفظ مباشرة من هذه الصفحة، وتوقيع المدير يتم إرساله برابط واتساب خاص ثم ينعكس تلقائيًا في التقارير.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+        >
+          تحديث الحالة
+        </button>
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-black text-slate-950">
+                توقيع رائد النشاط
+              </h3>
+              <p className="mt-1 text-xs font-bold text-slate-500">
+                {form.activityLeaderName || form.officialName || "رائد النشاط"}
+              </p>
+            </div>
+
+            <SignatureStatusBadge signed={Boolean(form.activityLeaderSignatureUrl)} />
+          </div>
+
+          <div className="mt-4 flex h-28 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white">
+            {form.activityLeaderSignatureUrl ? (
+              <img
+                src={form.activityLeaderSignatureUrl}
+                alt="توقيع رائد النشاط"
+                className="max-h-20 max-w-full object-contain"
+              />
+            ) : (
+              <span className="text-xs font-black text-slate-400">
+                لا يوجد توقيع محفوظ
+              </span>
+            )}
+          </div>
+
+          {form.activityLeaderSignedAt ? (
+            <p className="mt-3 text-xs font-bold text-slate-500">
+              آخر توقيع: {formatSignatureDate(form.activityLeaderSignedAt)}
+            </p>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={onOpenActivityLeaderSignature}
+            disabled={signatureSavingKind === "activityLeader"}
+            className="mt-4 w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {signatureSavingKind === "activityLeader"
+              ? "جاري الحفظ..."
+              : form.activityLeaderSignatureUrl
+                ? "تحديث توقيع رائد النشاط"
+                : "إضافة توقيع رائد النشاط"}
+          </button>
+        </article>
+
+        <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-black text-slate-950">
+                توقيع مدير المدرسة
+              </h3>
+              <p className="mt-1 text-xs font-bold text-slate-500">
+                {form.principalName || "مدير المدرسة"}
+              </p>
+            </div>
+
+            <SignatureStatusBadge signed={Boolean(form.principalSignatureUrl)} />
+          </div>
+
+          <div className="mt-4 flex h-28 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white">
+            {form.principalSignatureUrl ? (
+              <img
+                src={form.principalSignatureUrl}
+                alt="توقيع مدير المدرسة"
+                className="max-h-20 max-w-full object-contain"
+              />
+            ) : (
+              <span className="text-xs font-black text-slate-400">
+                يوقع المدير من رابط واتساب خاص
+              </span>
+            )}
+          </div>
+
+          {form.principalSignatureSignedAt ? (
+            <p className="mt-3 text-xs font-bold text-slate-500">
+              آخر توقيع: {formatSignatureDate(form.principalSignatureSignedAt)}
+            </p>
+          ) : form.principalSignatureRequestedAt ? (
+            <p className="mt-3 text-xs font-bold text-amber-600">
+              تم إرسال طلب توقيع: {formatSignatureDate(form.principalSignatureRequestedAt)}
+            </p>
+          ) : null}
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onSendPrincipalSignatureRequest}
+              disabled={sendingPrincipalRequest}
+              className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {sendingPrincipalRequest ? "جاري إنشاء الرابط..." : "إنشاء رابط المدير"}
+            </button>
+
+            {principalWhatsAppLink ? (
+              <a
+                href={principalWhatsAppLink}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-2xl bg-emerald-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-emerald-700"
+              >
+                فتح واتساب
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={onRefresh}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                تحديث بعد توقيع المدير
+              </button>
+            )}
+
+            {principalSignatureLink ? (
+              <a
+                href={principalSignatureLink}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-2xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-black text-blue-700 transition hover:bg-blue-50 sm:col-span-2"
+              >
+                فتح صفحة توقيع المدير مباشرة
+              </a>
+            ) : null}
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function PrincipalPhoneModal({
+  defaultValue,
+  loading,
+  onClose,
+  onSubmit,
+}: {
+  defaultValue: string;
+  loading: boolean;
+  onClose: () => void;
+  onSubmit: (phone: string) => void;
+}) {
+  const [phone, setPhone] = useState(defaultValue || "");
+
+  const normalizedPhone = phone.trim();
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 backdrop-blur-sm sm:items-center"
+      dir="rtl"
+    >
+      <section className="w-full max-w-xl rounded-[2rem] bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-blue-700">
+              توقيع مدير المدرسة
+            </p>
+            <h3 className="mt-1 text-2xl font-black text-slate-950">
+              رقم واتساب المدير
+            </h3>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              أدخل رقم واتساب المدير حتى يتم إنشاء رابط التوقيع وإرسال الرسالة الجاهزة.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            إغلاق
+          </button>
+        </div>
+
+        <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <label className="text-xs font-black text-slate-500">
+            رقم واتساب المدير
+          </label>
+
+          <input
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            placeholder="مثال: 9665xxxxxxxx"
+            inputMode="tel"
+            dir="ltr"
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-base font-black text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+          />
+
+          <p className="mt-3 text-xs font-bold leading-6 text-slate-500">
+            اكتب الرقم بصيغة دولية إن أمكن، وسيتم توليد رابط التوقيع في الخطوة التالية.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            إلغاء
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSubmit(normalizedPhone)}
+            disabled={!normalizedPhone || loading}
+            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "جاري إنشاء الرابط..." : "إنشاء رابط التوقيع"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+function PrincipalSignatureRequestModal({
+  signatureUrl,
+  whatsappUrl,
+  messageText,
+  onClose,
+}: {
+  signatureUrl: string;
+  whatsappUrl: string;
+  messageText: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyMessage() {
+    try {
+      await navigator.clipboard.writeText(messageText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 backdrop-blur-sm sm:items-center"
+      dir="rtl"
+    >
+      <section className="w-full max-w-2xl rounded-[2rem] bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-blue-700">رابط توقيع المدير</p>
+            <h3 className="mt-1 text-2xl font-black text-slate-950">
+              تم إنشاء رابط التوقيع
+            </h3>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              انسخ الرسالة أو افتح واتساب لإرسالها للمدير. بعد توقيع المدير اضغط تحديث الحالة.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            إغلاق
+          </button>
+        </div>
+
+        <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <label className="text-xs font-black text-slate-500">
+            نص الرسالة
+          </label>
+
+          <textarea
+            readOnly
+            value={messageText}
+            className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold leading-7 text-slate-800 outline-none"
+          />
+
+          <label className="mt-4 block text-xs font-black text-slate-500">
+            رابط التوقيع المباشر
+          </label>
+
+          <input
+            readOnly
+            value={signatureUrl}
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-xs font-bold text-slate-700 outline-none"
+            dir="ltr"
+          />
+        </div>
+
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">
+          <button
+            type="button"
+            onClick={copyMessage}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50"
+          >
+            {copied ? "تم النسخ" : "نسخ الرسالة"}
+          </button>
+
+          <a
+            href={whatsappUrl || "#"}
+            target="_blank"
+            rel="noreferrer"
+            className={[
+              "rounded-2xl px-4 py-3 text-center text-sm font-black text-white transition",
+              whatsappUrl
+                ? "bg-emerald-600 hover:bg-emerald-700"
+                : "pointer-events-none bg-slate-300",
+            ].join(" ")}
+          >
+            فتح واتساب
+          </a>
+
+          <a
+            href={signatureUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-2xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
+          >
+            فتح صفحة التوقيع
+          </a>
+        </div>
+      </section>
+    </div>
+  );
+}
+function SchoolSignaturePadModal({
+  title,
+  signerName,
+  saving,
+  onClose,
+  onSave,
+}: {
+  title: string;
+  signerName: string;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (dataUrl: string) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawingRef = useRef(false);
+  const hasSignatureRef = useRef(false);
+  const [draftSignature, setDraftSignature] = useState("");
+
+  function resizeCanvas() {
+    const canvas = canvasRef.current;
+
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.width = Math.max(320, Math.floor(rect.width * ratio));
+    canvas.height = Math.floor(190 * ratio);
+
+    const context = canvas.getContext("2d");
+
+    if (!context) return;
+
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, rect.width, 190);
+    context.lineWidth = 3;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.strokeStyle = "#0f172a";
+  }
+
+  function getPoint(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  }
+
+  function startDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    drawingRef.current = true;
+    canvas.setPointerCapture(event.pointerId);
+
+    const point = getPoint(event);
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+  }
+
+  function draw(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current) return;
+
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    const point = getPoint(event);
+
+    context.lineTo(point.x, point.y);
+    context.stroke();
+
+    hasSignatureRef.current = true;
+  }
+
+  function stopDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+
+    if (!canvas || !drawingRef.current) return;
+
+    drawingRef.current = false;
+
+    try {
+      canvas.releasePointerCapture(event.pointerId);
+    } catch {
+      // ignore
+    }
+
+    if (hasSignatureRef.current) {
+      setDraftSignature(canvas.toDataURL("image/png"));
+    }
+  }
+
+  function clearSignature() {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, rect.width, 190);
+
+    hasSignatureRef.current = false;
+    setDraftSignature("");
+  }
+
+  useEffect(() => {
+    resizeCanvas();
+
+    window.addEventListener("resize", resizeCanvas);
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 backdrop-blur-sm sm:items-center" dir="rtl">
+      <section className="w-full max-w-2xl rounded-[2rem] bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-2xl font-black text-slate-950">{title}</h3>
+            <p className="mt-2 text-sm font-bold text-slate-500">
+              وقّع داخل المستطيل الأبيض ثم اضغط حفظ التوقيع.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            إغلاق
+          </button>
+        </div>
+
+        <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-300 bg-white shadow-inner">
+          <canvas
+            ref={canvasRef}
+            className="block h-[220px] w-full touch-none bg-white"
+            onPointerDown={startDrawing}
+            onPointerMove={draw}
+            onPointerUp={stopDrawing}
+            onPointerCancel={stopDrawing}
+          />
+        </div>
+
+        <p className="mt-3 text-xs font-black text-slate-500">
+          الاسم المعتمد للتوقيع: {signerName}
+        </p>
+
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-between">
+          <button
+            type="button"
+            onClick={clearSignature}
+            disabled={saving}
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            مسح التوقيع
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSave(draftSignature)}
+            disabled={!draftSignature || saving}
+            className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? "جاري الحفظ..." : "حفظ التوقيع"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
 function SchoolLogoUploadCard({
   logoUrl,
   uploading,

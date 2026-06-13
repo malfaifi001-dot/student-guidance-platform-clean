@@ -1903,6 +1903,37 @@ function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
     })
     .filter((item: any) => item.visible && item.label && item.value);
 }
+function isSignatureGridDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
 function DesignBlock({
   block,
   context,
@@ -2095,6 +2126,75 @@ function DesignBlock({
     );
   }
 
+  if (isSignatureGridDesignBlock(block)) {
+    const signatures = getDesignSignatureCards(block);
+
+    if (!signatures.length) return null;
+
+    return (
+      <section
+        data-report-design-signature-block
+        className="report-design-signature-grid-block"
+        style={
+          block.placement === "bottom"
+            ? {
+                position: "absolute",
+                left: "50%",
+                bottom: "-15mm",
+                width: signatures.length >= 3 ? "168mm" : "140mm",
+                transform: "translateX(-50%)",
+                zIndex: 25,
+              }
+            : undefined
+        }
+      >
+        {block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} /> : null}
+
+        <div
+          className={[
+            "flex w-full items-end gap-6",
+            signatures.length === 1 ? "justify-center" : "justify-between",
+          ].join(" ")}
+        >
+          {signatures.map((signature: any) => (
+            <div
+              key={signature.key}
+              className={[
+                "text-center",
+                signatures.length >= 3
+                  ? "w-[31%]"
+                  : signatures.length === 2
+                    ? "w-[58mm]"
+                    : "w-[58mm]",
+              ].join(" ")}
+            >
+              <div className="flex h-[10mm] items-end justify-center">
+                {signature.imageUrl ? (
+                  <img
+                    src={signature.imageUrl}
+                    alt={signature.label}
+                    className="max-h-[10mm] max-w-[42mm] object-contain"
+                  />
+                ) : (
+                  <div className="mb-1 w-full border-b border-dashed border-slate-400" />
+                )}
+              </div>
+
+              <div className="mt-1 text-[10px] font-black text-slate-950">
+                {signature.signerName || "—"}
+              </div>
+
+              {signature.signerTitle ? (
+                <div className="mt-0.5 text-[8px] font-bold text-slate-500">
+                  {signature.signerTitle}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
   if (block.kind === "evidence-gallery") {
     return <EvidenceBlock block={block} previewCase={previewCase} designId={designId} textAlign={textAlign} />;
   }

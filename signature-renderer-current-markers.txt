@@ -1,0 +1,1947 @@
+
+
+==================== components\report-engine\design-renderers\report-design-renderer.tsx / matches ====================
+
+---- report-design-renderer.tsx:450 ----
+              placement: "flow",
+            },
+            {
+              id: "fallback-fields",
+              kind: "dynamic-fields",
+              title: "بيانات الحالة",
+              content: "",
+              variant: "card",
+              align: "right",
+              showTitle: true,
+              placement: "flow",
+            },
+          ],
+
+---- report-design-renderer.tsx:503 ----
+      );
+
+      const shouldAddEvidenceBlock =
+        page?.kind === "evidence" &&
+        !normalizedBlocks.some((block: any) => block.kind === "evidence-gallery");
+
+      return {
+        ...page,
+        id: page?.id || "final-page-" + (pageIndex + 1),
+        title: page?.title || "صفحة " + (pageIndex + 1),
+        kind: page?.kind || "content",
+        blocks: shouldAddEvidenceBlock
+          ? [
+
+---- report-design-renderer.tsx:800 ----
+  if (kind === "case-meta") return "field-list";
+  if (kind === "student-summary") return "field-list";
+  if (kind === "service-summary") return "field-list";
+  if (kind === "field-list") return "field-list";
+  if (kind === "approval-signature") return "closing-note";
+  if (kind === "identity-header") return "section-text";
+
+  return kind;
+}
+
+function getDefaultFinalBlockTitle(kind: string) {
+  if (kind === "cover-title") return "عنوان التقارير";
+  if (kind === "case-meta") return "بيانات الحالة";
+
+---- report-design-renderer.tsx:815 ----
+  if (kind === "field-list") return "حقول من الحالة";
+  if (kind === "text-library") return "نص من مكتبة النصوص";
+  if (kind === "custom-paragraph") return "فقرة مخصصة";
+  if (kind === "evidence-gallery") return "الشواهد والمرفقات";
+  if (kind === "approval-signature") return "الاعتماد";
+
+  return "بلوك التقارير";
+}
+
+
+function getFinalEditedBlockContent(
+  block: any,
+  blockId: string,
+
+---- report-design-renderer.tsx:1846 ----
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة") ||
+
+---- report-design-renderer.tsx:1851 ----
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة") ||
+    Array.isArray(block?.dynamicFields)
+  );
+}
+function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
+  const configuredItems = Array.isArray(block?.dynamicFields)
+
+---- report-design-renderer.tsx:1907 ----
+      };
+    })
+    .filter((item: any) => item.visible && item.label && item.value);
+}
+function isSignatureGridDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+
+---- report-design-renderer.tsx:1913 ----
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+
+---- report-design-renderer.tsx:1914 ----
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+---- report-design-renderer.tsx:1915 ----
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+
+---- report-design-renderer.tsx:1916 ----
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+
+---- report-design-renderer.tsx:1917 ----
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+---- report-design-renderer.tsx:1920 ----
+    smartKind === "signature-grid" ||
+    smartKind === "signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+
+---- report-design-renderer.tsx:1924 ----
+    Array.isArray(block?.signatures)
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+
+---- report-design-renderer.tsx:1925 ----
+  );
+}
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+
+---- report-design-renderer.tsx:1927 ----
+
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+
+---- report-design-renderer.tsx:1928 ----
+function getDesignSignatureCards(block: any) {
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+
+---- report-design-renderer.tsx:1929 ----
+  const signatures = Array.isArray(block?.signatures) ? block.signatures : [];
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+
+---- report-design-renderer.tsx:1930 ----
+
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+
+---- report-design-renderer.tsx:1931 ----
+  return signatures
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+
+---- report-design-renderer.tsx:1932 ----
+    .map((signature: any, index: number) => ({
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+  context,
+
+---- report-design-renderer.tsx:1933 ----
+      key: String(signature?.key || `signature-${index + 1}`),
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+  context,
+  previewCase,
+
+---- report-design-renderer.tsx:1934 ----
+      label: String(signature?.label || "التوقيع"),
+      signerName: String(signature?.signerName || ""),
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+  context,
+  previewCase,
+  designId,
+
+---- report-design-renderer.tsx:1936 ----
+      signerTitle: String(signature?.signerTitle || ""),
+      imageUrl: String(signature?.imageUrl || ""),
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+  context,
+  previewCase,
+  designId,
+}: {
+  block: any;
+
+---- report-design-renderer.tsx:1938 ----
+      required: Boolean(signature?.required),
+    }))
+    .filter((signature: any) => signature.label || signature.signerName || signature.imageUrl);
+}
+function DesignBlock({
+  block,
+  context,
+  previewCase,
+  designId,
+}: {
+  block: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+
+---- report-design-renderer.tsx:1958 ----
+  const rendered = renderText(block.content || "", context);
+  const textAlign = block.align === "center" ? "text-center" : "text-right";
+  const accent = getDesignAccentClasses(designId);
+
+  if (block.kind === "hero-title") {
+    return (
+      <section className={getBlockShellClass(designId, "hero", "text-center")}>
+        <p className={["text-xs font-black", accent.subtleTextClass].join(" ")}>
+          {context["service.name"]}
+        </p>
+        <h1 className="mx-auto mt-3 max-w-[145mm] text-3xl font-black leading-[1.7] text-slate-950">{rendered}</h1>
+      </section>
+    );
+
+---- report-design-renderer.tsx:1969 ----
+      </section>
+    );
+  }
+
+  if (block.kind === "meta-strip") {
+    return (
+      <section className={getBlockShellClass(designId, "soft", textAlign)}>
+        <div className="grid gap-2 md:grid-cols-2">
+          {splitLines(rendered).map((line) => (
+            <div key={line} className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+              {line}
+            </div>
+          ))}
+
+---- report-design-renderer.tsx:1983 ----
+      </section>
+    );
+  }
+
+  if (block.kind === "bullet-list") {
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <ul className="space-y-2">
+          {splitLines(rendered).map((line) => (
+            <li key={line} className="flex gap-2 text-sm leading-7 text-slate-700">
+              <span className={["mt-2 h-2 w-2 shrink-0 rounded-full", accent.dotClass].join(" ")} />
+              <span>{line}</span>
+
+---- report-design-renderer.tsx:1999 ----
+      </section>
+    );
+  }
+
+  if (block.kind === "multi-paragraph") {
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <div className="space-y-3">
+          {splitParagraphs(rendered).map((paragraph) => (
+            <p key={paragraph} className="text-sm leading-8 text-slate-700">{paragraph}</p>
+          ))}
+        </div>
+
+---- report-design-renderer.tsx:2012 ----
+      </section>
+    );
+  }
+
+  if (block.kind === "report-one-table") {
+    const columns = Array.isArray(block.columns) && block.columns.length
+      ? block.columns
+      : ["المجال", "الإجراء", "ملاحظات"];
+
+    const rows = Array.isArray(block.rows) && block.rows.length
+      ? block.rows
+      : [["", "", ""]];
+
+
+---- report-design-renderer.tsx:2104 ----
+      </section>
+    );
+  }
+
+  if (block.kind === "field-list") {
+    const values = getFinalFieldListItems(block, previewCase);
+
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+
+        {values.length ? (
+          <div className="grid gap-2 md:grid-cols-2">
+
+---- report-design-renderer.tsx:2130 ----
+      </section>
+    );
+  }
+
+  if (block.kind === "evidence-gallery") {
+    return <EvidenceBlock block={block} previewCase={previewCase} designId={designId} textAlign={textAlign} />;
+  }
+
+  if (block.kind === "closing-note") {
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <p className="text-sm leading-8 text-slate-700">{rendered}</p>
+
+---- report-design-renderer.tsx:2134 ----
+  if (block.kind === "evidence-gallery") {
+    return <EvidenceBlock block={block} previewCase={previewCase} designId={designId} textAlign={textAlign} />;
+  }
+
+  if (block.kind === "closing-note") {
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        <p className="text-sm leading-8 text-slate-700">{rendered}</p>
+      </section>
+    );
+  }
+
+
+---- report-design-renderer.tsx:2364 ----
+  activePage?: any;
+  context: Record<string, string>;
+  previewCase: PreviewCaseData | null;
+}) {
+  const evidenceBlock = activePage?.blocks?.find((block: any) => block.kind === "evidence-gallery");
+
+  if (!activePage || !evidenceBlock || evidenceBlock.evidenceAutoCreatePages === false) return null;
+
+  const evidences = previewCase?.evidences || [];
+  const perPage = getEvidencePerPage(evidenceBlock);
+  const pagesCount = Math.ceil(evidences.length / perPage);
+
+  if (pagesCount <= 1) return null;
+
+
+==================== components\report-2\report-two-studio-runtime.tsx / matches ====================
+
+---- report-two-studio-runtime.tsx:89 ----
+};
+type ReportTwoHeaderAlign = "right" | "center" | "left";
+type ReportTwoHeaderAlignments = Record<ReportTwoHeaderFieldKey, ReportTwoHeaderAlign>;
+
+type StudioBlockKind =
+  | "hero-title"
+  | "meta-strip"
+  | "plain-text"
+  | "section-text"
+  | "multi-paragraph"
+  | "highlight-note"
+  | "bullet-list"
+  | "dynamic-fields"
+
+---- report-two-studio-runtime.tsx:97 ----
+  | "section-text"
+  | "multi-paragraph"
+  | "highlight-note"
+  | "bullet-list"
+  | "dynamic-fields"
+  | "evidence-gallery"
+  | "closing-note"
+  | "report-one-table"
+  | "signature-grid";
+
+type StudioPageKind =
+  | "content"
+  | "recommendations"
+
+---- report-two-studio-runtime.tsx:101 ----
+  | "dynamic-fields"
+  | "evidence-gallery"
+  | "closing-note"
+  | "report-one-table"
+  | "signature-grid";
+
+type StudioPageKind =
+  | "content"
+  | "recommendations"
+  | "evidence"
+  | "approval"
+  | "custom";
+
+
+---- report-two-studio-runtime.tsx:137 ----
+};
+
+type StudioBlock = {
+  id: string;
+  kind: StudioBlockKind;
+  title: string;
+  content: string;
+  variant?: string;
+  source?: string;
+  showTitle?: boolean;
+  showMeta?: boolean;
+  align?: "right" | "center";
+  placement?: string;
+
+---- report-two-studio-runtime.tsx:349 ----
+
+  return "ministry-form";
+}
+
+function createBlock(kind: StudioBlockKind): StudioBlock {
+  const base = {
+    id: makeId(kind),
+    kind,
+    title: "بلوك جديد",
+    content: "",
+    variant: "card",
+    source: "manual",
+    showTitle: true,
+
+---- report-two-studio-runtime.tsx:374 ----
+      align: "center",
+    };
+  }
+
+  if (kind === "dynamic-fields") {
+    return {
+      ...base,
+      title: "حقول الحالة",
+      content: "",
+      variant: "soft",
+    };
+  }
+
+
+---- report-two-studio-runtime.tsx:451 ----
+  };
+}
+
+function normalizeBlock(value: any, index: number): StudioBlock {
+  const kind = cleanText(value?.kind || value?.settings?.smartBlockKind || "section-text") as StudioBlockKind;
+
+  return {
+    ...createBlock(kind),
+    ...value,
+    id: cleanText(value?.id) || makeId(`block-${index + 1}`),
+    kind,
+    title: cleanText(value?.title) || `بلوك ${index + 1}`,
+    content: cleanText(value?.content ?? value?.defaultContent ?? value?.customContent ?? ""),
+
+---- report-two-studio-runtime.tsx:502 ----
+            title: "صفحة التقرير",
+            description: "",
+            blocks: [
+              createBlock("hero-title"),
+              createBlock("dynamic-fields"),
+              createBlock("section-text"),
+            ],
+          },
+        ],
+  };
+}
+
+
+
+---- report-two-studio-runtime.tsx:895 ----
+
+  return 2;
+}
+
+function getReportTwoSignatureCardsFromPayload(payload: SmartReportPayload) {
+  const priority = ["teacher", "activity_leader", "principal", "counselor"];
+
+  const signatures = [...(payload.signatures || [])].sort((a, b) => {
+    const aIndex = priority.indexOf(String(a.key || ""));
+    const bIndex = priority.indexOf(String(b.key || ""));
+
+    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+  });
+
+---- report-two-studio-runtime.tsx:898 ----
+
+function getReportTwoSignatureCardsFromPayload(payload: SmartReportPayload) {
+  const priority = ["teacher", "activity_leader", "principal", "counselor"];
+
+  const signatures = [...(payload.signatures || [])].sort((a, b) => {
+    const aIndex = priority.indexOf(String(a.key || ""));
+    const bIndex = priority.indexOf(String(b.key || ""));
+
+    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+  });
+
+  return signatures
+    .filter((signature) => {
+
+---- report-two-studio-runtime.tsx:905 ----
+
+    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+  });
+
+  return signatures
+    .filter((signature) => {
+      return Boolean(
+        signature?.label ||
+          signature?.signerName ||
+          signature?.signerTitle ||
+          signature?.imageUrl,
+      );
+    })
+
+---- report-two-studio-runtime.tsx:906 ----
+    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+  });
+
+  return signatures
+    .filter((signature) => {
+      return Boolean(
+        signature?.label ||
+          signature?.signerName ||
+          signature?.signerTitle ||
+          signature?.imageUrl,
+      );
+    })
+    .map((signature) => ({
+
+---- report-two-studio-runtime.tsx:908 ----
+
+  return signatures
+    .filter((signature) => {
+      return Boolean(
+        signature?.label ||
+          signature?.signerName ||
+          signature?.signerTitle ||
+          signature?.imageUrl,
+      );
+    })
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+
+---- report-two-studio-runtime.tsx:909 ----
+  return signatures
+    .filter((signature) => {
+      return Boolean(
+        signature?.label ||
+          signature?.signerName ||
+          signature?.signerTitle ||
+          signature?.imageUrl,
+      );
+    })
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+
+---- report-two-studio-runtime.tsx:910 ----
+    .filter((signature) => {
+      return Boolean(
+        signature?.label ||
+          signature?.signerName ||
+          signature?.signerTitle ||
+          signature?.imageUrl,
+      );
+    })
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+
+---- report-two-studio-runtime.tsx:911 ----
+      return Boolean(
+        signature?.label ||
+          signature?.signerName ||
+          signature?.signerTitle ||
+          signature?.imageUrl,
+      );
+    })
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+      imageUrl: String(signature.imageUrl || ""),
+
+---- report-two-studio-runtime.tsx:914 ----
+          signature?.signerTitle ||
+          signature?.imageUrl,
+      );
+    })
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+      imageUrl: String(signature.imageUrl || ""),
+      required: Boolean(signature.required),
+    }));
+}
+
+---- report-two-studio-runtime.tsx:915 ----
+          signature?.imageUrl,
+      );
+    })
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+      imageUrl: String(signature.imageUrl || ""),
+      required: Boolean(signature.required),
+    }));
+}
+
+
+---- report-two-studio-runtime.tsx:916 ----
+      );
+    })
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+      imageUrl: String(signature.imageUrl || ""),
+      required: Boolean(signature.required),
+    }));
+}
+
+function isReportTwoSignatureBlock(block: StudioBlock) {
+
+---- report-two-studio-runtime.tsx:917 ----
+    })
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+      imageUrl: String(signature.imageUrl || ""),
+      required: Boolean(signature.required),
+    }));
+}
+
+function isReportTwoSignatureBlock(block: StudioBlock) {
+  const kind = cleanText(block.kind);
+
+---- report-two-studio-runtime.tsx:918 ----
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+      imageUrl: String(signature.imageUrl || ""),
+      required: Boolean(signature.required),
+    }));
+}
+
+function isReportTwoSignatureBlock(block: StudioBlock) {
+  const kind = cleanText(block.kind);
+  const title = cleanText(block.title);
+
+---- report-two-studio-runtime.tsx:919 ----
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+      imageUrl: String(signature.imageUrl || ""),
+      required: Boolean(signature.required),
+    }));
+}
+
+function isReportTwoSignatureBlock(block: StudioBlock) {
+  const kind = cleanText(block.kind);
+  const title = cleanText(block.title);
+
+
+---- report-two-studio-runtime.tsx:920 ----
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+      imageUrl: String(signature.imageUrl || ""),
+      required: Boolean(signature.required),
+    }));
+}
+
+function isReportTwoSignatureBlock(block: StudioBlock) {
+  const kind = cleanText(block.kind);
+  const title = cleanText(block.title);
+
+  return (
+
+---- report-two-studio-runtime.tsx:924 ----
+      required: Boolean(signature.required),
+    }));
+}
+
+function isReportTwoSignatureBlock(block: StudioBlock) {
+  const kind = cleanText(block.kind);
+  const title = cleanText(block.title);
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    title.includes("توقيع") ||
+
+---- report-two-studio-runtime.tsx:925 ----
+    }));
+}
+
+function isReportTwoSignatureBlock(block: StudioBlock) {
+  const kind = cleanText(block.kind);
+  const title = cleanText(block.title);
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+
+---- report-two-studio-runtime.tsx:929 ----
+  const kind = cleanText(block.kind);
+  const title = cleanText(block.title);
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray((block as any).signatures)
+  );
+}
+
+
+---- report-two-studio-runtime.tsx:930 ----
+  const title = cleanText(block.title);
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray((block as any).signatures)
+  );
+}
+
+function withReportTwoSignatureBlock(
+
+---- report-two-studio-runtime.tsx:931 ----
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray((block as any).signatures)
+  );
+}
+
+function withReportTwoSignatureBlock(
+  template: StudioTemplate,
+
+---- report-two-studio-runtime.tsx:934 ----
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray((block as any).signatures)
+  );
+}
+
+function withReportTwoSignatureBlock(
+  template: StudioTemplate,
+  payload: SmartReportPayload,
+): StudioTemplate {
+  const signatures = getReportTwoSignatureCardsFromPayload(payload);
+
+---- report-two-studio-runtime.tsx:938 ----
+    Array.isArray((block as any).signatures)
+  );
+}
+
+function withReportTwoSignatureBlock(
+  template: StudioTemplate,
+  payload: SmartReportPayload,
+): StudioTemplate {
+  const signatures = getReportTwoSignatureCardsFromPayload(payload);
+
+  if (!signatures.length) return template;
+
+  const pages = template.pages.map((page) => ({
+
+---- report-two-studio-runtime.tsx:942 ----
+function withReportTwoSignatureBlock(
+  template: StudioTemplate,
+  payload: SmartReportPayload,
+): StudioTemplate {
+  const signatures = getReportTwoSignatureCardsFromPayload(payload);
+
+  if (!signatures.length) return template;
+
+  const pages = template.pages.map((page) => ({
+    ...page,
+    blocks: page.blocks.map((block) =>
+      isReportTwoSignatureBlock(block)
+        ? {
+
+---- report-two-studio-runtime.tsx:944 ----
+  payload: SmartReportPayload,
+): StudioTemplate {
+  const signatures = getReportTwoSignatureCardsFromPayload(payload);
+
+  if (!signatures.length) return template;
+
+  const pages = template.pages.map((page) => ({
+    ...page,
+    blocks: page.blocks.map((block) =>
+      isReportTwoSignatureBlock(block)
+        ? {
+            ...block,
+            kind: "signature-grid" as StudioBlockKind,
+
+---- report-two-studio-runtime.tsx:949 ----
+
+  const pages = template.pages.map((page) => ({
+    ...page,
+    blocks: page.blocks.map((block) =>
+      isReportTwoSignatureBlock(block)
+        ? {
+            ...block,
+            kind: "signature-grid" as StudioBlockKind,
+            title: block.title || "الاعتمادات والتواقيع",
+            showTitle: block.showTitle ?? true,
+            variant: block.variant || "soft",
+            signatures,
+          }
+
+---- report-two-studio-runtime.tsx:952 ----
+    blocks: page.blocks.map((block) =>
+      isReportTwoSignatureBlock(block)
+        ? {
+            ...block,
+            kind: "signature-grid" as StudioBlockKind,
+            title: block.title || "الاعتمادات والتواقيع",
+            showTitle: block.showTitle ?? true,
+            variant: block.variant || "soft",
+            signatures,
+          }
+        : block,
+    ),
+  }));
+
+---- report-two-studio-runtime.tsx:956 ----
+            kind: "signature-grid" as StudioBlockKind,
+            title: block.title || "الاعتمادات والتواقيع",
+            showTitle: block.showTitle ?? true,
+            variant: block.variant || "soft",
+            signatures,
+          }
+        : block,
+    ),
+  }));
+
+  const alreadyHasSignatureBlock = pages.some((page) =>
+    page.blocks.some((block) => isReportTwoSignatureBlock(block)),
+  );
+
+---- report-two-studio-runtime.tsx:962 ----
+        : block,
+    ),
+  }));
+
+  const alreadyHasSignatureBlock = pages.some((page) =>
+    page.blocks.some((block) => isReportTwoSignatureBlock(block)),
+  );
+
+  if (alreadyHasSignatureBlock) {
+    return {
+      ...template,
+      pages,
+    };
+
+---- report-two-studio-runtime.tsx:963 ----
+    ),
+  }));
+
+  const alreadyHasSignatureBlock = pages.some((page) =>
+    page.blocks.some((block) => isReportTwoSignatureBlock(block)),
+  );
+
+  if (alreadyHasSignatureBlock) {
+    return {
+      ...template,
+      pages,
+    };
+  }
+
+---- report-two-studio-runtime.tsx:966 ----
+  const alreadyHasSignatureBlock = pages.some((page) =>
+    page.blocks.some((block) => isReportTwoSignatureBlock(block)),
+  );
+
+  if (alreadyHasSignatureBlock) {
+    return {
+      ...template,
+      pages,
+    };
+  }
+
+  const targetPage =
+    [...pages].reverse().find((page) => page.kind !== "evidence") ||
+
+---- report-two-studio-runtime.tsx:988 ----
+            ...page,
+            blocks: [
+              ...page.blocks,
+              {
+                id: "report-two-system-signatures",
+                kind: "signature-grid" as StudioBlockKind,
+                title: "الاعتمادات والتواقيع",
+                content: "",
+                variant: "soft",
+                source: "system",
+                showTitle: true,
+                showMeta: false,
+                align: "center",
+
+---- report-two-studio-runtime.tsx:989 ----
+            blocks: [
+              ...page.blocks,
+              {
+                id: "report-two-system-signatures",
+                kind: "signature-grid" as StudioBlockKind,
+                title: "الاعتمادات والتواقيع",
+                content: "",
+                variant: "soft",
+                source: "system",
+                showTitle: true,
+                showMeta: false,
+                align: "center",
+                placement: "bottom",
+
+---- report-two-studio-runtime.tsx:998 ----
+                showTitle: true,
+                showMeta: false,
+                align: "center",
+                placement: "bottom",
+                signatures,
+              } as StudioBlock,
+            ],
+          }
+        : page,
+    ),
+  };
+}
+function getReportTwoBlockHeightScore(
+
+---- report-two-studio-runtime.tsx:1010 ----
+function getReportTwoBlockHeightScore(
+  block: StudioBlock,
+  previewCase: ReturnType<typeof getPreviewCase>,
+) {
+  if (block.kind === "hero-title") return 32;
+  if (block.kind === "meta-strip") return 28;
+  if (block.kind === "closing-note") return 34;
+  if (block.kind === "highlight-note") return 34;
+  if (block.kind === "plain-text") return 26;
+
+  if (block.kind === "dynamic-fields") {
+    const count = Math.max(previewCase.values.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+
+---- report-two-studio-runtime.tsx:1011 ----
+  block: StudioBlock,
+  previewCase: ReturnType<typeof getPreviewCase>,
+) {
+  if (block.kind === "hero-title") return 32;
+  if (block.kind === "meta-strip") return 28;
+  if (block.kind === "closing-note") return 34;
+  if (block.kind === "highlight-note") return 34;
+  if (block.kind === "plain-text") return 26;
+
+  if (block.kind === "dynamic-fields") {
+    const count = Math.max(previewCase.values.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+  }
+
+---- report-two-studio-runtime.tsx:1012 ----
+  previewCase: ReturnType<typeof getPreviewCase>,
+) {
+  if (block.kind === "hero-title") return 32;
+  if (block.kind === "meta-strip") return 28;
+  if (block.kind === "closing-note") return 34;
+  if (block.kind === "highlight-note") return 34;
+  if (block.kind === "plain-text") return 26;
+
+  if (block.kind === "dynamic-fields") {
+    const count = Math.max(previewCase.values.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+  }
+
+
+---- report-two-studio-runtime.tsx:1013 ----
+) {
+  if (block.kind === "hero-title") return 32;
+  if (block.kind === "meta-strip") return 28;
+  if (block.kind === "closing-note") return 34;
+  if (block.kind === "highlight-note") return 34;
+  if (block.kind === "plain-text") return 26;
+
+  if (block.kind === "dynamic-fields") {
+    const count = Math.max(previewCase.values.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+  }
+
+  if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+
+---- report-two-studio-runtime.tsx:1014 ----
+  if (block.kind === "hero-title") return 32;
+  if (block.kind === "meta-strip") return 28;
+  if (block.kind === "closing-note") return 34;
+  if (block.kind === "highlight-note") return 34;
+  if (block.kind === "plain-text") return 26;
+
+  if (block.kind === "dynamic-fields") {
+    const count = Math.max(previewCase.values.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+  }
+
+  if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+    const contentLength = cleanText(block.content).length;
+
+---- report-two-studio-runtime.tsx:1016 ----
+  if (block.kind === "closing-note") return 34;
+  if (block.kind === "highlight-note") return 34;
+  if (block.kind === "plain-text") return 26;
+
+  if (block.kind === "dynamic-fields") {
+    const count = Math.max(previewCase.values.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+  }
+
+  if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+    const contentLength = cleanText(block.content).length;
+    const lineCount = Math.max(
+      cleanText(block.content).split("\n").length,
+
+---- report-two-studio-runtime.tsx:1021 ----
+    const count = Math.max(previewCase.values.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+  }
+
+  if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+    const contentLength = cleanText(block.content).length;
+    const lineCount = Math.max(
+      cleanText(block.content).split("\n").length,
+      Math.ceil(contentLength / 80),
+      1,
+    );
+
+    return 24 + lineCount * 5.8;
+
+---- report-two-studio-runtime.tsx:1032 ----
+
+    return 24 + lineCount * 5.8;
+  }
+
+  if (block.kind === "bullet-list") {
+    const count = Math.max(
+      cleanText(block.content)
+        .split("\n")
+        .filter(Boolean).length,
+      1,
+    );
+
+    return 24 + count * 7;
+
+---- report-two-studio-runtime.tsx:1043 ----
+
+    return 24 + count * 7;
+  }
+
+  if (block.kind === "report-one-table") {
+    const rowCount = Math.max(block.rows?.length || 0, 1);
+    return 28 + rowCount * 11;
+  }
+
+  if (block.kind === "evidence-gallery") {
+    const perPage = getEvidencePerPageFromBlock(block);
+    const shown = Math.min(perPage, Math.max(previewCase.evidences.length, 1));
+
+
+---- report-two-studio-runtime.tsx:1048 ----
+    const rowCount = Math.max(block.rows?.length || 0, 1);
+    return 28 + rowCount * 11;
+  }
+
+  if (block.kind === "evidence-gallery") {
+    const perPage = getEvidencePerPageFromBlock(block);
+    const shown = Math.min(perPage, Math.max(previewCase.evidences.length, 1));
+
+    if (block.evidenceLayout === "ONE_PER_PAGE") return 118;
+    if (block.evidenceLayout === "GRID_2X2") return 112;
+    if (block.evidenceLayout === "ATTACHMENT_LIST") return 28 + shown * 10;
+
+    return 92;
+
+---- report-two-studio-runtime.tsx:1085 ----
+  if (isReportTwoDynamicFieldsBlock(block)) {
+    return {
+      ...block,
+      sourceBlockId: block.id,
+      kind: "dynamic-fields" as StudioBlockKind,
+      dynamicFields: block.dynamicFields?.length
+        ? block.dynamicFields
+        : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+    };
+  }
+
+  if (block.kind !== "evidence-gallery") {
+    return {
+
+---- report-two-studio-runtime.tsx:1092 ----
+        : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+    };
+  }
+
+  if (block.kind !== "evidence-gallery") {
+    return {
+      ...block,
+      sourceBlockId: block.id,
+    } as StudioBlock;
+  }
+
+  const perPage = getEvidencePerPageFromBlock(block);
+  const count = previewCase.evidences.length;
+
+---- report-two-studio-runtime.tsx:1152 ----
+
+      currentPage.blocks.push(block);
+      usedScore += blockScore;
+
+      if (block.kind === "evidence-gallery") {
+        const perPage = getEvidencePerPageFromBlock(block);
+        const count = previewCase.evidences.length;
+        const pagesCount = Math.ceil(count / perPage);
+
+        if (pagesCount > 1) {
+          for (let index = 1; index < pagesCount; index += 1) {
+            const evidencePageNumber = pageNumber + index;
+            const evidencePage: StudioPage = {
+
+---- report-two-studio-runtime.tsx:1279 ----
+
+function isReportTwoDynamicFieldsBlock(block: StudioBlock | null | undefined) {
+  if (!block) return false;
+
+  const kind = cleanText(block.kind);
+  const smartKind = cleanText((block as any).settings?.smartBlockKind);
+  const title = cleanText(block.title);
+
+  return (
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+
+---- report-two-studio-runtime.tsx:1284 ----
+  const smartKind = cleanText((block as any).settings?.smartBlockKind);
+  const title = cleanText(block.title);
+
+  return (
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة")
+
+---- report-two-studio-runtime.tsx:1289 ----
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة")
+  );
+}
+function getReportTwoLookupKey(value: unknown) {
+  return cleanText(value).toLowerCase();
+}
+
+---- report-two-studio-runtime.tsx:1842 ----
+          });
+        }
+      }
+
+      if (block.kind === "evidence-gallery") {
+        const evidenceCount = previewCase.evidences.length;
+        const perPage = getEvidencePerPageFromBlock(block);
+
+        if (!evidenceCount) {
+          alerts.push({
+            id: `no-evidence-${page.id}-${block.id}`,
+            type: "info",
+            title: "لا توجد شواهد",
+
+---- report-two-studio-runtime.tsx:1871 ----
+          });
+        }
+      }
+
+      if (block.kind === "report-one-table") {
+        const columns = normalizeReportTwoTableColumns(block.columns);
+        const rows = normalizeReportTwoTableRows(block.rows, columns.length);
+        const filledCells = getReportTwoFilledTableCells(block);
+
+        if (!filledCells) {
+          alerts.push({
+            id: `empty-table-${page.id}-${block.id}`,
+            type: "info",
+
+---- report-two-studio-runtime.tsx:1902 ----
+        }
+      }
+
+      if (
+        (block.kind === "section-text" || block.kind === "multi-paragraph") &&
+        cleanText(block.content).length > 700
+      ) {
+        alerts.push({
+          id: `long-text-${page.id}-${block.id}`,
+          type: "warning",
+          title: "فقرة طويلة",
+          description: "الفقرة طويلة وقد تضغط الصفحة. اختصرها أو انقل جزءًا منها لبلوك جديد.",
+          pageId: page.id,
+
+---- report-two-studio-runtime.tsx:2028 ----
+
+function getReportTwoFinalCheckPassed(items: ReportTwoFinalCheckItem[]) {
+  return items.every((item) => !item.required || item.passed);
+}
+function getBlockKindName(kind: StudioBlockKind) {
+  if (kind === "hero-title") return "عنوان رئيسي";
+  if (kind === "meta-strip") return "شريط بيانات";
+  if (kind === "plain-text") return "نص بسيط";
+  if (kind === "section-text") return "فقرة";
+  if (kind === "multi-paragraph") return "فقرات";
+  if (kind === "highlight-note") return "ملاحظة بارزة";
+  if (kind === "bullet-list") return "قائمة";
+  if (kind === "dynamic-fields") return "حقول الحالة";
+
+---- report-two-studio-runtime.tsx:2036 ----
+  if (kind === "section-text") return "فقرة";
+  if (kind === "multi-paragraph") return "فقرات";
+  if (kind === "highlight-note") return "ملاحظة بارزة";
+  if (kind === "bullet-list") return "قائمة";
+  if (kind === "dynamic-fields") return "حقول الحالة";
+  if (kind === "evidence-gallery") return "الشواهد";
+  if (kind === "closing-note") return "خاتمة";
+  if (kind === "report-one-table") return "جدول";
+
+  return "بلوك";
+}
+
+export function ReportTwoStudioRuntime({
+
+---- report-two-studio-runtime.tsx:2217 ----
+    [previewTemplate, visiblePreviewPages],
+  );
+
+  const signedVisiblePreviewTemplate = useMemo(
+    () => withReportTwoSignatureBlock(visiblePreviewTemplate, payload),
+    [visiblePreviewTemplate, payload],
+  );
+  const activePage = useMemo(
+    () =>
+      visiblePreviewTemplate.pages.find((page) => page.id === activePageId) ||
+      visiblePreviewTemplate.pages[0],
+    [visiblePreviewTemplate.pages, activePageId],
+  );
+
+---- report-two-studio-runtime.tsx:2917 ----
+  function removeActivePage() {
+    deleteReportTwoPage(activePageId);
+  }
+
+  function addBlock(kind: StudioBlockKind) {
+    const targetPageId = getWritableReportTwoPageId(
+      activePageId,
+      activePage,
+      template,
+    );
+
+    const targetPage = template.pages.find((page) => page.id === targetPageId);
+
+
+---- report-two-studio-runtime.tsx:4043 ----
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {[
+                ["section-text", "فقرة"],
+                ["bullet-list", "قائمة"],
+                ["dynamic-fields", "حقول"],
+                ["evidence-gallery", "شواهد"],
+                ["report-one-table", "جدول"],
+                ["closing-note", "خاتمة"],
+              ].map(([kind, label]) => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => addBlock(kind as StudioBlockKind)}
+
+---- report-two-studio-runtime.tsx:4051 ----
+              ].map(([kind, label]) => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => addBlock(kind as StudioBlockKind)}
+                  className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+                >
+                  + {label}
+                </button>
+              ))}
+            </div>
+          
+</ReportTwoCollapsibleCard>
+
+---- report-two-studio-runtime.tsx:4083 ----
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    {index + 1}. {block.title} · {getBlockKindName(block.kind)}
+                  </button>
+                );
+              })}
+            </div>
+          
+</ReportTwoCollapsibleCard>
+
+          {selectedBlock ? (
+
+---- report-two-studio-runtime.tsx:4260 ----
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+                {selectedBlock.kind !== "dynamic-fields" &&
+                selectedBlock.kind !== "evidence-gallery" &&
+                selectedBlock.kind !== "report-one-table" ? (
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      المحتوى
+                    </span>
+
+                    <textarea
+
+---- report-two-studio-runtime.tsx:4261 ----
+                    </div>
+                  </section>
+                ) : null}
+                {selectedBlock.kind !== "dynamic-fields" &&
+                selectedBlock.kind !== "evidence-gallery" &&
+                selectedBlock.kind !== "report-one-table" ? (
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      المحتوى
+                    </span>
+
+                    <textarea
+                      value={selectedBlock.content}
+
+---- report-two-studio-runtime.tsx:4262 ----
+                  </section>
+                ) : null}
+                {selectedBlock.kind !== "dynamic-fields" &&
+                selectedBlock.kind !== "evidence-gallery" &&
+                selectedBlock.kind !== "report-one-table" ? (
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      المحتوى
+                    </span>
+
+                    <textarea
+                      value={selectedBlock.content}
+                      onChange={(event) =>
+
+---- report-two-studio-runtime.tsx:4282 ----
+                    />
+                  </label>
+                ) : null}
+
+                {selectedBlock.kind === "report-one-table" ? (
+                  <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-900">
+                          تحرير الجدول
+                        </h3>
+                        <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                          افتح محرر الجدول لتعديل الأعمدة والخلايا والإعدادات.
+
+---- report-two-studio-runtime.tsx:4342 ----
+                    </div>
+                  </section>
+                ) : null}
+
+                {selectedBlock.kind === "evidence-gallery" ? (
+                  <div className="space-y-3 rounded-[1.5rem] bg-slate-50 p-3">
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-500">
+                        عدد الشواهد
+                      </span>
+
+                      <select
+                        value={selectedBlock.evidenceLayout || "TWO_PER_PAGE"}
+
+
+==================== lib\report-engine\smart-report-payload-builder.ts / matches ====================
+
+---- smart-report-payload-builder.ts:8 ----
+  SmartReportEvidenceItem,
+  SmartReportField,
+  SmartReportFieldImportance,
+  SmartReportPayload,
+  SmartReportSignature,
+  SmartReportType,
+} from "@/lib/report-engine/smart-report-types";
+
+type CurrentUserLike = {
+  user: {
+    id: string;
+    name: string;
+    role: string;
+
+---- smart-report-payload-builder.ts:25 ----
+      name?: string | null;
+      profile?: {
+        schoolName?: string | null;
+        principalName?: string | null;
+        principalSignatureUrl?: string | null;
+        activityLeaderName?: string | null;
+        activityLeaderSignatureUrl?: string | null;
+        counselorSignatureUrl?: string | null;
+        educationDepartment?: string | null;
+        educationOffice?: string | null;
+        academicYear?: string | null;
+        currentSemester?: string | null;
+        logoUrl?: string | null;
+
+---- smart-report-payload-builder.ts:27 ----
+        schoolName?: string | null;
+        principalName?: string | null;
+        principalSignatureUrl?: string | null;
+        activityLeaderName?: string | null;
+        activityLeaderSignatureUrl?: string | null;
+        counselorSignatureUrl?: string | null;
+        educationDepartment?: string | null;
+        educationOffice?: string | null;
+        academicYear?: string | null;
+        currentSemester?: string | null;
+        logoUrl?: string | null;
+      } | null;
+    } | null;
+
+---- smart-report-payload-builder.ts:28 ----
+        principalName?: string | null;
+        principalSignatureUrl?: string | null;
+        activityLeaderName?: string | null;
+        activityLeaderSignatureUrl?: string | null;
+        counselorSignatureUrl?: string | null;
+        educationDepartment?: string | null;
+        educationOffice?: string | null;
+        academicYear?: string | null;
+        currentSemester?: string | null;
+        logoUrl?: string | null;
+      } | null;
+    } | null;
+  };
+
+---- smart-report-payload-builder.ts:146 ----
+    text.includes("metadata") ||
+    text === "student" ||
+    text === "guardian" ||
+    text.includes("token") ||
+    text.includes("signature url") ||
+    text.includes("signed at")
+  );
+}
+
+function classifyField(key: string, label: string): SmartReportFieldImportance {
+  const text = normalizeArabicText(`${key} ${label}`);
+
+  if (
+
+---- smart-report-payload-builder.ts:176 ----
+  ) {
+    return "EVIDENCE_RELATED";
+  }
+
+  if (text.includes("signature") || text.includes("توقيع")) {
+    return "SIGNATURE_RELATED";
+  }
+
+  return "DETAIL";
+}
+
+function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
+  return (caseEntry.values || [])
+
+---- smart-report-payload-builder.ts:177 ----
+    return "EVIDENCE_RELATED";
+  }
+
+  if (text.includes("signature") || text.includes("توقيع")) {
+    return "SIGNATURE_RELATED";
+  }
+
+  return "DETAIL";
+}
+
+function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
+  return (caseEntry.values || [])
+    .map((item: any) => {
+
+---- smart-report-payload-builder.ts:307 ----
+
+  return [...normalItems, ...caseEvidenceItems, ...assignmentEvidenceItems];
+}
+
+function buildSignatures(caseEntry: any, current: CurrentUserLike): SmartReportSignature[] {
+  const profile = current.user.schoolAccount?.profile;
+  const serviceSlug = caseEntry.service?.slug || "";
+  const isActivity = serviceSlug.startsWith("activity-programs");
+
+  const signatures: SmartReportSignature[] = [];
+
+  signatures.push({
+    key: "principal",
+
+---- smart-report-payload-builder.ts:312 ----
+  const profile = current.user.schoolAccount?.profile;
+  const serviceSlug = caseEntry.service?.slug || "";
+  const isActivity = serviceSlug.startsWith("activity-programs");
+
+  const signatures: SmartReportSignature[] = [];
+
+  signatures.push({
+    key: "principal",
+    label: "مدير المدرسة",
+    signerName: profile?.principalName || "مدير المدرسة",
+    signerTitle: "مدير المدرسة",
+    imageUrl: profile?.principalSignatureUrl || null,
+    required: false,
+
+---- smart-report-payload-builder.ts:314 ----
+  const isActivity = serviceSlug.startsWith("activity-programs");
+
+  const signatures: SmartReportSignature[] = [];
+
+  signatures.push({
+    key: "principal",
+    label: "مدير المدرسة",
+    signerName: profile?.principalName || "مدير المدرسة",
+    signerTitle: "مدير المدرسة",
+    imageUrl: profile?.principalSignatureUrl || null,
+    required: false,
+  });
+
+
+---- smart-report-payload-builder.ts:319 ----
+    key: "principal",
+    label: "مدير المدرسة",
+    signerName: profile?.principalName || "مدير المدرسة",
+    signerTitle: "مدير المدرسة",
+    imageUrl: profile?.principalSignatureUrl || null,
+    required: false,
+  });
+
+  if (isActivity) {
+    signatures.push({
+      key: "activity_leader",
+      label: "رائد النشاط",
+      signerName:
+
+---- smart-report-payload-builder.ts:324 ----
+    required: false,
+  });
+
+  if (isActivity) {
+    signatures.push({
+      key: "activity_leader",
+      label: "رائد النشاط",
+      signerName:
+        profile?.activityLeaderName ||
+        current.user.officialName ||
+        current.user.name,
+      signerTitle: "رائد النشاط",
+      imageUrl: profile?.activityLeaderSignatureUrl || null,
+
+---- smart-report-payload-builder.ts:332 ----
+        profile?.activityLeaderName ||
+        current.user.officialName ||
+        current.user.name,
+      signerTitle: "رائد النشاط",
+      imageUrl: profile?.activityLeaderSignatureUrl || null,
+      required: true,
+    });
+  } else {
+    signatures.push({
+      key: "counselor",
+      label: "الموجه الطلابي",
+      signerName: current.user.officialName || current.user.name,
+      signerTitle: current.user.jobTitle || "الموجه الطلابي",
+
+---- smart-report-payload-builder.ts:336 ----
+      imageUrl: profile?.activityLeaderSignatureUrl || null,
+      required: true,
+    });
+  } else {
+    signatures.push({
+      key: "counselor",
+      label: "الموجه الطلابي",
+      signerName: current.user.officialName || current.user.name,
+      signerTitle: current.user.jobTitle || "الموجه الطلابي",
+      imageUrl: profile?.counselorSignatureUrl || null,
+      required: true,
+    });
+  }
+
+---- smart-report-payload-builder.ts:341 ----
+      key: "counselor",
+      label: "الموجه الطلابي",
+      signerName: current.user.officialName || current.user.name,
+      signerTitle: current.user.jobTitle || "الموجه الطلابي",
+      imageUrl: profile?.counselorSignatureUrl || null,
+      required: true,
+    });
+  }
+
+  if (caseEntry.activityAssignment?.teacherName) {
+    signatures.push({
+      key: "teacher",
+      label: "توقيع المعلم المنفذ",
+
+---- smart-report-payload-builder.ts:347 ----
+    });
+  }
+
+  if (caseEntry.activityAssignment?.teacherName) {
+    signatures.push({
+      key: "teacher",
+      label: "توقيع المعلم المنفذ",
+      signerName:
+        caseEntry.activityAssignment.teacherSignedName ||
+        caseEntry.activityAssignment.teacherName,
+      signerTitle: "المعلم المنفذ",
+      imageUrl: caseEntry.activityAssignment.teacherSignatureUrl || null,
+      signedAt: caseEntry.activityAssignment.teacherSignedAt?.toISOString?.() || null,
+
+---- smart-report-payload-builder.ts:354 ----
+      signerName:
+        caseEntry.activityAssignment.teacherSignedName ||
+        caseEntry.activityAssignment.teacherName,
+      signerTitle: "المعلم المنفذ",
+      imageUrl: caseEntry.activityAssignment.teacherSignatureUrl || null,
+      signedAt: caseEntry.activityAssignment.teacherSignedAt?.toISOString?.() || null,
+      required: true,
+    });
+  }
+
+  return signatures;
+}
+
+
+---- smart-report-payload-builder.ts:360 ----
+      required: true,
+    });
+  }
+
+  return signatures;
+}
+
+function buildNarrative({
+  title,
+  serviceName,
+  semester,
+  executor,
+  executionDate,
+
+---- smart-report-payload-builder.ts:685 ----
+    evidence: {
+      layout: "GRID_2X2",
+      items: evidence,
+    },
+    signatures: buildSignatures(caseEntry, current),
+    readiness: {
+      status: missingItems.length ? "NEEDS_REVIEW" : "READY",
+      percentage,
+      missingItems,
+      notes: [],
+    },
+  };
+
+
+
+==================== lib\report-engine\smart-report-types.ts / matches ====================
+
+---- smart-report-types.ts:15 ----
+  | "PRIMARY"
+  | "DETAIL"
+  | "NARRATIVE"
+  | "EVIDENCE_RELATED"
+  | "SIGNATURE_RELATED"
+  | "HIDDEN"
+  | "TECHNICAL";
+
+export type SmartReportReadinessStatus =
+  | "READY"
+  | "NEEDS_REVIEW"
+  | "BLOCKED";
+
+
+---- smart-report-types.ts:46 ----
+  caption?: string;
+  type?: "IMAGE" | "FILE";
+};
+
+export type SmartReportSignature = {
+  key: string;
+  label: string;
+  signerName?: string | null;
+  signerTitle?: string | null;
+  signedAt?: string | null;
+  imageUrl?: string | null;
+  required?: boolean;
+};
+
+---- smart-report-types.ts:138 ----
+export type SmartReportCustomBlockZone =
+  | "PAGE_TOP"
+  | "BEFORE_EVIDENCE"
+  | "AFTER_EVIDENCE"
+  | "BEFORE_SIGNATURES";
+
+export type SmartReportCustomBlock = {
+  id: string;
+  type: SmartReportCustomBlockType;
+  title: string;
+  body: string;
+  table?: SmartReportCustomTableData;
+  targetPageIndex?: number;
+
+---- smart-report-types.ts:168 ----
+  evidence: {
+    layout: SmartReportEvidenceLayout;
+    items: SmartReportEvidenceItem[];
+  };
+  signatures: SmartReportSignature[];
+  readiness: SmartReportReadiness;
+  evidenceConfig?: ReportEvidenceConfig;
+  customBlocks?: SmartReportCustomBlock[];
+};
+
+export type ReportDraftAdjustments = {
+  title?: string;
+  narrative?: {

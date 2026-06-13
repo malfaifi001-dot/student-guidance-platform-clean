@@ -97,7 +97,8 @@ type StudioBlockKind =
   | "dynamic-fields"
   | "evidence-gallery"
   | "closing-note"
-  | "report-one-table";
+  | "report-one-table"
+  | "signature-grid";
 
 type StudioPageKind =
   | "content"
@@ -142,6 +143,9 @@ type StudioBlock = {
   showMeta?: boolean;
   align?: "right" | "center";
   placement?: string;
+  signatures?: any[];
+  signatureOrder?: string[];
+  hiddenSignatureKeys?: string[];
   boundFieldKey?: string;
   hideWhenMissing?: boolean;
   evidenceLayout?: string;
@@ -266,6 +270,60 @@ function readReportTwoSavedTemplates(
   }
 }
 
+function getReportTwoSavedTemplatesStoragePrefix() {
+  return "report-2:saved-runtime-templates:";
+}
+
+function readAllReportTwoSavedTemplates() {
+  if (typeof window === "undefined") return [];
+
+  const prefix = getReportTwoSavedTemplatesStoragePrefix();
+  const items: ReportTwoSavedRuntimeTemplate[] = [];
+
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index);
+
+    if (!key || !key.startsWith(prefix)) continue;
+
+    const serviceSlug = key.slice(prefix.length);
+    const templates = readReportTwoSavedTemplates(serviceSlug);
+
+    templates.forEach((template) => {
+      items.push({
+        ...template,
+        serviceSlug: (template as any).serviceSlug || serviceSlug,
+      } as ReportTwoSavedRuntimeTemplate);
+    });
+  }
+
+  return items.sort((a, b) => {
+    return String((b as any).updatedAt || (b as any).createdAt || "").localeCompare(
+      String((a as any).updatedAt || (a as any).createdAt || ""),
+    );
+  });
+}
+
+function deleteReportTwoSavedTemplateFromAllServices(templateId: string) {
+  if (typeof window === "undefined") return [];
+
+  const prefix = getReportTwoSavedTemplatesStoragePrefix();
+
+  for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+    const key = window.localStorage.key(index);
+
+    if (!key || !key.startsWith(prefix)) continue;
+
+    const serviceSlug = key.slice(prefix.length);
+    const templates = readReportTwoSavedTemplates(serviceSlug);
+    const nextTemplates = templates.filter((template) => template.id !== templateId);
+
+    if (nextTemplates.length !== templates.length) {
+      writeReportTwoSavedTemplates(serviceSlug, nextTemplates);
+    }
+  }
+
+  return readAllReportTwoSavedTemplates();
+}
 function writeReportTwoSavedTemplates(
   serviceSlug: string,
   items: ReportTwoSavedRuntimeTemplate[],
@@ -376,6 +434,18 @@ function createBlock(kind: StudioBlockKind): StudioBlock {
       title: "حقول الحالة",
       content: "",
       variant: "soft",
+    };
+  }
+
+  if (kind === "signature-grid") {
+    return {
+      ...base,
+      title: "تواقيع الاعتماد",
+      content: "",
+      variant: "soft",
+      align: "center",
+      placement: "bottom",
+      showTitle: false,
     };
   }
 
@@ -891,6 +961,211 @@ function getEvidencePerPageFromBlock(block: StudioBlock) {
   return 2;
 }
 
+function getReportTwoSignatureCardsFromPayload(payload: SmartReportPayload) {
+  const priority = ["teacher", "activity_leader", "counselor", "principal"];
+
+  const signatures = [...(payload.signatures || [])].sort((a, b) => {
+    const aIndex = priority.indexOf(String(a.key || ""));
+    const bIndex = priority.indexOf(String(b.key || ""));
+
+    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+  });
+
+  return signatures
+    .filter((signature) => {
+      return Boolean(
+        signature?.label ||
+          signature?.signerName ||
+          signature?.signerTitle ||
+          signature?.imageUrl,
+      );
+    })
+    .map((signature) => ({
+      key: String(signature.key || ""),
+      label: String(signature.label || "التوقيع"),
+      signerName: String(signature.signerName || ""),
+      signerTitle: String(signature.signerTitle || ""),
+      imageUrl: String(signature.imageUrl || ""),
+      required: Boolean(signature.required),
+    }));
+}
+
+function isReportTwoSignatureBlock(block: StudioBlock | null | undefined) {
+  if (!block) return false;
+
+  const kind = cleanText(block.kind);
+  const title = cleanText(block.title);
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    title.includes("توقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray((block as any).signatures)
+  );
+}
+
+function getReportTwoSignatureTargetPageId(pages: StudioPage[]) {
+  const lastContentPage = [...pages]
+    .reverse()
+    .find((page) => page.kind !== "evidence");
+
+  return lastContentPage?.id || pages[pages.length - 1]?.id || "";
+}
+
+function getReportTwoSignatureHiddenKeys(block: StudioBlock | null | undefined) {
+  return new Set(
+    Array.isArray((block as any)?.hiddenSignatureKeys)
+      ? ((block as any).hiddenSignatureKeys as string[]).map((key) => cleanText(key))
+      : [],
+  );
+}
+
+function getReportTwoOrderedSignatureCards(
+  signatures: ReturnType<typeof getReportTwoSignatureCardsFromPayload>,
+  block: StudioBlock | null | undefined,
+) {
+  const order = Array.isArray((block as any)?.signatureOrder)
+    ? ((block as any).signatureOrder as string[]).map((key) => cleanText(key)).filter(Boolean)
+    : [];
+
+  const byKey = new Map(signatures.map((signature) => [signature.key, signature]));
+  const used = new Set<string>();
+  const ordered = order
+    .map((key) => byKey.get(key))
+    .filter((signature): signature is NonNullable<typeof signature> => {
+      if (!signature || used.has(signature.key)) return false;
+
+      used.add(signature.key);
+      return true;
+    });
+
+  return [
+    ...ordered,
+    ...signatures.filter((signature) => !used.has(signature.key)),
+  ];
+}
+
+function getReportTwoConfiguredSignatureCards(
+  signatures: ReturnType<typeof getReportTwoSignatureCardsFromPayload>,
+  block: StudioBlock | null | undefined,
+) {
+  const hiddenKeys = getReportTwoSignatureHiddenKeys(block);
+
+  return getReportTwoOrderedSignatureCards(signatures, block).filter(
+    (signature) => !hiddenKeys.has(signature.key),
+  );
+}
+
+function moveReportTwoSignatureOrder(
+  currentOrder: unknown,
+  allKeys: string[],
+  key: string,
+  direction: -1 | 1,
+) {
+  const normalizedKeys = allKeys.map((item) => cleanText(item)).filter(Boolean);
+  const current = Array.isArray(currentOrder)
+    ? currentOrder.map((item) => cleanText(item)).filter(Boolean)
+    : [];
+
+  const order = [
+    ...current.filter((item) => normalizedKeys.includes(item)),
+    ...normalizedKeys.filter((item) => !current.includes(item)),
+  ];
+
+  const index = order.indexOf(key);
+  const targetIndex = index + direction;
+
+  if (index < 0 || targetIndex < 0 || targetIndex >= order.length) {
+    return order;
+  }
+
+  const next = [...order];
+  const currentItem = next[index];
+
+  next[index] = next[targetIndex];
+  next[targetIndex] = currentItem;
+
+  return next;
+}
+
+function toggleReportTwoSignatureHiddenKey(currentHiddenKeys: unknown, key: string) {
+  const hidden = new Set(
+    Array.isArray(currentHiddenKeys)
+      ? currentHiddenKeys.map((item) => cleanText(item)).filter(Boolean)
+      : [],
+  );
+
+  if (hidden.has(key)) {
+    hidden.delete(key);
+  } else {
+    hidden.add(key);
+  }
+
+  return Array.from(hidden);
+}
+
+function withReportTwoSignatureBlock(
+  template: StudioTemplate,
+  payload: SmartReportPayload,
+): StudioTemplate {
+  const signatures = getReportTwoSignatureCardsFromPayload(payload);
+  let signatureBlock: StudioBlock | null = null;
+
+  const pagesWithoutSignatureBlocks = template.pages.map((page) => ({
+    ...page,
+    blocks: page.blocks.filter((block) => {
+      if (isReportTwoSignatureBlock(block)) {
+        if (!signatureBlock) {
+          signatureBlock = block;
+        }
+
+        return false;
+      }
+
+      return true;
+    }),
+  }));
+
+  if (!signatureBlock) {
+    return template;
+  }
+
+  const targetPageId = getReportTwoSignatureTargetPageId(pagesWithoutSignatureBlocks);
+
+  if (!targetPageId) {
+    return template;
+  }
+
+  const baseSignatureBlock = signatureBlock as StudioBlock;
+
+  const normalizedSignatureBlock = {
+    ...baseSignatureBlock,
+    kind: "signature-grid" as StudioBlockKind,
+    title: baseSignatureBlock.title || "تواقيع الاعتماد",
+    content: "",
+    variant: baseSignatureBlock.variant || "soft",
+    source: baseSignatureBlock.source || "manual",
+    showTitle: baseSignatureBlock.showTitle ?? false,
+    showMeta: false,
+    align: "center",
+    placement: "bottom",
+    signatures: getReportTwoConfiguredSignatureCards(signatures, signatureBlock),
+  } as StudioBlock;
+
+  return {
+    ...template,
+    pages: pagesWithoutSignatureBlocks.map((page) =>
+      page.id === targetPageId
+        ? {
+            ...page,
+            blocks: [...page.blocks, normalizedSignatureBlock],
+          }
+        : page,
+    ),
+  };
+}
 function getReportTwoBlockHeightScore(
   block: StudioBlock,
   previewCase: ReturnType<typeof getPreviewCase>,
@@ -927,6 +1202,8 @@ function getReportTwoBlockHeightScore(
 
     return 24 + count * 7;
   }
+
+  if (block.kind === "signature-grid") return 34;
 
   if (block.kind === "report-one-table") {
     const rowCount = Math.max(block.rows?.length || 0, 1);
@@ -1756,7 +2033,9 @@ function getReportTwoSmartAlerts({
         }
       }
 
-      if (block.kind === "report-one-table") {
+      if (block.kind === "signature-grid") return 34;
+
+  if (block.kind === "report-one-table") {
         const columns = normalizeReportTwoTableColumns(block.columns);
         const rows = normalizeReportTwoTableRows(block.rows, columns.length);
         const filledCells = getReportTwoFilledTableCells(block);
@@ -1925,6 +2204,7 @@ function getBlockKindName(kind: StudioBlockKind) {
   if (kind === "evidence-gallery") return "الشواهد";
   if (kind === "closing-note") return "خاتمة";
   if (kind === "report-one-table") return "جدول";
+  if (kind === "signature-grid") return "تواقيع الاعتماد";
 
   return "بلوك";
 }
@@ -2101,11 +2381,15 @@ export function ReportTwoStudioRuntime({
     [previewTemplate, visiblePreviewPages],
   );
 
+  const signedVisiblePreviewTemplate = useMemo(
+    () => withReportTwoSignatureBlock(visiblePreviewTemplate, payload),
+    [visiblePreviewTemplate, payload],
+  );
   const activePage = useMemo(
     () =>
-      visiblePreviewTemplate.pages.find((page) => page.id === activePageId) ||
-      visiblePreviewTemplate.pages[0],
-    [visiblePreviewTemplate.pages, activePageId],
+      signedVisiblePreviewTemplate.pages.find((page) => page.id === activePageId) ||
+      signedVisiblePreviewTemplate.pages[0],
+    [signedVisiblePreviewTemplate.pages, activePageId],
   );
 
   const editableActivePage = useMemo(
@@ -2323,7 +2607,7 @@ export function ReportTwoStudioRuntime({
 
   function buildReportTwoPdfExportSnapshot() {
     return {
-      template: visiblePreviewTemplate,
+      template: signedVisiblePreviewTemplate,
       context: editableRuntimeContext,
       previewCase,
       designTemplateId: template.designTemplateId || "ministry-form",
@@ -2799,11 +3083,16 @@ export function ReportTwoStudioRuntime({
   }
 
   function addBlock(kind: StudioBlockKind) {
-    const targetPageId = getWritableReportTwoPageId(
-      activePageId,
-      activePage,
-      template,
-    );
+    const signatureTargetPageId =
+      kind === "signature-grid" ? getReportTwoSignatureTargetPageId(template.pages) : "";
+
+    const targetPageId =
+      signatureTargetPageId ||
+      getWritableReportTwoPageId(
+        activePageId,
+        activePage,
+        template,
+      );
 
     const targetPage = template.pages.find((page) => page.id === targetPageId);
 
@@ -2974,7 +3263,7 @@ export function ReportTwoStudioRuntime({
 
 
   useEffect(() => {
-    const items = readReportTwoSavedTemplates(serviceSlugForSavedTemplates);
+    const items = readAllReportTwoSavedTemplates();
     setSavedRuntimeTemplates(items);
     setSavedRuntimeTemplatesLoaded(true);
   }, [serviceSlugForSavedTemplates]);
@@ -3504,7 +3793,7 @@ export function ReportTwoStudioRuntime({
               suppressAutoEvidencePages
               chromeLayout="split"
               designId={template.designTemplateId || "ministry-form"}
-              template={visiblePreviewTemplate}
+              template={signedVisiblePreviewTemplate}
               activePage={activePage}
               activePageId={activePage?.id || activePageId}
               context={editableRuntimeContext}
@@ -3547,7 +3836,7 @@ export function ReportTwoStudioRuntime({
               renderMode="stack"
               chromeLayout="split"
               designId={template.designTemplateId || "ministry-form"}
-              template={visiblePreviewTemplate}
+              template={signedVisiblePreviewTemplate}
               activePage={activePage}
               activePageId={activePage?.id || activePageId}
               context={editableRuntimeContext}
@@ -3927,6 +4216,7 @@ export function ReportTwoStudioRuntime({
                 ["dynamic-fields", "حقول"],
                 ["evidence-gallery", "شواهد"],
                 ["report-one-table", "جدول"],
+                ["signature-grid", "تواقيع"],
                 ["closing-note", "خاتمة"],
               ].map(([kind, label]) => (
                 <button
@@ -4143,7 +4433,8 @@ export function ReportTwoStudioRuntime({
                 ) : null}
                 {selectedBlock.kind !== "dynamic-fields" &&
                 selectedBlock.kind !== "evidence-gallery" &&
-                selectedBlock.kind !== "report-one-table" ? (
+                selectedBlock.kind !== "report-one-table" &&
+                selectedBlock.kind !== "signature-grid" ? (
                   <label className="block">
                     <span className="text-xs font-black text-slate-500">
                       المحتوى
@@ -4162,6 +4453,107 @@ export function ReportTwoStudioRuntime({
                     />
                   </label>
                 ) : null}
+                {selectedBlock.kind === "signature-grid" ? (() => {
+                  const allSignatures = getReportTwoSignatureCardsFromPayload(payload);
+                  const orderedSignatures = getReportTwoOrderedSignatureCards(allSignatures, selectedBlock);
+                  const hiddenKeys = getReportTwoSignatureHiddenKeys(selectedBlock);
+                  const allKeys = allSignatures.map((signature) => signature.key);
+
+                  return (
+                    <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
+                      <h3 className="text-xs font-black text-slate-900">
+                        ترتيب تواقيع الاعتماد
+                      </h3>
+
+                      <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                        يظهر هذا البلوك في آخر صفحة فوق الفوتر. رتّب التواقيع أو أخفِ أي توقيع لا تحتاجه.
+                      </p>
+
+                      <div className="mt-3 space-y-2">
+                        {orderedSignatures.map((signature, index) => {
+                          const hidden = hiddenKeys.has(signature.key);
+
+                          return (
+                            <div
+                              key={signature.key}
+                              className={[
+                                "rounded-2xl border bg-white p-3",
+                                hidden ? "border-slate-200 opacity-60" : "border-emerald-100",
+                              ].join(" ")}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div>
+                                  <div className="text-xs font-black text-slate-950">
+                                    {signature.label}
+                                  </div>
+                                  <div className="mt-1 text-[10px] font-bold text-slate-500">
+                                    {signature.signerName || "بدون اسم"} · {signature.signerTitle || "بدون مسمى"}
+                                  </div>
+                                </div>
+
+                                <div className="flex shrink-0 gap-1">
+                                  <button
+                                    type="button"
+                                    disabled={index === 0}
+                                    onClick={() =>
+                                      updateBlock(selectedBlock.id, (block) => ({
+                                        ...block,
+                                        signatureOrder: moveReportTwoSignatureOrder(
+                                          (block as any).signatureOrder,
+                                          allKeys,
+                                          signature.key,
+                                          -1,
+                                        ),
+                                      }))
+                                    }
+                                    className="rounded-xl border border-slate-200 bg-white px-2 py-1 text-[10px] font-black text-slate-600 disabled:opacity-40"
+                                  >
+                                    ↑
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    disabled={index === orderedSignatures.length - 1}
+                                    onClick={() =>
+                                      updateBlock(selectedBlock.id, (block) => ({
+                                        ...block,
+                                        signatureOrder: moveReportTwoSignatureOrder(
+                                          (block as any).signatureOrder,
+                                          allKeys,
+                                          signature.key,
+                                          1,
+                                        ),
+                                      }))
+                                    }
+                                    className="rounded-xl border border-slate-200 bg-white px-2 py-1 text-[10px] font-black text-slate-600 disabled:opacity-40"
+                                  >
+                                    ↓
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateBlock(selectedBlock.id, (block) => ({
+                                        ...block,
+                                        hiddenSignatureKeys: toggleReportTwoSignatureHiddenKey(
+                                          (block as any).hiddenSignatureKeys,
+                                          signature.key,
+                                        ),
+                                      }))
+                                    }
+                                    className="rounded-xl bg-slate-950 px-2 py-1 text-[10px] font-black text-white"
+                                  >
+                                    {hidden ? "إظهار" : "إخفاء"}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })() : null}
 
                 {selectedBlock.kind === "report-one-table" ? (
                   <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
