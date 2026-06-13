@@ -2309,12 +2309,6 @@ function EvidenceBlock({
         })}
       </div>
 
-      {hiddenCount > 0 && block.evidenceAutoCreatePages === false ? (
-        <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
-          يوجد {hiddenCount} شاهد إضافي. سيتم نقله إلى صفحة شواهد إضافية حتى لا يتمدد إطار A4.
-        </p>
-      ) : null}
-
       {isPlaceholderMode ? (
         <p className={["mt-3 rounded-2xl px-3 py-2 text-xs font-bold", accent.noticeClass].join(" ")}>
           هذه مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.

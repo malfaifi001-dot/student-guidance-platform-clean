@@ -1,0 +1,4055 @@
+==================== ROUTE / FILE CANDIDATES ====================
+app\api\admin\report-templates\preview-case\route.ts
+app\api\admin\report-templates\workflow-fields\route.ts
+app\api\dashboard\activity-leader\teacher-assignments\[assignmentId]\review\route.ts
+app\api\dashboard\activity-leader\teacher-assignments\route.ts
+app\api\dashboard\admin\payments\export\route.ts
+app\api\dashboard\admin\payments\invoices\[invoiceId]\pdf\route.ts
+app\api\dashboard\admin\payments\invoices\export\route.ts
+app\api\dashboard\assessment-center\[analysisId]\delete\route.ts
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts
+app\api\dashboard\assessment-center\[analysisId]\student-linking\auto\route.ts
+app\api\dashboard\assessment-center\[analysisId]\student-linking\route.ts
+app\api\dashboard\family-school-communication\guardian-summons\export\pdf\route.ts
+app\api\dashboard\report\[reportId]\approve\route.ts
+app\api\dashboard\report\[reportId]\delete\route.ts
+app\api\dashboard\report\[reportId]\duplicate\route.ts
+app\api\dashboard\report\[reportId]\evidence\route.ts
+app\api\dashboard\report\[reportId]\export\pdf\route.ts
+app\api\dashboard\report\[reportId]\route.ts
+app\api\dashboard\report\prepare\route.ts
+app\api\dashboard\report\route.ts
+app\api\dashboard\report-1\[reportId]\approve\route.ts
+app\api\dashboard\report-1\[reportId]\export\pdf\route.ts
+app\api\dashboard\report-1\[reportId]\route.ts
+app\api\dashboard\report-1\cases\[caseId]\generate\route.ts
+app\api\dashboard\reports\[reportId]\approve\route.ts
+app\api\dashboard\reports\[reportId]\delete\route.ts
+app\api\dashboard\reports\[reportId]\duplicate\route.ts
+app\api\dashboard\reports\[reportId]\evidence\route.ts
+app\api\dashboard\reports\[reportId]\export\pdf\route.ts
+app\api\dashboard\reports\[reportId]\route.ts
+app\api\dashboard\reports\case\[caseId]\generate\route.ts
+app\api\dashboard\reports\case\[caseId]\prepare\route.ts
+app\api\dashboard\reports\prepare\route.ts
+app\api\dashboard\reports\route.ts
+app\api\dashboard\report-templates\[templateId]\route.ts
+app\api\dashboard\report-templates\[templateId]\use\route.ts
+app\api\dashboard\report-templates\route.ts
+app\api\dashboard\results-analysis\[analysisId]\delete\route.ts
+app\api\dashboard\results-analysis\[analysisId]\export\route.ts
+app\api\dashboard\results-analysis\route.ts
+app\api\dashboard\student-follow-up\appreciation-certificates\export\pdf\route.ts
+app\api\dashboard\surveys\[surveyId]\analysis\route.ts
+app\api\dashboard\surveys\[surveyId]\duplicate\route.ts
+app\api\dashboard\surveys\[surveyId]\export\pdf\route.ts
+app\api\dashboard\surveys\[surveyId]\export\route.ts
+app\api\dashboard\surveys\[surveyId]\responses\route.ts
+app\api\dashboard\surveys\[surveyId]\route.ts
+app\api\dashboard\surveys\route.ts
+app\api\dashboard\surveys\templates\route.ts
+app\api\dev\seed-one-page-mosaic-report-template\route.ts
+app\api\dev\seed-three-report-design-templates\route.ts
+app\api\survey\[token]\submit\route.ts
+app\dashboard\activity-leader\evidence\page.tsx
+app\dashboard\activity-leader\page.tsx
+app\dashboard\activity-leader\participations\page.tsx
+app\dashboard\activity-leader\plans\page.tsx
+app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx
+app\dashboard\activity-leader\programs\[domainSlug]\page.tsx
+app\dashboard\activity-leader\programs\layout.tsx
+app\dashboard\activity-leader\programs\new\page.tsx
+app\dashboard\activity-leader\programs\page.tsx
+app\dashboard\activity-leader\reports\activity-card\[caseId]\page.tsx
+app\dashboard\activity-leader\reports\page.tsx
+app\dashboard\activity-leader\surveys\[surveyId]\analysis\page.tsx
+app\dashboard\activity-leader\surveys\[surveyId]\edit\page.tsx
+app\dashboard\activity-leader\surveys\[surveyId]\pdf\page.tsx
+app\dashboard\activity-leader\surveys\[surveyId]\responses\page.tsx
+app\dashboard\activity-leader\surveys\[surveyId]\share\page.tsx
+app\dashboard\activity-leader\surveys\page.tsx
+app\dashboard\activity-leader\surveys\templates\page.tsx
+app\dashboard\activity-leader\teacher-assignments\page.tsx
+app\dashboard\admin\document-designs\evidence-rich-report\page.tsx
+app\dashboard\admin\document-designs\minimal-guidance-report\page.tsx
+app\dashboard\admin\document-designs\official-school-report\page.tsx
+app\dashboard\admin\document-designs\visual-program-report\page.tsx
+app\dashboard\admin\reports\page.tsx
+app\dashboard\admin\report-templates\activity-leader\page.tsx
+app\dashboard\admin\report-templates\activity-leader\preview\[templateId]\page.tsx
+app\dashboard\admin\report-templates\designs\page.tsx
+app\dashboard\admin\report-templates\library\page.tsx
+app\dashboard\admin\report-templates\new\page.tsx
+app\dashboard\admin\report-templates\page.tsx
+app\dashboard\admin\report-texts\page.tsx
+app\dashboard\admin\surveys\[surveyId]\analysis\page.tsx
+app\dashboard\admin\surveys\[surveyId]\edit\page.tsx
+app\dashboard\admin\surveys\[surveyId]\pdf\page.tsx
+app\dashboard\admin\surveys\[surveyId]\responses\page.tsx
+app\dashboard\admin\surveys\[surveyId]\share\page.tsx
+app\dashboard\admin\surveys\page.tsx
+app\dashboard\admin\surveys\templates\page.tsx
+app\dashboard\assessment-center\[analysisId]\interventions\page.tsx
+app\dashboard\assessment-center\[analysisId]\linking\page.tsx
+app\dashboard\assessment-center\[analysisId]\page.tsx
+app\dashboard\assessment-center\reports\page.tsx
+app\dashboard\report\[reportId]\preview\page.tsx
+app\dashboard\report\[reportId]\studio\page.tsx
+app\dashboard\report\new\layout.tsx
+app\dashboard\report\new\page.tsx
+app\dashboard\report\page.tsx
+app\dashboard\report-1\[reportId]\preview\page.tsx
+app\dashboard\report-1\[reportId]\studio\page.tsx
+app\dashboard\report-1\cases\[caseId]\prepare\page.tsx
+app\dashboard\report-1\page.tsx
+app\dashboard\report-2\cases\[caseId]\studio\page.tsx
+app\dashboard\report-2\page.tsx
+app\dashboard\report-preview\page.tsx
+app\dashboard\reports\[reportId]\preview\page.tsx
+app\dashboard\reports\[reportId]\studio\page.tsx
+app\dashboard\reports\cases\[caseId]\prepare\page.tsx
+app\dashboard\reports\cases\page.tsx
+app\dashboard\reports\new\layout.tsx
+app\dashboard\reports\new\page.tsx
+app\dashboard\reports\page.tsx
+app\dashboard\reports\saved\page.tsx
+app\dashboard\results-analysis\[analysisId]\page.tsx
+app\dashboard\results-analysis\compare\page.tsx
+app\dashboard\results-analysis\layout.tsx
+app\dashboard\results-analysis\new\page.tsx
+app\dashboard\results-analysis\page.tsx
+app\dashboard\surveys\[surveyId]\analysis\page.tsx
+app\dashboard\surveys\[surveyId]\edit\page.tsx
+app\dashboard\surveys\[surveyId]\pdf\page.tsx
+app\dashboard\surveys\[surveyId]\responses\page.tsx
+app\dashboard\surveys\[surveyId]\share\page.tsx
+app\dashboard\surveys\page.tsx
+app\dashboard\surveys\templates\page.tsx
+app\pdf-preview\appreciation-certificate\page.tsx
+app\pdf-preview\guardian-summons\page.tsx
+app\survey\[token]\page.tsx
+components\activity-programs\reports\activity-execution-card-report.tsx
+components\activity-programs\reports\report-print-button.tsx
+components\admin\report-text-library-admin.tsx
+components\admin\report-text-template-studio.tsx
+components\admin\workflow-health\workflow-health-report.tsx
+components\assessment-center\assessment-analysis-detail.tsx
+components\assessment-center\delete-assessment-analysis-button.tsx
+components\dashboard\activity-leader-dashboard.tsx
+components\dashboard\activity-leader-feature-page.tsx
+components\document-export\appreciation-certificate-pdf-button.tsx
+components\document-export\document-pdf-download-button.tsx
+components\document-export\guardian-summons-report-engine-pdf-button.tsx
+components\family-school-communication\guardian-summons-official-pdf-page.tsx
+components\report-1\editor\report-one-control-panel.tsx
+components\report-1\editor\report-one-editor.tsx
+components\report-1\editor\report-one-editor-types.ts
+components\report-1\editor\report-one-evidence-settings-panel.tsx
+components\report-1\editor\report-one-template-preview.tsx
+components\report-1\report-one-case-workspace.tsx
+components\report-1\report-one-home.tsx
+components\report-1\report-one-preview-page.tsx
+components\report-1\report-one-saved-studio.tsx
+components\report-2\report-two-home.tsx
+components\report-2\report-two-studio-runtime.tsx
+components\report-engine\admin\admin-reports-center.tsx
+components\report-engine\appreciation-certificate-preview.tsx
+components\report-engine\design-renderers\report-design-gallery-preview.tsx
+components\report-engine\design-renderers\report-design-renderer.tsx
+components\report-engine\document-editor\report-add-block-menu.tsx
+components\report-engine\document-editor\report-block-frame.tsx
+components\report-engine\document-editor\report-document-editor.tsx
+components\report-engine\document-editor\report-final-preview-modal.tsx
+components\report-engine\document-editor\report-page-canvas.tsx
+components\report-engine\document-editor\report-page-tabs.tsx
+components\report-engine\document-editor\report-table-editor-modal.tsx
+components\report-engine\document-renderers\ministry-report-shell.tsx
+components\report-engine\guardian-summons-letter-preview.tsx
+components\report-engine\official-report-document.tsx
+components\report-engine\report-builder-pdf-renderer.tsx
+components\report-engine\report-document-renderer.tsx
+components\report-engine\report-field-selection-gate.tsx
+components\report-engine\report-print-button.tsx
+components\report-engine\report-template-admin-tools.tsx
+components\report-engine\report-template-command-center.tsx
+components\report-engine\report-template-library.tsx
+components\report-engine\report-template-live-preview.tsx
+components\report-engine\report-template-publish-tools.tsx
+components\report-engine\report-template-studio.tsx
+components\report-engine\saved-reports-list-page.tsx
+components\report-engine\saved-smart-report-preview-page.tsx
+components\report-engine\save-smart-report-button.tsx
+components\report-engine\smart-general-a4-report.tsx
+components\report-engine\smart-report-case-preview-page.tsx
+components\report-engine\smart-report-document-renderer.tsx
+components\report-engine\smart-report-variant-selector.tsx
+components\report-engine\text-library-block-settings-editor.tsx
+components\reports\new-report-case-picker.tsx
+components\reports\new-report-case-picker.tsx.tsx
+components\reports\report-actions.tsx
+components\reports\report-evidence-gallery.tsx
+components\reports\report-list.tsx
+components\reports\report-pdf-guidance-card.tsx
+components\reports\report-preview-a4.tsx
+components\reports\report-preview-toolbar.tsx
+components\reports\reports-dashboard.tsx
+components\reports\report-studio-editor.tsx
+components\reports\studio\report-context-panel.tsx
+components\reports\studio\report-gender-toggle.tsx
+components\reports\studio\report-smart-editor.tsx
+components\reports\studio\report-studio-shell.tsx
+components\reports\studio\report-template-sidebar.tsx
+components\reports\templates\report-template-form.tsx
+components\reports\templates\report-template-list.tsx
+components\reports-legacy\new-report-case-picker.tsx
+components\reports-legacy\new-report-case-picker.tsx.tsx
+components\reports-legacy\report-actions.tsx
+components\reports-legacy\report-evidence-gallery.tsx
+components\reports-legacy\report-list.tsx
+components\reports-legacy\report-pdf-guidance-card.tsx
+components\reports-legacy\report-preview-a4.tsx
+components\reports-legacy\report-preview-toolbar.tsx
+components\reports-legacy\reports-dashboard.tsx
+components\reports-legacy\report-studio-editor.tsx
+components\reports-legacy\studio\report-context-panel.tsx
+components\reports-legacy\studio\report-gender-toggle.tsx
+components\reports-legacy\studio\report-smart-editor.tsx
+components\reports-legacy\studio\report-studio-shell.tsx
+components\reports-legacy\studio\report-template-sidebar.tsx
+components\reports-legacy\templates\report-template-form.tsx
+components\reports-legacy\templates\report-template-list.tsx
+components\results-analysis\delete-results-analysis-button.tsx
+components\results-analysis\results-analysis-chart-card.tsx
+components\results-analysis\results-analysis-charts.tsx
+components\results-analysis\results-analysis-dashboard.tsx
+components\results-analysis\results-analysis-filters.tsx
+components\results-analysis\results-analysis-insights.tsx
+components\results-analysis\results-analysis-kpi-grid.tsx
+components\results-analysis\results-analysis-list.tsx
+components\results-analysis\results-analysis-upload-card.tsx
+components\surveys\public-survey-form.tsx
+components\surveys\survey-analysis-shell.tsx
+components\surveys\survey-center-shell.tsx
+components\surveys\survey-edit-shell.tsx
+components\surveys\survey-print-report-shell.tsx
+components\surveys\survey-responses-shell.tsx
+components\surveys\survey-share-shell.tsx
+components\surveys\survey-templates-shell.tsx
+lib\activity-programs\activity-card-report-runtime.ts
+lib\activity-programs\activity-report-templates.ts
+lib\report-engine\document-draft\report-document-a4-paginator.ts
+lib\report-engine\document-draft\report-document-adapter.ts
+lib\report-engine\document-draft\report-document-builder.ts
+lib\report-engine\document-draft\report-document-operations.ts
+lib\report-engine\document-draft\report-document-serializer.ts
+lib\report-engine\document-draft\report-document-types.ts
+lib\report-engine\document-draft\report-document-utils.ts
+lib\report-engine\document-draft\report-draft-storage.ts
+lib\report-engine\document-draft\report-signature-policy.ts
+lib\report-engine\document-draft\report-table-utils.ts
+lib\report-engine\extra-official-template-presets.ts
+lib\report-engine\guardian-summons-template-runtime.ts
+lib\report-engine\report-access-scope.ts
+lib\report-engine\report-block-builder.ts
+lib\report-engine\report-block-paginator.ts
+lib\report-engine\report-block-types.ts
+lib\report-engine\report-builder-template-runtime.ts
+lib\report-engine\report-case-data-mapper.ts
+lib\report-engine\report-data-mapper.ts
+lib\report-engine\report-draft-merger.ts
+lib\report-engine\report-identity-runtime.ts
+lib\report-engine\report-page-builder.ts
+lib\report-engine\report-smart-text-engine.ts
+lib\report-engine\report-smart-text-library.ts
+lib\report-engine\report-snapshot.ts
+lib\report-engine\report-template-builder-presets.ts
+lib\report-engine\report-template-builder-types.ts
+lib\report-engine\report-template-portability.ts
+lib\report-engine\report-template-runtime-types.ts
+lib\report-engine\report-templates.ts
+lib\report-engine\report-template-validation.ts
+lib\report-engine\report-text-library.ts
+lib\report-engine\report-text-library-runtime.ts
+lib\report-engine\report-text-studio-presets.ts
+lib\report-engine\report-text-studio-types.ts
+lib\report-engine\report-theme.ts
+lib\report-engine\report-types.ts
+lib\report-engine\report-variant-registry.ts
+lib\report-engine\sample-report-data.ts
+lib\report-engine\smart-report-defaults.ts
+lib\report-engine\smart-report-payload-builder.ts
+lib\report-engine\smart-report-types.ts
+lib\report-engine-legacy\extra-official-template-presets.ts
+lib\report-engine-legacy\guardian-summons-template-runtime.ts
+lib\report-engine-legacy\report-builder-template-runtime.ts
+lib\report-engine-legacy\report-case-data-mapper.ts
+lib\report-engine-legacy\report-data-mapper.ts
+lib\report-engine-legacy\report-identity-runtime.ts
+lib\report-engine-legacy\report-smart-text-engine.ts
+lib\report-engine-legacy\report-smart-text-library.ts
+lib\report-engine-legacy\report-snapshot.ts
+lib\report-engine-legacy\report-template-builder-presets.ts
+lib\report-engine-legacy\report-template-builder-types.ts
+lib\report-engine-legacy\report-template-portability.ts
+lib\report-engine-legacy\report-template-runtime-types.ts
+lib\report-engine-legacy\report-templates.ts
+lib\report-engine-legacy\report-template-validation.ts
+lib\report-engine-legacy\report-text-library-runtime.ts
+lib\report-engine-legacy\report-text-studio-presets.ts
+lib\report-engine-legacy\report-text-studio-types.ts
+lib\report-engine-legacy\report-theme.ts
+lib\report-engine-legacy\report-types.ts
+lib\report-engine-legacy\sample-report-data.ts
+lib\reports\default-report-templates.ts
+lib\reports\report-access.ts
+lib\reports\report-types.ts
+lib\reports\report-utils.ts
+lib\reports-legacy\default-report-templates.ts
+lib\reports-legacy\report-access.ts
+lib\reports-legacy\report-types.ts
+lib\reports-legacy\report-utils.ts
+lib\results-analysis\results-analysis-access.ts
+lib\results-analysis\results-analysis-parser.ts
+lib\results-analysis\results-analysis-types.ts
+lib\results-analysis\results-analysis-utils.ts
+lib\surveys\survey-config.ts
+lib\surveys\survey-recommendations.ts
+lib\surveys\survey-service.ts
+lib\surveys\survey-templates.ts
+
+
+==================== TEXT MATCHES ====================
+
+
+==================== LIKELY FILE CONTENTS ====================
+
+
+==================== app\api\admin\report-templates\preview-case\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import type {
+  RuntimePreviewCaseData,
+  RuntimePreviewCaseValue,
+  RuntimePreviewEvidence,
+} from "@/lib/report-engine/report-template-runtime-types";
+
+function stringifyValue(value: unknown) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function hasTextValue(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function normalizeCaseValues(caseEntry: {
+  values?: Array<{
+    fieldKey: string;
+    value?: string | null;
+    jsonValue?: unknown;
+    field?: {
+      key?: string | null;
+      label?: string | null;
+    } | null;
+  }>;
+}): RuntimePreviewCaseValue[] {
+  return (caseEntry.values || []).map((item: any) => ({
+    fieldKey: item.field?.key || item.fieldKey || "unknown",
+    fieldLabel: item.field?.label || item.fieldKey || "حقل بدون اسم",
+    value: stringifyValue(hasTextValue(item.value) ? item.value : item.jsonValue),
+  }));
+}
+
+function normalizeEvidences(caseEntry: {
+  evidences?: Array<{
+    id: string;
+    fileName?: string | null;
+    fileUrl?: string | null;
+    note?: string | null;
+  }>;
+  caseEvidences?: Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+  }>;
+}): RuntimePreviewEvidence[] {
+  const normalEvidences: RuntimePreviewEvidence[] = (caseEntry.evidences || [])
+    .filter((item: any) => Boolean(item.fileUrl))
+    .map((item: any) => ({
+      id: item.id,
+      title: item.fileName || item.note || "شاهد",
+      fileUrl: item.fileUrl || undefined,
+      imageUrl: item.fileUrl || undefined,
+      caption: item.note || undefined,
+    }));
+
+  const caseEvidences: RuntimePreviewEvidence[] = (
+    caseEntry.caseEvidences || []
+  )
+    .filter((item: any) => Boolean(item.fileUrl))
+    .map((item: any) => ({
+      id: item.id,
+      title: item.fileName || "شاهد",
+      fileUrl: item.fileUrl,
+      imageUrl: item.fileUrl,
+    }));
+
+  return [...normalEvidences, ...caseEvidences];
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const caseId = searchParams.get("caseId")?.trim();
+
+    if (!caseId) {
+      return NextResponse.json({
+        ok: true,
+        mode: "sample",
+        message: "لم يتم إدخال Case ID، سيتم استخدام بيانات تجريبية.",
+      });
+    }
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: caseId,
+      },
+      include: {
+        service: true,
+        workflow: true,
+        student: {
+          include: {
+            guardian: true,
+          },
+        },
+        values: {
+          include: {
+            field: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        evidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        caseEvidences: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json({
+        ok: true,
+        mode: "sample",
+        message: "لم يتم العثور على الحالة، سيتم استخدام بيانات تجريبية.",
+      });
+    }
+
+    const data: RuntimePreviewCaseData = {
+      found: true,
+      caseId: caseEntry.id,
+      serviceSlug: caseEntry.service.slug,
+      serviceName: caseEntry.service.name,
+      title: caseEntry.title || caseEntry.service.name,
+      status: caseEntry.status,
+      createdAt: caseEntry.createdAt.toISOString(),
+      updatedAt: caseEntry.updatedAt.toISOString(),
+
+      student: caseEntry.student
+        ? {
+            id: caseEntry.student.id,
+            name: caseEntry.student.fullName,
+            nationalId: caseEntry.student.nationalId || undefined,
+            grade: caseEntry.student.grade || undefined,
+            classroom: caseEntry.student.classroom || undefined,
+            stage: caseEntry.student.stage || undefined,
+            guardianName: caseEntry.student.guardian?.name || undefined,
+            guardianPhone: caseEntry.student.guardian?.phone || undefined,
+          }
+        : undefined,
+
+      values: normalizeCaseValues(caseEntry),
+      evidences: normalizeEvidences(caseEntry),
+    };
+
+    return NextResponse.json({
+      ok: true,
+      mode: "case",
+      message: "تم جلب بيانات الحالة للمعاينة.",
+      data,
+    });
+  } catch (error) {
+    console.error("preview-case error:", error);
+
+    return NextResponse.json(
+      {
+        ok: true,
+        mode: "sample",
+        message:
+          "تعذر جلب بيانات الحالة بسبب خطأ مؤقت، سيتم استخدام بيانات تجريبية.",
+      },
+      { status: 200 }
+    );
+  }
+}
+
+
+==================== app\api\admin\report-templates\workflow-fields\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import type { RuntimeWorkflowFieldOption } from "@/lib/report-engine/report-template-runtime-types";
+
+const fallbackFields: RuntimeWorkflowFieldOption[] = [
+  {
+    key: "programTitle",
+    label: "عنوان البرنامج",
+    source: "fallback",
+  },
+  {
+    key: "executionDate",
+    label: "تاريخ التنفيذ",
+    source: "fallback",
+  },
+  {
+    key: "intro",
+    label: "مقدمة التقارير",
+    source: "fallback",
+  },
+  {
+    key: "goals",
+    label: "أهداف البرنامج",
+    source: "fallback",
+  },
+  {
+    key: "procedures",
+    label: "إجراءات التنفيذ",
+    source: "fallback",
+  },
+  {
+    key: "results",
+    label: "النتائج",
+    source: "fallback",
+  },
+  {
+    key: "recommendations",
+    label: "التوصيات",
+    source: "fallback",
+  },
+  {
+    key: "targetGroup",
+    label: "الفئة المستهدفة",
+    source: "fallback",
+  },
+];
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const serviceSlug = searchParams.get("serviceSlug")?.trim();
+
+    if (!serviceSlug) {
+      return NextResponse.json({
+        ok: true,
+        source: "fallback",
+        message: "لم يتم تحديد خدمة، تم استخدام الحقول الافتراضية.",
+        fields: fallbackFields,
+      });
+    }
+
+    const service = await prisma.service.findUnique({
+      where: {
+        slug: serviceSlug,
+      },
+      include: {
+        workflows: {
+          where: {
+            status: "ACTIVE",
+          },
+          orderBy: [
+            {
+              isActive: "desc",
+            },
+            {
+              updatedAt: "desc",
+            },
+          ],
+          take: 1,
+          include: {
+            steps: {
+              orderBy: {
+                order: "asc",
+              },
+              include: {
+                fields: {
+                  orderBy: {
+                    order: "asc",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const workflow = service?.workflows[0];
+
+    if (!service || !workflow) {
+      return NextResponse.json({
+        ok: true,
+        source: "fallback",
+        message:
+          "لم يتم العثور على Workflow نشط لهذه الخدمة، تم استخدام الحقول الافتراضية.",
+        fields: fallbackFields,
+      });
+    }
+
+    const fields: RuntimeWorkflowFieldOption[] = workflow.steps.flatMap((step: any) =>
+step.fields.map((field: any) => ({
+  
+  
+  key: field.key,
+        label: field.label,
+        type: field.type,
+        source: "workflow" as const,
+        stepTitle: step.title,
+      }))
+    );
+
+    return NextResponse.json({
+      ok: true,
+      source: fields.length ? "workflow" : "fallback",
+      serviceSlug,
+      serviceName: service.name,
+      workflowId: workflow.id,
+      workflowName: workflow.name,
+      message: fields.length
+        ? "تم جلب حقول الـ Workflow النشط."
+        : "الـ Workflow النشط لا يحتوي على حقول، تم استخدام الحقول الافتراضية.",
+      fields: fields.length ? fields : fallbackFields,
+    });
+  } catch (error) {
+    console.error("workflow-fields error:", error);
+
+    return NextResponse.json(
+      {
+        ok: true,
+        source: "fallback",
+        message:
+          "تعذر جلب حقول الـ Workflow بسبب خطأ مؤقت، تم استخدام الحقول الافتراضية.",
+        fields: fallbackFields,
+      },
+      { status: 200 }
+    );
+  }
+}
+
+
+==================== app\api\dashboard\admin\payments\invoices\[invoiceId]\pdf\route.ts ====================
+
+import fs from "fs/promises";
+import path from "path";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { getCurrentSessionUser, getRequestDeviceInfo } from "@/lib/auth/current-user";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+import { prisma } from "@/lib/prisma";
+
+export const runtime = "nodejs";
+
+type RouteContext = {
+  params: Promise<{
+    invoiceId: string;
+  }>;
+};
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "—")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatAmount(amount: number, currency = "SAR") {
+  return new Intl.NumberFormat("ar-SA", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount || 0);
+}
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return "—";
+
+  return new Intl.DateTimeFormat("ar-SA", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function safeFileName(value: string) {
+  return value.replace(/[^a-zA-Z0-9-_]/g, "-");
+}
+
+function getStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    ISSUED: "صادرة",
+    CANCELED: "ملغاة",
+  };
+
+  return labels[status] || status;
+}
+
+function buildInvoicePdfHtml(invoice: Awaited<ReturnType<typeof getInvoiceForPdf>>) {
+  if (!invoice) {
+    throw new Error("الفاتورة غير موجودة.");
+  }
+
+  const creditNote = invoice.creditNotes[0] || null;
+
+  return `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    color: #0f172a;
+    font-family: Arial, Tahoma, "Segoe UI", sans-serif;
+    direction: rtl;
+  }
+  .invoice {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 12mm;
+    background: #ffffff;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 900;
+    color: #047857;
+  }
+  h1 {
+    margin: 6px 0 4px;
+    font-size: 27px;
+    line-height: 1.2;
+    font-weight: 900;
+    color: #020617;
+  }
+  h2 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 900;
+    color: #020617;
+  }
+  .muted {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .box {
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #f8fafc;
+    padding: 13px;
+  }
+  .invoice-box {
+    width: 248px;
+  }
+  .label {
+    font-size: 10px;
+    font-weight: 800;
+    color: #64748b;
+    margin-bottom: 4px;
+  }
+  .value {
+    font-size: 12px;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .invoice-number {
+    font-size: 17px;
+    font-weight: 900;
+    color: #020617;
+    text-align: left;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .meta-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 7px;
+    font-size: 12px;
+  }
+  .meta-table td {
+    width: 50%;
+    padding: 8px 9px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 12px;
+    vertical-align: top;
+  }
+  .items-table {
+    width: 100%;
+    margin-top: 14px;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    font-size: 12px;
+  }
+  .items-table th {
+    background: #020617;
+    color: #ffffff;
+    padding: 10px;
+    font-weight: 900;
+    text-align: right;
+  }
+  .items-table td {
+    padding: 11px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #0f172a;
+  }
+  .totals-wrap {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 14px;
+  }
+  .totals {
+    width: 335px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #f8fafc;
+    padding: 12px;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 7px 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 12px;
+  }
+  .total-row span {
+    font-weight: 800;
+    color: #64748b;
+  }
+  .grand {
+    border-bottom: none;
+    padding-top: 10px;
+    align-items: center;
+  }
+  .grand span {
+    font-size: 13px;
+    font-weight: 900;
+    color: #020617;
+  }
+  .grand strong {
+    font-size: 18px;
+    font-weight: 900;
+    color: #047857;
+  }
+  .canceled {
+    margin-top: 14px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+    border-radius: 16px;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  footer {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 10px;
+    color: #64748b;
+    line-height: 1.55;
+  }
+</style>
+</head>
+<body>
+  <article class="invoice">
+    <header class="header">
+      <div>
+        <div class="eyebrow">${invoice.status === "CANCELED" ? "فاتورة ملغاة" : "فاتورة / إيصال دفع"}</div>
+        <h1>${escapeHtml(invoice.sellerName)}</h1>
+        <div class="muted">
+          ${escapeHtml(invoice.sellerDomain || "—")} — ${escapeHtml(invoice.sellerCountry || "—")}
+          <br />
+          ${escapeHtml(invoice.sellerAddress || "—")}
+        </div>
+      </div>
+
+      <div class="box invoice-box">
+        <div class="label">رقم الفاتورة</div>
+        <div class="invoice-number" dir="ltr">${escapeHtml(invoice.invoiceNumber)}</div>
+
+        <div class="label" style="margin-top:10px;">الحالة</div>
+        <div class="value">${escapeHtml(getStatusLabel(invoice.status))}</div>
+
+        <div class="label" style="margin-top:10px;">تاريخ الإصدار</div>
+        <div class="value">${escapeHtml(formatDate(invoice.issuedAt))}</div>
+      </div>
+    </header>
+
+    ${invoice.status === "CANCELED" ? `
+      <section class="canceled">
+        <strong>تنبيه:</strong>
+        هذه الفاتورة ملغاة ولا تدخل ضمن إجمالي الفواتير السارية أو الضريبة المستحقة.
+        ${creditNote ? `<br />رقم الإشعار الدائن: <span dir="ltr">${escapeHtml(creditNote.creditNoteNumber)}</span>` : ""}
+      </section>
+    ` : ""}
+
+    <section class="grid">
+      <div class="box">
+        <h2>بيانات المستفيد</h2>
+        <table class="meta-table">
+          <tr>
+            <td><div class="label">الموجه/الموجهة</div><div class="value">${escapeHtml(invoice.buyerName)}</div></td>
+            <td><div class="label">البريد</div><div class="value" dir="ltr" style="text-align:left;">${escapeHtml(invoice.buyerEmail || "—")}</div></td>
+          </tr>
+          <tr>
+            <td><div class="label">المسمى الوظيفي</div><div class="value">${escapeHtml(invoice.buyerJobTitle || "—")}</div></td>
+            <td><div class="label">الحساب/المدرسة</div><div class="value">${escapeHtml(invoice.buyerSchoolName || invoice.buyerAccountName || "—")}</div></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="box">
+        <h2>بيانات الجهة</h2>
+        <table class="meta-table">
+          <tr>
+            <td><div class="label">السجل التجاري</div><div class="value">${escapeHtml(invoice.commercialRegistration || "—")}</div></td>
+            <td><div class="label">الرقم الضريبي</div><div class="value">${escapeHtml(invoice.taxNumber || "—")}</div></td>
+          </tr>
+          <tr>
+            <td><div class="label">رقم العملية</div><div class="value" dir="ltr" style="text-align:left;">${escapeHtml(invoice.paymentTransactionId)}</div></td>
+            <td><div class="label">طريقة الدفع</div><div class="value">${escapeHtml(invoice.paymentTransaction.method)}</div></td>
+          </tr>
+        </table>
+      </div>
+    </section>
+
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>الوصف</th>
+          <th>الكمية</th>
+          <th>سعر الوحدة</th>
+          <th>الإجمالي</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:800;">${escapeHtml(invoice.itemTitle)}</td>
+          <td>1</td>
+          <td>${escapeHtml(formatAmount(invoice.totalAmount, invoice.currency))}</td>
+          <td style="font-weight:900;">${escapeHtml(formatAmount(invoice.totalAmount, invoice.currency))}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <section class="totals-wrap">
+      <div class="totals">
+        <div class="total-row">
+          <span>المجموع قبل الضريبة</span>
+          <strong>${escapeHtml(formatAmount(invoice.subtotalAmount, invoice.currency))}</strong>
+        </div>
+        <div class="total-row">
+          <span>الضريبة (${escapeHtml(invoice.taxRate)}%)</span>
+          <strong>${escapeHtml(formatAmount(invoice.taxAmount, invoice.currency))}</strong>
+        </div>
+        <div class="total-row grand">
+          <span>${invoice.status === "CANCELED" ? "إجمالي الفاتورة الملغاة" : "الإجمالي المدفوع"}</span>
+          <strong>${escapeHtml(formatAmount(invoice.totalAmount, invoice.currency))}</strong>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>تم إصدار هذا المستند آليًا من مركز الفواتير في منصة التوجيه الطلابي.</p>
+      <p>الفواتير الملغاة محفوظة للأثر المالي، ولا تدخل ضمن إجمالي الفواتير السارية.</p>
+    </footer>
+  </article>
+</body>
+</html>`;
+}
+
+async function getInvoiceForPdf(invoiceId: string) {
+  return prisma.invoice.findUnique({
+    where: {
+      id: invoiceId,
+    },
+    include: {
+      creditNotes: {
+        orderBy: {
+          issuedAt: "desc",
+        },
+      },
+      paymentTransaction: {
+        select: {
+          id: true,
+          method: true,
+          status: true,
+          externalRef: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+}
+
+export async function GET(_request: NextRequest, context: RouteContext) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
+  const device = await getRequestDeviceInfo();
+  const { invoiceId } = await context.params;
+
+  const invoice = await getInvoiceForPdf(invoiceId);
+
+  if (!invoice) {
+    return NextResponse.json(
+      {
+        error: "الفاتورة غير موجودة.",
+      },
+      {
+        status: 404,
+      }
+    );
+  }
+
+  const puppeteer = await import("puppeteer");
+  const browser = await puppeteer.default.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(buildInvoicePdfHtml(invoice), {
+      waitUntil: "load",
+    });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "0",
+        right: "0",
+        bottom: "0",
+        left: "0",
+      },
+    });
+
+    const fileName = `${safeFileName(invoice.invoiceNumber)}.pdf`;
+    const publicDir = path.join(process.cwd(), "public", "generated", "invoices");
+    const filePath = path.join(publicDir, fileName);
+    const publicUrl = `/generated/invoices/${fileName}`;
+
+    await fs.mkdir(publicDir, {
+      recursive: true,
+    });
+
+    await fs.writeFile(filePath, pdfBuffer);
+
+    await prisma.invoice.update({
+      where: {
+        id: invoice.id,
+      },
+      data: {
+        pdfUrl: publicUrl,
+      },
+    });
+
+    await logAdminActivity({
+      actorUserId: current?.user.id || null,
+      category: "PAYMENT",
+      action: "INVOICE_SERVER_PDF_GENERATED",
+      severity: "SUCCESS",
+      title: "توليد PDF للفاتورة من السيرفر",
+      details: {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        pdfUrl: publicUrl,
+        status: invoice.status,
+      },
+      ipAddress: device.ipAddress,
+      userAgent: device.userAgent,
+    });
+
+    return new NextResponse(Buffer.from(pdfBuffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="${fileName}"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  } finally {
+    await browser.close();
+  }
+}
+
+
+==================== app\api\dashboard\assessment-center\[analysisId]\delete\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+
+export const runtime = "nodejs";
+
+type RouteContext = {
+  params: Promise<{
+    analysisId: string;
+  }>;
+};
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const auth = await requireSchoolDashboardApiContext();
+
+  if (auth instanceof Response) {
+    return auth;
+  }
+
+  const serviceGuard = await requireServiceAccessApi("assessment-center");
+  if (serviceGuard) return serviceGuard;
+
+  const { analysisId } = await context.params;
+  const isAdmin = Boolean((auth as any).isAdmin);
+
+  const analysis = await prisma.assessmentAnalysis.findFirst({
+    where: {
+      id: analysisId,
+      ...(isAdmin
+        ? {}
+        : {
+            schoolAccountId: auth.schoolAccountId,
+          }),
+    },
+  });
+
+  if (!analysis) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم العثور على التحليل.",
+      },
+      { status: 404 }
+    );
+  }
+
+  await prisma.assessmentAnalysis.delete({
+    where: {
+      id: analysis.id,
+    },
+  });
+
+  await prisma.platformActivityLog
+    .create({
+      data: {
+        schoolAccountId: analysis.schoolAccountId,
+        category: "ASSESSMENT_CENTER",
+        action: "DELETE_ANALYSIS",
+        severity: "WARNING",
+        title: "حذف تحليل من مركز التحليل والاختبارات",
+        details: {
+          analysisId: analysis.id,
+          title: analysis.title,
+          sourceFile: analysis.sourceFile,
+          totalStudents: analysis.totalStudents,
+          totalRows: analysis.totalRows,
+        },
+      },
+    })
+    .catch(() => null);
+
+  return NextResponse.json({
+    success: true,
+  });
+}
+
+
+==================== app\api\dashboard\assessment-center\[analysisId]\export\route.ts ====================
+
+import { NextResponse } from "next/server";
+import * as XLSX from "xlsx";
+import puppeteer from "puppeteer";
+import { prisma } from "@/lib/prisma";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import type {
+  AssessmentAnalysisSummary,
+  AssessmentResultRow,
+} from "@/lib/assessment-center/assessment-center-types";
+import { buildAssessmentSmartNarrative } from "@/lib/assessment-center/assessment-center-insights";
+
+export const runtime = "nodejs";
+
+type RouteContext = {
+  params: Promise<{
+    analysisId: string;
+  }>;
+};
+
+function safeFileName(value: string) {
+  return value
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .slice(0, 80);
+}
+
+function asSummary(value: unknown): AssessmentAnalysisSummary | null {
+  if (!value || typeof value !== "object") return null;
+  return value as AssessmentAnalysisSummary;
+}
+
+function asRows(value: unknown): AssessmentResultRow[] {
+  if (!Array.isArray(value)) return [];
+  return value as AssessmentResultRow[];
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function buildAttachmentContentDisposition(
+  fileBaseName: string,
+  extension: "pdf" | "xlsx"
+) {
+  const encodedFileName = encodeURIComponent(`${fileBaseName}.${extension}`);
+
+  return `attachment; filename="assessment-analysis.${extension}"; filename*=UTF-8''${encodedFileName}`;
+}
+
+function toArrayBuffer(buffer: Buffer) {
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength
+  ) as ArrayBuffer;
+}
+
+function buildExcelBuffer({
+  analysis,
+  summary,
+  rows,
+}: {
+  analysis: {
+    title: string;
+    sourceFile?: string | null;
+    totalStudents: number;
+    totalRows: number;
+    totalSubjects: number;
+    averagePercentage?: number | null;
+    createdAt: Date;
+  };
+  summary: AssessmentAnalysisSummary | null;
+  rows: AssessmentResultRow[];
+}) {
+  const workbook = XLSX.utils.book_new();
+  const smartNarrative = buildAssessmentSmartNarrative(summary);
+
+  const overviewRows = [
+    ["العنوان", analysis.title],
+    ["الملف", analysis.sourceFile || ""],
+    ["تاريخ التحليل", analysis.createdAt.toLocaleDateString("ar-SA")],
+    ["عدد الطلاب", analysis.totalStudents],
+    ["عدد النتائج", analysis.totalRows],
+    ["عدد المواد", analysis.totalSubjects],
+    ["المتوسط العام", `${Math.round(Number(analysis.averagePercentage || 0))}%`],
+    ["الطلاب المحتاجون متابعة", summary?.riskStudentsCount || 0],
+  ];
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.aoa_to_sheet(overviewRows),
+    "ملخص التحليل"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(
+      smartNarrative.insights.map((item, index) => ({
+        "#": index + 1,
+        "الملخص الذكي": item,
+      }))
+    ),
+    "الملخص الذكي"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(
+      smartNarrative.recommendations.map((item, index) => ({
+        "#": index + 1,
+        "التوصية العلاجية": item,
+      }))
+    ),
+    "التوصيات العلاجية"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(
+      smartNarrative.interventions.map((item, index) => ({
+        "#": index + 1,
+        "عنوان التدخل": item.title,
+        "الوصف": item.description,
+        "النوع": item.target,
+        "الإجراء المستقبلي": item.futureAction,
+      }))
+    ),
+    "التدخلات المقترحة"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(
+      rows.map((row) => ({
+        "اسم الطالب": row.studentName,
+        "رقم الهوية": row.nationalId || "",
+        "الصف": row.grade || "",
+        "الفصل": row.classroom || "",
+        "المادة": row.subject,
+        "الدرجة": row.score ?? "",
+        "الدرجة الكلية": row.maxScore ?? "",
+        "النسبة": row.percentage ?? "",
+        "الحالة": row.status || "",
+        "الفصل الدراسي": row.semester || "",
+        "العام الدراسي": row.academicYear || "",
+      }))
+    ),
+    "نتائج الطلاب"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(summary?.subjectAverages || []),
+    "متوسط المواد"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(summary?.classroomAverages || []),
+    "متوسط الفصول"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(summary?.gradeAverages || []),
+    "متوسط الصفوف"
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.json_to_sheet(summary?.riskStudents || []),
+    "طلاب يحتاجون متابعة"
+  );
+
+  return XLSX.write(workbook, {
+    type: "buffer",
+    bookType: "xlsx",
+  }) as Buffer;
+}
+
+function renderList(items: string[], emptyText: string) {
+  if (!items.length) {
+    return `<div class="empty">${escapeHtml(emptyText)}</div>`;
+  }
+
+  return items
+    .map((item) => `<div class="note">${escapeHtml(item)}</div>`)
+    .join("");
+}
+
+function buildPdfHtml({
+  analysis,
+  summary,
+  rows,
+}: {
+  analysis: {
+    title: string;
+    sourceFile?: string | null;
+    totalStudents: number;
+    totalRows: number;
+    totalSubjects: number;
+    averagePercentage?: number | null;
+    createdAt: Date;
+  };
+  summary: AssessmentAnalysisSummary | null;
+  rows: AssessmentResultRow[];
+}) {
+  const smartNarrative = buildAssessmentSmartNarrative(summary);
+
+  const subjectRows = (summary?.subjectAverages || [])
+    .slice(0, 10)
+    .map(
+      (item) => `
+        <tr>
+          <td>${escapeHtml(item.subject)}</td>
+          <td>${item.averagePercentage}%</td>
+          <td>${item.totalRows}</td>
+          <td>${item.riskCount}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  const riskRows = (summary?.riskStudents || [])
+    .slice(0, 12)
+    .map(
+      (student) => `
+        <tr>
+          <td>${escapeHtml(student.studentName)}</td>
+          <td>${escapeHtml(student.grade || "-")}</td>
+          <td>${escapeHtml(student.classroom || "-")}</td>
+          <td>${student.averagePercentage}%</td>
+          <td>${escapeHtml(student.weakSubjects.join("، ") || "-")}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  const interventionRows = smartNarrative.interventions
+    .slice(0, 8)
+    .map(
+      (item) => `
+        <div class="intervention">
+          <div class="intervention-title">${escapeHtml(item.title)}</div>
+          <div class="intervention-desc">${escapeHtml(item.description)}</div>
+          <div class="future-action">لاحقًا: ${escapeHtml(item.futureAction)}</div>
+        </div>
+      `
+    )
+    .join("");
+
+  const resultRows = rows
+    .slice(0, 35)
+    .map(
+      (row) => `
+        <tr>
+          <td>${escapeHtml(row.studentName)}</td>
+          <td>${escapeHtml(row.grade || "-")}</td>
+          <td>${escapeHtml(row.classroom || "-")}</td>
+          <td>${escapeHtml(row.subject)}</td>
+          <td>${escapeHtml(row.score ?? "-")} / ${escapeHtml(row.maxScore ?? "-")}</td>
+          <td>${escapeHtml(row.percentage ?? "-")}%</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  return `
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px;
+      font-family: Arial, "Tahoma", sans-serif;
+      color: #0f172a;
+      background: #eef2f7;
+      direction: rtl;
+    }
+    .page {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 28px;
+      padding: 28px;
+    }
+    .header {
+      background: linear-gradient(135deg, #0e7490, #2563eb);
+      color: white;
+      border-radius: 26px;
+      padding: 30px;
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header:before {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+      left: -80px;
+      top: -100px;
+    }
+    .label {
+      display: inline-block;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 14px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1.5;
+    }
+    .muted {
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.9;
+    }
+    .header .muted { color: #e0f2fe; }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 18px 0 22px;
+    }
+    .kpi {
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 16px;
+      background: #f8fafc;
+    }
+    .kpi-label {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .kpi-value {
+      margin-top: 8px;
+      font-size: 26px;
+      font-weight: 900;
+      color: #0f172a;
+    }
+    h2 {
+      font-size: 21px;
+      margin: 28px 0 12px;
+      font-weight: 900;
+      color: #0f172a;
+    }
+    .section {
+      border: 1px solid #e2e8f0;
+      border-radius: 22px;
+      padding: 18px;
+      margin-bottom: 18px;
+      background: #ffffff;
+    }
+    .note {
+      background: #ecfeff;
+      border: 1px solid #cffafe;
+      color: #155e75;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.9;
+      margin-bottom: 8px;
+    }
+    .recommendation {
+      background: #ecfdf5;
+      border-color: #d1fae5;
+      color: #065f46;
+    }
+    .intervention {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .intervention-title {
+      font-weight: 900;
+      color: #0f172a;
+      font-size: 14px;
+    }
+    .intervention-desc {
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.8;
+      color: #92400e;
+      font-weight: 700;
+    }
+    .future-action {
+      margin-top: 8px;
+      background: rgba(255,255,255,0.7);
+      border-radius: 12px;
+      padding: 8px;
+      font-size: 11px;
+      color: #92400e;
+      font-weight: 900;
+    }
+    .empty {
+      background: #f8fafc;
+      color: #64748b;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+      font-size: 12px;
+      margin-bottom: 18px;
+    }
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      text-align: right;
+      padding: 10px;
+      font-weight: 900;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+    }
+    .footer {
+      margin-top: 26px;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+      color: #94a3b8;
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="header">
+      <div class="label">مركز التحليل والاختبارات</div>
+      <h1>${escapeHtml(analysis.title)}</h1>
+      <p class="muted">
+        مصدر الملف: ${escapeHtml(analysis.sourceFile || "غير محدد")}
+        <br />
+        تاريخ التحليل: ${analysis.createdAt.toLocaleDateString("ar-SA")}
+      </p>
+    </section>
+
+    <section class="kpis">
+      <div class="kpi"><div class="kpi-label">عدد الطلاب</div><div class="kpi-value">${analysis.totalStudents}</div></div>
+      <div class="kpi"><div class="kpi-label">عدد النتائج</div><div class="kpi-value">${analysis.totalRows}</div></div>
+      <div class="kpi"><div class="kpi-label">عدد المواد</div><div class="kpi-value">${analysis.totalSubjects}</div></div>
+      <div class="kpi"><div class="kpi-label">المتوسط</div><div class="kpi-value">${Math.round(Number(analysis.averagePercentage || 0))}%</div></div>
+    </section>
+
+    <section class="section">
+      <h2>الملخص الذكي</h2>
+      ${renderList(smartNarrative.insights, "لا يوجد ملخص ذكي لهذا التحليل.")}
+    </section>
+
+    <section class="section">
+      <h2>التوصيات العلاجية</h2>
+      ${smartNarrative.recommendations.length ? smartNarrative.recommendations.map((item) => `<div class="note recommendation">${escapeHtml(item)}</div>`).join("") : '<div class="empty">لا توجد توصيات علاجية.</div>'}
+    </section>
+
+    <section class="section">
+      <h2>التدخلات المقترحة مستقبلًا</h2>
+      ${interventionRows || '<div class="empty">لا توجد تدخلات مقترحة في هذا التحليل.</div>'}
+    </section>
+
+    <h2>متوسط المواد</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>المادة</th>
+          <th>المتوسط</th>
+          <th>عدد النتائج</th>
+          <th>حالات الخطر</th>
+        </tr>
+      </thead>
+      <tbody>${subjectRows || "<tr><td colspan='4'>لا توجد بيانات.</td></tr>"}</tbody>
+    </table>
+
+    <h2>الطلاب المحتاجون متابعة</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>الطالب</th>
+          <th>الصف</th>
+          <th>الفصل</th>
+          <th>المتوسط</th>
+          <th>مواد تحتاج متابعة</th>
+        </tr>
+      </thead>
+      <tbody>${riskRows || "<tr><td colspan='5'>لا توجد بيانات.</td></tr>"}</tbody>
+    </table>
+
+    <h2>عينة النتائج</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>الطالب</th>
+          <th>الصف</th>
+          <th>الفصل</th>
+          <th>المادة</th>
+          <th>الدرجة</th>
+          <th>النسبة</th>
+        </tr>
+      </thead>
+      <tbody>${resultRows || "<tr><td colspan='6'>لا توجد بيانات.</td></tr>"}</tbody>
+    </table>
+
+    <div class="footer">
+      منصة التوجيه الطلابي
+      <br />
+      تقرير صادر من مركز التحليل والاختبارات
+    </div>
+  </div>
+</body>
+</html>
+`;
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  const auth = await requireSchoolDashboardApiContext();
+
+  if (auth instanceof Response) {
+    return auth;
+  }
+
+  const serviceGuard = await requireServiceAccessApi("assessment-center");
+  if (serviceGuard) return serviceGuard;
+
+  const { analysisId } = await context.params;
+  const url = new URL(request.url);
+  const format = url.searchParams.get("format") || "excel";
+
+  const analysis = await prisma.assessmentAnalysis.findFirst({
+    where: {
+      id: analysisId,
+      schoolAccountId: auth.schoolAccountId,
+    },
+  });
+
+  if (!analysis) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم العثور على التحليل.",
+      },
+      { status: 404 }
+    );
+  }
+
+  const summary = asSummary(analysis.summaryJson);
+  const rows = asRows(analysis.rowsJson);
+  const fileBaseName = safeFileName(analysis.title || "assessment-analysis");
+
+  if (format === "pdf") {
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+
+    try {
+      const page = await browser.newPage();
+
+      await page.setContent(
+        buildPdfHtml({
+          analysis,
+          summary,
+          rows,
+        }),
+        { waitUntil: "load" }
+      );
+
+      const pdf = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: {
+          top: "10mm",
+          right: "8mm",
+          bottom: "10mm",
+          left: "8mm",
+        },
+      });
+
+      const pdfBuffer = Buffer.from(pdf);
+
+      return new Response(toArrayBuffer(pdfBuffer), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": buildAttachmentContentDisposition(fileBaseName, "pdf"),
+        },
+      });
+    } finally {
+      await browser.close();
+    }
+  }
+
+  const excelBuffer = buildExcelBuffer({
+    analysis,
+    summary,
+    rows,
+  });
+
+  return new Response(toArrayBuffer(excelBuffer), {
+    headers: {
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": buildAttachmentContentDisposition(fileBaseName, "xlsx"),
+    },
+  });
+}
+
+
+==================== app\api\dashboard\assessment-center\[analysisId]\student-linking\auto\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { analyzeAssessmentRows } from "@/engine/assessment-center/assessment-center-engine";
+import { linkAssessmentRowsToStudents } from "@/lib/assessment-center/assessment-center-student-linking";
+import type { AssessmentResultRow } from "@/lib/assessment-center/assessment-center-types";
+
+export const runtime = "nodejs";
+
+type RouteContext = {
+  params: Promise<{
+    analysisId: string;
+  }>;
+};
+
+function asRows(value: unknown): AssessmentResultRow[] {
+  if (!Array.isArray(value)) return [];
+  return value as AssessmentResultRow[];
+}
+
+export async function PATCH(_request: Request, context: RouteContext) {
+  const auth = await requireSchoolDashboardApiContext();
+
+  if (auth instanceof Response) return auth;
+
+  const serviceGuard = await requireServiceAccessApi("assessment-center");
+  if (serviceGuard) return serviceGuard;
+
+  const { analysisId } = await context.params;
+  const isAdmin = Boolean((auth as any).isAdmin);
+
+  const analysis = await prisma.assessmentAnalysis.findFirst({
+    where: {
+      id: analysisId,
+      ...(isAdmin ? {} : { schoolAccountId: auth.schoolAccountId }),
+    },
+  });
+
+  if (!analysis) {
+    return NextResponse.json(
+      { success: false, error: "لم يتم العثور على التحليل." },
+      { status: 404 }
+    );
+  }
+
+  const schoolAccountId = analysis.schoolAccountId || auth.schoolAccountId;
+
+  if (!schoolAccountId) {
+    return NextResponse.json(
+      { success: false, error: "لا يمكن تحديد المدرسة." },
+      { status: 400 }
+    );
+  }
+
+  const rows = asRows(analysis.rowsJson);
+  const unlinkedRows = rows.filter((row) => !row.studentId);
+
+  const students = await prisma.student.findMany({
+    where: {
+      schoolAccountId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      nationalId: true,
+      grade: true,
+      classroom: true,
+    },
+  });
+
+  const relinkedRows = linkAssessmentRowsToStudents({
+    rows: unlinkedRows,
+    students,
+  });
+
+  const relinkedMap = new Map(relinkedRows.map((row) => [row.id, row]));
+  const beforeLinked = rows.filter((row) => row.studentId).length;
+
+  const updatedRows = rows.map((row) => {
+    if (row.studentId) return row;
+    return relinkedMap.get(row.id) || row;
+  });
+
+  const afterLinked = updatedRows.filter((row) => row.studentId).length;
+  const linkedCount = afterLinked - beforeLinked;
+
+  const analysisOutput = analyzeAssessmentRows(updatedRows);
+  const summary = analysisOutput.summary;
+
+  await prisma.assessmentAnalysis.update({
+    where: { id: analysis.id },
+    data: {
+      totalStudents: summary.totalStudents,
+      totalRows: summary.totalRows,
+      totalSubjects: summary.totalSubjects,
+      averagePercentage: summary.averagePercentage,
+      summaryJson: summary,
+      rowsJson: analysisOutput.rows,
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    linkedCount,
+    summary,
+  });
+}
+
+
+==================== app\api\dashboard\assessment-center\[analysisId]\student-linking\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { analyzeAssessmentRows } from "@/engine/assessment-center/assessment-center-engine";
+import type { AssessmentResultRow } from "@/lib/assessment-center/assessment-center-types";
+
+export const runtime = "nodejs";
+
+type RouteContext = {
+  params: Promise<{
+    analysisId: string;
+  }>;
+};
+
+type LinkRowsRequest = {
+  action?: "LINK" | "UNLINK";
+  rowIds?: string[];
+  studentId?: string | null;
+};
+
+function asRows(value: unknown): AssessmentResultRow[] {
+  if (!Array.isArray(value)) return [];
+  return value as AssessmentResultRow[];
+}
+
+async function readBody(request: Request): Promise<LinkRowsRequest> {
+  try {
+    return (await request.json()) as LinkRowsRequest;
+  } catch {
+    return {};
+  }
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  const auth = await requireSchoolDashboardApiContext();
+
+  if (auth instanceof Response) {
+    return auth;
+  }
+
+  const serviceGuard = await requireServiceAccessApi("assessment-center");
+  if (serviceGuard) return serviceGuard;
+
+  const { analysisId } = await context.params;
+  const body = await readBody(request);
+
+  const rowIds = Array.isArray(body.rowIds)
+    ? body.rowIds.filter((id) => typeof id === "string" && id.length > 0)
+    : [];
+
+  if (!rowIds.length) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم تحديد نتائج للربط.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const isAdmin = Boolean((auth as any).isAdmin);
+
+  const analysis = await prisma.assessmentAnalysis.findFirst({
+    where: {
+      id: analysisId,
+      ...(isAdmin
+        ? {}
+        : {
+            schoolAccountId: auth.schoolAccountId,
+          }),
+    },
+  });
+
+  if (!analysis) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم العثور على التحليل.",
+      },
+      { status: 404 }
+    );
+  }
+
+  const schoolAccountId = analysis.schoolAccountId || auth.schoolAccountId;
+
+  if (!schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لا يمكن تحديد المدرسة المرتبطة بهذا التحليل.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const action = body.action === "UNLINK" ? "UNLINK" : "LINK";
+
+  const targetStudent =
+    action === "LINK" && body.studentId
+      ? await prisma.student.findFirst({
+          where: {
+            id: body.studentId,
+            schoolAccountId,
+            isActive: true,
+          },
+          select: {
+            id: true,
+            fullName: true,
+            nationalId: true,
+            grade: true,
+            classroom: true,
+          },
+        })
+      : null;
+
+  if (action === "LINK" && !targetStudent) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم العثور على الطالب المحدد داخل مركز البيانات.",
+      },
+      { status: 404 }
+    );
+  }
+
+  const rowIdSet = new Set(rowIds);
+  const rows = asRows(analysis.rowsJson);
+
+  let updatedCount = 0;
+
+  const updatedRows = rows.map((row) => {
+    if (!rowIdSet.has(row.id)) return row;
+
+    updatedCount += 1;
+
+    if (action === "UNLINK") {
+      return {
+        ...row,
+        studentId: null,
+        matchedStudentName: null,
+        linkStatus: "UNMATCHED" as const,
+        linkReason: "تم إلغاء الربط يدويًا من صفحة مراجعة الربط.",
+      };
+    }
+
+    return {
+      ...row,
+      studentId: targetStudent?.id || null,
+      matchedStudentName: targetStudent?.fullName || null,
+      nationalId: row.nationalId || targetStudent?.nationalId || null,
+      linkStatus: "LINKED" as const,
+      linkReason: "تم الربط يدويًا من صفحة مراجعة الربط.",
+    };
+  });
+
+  if (!updatedCount) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم العثور على النتائج المحددة داخل التحليل.",
+      },
+      { status: 404 }
+    );
+  }
+
+  const analysisOutput = analyzeAssessmentRows(updatedRows);
+  const summary = analysisOutput.summary;
+
+  await prisma.assessmentAnalysis.update({
+    where: {
+      id: analysis.id,
+    },
+    data: {
+      totalStudents: summary.totalStudents,
+      totalRows: summary.totalRows,
+      totalSubjects: summary.totalSubjects,
+      averagePercentage: summary.averagePercentage,
+      summaryJson: summary,
+      rowsJson: analysisOutput.rows,
+    },
+  });
+
+  await prisma.platformActivityLog
+    .create({
+      data: {
+        schoolAccountId,
+        category: "ASSESSMENT_CENTER",
+        action:
+          action === "LINK"
+            ? "MANUAL_STUDENT_LINK"
+            : "MANUAL_STUDENT_UNLINK",
+        severity: "INFO",
+        title:
+          action === "LINK"
+            ? "ربط يدوي لنتائج تحليل بطالب"
+            : "إلغاء ربط نتيجة تحليل بطالب",
+        details: {
+          analysisId: analysis.id,
+          analysisTitle: analysis.title,
+          rowIds,
+          studentId: targetStudent?.id || null,
+          studentName: targetStudent?.fullName || null,
+          updatedCount,
+        },
+      },
+    })
+    .catch(() => null);
+
+  return NextResponse.json({
+    success: true,
+    updatedCount,
+    summary,
+  });
+}
+
+
+==================== app\api\dashboard\family-school-communication\guardian-summons\export\pdf\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { chromium } from "playwright";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { buildReportIdentityFromCurrentUser } from "@/lib/report-engine/report-identity-runtime";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type ExportRequestBody = {
+  payload?: Record<string, unknown>;
+  fileName?: string;
+};
+
+export async function POST(request: Request) {
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
+
+  try {
+    const body = (await request.json()) as ExportRequestBody;
+
+    const identityPayload = await resolveGuardianSummonsExportIdentity();
+    const payload = { ...(body.payload || {}), ...identityPayload };
+    const requestedFileName = ensurePdfExtension(
+      body.fileName || "guardian-summons.pdf"
+    );
+
+    const host = request.headers.get("host") || "localhost:3000";
+    const protocol =
+      request.headers.get("x-forwarded-proto") ||
+      (host.includes("localhost") ? "http" : "https");
+
+    const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8")
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+
+    const previewUrl = `${protocol}://${host}/pdf-preview/guardian-summons?pdf=true&payload=${encodeURIComponent(
+      encodedPayload
+    )}`;
+
+    browser = await chromium.launch({
+      headless: true,
+    });
+
+    const context = await browser.newContext({
+      viewport: {
+        width: 794,
+        height: 1123,
+      },
+      deviceScaleFactor: 1,
+    });
+
+    const page = await context.newPage();
+
+    page.on("console", (message: any) => {
+      if (message.type() === "error") {
+        console.error(
+          "GUARDIAN_SUMMONS_PDF_PREVIEW_CONSOLE_ERROR",
+          message.text()
+        );
+      }
+    });
+
+    page.on("pageerror", (error: any) => {
+      console.error("GUARDIAN_SUMMONS_PDF_PREVIEW_PAGE_ERROR", error);
+    });
+
+    const response = await page.goto(previewUrl, {
+      waitUntil: "networkidle",
+      timeout: 45_000,
+    });
+
+    if (!response || !response.ok()) {
+      const status = response?.status() || 0;
+      throw new Error(`تعذر فتح صفحة معاينة PDF. status=${status}`);
+    }
+
+    const pageCount = await page.locator(".pdf-report-page").count();
+
+    if (!pageCount) {
+      throw new Error("لم يتم العثور على صفحة PDF داخل المعاينة.");
+    }
+
+    await page.emulateMedia({
+      media: "print",
+    });
+
+    await page.evaluate(() => {
+      document.documentElement.style.background = "#ffffff";
+      document.documentElement.style.margin = "0";
+      document.documentElement.style.padding = "0";
+
+      document.body.style.background = "#ffffff";
+      document.body.style.margin = "0";
+      document.body.style.padding = "0";
+      document.body.style.overflow = "hidden";
+
+      const forbiddenSelectors = [
+        "nav",
+        "aside",
+        "[data-sidebar]",
+        "[data-dashboard-shell]",
+        ".no-print",
+        ".fixed",
+        ".sticky",
+      ];
+
+      for (const selector of forbiddenSelectors) {
+        document.querySelectorAll(selector).forEach((node: any) => {
+          const element = node as HTMLElement;
+          element.style.display = "none";
+        });
+      }
+
+      const pages = Array.from(document.querySelectorAll(".pdf-report-page"));
+
+      for (const pdfPage of pages) {
+        const element = pdfPage as HTMLElement;
+
+        element.style.background = "#ffffff";
+        element.style.boxShadow = "none";
+        element.style.border = "0";
+        element.style.margin = "0 auto";
+      }
+    });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: false,
+      margin: {
+        top: "0mm",
+        right: "0mm",
+        bottom: "0mm",
+        left: "0mm",
+      },
+    });
+
+    await context.close();
+    await browser.close();
+    browser = null;
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": buildContentDisposition(requestedFileName),
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
+
+    console.error("GUARDIAN_SUMMONS_PDF_EXPORT_ERROR", error);
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء إنشاء ملف PDF.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+async function resolveGuardianSummonsExportIdentity() {
+  try {
+    const currentSession = await getCurrentSessionUser();
+    const identity = buildReportIdentityFromCurrentUser(
+      currentSession?.user ?? null
+    ) as any;
+
+    return {
+      ministryName: pickIdentityValue(identity.ministryName, "وزارة التعليم"),
+      educationDepartment: pickIdentityValue(
+        identity.educationDepartment,
+        "الإدارة العامة للتعليم بمنطقة ................"
+      ),
+      educationOffice: pickIdentityValue(
+        identity.educationOffice,
+        "مكتب التعليم بمحافظة ................"
+      ),
+      schoolName: pickIdentityValue(
+        identity.schoolName,
+        "مدرسة ........................"
+      ),
+      academicYear: pickIdentityValue(identity.academicYear, "١٤٤٠ هـ / ١٤٣٩ هـ"),
+      guidanceUnitName: pickIdentityValue(identity.guidanceUnitName || identity.guidanceDepartmentName, "الإرشاد الطلابي"),
+
+      counselorName: pickIdentityValue(identity.counselorName, ""),
+      counselorTitle: pickIdentityValue(identity.counselorTitle, ""),
+      counselorGender: pickIdentityValue(
+        identity.counselorGender || identity.guideGender || identity.advisorGender || identity.userGender || identity.gender,
+        ""
+      ),
+
+      schoolLeaderName: pickIdentityValue(
+        identity.principalName || identity.schoolLeaderName,
+        ""
+      ),
+      principalName: pickIdentityValue(
+        identity.principalName || identity.schoolLeaderName,
+        ""
+      ),
+      schoolLeaderTitle: pickIdentityValue(
+        identity.schoolLeaderTitle || identity.principalTitle,
+        ""
+      ),
+      schoolLeaderGender: pickIdentityValue(
+        identity.schoolLeaderGender || identity.principalGender || identity.leaderGender,
+        ""
+      ),
+
+      ministryLogoUrl: "/uploads/school-logos/MOE.png",
+      schoolLogoUrl: pickIdentityValue(identity.schoolLogoUrl, ""),
+    };
+  } catch (error) {
+    console.error("GUARDIAN_SUMMONS_IDENTITY_RESOLVE_ERROR", error);
+
+    return {
+      ministryName: "وزارة التعليم",
+      educationDepartment: "الإدارة العامة للتعليم بمنطقة ................",
+      educationOffice: "مكتب التعليم بمحافظة ................",
+      schoolName: "مدرسة ........................",
+      academicYear: "١٤٤٠ هـ / ١٤٣٩ هـ",
+      counselorName: "",
+      counselorTitle: "الموجه/الموجهة الطلابية",
+      schoolLeaderName: "",
+      principalName: "",
+      ministryLogoUrl: "/uploads/school-logos/MOE.png",
+      schoolLogoUrl: "",
+    };
+  }
+}
+
+function pickIdentityValue(value: unknown, fallback: string) {
+  if (typeof value !== "string") return fallback;
+
+  const cleaned = value.trim();
+
+  if (!cleaned || cleaned === "null" || cleaned === "undefined") {
+    return fallback;
+  }
+
+  return cleaned;
+}
+
+function ensurePdfExtension(fileName: string) {
+  const cleaned = fileName
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+
+  return cleaned.endsWith(".pdf") ? cleaned : `${cleaned}.pdf`;
+}
+
+function buildContentDisposition(fileName: string) {
+  const asciiFallback = toAsciiFallback(fileName);
+  const encodedFileName = encodeRFC5987ValueChars(fileName);
+
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedFileName}`;
+}
+
+function toAsciiFallback(fileName: string) {
+  const fallback = fileName
+    .replace(/[^\x20-\x7E]/g, "-")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return fallback || "guardian-summons.pdf";
+}
+
+function encodeRFC5987ValueChars(value: string) {
+  return encodeURIComponent(value)
+    .replace(/['()]/g, escape)
+    .replace(/\*/g, "%2A");
+}
+
+
+
+
+
+==================== app\api\dashboard\report\prepare\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+export async function POST() {
+  return NextResponse.redirect(new URL("/api/dashboard/reports/prepare", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+}
+
+
+
+==================== app\api\dashboard\report\[reportId]\approve\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+type Props = { params: Promise<{ reportId: string }> };
+
+export async function POST(_request: Request, context: Props) {
+  const { reportId } = await context.params;
+  return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}/approve`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+}
+
+
+
+==================== app\api\dashboard\report\[reportId]\delete\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+type Props = { params: Promise<{ reportId: string }> };
+
+export async function POST(_request: Request, context: Props) {
+  const { reportId } = await context.params;
+  return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}/delete`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+}
+
+
+
+==================== app\api\dashboard\report\[reportId]\duplicate\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+type Props = { params: Promise<{ reportId: string }> };
+
+export async function POST(_request: Request, context: Props) {
+  const { reportId } = await context.params;
+  return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}/duplicate`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+}
+
+
+
+==================== app\api\dashboard\report\[reportId]\evidence\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+type Props = { params: Promise<{ reportId: string }> };
+
+export async function POST(_request: Request, context: Props) {
+  const { reportId } = await context.params;
+  return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}/evidence`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+}
+
+
+
+==================== app\api\dashboard\report\[reportId]\export\pdf\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+type Props = { params: Promise<{ reportId: string }> };
+
+export async function POST(_request: Request, context: Props) {
+  const { reportId } = await context.params;
+  return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}/export/pdf`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+}
+
+
+
+==================== app\api\dashboard\report\[reportId]\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+type Props = { params: Promise<{ reportId: string }> };
+
+export async function GET(_request: Request, context: Props) {
+  const { reportId } = await context.params;
+  return NextResponse.redirect(new URL(`/api/dashboard/reports/${reportId}`, process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+}
+
+
+
+==================== app\api\dashboard\report\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  return NextResponse.redirect(new URL("/api/dashboard/reports", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+}
+
+export async function POST() {
+  return NextResponse.redirect(new URL("/api/dashboard/reports", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+}
+
+
+
+==================== app\api\dashboard\report-1\cases\[caseId]\generate\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/prisma";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  requireActiveSubscriptionApi,
+  requireServiceAccessApi,
+} from "@/lib/subscription/subscription-api-guard";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+function toRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, any>;
+}
+
+function parseTemplateJson(value: unknown) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+
+  return null;
+}
+
+function getPayloadEvidences(payload: Record<string, any>) {
+  const candidates = [
+    payload.evidence?.items,
+    payload.evidence?.evidences,
+    payload.evidences,
+    payload.evidenceItems,
+    payload.attachments,
+    payload.files,
+    payload.caseInfo?.evidence?.items,
+    payload.caseInfo?.evidences,
+    payload.caseInfo?.evidenceItems,
+    payload.caseInfo?.attachments,
+  ];
+
+  const collected: any[] = [];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      collected.push(...candidate);
+      continue;
+    }
+
+    if (candidate && typeof candidate === "object") {
+      if (Array.isArray(candidate.items)) {
+        collected.push(...candidate.items);
+      }
+
+      if (Array.isArray(candidate.evidences)) {
+        collected.push(...candidate.evidences);
+      }
+    }
+  }
+
+  const seen = new Set<string>();
+
+  return collected.filter((item, index) => {
+    const fileUrl =
+      item.fileUrl ||
+      item.url ||
+      item.imageUrl ||
+      item.publicUrl ||
+      item.path ||
+      "";
+
+    const signature = `${item.id || index}-${fileUrl}`;
+
+    if (!fileUrl || seen.has(signature)) return false;
+
+    seen.add(signature);
+    return true;
+  });
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  try {
+    const current = await getCurrentSessionUser();
+
+    if (!current) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "يلزم تسجيل الدخول.",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (current.user.role !== "ADMIN") {
+      const subscriptionGuard = await requireActiveSubscriptionApi();
+      if (subscriptionGuard) return subscriptionGuard;
+    }
+
+    const { caseId } = await context.params;
+    const body = toRecord(await request.json().catch(() => ({})));
+
+    const result = await buildSmartReportPayloadForCase({
+      caseId: String(caseId || "").trim(),
+      current,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.message,
+        },
+        { status: result.status },
+      );
+    }
+
+    if (current.user.role !== "ADMIN") {
+      const serviceGuard = await requireServiceAccessApi(result.serviceSlug);
+      if (serviceGuard) return serviceGuard;
+    }
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: result.caseEntryId,
+      },
+      select: {
+        id: true,
+        schoolAccountId: true,
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لم يتم العثور على الحالة.",
+        },
+        { status: 404 },
+      );
+    }
+
+    const templateId = String(body.templateId || "").trim();
+    const payload = toRecord(body.payload) || result.payload;
+    const documentDraft = toRecord(body.documentDraft);
+
+    const template = templateId
+      ? await prisma.reportTemplate.findFirst({
+          where: {
+            id: templateId,
+            isActive: true,
+          },
+        })
+      : null;
+
+    const templateJson =
+      parseTemplateJson(template?.templateJson) ||
+      parseTemplateJson(template?.content);
+
+    const templateSnapshot = {
+      kind: "REPORT_ONE_ADMIN_TEMPLATE",
+      engine: "report-1",
+      version: 1,
+      capturedAt: new Date().toISOString(),
+      templateId: template?.id || templateId || null,
+      templateName: template?.name || body.templateName || "قالب report-1",
+      serviceSlug: template?.serviceSlug || null,
+      templateJson,
+    };
+
+    const reportDataSnapshot = {
+      kind: "REPORT_ONE_DRAFT",
+      engine: "report-1",
+      version: 1,
+      caseId: result.caseEntryId,
+      serviceSlug: result.serviceSlug,
+      payload,
+      documentDraft,
+      selectedTemplateId: template?.id || templateId || null,
+      savedAt: new Date().toISOString(),
+    };
+
+    const evidenceItems = getPayloadEvidences(payload);
+
+    const report = await prisma.guidanceReport.create({
+      data: {
+        title:
+          String(documentDraft.title || payload.title || payload.caseInfo?.title || "").trim() ||
+          "تقرير حالة",
+        serviceSlug: result.serviceSlug,
+        caseEntryId: result.caseEntryId,
+        status: "GENERATED",
+        genderMode: "MALE",
+        editableContent: JSON.stringify(documentDraft),
+        renderedContent: JSON.stringify(documentDraft),
+        templateId: template?.id || null,
+        templateSnapshot,
+        reportDataSnapshot,
+        evidenceEnabled: true,
+        generatedAt: new Date(),
+        evidenceItems: {
+          create: evidenceItems
+            .map((item: any, index: number) => ({
+              fileName:
+                item.fileName ||
+                item.title ||
+                `evidence-${index + 1}`,
+              fileUrl: item.fileUrl || item.url || item.imageUrl || "",
+              caption: item.caption || item.note || item.title || null,
+              sortOrder: index,
+              visible: true,
+            }))
+            .filter((item: any) => item.fileUrl),
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await prisma.platformActivityLog
+      .create({
+        data: {
+          actorUserId: current.user.id,
+          schoolAccountId: caseEntry.schoolAccountId,
+          category: "REPORTS",
+          action: "CREATE_REPORT_ONE",
+          severity: "INFO",
+          title: "إنشاء تقرير report-1",
+          details: {
+            reportId: report.id,
+            caseEntryId: result.caseEntryId,
+            serviceSlug: result.serviceSlug,
+            templateId: template?.id || templateId || null,
+          },
+        },
+      })
+      .catch(() => null);
+
+    return NextResponse.json({
+      success: true,
+      reportId: report.id,
+      studioUrl: `/dashboard/report-1/${report.id}/studio`,
+    });
+  } catch (error) {
+    console.error("REPORT_ONE_GENERATE_ERROR", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "تعذر حفظ التقرير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================== app\api\dashboard\report-1\[reportId]\approve\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { ReportStatus } from "@prisma/client";
+
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+import { buildReportAccessWhere } from "@/lib/reports/report-access";
+
+type RouteContext = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+export async function POST(_request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+      },
+      { status: 403 },
+    );
+  }
+
+  try {
+    const { reportId } = await context.params;
+
+    const existingReport = await prisma.guidanceReport.findFirst({
+      where: buildReportAccessWhere(reportId, {
+        schoolAccountId: authResult.schoolAccountId,
+        isAdmin: authResult.isAdmin,
+      }),
+      select: {
+        id: true,
+        status: true,
+        caseEntryId: true,
+        serviceSlug: true,
+        caseEntry: {
+          select: {
+            schoolAccountId: true,
+          },
+        },
+      },
+    });
+
+    if (!existingReport) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
+        },
+        { status: 404 },
+      );
+    }
+
+    if (existingReport.status === ReportStatus.ARCHIVED) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لا يمكن اعتماد تقرير مؤرشف.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const report = await prisma.guidanceReport.update({
+      where: {
+        id: existingReport.id,
+      },
+      data: {
+        status: ReportStatus.APPROVED,
+        approvedAt: new Date(),
+      },
+      select: {
+        id: true,
+        status: true,
+        approvedAt: true,
+      },
+    });
+
+    await prisma.platformActivityLog
+      .create({
+        data: {
+          actorUserId: authResult.user.id,
+          schoolAccountId: existingReport.caseEntry.schoolAccountId,
+          category: "REPORTS",
+          action: "APPROVE_REPORT_ONE",
+          severity: "INFO",
+          title: "اعتماد تقرير report-1",
+          details: {
+            reportId: report.id,
+            caseEntryId: existingReport.caseEntryId,
+            serviceSlug: existingReport.serviceSlug,
+          },
+        },
+      })
+      .catch(() => null);
+
+    return NextResponse.json({
+      success: true,
+      report,
+    });
+  } catch (error) {
+    console.error("REPORT_ONE_APPROVE_ERROR", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "تعذر اعتماد التقرير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================== app\api\dashboard\report-1\[reportId]\export\pdf\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { chromium } from "playwright";
+
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { getReportAccess } from "@/lib/reports/report-access";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type RouteContext = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+function getBaseUrl(request: Request) {
+  const url = new URL(request.url);
+
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    `${url.protocol}//${url.host}`
+  );
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
+
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+      },
+      { status: 403 },
+    );
+  }
+
+  try {
+    const { reportId } = await context.params;
+
+    const reportAccess = await getReportAccess(reportId, {
+      schoolAccountId: authResult.schoolAccountId,
+      isAdmin: authResult.isAdmin,
+      userId: authResult.user.id,
+      userRole: authResult.user.role,
+    });
+
+    if (!reportAccess) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
+        },
+        { status: 404 },
+      );
+    }
+
+    const requestUrl = new URL(request.url);
+    const baseUrl = getBaseUrl(request);
+    const previewUrl = `${baseUrl}/dashboard/report-1/${reportId}/preview?pdf=true`;
+    const cookieHeader = request.headers.get("cookie") || "";
+
+    browser = await chromium.launch({
+      headless: true,
+    });
+
+    const browserContext = await browser.newContext({
+      viewport: {
+        width: 1280,
+        height: 1600,
+      },
+      extraHTTPHeaders: cookieHeader
+        ? {
+            cookie: cookieHeader,
+          }
+        : undefined,
+    });
+
+    const page = await browserContext.newPage();
+
+    const response = await page.goto(previewUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 45_000,
+    });
+
+    if (!response || !response.ok()) {
+      throw new Error(
+        `تعذر فتح صفحة المعاينة الداخلية. Status: ${response?.status() || 0}`,
+      );
+    }
+
+    await page.waitForLoadState("networkidle", {
+      timeout: 45_000,
+    }).catch(() => null);
+
+    await page.addStyleTag({
+      content: `
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 210mm !important;
+          background: #ffffff !important;
+          overflow: visible !important;
+        }
+
+        .pdf-report-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          margin: 0 !important;
+          box-sizing: border-box !important;
+          overflow: hidden !important;
+          break-after: page !important;
+          page-break-after: always !important;
+          page-break-inside: avoid !important;
+          box-shadow: none !important;
+          transform: none !important;
+        }
+
+        .pdf-report-page:last-child {
+          break-after: auto !important;
+          page-break-after: auto !important;
+        }
+      `,
+    });
+
+    const hasReportPage = await page
+      .locator(".pdf-report-page")
+      .first()
+      .isVisible({
+        timeout: 45_000,
+      })
+      .catch(() => false);
+
+    if (!hasReportPage) {
+      throw new Error("لم يتم العثور على صفحة التقرير داخل المعاينة.");
+    }
+
+    await page.evaluate(() => {
+      const pages = Array.from(document.querySelectorAll(".pdf-report-page"));
+
+      if (!pages.length) return;
+
+      document.documentElement.style.margin = "0";
+      document.documentElement.style.padding = "0";
+      document.documentElement.style.width = "210mm";
+      document.documentElement.style.background = "white";
+
+      document.body.innerHTML = "";
+      document.body.style.margin = "0";
+      document.body.style.padding = "0";
+      document.body.style.width = "210mm";
+      document.body.style.background = "white";
+      document.body.style.overflow = "visible";
+
+      const root = document.createElement("main");
+      root.style.margin = "0";
+      root.style.padding = "0";
+      root.style.width = "210mm";
+      root.style.background = "white";
+
+      pages.forEach((reportPage, index) => {
+        const clonedPage = reportPage.cloneNode(true) as HTMLElement;
+
+        clonedPage.style.width = "210mm";
+        clonedPage.style.minWidth = "210mm";
+        clonedPage.style.maxWidth = "210mm";
+        clonedPage.style.height = "297mm";
+        clonedPage.style.minHeight = "297mm";
+        clonedPage.style.maxHeight = "297mm";
+        clonedPage.style.margin = "0";
+        clonedPage.style.boxSizing = "border-box";
+        clonedPage.style.overflow = "hidden";
+        clonedPage.style.boxShadow = "none";
+        clonedPage.style.breakAfter = index === pages.length - 1 ? "auto" : "page";
+        clonedPage.style.pageBreakAfter = index === pages.length - 1 ? "auto" : "always";
+        clonedPage.style.pageBreakInside = "avoid";
+
+        root.appendChild(clonedPage);
+      });
+
+      document.body.appendChild(root);
+    });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: "0",
+        right: "0",
+        bottom: "0",
+        left: "0",
+      },
+    });
+
+    await browserContext.close();
+
+    const inline = requestUrl.searchParams.get("inline") === "true";
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="report-1-${reportId}.pdf"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("REPORT_ONE_PDF_EXPORT_ERROR", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تصدير PDF.",
+      },
+      { status: 500 },
+    );
+  } finally {
+    if (browser) {
+      await browser.close().catch(() => null);
+    }
+  }
+}
+
+
+==================== app\api\dashboard\report-1\[reportId]\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { ReportStatus } from "@prisma/client";
+
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+import { buildReportAccessWhere } from "@/lib/reports/report-access";
+
+type RouteContext = {
+  params: Promise<{
+    reportId: string;
+  }>;
+};
+
+function toRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, any>;
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
+  if (!authResult.isAdmin && !authResult.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+      },
+      { status: 403 },
+    );
+  }
+
+  try {
+    const { reportId } = await context.params;
+    const body = toRecord(await request.json().catch(() => ({})));
+    const documentDraft = toRecord(body.documentDraft);
+
+    const title =
+      String(body.title || documentDraft.title || "").trim() ||
+      "تقرير حالة";
+
+    const existingReport = await prisma.guidanceReport.findFirst({
+      where: buildReportAccessWhere(reportId, {
+        schoolAccountId: authResult.schoolAccountId,
+        isAdmin: authResult.isAdmin,
+      }),
+      select: {
+        id: true,
+        status: true,
+        reportDataSnapshot: true,
+      },
+    });
+
+    if (!existingReport) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "التقرير غير موجود أو لا تملك صلاحية الوصول إليه.",
+        },
+        { status: 404 },
+      );
+    }
+
+    if (existingReport.status === ReportStatus.APPROVED) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لا يمكن تعديل تقرير معتمد.",
+        },
+        { status: 403 },
+      );
+    }
+
+    const currentSnapshot =
+      existingReport.reportDataSnapshot &&
+      typeof existingReport.reportDataSnapshot === "object" &&
+      !Array.isArray(existingReport.reportDataSnapshot)
+        ? (existingReport.reportDataSnapshot as Record<string, any>)
+        : {};
+
+    const updated = await prisma.guidanceReport.update({
+      where: {
+        id: existingReport.id,
+      },
+      data: {
+        title,
+        editableContent: JSON.stringify(documentDraft),
+        renderedContent: JSON.stringify(documentDraft),
+        reportDataSnapshot: {
+          ...currentSnapshot,
+          documentDraft,
+          savedAt: new Date().toISOString(),
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      report: {
+        ...updated,
+        updatedAt: updated.updatedAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("REPORT_ONE_UPDATE_ERROR", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "تعذر حفظ تعديلات التقرير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================== app\api\dashboard\report-templates\[templateId]\use\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+type RouteContext = {
+  params: Promise<{
+    templateId: string;
+  }>;
+};
+
+export async function POST(_request: Request, context: RouteContext) {
+  try {
+    const { templateId } = await context.params;
+
+    const existingTemplate = await prisma.reportTemplate.findUnique({
+      where: {
+        id: templateId,
+      },
+    });
+
+    if (!existingTemplate || !existingTemplate.isActive) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "قالب التقارير غير موجود أو غير مفعّل.",
+        },
+        { status: 404 },
+      );
+    }
+
+    const template = await prisma.reportTemplate.update({
+      where: {
+        id: templateId,
+      },
+      data: {
+        usageCount: {
+          increment: 1,
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "تم تسجيل استخدام قالب التقارير.",
+      template,
+    });
+  } catch (error) {
+    console.error("POST /api/dashboard/report-templates/[templateId]/use failed:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "تعذر تسجيل استخدام قالب التقارير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================== app\api\dashboard\report-templates\[templateId]\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { Prisma, type ReportTemplateType} from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+type RouteContext = {
+  params: Promise<{
+    templateId: string;
+  }>;
+};
+
+type UpdateReportTemplatePayload = {
+  name?: string;
+  description?: string | null;
+  serviceSlug?: string | null;
+  type?: ReportTemplateType;
+  content?: string;
+  templateJson?: unknown;
+  genderAware?: boolean;
+  isActive?: boolean;
+  incrementVersion?: boolean;
+};
+
+function normalizeTemplateType(value: unknown): ReportTemplateType | undefined {
+  if (value === "SYSTEM" || value === "SCHOOL" || value === "PERSONAL") {
+    return value;
+  }
+
+  return undefined;
+}
+
+function toOptionalString(value: unknown) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  return value.trim();
+}
+
+function normalizeJsonInput(value: unknown) {
+  if (value === null) {
+    return Prisma.JsonNull;
+  }
+
+  return value as Prisma.InputJsonValue;
+}
+
+export async function GET(_request: Request, context: RouteContext) {
+  try {
+    const { templateId } = await context.params;
+
+    const template = await prisma.reportTemplate.findUnique({
+      where: {
+        id: templateId,
+      },
+    });
+
+    if (!template) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "قالب التقارير غير موجود.",
+        },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      template,
+    });
+  } catch (error) {
+    console.error(
+      "GET /api/dashboard/report-templates/[templateId] failed:",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "تعذر جلب قالب التقارير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  try {
+    const { templateId } = await context.params;
+    const payload = (await request.json()) as UpdateReportTemplatePayload;
+
+    const existingTemplate = await prisma.reportTemplate.findUnique({
+      where: {
+        id: templateId,
+      },
+      select: {
+        id: true,
+        version: true,
+      },
+    });
+
+    if (!existingTemplate) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "قالب التقارير غير موجود.",
+        },
+        { status: 404 },
+      );
+    }
+
+    const nextType = normalizeTemplateType(payload.type);
+
+    const data: Prisma.ReportTemplateUpdateInput = {};
+
+    if (payload.name !== undefined) {
+      data.name = toOptionalString(payload.name) || "قالب تقرير";
+    }
+
+    if (payload.description !== undefined) {
+      data.description = payload.description;
+    }
+
+    if (payload.serviceSlug !== undefined) {
+      data.serviceSlug = payload.serviceSlug || null;
+    }
+
+    if (nextType) {
+      data.type = nextType;
+    }
+
+    if (payload.content !== undefined) {
+      data.content = toOptionalString(payload.content) || "قالب تقرير محفوظ.";
+    }
+
+    if (payload.templateJson !== undefined) {
+      data.templateJson = normalizeJsonInput(payload.templateJson);
+    }
+
+    if (typeof payload.genderAware === "boolean") {
+      data.genderAware = payload.genderAware;
+    }
+
+    if (typeof payload.isActive === "boolean") {
+      data.isActive = payload.isActive;
+    }
+
+    if (payload.incrementVersion) {
+      data.version = existingTemplate.version + 1;
+    }
+
+    const template = await prisma.reportTemplate.update({
+      where: {
+        id: templateId,
+      },
+      data,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "تم تحديث قالب التقارير بنجاح.",
+      template,
+    });
+  } catch (error) {
+    console.error(
+      "PATCH /api/dashboard/report-templates/[templateId] failed:",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "تعذر تحديث قالب التقارير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  try {
+    const { templateId } = await context.params;
+
+    const template = await prisma.reportTemplate.update({
+      where: {
+        id: templateId,
+      },
+      data: {
+        isActive: false,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "تم أرشفة قالب التقارير بنجاح.",
+      template,
+    });
+  } catch (error) {
+    console.error(
+      "DELETE /api/dashboard/report-templates/[templateId] failed:",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "تعذر أرشفة قالب التقارير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================== app\api\dashboard\report-templates\route.ts ====================
+
+import { NextResponse } from "next/server";
+import { Prisma, type ReportTemplateType} from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+type CreateReportTemplatePayload = {
+  name?: string;
+  description?: string;
+  serviceSlug?: string | null;
+  type?: ReportTemplateType;
+  content?: string;
+  templateJson?: unknown;
+  genderAware?: boolean;
+  isActive?: boolean;
+};
+
+function normalizeTemplateType(value: unknown): ReportTemplateType {
+  if (value === "SYSTEM" || value === "SCHOOL" || value === "PERSONAL") {
+    return value;
+  }
+
+  return "SYSTEM";
+}
+
+function toSafeString(value: unknown, fallback = "") {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  return value.trim() || fallback;
+}
+
+function normalizeJsonInput(value: unknown) {
+  if (value === null) {
+    return Prisma.JsonNull;
+  }
+
+  return value as Prisma.InputJsonValue;
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    const serviceSlug = searchParams.get("serviceSlug");
+    const type = searchParams.get("type");
+    const includeInactive = searchParams.get("includeInactive") === "true";
+
+    const templates = await prisma.reportTemplate.findMany({
+      where: {
+        ...(includeInactive ? {} : { isActive: true }),
+        ...(serviceSlug ? { serviceSlug } : {}),
+        ...(type === "SYSTEM" || type === "SCHOOL" || type === "PERSONAL"
+          ? { type }
+          : {}),
+      },
+      orderBy: [
+        {
+          updatedAt: "desc",
+        },
+      ],
+    });
+
+    return NextResponse.json({
+      success: true,
+      templates,
+    });
+  } catch (error) {
+    console.error("GET /api/dashboard/report-templates failed:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "تعذر جلب قوالب التقارير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const payload = (await request.json()) as CreateReportTemplatePayload;
+
+    const name = toSafeString(payload.name, "قالب تقرير جديد");
+
+    const description = toSafeString(
+      payload.description,
+      "قالب تقرير محفوظ من صانع قوالب التقارير.",
+    );
+
+    const content = toSafeString(
+      payload.content,
+      description || "قالب تقرير محفوظ.",
+    );
+
+    const template = await prisma.reportTemplate.create({
+      data: {
+        name,
+        description,
+        serviceSlug: payload.serviceSlug || null,
+        type: normalizeTemplateType(payload.type),
+        content,
+        ...(payload.templateJson !== undefined
+          ? { templateJson: normalizeJsonInput(payload.templateJson) }
+          : {}),
+        genderAware:
+          typeof payload.genderAware === "boolean"
+            ? payload.genderAware
+            : true,
+        isActive:
+          typeof payload.isActive === "boolean" ? payload.isActive : true,
+        version: 1,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "تم إنشاء قالب التقارير بنجاح.",
+        template,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("POST /api/dashboard/report-templates failed:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "تعذر إنشاء قالب التقارير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================== app\api\dashboard\reports\case\[caseId]\generate\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/prisma";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import { applyReportDraftAdjustments } from "@/lib/report-engine/report-draft-merger";
+import type { ReportDraftAdjustments } from "@/lib/report-engine/smart-report-types";
+import {
+  getReportVariantById,
+  resolveReportVariantId,
+} from "@/lib/report-engine/report-variant-registry";
+import {
+  requireActiveSubscriptionApi,
+  requireServiceAccessApi,
+} from "@/lib/subscription/subscription-api-guard";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+function toJsonRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  try {
+    const current = await getCurrentSessionUser();
+
+    if (!current) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "يلزم تسجيل الدخول.",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (current.user.role !== "ADMIN") {
+      const subscriptionGuard = await requireActiveSubscriptionApi();
+
+      if (subscriptionGuard) {
+        return subscriptionGuard;
+      }
+    }
+
+    const params = await context.params;
+    const caseId = String(params.caseId || "").trim();
+    const body = toJsonRecord(await request.json().catch(() => ({})));
+    const variantId = resolveReportVariantId(
+      typeof body.variantId === "string" ? body.variantId : undefined,
+    );
+    const variant = getReportVariantById(variantId);
+
+    const result = await buildSmartReportPayloadForCase({
+      caseId,
+      current,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.message,
+        },
+        { status: result.status },
+      );
+    }
+
+    if (current.user.role !== "ADMIN") {
+      const serviceGuard = await requireServiceAccessApi(result.serviceSlug);
+
+      if (serviceGuard) {
+        return serviceGuard;
+      }
+    }
+
+    const rawAdjustments = body.reportDraftAdjustments as ReportDraftAdjustments | null | undefined;
+
+    const adjustedPayload = applyReportDraftAdjustments(
+      result.payload,
+      rawAdjustments
+    );
+
+    if (rawAdjustments?.evidenceConfig) {
+      adjustedPayload.evidenceConfig = rawAdjustments.evidenceConfig;
+    }
+
+    const caseEntry = await prisma.caseEntry.findUnique({
+      where: {
+        id: result.caseEntryId,
+      },
+      select: {
+        id: true,
+        schoolAccountId: true,
+        title: true,
+        serviceId: true,
+      },
+    });
+
+    if (!caseEntry) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "لم يتم العثور على الحالة.",
+        },
+        { status: 404 },
+      );
+    }
+
+    const report = await prisma.guidanceReport.create({
+      data: {
+        title: adjustedPayload.title || "تقرير حالة",
+        serviceSlug: result.serviceSlug,
+        caseEntryId: result.caseEntryId,
+        status: "GENERATED",
+        genderMode: "MALE",
+        editableContent:
+          result.payload.narrative.body ||
+          result.payload.caseInfo.title ||
+          result.payload.title ||
+          "",
+        renderedContent: null,
+        evidenceEnabled: true,
+        templateSnapshot: {
+          kind: "SMART_REPORT_VARIANT",
+          engine: "smart-report",
+          version: 1,
+          variantId,
+          variantName: variant.name,
+          variantShortName: variant.shortName,
+          generatedFrom: "case",
+        },
+        reportDataSnapshot: adjustedPayload,
+        generatedAt: new Date(),
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await prisma.platformActivityLog
+      .create({
+        data: {
+          actorUserId: current.user.id,
+          schoolAccountId: caseEntry.schoolAccountId,
+          category: "REPORTS",
+          action: "GENERATE_SMART_REPORT",
+          severity: "INFO",
+          title: "حفظ تقرير ذكي",
+          details: {
+            reportId: report.id,
+            caseEntryId: result.caseEntryId,
+            serviceSlug: result.serviceSlug,
+            variantId,
+            variantName: variant.name,
+          },
+        },
+      })
+      .catch(() => null);
+
+    return NextResponse.json({
+      success: true,
+      reportId: report.id,
+    });
+  } catch (error) {
+    console.error("SMART_REPORT_GENERATE_API_ERROR", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "حدث خطأ أثناء حفظ التقرير.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================== app\api\dashboard\reports\case\[caseId]\prepare\route.ts ====================
+
+import { NextResponse } from "next/server";
+
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  requireActiveSubscriptionApi,
+  requireServiceAccessApi,
+} from "@/lib/subscription/subscription-api-guard";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export async function GET(_request: Request, context: RouteContext) {
+  try {
+    const current = await getCurrentSessionUser();
+
+    if (!current) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "يلزم تسجيل الدخول.",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (current.user.role !== "ADMIN") {
+      const subscriptionGuard = await requireActiveSubscriptionApi();
+
+      if (subscriptionGuard) {
+        return subscriptionGuard;
+      }
+    }
+
+    const params = await context.params;
+    const caseId = String(params.caseId || "").trim();
+
+    const result = await buildSmartReportPayloadForCase({
+      caseId,
+      current,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.message,
+        },
+        { status: result.status },
+      );
+    }
+
+    if (current.user.role !== "ADMIN") {
+      const serviceGuard = await requireServiceAccessApi(result.serviceSlug);
+
+      if (serviceGuard) {
+        return serviceGuard;
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      payload: result.payload,
+    });
+  } catch (error) {
+    console.error("SMART_REPORT_PREPARE_API_ERROR", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "حدث خطأ أثناء تجهيز التقرير.",
+      },
+      { status: 500 },
+    );
+  }
+}
