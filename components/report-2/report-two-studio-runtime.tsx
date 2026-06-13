@@ -1997,6 +1997,18 @@ export function ReportTwoStudioRuntime({
   const [finalWizardOpen, setFinalWizardOpen] = useState(false);
   const [finalChecklistConfirmed, setFinalChecklistConfirmed] = useState(false);
   const [finalCheckConfirmedAt, setFinalCheckConfirmedAt] = useState<string | null>(null);
+  const [pendingDraftSnapshot, setPendingDraftSnapshot] =
+    useState<ReportTwoDraftSnapshot | null>(null);
+
+  const [popup, setPopup] = useState<{
+    type: "alert" | "confirm";
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  } | null>(null);
+
+  function closePopup() { setPopup(null); }
 
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
@@ -2250,12 +2262,12 @@ export function ReportTwoStudioRuntime({
 
   function confirmReportTwoFinalWizard() {
     if (!finalCheckPassed) {
-      window.alert("لا يمكن تأكيد الجاهزية قبل إصلاح البنود المطلوبة.");
+      setPopup({ type: "alert", title: "الفحص النهائي", message: "لا يمكن تأكيد الجاهزية قبل إصلاح البنود المطلوبة." });
       return;
     }
 
     if (!finalChecklistConfirmed) {
-      window.alert("ضع علامة التأكيد بعد مراجعة المعاينة.");
+      setPopup({ type: "alert", title: "الفحص النهائي", message: "ضع علامة التأكيد بعد مراجعة المعاينة." });
       return;
     }
 
@@ -2273,7 +2285,7 @@ export function ReportTwoStudioRuntime({
     setFinalCheckConfirmedAt(now);
     setFinalWizardOpen(false);
 
-    window.alert("تم تأكيد جاهزية التقرير. يمكنك المتابعة للاعتماد أو التصدير لاحقًا.");
+    setPopup({ type: "alert", title: "جاهزية التقرير", message: "تم تأكيد جاهزية التقرير. يمكنك المتابعة للاعتماد أو التصدير لاحقًا." });
   }
 
   function fixAllReportTwoSmartAlerts() {
@@ -2404,7 +2416,7 @@ export function ReportTwoStudioRuntime({
     setLastAutoSavedAt(snapshot.savedAt);
 
     if (showMessage) {
-      window.alert("تم حفظ المسودة الحالية.");
+      setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
     }
   }
 
@@ -2412,7 +2424,7 @@ export function ReportTwoStudioRuntime({
     const previous = undoSnapshots[0];
 
     if (!previous) {
-      window.alert("لا يوجد تعديل سابق للرجوع إليه.");
+      setPopup({ type: "alert", title: "التراجع", message: "لا يوجد تعديل سابق للرجوع إليه." });
       return;
     }
 
@@ -2433,7 +2445,7 @@ export function ReportTwoStudioRuntime({
     const name = runtimeTemplateName.trim();
 
     if (!name) {
-      window.alert("اكتب اسم القالب أولًا.");
+      setPopup({ type: "alert", title: "حفظ القالب", message: "اكتب اسم القالب أولًا." });
       return;
     }
 
@@ -2467,7 +2479,7 @@ export function ReportTwoStudioRuntime({
     setActiveSavedRuntimeTemplateId(id);
     setRuntimeTemplateName(name);
 
-    window.alert("تم حفظ قالب التقرير الحالي.");
+    setPopup({ type: "alert", title: "حفظ القالب", message: "تم حفظ قالب التقرير الحالي." });
   }
 
   function applySavedRuntimeTemplate(templateId: string) {
@@ -2493,21 +2505,24 @@ export function ReportTwoStudioRuntime({
   }
 
   function deleteSavedRuntimeTemplate(templateId: string) {
-    const ok = window.confirm("هل تريد حذف هذا القالب المحفوظ؟");
+    setPopup({
+      type: "confirm",
+      title: "حذف القالب المحفوظ",
+      message: "هل تريد حذف هذا القالب المحفوظ؟",
+      onConfirm: () => {
+        const nextItems = savedRuntimeTemplates.filter(
+          (item) => item.id !== templateId,
+        );
 
-    if (!ok) return;
+        persistSavedRuntimeTemplates(nextItems);
 
-    const nextItems = savedRuntimeTemplates.filter(
-      (template) => template.id !== templateId,
-    );
-
-    persistSavedRuntimeTemplates(nextItems);
-
-    if (activeSavedRuntimeTemplateId === templateId) {
-      setActiveSavedRuntimeTemplateId("");
-      setSelectedQuickSavedTemplateId("");
-      setRuntimeTemplateName("");
-    }
+        if (activeSavedRuntimeTemplateId === templateId) {
+          setActiveSavedRuntimeTemplateId("");
+          setSelectedQuickSavedTemplateId("");
+          setRuntimeTemplateName("");
+        }
+      },
+    });
   }
   function selectTemplate(templateId: string) {
     const nextTemplateOption =
@@ -2635,22 +2650,25 @@ export function ReportTwoStudioRuntime({
     if (!runtimePage) return;
 
     if (runtimePage.reportTwoVirtualPage) {
-      const ok = window.confirm("هل تريد إخفاء هذه الصفحة التلقائية من المعاينة؟");
+      setPopup({
+        type: "confirm",
+        title: "إخفاء الصفحة",
+        message: "هل تريد إخفاء هذه الصفحة التلقائية من المعاينة؟",
+        onConfirm: () => {
+          const nextHiddenIds = [...hiddenRuntimePageIds, pageId];
+          const nextVisiblePages = visiblePreviewTemplate.pages.filter(
+            (p) => !nextHiddenIds.includes(p.id),
+          );
 
-      if (!ok) return;
+          setHiddenRuntimePageIds(nextHiddenIds);
+          setRuntimePageOrder((current) => current.filter((id) => id !== pageId));
 
-      const nextHiddenIds = [...hiddenRuntimePageIds, pageId];
-      const nextVisiblePages = visiblePreviewTemplate.pages.filter(
-        (page) => !nextHiddenIds.includes(page.id),
-      );
-
-      setHiddenRuntimePageIds(nextHiddenIds);
-      setRuntimePageOrder((current) => current.filter((id) => id !== pageId));
-
-      if (activePageId === pageId) {
-        setActivePageId(nextVisiblePages[0]?.id || "");
-        setSelectedBlockId(nextVisiblePages[0]?.blocks[0]?.id || "");
-      }
+          if (activePageId === pageId) {
+            setActivePageId(nextVisiblePages[0]?.id || "");
+            setSelectedBlockId(nextVisiblePages[0]?.blocks[0]?.id || "");
+          }
+        },
+      });
 
       return;
     }
@@ -2658,29 +2676,32 @@ export function ReportTwoStudioRuntime({
     const sourcePageId = getReportTwoSourcePageId(pageId, runtimePage);
 
     if (!canDeleteReportTwoPage(pageId)) {
-      window.alert("لا يمكن حذف صفحة قادمة من قالب الاستديو الأصلي.");
+      setPopup({ type: "alert", title: "حذف الصفحة", message: "لا يمكن حذف صفحة قادمة من قالب الاستديو الأصلي." });
       return;
     }
 
-    const ok = window.confirm("هل تريد حذف هذه الصفحة من التقرير؟");
+    setPopup({
+      type: "confirm",
+      title: "حذف الصفحة",
+      message: "هل تريد حذف هذه الصفحة من التقرير؟",
+      onConfirm: () => {
+        const remainingPages = template.pages.filter(
+          (p) => p.id !== sourcePageId,
+        );
 
-    if (!ok) return;
+        setTemplate((current) => ({
+          ...current,
+          pages: remainingPages,
+        }));
 
-    const remainingPages = template.pages.filter(
-      (page) => page.id !== sourcePageId,
-    );
+        setRuntimePageOrder((current) =>
+          current.filter((id) => id !== pageId && id !== sourcePageId),
+        );
 
-    setTemplate((current) => ({
-      ...current,
-      pages: remainingPages,
-    }));
-
-    setRuntimePageOrder((current) =>
-      current.filter((id) => id !== pageId && id !== sourcePageId),
-    );
-
-    setActivePageId(remainingPages[0]?.id || "");
-    setSelectedBlockId(remainingPages[0]?.blocks[0]?.id || "");
+        setActivePageId(remainingPages[0]?.id || "");
+        setSelectedBlockId(remainingPages[0]?.blocks[0]?.id || "");
+      },
+    });
   }
 
   function removeActivePage() {
@@ -2713,7 +2734,7 @@ export function ReportTwoStudioRuntime({
     if (!selectedBlock || !activePage) return;
 
     if (activePage.blocks.length <= 1) {
-      window.alert("لا يمكن حذف آخر بلوك داخل الصفحة.");
+      setPopup({ type: "alert", title: "حذف البلوك", message: "لا يمكن حذف آخر بلوك داخل الصفحة." });
       return;
     }
 
@@ -2876,15 +2897,8 @@ export function ReportTwoStudioRuntime({
     );
 
     if (snapshot) {
-      const ok = window.confirm(
-        "يوجد مسودة محفوظة لهذا التقرير. هل تريد استعادتها؟",
-      );
-
-      if (ok) {
-        restoreReportTwoDraftSnapshot(snapshot);
-        lastDraftSerializedRef.current = JSON.stringify(snapshot);
-        setLastAutoSavedAt(snapshot.savedAt);
-      }
+      setPendingDraftSnapshot(snapshot);
+      return;
     }
 
     setDraftRestored(true);
@@ -4152,6 +4166,110 @@ export function ReportTwoStudioRuntime({
         ) : null}
       </div>
 
+      {popup ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+              <div>
+                <h2 className="text-xl font-black text-slate-950">{popup.title}</h2>
+                <p className="mt-1 text-sm font-bold text-slate-500">{popup.message}</p>
+              </div>
+            </header>
+
+            <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+              {popup.type === "confirm" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      popup.onCancel?.();
+                      closePopup();
+                    }}
+                    className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+                  >
+                    لا
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      popup.onConfirm?.();
+                      closePopup();
+                    }}
+                    className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+                  >
+                    نعم
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={closePopup}
+                  className="mr-auto rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+                >
+                  حسناً
+                </button>
+              )}
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingDraftSnapshot ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-xs font-black text-emerald-700">
+                  استعادة المسودة
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-slate-950">
+                  توجد مسودة محفوظة
+                </h2>
+
+                <p className="mt-1 text-sm font-bold text-slate-500">
+                  يوجد مسودة محفوظة لهذا التقرير. هل تريد استعادتها؟
+                </p>
+              </div>
+            </header>
+
+            <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingDraftSnapshot(null);
+                  setDraftRestored(true);
+                }}
+                className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+              >
+                لا، بداية جديدة
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const snapshot = pendingDraftSnapshot;
+                  setPendingDraftSnapshot(null);
+                  restoreReportTwoDraftSnapshot(snapshot);
+                  lastDraftSerializedRef.current = JSON.stringify(snapshot);
+                  setLastAutoSavedAt(snapshot.savedAt);
+                  setDraftRestored(true);
+                }}
+                className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+              >
+                نعم، استعادة المسودة
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
       {finalWizardOpen ? (
         <div
           className="final-wizard-modal fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
