@@ -627,6 +627,107 @@ function getDefaultReportTwoHeaderAlignments(): ReportTwoHeaderAlignments {
     "report.platformName": "center",
   };
 }
+const REPORT_TWO_FIELD_LABELS: Record<string, string> = {
+  activity_domain: "مجال النشاط",
+  activity_program: "برنامج النشاط",
+  activity_program_scouting: "برنامج النشاط الكشفي",
+  execution_mode: "طريقة التنفيذ",
+  execution_method: "طريقة التنفيذ",
+  start_day: "يوم البداية",
+  end_day: "يوم النهاية",
+  start_week: "أسبوع البداية",
+  end_week: "أسبوع النهاية",
+  start_date: "تاريخ البداية",
+  end_date: "تاريخ النهاية",
+  semester: "الفصل الدراسي",
+  term: "الفصل الدراسي",
+  week: "الأسبوع",
+  target_group: "الفئة المستهدفة",
+  target_class: "الفئة المستهدفة",
+  executor: "المعلم المنفذ",
+  execution_date: "تاريخ التنفيذ",
+  planned_sessions: "عدد اللقاءات المخططة",
+  sessions_count: "عدد اللقاءات",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  parents_participated: "مشاركة أولياء الأمور",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  beneficiary_count: "عدد المستفيدين",
+  beneficiaries_count: "عدد المستفيدين",
+  location: "موقع التنفيذ",
+  place: "المكان",
+  execution_location: "موقع التنفيذ",
+  activity_leader: "رائد النشاط",
+  counselor: "الموجه الطلابي",
+  principal: "قائد المدرسة",
+};
+
+const REPORT_TWO_VALUE_LABELS: Record<string, string> = {
+  scouting: "النشاط الكشفي",
+  citizenship_life: "المواطنة والحياة",
+  science_technology: "العلوم والتقنية",
+  culture_arts: "الثقافة والفنون",
+  sports_health: "الرياضة والصحة",
+  events_occasions: "الأيام والمناسبات",
+  non_class_periods: "الفترات اللاصفية",
+  activity_leader: "رائد النشاط",
+  teacher: "المعلم",
+  counselor: "الموجه الطلابي",
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+  yes: "نعم",
+  no: "لا",
+  "true": "نعم",
+  "false": "لا",
+  term_1: "الفصل الدراسي الأول",
+  term_2: "الفصل الدراسي الثاني",
+  term_3: "الفصل الدراسي الثالث",
+  semester_1: "الفصل الدراسي الأول",
+  semester_2: "الفصل الدراسي الثاني",
+  semester_3: "الفصل الدراسي الثالث",
+  academic: "أكاديمي",
+  behavioral: "سلوكي",
+  social: "اجتماعي",
+  psychological: "نفسي",
+  lecture: "محاضرة",
+  workshop: "ورشة عمل",
+  field_visit: "زيارة ميدانية",
+  competition: "مسابقة",
+  awareness_campaign: "حملة توعوية",
+  training_course: "دورة تدريبية",
+  meeting: "لقاء",
+  interview: "مقابلة",
+  phone: "اتصال هاتفي",
+  message: "رسالة نصية",
+};
+
+function getReportTwoFieldLabel(key: string, label: string): string {
+  if (!key && !label) return "";
+  const trimmed = label?.trim();
+  if (trimmed && trimmed !== key && !/^[a-z0-9_./-]+$/i.test(trimmed)) {
+    return trimmed;
+  }
+  return REPORT_TWO_FIELD_LABELS[key] || REPORT_TWO_FIELD_LABELS[label] || trimmed || key || "";
+}
+
+function getReportTwoFieldValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  const lower = raw.toLowerCase();
+  const direct = REPORT_TWO_VALUE_LABELS[lower] || REPORT_TWO_VALUE_LABELS[raw];
+  if (direct) return direct;
+  const programMatch = lower.match(/^program_(\d+)$/);
+  if (programMatch) return `برنامج النشاط رقم ${programMatch[1]}`;
+  if (/^[a-z0-9_./-]+$/i.test(raw) && /[a-z_]/i.test(raw)) return raw;
+  return raw;
+}
+
 function getPayloadAny(payload: SmartReportPayload) {
   return payload as any;
 }
@@ -756,11 +857,21 @@ function getPreviewCase(payload: SmartReportPayload) {
       guardianName: cleanText(student.guardianName),
       guardianPhone: cleanText(student.guardianPhone),
     },
-    values: fields.map((field: any, index: number) => ({
-      fieldKey: cleanText(field.key) || `field-${index + 1}`,
-      fieldLabel: cleanText(field.label) || `حقل ${index + 1}`,
-      value: cleanText(field.value),
-    })),
+    values: fields.map((field: any, index: number) => {
+      const fieldKey =
+        cleanText(field.key) ||
+        cleanText(field.fieldKey) ||
+        cleanText(field.name) ||
+        cleanText(field.id) ||
+        `field-${index + 1}`;
+
+      return {
+        fieldKey,
+        fieldLabel: getReportTwoReadableFieldLabel(field, index),
+        value: getReportTwoReadableFieldValue(field),
+        rawValue: cleanText(field.value),
+      };
+    }),
     evidences: collectEvidences(payload),
   };
 }
@@ -1069,6 +1180,170 @@ function isReportTwoDynamicFieldsBlock(block: StudioBlock | null | undefined) {
     title.includes("بيانات الحالة")
   );
 }
+function getReportTwoLookupKey(value: unknown) {
+  return cleanText(value).toLowerCase();
+}
+
+function getReportTwoDisplayText(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => getReportTwoDisplayText(item))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    const candidates = [
+      record.displayValue,
+      record.valueLabel,
+      record.optionLabel,
+      record.selectedOptionLabel,
+      record.labelAr,
+      record.nameAr,
+      record.titleAr,
+      record.label,
+      record.name,
+      record.title,
+      record.text,
+      record.value,
+    ];
+
+    for (const candidate of candidates) {
+      const text = cleanText(candidate);
+
+      if (text) return text;
+    }
+
+    return "";
+  }
+
+  return cleanText(value);
+}
+
+function getReportTwoOptionCollections(field: any) {
+  return [
+    field.options,
+    field.dynamicFieldOptions,
+    field.fieldOptions,
+    field.choices,
+    field.items,
+    field.field?.options,
+    field.field?.dynamicFieldOptions,
+    field.dynamicField?.options,
+    field.workflowField?.options,
+  ].filter(Array.isArray) as any[][];
+}
+
+function getReportTwoOptionArabicLabel(field: any, rawValue: unknown) {
+  const target = getReportTwoLookupKey(rawValue);
+
+  if (!target) return "";
+
+  for (const options of getReportTwoOptionCollections(field)) {
+    for (const option of options) {
+      const optionValues = [
+        option.value,
+        option.key,
+        option.code,
+        option.slug,
+        option.id,
+      ].map(getReportTwoLookupKey);
+
+      if (!optionValues.includes(target)) {
+        continue;
+      }
+
+      const label = getReportTwoDisplayText({
+        displayValue: option.displayValue,
+        valueLabel: option.valueLabel,
+        optionLabel: option.optionLabel,
+        labelAr: option.labelAr,
+        nameAr: option.nameAr,
+        titleAr: option.titleAr,
+        label: option.label,
+        name: option.name,
+        title: option.title,
+        text: option.text,
+      });
+
+      if (label) return label;
+    }
+  }
+
+  return "";
+}
+
+function getReportTwoReadableFieldLabel(field: any, index: number) {
+  const key =
+    cleanText(field.key) ||
+    cleanText(field.fieldKey) ||
+    cleanText(field.name) ||
+    cleanText(field.id) ||
+    `field-${index + 1}`;
+
+  const candidates = [
+    field.displayLabel,
+    field.fieldLabel,
+    field.labelAr,
+    field.nameAr,
+    field.titleAr,
+    field.label,
+    field.title,
+    field.field?.label,
+    field.dynamicField?.label,
+    field.workflowField?.label,
+  ];
+
+  for (const candidate of candidates) {
+    const text = cleanText(candidate);
+
+    if (text && text !== key) return text;
+  }
+
+  const fromMap = getReportTwoFieldLabel(key, field.label);
+
+  if (fromMap && fromMap !== key) return fromMap;
+
+  return key;
+}
+
+function getReportTwoReadableFieldValue(field: any) {
+  const explicitCandidates = [
+    field.displayValue,
+    field.formattedValue,
+    field.valueLabel,
+    field.labelValue,
+    field.optionLabel,
+    field.selectedOptionLabel,
+    field.answerLabel,
+    field.answerText,
+    field.textValue,
+    field.valueText,
+  ];
+
+  for (const candidate of explicitCandidates) {
+    const text = getReportTwoDisplayText(candidate);
+
+    if (text) return text;
+  }
+
+  const optionLabel = getReportTwoOptionArabicLabel(field, field.value);
+
+  if (optionLabel) return optionLabel;
+
+  const rawValue = cleanText(field.value);
+
+  if (!rawValue) return "";
+
+  const fromMap = getReportTwoFieldValue(rawValue);
+
+  if (fromMap && fromMap !== rawValue) return fromMap;
+
+  return rawValue;
+}
+
 function getReportTwoDynamicFieldsFromPreviewCase(
   previewCase: ReturnType<typeof getPreviewCase>,
 ): ReportTwoDynamicField[] {
@@ -1102,32 +1377,33 @@ function getDynamicFieldsForBlock(
   const sourceByKey = new Map<string, ReportTwoDynamicField>();
 
   sourceFields.forEach((field) => {
-    sourceByKey.set(field.key, field);
-    sourceByKey.set(field.label, field);
+    [field.id, field.key, field.label].forEach((value) => {
+      const key = getReportTwoLookupKey(value);
+
+      if (key) {
+        sourceByKey.set(key, field);
+      }
+    });
   });
 
   return block.dynamicFields.map((field, index) => {
     const source =
-      sourceByKey.get(field.key) ||
-      sourceByKey.get(field.label) ||
+      sourceByKey.get(getReportTwoLookupKey(field.key)) ||
+      sourceByKey.get(getReportTwoLookupKey(field.id)) ||
+      sourceByKey.get(getReportTwoLookupKey(field.label)) ||
       sourceFields[index];
+
+    const key = field.key || source?.key || `dynamic-field-${index + 1}`;
 
     return {
       id: field.id || source?.id || `dynamic-field-${index + 1}`,
-      key: field.key || source?.key || `dynamic-field-${index + 1}`,
-      label:
-        field.label !== undefined
-          ? field.label
-          : source?.label || `حقل ${index + 1}`,
-      value:
-        field.value !== undefined
-          ? field.value
-          : source?.value || "",
+      key,
+      label: cleanText(source?.label) || getReportTwoFieldLabel(field.key, field.label) || key,
+      value: cleanText(source?.value) || getReportTwoFieldValue(field.value) || cleanText(field.value),
       visible: field.visible !== false,
     };
   });
 }
-
 function getReportTwoTableSettings(
   settings?: Record<string, boolean>,
 ): ReportTwoTableSettings {
@@ -2927,9 +3203,9 @@ export function ReportTwoStudioRuntime({
         <section className="space-y-3">
 
                     
-<section className="report-two-productivity-card grid w-full gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+<section className="report-two-productivity-card grid w-full items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="text-sm font-black text-slate-950">
                 الحفظ التلقائي والتراجع
@@ -2944,11 +3220,11 @@ export function ReportTwoStudioRuntime({
             </span>
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={undoReportTwoLastChange}
-              className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white transition hover:bg-slate-800"
+              className="rounded-2xl bg-slate-950 px-3 py-2 text-[11px] font-black text-white transition hover:bg-slate-800"
             >
               رجوع عن آخر تعديل
               {undoSnapshots.length ? ` (${undoSnapshots.length})` : ""}
@@ -2957,7 +3233,7 @@ export function ReportTwoStudioRuntime({
             <button
               type="button"
               onClick={() => saveReportTwoDraftNow(true)}
-              className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+              className="rounded-2xl bg-emerald-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-emerald-800"
             >
               حفظ الآن
             </button>
@@ -2965,20 +3241,20 @@ export function ReportTwoStudioRuntime({
             <button
               type="button"
               onClick={openReportTwoFinalWizard}
-              className="rounded-2xl bg-indigo-700 px-4 py-2 text-xs font-black text-white transition hover:bg-indigo-800"
+              className="rounded-2xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-indigo-800"
             >
               فحص نهائي قبل الاعتماد
             </button>
 
             {finalCheckConfirmedAt ? (
-              <span className="rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+              <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
                 جاهز منذ {formatReportTwoSavedAt(finalCheckConfirmedAt)}
               </span>
             ) : null}
           </div>
         </div>
 
-        <div className="rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-sm">
+        <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
           <h2 className="text-sm font-black text-slate-950">
             تطبيق قالب محفوظ
           </h2>
@@ -3014,7 +3290,7 @@ export function ReportTwoStudioRuntime({
               type="button"
               disabled={!selectedQuickSavedTemplateId}
               onClick={() => applySavedRuntimeTemplate(selectedQuickSavedTemplateId)}
-              className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="rounded-2xl bg-emerald-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               تطبيق
             </button>

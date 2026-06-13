@@ -1,0 +1,860 @@
+
+==================== app\dashboard\report-2\cases\[caseId]\studio\page.tsx ====================
+
+import { notFound, redirect } from "next/navigation";
+
+import { ReportTwoStudioRuntime } from "@/components/report-2/report-two-studio-runtime";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { prisma } from "@/lib/prisma";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseTemplateJson(value: unknown) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return null;
+}
+
+function isVisibleTemplate(templateJson: Record<string, unknown> | null) {
+  const status = String(templateJson?.status || "").toUpperCase();
+
+  if (!status) return true;
+
+  return status === "PUBLISHED" || status === "DRAFT";
+}
+
+export default async function ReportTwoCaseStudioPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const current = await requireDashboardUser();
+
+  if (current.user.role !== "ADMIN") {
+    if (!current.user.schoolAccountId) {
+      redirect("/dashboard/plans?reason=activation-required");
+    }
+
+    const overview = await getSchoolSubscriptionOverview(
+      current.user.schoolAccountId,
+    );
+
+    if (!overview.usable) {
+      redirect("/dashboard/plans?reason=activation-required");
+    }
+  }
+
+  const { caseId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedTemplateId = firstParam(resolvedSearchParams.templateId) || "";
+
+  const result = await buildSmartReportPayloadForCase({
+    caseId,
+    current,
+  });
+
+  if (!result.ok) {
+    notFound();
+  }
+
+  if (current.user.role !== "ADMIN") {
+    const access = await isServiceAllowedForSchool({
+      schoolAccountId: current.user.schoolAccountId || "",
+      serviceSlug: result.serviceSlug,
+    });
+
+    if (!access.ok) {
+      const reason =
+        access.reason === "SUBSCRIPTION_INACTIVE"
+          ? "activation-required"
+          : "service-not-in-plan";
+
+      redirect(
+        `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+          result.serviceSlug,
+        )}`,
+      );
+    }
+  }
+
+  const templatesRaw = await prisma.reportTemplate.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        {
+          serviceSlug: null,
+        },
+        {
+          serviceSlug: result.serviceSlug,
+        },
+      ],
+    },
+    orderBy: [
+      {
+        serviceSlug: "desc",
+      },
+      {
+        updatedAt: "desc",
+      },
+    ],
+    take: 30,
+  });
+
+  const templates = templatesRaw
+    .map((template) => {
+      const item = template as any;
+      const templateJson =
+        parseTemplateJson(item.templateJson) || parseTemplateJson(item.content);
+
+      return {
+        id: template.id,
+        name: template.name,
+        description: template.description || "",
+        serviceSlug: template.serviceSlug || null,
+        updatedAt: template.updatedAt.toISOString(),
+        templateJson,
+        visible: isVisibleTemplate(templateJson),
+      };
+    })
+    .filter((template) => template.visible)
+    .map(({ visible: _visible, ...template }) => template);
+
+  return (
+    <ReportTwoStudioRuntime
+      caseId={caseId}
+      selectedTemplateId={selectedTemplateId}
+      payload={result.payload}
+      templates={templates}
+    />
+  );
+}
+
+==================== lib\report-engine\smart-report-payload-builder.ts ====================
+
+import { prisma } from "@/lib/prisma";
+import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
+import type {
+  SmartReportEvidenceItem,
+  SmartReportField,
+  SmartReportFieldImportance,
+  SmartReportPayload,
+  SmartReportSignature,
+  SmartReportType,
+} from "@/lib/report-engine/smart-report-types";
+
+type CurrentUserLike = {
+  user: {
+    id: string;
+    name: string;
+    role: string;
+    officialName?: string | null;
+    jobTitle?: string | null;
+    schoolAccountId?: string | null;
+    schoolAccount?: {
+      name?: string | null;
+      profile?: {
+        schoolName?: string | null;
+        principalName?: string | null;
+        principalSignatureUrl?: string | null;
+        activityLeaderName?: string | null;
+        activityLeaderSignatureUrl?: string | null;
+        counselorSignatureUrl?: string | null;
+        educationDepartment?: string | null;
+        educationOffice?: string | null;
+        academicYear?: string | null;
+        currentSemester?: string | null;
+        logoUrl?: string | null;
+      } | null;
+    } | null;
+  };
+};
+
+type BuildSmartReportPayloadResult =
+  | {
+      ok: true;
+      payload: SmartReportPayload;
+      serviceSlug: string;
+      caseEntryId: string;
+    }
+  | {
+      ok: false;
+      status: number;
+      message: string;
+    };
+
+type CaseValueItem = {
+  key: string;
+  label: string;
+  value: string;
+  importance: SmartReportFieldImportance;
+};
+
+function normalizeArabicText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_\-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stringifyValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value).trim();
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => stringifyValue(item))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    for (const key of ["label", "name", "title", "value", "text"]) {
+      const text = stringifyValue(record[key]);
+      if (text) return text;
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
+function formatDateOnly(value: Date | string | null | undefined) {
+  if (!value) return "";
+
+  try {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+
+    return date.toISOString().slice(0, 10);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatDayName(value: Date | string | null | undefined) {
+  if (!value) return "";
+
+  try {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
+      weekday: "long",
+    }).format(date);
+  } catch {
+    return "";
+  }
+}
+
+function isTechnicalField(key: string, label: string, value: string) {
+  const text = normalizeArabicText(`${key} ${label}`);
+
+  return (
+    !value ||
+    text.includes("json") ||
+    key.endsWith("_json") ||
+    key.endsWith("__other") ||
+    text.includes("metadata") ||
+    text === "student" ||
+    text === "guardian" ||
+    text.includes("token") ||
+    text.includes("signature url") ||
+    text.includes("signed at")
+  );
+}
+
+function classifyField(key: string, label: string): SmartReportFieldImportance {
+  const text = normalizeArabicText(`${key} ${label}`);
+
+  if (
+    text.includes("وصف") ||
+    text.includes("description") ||
+    text.includes("ملخص") ||
+    text.includes("summary") ||
+    text.includes("نتيجه") ||
+    text.includes("result") ||
+    text.includes("توصيه")
+  ) {
+    return "NARRATIVE";
+  }
+
+  if (
+    text.includes("شاهد") ||
+    text.includes("مرفق") ||
+    text.includes("evidence") ||
+    text.includes("file") ||
+    text.includes("image")
+  ) {
+    return "EVIDENCE_RELATED";
+  }
+
+  if (text.includes("signature") || text.includes("توقيع")) {
+    return "SIGNATURE_RELATED";
+  }
+
+  return "DETAIL";
+}
+
+function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
+  return (caseEntry.values || [])
+    .map((item: any) => {
+      const key = item.field?.key || item.fieldKey || "";
+      const label = item.field?.label || item.fieldKey || "حقل بدون اسم";
+      const value = stringifyValue(item.value ?? item.jsonValue);
+
+      return {
+        key,
+        label,
+        value,
+        importance: classifyField(key, label),
+      };
+    })
+    .filter((item: CaseValueItem) => {
+      return !isTechnicalField(item.key, item.label, item.value);
+    });
+}
+
+function findByIntent(values: CaseValueItem[], intents: string[]) {
+  const normalizedIntents = intents.map(normalizeArabicText);
+
+  return (
+    values.find((item) => {
+      const text = normalizeArabicText(`${item.key} ${item.label}`);
+      return normalizedIntents.some((intent) => text.includes(intent));
+    }) || null
+  );
+}
+
+function findTitle(caseEntry: any, values: CaseValueItem[]) {
+  const fromCase = String(caseEntry.title || "").trim();
+
+  if (fromCase && fromCase !== "بدون عنوان" && fromCase.length < 120) {
+    return fromCase;
+  }
+
+  const titleField = findByIntent(values, [
+    "activity title",
+    "activity name",
+    "program title",
+    "program name",
+    "عنوان النشاط",
+    "اسم النشاط",
+    "عنوان البرنامج",
+    "اسم البرنامج",
+    "الموضوع",
+    "title",
+  ]);
+
+  return titleField?.value || caseEntry.service?.name || "تقرير حالة";
+}
+
+function buildReportType(serviceSlug: string): SmartReportType {
+  if (serviceSlug.startsWith("activity-programs")) return "ACTIVITY_REPORT";
+  if (serviceSlug.includes("committees") || serviceSlug.includes("meetings")) {
+    return "MEETING_REPORT";
+  }
+  if (serviceSlug.includes("family") || serviceSlug.includes("guardian")) {
+    return "FAMILY_COMMUNICATION_REPORT";
+  }
+  if (serviceSlug.includes("follow")) return "STUDENT_FOLLOWUP_REPORT";
+
+  return "GENERAL_CASE_REPORT";
+}
+
+function makePrimaryField({
+  key,
+  label,
+  value,
+}: {
+  key: string;
+  label: string;
+  value: string;
+}): SmartReportField {
+  return {
+    key,
+    label,
+    value: value || "غير محدد",
+    importance: "PRIMARY",
+  };
+}
+
+function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
+  const normalItems: SmartReportEvidenceItem[] = (caseEntry.evidences || [])
+    .filter((item: any) => Boolean(item.fileUrl))
+    .map((item: any) => ({
+      id: item.id,
+      title: item.fileName || item.note || "شاهد",
+      caption: item.note || undefined,
+      url: item.fileUrl || undefined,
+      type: item.type === "IMAGE" ? "IMAGE" : "FILE",
+    }));
+
+  const caseEvidenceItems: SmartReportEvidenceItem[] = (
+    caseEntry.caseEvidences || []
+  )
+    .filter((item: any) => Boolean(item.fileUrl))
+    .map((item: any) => ({
+      id: item.id,
+      title: item.fileName || "شاهد",
+      url: item.fileUrl,
+      type: String(item.mimeType || "").startsWith("image/") ? "IMAGE" : "FILE",
+    }));
+
+  const assignmentEvidenceItems: SmartReportEvidenceItem[] = Array.isArray(
+    caseEntry.activityAssignment?.submittedEvidenceItems,
+  )
+    ? caseEntry.activityAssignment.submittedEvidenceItems
+        .filter((item: any) => Boolean(item?.fileUrl || item?.url))
+        .map((item: any, index: number) => ({
+          id: item.id || `assignment-evidence-${index + 1}`,
+          title: item.fileName || item.title || `شاهد ${index + 1}`,
+          caption: item.caption || item.note || undefined,
+          url: item.fileUrl || item.url,
+          type: String(item.mimeType || "").startsWith("image/")
+            ? "IMAGE"
+            : "FILE",
+        }))
+    : [];
+
+  return [...normalItems, ...caseEvidenceItems, ...assignmentEvidenceItems];
+}
+
+function buildSignatures(caseEntry: any, current: CurrentUserLike): SmartReportSignature[] {
+  const profile = current.user.schoolAccount?.profile;
+  const serviceSlug = caseEntry.service?.slug || "";
+  const isActivity = serviceSlug.startsWith("activity-programs");
+
+  const signatures: SmartReportSignature[] = [];
+
+  signatures.push({
+    key: "principal",
+    label: "مدير المدرسة",
+    signerName: profile?.principalName || "مدير المدرسة",
+    signerTitle: "مدير المدرسة",
+    imageUrl: profile?.principalSignatureUrl || null,
+    required: false,
+  });
+
+  if (isActivity) {
+    signatures.push({
+      key: "activity_leader",
+      label: "رائد النشاط",
+      signerName:
+        profile?.activityLeaderName ||
+        current.user.officialName ||
+        current.user.name,
+      signerTitle: "رائد النشاط",
+      imageUrl: profile?.activityLeaderSignatureUrl || null,
+      required: true,
+    });
+  } else {
+    signatures.push({
+      key: "counselor",
+      label: "الموجه الطلابي",
+      signerName: current.user.officialName || current.user.name,
+      signerTitle: current.user.jobTitle || "الموجه الطلابي",
+      imageUrl: profile?.counselorSignatureUrl || null,
+      required: true,
+    });
+  }
+
+  if (caseEntry.activityAssignment?.teacherName) {
+    signatures.push({
+      key: "teacher",
+      label: "توقيع المعلم المنفذ",
+      signerName:
+        caseEntry.activityAssignment.teacherSignedName ||
+        caseEntry.activityAssignment.teacherName,
+      signerTitle: "المعلم المنفذ",
+      imageUrl: caseEntry.activityAssignment.teacherSignatureUrl || null,
+      signedAt: caseEntry.activityAssignment.teacherSignedAt?.toISOString?.() || null,
+      required: true,
+    });
+  }
+
+  return signatures;
+}
+
+function buildNarrative({
+  title,
+  serviceName,
+  semester,
+  executor,
+  executionDate,
+  targetGroup,
+  executionMethod,
+  evidenceCount,
+}: {
+  title: string;
+  serviceName: string;
+  semester: string;
+  executor: string;
+  executionDate: string;
+  targetGroup: string;
+  executionMethod: string;
+  evidenceCount: number;
+}) {
+  return [
+    `تم تنفيذ برنامج النشاط الطلابي «${title}»، ضمن مجال ${serviceName}.`,
+    `ونُفذ البرنامج خلال ${semester || "الفصل الدراسي المحدد"}، وتولى التنفيذ المعلم/المعلمة ${executor || "غير محدد"}.`,
+    `وكان تاريخ التنفيذ ${executionDate || "غير محدد"}.`,
+    `واستهدف البرنامج ${targetGroup || "الفئة المستهدفة"}.`,
+    `وجرى التنفيذ وفق آلية: ${executionMethod || "غير محددة"}.`,
+    `وتم توثيق النشاط من خلال ${evidenceCount} شاهد/مرفق محفوظ في الحالة.`,
+  ].join(" ");
+}
+
+export async function buildSmartReportPayloadForCase({
+  caseId,
+  current,
+}: {
+  caseId: string;
+  current: CurrentUserLike;
+}): Promise<BuildSmartReportPayloadResult> {
+  if (!caseId) {
+    return {
+      ok: false,
+      status: 400,
+      message: "رقم الحالة مطلوب.",
+    };
+  }
+
+  const isAdmin = current.user.role === "ADMIN";
+
+  if (!isAdmin && !current.user.schoolAccountId) {
+    return {
+      ok: false,
+      status: 401,
+      message: "يلزم تسجيل الدخول بحساب مدرسة.",
+    };
+  }
+
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: {
+      id: caseId,
+      ...buildCaseEntryReportWhereForUser(current.user),
+    },
+    include: {
+      schoolAccount: {
+        include: {
+          profile: true,
+        },
+      },
+      service: true,
+      workflow: true,
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      createdBy: true,
+      values: {
+        include: {
+          field: {
+            include: {
+              options: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      evidences: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      caseEvidences: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      activityAssignment: true,
+    },
+  });
+
+  if (!caseEntry) {
+    return {
+      ok: false,
+      status: 404,
+      message: "لم يتم العثور على الحالة أو لا تملك صلاحية الوصول لها.",
+    };
+  }
+
+  const values = normalizeCaseValues(caseEntry);
+  const title = findTitle(caseEntry, values);
+  const serviceSlug = caseEntry.service?.slug || "general";
+  const serviceName = caseEntry.service?.name || "خدمة";
+  const reportType = buildReportType(serviceSlug);
+  const profile =
+    caseEntry.schoolAccount?.profile || current.user.schoolAccount?.profile;
+
+  const executionDateField = findByIntent(values, [
+    "execution date",
+    "activity date",
+    "meeting date",
+    "gregorian date",
+    "date",
+    "تاريخ التنفيذ",
+    "تاريخ",
+    "اليوم",
+  ]);
+
+  const semesterField = findByIntent(values, [
+    "semester",
+    "term",
+    "الفصل الدراسي",
+    "الفصل",
+  ]);
+
+  const executorField = findByIntent(values, [
+    "executor",
+    "teacher",
+    "activity leader",
+    "assigned teacher",
+    "المعلم المنفذ",
+    "المعلم",
+    "المنفذ",
+    "رائد النشاط",
+  ]);
+
+  const targetGroupField = findByIntent(values, [
+    "target group",
+    "beneficiaries",
+    "target",
+    "الفئة المستهدفة",
+    "المستفيدون",
+    "الصف",
+    "الفصول",
+  ]);
+
+  const executionMethodField = findByIntent(values, [
+    "execution method",
+    "method",
+    "mechanism",
+    "آلية التنفيذ",
+    "الية التنفيذ",
+    "طريقة التنفيذ",
+  ]);
+
+  const weekField = findByIntent(values, [
+    "week",
+    "school week",
+    "الأسبوع",
+    "اسبوع",
+  ]);
+
+  const dateText =
+    executionDateField?.value ||
+    formatDateOnly(caseEntry.submittedAt || caseEntry.createdAt);
+
+  const dayText = formatDayName(executionDateField?.value || caseEntry.createdAt);
+  const executionDateText = dayText ? `${dateText} - ${dayText}` : dateText;
+
+  const semesterText =
+    semesterField?.value ||
+    profile?.currentSemester ||
+    "الفصل الدراسي غير محدد";
+
+  const executorText =
+    executorField?.value ||
+    caseEntry.activityAssignment?.teacherName ||
+    current.user.officialName ||
+    current.user.name ||
+    "غير محدد";
+
+  const targetGroupText =
+    targetGroupField?.value ||
+    caseEntry.student?.grade ||
+    caseEntry.student?.stage ||
+    "غير محدد";
+
+  const executionMethodText = executionMethodField?.value || "غير محدد";
+  const weekText = weekField?.value || "غير محدد";
+
+  const evidence = normalizeEvidence(caseEntry);
+  const consumedKeys = new Set(
+    [
+      executionDateField?.key,
+      semesterField?.key,
+      executorField?.key,
+      targetGroupField?.key,
+      executionMethodField?.key,
+      weekField?.key,
+    ].filter(Boolean) as string[],
+  );
+
+  const detailFields: SmartReportField[] = values
+    .filter((item) => !consumedKeys.has(item.key))
+    .slice(0, 24)
+    .map((item) => ({
+      key: item.key,
+      label: item.label,
+      value: item.value,
+      importance: item.importance,
+      group: item.importance === "NARRATIVE" ? "وصف وتفاصيل" : "تفاصيل الحالة",
+    }));
+
+  const missingItems: string[] = [];
+
+  if (!evidence.length) {
+    missingItems.push("لا توجد شواهد مرفقة.");
+  }
+
+  if (!executorText || executorText === "غير محدد") {
+    missingItems.push("اسم المنفذ غير محدد.");
+  }
+
+  const percentage = Math.max(40, 100 - missingItems.length * 15);
+
+  const payload: SmartReportPayload = {
+    reportType,
+    title,
+    identity: {
+      ministryName: "وزارة التعليم",
+      educationDepartment: profile?.educationDepartment || "الإدارة العامة للتعليم",
+      educationOffice: profile?.educationOffice || "مكتب التعليم",
+      schoolName:
+        profile?.schoolName ||
+        caseEntry.schoolAccount?.name ||
+        current.user.schoolAccount?.name ||
+        "اسم المدرسة",
+      schoolLogoUrl: profile?.logoUrl || "/uploads/school-logos/MOE.png",
+      academicYear: profile?.academicYear || "العام الدراسي",
+      currentSemester: profile?.currentSemester || semesterText,
+    },
+    caseInfo: {
+      id: caseEntry.id,
+      title,
+      status: caseEntry.status,
+      createdAt: formatDateOnly(caseEntry.createdAt),
+      issuedAt: formatDateOnly(new Date()),
+      issuedBy: current.user.officialName || current.user.name,
+    },
+    service: {
+      slug: serviceSlug,
+      name: serviceName,
+    },
+    student: caseEntry.student
+      ? {
+          name: caseEntry.student.fullName || undefined,
+          nationalId: caseEntry.student.nationalId || undefined,
+          grade: caseEntry.student.grade || undefined,
+          classroom: caseEntry.student.classroom || undefined,
+          stage: caseEntry.student.stage || undefined,
+          guardianName: caseEntry.student.guardian?.name || undefined,
+          guardianPhone: caseEntry.student.guardian?.phone || undefined,
+        }
+      : null,
+    primaryFields: [
+      makePrimaryField({
+        key: "execution_date",
+        label: "تاريخ التنفيذ / اليوم",
+        value: executionDateText,
+      }),
+      makePrimaryField({
+        key: "semester",
+        label: "الفصل الدراسي",
+        value: semesterText,
+      }),
+      makePrimaryField({
+        key: "executor",
+        label: "المعلم المنفذ",
+        value: executorText,
+      }),
+      makePrimaryField({
+        key: "target_group",
+        label: "الفئة المستهدفة",
+        value: targetGroupText,
+      }),
+      makePrimaryField({
+        key: "execution_method",
+        label: "طريقة التنفيذ",
+        value: executionMethodText,
+      }),
+      makePrimaryField({
+        key: "week",
+        label: "الأسبوع",
+        value: weekText,
+      }),
+    ],
+    detailFields,
+    narrative: {
+      title: "وصف التنفيذ",
+      body: buildNarrative({
+        title,
+        serviceName,
+        semester: semesterText,
+        executor: executorText,
+        executionDate: executionDateText,
+        targetGroup: targetGroupText,
+        executionMethod: executionMethodText,
+        evidenceCount: evidence.length,
+      }),
+    },
+    evidence: {
+      layout: "GRID_2X2",
+      items: evidence,
+    },
+    signatures: buildSignatures(caseEntry, current),
+    readiness: {
+      status: missingItems.length ? "NEEDS_REVIEW" : "READY",
+      percentage,
+      missingItems,
+      notes: [],
+    },
+  };
+
+  return {
+    ok: true,
+    payload,
+    serviceSlug,
+    caseEntryId: caseEntry.id,
+  };
+}
+
+==================== SEARCH buildSmartReportPayloadForCase ====================
