@@ -96,7 +96,7 @@ export function NewReportCasePicker({ cases }: Props) {
       return;
     }
 
-    router.push(`/dashboard/reports/${data.reportId}/studio`);
+    router.push(`/dashboard/report/${data.reportId}/studio`);
   }
 
   return (

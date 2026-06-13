@@ -358,12 +358,12 @@ export async function WorkflowServiceHomePage({
             {cases.map((caseItem) => {
               const latestReport = caseItem.guidanceReports[0] || null;
               const reportHref = latestReport
-                ? `/dashboard/reports/${latestReport.id}/preview${
+                ? `/dashboard/report/${latestReport.id}/preview${
                     latestReport.templateId
                       ? `?template=${encodeURIComponent(latestReport.templateId)}`
                       : ""
                   }`
-                : `/dashboard/reports/new?caseId=${caseItem.id}`;
+                : `/dashboard/report/new?caseId=${caseItem.id}`;
 
               return (
                 <article

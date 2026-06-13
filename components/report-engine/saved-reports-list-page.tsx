@@ -158,7 +158,7 @@ export function SavedReportsListPage({ reports }: SavedReportsListPageProps) {
 
               <div className="mt-5 flex flex-wrap gap-2">
                 <Link
-                  href={`/dashboard/reports/${report.id}/preview`}
+                  href={`/dashboard/report/${report.id}/preview`}
                   className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-xs font-black text-white transition hover:bg-slate-800"
                 >
                   <Eye className="h-4 w-4" />

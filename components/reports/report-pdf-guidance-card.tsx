@@ -45,7 +45,7 @@ export function ReportPdfGuidanceCard({
 
         <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[440px] lg:grid-cols-4">
           <a
-            href="/dashboard/reports"
+            href="/dashboard/report"
             className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50"
           >
             التقارير

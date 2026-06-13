@@ -45,7 +45,7 @@ export function SaveSmartReportButton({
         throw new Error(result?.error || "تعذر حفظ التقرير.");
       }
 
-      window.location.href = `/dashboard/reports/${result.reportId}/preview`;
+      window.location.href = `/dashboard/report/${result.reportId}/preview`;
     } catch (error) {
       setError(
         error instanceof Error

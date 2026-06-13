@@ -34,7 +34,7 @@ export function ReportPreviewA4({ report }: Props) {
     <main className="min-h-screen bg-slate-100 p-8 print:bg-white">
       <div className="mx-auto mb-6 flex max-w-4xl justify-end gap-3 print:hidden">
         <Link
-          href={`/dashboard/reports/${report.id}/studio`}
+          href={`/dashboard/report/${report.id}/studio`}
           className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
         >
           تعديل / إعادة فتح

@@ -92,7 +92,7 @@ export default async function ReportsHubPage() {
             </Link>
 
             <Link
-              href="/dashboard/reports/saved"
+              href="/dashboard/report/saved"
               className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
             >
               <FolderOpen className="h-4 w-4" />
@@ -160,7 +160,7 @@ export default async function ReportsHubPage() {
           </div>
 
           <Link
-            href="/dashboard/reports/saved"
+            href="/dashboard/report/saved"
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
           >
             عرض الكل
@@ -172,7 +172,7 @@ export default async function ReportsHubPage() {
             {latestReports.map((report) => (
               <Link
                 key={report.id}
-                href={`/dashboard/reports/${report.id}/preview`}
+                href={`/dashboard/report/${report.id}/preview`}
                 className="rounded-3xl border border-slate-100 bg-slate-50 p-4 transition hover:bg-white hover:shadow-sm"
               >
                 <p className="text-sm font-black text-slate-950">

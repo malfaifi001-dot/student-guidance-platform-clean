@@ -87,7 +87,7 @@ export function SoftBlueDashboard({
                 />
 
                 <HeroButton
-                  href="/dashboard/reports"
+                  href="/dashboard/report"
                   icon={<FileText className="h-4 w-4" />}
                   label="تقرير جديد"
                 />
@@ -177,7 +177,7 @@ export function SoftBlueDashboard({
 
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <QuietLink
-                  href="/dashboard/reports"
+                  href="/dashboard/report"
                   icon={<FileText className="h-5 w-5" />}
                   title="التقارير"
                 />

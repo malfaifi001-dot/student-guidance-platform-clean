@@ -96,7 +96,7 @@ export function ReportStudioShell({
       return;
     }
 
-    router.push(`/dashboard/reports/${data.reportId}/preview`);
+    router.push(`/dashboard/report/${data.reportId}/preview`);
   }
 
   function openSaveTemplateModal() {

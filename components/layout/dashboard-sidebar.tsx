@@ -53,7 +53,7 @@ const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
 const counselorImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard", icon: Home },
   { label: "مركز الأنشطة", href: "/dashboard/cases", icon: FolderKanban },
-  { label: "التقارير", href: "/dashboard/reports", icon: FileText },
+  { label: "التقارير", href: "/dashboard/report", icon: FileText },
   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
 ];
 
@@ -157,7 +157,7 @@ const activityLeaderServiceLinks: SidebarLinkItem[] = [
   { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
   { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
   { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
-  { label: "التقارير", href: "/dashboard/reports", icon: FileText },
+  { label: "التقارير", href: "/dashboard/report", icon: FileText },
 ];
 
 const activityLeaderAccountLinks: SidebarLinkItem[] = [

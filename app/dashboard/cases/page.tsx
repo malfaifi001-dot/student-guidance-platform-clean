@@ -406,7 +406,7 @@ export default async function CasesPage() {
   const rows = cases.map((caseItem) => {
     const latestReport = caseItem.guidanceReports[0] || null;
     const reportPreviewUrl = latestReport
-      ? `/dashboard/reports/${latestReport.id}/preview${
+      ? `/dashboard/report/${latestReport.id}/preview${
           latestReport.templateId
             ? `?template=${encodeURIComponent(latestReport.templateId)}`
             : ""

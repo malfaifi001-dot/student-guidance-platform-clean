@@ -379,7 +379,7 @@ function getReportPreviewUrl(report: any) {
     return "";
   }
 
-  return `/dashboard/reports/${report.id}/preview${
+  return `/dashboard/report/${report.id}/preview${
     report.templateId ? `?template=${encodeURIComponent(report.templateId)}` : ""
   }`;
 }
@@ -856,7 +856,7 @@ function SavedReportsPanel({
         </div>
 
         <Link
-          href={`/dashboard/reports/cases/${caseId}/prepare`}
+          href={`/dashboard/report/cases/${caseId}/prepare`}
           className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
         >
           <FileText className="h-4 w-4" />
@@ -868,7 +868,7 @@ function SavedReportsPanel({
         {visibleReports.map((report: any) => (
           <Link
             key={report.id}
-            href={`/dashboard/reports/${report.id}/preview`}
+            href={`/dashboard/report/${report.id}/preview`}
             className="group rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-3">
@@ -930,7 +930,7 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
       size: item.size || 0,
     })) || [];
 
-  const primaryReportHref = `/dashboard/reports/cases/${caseEntry.id}/prepare`;
+  const primaryReportHref = `/dashboard/report/cases/${caseEntry.id}/prepare`;
 
   const isCommitteesCase = caseEntry.service?.slug === COMMITTEE_SERVICE_SLUG;
 

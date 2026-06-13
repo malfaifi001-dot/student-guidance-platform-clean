@@ -12,5 +12,5 @@ export default async function LegacyReportStudioRedirectPage({
   const resolvedParams = await params;
   const reportId = String(resolvedParams.reportId || "").trim();
 
-  redirect(`/dashboard/reports/${reportId}/preview`);
+  redirect(`/dashboard/report/${reportId}/preview`);
 }

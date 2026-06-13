@@ -148,7 +148,7 @@ export const standaloneServices: AppService[] = [
     slug: "reports",
     title: "التقارير",
     description: "إنشاء ومعاينة واعتماد التقارير.",
-    href: "/dashboard/reports",
+    href: "/dashboard/report",
     kind: "standalone",
   },
 ];

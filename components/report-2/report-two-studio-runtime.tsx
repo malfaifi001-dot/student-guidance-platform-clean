@@ -1,0 +1,3307 @@
+"use client";
+
+import { type ReactNode, useMemo, useState } from "react";
+import {
+  ReportDesignRenderer,
+  reportDesignTemplates,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+
+
+type ReportTwoCollapsibleCardProps = {
+  id: string;
+  title: string;
+  children: ReactNode;
+};
+
+function ReportTwoCollapsibleCard({
+  id,
+  title,
+  children,
+}: ReportTwoCollapsibleCardProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <section
+      data-report-two-panel-id={id}
+      className="rounded-[2rem] border border-emerald-100 bg-white p-3 shadow-sm"
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center justify-between gap-3 rounded-[1.4rem] bg-slate-50 px-4 py-3 text-right transition hover:bg-emerald-50"
+      >
+        <span className="text-sm font-black text-slate-950">
+          {title}
+        </span>
+
+        <span
+          className={[
+            "rounded-full px-3 py-1 text-[11px] font-black transition",
+            open
+              ? "bg-emerald-700 text-white"
+              : "bg-white text-emerald-700 ring-1 ring-emerald-100",
+          ].join(" ")}
+        >
+          {open ? "إغلاق" : "فتح"}
+        </span>
+      </button>
+
+      {open ? (
+        <div className="mt-3 rounded-[1.5rem] bg-white p-2">
+          {children}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+type TemplateOption = {
+  id: string;
+  name: string;
+  description: string;
+  serviceSlug: string | null;
+  updatedAt: string;
+  templateJson: Record<string, unknown> | null;
+};
+
+type ReportTwoHeaderFieldKey =
+  | "case.createdAt"
+  | "service.name"
+  | "identity.ministryName"
+  | "identity.educationDepartment"
+  | "report.platformName";
+
+type ReportTwoHeaderValues = Record<ReportTwoHeaderFieldKey, string>;
+
+type ReportTwoLogoSettings = {
+  url: string;
+  width: number;
+  height: number;
+  fit: "contain" | "cover";
+  filter: "invert" | "none";
+};
+type ReportTwoHeaderAlign = "right" | "center" | "left";
+type ReportTwoHeaderAlignments = Record<ReportTwoHeaderFieldKey, ReportTwoHeaderAlign>;
+
+type StudioBlockKind =
+  | "hero-title"
+  | "meta-strip"
+  | "plain-text"
+  | "section-text"
+  | "multi-paragraph"
+  | "highlight-note"
+  | "bullet-list"
+  | "dynamic-fields"
+  | "evidence-gallery"
+  | "closing-note"
+  | "report-one-table";
+
+type StudioPageKind =
+  | "content"
+  | "recommendations"
+  | "evidence"
+  | "approval"
+  | "custom";
+
+type ReportTwoDynamicField = {
+  id: string;
+  key: string;
+  label: string;
+  value: string;
+  visible: boolean;
+};
+
+type ReportTwoTableSettings = {
+  highlightHeader: boolean;
+  highlightFirstColumn: boolean;
+  stripedRows: boolean;
+  rounded: boolean;
+  compact: boolean;
+  repeatHeader: boolean;
+};
+
+type ReportTwoTableDraft = {
+  blockId: string;
+  title: string;
+  columns: string[];
+  rows: string[][];
+  settings: ReportTwoTableSettings;
+};
+
+type StudioBlock = {
+  id: string;
+  kind: StudioBlockKind;
+  title: string;
+  content: string;
+  variant?: string;
+  source?: string;
+  showTitle?: boolean;
+  showMeta?: boolean;
+  align?: "right" | "center";
+  placement?: string;
+  boundFieldKey?: string;
+  hideWhenMissing?: boolean;
+  evidenceLayout?: string;
+  evidenceFit?: string;
+  evidenceAspectRatio?: string;
+  evidenceShowCaptions?: boolean;
+  evidenceAutoCreatePages?: boolean;
+  evidenceEmptyBehavior?: string;
+  columns?: string[];
+  rows?: string[][];
+  tableSettings?: Record<string, boolean>;
+  dynamicFields?: ReportTwoDynamicField[];
+  [key: string]: any;
+};
+
+type StudioPage = {
+  id: string;
+  kind: StudioPageKind;
+  title: string;
+  description?: string;
+  sourceTemplatePageId?: string | null;
+  reportTwoVirtualPage?: boolean;
+  blocks: StudioBlock[];
+};
+
+type StudioTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  designTemplateId?: ReportDesignId;
+  pages: StudioPage[];
+};
+
+type ReportTwoSavedRuntimeTemplate = {
+  id: string;
+  name: string;
+  serviceSlug: string;
+  sourceTemplateId: string;
+  createdAt: string;
+  updatedAt: string;
+  template: StudioTemplate;
+  headerValues: ReportTwoHeaderValues | null;
+  headerAlignments: ReportTwoHeaderAlignments | null;
+  logoSettings: ReportTwoLogoSettings | null;
+  hiddenRuntimePageIds: string[];
+  runtimePageOrder: string[];
+};
+
+type ReportTwoStudioRuntimeProps = {
+  caseId: string;
+  selectedTemplateId: string;
+  payload: SmartReportPayload;
+  templates: TemplateOption[];
+};
+
+
+function getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+  return `report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+}
+
+function readReportTwoSavedTemplates(
+  serviceSlug: string,
+): ReportTwoSavedRuntimeTemplate[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(
+      getReportTwoSavedTemplatesStorageKey(serviceSlug),
+    );
+
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeReportTwoSavedTemplates(
+  serviceSlug: string,
+  items: ReportTwoSavedRuntimeTemplate[],
+) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(
+    getReportTwoSavedTemplatesStorageKey(serviceSlug),
+    JSON.stringify(items),
+  );
+}
+
+function cloneReportTwoTemplate(template: StudioTemplate): StudioTemplate {
+  return JSON.parse(JSON.stringify(template)) as StudioTemplate;
+}
+function makeId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function asRecord(value: unknown): Record<string, any> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, any>;
+}
+
+function asArray(value: unknown): any[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeDesignId(value: unknown): ReportDesignId {
+  const designId = cleanText(value);
+
+  if (reportDesignTemplates.some((item) => item.id === designId)) {
+    return designId as ReportDesignId;
+  }
+
+  return "ministry-form";
+}
+
+function createBlock(kind: StudioBlockKind): StudioBlock {
+  const base = {
+    id: makeId(kind),
+    kind,
+    title: "بلوك جديد",
+    content: "",
+    variant: "card",
+    source: "manual",
+    showTitle: true,
+    showMeta: false,
+    align: "right" as const,
+    placement: "flow",
+  };
+
+  if (kind === "hero-title") {
+    return {
+      ...base,
+      title: "عنوان التقرير",
+      content: "{{case.title}}",
+      variant: "hero",
+      showTitle: false,
+      align: "center",
+    };
+  }
+
+  if (kind === "dynamic-fields") {
+    return {
+      ...base,
+      title: "حقول الحالة",
+      content: "",
+      variant: "soft",
+    };
+  }
+
+  if (kind === "evidence-gallery") {
+    return {
+      ...base,
+      title: "الشواهد والمرفقات",
+      evidenceLayout: "TWO_PER_PAGE",
+      evidenceFit: "contain",
+      evidenceAspectRatio: "SQUARE_1_1",
+      evidenceShowCaptions: false,
+      evidenceAutoCreatePages: false,
+      evidenceEmptyBehavior: "message",
+    };
+  }
+
+  if (kind === "bullet-list") {
+    return {
+      ...base,
+      title: "قائمة نقاط",
+      content: "النقطة الأولى\nالنقطة الثانية\nالنقطة الثالثة",
+    };
+  }
+
+  if (kind === "closing-note") {
+    return {
+      ...base,
+      title: "خاتمة واعتماد",
+      content: "تم إعداد التقرير واعتماده وفق البيانات المتاحة في منصة التوجيه الطلابي.",
+    };
+  }
+
+  if (kind === "report-one-table") {
+    return {
+      ...base,
+      title: "جدول",
+      columns: ["المجال", "الإجراء", "ملاحظات"],
+      rows: [
+        ["", "", ""],
+        ["", "", ""],
+        ["", "", ""],
+      ],
+      tableSettings: {
+        highlightHeader: true,
+        highlightFirstColumn: true,
+        stripedRows: true,
+        rounded: true,
+        compact: false,
+        repeatHeader: true,
+      },
+    };
+  }
+
+  return {
+    ...base,
+    title: kind === "section-text" ? "فقرة" : "نص",
+    content: "اكتب النص هنا.",
+  };
+}
+
+function createPage(index: number): StudioPage {
+  return {
+    id: makeId("page"),
+    kind: "content",
+    title: `صفحة محتوى ${index}`,
+    description: "",
+    blocks: [createBlock("section-text")],
+  };
+}
+
+function normalizeBlock(value: any, index: number): StudioBlock {
+  const kind = cleanText(value?.kind || value?.settings?.smartBlockKind || "section-text") as StudioBlockKind;
+
+  return {
+    ...createBlock(kind),
+    ...value,
+    id: cleanText(value?.id) || makeId(`block-${index + 1}`),
+    kind,
+    title: cleanText(value?.title) || `بلوك ${index + 1}`,
+    content: cleanText(value?.content ?? value?.defaultContent ?? value?.customContent ?? ""),
+    showTitle: value?.showTitle !== false,
+    showMeta: Boolean(value?.showMeta),
+    align: value?.align === "center" ? "center" : "right",
+    placement: cleanText(value?.placement) || "flow",
+  };
+}
+
+function normalizePage(value: any, index: number): StudioPage {
+  const rawBlocks = asArray(value?.blocks);
+
+  return {
+    id: cleanText(value?.id) || makeId(`page-${index + 1}`),
+    kind: cleanText(value?.kind || "content") as StudioPageKind,
+    title: cleanText(value?.title) || `صفحة ${index + 1}`,
+    description: cleanText(value?.description),
+    blocks: rawBlocks.length
+      ? rawBlocks.map(normalizeBlock)
+      : [createBlock("section-text")],
+  };
+}
+
+function hydrateTemplate(template: TemplateOption | null): StudioTemplate {
+  const raw = asRecord(template?.templateJson);
+  const smartStudio = asRecord(raw.smartStudio);
+  const source = asArray(smartStudio.pages).length ? smartStudio : raw;
+  const pages = asArray(source.pages);
+
+  return {
+    id: template?.id || "report-2-empty-template",
+    name: template?.name || "قالب report-2",
+    description: template?.description || "",
+    designTemplateId: normalizeDesignId(source.designTemplateId || raw.designTemplateId),
+    pages: pages.length
+      ? pages.map(normalizePage)
+      : [
+          {
+            id: "report-2-fallback-page",
+            kind: "content",
+            title: "صفحة التقرير",
+            description: "",
+            blocks: [
+              createBlock("hero-title"),
+              createBlock("dynamic-fields"),
+              createBlock("section-text"),
+            ],
+          },
+        ],
+  };
+}
+
+
+
+function getDefaultReportTwoLogoSettings(
+  context: Record<string, string>,
+): ReportTwoLogoSettings {
+  return {
+    url:
+      cleanText(context["report.logoUrl"]) ||
+      cleanText(context["identity.logoUrl"]) ||
+      "/uploads/school-logos/MOE.png",
+    width: 96,
+    height: 56,
+    fit: "contain",
+    filter: "invert",
+  };
+}
+
+function normalizeReportTwoLogoNumber(
+  value: number,
+  fallback: number,
+  min: number,
+  max: number,
+) {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.floor(value)));
+}
+const reportTwoHeaderFields: Array<{
+  key: ReportTwoHeaderFieldKey;
+  label: string;
+  hint: string;
+}> = [
+  {
+    key: "case.createdAt",
+    label: "التاريخ",
+    hint: "يظهر يسار الترويسة.",
+  },
+  {
+    key: "service.name",
+    label: "اسم الخدمة",
+    hint: "يظهر أسفل التاريخ في يسار الترويسة.",
+  },
+  {
+    key: "identity.ministryName",
+    label: "اسم الوزارة",
+    hint: "يظهر يمين الترويسة.",
+  },
+  {
+    key: "identity.educationDepartment",
+    label: "الإدارة التعليمية",
+    hint: "يظهر أسفل الوزارة.",
+  },
+  {
+    key: "report.platformName",
+    label: "اسم المنصة / الوسط",
+    hint: "يظهر تحت الشعار في منتصف الترويسة.",
+  },
+];
+
+const reportTwoHeaderAlignOptions: Array<{
+  value: ReportTwoHeaderAlign;
+  label: string;
+  title: string;
+}> = [
+  {
+    value: "right",
+    label: "≡",
+    title: "محاذاة يمين",
+  },
+  {
+    value: "center",
+    label: "☰",
+    title: "محاذاة وسط",
+  },
+  {
+    value: "left",
+    label: "≡",
+    title: "محاذاة يسار",
+  },
+];
+
+const reportTwoHeaderBindingOptions = [
+  ["case.createdAt", "تاريخ الحالة"],
+  ["case.title", "عنوان الحالة"],
+  ["service.name", "اسم الخدمة"],
+  ["student.name", "اسم الطالب"],
+  ["student.grade", "الصف"],
+  ["student.classroom", "الفصل"],
+  ["identity.ministryName", "وزارة التعليم"],
+  ["identity.educationDepartment", "الإدارة التعليمية"],
+  ["identity.schoolName", "اسم المدرسة"],
+  ["report.platformName", "اسم المنصة"],
+];
+
+function getDefaultReportTwoHeaderValues(
+  context: Record<string, string>,
+): ReportTwoHeaderValues {
+  return {
+    "case.createdAt": cleanText(context["case.createdAt"]),
+    "service.name": cleanText(context["service.name"]),
+    "identity.ministryName":
+      cleanText(context["identity.ministryName"]) || "وزارة التعليم",
+    "identity.educationDepartment":
+      cleanText(context["identity.educationDepartment"]) ||
+      "الإدارة العامة للتعليم",
+    "report.platformName":
+      cleanText(context["report.platformName"]) || "منصة التوجيه الطلابي",
+  };
+}
+
+function getDefaultReportTwoHeaderAlignments(): ReportTwoHeaderAlignments {
+  return {
+    "case.createdAt": "center",
+    "service.name": "center",
+    "identity.ministryName": "center",
+    "identity.educationDepartment": "center",
+    "report.platformName": "center",
+  };
+}
+function getPayloadAny(payload: SmartReportPayload) {
+  return payload as any;
+}
+
+function getRuntimeContext(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  const context: Record<string, string> = {
+    "case.id": cleanText(data.caseInfo?.id),
+    "case.title": cleanText(data.caseInfo?.title || data.title),
+    "case.status": cleanText(data.caseInfo?.status),
+    "case.createdAt": cleanText(data.caseInfo?.createdAt),
+    "case.updatedAt": cleanText(data.caseInfo?.updatedAt),
+
+    "service.name": cleanText(data.service?.name),
+    "service.slug": cleanText(data.service?.slug),
+
+    "student.name": cleanText(student.name || student.fullName),
+    "student.grade": cleanText(student.grade),
+    "student.classroom": cleanText(student.classroom),
+    "student.stage": cleanText(student.stage),
+    "student.guardianName": cleanText(student.guardianName),
+    "student.guardianPhone": cleanText(student.guardianPhone),
+
+    "identity.ministryName": cleanText(data.identity?.ministryName || "وزارة التعليم"),
+    "identity.educationDepartment": cleanText(data.identity?.educationDepartment || "الإدارة العامة للتعليم"),
+    "identity.schoolName": cleanText(data.identity?.schoolName || ""),
+  };
+
+  fields.forEach((field: any, index: number) => {
+    const key = cleanText(field.key) || `field-${index + 1}`;
+    const label = cleanText(field.label);
+    const value = cleanText(field.value);
+
+    context[key] = value;
+    context[`field.${key}`] = value;
+
+    if (label) {
+      context[label] = value;
+      context[`field.${label}`] = value;
+    }
+  });
+
+  return context;
+}
+
+function normalizeEvidenceUrl(value: unknown) {
+  const url = cleanText(value).replaceAll("\\", "/");
+
+  if (!url) return "";
+  if (url.startsWith("http://")) return url;
+  if (url.startsWith("https://")) return url;
+  if (url.startsWith("data:")) return url;
+  if (url.startsWith("/")) return url;
+
+  return `/${url.replace(/^public\//, "")}`;
+}
+
+function collectEvidences(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+
+  const candidates = [
+    data.evidence?.items,
+    data.evidence?.evidences,
+    data.evidenceItems,
+    data.evidences,
+    data.attachments,
+    data.files,
+    data.caseInfo?.evidence?.items,
+    data.caseInfo?.evidenceItems,
+    data.caseInfo?.evidences,
+    data.caseInfo?.attachments,
+  ];
+
+  const collected: any[] = [];
+
+  candidates.forEach((candidate) => {
+    if (Array.isArray(candidate)) {
+      collected.push(...candidate);
+    }
+  });
+
+  return collected
+    .map((item, index) => {
+      const fileUrl = normalizeEvidenceUrl(
+        item.fileUrl ||
+          item.url ||
+          item.imageUrl ||
+          item.publicUrl ||
+          item.path ||
+          "",
+      );
+
+      return {
+        id: cleanText(item.id) || `evidence-${index + 1}`,
+        title: cleanText(item.title || item.fileName || item.name) || `شاهد ${index + 1}`,
+        fileUrl,
+        imageUrl: normalizeEvidenceUrl(item.imageUrl) || fileUrl,
+        caption: cleanText(item.caption || item.note || item.description || item.title),
+      };
+    })
+    .filter((item) => item.fileUrl || item.imageUrl);
+}
+
+function getPreviewCase(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  return {
+    found: true,
+    caseId: cleanText(data.caseInfo?.id),
+    serviceSlug: cleanText(data.service?.slug),
+    serviceName: cleanText(data.service?.name),
+    title: cleanText(data.caseInfo?.title || data.title),
+    status: cleanText(data.caseInfo?.status),
+    createdAt: cleanText(data.caseInfo?.createdAt),
+    updatedAt: cleanText(data.caseInfo?.updatedAt),
+    student: {
+      name: cleanText(student.name || student.fullName),
+      nationalId: cleanText(student.nationalId),
+      grade: cleanText(student.grade),
+      classroom: cleanText(student.classroom),
+      stage: cleanText(student.stage),
+      guardianName: cleanText(student.guardianName),
+      guardianPhone: cleanText(student.guardianPhone),
+    },
+    values: fields.map((field: any, index: number) => ({
+      fieldKey: cleanText(field.key) || `field-${index + 1}`,
+      fieldLabel: cleanText(field.label) || `حقل ${index + 1}`,
+      value: cleanText(field.value),
+    })),
+    evidences: collectEvidences(payload),
+  };
+}
+
+
+function getEvidencePerPageFromBlock(block: StudioBlock) {
+  const explicitLimit = Number(block.evidenceLimit || 0);
+
+  if (Number.isFinite(explicitLimit) && explicitLimit > 0) {
+    return Math.max(1, Math.floor(explicitLimit));
+  }
+
+  if (block.evidenceLayout === "ONE_PER_PAGE") return 1;
+  if (block.evidenceLayout === "GRID_2X2") return 4;
+  if (block.evidenceLayout === "ATTACHMENT_LIST") return 6;
+
+  return 2;
+}
+
+function getReportTwoBlockHeightScore(
+  block: StudioBlock,
+  previewCase: ReturnType<typeof getPreviewCase>,
+) {
+  if (block.kind === "hero-title") return 32;
+  if (block.kind === "meta-strip") return 28;
+  if (block.kind === "closing-note") return 34;
+  if (block.kind === "highlight-note") return 34;
+  if (block.kind === "plain-text") return 26;
+
+  if (block.kind === "dynamic-fields") {
+    const count = Math.max(previewCase.values.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+  }
+
+  if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+    const contentLength = cleanText(block.content).length;
+    const lineCount = Math.max(
+      cleanText(block.content).split("\n").length,
+      Math.ceil(contentLength / 80),
+      1,
+    );
+
+    return 24 + lineCount * 5.8;
+  }
+
+  if (block.kind === "bullet-list") {
+    const count = Math.max(
+      cleanText(block.content)
+        .split("\n")
+        .filter(Boolean).length,
+      1,
+    );
+
+    return 24 + count * 7;
+  }
+
+  if (block.kind === "report-one-table") {
+    const rowCount = Math.max(block.rows?.length || 0, 1);
+    return 28 + rowCount * 11;
+  }
+
+  if (block.kind === "evidence-gallery") {
+    const perPage = getEvidencePerPageFromBlock(block);
+    const shown = Math.min(perPage, Math.max(previewCase.evidences.length, 1));
+
+    if (block.evidenceLayout === "ONE_PER_PAGE") return 118;
+    if (block.evidenceLayout === "GRID_2X2") return 112;
+    if (block.evidenceLayout === "ATTACHMENT_LIST") return 28 + shown * 10;
+
+    return 92;
+  }
+
+  return 36;
+}
+
+function makeReportTwoContinuationPage(
+  sourcePage: StudioPage,
+  index: number,
+): StudioPage {
+  return {
+    ...sourcePage,
+    id: `${sourcePage.id}-auto-page-${index}`,
+    title: `${sourcePage.title} - صفحة ${index}`,
+    description: "صفحة تكميلية أنشأها report-2 لحماية حدود A4.",
+    sourceTemplatePageId: sourcePage.id,
+    reportTwoVirtualPage: true,
+    blocks: [],
+  } as StudioPage;
+}
+
+function normalizeReportTwoBlockForRuntime(
+  block: StudioBlock,
+  previewCase: ReturnType<typeof getPreviewCase>,
+): StudioBlock {
+  if (isReportTwoDynamicFieldsBlock(block)) {
+    return {
+      ...block,
+      sourceBlockId: block.id,
+      kind: "dynamic-fields" as StudioBlockKind,
+      dynamicFields: block.dynamicFields?.length
+        ? block.dynamicFields
+        : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+    };
+  }
+
+  if (block.kind !== "evidence-gallery") {
+    return {
+      ...block,
+      sourceBlockId: block.id,
+    } as StudioBlock;
+  }
+
+  const perPage = getEvidencePerPageFromBlock(block);
+  const count = previewCase.evidences.length;
+
+  return {
+    ...block,
+    evidenceStartIndex: Number(block.evidenceStartIndex || 0),
+    evidenceLimit: perPage,
+    evidenceAutoCreatePages: false,
+    evidenceEmptyBehavior: count ? block.evidenceEmptyBehavior : "message",
+  } as StudioBlock;
+}
+
+function buildReportTwoRuntimeTemplate(
+  template: StudioTemplate,
+  previewCase: ReturnType<typeof getPreviewCase>,
+): StudioTemplate {
+  const runtimePages: StudioPage[] = [];
+  const safeHeightScore = 166;
+
+  template.pages.forEach((sourcePage) => {
+    let pageNumber = 1;
+    let usedScore = 0;
+
+    let currentPage: StudioPage = {
+      ...sourcePage,
+      blocks: [],
+    };
+
+    function pushCurrentPage() {
+      runtimePages.push({
+        ...currentPage,
+        blocks: currentPage.blocks,
+      });
+    }
+
+    function startNextPage() {
+      pageNumber += 1;
+      usedScore = 0;
+      currentPage = makeReportTwoContinuationPage(sourcePage, pageNumber);
+    }
+
+    sourcePage.blocks.forEach((originalBlock) => {
+      const block = normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
+      const blockScore = getReportTwoBlockHeightScore(block, previewCase);
+
+      if (currentPage.blocks.length > 0 && usedScore + blockScore > safeHeightScore) {
+        pushCurrentPage();
+        startNextPage();
+      }
+
+      currentPage.blocks.push(block);
+      usedScore += blockScore;
+
+      if (block.kind === "evidence-gallery") {
+        const perPage = getEvidencePerPageFromBlock(block);
+        const count = previewCase.evidences.length;
+        const pagesCount = Math.ceil(count / perPage);
+
+        if (pagesCount > 1) {
+          for (let index = 1; index < pagesCount; index += 1) {
+            const evidencePageNumber = pageNumber + index;
+            const evidencePage: StudioPage = {
+              ...sourcePage,
+              id: `${sourcePage.id}-${block.id}-evidence-${evidencePageNumber}`,
+              kind: "evidence",
+              title: `${block.title || "الشواهد"} - صفحة ${index + 1}`,
+              description: "صفحة شواهد إضافية داخل التقرير.",
+              sourceTemplatePageId: sourcePage.id,
+              reportTwoVirtualPage: true,
+              blocks: [
+                {
+                  ...block,
+                  id: `${block.id}-evidence-${index + 1}`,
+                  title: `${block.title || "الشواهد"} - صفحة ${index + 1}`,
+                  evidenceStartIndex: index * perPage,
+                  evidenceLimit: perPage,
+                  evidenceAutoCreatePages: false,
+                },
+              ],
+            };
+
+            runtimePages.push(evidencePage);
+          }
+        }
+      }
+    });
+
+    pushCurrentPage();
+  });
+
+  return {
+    ...template,
+    pages: runtimePages.filter((page) => page.blocks.length > 0),
+  };
+}
+function getWritableReportTwoPageId(
+  activePageId: string,
+  activePage: StudioPage | undefined,
+  template: StudioTemplate,
+) {
+  const directPage = template.pages.find((page) => page.id === activePageId);
+
+  if (directPage) return directPage.id;
+
+  const sourceTemplatePageId = cleanText((activePage as any)?.sourceTemplatePageId);
+
+  if (sourceTemplatePageId) {
+    const sourcePage = template.pages.find((page) => page.id === sourceTemplatePageId);
+
+    if (sourcePage) return sourcePage.id;
+  }
+
+  const autoPageParentId = activePageId.includes("-auto-page-")
+    ? activePageId.split("-auto-page-")[0]
+    : "";
+
+  if (autoPageParentId) {
+    const sourcePage = template.pages.find((page) => page.id === autoPageParentId);
+
+    if (sourcePage) return sourcePage.id;
+  }
+
+  const evidencePageParentId = activePageId.includes("-evidence-")
+    ? activePageId.split("-evidence-")[0]
+    : "";
+
+  if (evidencePageParentId) {
+    const sourcePage = template.pages.find((page) =>
+      evidencePageParentId.startsWith(page.id),
+    );
+
+    if (sourcePage) return sourcePage.id;
+  }
+
+  return template.pages[0]?.id || "";
+}
+function getReportTwoSourcePageId(pageId: string, runtimePage: any) {
+  const sourceTemplatePageId = cleanText(runtimePage?.sourceTemplatePageId);
+
+  if (sourceTemplatePageId) return sourceTemplatePageId;
+
+  if (pageId.includes("-auto-page-")) {
+    return pageId.split("-auto-page-")[0];
+  }
+
+  if (pageId.includes("-evidence-")) {
+    const beforeEvidence = pageId.split("-evidence-")[0];
+
+    return beforeEvidence.split("-").slice(0, -1).join("-") || beforeEvidence;
+  }
+
+  return pageId;
+}
+
+function reorderReportTwoPages(
+  pages: StudioPage[],
+  sourcePageId: string,
+  direction: "previous" | "next",
+) {
+  const index = pages.findIndex((page) => page.id === sourcePageId);
+
+  if (index < 0) return pages;
+
+  const targetIndex = direction === "previous" ? index - 1 : index + 1;
+
+  if (targetIndex < 0 || targetIndex >= pages.length) {
+    return pages;
+  }
+
+  const nextPages = [...pages];
+  const [page] = nextPages.splice(index, 1);
+  nextPages.splice(targetIndex, 0, page);
+
+  return nextPages;
+}
+
+
+function isReportTwoDynamicFieldsBlock(block: StudioBlock | null | undefined) {
+  if (!block) return false;
+
+  const kind = cleanText(block.kind);
+  const smartKind = cleanText((block as any).settings?.smartBlockKind);
+  const title = cleanText(block.title);
+
+  return (
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة")
+  );
+}
+function getReportTwoDynamicFieldsFromPreviewCase(
+  previewCase: ReturnType<typeof getPreviewCase>,
+): ReportTwoDynamicField[] {
+  return (previewCase.values || [])
+    .map((item: any, index: number) => {
+      const key = cleanText(item.fieldKey) || `workflow-field-${index + 1}`;
+      const label = cleanText(item.fieldLabel) || key || `حقل ${index + 1}`;
+      const value = cleanText(item.value);
+
+      return {
+        id: key || `workflow-field-${index + 1}`,
+        key,
+        label,
+        value,
+        visible: Boolean(label && value),
+      };
+    })
+    .filter((item) => item.label && item.value);
+}
+
+function getDynamicFieldsForBlock(
+  block: StudioBlock | null,
+  previewCase: ReturnType<typeof getPreviewCase>,
+) {
+  const sourceFields = getReportTwoDynamicFieldsFromPreviewCase(previewCase);
+
+  if (!block?.dynamicFields?.length) {
+    return sourceFields;
+  }
+
+  const sourceByKey = new Map<string, ReportTwoDynamicField>();
+
+  sourceFields.forEach((field) => {
+    sourceByKey.set(field.key, field);
+    sourceByKey.set(field.label, field);
+  });
+
+  return block.dynamicFields.map((field, index) => {
+    const source =
+      sourceByKey.get(field.key) ||
+      sourceByKey.get(field.label) ||
+      sourceFields[index];
+
+    return {
+      id: field.id || source?.id || `dynamic-field-${index + 1}`,
+      key: field.key || source?.key || `dynamic-field-${index + 1}`,
+      label:
+        field.label !== undefined
+          ? field.label
+          : source?.label || `حقل ${index + 1}`,
+      value:
+        field.value !== undefined
+          ? field.value
+          : source?.value || "",
+      visible: field.visible !== false,
+    };
+  });
+}
+
+function getReportTwoTableSettings(
+  settings?: Record<string, boolean>,
+): ReportTwoTableSettings {
+  return {
+    highlightHeader: settings?.highlightHeader !== false,
+    highlightFirstColumn: settings?.highlightFirstColumn !== false,
+    stripedRows: settings?.stripedRows !== false,
+    rounded: settings?.rounded !== false,
+    compact: Boolean(settings?.compact),
+    repeatHeader: settings?.repeatHeader !== false,
+  };
+}
+
+function normalizeReportTwoTableColumns(columns?: string[]) {
+  const cleaned = Array.isArray(columns)
+    ? columns.map((column) => cleanText(column)).filter(Boolean)
+    : [];
+
+  return cleaned.length ? cleaned : ["المجال", "الإجراء", "ملاحظات"];
+}
+
+function normalizeReportTwoTableRows(rows: unknown, columnsCount: number) {
+  const sourceRows = Array.isArray(rows) && rows.length
+    ? rows
+    : [
+        Array.from({ length: columnsCount }).map(() => ""),
+        Array.from({ length: columnsCount }).map(() => ""),
+        Array.from({ length: columnsCount }).map(() => ""),
+      ];
+
+  return sourceRows.map((row: any) => {
+    const cells = Array.isArray(row) ? row : [];
+    const normalized = Array.from({ length: columnsCount }).map((_, index) =>
+      cleanText(cells[index]),
+    );
+
+    return normalized;
+  });
+}
+
+function createReportTwoTableDraft(block: StudioBlock): ReportTwoTableDraft {
+  const columns = normalizeReportTwoTableColumns(block.columns);
+  const rows = normalizeReportTwoTableRows(block.rows, columns.length);
+
+  return {
+    blockId: block.id,
+    title: cleanText(block.title) || "جدول",
+    columns,
+    rows,
+    settings: getReportTwoTableSettings(block.tableSettings),
+  };
+}
+
+function countReportTwoFilledCells(rows: string[][]) {
+  return rows.reduce(
+    (total, row) =>
+      total + row.filter((cell) => cleanText(cell).length > 0).length,
+    0,
+  );
+}
+
+function updateReportTwoTableTitle(
+  draft: ReportTwoTableDraft,
+  title: string,
+): ReportTwoTableDraft {
+  return {
+    ...draft,
+    title,
+  };
+}
+
+function updateReportTwoTableColumn(
+  draft: ReportTwoTableDraft,
+  columnIndex: number,
+  value: string,
+): ReportTwoTableDraft {
+  const columns = draft.columns.map((column, index) =>
+    index === columnIndex ? value : column,
+  );
+
+  return {
+    ...draft,
+    columns,
+    rows: normalizeReportTwoTableRows(draft.rows, columns.length),
+  };
+}
+
+function updateReportTwoTableCell(
+  draft: ReportTwoTableDraft,
+  rowIndex: number,
+  columnIndex: number,
+  value: string,
+): ReportTwoTableDraft {
+  const rows = normalizeReportTwoTableRows(draft.rows, draft.columns.length);
+
+  rows[rowIndex] = rows[rowIndex].map((cell, index) =>
+    index === columnIndex ? value : cell,
+  );
+
+  return {
+    ...draft,
+    rows,
+  };
+}
+
+function addReportTwoTableRow(draft: ReportTwoTableDraft): ReportTwoTableDraft {
+  return {
+    ...draft,
+    rows: [
+      ...normalizeReportTwoTableRows(draft.rows, draft.columns.length),
+      Array.from({ length: draft.columns.length }).map(() => ""),
+    ],
+  };
+}
+
+function removeReportTwoTableRow(
+  draft: ReportTwoTableDraft,
+  rowIndex: number,
+): ReportTwoTableDraft {
+  const rows = normalizeReportTwoTableRows(draft.rows, draft.columns.length);
+
+  if (rows.length <= 1) {
+    return draft;
+  }
+
+  return {
+    ...draft,
+    rows: rows.filter((_, index) => index !== rowIndex),
+  };
+}
+
+function addReportTwoTableColumn(
+  draft: ReportTwoTableDraft,
+): ReportTwoTableDraft {
+  const columns = [...draft.columns, `عمود ${draft.columns.length + 1}`];
+
+  return {
+    ...draft,
+    columns,
+    rows: normalizeReportTwoTableRows(draft.rows, draft.columns.length).map(
+      (row) => [...row, ""],
+    ),
+  };
+}
+
+function removeReportTwoTableColumn(
+  draft: ReportTwoTableDraft,
+  columnIndex: number,
+): ReportTwoTableDraft {
+  if (draft.columns.length <= 1) {
+    return draft;
+  }
+
+  const columns = draft.columns.filter((_, index) => index !== columnIndex);
+  const rows = normalizeReportTwoTableRows(draft.rows, draft.columns.length).map(
+    (row) => row.filter((_, index) => index !== columnIndex),
+  );
+
+  return {
+    ...draft,
+    columns,
+    rows: normalizeReportTwoTableRows(rows, columns.length),
+  };
+}
+
+function updateReportTwoTableSetting(
+  draft: ReportTwoTableDraft,
+  key: keyof ReportTwoTableSettings,
+  value: boolean,
+): ReportTwoTableDraft {
+  return {
+    ...draft,
+    settings: {
+      ...draft.settings,
+      [key]: value,
+    },
+  };
+}
+function getBlockKindName(kind: StudioBlockKind) {
+  if (kind === "hero-title") return "عنوان رئيسي";
+  if (kind === "meta-strip") return "شريط بيانات";
+  if (kind === "plain-text") return "نص بسيط";
+  if (kind === "section-text") return "فقرة";
+  if (kind === "multi-paragraph") return "فقرات";
+  if (kind === "highlight-note") return "ملاحظة بارزة";
+  if (kind === "bullet-list") return "قائمة";
+  if (kind === "dynamic-fields") return "حقول الحالة";
+  if (kind === "evidence-gallery") return "الشواهد";
+  if (kind === "closing-note") return "خاتمة";
+  if (kind === "report-one-table") return "جدول";
+
+  return "بلوك";
+}
+
+export function ReportTwoStudioRuntime({
+  caseId,
+  selectedTemplateId,
+  payload,
+  templates,
+}: ReportTwoStudioRuntimeProps) {
+  const initialTemplateOption =
+    templates.find((template) => template.id === selectedTemplateId) ||
+    templates[0] ||
+    null;
+
+  const [selectedTemplateOptionId, setSelectedTemplateOptionId] = useState(
+    initialTemplateOption?.id || "",
+  );
+
+  const serviceSlugForSavedTemplates = cleanText(
+    (payload as any)?.service?.slug || (payload as any)?.serviceSlug || "general",
+  );
+
+  const [savedRuntimeTemplates, setSavedRuntimeTemplates] = useState<
+    ReportTwoSavedRuntimeTemplate[]
+  >(() => readReportTwoSavedTemplates(serviceSlugForSavedTemplates));
+
+  const [runtimeTemplateName, setRuntimeTemplateName] = useState("");
+  const [activeSavedRuntimeTemplateId, setActiveSavedRuntimeTemplateId] =
+    useState("");
+
+  const [template, setTemplate] = useState<StudioTemplate>(() =>
+    hydrateTemplate(initialTemplateOption),
+  );
+
+  const [protectedPageIds, setProtectedPageIds] = useState<string[]>(() =>
+    hydrateTemplate(initialTemplateOption).pages.map((page) => page.id),
+  );
+
+  const [activePageId, setActivePageId] = useState(
+    template.pages[0]?.id || "",
+  );
+
+  const [selectedBlockId, setSelectedBlockId] = useState(
+    template.pages[0]?.blocks[0]?.id || "",
+  );
+
+  const [hiddenRuntimePageIds, setHiddenRuntimePageIds] = useState<string[]>([]);
+  const [runtimePageOrder, setRuntimePageOrder] = useState<string[]>([]);
+  const [editingTableDraft, setEditingTableDraft] =
+    useState<ReportTwoTableDraft | null>(null);
+
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+
+  const runtimeContext = useMemo(() => getRuntimeContext(payload), [payload]);
+  const [headerValues, setHeaderValues] =
+    useState<ReportTwoHeaderValues | null>(null);
+  const [logoSettings, setLogoSettings] =
+    useState<ReportTwoLogoSettings | null>(null);
+  const [headerAlignments, setHeaderAlignments] =
+    useState<ReportTwoHeaderAlignments | null>(null);
+
+  const activeHeaderValues = useMemo(
+    () => headerValues || getDefaultReportTwoHeaderValues(runtimeContext),
+    [headerValues, runtimeContext],
+  );
+
+  const activeHeaderAlignments = useMemo(
+    () => headerAlignments || getDefaultReportTwoHeaderAlignments(),
+    [headerAlignments],
+  );
+
+  const activeLogoSettings = useMemo(
+    () => logoSettings || getDefaultReportTwoLogoSettings(runtimeContext),
+    [logoSettings, runtimeContext],
+  );
+
+  const editableRuntimeContext = useMemo(
+    () => ({
+      ...runtimeContext,
+      ...activeHeaderValues,
+      "report.logoUrl": activeLogoSettings.url,
+      "report.logoWidthPx": String(activeLogoSettings.width),
+      "report.logoHeightPx": String(activeLogoSettings.height),
+      "report.logoFit": activeLogoSettings.fit,
+      "report.logoFilter": activeLogoSettings.filter,
+      "report.headerAlign.case.createdAt": activeHeaderAlignments["case.createdAt"],
+      "report.headerAlign.service.name": activeHeaderAlignments["service.name"],
+      "report.headerAlign.identity.ministryName": activeHeaderAlignments["identity.ministryName"],
+      "report.headerAlign.identity.educationDepartment": activeHeaderAlignments["identity.educationDepartment"],
+      "report.headerAlign.report.platformName": activeHeaderAlignments["report.platformName"],
+    }),
+    [runtimeContext, activeHeaderValues, activeHeaderAlignments, activeLogoSettings],
+  );
+
+  const previewCase = useMemo(() => getPreviewCase(payload), [payload]);
+
+  const previewTemplate = useMemo(
+    () => buildReportTwoRuntimeTemplate(template, previewCase),
+    [template, previewCase],
+  );
+
+  const visiblePreviewPages = useMemo(() => {
+    const pages = previewTemplate.pages.filter(
+      (page) => !hiddenRuntimePageIds.includes(page.id),
+    );
+
+    if (!runtimePageOrder.length) {
+      return pages;
+    }
+
+    const orderMap = new Map(
+      runtimePageOrder.map((pageId, index) => [pageId, index]),
+    );
+
+    return [...pages].sort((firstPage, secondPage) => {
+      const firstIndex = orderMap.has(firstPage.id)
+        ? orderMap.get(firstPage.id)!
+        : Number.MAX_SAFE_INTEGER;
+      const secondIndex = orderMap.has(secondPage.id)
+        ? orderMap.get(secondPage.id)!
+        : Number.MAX_SAFE_INTEGER;
+
+      if (firstIndex !== secondIndex) {
+        return firstIndex - secondIndex;
+      }
+
+      return pages.indexOf(firstPage) - pages.indexOf(secondPage);
+    });
+  }, [previewTemplate.pages, hiddenRuntimePageIds, runtimePageOrder]);
+
+  const visiblePreviewTemplate = useMemo(
+    () => ({
+      ...previewTemplate,
+      pages: visiblePreviewPages,
+    }),
+    [previewTemplate, visiblePreviewPages],
+  );
+
+  const activePage = useMemo(
+    () =>
+      visiblePreviewTemplate.pages.find((page) => page.id === activePageId) ||
+      visiblePreviewTemplate.pages[0],
+    [visiblePreviewTemplate.pages, activePageId],
+  );
+
+  const editableActivePage = useMemo(
+    () =>
+      template.pages.find((page) => page.id === activePageId) ||
+      template.pages[0],
+    [template.pages, activePageId],
+  );
+
+  const selectedBlock = useMemo(() => {
+    const runtimeBlock =
+      visiblePreviewTemplate.pages
+        .flatMap((page) => page.blocks)
+        .find((block) => block.id === selectedBlockId) || null;
+
+    const sourceBlockId =
+      cleanText((runtimeBlock as any)?.sourceBlockId) || selectedBlockId;
+
+    const sourceBlock =
+      template.pages
+        .flatMap((page) => page.blocks)
+        .find((block) => block.id === sourceBlockId) || null;
+
+    return sourceBlock || runtimeBlock || null;
+  }, [selectedBlockId, template.pages, visiblePreviewTemplate.pages]);
+
+
+
+  function updateReportTwoLogoSettings(
+    patch: Partial<ReportTwoLogoSettings>,
+  ) {
+    setLogoSettings((current) => ({
+      ...getDefaultReportTwoLogoSettings(runtimeContext),
+      ...(current || {}),
+      ...patch,
+    }));
+  }
+
+  function resetReportTwoLogoSettings() {
+    setLogoSettings(null);
+  }
+
+  function uploadReportTwoLogo(file: File | null) {
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = String(reader.result || "");
+
+      if (!result) return;
+
+      updateReportTwoLogoSettings({
+        url: result,
+        filter: "none",
+      });
+    };
+
+    reader.readAsDataURL(file);
+  }
+  function updateReportTwoHeaderValue(
+    key: ReportTwoHeaderFieldKey,
+    value: string,
+  ) {
+    setHeaderValues((current) => ({
+      ...getDefaultReportTwoHeaderValues(runtimeContext),
+      ...(current || {}),
+      [key]: value,
+    }));
+  }
+
+  function fillReportTwoHeaderValueFromContext(
+    key: ReportTwoHeaderFieldKey,
+    sourceKey: string,
+  ) {
+    const value = runtimeContext[sourceKey] || "";
+
+    updateReportTwoHeaderValue(key, value);
+  }
+
+  function updateReportTwoHeaderAlign(
+    key: ReportTwoHeaderFieldKey,
+    value: ReportTwoHeaderAlign,
+  ) {
+    setHeaderAlignments((current) => ({
+      ...getDefaultReportTwoHeaderAlignments(),
+      ...(current || {}),
+      [key]: value,
+    }));
+  }
+
+  function resetReportTwoHeaderValues() {
+    setHeaderValues(null);
+    setHeaderAlignments(null);
+  }
+
+  function persistSavedRuntimeTemplates(items: ReportTwoSavedRuntimeTemplate[]) {
+    setSavedRuntimeTemplates(items);
+    writeReportTwoSavedTemplates(serviceSlugForSavedTemplates, items);
+  }
+
+  function saveCurrentRuntimeTemplate() {
+    const name = runtimeTemplateName.trim();
+
+    if (!name) {
+      window.alert("اكتب اسم القالب أولًا.");
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const existingId = activeSavedRuntimeTemplateId || "";
+    const id = existingId || makeId("saved-runtime-template");
+
+    const item: ReportTwoSavedRuntimeTemplate = {
+      id,
+      name,
+      serviceSlug: serviceSlugForSavedTemplates,
+      sourceTemplateId: selectedTemplateOptionId,
+      createdAt:
+        savedRuntimeTemplates.find((template) => template.id === id)?.createdAt ||
+        now,
+      updatedAt: now,
+      template: cloneReportTwoTemplate(template),
+      headerValues,
+      headerAlignments,
+      logoSettings,
+      hiddenRuntimePageIds,
+      runtimePageOrder,
+    };
+
+    const nextItems = [
+      item,
+      ...savedRuntimeTemplates.filter((template) => template.id !== id),
+    ];
+
+    persistSavedRuntimeTemplates(nextItems);
+    setActiveSavedRuntimeTemplateId(id);
+    setRuntimeTemplateName(name);
+
+    window.alert("تم حفظ قالب التقرير الحالي.");
+  }
+
+  function applySavedRuntimeTemplate(templateId: string) {
+    const saved = savedRuntimeTemplates.find((item) => item.id === templateId);
+
+    if (!saved) return;
+
+    setTemplate(cloneReportTwoTemplate(saved.template));
+    setSelectedTemplateOptionId(saved.sourceTemplateId || selectedTemplateOptionId);
+    setHeaderValues(saved.headerValues || null);
+    setHeaderAlignments(saved.headerAlignments || null);
+    setLogoSettings(saved.logoSettings || null);
+    setHiddenRuntimePageIds(saved.hiddenRuntimePageIds || []);
+    setRuntimePageOrder(saved.runtimePageOrder || []);
+    setActiveSavedRuntimeTemplateId(saved.id);
+    setRuntimeTemplateName(saved.name);
+
+    const firstPage = saved.template.pages[0];
+
+    setActivePageId(firstPage?.id || "");
+    setSelectedBlockId(firstPage?.blocks[0]?.id || "");
+  }
+
+  function deleteSavedRuntimeTemplate(templateId: string) {
+    const ok = window.confirm("هل تريد حذف هذا القالب المحفوظ؟");
+
+    if (!ok) return;
+
+    const nextItems = savedRuntimeTemplates.filter(
+      (template) => template.id !== templateId,
+    );
+
+    persistSavedRuntimeTemplates(nextItems);
+
+    if (activeSavedRuntimeTemplateId === templateId) {
+      setActiveSavedRuntimeTemplateId("");
+      setRuntimeTemplateName("");
+    }
+  }
+  function selectTemplate(templateId: string) {
+    const nextTemplateOption =
+      templates.find((item) => item.id === templateId) || templates[0] || null;
+
+    const nextTemplate = hydrateTemplate(nextTemplateOption);
+
+    setSelectedTemplateOptionId(nextTemplateOption?.id || "");
+    setActiveSavedRuntimeTemplateId("");
+    setRuntimeTemplateName("");
+    setTemplate(nextTemplate);
+    setProtectedPageIds(nextTemplate.pages.map((page) => page.id));
+    setHiddenRuntimePageIds([]);
+    setRuntimePageOrder([]);
+    setActivePageId(nextTemplate.pages[0]?.id || "");
+    setSelectedBlockId(nextTemplate.pages[0]?.blocks[0]?.id || "");
+  }
+
+  function updateTemplate(patch: Partial<StudioTemplate>) {
+    setTemplate((current) => ({
+      ...current,
+      ...patch,
+    }));
+  }
+
+  function updatePage(pageId: string, updater: (page: StudioPage) => StudioPage) {
+    setTemplate((current) => ({
+      ...current,
+      pages: current.pages.map((page) =>
+        page.id === pageId ? updater(page) : page,
+      ),
+    }));
+  }
+
+  function updateBlock(blockId: string, updater: (block: StudioBlock) => StudioBlock) {
+    const runtimeBlock =
+      visiblePreviewTemplate.pages
+        .flatMap((page) => page.blocks)
+        .find((block) => block.id === blockId) || null;
+
+    const sourceBlockId =
+      cleanText((runtimeBlock as any)?.sourceBlockId) || blockId;
+
+    setTemplate((current) => ({
+      ...current,
+      pages: current.pages.map((page) => ({
+        ...page,
+        blocks: page.blocks.map((block) =>
+          block.id === sourceBlockId ? updater(block) : block,
+        ),
+      })),
+    }));
+  }
+
+  function addPage() {
+    const page = createPage(template.pages.length + 1);
+
+    setTemplate((current) => ({
+      ...current,
+      pages: [...current.pages, page],
+    }));
+
+    setActivePageId(page.id);
+    setSelectedBlockId(page.blocks[0]?.id || "");
+  }
+
+  function canDeleteReportTwoPage(pageId: string) {
+    const runtimePage =
+      visiblePreviewTemplate.pages.find((page) => page.id === pageId) ||
+      template.pages.find((page) => page.id === pageId);
+
+    if (!runtimePage) return false;
+
+    if (runtimePage.reportTwoVirtualPage) {
+      return true;
+    }
+
+    const sourcePageId = getReportTwoSourcePageId(pageId, runtimePage);
+
+    if (!sourcePageId) return false;
+    if (protectedPageIds.includes(sourcePageId)) return false;
+    if (template.pages.length <= 1) return false;
+
+    return template.pages.some((page) => page.id === sourcePageId);
+  }
+
+  function canMoveReportTwoPage(
+    pageId: string,
+    direction: "previous" | "next",
+  ) {
+    const pageIds = visiblePreviewTemplate.pages.map((page) => page.id);
+    const index = pageIds.indexOf(pageId);
+
+    if (index < 0) return false;
+
+    return direction === "previous"
+      ? index > 0
+      : index < pageIds.length - 1;
+  }
+
+  function moveReportTwoPage(
+    pageId: string,
+    direction: "previous" | "next",
+  ) {
+    if (!canMoveReportTwoPage(pageId, direction)) return;
+
+    const pageIds = visiblePreviewTemplate.pages.map((page) => page.id);
+    const index = pageIds.indexOf(pageId);
+    const targetIndex = direction === "previous" ? index - 1 : index + 1;
+
+    const nextOrder = [...pageIds];
+    const [movedPageId] = nextOrder.splice(index, 1);
+    nextOrder.splice(targetIndex, 0, movedPageId);
+
+    setRuntimePageOrder(nextOrder);
+    setActivePageId(pageId);
+  }
+
+  function deleteReportTwoPage(pageId: string) {
+    const runtimePage =
+      visiblePreviewTemplate.pages.find((page) => page.id === pageId) ||
+      template.pages.find((page) => page.id === pageId);
+
+    if (!runtimePage) return;
+
+    if (runtimePage.reportTwoVirtualPage) {
+      const ok = window.confirm("هل تريد إخفاء هذه الصفحة التلقائية من المعاينة؟");
+
+      if (!ok) return;
+
+      const nextHiddenIds = [...hiddenRuntimePageIds, pageId];
+      const nextVisiblePages = visiblePreviewTemplate.pages.filter(
+        (page) => !nextHiddenIds.includes(page.id),
+      );
+
+      setHiddenRuntimePageIds(nextHiddenIds);
+      setRuntimePageOrder((current) => current.filter((id) => id !== pageId));
+
+      if (activePageId === pageId) {
+        setActivePageId(nextVisiblePages[0]?.id || "");
+        setSelectedBlockId(nextVisiblePages[0]?.blocks[0]?.id || "");
+      }
+
+      return;
+    }
+
+    const sourcePageId = getReportTwoSourcePageId(pageId, runtimePage);
+
+    if (!canDeleteReportTwoPage(pageId)) {
+      window.alert("لا يمكن حذف صفحة قادمة من قالب الاستديو الأصلي.");
+      return;
+    }
+
+    const ok = window.confirm("هل تريد حذف هذه الصفحة من التقرير؟");
+
+    if (!ok) return;
+
+    const remainingPages = template.pages.filter(
+      (page) => page.id !== sourcePageId,
+    );
+
+    setTemplate((current) => ({
+      ...current,
+      pages: remainingPages,
+    }));
+
+    setRuntimePageOrder((current) =>
+      current.filter((id) => id !== pageId && id !== sourcePageId),
+    );
+
+    setActivePageId(remainingPages[0]?.id || "");
+    setSelectedBlockId(remainingPages[0]?.blocks[0]?.id || "");
+  }
+
+  function removeActivePage() {
+    deleteReportTwoPage(activePageId);
+  }
+
+  function addBlock(kind: StudioBlockKind) {
+    const targetPageId = getWritableReportTwoPageId(
+      activePageId,
+      activePage,
+      template,
+    );
+
+    const targetPage = template.pages.find((page) => page.id === targetPageId);
+
+    if (!targetPage) return;
+
+    const block = createBlock(kind);
+
+    updatePage(targetPage.id, (page) => ({
+      ...page,
+      blocks: [...page.blocks, block],
+    }));
+
+    setActivePageId(targetPage.id);
+    setSelectedBlockId(block.id);
+  }
+
+  function removeSelectedBlock() {
+    if (!selectedBlock || !activePage) return;
+
+    if (activePage.blocks.length <= 1) {
+      window.alert("لا يمكن حذف آخر بلوك داخل الصفحة.");
+      return;
+    }
+
+    const remainingBlocks = activePage.blocks.filter(
+      (block) => block.id !== selectedBlock.id,
+    );
+
+    updatePage(activePage.id, (page) => ({
+      ...page,
+      blocks: remainingBlocks,
+    }));
+
+    setSelectedBlockId(remainingBlocks[0]?.id || "");
+  }
+
+  function moveBlock(direction: "up" | "down") {
+    if (!selectedBlock || !activePage) return;
+
+    const index = activePage.blocks.findIndex(
+      (block) => block.id === selectedBlock.id,
+    );
+
+    if (index < 0) return;
+
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+    if (targetIndex < 0 || targetIndex >= activePage.blocks.length) return;
+
+    const nextBlocks = [...activePage.blocks];
+    const [block] = nextBlocks.splice(index, 1);
+    nextBlocks.splice(targetIndex, 0, block);
+
+    updatePage(activePage.id, (page) => ({
+      ...page,
+      blocks: nextBlocks,
+    }));
+  }
+
+
+  function updateDynamicField(
+    blockId: string,
+    fieldId: string,
+    patch: Partial<ReportTwoDynamicField>,
+  ) {
+    updateBlock(blockId, (block) => ({
+      ...block,
+      dynamicFields: getDynamicFieldsForBlock(block, previewCase).map((field) =>
+        field.id === fieldId
+          ? {
+              ...field,
+              ...patch,
+            }
+          : field,
+      ),
+    }));
+  }
+
+  function moveDynamicField(
+    blockId: string,
+    fieldId: string,
+    direction: "up" | "down",
+  ) {
+    updateBlock(blockId, (block) => {
+      const fields = getDynamicFieldsForBlock(block, previewCase);
+      const index = fields.findIndex((field) => field.id === fieldId);
+
+      if (index < 0) return block;
+
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+      if (targetIndex < 0 || targetIndex >= fields.length) return block;
+
+      const nextFields = [...fields];
+      const [field] = nextFields.splice(index, 1);
+      nextFields.splice(targetIndex, 0, field);
+
+      return {
+        ...block,
+        dynamicFields: nextFields,
+      };
+    });
+  }
+
+  function resetDynamicFields(blockId: string) {
+    updateBlock(blockId, (block) => ({
+      ...block,
+      dynamicFields: getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+    }));
+  }
+
+  function openTableEditor(block: StudioBlock) {
+    setEditingTableDraft(createReportTwoTableDraft(block));
+  }
+
+  function closeTableEditor() {
+    setEditingTableDraft(null);
+  }
+
+  function updateEditingTableDraft(
+    updater: (draft: ReportTwoTableDraft) => ReportTwoTableDraft,
+  ) {
+    setEditingTableDraft((current) => (current ? updater(current) : current));
+  }
+
+  function saveEditingTable() {
+    if (!editingTableDraft) return;
+
+    updateBlock(editingTableDraft.blockId, (block) => ({
+      ...block,
+      title: cleanText(editingTableDraft.title) || "جدول",
+      columns: normalizeReportTwoTableColumns(editingTableDraft.columns),
+      rows: normalizeReportTwoTableRows(
+        editingTableDraft.rows,
+        editingTableDraft.columns.length,
+      ),
+      tableSettings: editingTableDraft.settings,
+    }));
+
+    setEditingTableDraft(null);
+  }
+  function updateTableColumns(value: string) {
+    if (!selectedBlock) return;
+
+    const columns = value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    updateBlock(selectedBlock.id, (block) => ({
+      ...block,
+      columns: columns.length ? columns : ["المجال", "الإجراء", "ملاحظات"],
+    }));
+  }
+
+  function updateTableRows(value: string) {
+    if (!selectedBlock) return;
+
+    const rows = value
+      .split("\n")
+      .map((line) => line.split("|").map((cell) => cell.trim()));
+
+    updateBlock(selectedBlock.id, (block) => ({
+      ...block,
+      rows: rows.length ? rows : [["", "", ""]],
+    }));
+  }
+
+  const reportTwoLayoutGridClass = [
+    "mx-auto grid max-w-[1900px] gap-5 transition-all",
+    rightSidebarCollapsed && leftSidebarCollapsed
+      ? "xl:grid-cols-[minmax(980px,1fr)]"
+      : rightSidebarCollapsed
+        ? "xl:grid-cols-[minmax(980px,1fr)_340px]"
+        : leftSidebarCollapsed
+          ? "xl:grid-cols-[300px_minmax(980px,1fr)]"
+          : "xl:grid-cols-[300px_minmax(980px,1fr)_340px]",
+  ].join(" ");
+
+  if (!templates.length) {
+    return (
+      <main className="min-h-screen bg-[#eef3ef] px-6 py-10" dir="rtl">
+        <section className="mx-auto max-w-3xl rounded-[2rem] border border-amber-100 bg-white p-7 text-center shadow-sm">
+          <p className="text-sm font-black text-amber-600">
+            لا توجد قوالب
+          </p>
+
+          <h1 className="mt-2 text-2xl font-black text-slate-950">
+            انشر قالبًا من استديو الأدمن أولًا.
+          </h1>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[#eef3ef] px-5 py-5" dir="rtl">
+      <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-emerald-100 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
+        <div className="text-xs font-black text-slate-500">
+          تحكم سريع بمساحة العمل
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setRightSidebarCollapsed((current) => !current)}
+            className={[
+              "rounded-2xl px-4 py-2 text-xs font-black transition",
+              rightSidebarCollapsed
+                ? "bg-emerald-700 text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200",
+            ].join(" ")}
+          >
+            {rightSidebarCollapsed ? "فتح اليمين" : "طي اليمين"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLeftSidebarCollapsed((current) => !current)}
+            className={[
+              "rounded-2xl px-4 py-2 text-xs font-black transition",
+              leftSidebarCollapsed
+                ? "bg-emerald-700 text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200",
+            ].join(" ")}
+          >
+            {leftSidebarCollapsed ? "فتح اليسار" : "طي اليسار"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setRightSidebarCollapsed(true);
+              setLeftSidebarCollapsed(true);
+            }}
+            className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white transition hover:bg-slate-800"
+          >
+            تركيز المعاينة
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setRightSidebarCollapsed(false);
+              setLeftSidebarCollapsed(false);
+            }}
+            className="rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
+          >
+            إظهار الكل
+          </button>
+        </div>
+      </div>
+      <div className={reportTwoLayoutGridClass}>
+        {!rightSidebarCollapsed ? (
+        <aside className="space-y-4">
+          <ReportTwoCollapsibleCard id="control" title="تحكم القالب">
+
+            <p className="text-sm font-black text-emerald-700">
+              report-2
+            </p>
+
+            <h1 className="mt-2 text-xl font-black text-slate-950">
+              تحكم القالب
+            </h1>
+
+            <p className="mt-2 text-xs font-bold leading-6 text-slate-500">
+              هذا تحكم Runtime للتقرير فقط، وليس استديو نشر القوالب.
+            </p>
+
+            <p className="mt-3 rounded-2xl bg-slate-50 px-3 py-2 text-[11px] font-black text-slate-500" dir="ltr">
+              {caseId}
+            </p>
+
+            <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
+              <h3 className="text-xs font-black text-slate-950">
+                حفظ قالب Runtime
+              </h3>
+
+              <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                احفظ تعديلاتك الحالية لهذه الخدمة لاستخدامها لاحقًا.
+              </p>
+
+              <input
+                value={runtimeTemplateName}
+                onChange={(event) => setRuntimeTemplateName(event.target.value)}
+                placeholder="مثال: قالب النشاط النهائي"
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black outline-none focus:border-emerald-600"
+              />
+
+              <button
+                type="button"
+                onClick={saveCurrentRuntimeTemplate}
+                className="mt-2 w-full rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+              >
+                {activeSavedRuntimeTemplateId ? "تحديث القالب المحفوظ" : "حفظ القالب الحالي"}
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-black text-slate-950">
+                  قوالبي المحفوظة
+                </h3>
+
+                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-500">
+                  {savedRuntimeTemplates.length}
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {savedRuntimeTemplates.length ? (
+                  savedRuntimeTemplates.map((item) => {
+                    const active = item.id === activeSavedRuntimeTemplateId;
+
+                    return (
+                      <article
+                        key={item.id}
+                        className={[
+                          "rounded-2xl border bg-white p-3 transition",
+                          active
+                            ? "border-emerald-500 ring-2 ring-emerald-100"
+                            : "border-slate-100",
+                        ].join(" ")}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => applySavedRuntimeTemplate(item.id)}
+                          className="w-full text-right"
+                        >
+                          <p className="text-xs font-black text-slate-900">
+                            {item.name}
+                          </p>
+
+                          <p className="mt-1 text-[10px] font-bold text-slate-400" dir="ltr">
+                            {new Date(item.updatedAt).toLocaleString("ar-SA")}
+                          </p>
+                        </button>
+
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => applySavedRuntimeTemplate(item.id)}
+                            className="flex-1 rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700"
+                          >
+                            تطبيق
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteSavedRuntimeTemplate(item.id)}
+                            className="rounded-xl bg-red-50 px-3 py-2 text-[11px] font-black text-red-600"
+                          >
+                            حذف
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <p className="rounded-2xl bg-white px-3 py-3 text-center text-[11px] font-bold text-slate-400">
+                    لا توجد قوالب محفوظة لهذه الخدمة حتى الآن.
+                  </p>
+                )}
+              </div>
+            </div>
+          
+</ReportTwoCollapsibleCard>
+
+          <ReportTwoCollapsibleCard id="template" title="القالب">
+
+            <h2 className="text-sm font-black text-slate-950">
+              القالب
+            </h2>
+
+            <select
+              value={selectedTemplateOptionId}
+              onChange={(event) => selectTemplate(event.target.value)}
+              className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+            >
+              {templates.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          
+</ReportTwoCollapsibleCard>
+
+          <ReportTwoCollapsibleCard id="design" title="التصميم">
+
+            <h2 className="text-sm font-black text-slate-950">
+              التصميم
+            </h2>
+
+            <div className="mt-3 grid gap-2">
+              {reportDesignTemplates.map((design) => {
+                const active = template.designTemplateId === design.id;
+
+                return (
+                  <button
+                    key={design.id}
+                    type="button"
+                    onClick={() =>
+                      updateTemplate({
+                        designTemplateId: design.id,
+                      })
+                    }
+                    className={[
+                      "rounded-2xl border px-3 py-3 text-right transition",
+                      active
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    <p className="text-xs font-black">{design.name}</p>
+                    <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-5 text-slate-500">
+                      {design.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          
+</ReportTwoCollapsibleCard>
+        </aside>
+        ) : null}
+
+        <section className="space-y-3">
+
+                    <section className="report-two-a4-host rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm">
+            <style>{`
+              .report-two-a4-host {
+                overflow-x: auto;
+              }
+
+              .report-two-a4-host .pdf-report-page {
+                position: relative !important;
+                width: min(210mm, calc(100vw - 700px)) !important;
+                min-width: min(210mm, calc(100vw - 700px)) !important;
+                max-width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+                border: 1.5px solid #64748b !important;
+                outline: 6px solid rgba(15, 23, 42, 0.05) !important;
+                box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16) !important;
+                aspect-ratio: 210 / 297 !important;
+              }
+
+              .report-two-a4-host .pdf-report-page::before {
+                display: none !important;
+              }
+
+              .report-two-a4-host .pdf-report-page::after {
+                content: "";
+                position: absolute;
+                right: 8mm;
+                bottom: 21mm;
+                left: 8mm;
+                z-index: 31;
+                pointer-events: none;
+                border-bottom: 2px solid rgba(239, 68, 68, 0.35);
+              }
+
+              @media print {
+                @page {
+                  size: A4;
+                  margin: 0;
+                }
+
+                .report-two-a4-host {
+                  padding: 0 !important;
+                  background: #ffffff !important;
+                  border: 0 !important;
+                  box-shadow: none !important;
+                }
+
+                .report-two-a4-host .pdf-report-page {
+                  margin: 0 !important;
+                  border: 0 !important;
+                  outline: 0 !important;
+                  box-shadow: none !important;
+                }
+
+                .report-two-a4-host .pdf-report-page::before,
+                .report-two-a4-host .pdf-report-page::after {
+                  display: none !important;
+                }
+              }
+            `}</style>
+
+            <ReportDesignRenderer
+              suppressAutoEvidencePages
+              chromeLayout="split"
+              designId={template.designTemplateId || "ministry-form"}
+              template={visiblePreviewTemplate}
+              activePage={activePage}
+              activePageId={activePage?.id || activePageId}
+              context={editableRuntimeContext}
+              previewCase={previewCase}
+              onActivePageChange={(pageId) => {
+                const runtimePage = visiblePreviewTemplate.pages.find(
+                  (item) => item.id === pageId,
+                );
+                const sourcePageId = getReportTwoSourcePageId(pageId, runtimePage);
+                const page = template.pages.find((item) => item.id === sourcePageId);
+
+                setActivePageId(pageId);
+                setSelectedBlockId(page?.blocks[0]?.id || runtimePage?.blocks[0]?.id || "");
+              }}
+              onAddPage={addPage}
+              onMovePage={moveReportTwoPage}
+              onDeletePage={deleteReportTwoPage}
+              canMovePage={canMoveReportTwoPage}
+              canDeletePage={canDeleteReportTwoPage}
+            />
+          </section>
+        </section>
+
+        {!leftSidebarCollapsed ? (
+        <aside className="space-y-4">
+          <ReportTwoCollapsibleCard id="logo" title="شعار التقرير">
+
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-black text-slate-950">
+                  شعار التقرير
+                </h2>
+                <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                  غيّر الشعار، حجمه، وطريقة عرضه داخل الترويسة.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={resetReportTwoLogoSettings}
+                className="rounded-full bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-600 transition hover:bg-slate-200"
+              >
+                استعادة
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
+              <div className="flex items-center justify-center rounded-2xl bg-[#1d343f] p-4">
+                <img
+                  src={activeLogoSettings.url}
+                  alt="معاينة الشعار"
+                  className="max-w-full object-contain"
+                  style={{
+                    width: `${activeLogoSettings.width}px`,
+                    height: `${activeLogoSettings.height}px`,
+                    objectFit: activeLogoSettings.fit,
+                    filter:
+                      activeLogoSettings.filter === "invert"
+                        ? "brightness(0) invert(1)"
+                        : "none",
+                  }}
+                />
+              </div>
+
+              <label className="mt-3 block">
+                <span className="text-xs font-black text-slate-500">
+                  رابط الشعار
+                </span>
+
+                <input
+                  value={activeLogoSettings.url}
+                  onChange={(event) =>
+                    updateReportTwoLogoSettings({
+                      url: event.target.value,
+                    })
+                  }
+                  placeholder="/uploads/school-logos/MOE.png"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left text-xs font-black outline-none focus:border-emerald-600"
+                  dir="ltr"
+                />
+              </label>
+
+              <label className="mt-3 block">
+                <span className="text-xs font-black text-slate-500">
+                  رفع شعار للمعاينة
+                </span>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) =>
+                    uploadReportTwoLogo(event.target.files?.[0] || null)
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600"
+                />
+              </label>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="text-[11px] font-black text-slate-500">
+                    العرض
+                  </span>
+
+                  <input
+                    type="number"
+                    min={24}
+                    max={240}
+                    value={activeLogoSettings.width}
+                    onChange={(event) =>
+                      updateReportTwoLogoSettings({
+                        width: normalizeReportTwoLogoNumber(
+                          Number(event.target.value),
+                          96,
+                          24,
+                          240,
+                        ),
+                      })
+                    }
+                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black outline-none focus:border-emerald-600"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[11px] font-black text-slate-500">
+                    الارتفاع
+                  </span>
+
+                  <input
+                    type="number"
+                    min={20}
+                    max={160}
+                    value={activeLogoSettings.height}
+                    onChange={(event) =>
+                      updateReportTwoLogoSettings({
+                        height: normalizeReportTwoLogoNumber(
+                          Number(event.target.value),
+                          56,
+                          20,
+                          160,
+                        ),
+                      })
+                    }
+                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black outline-none focus:border-emerald-600"
+                  />
+                </label>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateReportTwoLogoSettings({
+                      fit: "contain",
+                    })
+                  }
+                  className={[
+                    "rounded-2xl px-3 py-2 text-[11px] font-black transition",
+                    activeLogoSettings.fit === "contain"
+                      ? "bg-emerald-700 text-white"
+                      : "bg-white text-slate-600 ring-1 ring-slate-200",
+                  ].join(" ")}
+                >
+                  احتواء
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateReportTwoLogoSettings({
+                      fit: "cover",
+                    })
+                  }
+                  className={[
+                    "rounded-2xl px-3 py-2 text-[11px] font-black transition",
+                    activeLogoSettings.fit === "cover"
+                      ? "bg-emerald-700 text-white"
+                      : "bg-white text-slate-600 ring-1 ring-slate-200",
+                  ].join(" ")}
+                >
+                  تعبئة
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateReportTwoLogoSettings({
+                      filter: "invert",
+                    })
+                  }
+                  className={[
+                    "rounded-2xl px-3 py-2 text-[11px] font-black transition",
+                    activeLogoSettings.filter === "invert"
+                      ? "bg-emerald-700 text-white"
+                      : "bg-white text-slate-600 ring-1 ring-slate-200",
+                  ].join(" ")}
+                >
+                  أبيض للهيدر
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateReportTwoLogoSettings({
+                      filter: "none",
+                    })
+                  }
+                  className={[
+                    "rounded-2xl px-3 py-2 text-[11px] font-black transition",
+                    activeLogoSettings.filter === "none"
+                      ? "bg-emerald-700 text-white"
+                      : "bg-white text-slate-600 ring-1 ring-slate-200",
+                  ].join(" ")}
+                >
+                  عادي
+                </button>
+              </div>
+            </div>
+          
+</ReportTwoCollapsibleCard>
+
+          <ReportTwoCollapsibleCard id="header" title="ترويسة التقرير">
+
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-black text-slate-950">
+                  ترويسة التقرير
+                </h2>
+                <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                  عدّل قيم أعلى الصفحة أو عبئها ديناميكيًا من بيانات الحالة.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={resetReportTwoHeaderValues}
+                className="rounded-full bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-600 transition hover:bg-slate-200"
+              >
+                استعادة
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {reportTwoHeaderFields.map((field) => (
+                <article
+                  key={field.key}
+                  className="rounded-[1.4rem] border border-slate-100 bg-slate-50 p-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-black text-slate-800">
+                        {field.label}
+                      </p>
+                      <p className="mt-1 text-[10px] font-bold text-slate-400">
+                        {field.hint}
+                      </p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1">
+                      <div className="flex items-center rounded-full border border-slate-200 bg-white p-1">
+                        {reportTwoHeaderAlignOptions.map((option) => {
+                          const active =
+                            activeHeaderAlignments[field.key] === option.value;
+
+                          return (
+                            <button
+                              key={`${field.key}-${option.value}`}
+                              type="button"
+                              onClick={() =>
+                                updateReportTwoHeaderAlign(field.key, option.value)
+                              }
+                              title={option.title}
+                              className={[
+                                "inline-flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-black transition",
+                                active
+                                  ? "bg-emerald-700 text-white"
+                                  : "text-slate-500 hover:bg-slate-100",
+                                option.value === "left" ? "scale-x-[-1]" : "",
+                              ].join(" ")}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <select
+                        value=""
+                        onChange={(event) => {
+                          if (!event.target.value) return;
+
+                          fillReportTwoHeaderValueFromContext(
+                            field.key,
+                            event.target.value,
+                          );
+
+                          event.currentTarget.value = "";
+                        }}
+                        className="max-w-[118px] rounded-full border border-emerald-100 bg-white px-3 py-2 text-[10px] font-black text-emerald-700 outline-none"
+                      >
+                        <option value="">ربط ديناميكي</option>
+                        {reportTwoHeaderBindingOptions.map(([key, label]) => (
+                          <option key={`${field.key}-${key}`} value={key}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={activeHeaderValues[field.key]}
+                    onChange={(event) =>
+                      updateReportTwoHeaderValue(field.key, event.target.value)
+                    }
+                    rows={2}
+                    className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black leading-6 outline-none focus:border-emerald-600"
+                  />
+                </article>
+              ))}
+            </div>
+          
+</ReportTwoCollapsibleCard>
+
+          <ReportTwoCollapsibleCard id="page-settings" title="إعدادات الصفحة">
+
+            <h2 className="text-sm font-black text-slate-950">
+              إعدادات الصفحة
+            </h2>
+
+            {activePage ? (
+              <div className="mt-4 space-y-3">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    اسم الصفحة
+                  </span>
+
+                  <input
+                    value={activePage.title}
+                    onChange={(event) =>
+                      updatePage(activePage.id, (page) => ({
+                        ...page,
+                        title: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    نوع الصفحة
+                  </span>
+
+                  <select
+                    value={activePage.kind}
+                    onChange={(event) =>
+                      updatePage(activePage.id, (page) => ({
+                        ...page,
+                        kind: event.target.value as StudioPageKind,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+                  >
+                    <option value="content">محتوى</option>
+                    <option value="recommendations">توصيات</option>
+                    <option value="evidence">شواهد</option>
+                    <option value="approval">اعتماد</option>
+                    <option value="custom">مخصص</option>
+                  </select>
+                </label>
+              </div>
+            ) : null}
+          
+</ReportTwoCollapsibleCard>
+
+          <ReportTwoCollapsibleCard id="add-block" title="إضافة بلوك داخل الصفحة">
+
+            <h2 className="text-sm font-black text-slate-950">
+              إضافة بلوك داخل الصفحة
+            </h2>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {[
+                ["section-text", "فقرة"],
+                ["bullet-list", "قائمة"],
+                ["dynamic-fields", "حقول"],
+                ["evidence-gallery", "شواهد"],
+                ["report-one-table", "جدول"],
+                ["closing-note", "خاتمة"],
+              ].map(([kind, label]) => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => addBlock(kind as StudioBlockKind)}
+                  className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+                >
+                  + {label}
+                </button>
+              ))}
+            </div>
+          
+</ReportTwoCollapsibleCard>
+
+          <ReportTwoCollapsibleCard id="page-blocks" title="بلوكات الصفحة">
+
+            <h2 className="text-sm font-black text-slate-950">
+              بلوكات الصفحة
+            </h2>
+
+            <div className="mt-3 space-y-2">
+              {(activePage?.blocks || []).map((block, index) => {
+                const active = block.id === selectedBlockId;
+
+                return (
+                  <button
+                    key={block.id}
+                    type="button"
+                    onClick={() => setSelectedBlockId(block.id)}
+                    className={[
+                      "w-full rounded-2xl border px-3 py-3 text-right text-xs font-black transition",
+                      active
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    {index + 1}. {block.title} · {getBlockKindName(block.kind)}
+                  </button>
+                );
+              })}
+            </div>
+          
+</ReportTwoCollapsibleCard>
+
+          {selectedBlock ? (
+            <ReportTwoCollapsibleCard id="edit-block" title="تعديل البلوك">
+
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-black text-slate-950">
+                  تعديل البلوك
+                </h2>
+
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => moveBlock("up")}
+                    className="rounded-xl bg-slate-100 px-2 py-1 text-xs font-black"
+                  >
+                    ↑
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => moveBlock("down")}
+                    className="rounded-xl bg-slate-100 px-2 py-1 text-xs font-black"
+                  >
+                    ↓
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={removeSelectedBlock}
+                    className="rounded-xl bg-red-50 px-2 py-1 text-xs font-black text-red-600"
+                  >
+                    حذف
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">
+                    عنوان البلوك
+                  </span>
+
+                  <input
+                    value={selectedBlock.title}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        title: event.target.value,
+                      }))
+                    }
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+                  />
+                </label>
+
+                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={selectedBlock.showTitle !== false}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        showTitle: event.target.checked,
+                      }))
+                    }
+                  />
+                  إظهار العنوان
+                </label>
+
+                {isReportTwoDynamicFieldsBlock(selectedBlock) ? (
+                  <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-900">
+                          2. الحقول المختارة
+                        </h3>
+                        <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                          اختر أي حقل تريد عرضه، وعدّل الاسم والقيمة مباشرة.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => resetDynamicFields(selectedBlock.id)}
+                        className="rounded-full bg-white px-3 py-2 text-[11px] font-black text-emerald-700 shadow-sm"
+                      >
+                        تعبئة من الحالة
+                      </button>
+                    </div>
+
+                    <div className="mt-3 max-h-[520px] space-y-3 overflow-y-auto pr-1">
+                      {getDynamicFieldsForBlock(selectedBlock, previewCase).map((field) => (
+                        <article
+                          key={field.id}
+                          className={[
+                            "rounded-2xl border p-3 transition",
+                            field.visible
+                              ? "border-emerald-200 bg-white"
+                              : "border-slate-200 bg-slate-50 opacity-70",
+                          ].join(" ")}
+                        >
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <label className="flex items-center gap-2 text-[11px] font-black text-slate-600">
+                              <input
+                                type="checkbox"
+                                checked={field.visible}
+                                onChange={(event) =>
+                                  updateDynamicField(selectedBlock.id, field.id, {
+                                    visible: event.target.checked,
+                                  })
+                                }
+                              />
+                              عرض في التقرير
+                            </label>
+
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() => moveDynamicField(selectedBlock.id, field.id, "up")}
+                                className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"
+                              >
+                                ↑
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => moveDynamicField(selectedBlock.id, field.id, "down")}
+                                className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"
+                              >
+                                ↓
+                              </button>
+                            </div>
+                          </div>
+
+                          <label className="block">
+                            <span className="text-[11px] font-black text-slate-500">
+                              اسم الحقل
+                            </span>
+
+                            <input
+                              value={field.label}
+                              onChange={(event) =>
+                                updateDynamicField(selectedBlock.id, field.id, {
+                                  label: event.target.value,
+                                })
+                              }
+                              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black outline-none focus:border-emerald-600"
+                            />
+                          </label>
+
+                          <label className="mt-2 block">
+                            <span className="text-[11px] font-black text-slate-500">
+                              القيمة
+                            </span>
+
+                            <textarea
+                              value={field.value}
+                              onChange={(event) =>
+                                updateDynamicField(selectedBlock.id, field.id, {
+                                  value: event.target.value,
+                                })
+                              }
+                              rows={2}
+                              className="mt-1 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold leading-6 outline-none focus:border-emerald-600"
+                            />
+                          </label>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+                {selectedBlock.kind !== "dynamic-fields" &&
+                selectedBlock.kind !== "evidence-gallery" &&
+                selectedBlock.kind !== "report-one-table" ? (
+                  <label className="block">
+                    <span className="text-xs font-black text-slate-500">
+                      المحتوى
+                    </span>
+
+                    <textarea
+                      value={selectedBlock.content}
+                      onChange={(event) =>
+                        updateBlock(selectedBlock.id, (block) => ({
+                          ...block,
+                          content: event.target.value,
+                        }))
+                      }
+                      rows={7}
+                      className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 outline-none focus:border-emerald-600"
+                    />
+                  </label>
+                ) : null}
+
+                {selectedBlock.kind === "report-one-table" ? (
+                  <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-900">
+                          تحرير الجدول
+                        </h3>
+                        <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                          افتح محرر الجدول لتعديل الأعمدة والخلايا والإعدادات.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => openTableEditor(selectedBlock)}
+                        className="rounded-full bg-emerald-700 px-4 py-2 text-[11px] font-black text-white shadow-sm transition hover:bg-emerald-800"
+                      >
+                        تحرير الجدول
+                      </button>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-2xl bg-white p-3">
+                        <div className="text-base font-black text-slate-950">
+                          {normalizeReportTwoTableColumns(selectedBlock.columns).length}
+                        </div>
+                        <div className="mt-1 text-[10px] font-black text-slate-500">
+                          أعمدة
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl bg-white p-3">
+                        <div className="text-base font-black text-slate-950">
+                          {normalizeReportTwoTableRows(
+                            selectedBlock.rows,
+                            normalizeReportTwoTableColumns(selectedBlock.columns).length,
+                          ).length}
+                        </div>
+                        <div className="mt-1 text-[10px] font-black text-slate-500">
+                          صفوف
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl bg-white p-3">
+                        <div className="text-base font-black text-slate-950">
+                          {countReportTwoFilledCells(
+                            normalizeReportTwoTableRows(
+                              selectedBlock.rows,
+                              normalizeReportTwoTableColumns(selectedBlock.columns).length,
+                            ),
+                          )}
+                        </div>
+                        <div className="mt-1 text-[10px] font-black text-slate-500">
+                          خلايا
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+
+                {selectedBlock.kind === "evidence-gallery" ? (
+                  <div className="space-y-3 rounded-[1.5rem] bg-slate-50 p-3">
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-500">
+                        عدد الشواهد
+                      </span>
+
+                      <select
+                        value={selectedBlock.evidenceLayout || "TWO_PER_PAGE"}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            evidenceLayout: event.target.value,
+                          }))
+                        }
+                        className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs font-black outline-none focus:border-emerald-600"
+                      >
+                        <option value="ONE_PER_PAGE">شاهد واحد</option>
+                        <option value="TWO_PER_PAGE">شاهدان</option>
+                        <option value="GRID_2X2">أربعة 2×2</option>
+                        <option value="ATTACHMENT_LIST">قائمة ملفات</option>
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-500">
+                        طريقة الصورة
+                      </span>
+
+                      <select
+                        value={selectedBlock.evidenceFit || "contain"}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            evidenceFit: event.target.value,
+                          }))
+                        }
+                        className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs font-black outline-none focus:border-emerald-600"
+                      >
+                        <option value="contain">احتواء</option>
+                        <option value="cover">قص وتعبئة</option>
+                      </select>
+                    </label>
+
+                    <label className="flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs font-black text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(selectedBlock.evidenceShowCaptions)}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            evidenceShowCaptions: event.target.checked,
+                          }))
+                        }
+                      />
+                      إظهار التسميات
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+            
+</ReportTwoCollapsibleCard>
+          ) : null}
+        </aside>
+        ) : null}
+      </div>
+
+      {editingTableDraft ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <section className="flex h-[88vh] w-full max-w-[1220px] min-h-0 overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <main className="flex min-w-0 flex-1 flex-col">
+              <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-950">
+                    تحرير الجدول
+                  </h2>
+                  <p className="mt-1 text-xs font-bold text-slate-500">
+                    عدّل الأعمدة والخلايا بنفس نمط محرر التقارير الرسمي.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeTableEditor}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-sm font-black text-slate-500 transition hover:bg-slate-100"
+                >
+                  ×
+                </button>
+              </header>
+
+              <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_270px]">
+                <section className="flex min-h-0 flex-col">
+                  <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900">
+                        محتوى الجدول
+                      </h3>
+                      <p className="mt-1 text-xs font-bold text-slate-500">
+                        مساحة الجدول قابلة للتمرير أفقيًا ورأسيًا عند زيادة الأعمدة والصفوف.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={closeTableEditor}
+                        className="rounded-2xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-200"
+                      >
+                        إلغاء
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={saveEditingTable}
+                        className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white shadow-sm transition hover:bg-emerald-800"
+                      >
+                        حفظ الجدول
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-hidden p-5">
+                    <div className="h-full overflow-auto rounded-[1.5rem] border border-slate-100 bg-slate-50 p-3 [scrollbar-color:#64748b_#e2e8f0] [scrollbar-width:thin]">
+                      <div
+                        className={[
+                          "w-max min-w-[900px] overflow-hidden border border-emerald-100 bg-white shadow-sm",
+                          editingTableDraft.settings.rounded
+                            ? "rounded-[1.4rem]"
+                            : "rounded-md",
+                        ].join(" ")}
+                      >
+                        <div
+                          className="grid border-b border-emerald-100"
+                          style={{
+                            gridTemplateColumns: `54px repeat(${editingTableDraft.columns.length}, minmax(210px, 1fr))`,
+                          }}
+                        >
+                          <div className="bg-emerald-700 px-3 py-3 text-center text-xs font-black text-white">
+                            #
+                          </div>
+
+                          {editingTableDraft.columns.map((column, columnIndex) => (
+                            <div
+                              key={`column-${columnIndex}`}
+                              className="flex items-center gap-2 border-r border-emerald-100 bg-emerald-700 px-3 py-2"
+                            >
+                              <input
+                                value={column}
+                                onChange={(event) =>
+                                  updateEditingTableDraft((draft) =>
+                                    updateReportTwoTableColumn(
+                                      draft,
+                                      columnIndex,
+                                      event.target.value,
+                                    ),
+                                  )
+                                }
+                                className="min-w-0 flex-1 rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-center text-xs font-black text-slate-800 outline-none focus:border-emerald-500"
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateEditingTableDraft((draft) =>
+                                    removeReportTwoTableColumn(draft, columnIndex),
+                                  )
+                                }
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-xs font-black text-rose-500 transition hover:bg-rose-100"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {editingTableDraft.rows.map((row, rowIndex) => (
+                          <div
+                            key={`row-${rowIndex}`}
+                            className="grid border-b border-emerald-100 last:border-b-0"
+                            style={{
+                              gridTemplateColumns: `54px repeat(${editingTableDraft.columns.length}, minmax(210px, 1fr))`,
+                            }}
+                          >
+                            <div className="flex flex-col items-center justify-center gap-2 bg-emerald-50 px-2 py-3">
+                              <span className="text-xs font-black text-slate-500">
+                                {rowIndex + 1}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateEditingTableDraft((draft) =>
+                                    removeReportTwoTableRow(draft, rowIndex),
+                                  )
+                                }
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-50 text-xs font-black text-rose-500 transition hover:bg-rose-100"
+                              >
+                                ×
+                              </button>
+                            </div>
+
+                            {editingTableDraft.columns.map((_, columnIndex) => (
+                              <div
+                                key={`cell-${rowIndex}-${columnIndex}`}
+                                className={[
+                                  "border-r border-emerald-100 p-3",
+                                  editingTableDraft.settings.highlightFirstColumn &&
+                                  columnIndex === 0
+                                    ? "bg-emerald-50"
+                                    : editingTableDraft.settings.stripedRows &&
+                                        rowIndex % 2 === 1
+                                      ? "bg-slate-50"
+                                      : "bg-white",
+                                ].join(" ")}
+                              >
+                                <textarea
+                                  value={row[columnIndex] || ""}
+                                  onChange={(event) =>
+                                    updateEditingTableDraft((draft) =>
+                                      updateReportTwoTableCell(
+                                        draft,
+                                        rowIndex,
+                                        columnIndex,
+                                        event.target.value,
+                                      ),
+                                    )
+                                  }
+                                  rows={3}
+                                  placeholder="محتوى الخلية"
+                                  className={[
+                                    "w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold leading-6 text-slate-700 outline-none transition focus:border-emerald-500",
+                                    editingTableDraft.settings.compact
+                                      ? "min-h-[72px]"
+                                      : "min-h-[94px]",
+                                  ].join(" ")}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <aside className="min-h-0 overflow-y-auto border-r border-slate-100 bg-slate-50 p-5">
+                  <div className="space-y-4">
+                    <label className="block rounded-2xl border border-slate-100 bg-white p-4">
+                      <span className="text-xs font-black text-slate-500">
+                        عنوان الجدول
+                      </span>
+
+                      <input
+                        value={editingTableDraft.title}
+                        onChange={(event) =>
+                          updateEditingTableDraft((draft) =>
+                            updateReportTwoTableTitle(draft, event.target.value),
+                          )
+                        }
+                        className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+                      />
+                    </label>
+
+                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                      <h3 className="text-sm font-black text-slate-900">
+                        إعدادات التصميم
+                      </h3>
+
+                      <div className="mt-3 space-y-2">
+                        {([
+                          ["highlightHeader", "تظليل أول صف"],
+                          ["highlightFirstColumn", "تظليل أول عمود"],
+                          ["stripedRows", "ألوان متناوبة"],
+                          ["rounded", "زوايا منحنية"],
+                          ["repeatHeader", "تكرار رأس الجدول"],
+                          ["compact", "جدول مضغوط"],
+                        ] as Array<[keyof ReportTwoTableSettings, string]>).map(
+                          ([key, label]) => (
+                            <label
+                              key={key}
+                              className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
+                            >
+                              <span>{label}</span>
+
+                              <input
+                                type="checkbox"
+                                checked={editingTableDraft.settings[key]}
+                                onChange={(event) =>
+                                  updateEditingTableDraft((draft) =>
+                                    updateReportTwoTableSetting(
+                                      draft,
+                                      key,
+                                      event.target.checked,
+                                    ),
+                                  )
+                                }
+                              />
+                            </label>
+                          ),
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateEditingTableDraft((draft) =>
+                            addReportTwoTableRow(draft),
+                          )
+                        }
+                        className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+                      >
+                        + إضافة صف
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateEditingTableDraft((draft) =>
+                            addReportTwoTableColumn(draft),
+                          )
+                        }
+                        className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-emerald-800 ring-1 ring-emerald-100 transition hover:bg-emerald-50"
+                      >
+                        + إضافة عمود
+                      </button>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                      <h3 className="text-sm font-black text-slate-900">
+                        ملخص الجدول
+                      </h3>
+
+                      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                        <div className="rounded-2xl bg-slate-50 p-3">
+                          <div className="text-lg font-black text-slate-950">
+                            {editingTableDraft.columns.length}
+                          </div>
+                          <div className="mt-1 text-[10px] font-black text-slate-500">
+                            أعمدة
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-slate-50 p-3">
+                          <div className="text-lg font-black text-slate-950">
+                            {editingTableDraft.rows.length}
+                          </div>
+                          <div className="mt-1 text-[10px] font-black text-slate-500">
+                            صفوف
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-slate-50 p-3">
+                          <div className="text-lg font-black text-slate-950">
+                            {countReportTwoFilledCells(editingTableDraft.rows)}
+                          </div>
+                          <div className="mt-1 text-[10px] font-black text-slate-500">
+                            خلايا
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </main>
+          </section>
+        </div>
+      ) : null}
+    </main>
+  );
+}

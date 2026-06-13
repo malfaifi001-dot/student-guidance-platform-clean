@@ -49,7 +49,7 @@ const mainActions = [
   {
     title: "إنشاء تقرير رسمي",
     description: "ابدأ من حالة محفوظة، واسحب البيانات والشواهد تلقائيًا.",
-    href: "/dashboard/reports",
+    href: "/dashboard/report",
     icon: FileText,
     tone: "from-blue-600 to-cyan-500",
   },
@@ -276,7 +276,7 @@ export function CreativeDashboard({ user, stats }: CreativeDashboardProps) {
             title="التقارير"
             value={stats.reports}
             icon={<FileText className="h-5 w-5" />}
-            href="/dashboard/reports"
+            href="/dashboard/report"
           />
 
           <SmallMetricCard
@@ -362,7 +362,7 @@ export function CreativeDashboard({ user, stats }: CreativeDashboardProps) {
         <QuickPathCard
           title="ابدأ من التقارير"
           description="راجع التقارير واعتمد النسخة الرسمية."
-          href="/dashboard/reports"
+          href="/dashboard/report"
           icon={<FileText className="h-5 w-5" />}
         />
 

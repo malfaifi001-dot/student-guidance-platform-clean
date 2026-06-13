@@ -36,14 +36,14 @@ export function ReportActions({ reportId, status }: Props) {
   return (
     <div className="flex flex-wrap gap-2">
       <Link
-        href={`/dashboard/reports/${reportId}/studio`}
+        href={`/dashboard/report/${reportId}/studio`}
         className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"
       >
         {status === "APPROVED" ? "إعادة فتح" : "تعديل"}
       </Link>
 
       <Link
-        href={`/dashboard/reports/${reportId}/preview`}
+        href={`/dashboard/report/${reportId}/preview`}
         className="rounded-xl border border-blue-200 px-4 py-2 text-sm font-black text-blue-700 hover:bg-blue-50"
       >
         Preview

@@ -328,7 +328,7 @@ export function NewReportCasePicker({
 
       router.push(
         data.previewUrl ||
-          `/dashboard/reports/${data.reportId}/preview?template=${selectedTemplateId}`
+          `/dashboard/report/${data.reportId}/preview?template=${selectedTemplateId}`
       );
       router.refresh();
     } catch (error) {
@@ -359,7 +359,7 @@ export function NewReportCasePicker({
             </div>
 
             <Link
-              href="/dashboard/reports"
+              href="/dashboard/report"
               className="rounded-2xl bg-white/15 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
             >
               الرجوع للتقارير

@@ -59,6 +59,13 @@ type ReportDesignRendererProps = {
   previewCase: PreviewCaseData | null;
   onActivePageChange: (pageId: string) => void;
   onAddPage: () => void;
+  onMovePage?: (pageId: string, direction: "previous" | "next") => void;
+  onDeletePage?: (pageId: string) => void;
+  canMovePage?: (pageId: string, direction: "previous" | "next") => boolean;
+  canDeletePage?: (pageId: string) => boolean;
+  renderMode?: "single" | "stack";
+  chromeLayout?: "joined" | "split";
+  suppressAutoEvidencePages?: boolean;
 };
 
 export const reportDesignTemplates: Array<{
@@ -184,13 +191,54 @@ export function ReportDesignRenderer({
   previewCase,
   onActivePageChange,
   onAddPage,
+  onMovePage,
+  onDeletePage,
+  canMovePage,
+  canDeletePage,
+  renderMode = "single",
+  chromeLayout = "joined",
+  suppressAutoEvidencePages = false,
 }: ReportDesignRendererProps) {
   const selectedDesign = normalizeDesignId(
     designId || template?.designTemplateId || "ministry-form",
   );
 
-  return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+  const logoWidthPx = getDesignLogoNumber(
+    context,
+    "report.logoWidthPx",
+    96,
+    24,
+    240,
+  );
+
+  const logoHeightPx = getDesignLogoNumber(
+    context,
+    "report.logoHeightPx",
+    56,
+    20,
+    160,
+  );
+
+  const logoFit = getDesignLogoFit(context);
+  const logoFilter = getDesignLogoFilter(context);
+  const pages = template?.pages || [];
+
+  const logoStyle = (
+    <style>{`
+      .report-design-logo-control-style img[alt="شعار وزارة التعليم"],
+      .pdf-report-page img[alt="شعار وزارة التعليم"] {
+        width: ${logoWidthPx}px !important;
+        max-width: ${logoWidthPx}px !important;
+        height: ${logoHeightPx}px !important;
+        max-height: ${logoHeightPx}px !important;
+        object-fit: ${logoFit} !important;
+        filter: ${logoFilter} !important;
+      }
+    `}</style>
+  );
+
+  const controls = (
+    <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-black text-slate-900">
@@ -206,22 +254,80 @@ export function ReportDesignRenderer({
         </span>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        {(template?.pages || []).map((page: any, index: number) => (
-          <button
-            key={page.id}
-            type="button"
-            onClick={() => onActivePageChange(page.id)}
-            className={[
-              "rounded-2xl border px-4 py-2 text-xs font-black transition",
-              page.id === activePageId
-                ? "border-emerald-600 bg-emerald-700 text-white"
-                : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-emerald-50",
-            ].join(" ")}
-          >
-            {index + 1}. {page.title}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        {pages.map((page: any, index: number) => {
+          const active = page.id === activePageId;
+          const canMovePrevious =
+            canMovePage?.(page.id, "previous") ?? index > 0;
+          const canMoveNext =
+            canMovePage?.(page.id, "next") ?? index < pages.length - 1;
+          const canDelete = canDeletePage?.(page.id) ?? false;
+
+          return (
+            <div
+              key={`${page.id}-${index}`}
+              className={[
+                "inline-flex items-center gap-1 rounded-2xl border px-2 py-1 text-xs font-black transition",
+                active
+                  ? "border-emerald-600 bg-emerald-700 text-white shadow-sm"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-emerald-50",
+              ].join(" ")}
+            >
+              <button
+                type="button"
+                onClick={() => onActivePageChange(page.id)}
+                className="max-w-[220px] truncate px-2 py-1"
+                title={page.title}
+              >
+                {index + 1}. {page.title}
+              </button>
+
+              {active ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={!canMovePrevious}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMovePage?.(page.id, "previous");
+                    }}
+                    className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white/15 px-1 text-[11px] font-black hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-30"
+                    title="تحريك الصفحة للخلف"
+                  >
+                    ↑
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!canMoveNext}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMovePage?.(page.id, "next");
+                    }}
+                    className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white/15 px-1 text-[11px] font-black hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-30"
+                    title="تحريك الصفحة للأمام"
+                  >
+                    ↓
+                  </button>
+
+                  {canDelete ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDeletePage?.(page.id);
+                      }}
+                      className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500/90 px-1 text-[11px] font-black text-white hover:bg-red-600"
+                      title="حذف الصفحة"
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
+            </div>
+          );
+        })}
 
         <button
           type="button"
@@ -231,26 +337,73 @@ export function ReportDesignRenderer({
           + صفحة محتوى
         </button>
       </div>
+    </>
+  );
 
-      <A4DesignPage
-        designId={selectedDesign}
-        page={activePage}
-        context={context}
-        previewCase={previewCase}
-        pageLabel={activePage?.title || "صفحة"}
-      />
+  const preview = (
+    <div className="report-design-logo-control-style">
+      {renderMode === "stack" ? (
+        <div className="space-y-6">
+          {pages.map((page: any, index: number) => (
+            <div key={page.id} data-report-design-page-index={index}>
+              <A4DesignPage
+                designId={selectedDesign}
+                page={page}
+                context={context}
+                previewCase={previewCase}
+                pageLabel={page?.title || "صفحة"}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <A4DesignPage
+          designId={selectedDesign}
+          page={activePage}
+          context={context}
+          previewCase={previewCase}
+          pageLabel={activePage?.title || "صفحة"}
+        />
+      )}
 
-      <AutoEvidencePages
-        designId={selectedDesign}
-        activePage={activePage}
-        context={context}
-        previewCase={previewCase}
-      />
+      {!suppressAutoEvidencePages ? (
+        <AutoEvidencePages
+          designId={selectedDesign}
+          activePage={activePage}
+          context={context}
+          previewCase={previewCase}
+        />
+      ) : null}
+    </div>
+  );
+
+  if (chromeLayout === "split") {
+    return (
+      <div className="space-y-4">
+        {logoStyle}
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          {controls}
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          {preview}
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      {logoStyle}
+
+      <div className="report-design-logo-control-style">
+        <div className="mb-5">{controls}</div>
+        {preview}
+      </div>
     </section>
   );
 }
-
-
 export function FinalReportDesignRenderer({
   template,
   previewCaseData,
@@ -1023,6 +1176,68 @@ function formatFinalDate(value?: string | null) {
 }
 
 
+
+
+
+function getDesignLogoSrc(context: Record<string, string>) {
+  const value = String(context?.["report.logoUrl"] || "").trim();
+
+  return value || "/uploads/school-logos/MOE.png";
+}
+
+function getDesignLogoNumber(
+  context: Record<string, string>,
+  key: string,
+  fallback: number,
+  min: number,
+  max: number,
+) {
+  const value = Number(context?.[key] || fallback);
+
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.floor(value)));
+}
+
+function getDesignLogoFit(context: Record<string, string>) {
+  const value = String(context?.["report.logoFit"] || "").trim();
+
+  return value === "cover" ? "cover" : "contain";
+}
+
+function getDesignLogoFilter(context: Record<string, string>) {
+  const value = String(context?.["report.logoFilter"] || "invert").trim();
+
+  return value === "none" ? "none" : "brightness(0) invert(1)";
+}
+function getDesignHeaderAlign(
+  context: Record<string, string>,
+  key: string,
+  fallback: "right" | "center" | "left" = "center",
+) {
+  const value = String(context?.[`report.headerAlign.${key}`] || "").trim();
+
+  if (value === "right" || value === "center" || value === "left") {
+    return value;
+  }
+
+  return fallback;
+}
+function getDesignHeaderText(
+  context: Record<string, string>,
+  key: string,
+  fallback: string,
+) {
+  const value = context?.[key];
+
+  if (value !== undefined && value !== null && String(value).trim() !== "") {
+    return String(value);
+  }
+
+  return fallback;
+}
 function A4DesignPage({
   designId,
   page,
@@ -1048,7 +1263,7 @@ function A4DesignPage({
             </div>
 
             <div className="text-center">
-              <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain" />
+              <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain" />
               <p className="mt-3 inline-flex rounded-full border border-slate-900 px-4 py-1 text-[11px] font-black text-slate-900">
                 تقرير رسمي معتمد
               </p>
@@ -1286,7 +1501,7 @@ function A4DesignPage({
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[20px] border border-stone-200 bg-stone-50 p-[8mm] shadow-xl">
         <div className="grid min-h-[279mm] grid-cols-[38mm_1fr] overflow-hidden rounded-[18px] bg-white">
           <aside className="border-l border-stone-200 bg-stone-100 p-5">
-            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain opacity-80" />
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain opacity-80" />
 
             <div className="mt-10 space-y-4">
               <SideMeta label="الخدمة" value={context["service.name"]} />
@@ -1320,7 +1535,7 @@ function A4DesignPage({
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[30px] border border-sky-100 bg-sky-50 p-[8mm] shadow-xl">
         <div className="relative grid min-h-[279mm] grid-cols-[34mm_1fr] overflow-hidden rounded-[24px] bg-white">
           <aside className="relative bg-gradient-to-b from-sky-950 via-sky-800 to-emerald-700 p-5 text-white">
-            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
             <div className="mt-10 rotate-180 [writing-mode:vertical-rl]">
               <p className="text-sm font-black tracking-wide">منصة التوجيه الطلابي</p>
               <p className="mt-3 text-xs font-bold text-sky-100">تقرير رسمي حديث</p>
@@ -1361,7 +1576,7 @@ function A4DesignPage({
                 {context["service.name"]} · {context["case.createdAt"]}
               </p>
             </div>
-            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-16 w-auto justify-self-end object-contain brightness-0 invert" />
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-16 w-auto justify-self-end object-contain brightness-0 invert" />
           </header>
 
           <div className="relative z-10 mt-9 rounded-[30px] border border-emerald-100 bg-white p-5 shadow-sm">
@@ -1381,10 +1596,10 @@ function A4DesignPage({
           <header className="border-b-2 border-slate-800 pb-5">
             <div className="grid grid-cols-[110px_1fr_110px] items-center gap-4">
               <div className="text-right text-xs font-bold leading-6 text-slate-700">
-                <p>وزارة التعليم</p><p>الإدارة العامة للتعليم</p><p>مكتب التعليم</p>
+                <p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p><p>مكتب التعليم</p>
               </div>
               <div className="text-center">
-                <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain" />
+                <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain" />
                 <h1 className="mt-3 text-xl font-black text-slate-950">{pageLabel}</h1>
               </div>
               <div className="text-left text-xs font-bold leading-6 text-slate-700">
@@ -1411,7 +1626,7 @@ function A4DesignPage({
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[22px] border border-teal-100 bg-teal-50 p-[8mm] shadow-xl">
         <div className="grid min-h-[279mm] grid-cols-[48mm_1fr] overflow-hidden rounded-[18px] bg-white">
           <aside className="bg-teal-900 p-5 text-white">
-            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-14 w-auto object-contain brightness-0 invert" />
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-14 w-auto object-contain brightness-0 invert" />
             <h2 className="mt-8 text-lg font-black leading-8">ملف حالة إرشادية</h2>
             <div className="mt-8 space-y-3">
               <SideMeta label="الطالب/ـة" value={context["student.name"]} />
@@ -1443,7 +1658,7 @@ function A4DesignPage({
               <p className="text-xs font-black text-amber-100">خطة متابعة وتقويم سلوكي</p>
               <h1 className="mt-2 text-2xl font-black">{context["case.title"] || pageLabel}</h1>
             </div>
-            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-16 w-auto object-contain brightness-0 invert" />
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-16 w-auto object-contain brightness-0 invert" />
           </header>
 
           <div className="mt-6 grid grid-cols-[28mm_1fr] gap-5">
@@ -1474,7 +1689,7 @@ function A4DesignPage({
                 <p className="text-xs font-black text-cyan-100">تقرير أثر برنامج إرشادي</p>
                 <h1 className="mt-3 text-3xl font-black">{context["case.title"] || pageLabel}</h1>
               </div>
-              <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-14 w-auto object-contain brightness-0 invert" />
+              <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-14 w-auto object-contain brightness-0 invert" />
             </div>
             <div className="mt-5 grid grid-cols-3 gap-3">
               <MiniStat label="الخدمة" value={context["service.name"]} />
@@ -1497,7 +1712,7 @@ function A4DesignPage({
           <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-rose-100" />
           <div className="absolute -right-8 top-20 h-28 w-28 rounded-full bg-pink-100" />
           <header className="relative z-10 rounded-[28px] border border-rose-100 bg-gradient-to-l from-rose-100 to-white p-6">
-            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-14 w-auto object-contain" />
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-14 w-auto object-contain" />
             <p className="mt-5 text-xs font-black text-rose-700">تقرير إرشادي بناتي رسمي</p>
             <h1 className="mt-2 text-3xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
           </header>
@@ -1524,7 +1739,7 @@ function A4DesignPage({
           </div>
 
           <aside className="bg-gradient-to-b from-violet-700 to-fuchsia-500 p-5 text-white">
-            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain brightness-0 invert" />
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-14 w-auto object-contain brightness-0 invert" />
             <div className="mx-auto mt-10 h-40 w-px bg-white/40" />
             <p className="mt-5 rotate-180 text-center text-xs font-black [writing-mode:vertical-rl]">منصة التوجيه الطلابي</p>
           </aside>
@@ -1538,7 +1753,7 @@ function A4DesignPage({
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[36px] border border-fuchsia-100 bg-fuchsia-50 p-[8mm] shadow-xl">
         <div className="relative min-h-[279mm] rounded-[32px] border border-fuchsia-100 bg-gradient-to-b from-white via-white to-fuchsia-50 p-[11mm]">
           <header className="grid grid-cols-[90px_1fr] items-center gap-5 rounded-[30px] border border-fuchsia-100 bg-white/80 p-5 shadow-sm">
-            <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="h-16 w-auto object-contain" />
+            <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-16 w-auto object-contain" />
             <div>
               <p className="text-xs font-black text-fuchsia-700">رعاية ودعم ومتابعة</p>
               <h1 className="mt-2 text-2xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
@@ -1561,14 +1776,14 @@ function A4DesignPage({
         <header className="absolute left-0 right-0 top-0 z-10 rounded-b-[42px] bg-[#1d343f] px-[18mm] py-[10mm] text-white">
           <div className="grid grid-cols-[120px_1fr_120px] items-center gap-4">
             <div className="text-right text-xs font-bold leading-6 text-slate-100">
-              <p>وزارة التعليم</p><p>الإدارة العامة للتعليم</p>
+              <p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p>
             </div>
             <div className="text-center">
-              <img src="/uploads/school-logos/MOE.png" alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
-              <p className="mt-3 text-sm font-black text-white">منصة التوجيه الطلابي</p>
+              <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
+              <p className="mt-3 text-sm font-black text-white" style={{ textAlign: getDesignHeaderAlign(context, "report.platformName", "center") }}>{getDesignHeaderText(context, "report.platformName", "منصة التوجيه الطلابي")}</p>
             </div>
             <div className="text-left text-xs font-bold leading-6 text-slate-100">
-              <p>{context["case.createdAt"]}</p><p>{context["service.name"]}</p>
+              <p style={{ textAlign: getDesignHeaderAlign(context, "case.createdAt", "center") }}>{getDesignHeaderText(context, "case.createdAt", context["case.createdAt"] || "")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "service.name", "center") }}>{getDesignHeaderText(context, "service.name", context["service.name"] || "")}</p>
             </div>
           </div>
         </header>
@@ -1619,6 +1834,75 @@ function PageBlocks({
   );
 }
 
+
+
+function isDynamicFieldsDesignBlock(block: any) {
+  const kind = String(block?.kind || "").trim();
+  const smartKind = String(block?.settings?.smartBlockKind || "").trim();
+  const title = String(block?.title || "").trim();
+
+  return (
+    kind === "dynamic-fields" ||
+    kind === "field-list" ||
+    kind === "case-meta" ||
+    kind === "student-summary" ||
+    kind === "service-summary" ||
+    smartKind === "dynamic-fields" ||
+    smartKind === "field-list" ||
+    title.includes("حقول") ||
+    title.includes("بيانات الحالة") ||
+    Array.isArray(block?.dynamicFields)
+  );
+}
+function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
+  const configuredItems = Array.isArray(block?.dynamicFields)
+    ? block.dynamicFields
+    : [];
+
+  if (configuredItems.length) {
+    return configuredItems
+      .map((item: any, index: number) => {
+        const id =
+          cleanWorkflowDynamicText(item.id) ||
+          cleanWorkflowDynamicText(item.key) ||
+          `dynamic-field-${index + 1}`;
+
+        return {
+          id,
+          key:
+            cleanWorkflowDynamicText(item.key) ||
+            id,
+          label:
+            item.label !== undefined
+              ? cleanWorkflowDynamicText(item.label)
+              : `حقل ${index + 1}`,
+          value:
+            item.value !== undefined
+              ? cleanWorkflowDynamicText(item.value)
+              : "",
+          visible: item.visible !== false,
+        };
+      })
+      .filter((item: any) => item.visible && item.label);
+  }
+
+  return getWorkflowDynamicFieldCards(previewCase)
+    .map((item: any, index: number) => {
+      const id =
+        cleanWorkflowDynamicText(item.key) ||
+        cleanWorkflowDynamicText(item.label) ||
+        `workflow-field-${index + 1}`;
+
+      return {
+        id,
+        key: id,
+        label: cleanWorkflowDynamicText(item.label),
+        value: cleanWorkflowDynamicText(item.value),
+        visible: true,
+      };
+    })
+    .filter((item: any) => item.visible && item.label && item.value);
+}
 function DesignBlock({
   block,
   context,
@@ -1693,22 +1977,94 @@ function DesignBlock({
     );
   }
 
-  if (block.kind === "dynamic-fields") {
+  if (block.kind === "report-one-table") {
+    const columns = Array.isArray(block.columns) && block.columns.length
+      ? block.columns
+      : ["المجال", "الإجراء", "ملاحظات"];
+
+    const rows = Array.isArray(block.rows) && block.rows.length
+      ? block.rows
+      : [["", "", ""]];
+
+    const tableSettings = block.tableSettings || {};
+    const compact = Boolean(tableSettings.compact);
+    const rounded = tableSettings.rounded !== false;
+    const highlightHeader = tableSettings.highlightHeader !== false;
+    const highlightFirstColumn = Boolean(tableSettings.highlightFirstColumn);
+    const stripedRows = Boolean(tableSettings.stripedRows);
+
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)}>
         {block.showTitle ? <BlockTitle title={block.title} /> : null}
-        <div className="grid gap-2 md:grid-cols-2">
-          {[
-            ["الخدمة", context["service.name"]],
-            ["عنوان الحالة", context["case.title"]],
-            ["الطالب/الطالبة", context["student.name"]],
-            ["الصف", context["student.grade"]],
-            ["ولي الأمر", context["student.guardianName"]],
-            ["عدد الشواهد", context["evidence.count"]],
-          ].map(([label, value]) => (
-            <MetaCard key={label} label={label} value={value || "غير متوفر"} />
-          ))}
+
+        <div className={rounded ? "overflow-hidden rounded-2xl border border-emerald-100" : "overflow-hidden border border-emerald-100"}>
+          <table className="w-full border-collapse text-xs">
+            <thead className={highlightHeader ? "bg-emerald-50" : "bg-slate-50"}>
+              <tr>
+                {columns.map((column: string, columnIndex: number) => (
+                  <th
+                    key={`${column}-${columnIndex}`}
+                    className={[
+                      "border border-emerald-100 text-center font-black text-slate-800",
+                      compact ? "px-2 py-2" : "px-3 py-3",
+                    ].join(" ")}
+                  >
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((row: string[], rowIndex: number) => (
+                <tr
+                  key={`row-${rowIndex}`}
+                  className={stripedRows && rowIndex % 2 === 1 ? "bg-slate-50/70" : "bg-white"}
+                >
+                  {columns.map((_: string, columnIndex: number) => (
+                    <td
+                      key={`cell-${rowIndex}-${columnIndex}`}
+                      className={[
+                        "border border-emerald-100 text-center font-bold leading-6 text-slate-700",
+                        compact ? "px-2 py-2" : "px-3 py-3",
+                        highlightFirstColumn && columnIndex === 0
+                          ? "bg-emerald-50/70 font-black text-slate-900"
+                          : "",
+                      ].join(" ")}
+                    >
+                      {String(row?.[columnIndex] || "—")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </section>
+    );
+  }
+  if (isDynamicFieldsDesignBlock(block)) {
+    const dynamicFieldItems = getDynamicFieldCardsForBlock(block, previewCase);
+
+    return (
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+
+        {dynamicFieldItems.length ? (
+          <div className="grid gap-2 md:grid-cols-2">
+            {dynamicFieldItems.map(({ id, label, value }: any, index: number) => (
+              <MetaCard
+                key={`${id}-${index}`}
+                label={label}
+                value={value || "غير متوفر"}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
+            لا توجد حقول ظاهرة داخل هذا البلوك.
+          </p>
+        )}
       </section>
     );
   }
@@ -1919,14 +2275,23 @@ function EvidenceBlock({
     <section className={getBlockShellClass(designId, block.variant, textAlign)}>
       {block.showTitle ? <BlockTitle title={block.title} /> : null}
 
-      <div className={getEvidenceGridClass(block)}>
+      <div className={getEvidenceGridClass(block)} style={getEvidenceGridStyle(block)}>
         {visibleEvidences.map((evidence, index) => {
           const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
 
           return (
-            <figure key={evidence.id || imageUrl || String(index)} className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <figure
+              key={evidence.id || imageUrl || String(index)}
+              style={getEvidenceFigureStyle(block)}
+              className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            >
               {imageUrl && !isPlaceholderMode ? (
-                <img src={imageUrl} alt={evidence.title || `شاهد ${startIndex + index + 1}`} className={`${getEvidenceImageClass(block)} bg-slate-50`} />
+                <img
+                  src={imageUrl}
+                  alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+                  style={getEvidenceImageStyle(block)}
+                  className={`${getEvidenceImageClass(block)} bg-slate-50`}
+                />
               ) : (
                 <div className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center justify-center bg-slate-50 text-center`}>
                   <div className={["flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", accent.iconClass].join(" ")}>📎</div>
@@ -2345,7 +2710,22 @@ function getPlacementClass(placement: string) {
   return classes[placement] || "";
 }
 
+function getEvidenceStartIndex(block: any) {
+  const startIndex = Number(block.evidenceStartIndex || 0);
+
+  if (!Number.isFinite(startIndex) || startIndex < 0) {
+    return 0;
+  }
+
+  return Math.floor(startIndex);
+}
+
 function getEvidencePerPage(block: any) {
+  const explicitLimit = Number(block.evidenceLimit || 0);
+
+  if (Number.isFinite(explicitLimit) && explicitLimit > 0) {
+    return Math.max(1, Math.floor(explicitLimit));
+  }
   return getSmartEvidencePerPage(block);
 }
 
@@ -2451,4 +2831,199 @@ function getEvidenceImageHeightClass(block: any) {
 function getEvidenceImageClass(block: any) {
   const fit = block.evidenceFit === "cover" ? "object-cover" : "object-contain";
   return `${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+}
+
+function getEvidenceGridStyle(block: any) {
+  const perPage = getEvidencePerPage(block);
+  const gapMm = Number(block.evidenceGapMm || 0);
+
+  const style: Record<string, string> = {};
+
+  if (gapMm > 0) {
+    style.gap = `${Math.min(Math.max(gapMm, 2), 12)}mm`;
+  }
+
+  if (block.evidenceLayout !== "ATTACHMENT_LIST") {
+    style.gridTemplateColumns =
+      perPage <= 1 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))";
+  }
+
+  return style;
+}
+
+function getEvidenceFigureStyle(block: any) {
+  const perPage = getEvidencePerPage(block);
+  const widthMm = Number(block.evidenceImageWidthMm || 0);
+
+  if (!widthMm || perPage > 1) {
+    return {};
+  }
+
+  return {
+    maxWidth: `${Math.min(Math.max(widthMm, 40), 180)}mm`,
+    marginInline: "auto",
+  };
+}
+
+function getEvidenceImageStyle(block: any) {
+  const heightMm = Number(block.evidenceImageHeightMm || 0);
+  const widthMm = Number(block.evidenceImageWidthMm || 0);
+  const perPage = getEvidencePerPage(block);
+
+  const style: Record<string, string> = {
+    objectFit: block.evidenceFit === "cover" ? "cover" : "contain",
+  };
+
+  if (heightMm > 0) {
+    style.height = `${Math.min(Math.max(heightMm, 35), 190)}mm`;
+  }
+
+  if (widthMm > 0 && perPage <= 1) {
+    style.width = `${Math.min(Math.max(widthMm, 40), 180)}mm`;
+  }
+
+  return style;
+}
+
+type WorkflowDynamicFieldCard = {
+  key: string;
+  label: string;
+  value: string;
+};
+
+const WORKFLOW_DYNAMIC_FIELD_LABELS: Record<string, string> = {
+  activity_domain: "مجال النشاط",
+  activity_program_scouting: "برنامج النشاط الكشفي",
+  activity_program: "برنامج النشاط",
+  semester: "الفصل الدراسي",
+  term: "الفصل الدراسي",
+  execution_mode: "طريقة التنفيذ",
+  execution_method: "طريقة التنفيذ",
+  planned_sessions: "عدد اللقاءات المخططة",
+  sessions_count: "عدد اللقاءات",
+  start_week: "أسبوع البداية",
+  week: "الأسبوع",
+  start_day: "يوم البداية",
+  start_date: "تاريخ البداية",
+  end_week: "أسبوع النهاية",
+  end_day: "يوم النهاية",
+  end_date: "تاريخ النهاية",
+  target_class: "الفئة المستهدفة",
+  target_group: "الفئة المستهدفة",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  parents_participated: "مشاركة أولياء الأمور",
+};
+
+const WORKFLOW_DYNAMIC_VALUE_LABELS: Record<string, string> = {
+  scouting: "النشاط الكشفي",
+  citizenship_life: "المواطنة والحياة",
+  science_technology: "العلوم والتقنية",
+  culture_arts: "الثقافة والفنون",
+  sports_health: "الرياضة والصحة",
+  events_occasions: "الأيام والمناسبات",
+  non_class_periods: "الفترات اللاصفية",
+
+  term_1: "الفصل الدراسي الأول",
+  term_2: "الفصل الدراسي الثاني",
+  term_3: "الفصل الدراسي الثالث",
+  semester_1: "الفصل الدراسي الأول",
+  semester_2: "الفصل الدراسي الثاني",
+  semester_3: "الفصل الدراسي الثالث",
+
+  activity_leader: "رائد النشاط",
+  teacher: "المعلم",
+  counselor: "الموجه الطلابي",
+
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+
+  yes: "نعم",
+  no: "لا",
+  true: "نعم",
+  false: "لا",
+};
+
+function cleanWorkflowDynamicText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function isTechnicalWorkflowText(value: string) {
+  return /^[a-z0-9_/-]+$/i.test(value) && /[a-z_]/i.test(value);
+}
+
+function translateWorkflowDynamicLabel(key: unknown, label: unknown) {
+  const cleanKey = cleanWorkflowDynamicText(key);
+  const cleanLabel = cleanWorkflowDynamicText(label);
+
+  if (cleanLabel && cleanLabel !== cleanKey && !isTechnicalWorkflowText(cleanLabel)) {
+    return cleanLabel;
+  }
+
+  return WORKFLOW_DYNAMIC_FIELD_LABELS[cleanKey] || cleanLabel || cleanKey;
+}
+
+function translateWorkflowDynamicValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => translateWorkflowDynamicValue(item))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "نعم" : "لا";
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return (
+      translateWorkflowDynamicValue(record.label) ||
+      translateWorkflowDynamicValue(record.name) ||
+      translateWorkflowDynamicValue(record.value) ||
+      translateWorkflowDynamicValue(record.key) ||
+      ""
+    );
+  }
+
+  const text = cleanWorkflowDynamicText(value);
+  const normalized = text.toLowerCase();
+
+  if (WORKFLOW_DYNAMIC_VALUE_LABELS[normalized]) {
+    return WORKFLOW_DYNAMIC_VALUE_LABELS[normalized];
+  }
+
+  const programMatch = /^program[_-](\d+)$/i.exec(text);
+  if (programMatch) {
+    return `برنامج النشاط رقم ${Number(programMatch[1])}`;
+  }
+
+  return text;
+}
+
+function getWorkflowDynamicFieldCards(previewCase: any): WorkflowDynamicFieldCard[] {
+  return (previewCase?.values || [])
+    .map((item: any, index: number) => {
+      const key = cleanWorkflowDynamicText(item.fieldKey);
+      const label = translateWorkflowDynamicLabel(
+        item.fieldKey,
+        item.fieldLabel || `حقل ${index + 1}`,
+      );
+      const value = translateWorkflowDynamicValue(item.value);
+
+      return {
+        key: key || label || `workflow-field-${index + 1}`,
+        label,
+        value,
+      };
+    })
+    .filter((item: any) => item.label && item.value);
 }

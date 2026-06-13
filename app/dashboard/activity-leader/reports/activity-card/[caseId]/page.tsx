@@ -13,6 +13,6 @@ export default async function LegacyActivityCardReportRedirectPage({
   const caseId = String(resolvedParams.caseId || "").trim();
 
   redirect(
-    `/dashboard/reports/cases/${caseId}/prepare?variant=official-activity-card`,
+    `/dashboard/report/cases/${caseId}/prepare?variant=official-activity-card`,
   );
 }

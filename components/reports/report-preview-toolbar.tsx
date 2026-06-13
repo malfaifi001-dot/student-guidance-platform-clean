@@ -93,7 +93,7 @@ export function ReportPreviewToolbar({
   selectedViewMode,
   showCover,
 }: ReportPreviewToolbarProps) {
-  const basePath = `/dashboard/reports/${reportId}/preview`;
+  const basePath = `/dashboard/report/${reportId}/preview`;
 
   function buildHref({
     template = selectedTemplate,
@@ -145,14 +145,14 @@ export function ReportPreviewToolbar({
           </button>
 
           <Link
-            href={`/dashboard/reports/${reportId}/studio`}
+            href={`/dashboard/report/${reportId}/studio`}
             className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800"
           >
             تعديل التقارير
           </Link>
 
           <Link
-            href="/dashboard/reports"
+            href="/dashboard/report"
             className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
           >
             الرجوع

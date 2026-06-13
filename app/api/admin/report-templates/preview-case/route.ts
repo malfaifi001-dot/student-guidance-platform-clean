@@ -26,6 +26,10 @@ function stringifyValue(value: unknown) {
   }
 }
 
+function hasTextValue(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function normalizeCaseValues(caseEntry: {
   values?: Array<{
     fieldKey: string;
@@ -40,7 +44,7 @@ function normalizeCaseValues(caseEntry: {
   return (caseEntry.values || []).map((item: any) => ({
     fieldKey: item.field?.key || item.fieldKey || "unknown",
     fieldLabel: item.field?.label || item.fieldKey || "حقل بدون اسم",
-    value: stringifyValue(item.value ?? item.jsonValue),
+    value: stringifyValue(hasTextValue(item.value) ? item.value : item.jsonValue),
   }));
 }
 

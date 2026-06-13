@@ -279,7 +279,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   const filledTextsCount = Object.keys(cleanBlockOverrides).length;
   const visibleEvidenceCount = evidenceItems.filter((item) => item.visible).length;
 
-  const previewUrl = `/dashboard/reports/${report.id}/preview?template=${encodeURIComponent(
+  const previewUrl = `/dashboard/report/${report.id}/preview?template=${encodeURIComponent(
     report.templateId || "",
   )}&studio=true&v=${previewVersion}`;
 
@@ -590,7 +590,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
 
             <div className="flex flex-wrap gap-2">
               <Link
-                href={`/dashboard/reports/${report.id}/preview?template=${encodeURIComponent(
+                href={`/dashboard/report/${report.id}/preview?template=${encodeURIComponent(
                   report.templateId || "",
                 )}&v=${previewVersion}`}
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"

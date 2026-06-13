@@ -229,7 +229,7 @@ async function runReportAction() {
           </div>
 
           <Link
-            href="/dashboard/reports/new"
+            href="/dashboard/report/new"
             className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
           >
             إنشاء تقرير جديد
@@ -467,14 +467,14 @@ function ReportCard({
 
         <div className="flex min-w-[190px] flex-col gap-2">
           <Link
-            href={`/dashboard/reports/${report.id}/preview`}
+            href={`/dashboard/report/${report.id}/preview`}
             className="rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
           >
             معاينة التقارير
           </Link>
 {report.status !== "APPROVED" && report.status !== "ARCHIVED" ? (
   <Link
-    href={`/dashboard/reports/${report.id}/studio`}
+    href={`/dashboard/report/${report.id}/studio`}
     className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-center text-sm font-black text-sky-700 transition hover:bg-sky-100"
   >
     تعديل التقارير

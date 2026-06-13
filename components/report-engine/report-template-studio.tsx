@@ -2414,14 +2414,7 @@ function PreviewBlock({
       <section className={getBlockClass(block.variant, textAlign)}>
         {block.showTitle ? <BlockTitle title={block.title} /> : null}
         <div className="grid gap-2 md:grid-cols-2">
-          {[
-            ["الخدمة", context["service.name"]],
-            ["عنوان الحالة", context["case.title"]],
-            ["الطالب/الطالبة", context["student.name"]],
-            ["الصف", context["student.grade"]],
-            ["ولي الأمر", context["student.guardianName"]],
-            ["عدد الشواهد", context["evidence.count"]],
-          ].map(([label, value]) => (
+          {getWorkflowDynamicFieldCards(previewCase).map(({ label, value }) => (
             <div
               key={label}
               className="rounded-2xl border border-slate-100 bg-white px-4 py-3"
@@ -2433,12 +2426,6 @@ function PreviewBlock({
             </div>
           ))}
         </div>
-
-        {previewCase?.values?.length ? (
-          <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs leading-6 text-slate-500">
-            تم جلب {previewCase.values.length} قيمة من Case ID.
-          </div>
-        ) : null}
       </section>
     );
   }
@@ -2781,3 +2768,146 @@ function getBlockClass(variant: BlockVariant, textAlign: string) {
 
 
 
+
+type WorkflowDynamicFieldCard = {
+  key: string;
+  label: string;
+  value: string;
+};
+
+const WORKFLOW_DYNAMIC_FIELD_LABELS: Record<string, string> = {
+  activity_domain: "مجال النشاط",
+  activity_program_scouting: "برنامج النشاط الكشفي",
+  activity_program: "برنامج النشاط",
+  semester: "الفصل الدراسي",
+  term: "الفصل الدراسي",
+  execution_mode: "طريقة التنفيذ",
+  execution_method: "طريقة التنفيذ",
+  planned_sessions: "عدد اللقاءات المخططة",
+  sessions_count: "عدد اللقاءات",
+  start_week: "أسبوع البداية",
+  week: "الأسبوع",
+  start_day: "يوم البداية",
+  start_date: "تاريخ البداية",
+  end_week: "أسبوع النهاية",
+  end_day: "يوم النهاية",
+  end_date: "تاريخ النهاية",
+  target_class: "الفئة المستهدفة",
+  target_group: "الفئة المستهدفة",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  parents_participated: "مشاركة أولياء الأمور",
+};
+
+const WORKFLOW_DYNAMIC_VALUE_LABELS: Record<string, string> = {
+  scouting: "النشاط الكشفي",
+  citizenship_life: "المواطنة والحياة",
+  science_technology: "العلوم والتقنية",
+  culture_arts: "الثقافة والفنون",
+  sports_health: "الرياضة والصحة",
+  events_occasions: "الأيام والمناسبات",
+  non_class_periods: "الفترات اللاصفية",
+
+  term_1: "الفصل الدراسي الأول",
+  term_2: "الفصل الدراسي الثاني",
+  term_3: "الفصل الدراسي الثالث",
+  semester_1: "الفصل الدراسي الأول",
+  semester_2: "الفصل الدراسي الثاني",
+  semester_3: "الفصل الدراسي الثالث",
+
+  activity_leader: "رائد النشاط",
+  teacher: "المعلم",
+  counselor: "الموجه الطلابي",
+
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+
+  yes: "نعم",
+  no: "لا",
+  true: "نعم",
+  false: "لا",
+};
+
+function cleanWorkflowDynamicText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function isTechnicalWorkflowText(value: string) {
+  return /^[a-z0-9_/-]+$/i.test(value) && /[a-z_]/i.test(value);
+}
+
+function translateWorkflowDynamicLabel(key: unknown, label: unknown) {
+  const cleanKey = cleanWorkflowDynamicText(key);
+  const cleanLabel = cleanWorkflowDynamicText(label);
+
+  if (cleanLabel && cleanLabel !== cleanKey && !isTechnicalWorkflowText(cleanLabel)) {
+    return cleanLabel;
+  }
+
+  return WORKFLOW_DYNAMIC_FIELD_LABELS[cleanKey] || cleanLabel || cleanKey;
+}
+
+function translateWorkflowDynamicValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => translateWorkflowDynamicValue(item))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "نعم" : "لا";
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return (
+      translateWorkflowDynamicValue(record.label) ||
+      translateWorkflowDynamicValue(record.name) ||
+      translateWorkflowDynamicValue(record.value) ||
+      translateWorkflowDynamicValue(record.key) ||
+      ""
+    );
+  }
+
+  const text = cleanWorkflowDynamicText(value);
+  const normalized = text.toLowerCase();
+
+  if (WORKFLOW_DYNAMIC_VALUE_LABELS[normalized]) {
+    return WORKFLOW_DYNAMIC_VALUE_LABELS[normalized];
+  }
+
+  const programMatch = /^program[_-](\d+)$/i.exec(text);
+  if (programMatch) {
+    return `برنامج النشاط رقم ${Number(programMatch[1])}`;
+  }
+
+  return text;
+}
+
+function getWorkflowDynamicFieldCards(previewCase: any): WorkflowDynamicFieldCard[] {
+  return (previewCase?.values || [])
+    .map((item: any, index: number) => {
+      const key = cleanWorkflowDynamicText(item.fieldKey);
+      const label = translateWorkflowDynamicLabel(
+        item.fieldKey,
+        item.fieldLabel || `حقل ${index + 1}`,
+      );
+      const value = translateWorkflowDynamicValue(item.value);
+
+      return {
+        key: key || label || `workflow-field-${index + 1}`,
+        label,
+        value,
+      };
+    })
+    .filter((item: any) => item.label && item.value);
+}
