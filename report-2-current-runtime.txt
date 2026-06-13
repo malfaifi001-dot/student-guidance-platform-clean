@@ -54,10 +54,8 @@ function ReportTwoCollapsibleCard({
         </div>
       ) : null}
     </section>
-
-            );
+  );
 }
-
 type TemplateOption = {
   id: string;
   name: string;
@@ -1672,23 +1670,10 @@ export function ReportTwoStudioRuntime({
     (payload as any)?.service?.slug || (payload as any)?.serviceSlug || "general",
   );
 
-  const reportTwoDraftStorageKey = getReportTwoDraftStorageKey(
-    serviceSlugForSavedTemplates,
-    caseId,
-  );
-
-  const [savedRuntimeTemplates, setSavedRuntimeTemplates] = useState<
-    ReportTwoSavedRuntimeTemplate[]
-  >([]);
-
-  const [savedRuntimeTemplatesLoaded, setSavedRuntimeTemplatesLoaded] =
-    useState(false);
+  const [savedRuntimeTemplates, setSavedRuntimeTemplates] = useState<ReportTwoSavedRuntimeTemplate[]>([]);
 
   const [runtimeTemplateName, setRuntimeTemplateName] = useState("");
   const [activeSavedRuntimeTemplateId, setActiveSavedRuntimeTemplateId] =
-    useState("");
-
-  const [selectedQuickSavedTemplateId, setSelectedQuickSavedTemplateId] =
     useState("");
 
   const [template, setTemplate] = useState<StudioTemplate>(() =>
@@ -1718,13 +1703,16 @@ export function ReportTwoStudioRuntime({
   const [editingTableDraft, setEditingTableDraft] =
     useState<ReportTwoTableDraft | null>(null);
 
-  const [finalWizardOpen, setFinalWizardOpen] = useState(false);
-  const [finalChecklistConfirmed, setFinalChecklistConfirmed] = useState(false);
-  const [finalCheckConfirmedAt, setFinalCheckConfirmedAt] = useState<string | null>(null);
-
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
 
+  useEffect(() => {
+    const items = readReportTwoSavedTemplates(serviceSlugForSavedTemplates);
+
+    setSavedRuntimeTemplates(items);
+    setSavedRuntimeTemplatesLoaded(true);
+    // تحميل قوالب report-2 المحفوظة بعد Hydration
+  }, [serviceSlugForSavedTemplates]);
   const runtimeContext = useMemo(() => getRuntimeContext(payload), [payload]);
   const [headerValues, setHeaderValues] =
     useState<ReportTwoHeaderValues | null>(null);
@@ -2207,7 +2195,6 @@ export function ReportTwoStudioRuntime({
     setHiddenRuntimePageIds(saved.hiddenRuntimePageIds || []);
     setRuntimePageOrder(saved.runtimePageOrder || []);
     setActiveSavedRuntimeTemplateId(saved.id);
-    setSelectedQuickSavedTemplateId(saved.id);
     setRuntimeTemplateName(saved.name);
 
     const firstPage = saved.template.pages[0];
@@ -2229,7 +2216,6 @@ export function ReportTwoStudioRuntime({
 
     if (activeSavedRuntimeTemplateId === templateId) {
       setActiveSavedRuntimeTemplateId("");
-      setSelectedQuickSavedTemplateId("");
       setRuntimeTemplateName("");
     }
   }
@@ -2241,7 +2227,6 @@ export function ReportTwoStudioRuntime({
 
     setSelectedTemplateOptionId(nextTemplateOption?.id || "");
     setActiveSavedRuntimeTemplateId("");
-    setSelectedQuickSavedTemplateId("");
     setRuntimeTemplateName("");
     setTemplate(nextTemplate);
     setProtectedPageIds(nextTemplate.pages.map((page) => page.id));
@@ -2587,12 +2572,6 @@ export function ReportTwoStudioRuntime({
 
 
   useEffect(() => {
-    const items = readReportTwoSavedTemplates(serviceSlugForSavedTemplates);
-    setSavedRuntimeTemplates(items);
-    setSavedRuntimeTemplatesLoaded(true);
-  }, [serviceSlugForSavedTemplates]);
-
-  useEffect(() => {
     if (draftRestored) return;
 
     const snapshot = parseReportTwoDraftSnapshot(
@@ -2747,8 +2726,199 @@ export function ReportTwoStudioRuntime({
           </button>
         </div>
       </div>
-      
-      
+      <section className="report-two-productivity-card mx-auto mb-4 grid max-w-[1760px] gap-3 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-black text-slate-950">
+                الحفظ التلقائي والتراجع
+              </h2>
+              <p className="mt-1 text-xs font-bold text-slate-500">
+                يتم حفظ تعديلاتك تلقائيًا حتى لا تضيع، ويمكنك الرجوع عن آخر تعديل.
+              </p>
+            </div>
+
+            <span className="rounded-full bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+              آخر حفظ: {formatReportTwoSavedAt(lastAutoSavedAt)}
+            </span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={undoReportTwoLastChange}
+              className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white transition hover:bg-slate-800"
+            >
+              رجوع عن آخر تعديل
+              {undoSnapshots.length ? ` (${undoSnapshots.length})` : ""}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => saveReportTwoDraftNow(true)}
+              className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+            >
+              حفظ الآن
+            </button>
+
+            <button
+              type="button"
+              onClick={openReportTwoFinalWizard}
+              className="rounded-2xl bg-indigo-700 px-4 py-2 text-xs font-black text-white transition hover:bg-indigo-800"
+            >
+              فحص نهائي قبل الاعتماد
+            </button>
+
+            {finalCheckConfirmedAt ? (
+              <span className="rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+                جاهز منذ {formatReportTwoSavedAt(finalCheckConfirmedAt)}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-black text-slate-950">
+            تطبيق قالب محفوظ
+          </h2>
+
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            اختر قالبًا محفوظًا لهذه الخدمة وطبقه مباشرة.
+          </p>
+
+          <div className="mt-3 flex gap-2">
+            <select
+              value={selectedQuickSavedTemplateId}
+              onChange={(event) =>
+                setSelectedQuickSavedTemplateId(event.target.value)
+              }
+              className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black outline-none focus:border-emerald-600"
+            >
+              <option value="">
+                {savedRuntimeTemplates.length
+                  ? "اختر قالبًا محفوظًا"
+                  : "لا توجد قوالب محفوظة"}
+              </option>
+
+              {savedRuntimeTemplates.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              disabled={!selectedQuickSavedTemplateId}
+              onClick={() => applySavedRuntimeTemplate(selectedQuickSavedTemplateId)}
+              className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              تطبيق
+            </button>
+          </div>
+        </div>
+      </section>
+      <section className="report-two-smart-alerts mx-auto mb-4 max-w-[1760px] rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-black text-slate-950">
+              تنبيهات ذكية
+            </h2>
+            <p className="mt-1 text-xs font-bold text-slate-500">
+              نفحص التقرير بدل ظهور أخطاء مزعجة، ونقترح إصلاحات سريعة.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full bg-red-50 px-3 py-2 text-[11px] font-black text-red-600">
+              أخطاء {smartAlertsSummary.errors}
+            </span>
+            <span className="rounded-full bg-amber-50 px-3 py-2 text-[11px] font-black text-amber-700">
+              تنبيهات {smartAlertsSummary.warnings}
+            </span>
+            <span className="rounded-full bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700">
+              ملاحظات {smartAlertsSummary.infos}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          {smartAlerts.slice(0, 6).map((alert) => (
+            <article
+              key={alert.id}
+              className={[
+                "rounded-[1.25rem] border p-3",
+                alert.type === "error"
+                  ? "border-red-100 bg-red-50"
+                  : alert.type === "warning"
+                    ? "border-amber-100 bg-amber-50"
+                    : alert.type === "success"
+                      ? "border-emerald-100 bg-emerald-50"
+                      : "border-sky-100 bg-sky-50",
+              ].join(" ")}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p
+                    className={[
+                      "text-xs font-black",
+                      alert.type === "error"
+                        ? "text-red-700"
+                        : alert.type === "warning"
+                          ? "text-amber-800"
+                          : alert.type === "success"
+                            ? "text-emerald-800"
+                            : "text-sky-800",
+                    ].join(" ")}
+                  >
+                    {alert.title}
+                  </p>
+
+                  <p className="mt-1 text-[11px] font-bold leading-5 text-slate-600">
+                    {alert.description}
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-black text-slate-500">
+                  {alert.type === "error"
+                    ? "خطأ"
+                    : alert.type === "warning"
+                      ? "تنبيه"
+                      : alert.type === "success"
+                        ? "جاهز"
+                        : "معلومة"}
+                </span>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => focusReportTwoSmartAlert(alert)}
+                  className="rounded-xl bg-white px-3 py-2 text-[11px] font-black text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
+                >
+                  اذهب
+                </button>
+
+                {alert.action ? (
+                  <button
+                    type="button"
+                    onClick={() => fixReportTwoSmartAlert(alert)}
+                    className="rounded-xl bg-slate-950 px-3 py-2 text-[11px] font-black text-white transition hover:bg-slate-800"
+                  >
+                    إصلاح تلقائي
+                  </button>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {smartAlerts.length > 6 ? (
+          <p className="mt-3 rounded-2xl bg-slate-50 px-3 py-2 text-center text-[11px] font-bold text-slate-500">
+            يوجد {smartAlerts.length - 6} تنبيهات إضافية. افتح اللوحات الجانبية للمراجعة التفصيلية.
+          </p>
+        ) : null}
+      </section>
       <div className={reportTwoLayoutGridClass}>
         {!rightSidebarCollapsed ? (
         <aside className="space-y-4">
@@ -2926,102 +3096,7 @@ export function ReportTwoStudioRuntime({
 
         <section className="space-y-3">
 
-                    
-<section className="report-two-productivity-card grid w-full gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-black text-slate-950">
-                الحفظ التلقائي والتراجع
-              </h2>
-              <p className="mt-1 text-xs font-bold text-slate-500">
-                يتم حفظ تعديلاتك تلقائيًا حتى لا تضيع، ويمكنك الرجوع عن آخر تعديل.
-              </p>
-            </div>
-
-            <span className="rounded-full bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
-              آخر حفظ: {formatReportTwoSavedAt(lastAutoSavedAt)}
-            </span>
-          </div>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={undoReportTwoLastChange}
-              className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white transition hover:bg-slate-800"
-            >
-              رجوع عن آخر تعديل
-              {undoSnapshots.length ? ` (${undoSnapshots.length})` : ""}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => saveReportTwoDraftNow(true)}
-              className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
-            >
-              حفظ الآن
-            </button>
-
-            <button
-              type="button"
-              onClick={openReportTwoFinalWizard}
-              className="rounded-2xl bg-indigo-700 px-4 py-2 text-xs font-black text-white transition hover:bg-indigo-800"
-            >
-              فحص نهائي قبل الاعتماد
-            </button>
-
-            {finalCheckConfirmedAt ? (
-              <span className="rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
-                جاهز منذ {formatReportTwoSavedAt(finalCheckConfirmedAt)}
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="rounded-[1.5rem] border border-emerald-100 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-black text-slate-950">
-            تطبيق قالب محفوظ
-          </h2>
-
-          <p className="mt-1 text-xs font-bold text-slate-500">
-            اختر قالبًا محفوظًا لهذه الخدمة وطبقه مباشرة.
-          </p>
-
-          <div className="mt-3 flex gap-2">
-            <select
-              value={selectedQuickSavedTemplateId}
-              onChange={(event) =>
-                setSelectedQuickSavedTemplateId(event.target.value)
-              }
-              className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black outline-none focus:border-emerald-600"
-            >
-              <option value="">
-                {!savedRuntimeTemplatesLoaded
-                  ? "جاري تحميل القوالب..."
-                  : savedRuntimeTemplates.length
-                    ? "اختر قالبًا محفوظًا"
-                    : "لا توجد قوالب محفوظة"}
-              </option>
-
-              {savedRuntimeTemplates.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-
-            <button
-              type="button"
-              disabled={!selectedQuickSavedTemplateId}
-              onClick={() => applySavedRuntimeTemplate(selectedQuickSavedTemplateId)}
-              className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              تطبيق
-            </button>
-          </div>
-        </div>
-      </section>
-<section className={["report-two-a4-host", reportTwoPreviewModeClass, "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm"].join(" ")}>
+                    <section className={["report-two-a4-host", reportTwoPreviewModeClass, "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm"].join(" ")}>
             <style>{`
               .report-two-a4-host {
                 overflow-x: hidden;
