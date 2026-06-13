@@ -1914,15 +1914,22 @@ export function ReportTwoStudioRuntime({
   }
 
   const reportTwoLayoutGridClass = [
-    "mx-auto grid max-w-[1900px] gap-5 transition-all",
+    "mx-auto grid max-w-[1760px] gap-4 transition-all",
     rightSidebarCollapsed && leftSidebarCollapsed
-      ? "xl:grid-cols-[minmax(980px,1fr)]"
+      ? "xl:grid-cols-[minmax(0,1fr)]"
       : rightSidebarCollapsed
-        ? "xl:grid-cols-[minmax(980px,1fr)_340px]"
+        ? "xl:grid-cols-[minmax(0,1fr)_300px]"
         : leftSidebarCollapsed
-          ? "xl:grid-cols-[300px_minmax(980px,1fr)]"
-          : "xl:grid-cols-[300px_minmax(980px,1fr)_340px]",
+          ? "xl:grid-cols-[280px_minmax(0,1fr)]"
+          : "xl:grid-cols-[280px_minmax(0,1fr)_300px]",
   ].join(" ");
+
+  const reportTwoPreviewModeClass =
+    rightSidebarCollapsed && leftSidebarCollapsed
+      ? "report-two-preview-focus"
+      : rightSidebarCollapsed || leftSidebarCollapsed
+        ? "report-two-preview-wide"
+        : "report-two-preview-normal";
 
   if (!templates.length) {
     return (
@@ -2174,16 +2181,48 @@ export function ReportTwoStudioRuntime({
 
         <section className="space-y-3">
 
-                    <section className="report-two-a4-host rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm">
+                    <section className={["report-two-a4-host", reportTwoPreviewModeClass, "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm"].join(" ")}>
             <style>{`
               .report-two-a4-host {
-                overflow-x: auto;
+                overflow-x: hidden;
+              }
+
+              .report-two-a4-host .report-design-logo-control-style {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+              }
+
+              .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+                zoom: 0.72;
+              }
+
+              .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+                zoom: 0.86;
+              }
+
+              .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+                zoom: 0.98;
+              }
+
+              @media (max-width: 1500px) {
+                .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+                  zoom: 0.66;
+                }
+
+                .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+                  zoom: 0.78;
+                }
+
+                .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+                  zoom: 0.9;
+                }
               }
 
               .report-two-a4-host .pdf-report-page {
                 position: relative !important;
-                width: min(210mm, calc(100vw - 700px)) !important;
-                min-width: min(210mm, calc(100vw - 700px)) !important;
+                width: 210mm !important;
+                min-width: 210mm !important;
                 max-width: 210mm !important;
                 height: 297mm !important;
                 min-height: 297mm !important;
@@ -2227,6 +2266,7 @@ export function ReportTwoStudioRuntime({
                 }
 
                 .report-two-a4-host .pdf-report-page {
+                  zoom: 1 !important;
                   margin: 0 !important;
                   border: 0 !important;
                   outline: 0 !important;
