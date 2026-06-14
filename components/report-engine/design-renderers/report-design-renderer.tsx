@@ -1013,7 +1013,7 @@ function getFinalTextLibraryFallback(category: string) {
   return "تم إعداد هذا التقارير لخدمة {{service.name}} بناءً على بيانات الحالة {{case.title}} والشواهد المرتبطة بها.";
 }
 
-function collectFinalValues(data: any): FinalReportValueItem[] {
+export function collectFinalValues(data: any): FinalReportValueItem[] {
   if (Array.isArray(data?.values)) {
     return data.values.map((item: any) => ({
       fieldKey: item.fieldKey || item.key || "",
@@ -1179,13 +1179,13 @@ function formatFinalDate(value?: string | null) {
 
 
 
-function getDesignLogoSrc(context: Record<string, string>) {
+export function getDesignLogoSrc(context: Record<string, string>) {
   const value = String(context?.["report.logoUrl"] || "").trim();
 
   return value || "/uploads/school-logos/MOE.png";
 }
 
-function getDesignLogoNumber(
+export function getDesignLogoNumber(
   context: Record<string, string>,
   key: string,
   fallback: number,
@@ -1201,13 +1201,13 @@ function getDesignLogoNumber(
   return Math.min(max, Math.max(min, Math.floor(value)));
 }
 
-function getDesignLogoFit(context: Record<string, string>) {
+export function getDesignLogoFit(context: Record<string, string>) {
   const value = String(context?.["report.logoFit"] || "").trim();
 
   return value === "cover" ? "cover" : "contain";
 }
 
-function getDesignLogoFilter(context: Record<string, string>) {
+export function getDesignLogoFilter(context: Record<string, string>) {
   const value = String(context?.["report.logoFilter"] || "invert").trim();
 
   return value === "none" ? "none" : "brightness(0) invert(1)";
@@ -1238,7 +1238,7 @@ function getDesignHeaderText(
 
   return fallback;
 }
-function A4DesignPage({
+export function A4DesignPage({
   designId,
   page,
   context,
@@ -2541,7 +2541,7 @@ function splitParagraphs(text: string) {
   return String(text || "").split(/\n\s*\n/).map((line) => line.trim()).filter(Boolean);
 }
 
-function normalizeDesignId(value: string): ReportDesignId {
+export function normalizeDesignId(value: string): ReportDesignId {
   if (
     value === "ministry-form" ||
     value === "modern-official" ||

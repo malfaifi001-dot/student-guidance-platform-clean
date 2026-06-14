@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
 import {
   ReportDesignRenderer,
   type ReportDesignId,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
 
 type ReportTwoPdfExportSnapshot = {
   template: any;
@@ -20,6 +20,10 @@ export function ReportTwoPdfExportPreview({
   snapshot: ReportTwoPdfExportSnapshot;
   printMode?: boolean;
 }) {
+  if (printMode) {
+    return <ReportTwoPrintDocument snapshot={snapshot} />;
+  }
+
   const template = snapshot.template || {
     id: "report-2-export-empty",
     name: "تقرير",
@@ -30,32 +34,8 @@ export function ReportTwoPdfExportPreview({
   const activePage = pages[0] || null;
   const activePageId = activePage?.id || "";
 
-  useEffect(() => {
-    if (!printMode) return;
-
-    let cancelled = false;
-
-    document.fonts.ready
-      .then(() => {
-        if (cancelled) return;
-        return new Promise<void>((resolve) => setTimeout(resolve, 500));
-      })
-      .then(() => {
-        if (!cancelled) {
-          window.print();
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [printMode]);
-
   return (
-    <main
-      className={`report-two-pdf-export-preview report-two-pdf-force-light${printMode ? " report-two-print-mode" : ""}`}
-      dir="rtl"
-    >
+    <main className="report-two-pdf-export-preview report-two-pdf-force-light" dir="rtl">
       <style>{`
         @page {
           size: A4;
@@ -126,10 +106,6 @@ export function ReportTwoPdfExportPreview({
         .report-two-pdf-export-preview .report-design-page:last-child {
           break-after: auto;
           page-break-after: auto;
-        }
-
-        .report-two-print-mode .report-design-logo-control-style > .mb-5 {
-          visibility: hidden !important;
         }
 
         [data-report-two-pdf-hide="evidence-overflow-note"] {
