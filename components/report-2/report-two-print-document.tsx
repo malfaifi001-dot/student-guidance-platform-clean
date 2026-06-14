@@ -40,16 +40,33 @@ export function ReportTwoPrintDocument({
   useEffect(() => {
     let cancelled = false;
 
-    document.fonts.ready
-      .then(() => {
-        if (cancelled) return;
-        return new Promise<void>((resolve) => setTimeout(resolve, 500));
-      })
-      .then(() => {
-        if (!cancelled) {
-          window.print();
-        }
-      });
+    (async () => {
+      await document.fonts.ready;
+      if (cancelled) return;
+
+      const images = document.querySelectorAll<HTMLImageElement>(
+        ".report-two-print-document img",
+      );
+      await Promise.all(
+        Array.from(images).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) {
+                resolve();
+              } else {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              }
+            }),
+        ),
+      );
+      if (cancelled) return;
+
+      await new Promise<void>((r) => setTimeout(r, 500));
+      if (cancelled) return;
+
+      window.print();
+    })();
 
     return () => {
       cancelled = true;
@@ -94,14 +111,21 @@ export function ReportTwoPrintDocument({
         }
 
         .report-two-print-document .pdf-report-page {
-          break-after: page;
-          page-break-after: always;
-          page-break-inside: avoid;
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          overflow: hidden !important;
+          break-after: page !important;
+          page-break-after: always !important;
+          page-break-inside: avoid !important;
         }
 
         .report-two-print-document .pdf-report-page:last-child {
-          break-after: auto;
-          page-break-after: auto;
+          break-after: auto !important;
+          page-break-after: auto !important;
         }
 
         img {
@@ -109,9 +133,7 @@ export function ReportTwoPrintDocument({
         }
       `}</style>
 
-      {logoSrc && (
-        <link rel="preload" as="image" href={logoSrc} />
-      )}
+      {logoSrc && <link rel="preload" as="image" href={logoSrc} />}
 
       {pages.map((page: any) => (
         <div key={page.id}>
