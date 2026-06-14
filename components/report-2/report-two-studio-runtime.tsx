@@ -122,6 +122,7 @@ type ReportTwoTableSettings = {
   rounded: boolean;
   compact: boolean;
   repeatHeader: boolean;
+  colorTheme: "light-gray" | "soft-blue" | "green" | "none";
 };
 
 type ReportTwoTableDraft = {
@@ -156,7 +157,7 @@ type StudioBlock = {
   evidenceEmptyBehavior?: string;
   columns?: string[];
   rows?: string[][];
-  tableSettings?: Record<string, boolean>;
+  tableSettings?: Record<string, any>;
   dynamicFields?: ReportTwoDynamicField[];
   [key: string]: any;
 };
@@ -495,6 +496,7 @@ function createBlock(kind: StudioBlockKind): StudioBlock {
         rounded: true,
         compact: false,
         repeatHeader: true,
+        colorTheme: "light-gray",
       },
     };
   }
@@ -1177,7 +1179,9 @@ function getReportTwoBlockHeightScore(
   if (block.kind === "plain-text") return 26;
 
   if (block.kind === "dynamic-fields") {
-    const count = Math.max(previewCase.values.length, 1);
+    const fields = getDynamicFieldsForBlock(block, previewCase);
+    const visibleFields = fields.filter((f) => f.visible !== false);
+    const count = Math.max(visibleFields.length, 1);
     return 24 + Math.ceil(count / 2) * 10.5;
   }
 
@@ -1675,15 +1679,17 @@ function getDynamicFieldsForBlock(
     return {
       id: field.id || source?.id || `dynamic-field-${index + 1}`,
       key,
-      label: cleanText(source?.label) || getReportTwoFieldLabel(field.key, field.label) || key,
-      value: cleanText(source?.value) || getReportTwoFieldValue(field.value) || cleanText(field.value),
+      label: field.label ?? cleanText(source?.label) ?? getReportTwoFieldLabel(field.key, field.label) ?? key,
+      value: field.value ?? cleanText(source?.value) ?? getReportTwoFieldValue(field.value) ?? cleanText(field.value),
       visible: field.visible !== false,
     };
   });
 }
 function getReportTwoTableSettings(
-  settings?: Record<string, boolean>,
+  settings?: Record<string, any>,
 ): ReportTwoTableSettings {
+  const validThemes = ["light-gray", "soft-blue", "green", "none"] as const;
+  const colorTheme = settings?.colorTheme;
   return {
     highlightHeader: settings?.highlightHeader !== false,
     highlightFirstColumn: settings?.highlightFirstColumn !== false,
@@ -1691,6 +1697,7 @@ function getReportTwoTableSettings(
     rounded: settings?.rounded !== false,
     compact: Boolean(settings?.compact),
     repeatHeader: settings?.repeatHeader !== false,
+    colorTheme: validThemes.includes(colorTheme) ? colorTheme : "light-gray",
   };
 }
 
@@ -1849,7 +1856,7 @@ function removeReportTwoTableColumn(
 function updateReportTwoTableSetting(
   draft: ReportTwoTableDraft,
   key: keyof ReportTwoTableSettings,
-  value: boolean,
+  value: boolean | string,
 ): ReportTwoTableDraft {
   return {
     ...draft,
@@ -2259,9 +2266,7 @@ export function ReportTwoStudioRuntime({
     template.pages[0]?.id || "",
   );
 
-  const [selectedBlockId, setSelectedBlockId] = useState(
-    template.pages[0]?.blocks[0]?.id || "",
-  );
+  const [selectedBlockId, setSelectedBlockId] = useState("");
 
   const [hiddenRuntimePageIds, setHiddenRuntimePageIds] = useState<string[]>([]);
   const [runtimePageOrder, setRuntimePageOrder] = useState<string[]>([]);
@@ -2799,11 +2804,7 @@ export function ReportTwoStudioRuntime({
     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
     setRuntimePageOrder(snapshot.runtimePageOrder || []);
     setActivePageId(snapshot.activePageId || snapshot.template.pages[0]?.id || "");
-    setSelectedBlockId(
-      snapshot.selectedBlockId ||
-        snapshot.template.pages[0]?.blocks[0]?.id ||
-        "",
-    );
+    setSelectedBlockId(snapshot.selectedBlockId || "");
     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
   }
@@ -2902,7 +2903,7 @@ export function ReportTwoStudioRuntime({
     const firstPage = saved.template.pages[0];
 
     setActivePageId(firstPage?.id || "");
-    setSelectedBlockId(firstPage?.blocks[0]?.id || "");
+    setSelectedBlockId("");
   }
 
   function deleteSavedRuntimeTemplate(templateId: string) {
@@ -2940,7 +2941,7 @@ export function ReportTwoStudioRuntime({
     setHiddenRuntimePageIds([]);
     setRuntimePageOrder([]);
     setActivePageId(nextTemplate.pages[0]?.id || "");
-    setSelectedBlockId(nextTemplate.pages[0]?.blocks[0]?.id || "");
+    setSelectedBlockId("");
   }
 
   function updateTemplate(patch: Partial<StudioTemplate>) {
@@ -2988,7 +2989,7 @@ export function ReportTwoStudioRuntime({
     }));
 
     setActivePageId(page.id);
-    setSelectedBlockId(page.blocks[0]?.id || "");
+    setSelectedBlockId("");
   }
 
   function canDeleteReportTwoPage(pageId: string) {
@@ -3066,7 +3067,7 @@ export function ReportTwoStudioRuntime({
 
           if (activePageId === pageId) {
             setActivePageId(nextVisiblePages[0]?.id || "");
-            setSelectedBlockId(nextVisiblePages[0]?.blocks[0]?.id || "");
+            setSelectedBlockId("");
           }
         },
       });
@@ -3100,7 +3101,7 @@ export function ReportTwoStudioRuntime({
         );
 
         setActivePageId(remainingPages[0]?.id || "");
-        setSelectedBlockId(remainingPages[0]?.blocks[0]?.id || "");
+        setSelectedBlockId("");
       },
     });
   }
@@ -3139,16 +3140,23 @@ export function ReportTwoStudioRuntime({
   function removeSelectedBlock() {
     if (!selectedBlock || !activePage) return;
 
-    if (activePage.blocks.length <= 1) {
+    const writablePageId = getWritableReportTwoPageId(activePageId, activePage, template);
+    const sourcePage = template.pages.find((page) => page.id === writablePageId);
+    if (!sourcePage) return;
+
+    const blockExists = sourcePage.blocks.some((b) => b.id === selectedBlock.id);
+    if (!blockExists) return;
+
+    if (sourcePage.blocks.length <= 1) {
       setPopup({ type: "alert", title: "حذف البلوك", message: "لا يمكن حذف آخر بلوك داخل الصفحة." });
       return;
     }
 
-    const remainingBlocks = activePage.blocks.filter(
+    const remainingBlocks = sourcePage.blocks.filter(
       (block) => block.id !== selectedBlock.id,
     );
 
-    updatePage(activePage.id, (page) => ({
+    updatePage(sourcePage.id, (page) => ({
       ...page,
       blocks: remainingBlocks,
     }));
@@ -3826,14 +3834,20 @@ export function ReportTwoStudioRuntime({
               context={editableRuntimeContext}
               previewCase={previewCase}
               onActivePageChange={(pageId) => {
-                const runtimePage = visiblePreviewTemplate.pages.find(
-                  (item) => item.id === pageId,
-                );
-                const sourcePageId = getReportTwoSourcePageId(pageId, runtimePage);
-                const page = template.pages.find((item) => item.id === sourcePageId);
+                if (activePageId === pageId) return;
 
                 setActivePageId(pageId);
-                setSelectedBlockId(page?.blocks[0]?.id || runtimePage?.blocks[0]?.id || "");
+
+                const sourcePageId = getReportTwoSourcePageId(
+                  pageId,
+                  visiblePreviewTemplate.pages.find((p) => p.id === pageId),
+                );
+                const selectedExists = selectedBlockId && template.pages
+                  .flatMap((p) => p.blocks)
+                  .some((b) => b.id === selectedBlockId);
+                if (!selectedExists) {
+                  setSelectedBlockId("");
+                }
               }}
               onAddPage={addPage}
               onMovePage={moveReportTwoPage}
@@ -4289,7 +4303,7 @@ export function ReportTwoStudioRuntime({
           
 </ReportTwoCollapsibleCard>
 
-          {selectedBlock ? (
+          {selectedBlock && editableActivePage?.blocks.some((b) => b.id === selectedBlock.id) ? (
             <ReportTwoCollapsibleCard id="edit-block" title="تعديل البلوك">
 
               <div className="flex items-center justify-between gap-2">
@@ -4316,10 +4330,23 @@ export function ReportTwoStudioRuntime({
 
                   <button
                     type="button"
-                    onClick={removeSelectedBlock}
+                    onClick={() => {
+                      const writablePageId = getWritableReportTwoPageId(activePageId, activePage, template);
+                      const sourcePage = template.pages.find((p) => p.id === writablePageId);
+                      if (sourcePage && sourcePage.blocks.length <= 1) {
+                        removeSelectedBlock();
+                        return;
+                      }
+                      setPopup({
+                        type: "confirm",
+                        title: "حذف البلوك",
+                        message: "هل أنت متأكد من حذف هذا البلوك؟",
+                        onConfirm: removeSelectedBlock,
+                      });
+                    }}
                     className="rounded-xl bg-red-50 px-2 py-1 text-xs font-black text-red-600"
                   >
-                    حذف
+                    حذف البلوك
                   </button>
                 </div>
               </div>
@@ -4704,7 +4731,13 @@ export function ReportTwoStudioRuntime({
               </div>
             
 </ReportTwoCollapsibleCard>
-          ) : null}
+          ) : (
+            <ReportTwoCollapsibleCard id="edit-block" title="تعديل البلوك">
+              <p className="py-8 text-center text-xs font-black text-slate-400">
+                اختر بلوكًا من بلوكات الصفحة لتعديل إعداداته.
+              </p>
+            </ReportTwoCollapsibleCard>
+          )}
         </aside>
         ) : null}
       </div>
@@ -5174,7 +5207,7 @@ export function ReportTwoStudioRuntime({
                           ["rounded", "زوايا منحنية"],
                           ["repeatHeader", "تكرار رأس الجدول"],
                           ["compact", "جدول مضغوط"],
-                        ] as Array<[keyof ReportTwoTableSettings, string]>).map(
+                        ] as Array<["highlightHeader" | "highlightFirstColumn" | "stripedRows" | "rounded" | "repeatHeader" | "compact", string]>).map(
                           ([key, label]) => (
                             <label
                               key={key}
@@ -5198,6 +5231,45 @@ export function ReportTwoStudioRuntime({
                             </label>
                           ),
                         )}
+                      </div>
+
+                      <div className="mt-4">
+                        <h4 className="mb-2 text-xs font-black text-slate-700">
+                          لون الجدول
+                        </h4>
+
+                        <div className="flex flex-wrap gap-2">
+                          {([
+                            ["light-gray", "رمادي فاتح"],
+                            ["soft-blue", "أزرق هادئ"],
+                            ["green", "أخضر"],
+                            ["none", "بدون لون"],
+                          ] as Array<[string, string]>).map(
+                            ([value, label]) => (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() =>
+                                  updateEditingTableDraft((draft) =>
+                                    updateReportTwoTableSetting(
+                                      draft,
+                                      "colorTheme",
+                                      value,
+                                    ),
+                                  )
+                                }
+                                className={`rounded-xl px-3 py-2 text-xs font-black transition-colors ${
+                                  editingTableDraft.settings.colorTheme ===
+                                  value
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ),
+                          )}
+                        </div>
                       </div>
                     </div>
 

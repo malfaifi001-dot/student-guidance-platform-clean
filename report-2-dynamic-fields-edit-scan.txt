@@ -1,0 +1,2240 @@
+Report 2 dynamic fields edit scan
+File: components\report-2\report-two-studio-runtime.tsx
+Generated: 06/14/2026 23:44:58
+
+Git status:
+?? report-2-studio-files-scan.txt
+
+
+
+===== PATTERN: selectedFields =====
+No matches.
+
+===== PATTERN: selectedField =====
+No matches.
+
+===== PATTERN: fieldLabel =====
+
+----- Around line 779 -----
+771:   awareness_campaign: "حملة توعوية",
+772:   training_course: "دورة تدريبية",
+773:   meeting: "لقاء",
+774:   interview: "مقابلة",
+775:   phone: "اتصال هاتفي",
+776:   message: "رسالة نصية",
+777: };
+778: 
+779: function getReportTwoFieldLabel(key: string, label: string): string {
+780:   if (!key && !label) return "";
+781:   const trimmed = label?.trim();
+782:   if (trimmed && trimmed !== key && !/^[a-z0-9_./-]+$/i.test(trimmed)) {
+783:     return trimmed;
+784:   }
+785:   return REPORT_TWO_FIELD_LABELS[key] || REPORT_TWO_FIELD_LABELS[label] || trimmed || key || "";
+786: }
+787: 
+788: function getReportTwoFieldValue(value: unknown): string {
+789:   if (value === null || value === undefined) return "";
+790:   const raw = String(value).trim();
+791:   if (!raw) return "";
+
+----- Around line 940 -----
+932:         cleanText(field.key) ||
+933:         cleanText(field.fieldKey) ||
+934:         cleanText(field.name) ||
+935:         cleanText(field.id) ||
+936:         `field-${index + 1}`;
+937: 
+938:       return {
+939:         fieldKey,
+940:         fieldLabel: getReportTwoReadableFieldLabel(field, index),
+941:         value: getReportTwoReadableFieldValue(field),
+942:         rawValue: cleanText(field.value),
+943:       };
+944:     }),
+945:     evidences: collectEvidences(payload),
+946:   };
+947: }
+948: 
+949: 
+950: function getEvidencePerPageFromBlock(block: StudioBlock) {
+951:   const explicitLimit = Number(block.evidenceLimit || 0);
+952: 
+
+----- Around line 1555 -----
+1547: 
+1548:       if (label) return label;
+1549:     }
+1550:   }
+1551: 
+1552:   return "";
+1553: }
+1554: 
+1555: function getReportTwoReadableFieldLabel(field: any, index: number) {
+1556:   const key =
+1557:     cleanText(field.key) ||
+1558:     cleanText(field.fieldKey) ||
+1559:     cleanText(field.name) ||
+1560:     cleanText(field.id) ||
+1561:     `field-${index + 1}`;
+1562: 
+1563:   const candidates = [
+1564:     field.displayLabel,
+1565:     field.fieldLabel,
+1566:     field.labelAr,
+1567:     field.nameAr,
+
+----- Around line 1565 -----
+1557:     cleanText(field.key) ||
+1558:     cleanText(field.fieldKey) ||
+1559:     cleanText(field.name) ||
+1560:     cleanText(field.id) ||
+1561:     `field-${index + 1}`;
+1562: 
+1563:   const candidates = [
+1564:     field.displayLabel,
+1565:     field.fieldLabel,
+1566:     field.labelAr,
+1567:     field.nameAr,
+1568:     field.titleAr,
+1569:     field.label,
+1570:     field.title,
+1571:     field.field?.label,
+1572:     field.dynamicField?.label,
+1573:     field.workflowField?.label,
+1574:   ];
+1575: 
+1576:   for (const candidate of candidates) {
+1577:     const text = cleanText(candidate);
+
+----- Around line 1582 -----
+1574:   ];
+1575: 
+1576:   for (const candidate of candidates) {
+1577:     const text = cleanText(candidate);
+1578: 
+1579:     if (text && text !== key) return text;
+1580:   }
+1581: 
+1582:   const fromMap = getReportTwoFieldLabel(key, field.label);
+1583: 
+1584:   if (fromMap && fromMap !== key) return fromMap;
+1585: 
+1586:   return key;
+1587: }
+1588: 
+1589: function getReportTwoReadableFieldValue(field: any) {
+1590:   const explicitCandidates = [
+1591:     field.displayValue,
+1592:     field.formattedValue,
+1593:     field.valueLabel,
+1594:     field.labelValue,
+
+----- Around line 1630 -----
+1622: }
+1623: 
+1624: function getReportTwoDynamicFieldsFromPreviewCase(
+1625:   previewCase: ReturnType<typeof getPreviewCase>,
+1626: ): ReportTwoDynamicField[] {
+1627:   return (previewCase.values || [])
+1628:     .map((item: any, index: number) => {
+1629:       const key = cleanText(item.fieldKey) || `workflow-field-${index + 1}`;
+1630:       const label = cleanText(item.fieldLabel) || key || `حقل ${index + 1}`;
+1631:       const value = cleanText(item.value);
+1632: 
+1633:       return {
+1634:         id: key || `workflow-field-${index + 1}`,
+1635:         key,
+1636:         label,
+1637:         value,
+1638:         visible: Boolean(label && value),
+1639:       };
+1640:     })
+1641:     .filter((item) => item.label && item.value);
+1642: }
+
+----- Around line 1678 -----
+1670:       sourceByKey.get(getReportTwoLookupKey(field.label)) ||
+1671:       sourceFields[index];
+1672: 
+1673:     const key = field.key || source?.key || `dynamic-field-${index + 1}`;
+1674: 
+1675:     return {
+1676:       id: field.id || source?.id || `dynamic-field-${index + 1}`,
+1677:       key,
+1678:       label: cleanText(source?.label) || getReportTwoFieldLabel(field.key, field.label) || key,
+1679:       value: cleanText(source?.value) || getReportTwoFieldValue(field.value) || cleanText(field.value),
+1680:       visible: field.visible !== false,
+1681:     };
+1682:   });
+1683: }
+1684: function getReportTwoTableSettings(
+1685:   settings?: Record<string, boolean>,
+1686: ): ReportTwoTableSettings {
+1687:   return {
+1688:     highlightHeader: settings?.highlightHeader !== false,
+1689:     highlightFirstColumn: settings?.highlightFirstColumn !== false,
+1690:     stripedRows: settings?.stripedRows !== false,
+
+===== PATTERN: fieldValue =====
+
+----- Around line 788 -----
+780:   if (!key && !label) return "";
+781:   const trimmed = label?.trim();
+782:   if (trimmed && trimmed !== key && !/^[a-z0-9_./-]+$/i.test(trimmed)) {
+783:     return trimmed;
+784:   }
+785:   return REPORT_TWO_FIELD_LABELS[key] || REPORT_TWO_FIELD_LABELS[label] || trimmed || key || "";
+786: }
+787: 
+788: function getReportTwoFieldValue(value: unknown): string {
+789:   if (value === null || value === undefined) return "";
+790:   const raw = String(value).trim();
+791:   if (!raw) return "";
+792:   const lower = raw.toLowerCase();
+793:   const direct = REPORT_TWO_VALUE_LABELS[lower] || REPORT_TWO_VALUE_LABELS[raw];
+794:   if (direct) return direct;
+795:   const programMatch = lower.match(/^program_(\d+)$/);
+796:   if (programMatch) return `برنامج النشاط رقم ${programMatch[1]}`;
+797:   if (/^[a-z0-9_./-]+$/i.test(raw) && /[a-z_]/i.test(raw)) return raw;
+798:   return raw;
+799: }
+800: 
+
+----- Around line 941 -----
+933:         cleanText(field.fieldKey) ||
+934:         cleanText(field.name) ||
+935:         cleanText(field.id) ||
+936:         `field-${index + 1}`;
+937: 
+938:       return {
+939:         fieldKey,
+940:         fieldLabel: getReportTwoReadableFieldLabel(field, index),
+941:         value: getReportTwoReadableFieldValue(field),
+942:         rawValue: cleanText(field.value),
+943:       };
+944:     }),
+945:     evidences: collectEvidences(payload),
+946:   };
+947: }
+948: 
+949: 
+950: function getEvidencePerPageFromBlock(block: StudioBlock) {
+951:   const explicitLimit = Number(block.evidenceLimit || 0);
+952: 
+953:   if (Number.isFinite(explicitLimit) && explicitLimit > 0) {
+
+----- Around line 1589 -----
+1581: 
+1582:   const fromMap = getReportTwoFieldLabel(key, field.label);
+1583: 
+1584:   if (fromMap && fromMap !== key) return fromMap;
+1585: 
+1586:   return key;
+1587: }
+1588: 
+1589: function getReportTwoReadableFieldValue(field: any) {
+1590:   const explicitCandidates = [
+1591:     field.displayValue,
+1592:     field.formattedValue,
+1593:     field.valueLabel,
+1594:     field.labelValue,
+1595:     field.optionLabel,
+1596:     field.selectedOptionLabel,
+1597:     field.answerLabel,
+1598:     field.answerText,
+1599:     field.textValue,
+1600:     field.valueText,
+1601:   ];
+
+----- Around line 1617 -----
+1609:   const optionLabel = getReportTwoOptionArabicLabel(field, field.value);
+1610: 
+1611:   if (optionLabel) return optionLabel;
+1612: 
+1613:   const rawValue = cleanText(field.value);
+1614: 
+1615:   if (!rawValue) return "";
+1616: 
+1617:   const fromMap = getReportTwoFieldValue(rawValue);
+1618: 
+1619:   if (fromMap && fromMap !== rawValue) return fromMap;
+1620: 
+1621:   return rawValue;
+1622: }
+1623: 
+1624: function getReportTwoDynamicFieldsFromPreviewCase(
+1625:   previewCase: ReturnType<typeof getPreviewCase>,
+1626: ): ReportTwoDynamicField[] {
+1627:   return (previewCase.values || [])
+1628:     .map((item: any, index: number) => {
+1629:       const key = cleanText(item.fieldKey) || `workflow-field-${index + 1}`;
+
+----- Around line 1679 -----
+1671:       sourceFields[index];
+1672: 
+1673:     const key = field.key || source?.key || `dynamic-field-${index + 1}`;
+1674: 
+1675:     return {
+1676:       id: field.id || source?.id || `dynamic-field-${index + 1}`,
+1677:       key,
+1678:       label: cleanText(source?.label) || getReportTwoFieldLabel(field.key, field.label) || key,
+1679:       value: cleanText(source?.value) || getReportTwoFieldValue(field.value) || cleanText(field.value),
+1680:       visible: field.visible !== false,
+1681:     };
+1682:   });
+1683: }
+1684: function getReportTwoTableSettings(
+1685:   settings?: Record<string, boolean>,
+1686: ): ReportTwoTableSettings {
+1687:   return {
+1688:     highlightHeader: settings?.highlightHeader !== false,
+1689:     highlightFirstColumn: settings?.highlightFirstColumn !== false,
+1690:     stripedRows: settings?.stripedRows !== false,
+1691:     rounded: settings?.rounded !== false,
+
+===== PATTERN: dynamic-fields =====
+
+----- Around line 97 -----
+89: type StudioBlockKind =
+90:   | "hero-title"
+91:   | "meta-strip"
+92:   | "plain-text"
+93:   | "section-text"
+94:   | "multi-paragraph"
+95:   | "highlight-note"
+96:   | "bullet-list"
+97:   | "dynamic-fields"
+98:   | "evidence-gallery"
+99:   | "closing-note"
+100:   | "report-one-table"
+101:   | "signature-grid";
+102: 
+103: type StudioPageKind =
+104:   | "content"
+105:   | "recommendations"
+106:   | "evidence"
+107:   | "approval"
+108:   | "custom";
+109: 
+
+----- Around line 431 -----
+423:       title: "عنوان التقرير",
+424:       content: "{{case.title}}",
+425:       variant: "hero",
+426:       showTitle: false,
+427:       align: "center",
+428:     };
+429:   }
+430: 
+431:   if (kind === "dynamic-fields") {
+432:     return {
+433:       ...base,
+434:       title: "حقول الحالة",
+435:       content: "",
+436:       variant: "soft",
+437:     };
+438:   }
+439: 
+440:   if (kind === "signature-grid") {
+441:     return {
+442:       ...base,
+443:       title: "تواقيع الاعتماد",
+
+----- Around line 571 -----
+563:       : [
+564:           {
+565:             id: "report-2-fallback-page",
+566:             kind: "content",
+567:             title: "صفحة التقرير",
+568:             description: "",
+569:             blocks: [
+570:               createBlock("hero-title"),
+571:               createBlock("dynamic-fields"),
+572:               createBlock("section-text"),
+573:             ],
+574:           },
+575:         ],
+576:   };
+577: }
+578: 
+579: 
+580: 
+581: function getDefaultReportTwoLogoSettings(
+582:   context: Record<string, string>,
+583: ): ReportTwoLogoSettings {
+
+----- Around line 1179 -----
+1171:   previewCase: ReturnType<typeof getPreviewCase>,
+1172: ) {
+1173:   if (block.kind === "hero-title") return 32;
+1174:   if (block.kind === "meta-strip") return 28;
+1175:   if (block.kind === "closing-note") return 34;
+1176:   if (block.kind === "highlight-note") return 34;
+1177:   if (block.kind === "plain-text") return 26;
+1178: 
+1179:   if (block.kind === "dynamic-fields") {
+1180:     const count = Math.max(previewCase.values.length, 1);
+1181:     return 24 + Math.ceil(count / 2) * 10.5;
+1182:   }
+1183: 
+1184:   if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+1185:     const contentLength = cleanText(block.content).length;
+1186:     const lineCount = Math.max(
+1187:       cleanText(block.content).split("\n").length,
+1188:       Math.ceil(contentLength / 80),
+1189:       1,
+1190:     );
+1191: 
+
+----- Around line 1250 -----
+1242: function normalizeReportTwoBlockForRuntime(
+1243:   block: StudioBlock,
+1244:   previewCase: ReturnType<typeof getPreviewCase>,
+1245: ): StudioBlock {
+1246:   if (isReportTwoDynamicFieldsBlock(block)) {
+1247:     return {
+1248:       ...block,
+1249:       sourceBlockId: block.id,
+1250:       kind: "dynamic-fields" as StudioBlockKind,
+1251:       dynamicFields: block.dynamicFields?.length
+1252:         ? block.dynamicFields
+1253:         : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+1254:     };
+1255:   }
+1256: 
+1257:   if (block.kind !== "evidence-gallery") {
+1258:     return {
+1259:       ...block,
+1260:       sourceBlockId: block.id,
+1261:     } as StudioBlock;
+1262:   }
+
+----- Around line 1449 -----
+1441: function isReportTwoDynamicFieldsBlock(block: StudioBlock | null | undefined) {
+1442:   if (!block) return false;
+1443: 
+1444:   const kind = cleanText(block.kind);
+1445:   const smartKind = cleanText((block as any).settings?.smartBlockKind);
+1446:   const title = cleanText(block.title);
+1447: 
+1448:   return (
+1449:     kind === "dynamic-fields" ||
+1450:     kind === "field-list" ||
+1451:     kind === "case-meta" ||
+1452:     kind === "student-summary" ||
+1453:     kind === "service-summary" ||
+1454:     smartKind === "dynamic-fields" ||
+1455:     smartKind === "field-list" ||
+1456:     title.includes("حقول") ||
+1457:     title.includes("بيانات الحالة")
+1458:   );
+1459: }
+1460: function getReportTwoLookupKey(value: unknown) {
+1461:   return cleanText(value).toLowerCase();
+
+----- Around line 1454 -----
+1446:   const title = cleanText(block.title);
+1447: 
+1448:   return (
+1449:     kind === "dynamic-fields" ||
+1450:     kind === "field-list" ||
+1451:     kind === "case-meta" ||
+1452:     kind === "student-summary" ||
+1453:     kind === "service-summary" ||
+1454:     smartKind === "dynamic-fields" ||
+1455:     smartKind === "field-list" ||
+1456:     title.includes("حقول") ||
+1457:     title.includes("بيانات الحالة")
+1458:   );
+1459: }
+1460: function getReportTwoLookupKey(value: unknown) {
+1461:   return cleanText(value).toLowerCase();
+1462: }
+1463: 
+1464: function getReportTwoDisplayText(value: unknown): string {
+1465:   if (Array.isArray(value)) {
+1466:     return value
+
+----- Around line 2203 -----
+2195: function getBlockKindName(kind: StudioBlockKind) {
+2196:   if (kind === "hero-title") return "عنوان رئيسي";
+2197:   if (kind === "meta-strip") return "شريط بيانات";
+2198:   if (kind === "plain-text") return "نص بسيط";
+2199:   if (kind === "section-text") return "فقرة";
+2200:   if (kind === "multi-paragraph") return "فقرات";
+2201:   if (kind === "highlight-note") return "ملاحظة بارزة";
+2202:   if (kind === "bullet-list") return "قائمة";
+2203:   if (kind === "dynamic-fields") return "حقول الحالة";
+2204:   if (kind === "evidence-gallery") return "الشواهد";
+2205:   if (kind === "closing-note") return "خاتمة";
+2206:   if (kind === "report-one-table") return "جدول";
+2207:   if (kind === "signature-grid") return "تواقيع الاعتماد";
+2208: 
+2209:   return "بلوك";
+2210: }
+2211: 
+2212: export function ReportTwoStudioRuntime({
+2213:   caseId,
+2214:   selectedTemplateId,
+2215:   payload,
+
+----- Around line 4243 -----
+4235:             <h2 className="text-sm font-black text-slate-950">
+4236:               إضافة بلوك داخل الصفحة
+4237:             </h2>
+4238: 
+4239:             <div className="mt-3 grid grid-cols-2 gap-2">
+4240:               {[
+4241:                 ["section-text", "فقرة"],
+4242:                 ["bullet-list", "قائمة"],
+4243:                 ["dynamic-fields", "حقول"],
+4244:                 ["evidence-gallery", "شواهد"],
+4245:                 ["report-one-table", "جدول"],
+4246:                 ["signature-grid", "تواقيع"],
+4247:                 ["closing-note", "خاتمة"],
+4248:               ].map(([kind, label]) => (
+4249:                 <button
+4250:                   key={kind}
+4251:                   type="button"
+4252:                   onClick={() => addBlock(kind as StudioBlockKind)}
+4253:                   className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+4254:                 >
+4255:                   + {label}
+
+----- Around line 4461 -----
+4453:                               className="mt-1 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold leading-6 outline-none focus:border-emerald-600"
+4454:                             />
+4455:                           </label>
+4456:                         </article>
+4457:                       ))}
+4458:                     </div>
+4459:                   </section>
+4460:                 ) : null}
+4461:                 {selectedBlock.kind !== "dynamic-fields" &&
+4462:                 selectedBlock.kind !== "evidence-gallery" &&
+4463:                 selectedBlock.kind !== "report-one-table" &&
+4464:                 selectedBlock.kind !== "signature-grid" ? (
+4465:                   <label className="block">
+4466:                     <span className="text-xs font-black text-slate-500">
+4467:                       المحتوى
+4468:                     </span>
+4469: 
+4470:                     <textarea
+4471:                       value={selectedBlock.content}
+4472:                       onChange={(event) =>
+4473:                         updateBlock(selectedBlock.id, (block) => ({
+
+===== PATTERN: Dynamic =====
+
+----- Around line 97 -----
+89: type StudioBlockKind =
+90:   | "hero-title"
+91:   | "meta-strip"
+92:   | "plain-text"
+93:   | "section-text"
+94:   | "multi-paragraph"
+95:   | "highlight-note"
+96:   | "bullet-list"
+97:   | "dynamic-fields"
+98:   | "evidence-gallery"
+99:   | "closing-note"
+100:   | "report-one-table"
+101:   | "signature-grid";
+102: 
+103: type StudioPageKind =
+104:   | "content"
+105:   | "recommendations"
+106:   | "evidence"
+107:   | "approval"
+108:   | "custom";
+109: 
+
+----- Around line 110 -----
+102: 
+103: type StudioPageKind =
+104:   | "content"
+105:   | "recommendations"
+106:   | "evidence"
+107:   | "approval"
+108:   | "custom";
+109: 
+110: type ReportTwoDynamicField = {
+111:   id: string;
+112:   key: string;
+113:   label: string;
+114:   value: string;
+115:   visible: boolean;
+116: };
+117: 
+118: type ReportTwoTableSettings = {
+119:   highlightHeader: boolean;
+120:   highlightFirstColumn: boolean;
+121:   stripedRows: boolean;
+122:   rounded: boolean;
+
+----- Around line 160 -----
+152:   evidenceFit?: string;
+153:   evidenceAspectRatio?: string;
+154:   evidenceShowCaptions?: boolean;
+155:   evidenceAutoCreatePages?: boolean;
+156:   evidenceEmptyBehavior?: string;
+157:   columns?: string[];
+158:   rows?: string[][];
+159:   tableSettings?: Record<string, boolean>;
+160:   dynamicFields?: ReportTwoDynamicField[];
+161:   [key: string]: any;
+162: };
+163: 
+164: type StudioPage = {
+165:   id: string;
+166:   kind: StudioPageKind;
+167:   title: string;
+168:   description?: string;
+169:   sourceTemplatePageId?: string | null;
+170:   reportTwoVirtualPage?: boolean;
+171:   blocks: StudioBlock[];
+172: };
+
+----- Around line 431 -----
+423:       title: "عنوان التقرير",
+424:       content: "{{case.title}}",
+425:       variant: "hero",
+426:       showTitle: false,
+427:       align: "center",
+428:     };
+429:   }
+430: 
+431:   if (kind === "dynamic-fields") {
+432:     return {
+433:       ...base,
+434:       title: "حقول الحالة",
+435:       content: "",
+436:       variant: "soft",
+437:     };
+438:   }
+439: 
+440:   if (kind === "signature-grid") {
+441:     return {
+442:       ...base,
+443:       title: "تواقيع الاعتماد",
+
+----- Around line 571 -----
+563:       : [
+564:           {
+565:             id: "report-2-fallback-page",
+566:             kind: "content",
+567:             title: "صفحة التقرير",
+568:             description: "",
+569:             blocks: [
+570:               createBlock("hero-title"),
+571:               createBlock("dynamic-fields"),
+572:               createBlock("section-text"),
+573:             ],
+574:           },
+575:         ],
+576:   };
+577: }
+578: 
+579: 
+580: 
+581: function getDefaultReportTwoLogoSettings(
+582:   context: Record<string, string>,
+583: ): ReportTwoLogoSettings {
+
+----- Around line 1179 -----
+1171:   previewCase: ReturnType<typeof getPreviewCase>,
+1172: ) {
+1173:   if (block.kind === "hero-title") return 32;
+1174:   if (block.kind === "meta-strip") return 28;
+1175:   if (block.kind === "closing-note") return 34;
+1176:   if (block.kind === "highlight-note") return 34;
+1177:   if (block.kind === "plain-text") return 26;
+1178: 
+1179:   if (block.kind === "dynamic-fields") {
+1180:     const count = Math.max(previewCase.values.length, 1);
+1181:     return 24 + Math.ceil(count / 2) * 10.5;
+1182:   }
+1183: 
+1184:   if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+1185:     const contentLength = cleanText(block.content).length;
+1186:     const lineCount = Math.max(
+1187:       cleanText(block.content).split("\n").length,
+1188:       Math.ceil(contentLength / 80),
+1189:       1,
+1190:     );
+1191: 
+
+----- Around line 1246 -----
+1238:     blocks: [],
+1239:   } as StudioPage;
+1240: }
+1241: 
+1242: function normalizeReportTwoBlockForRuntime(
+1243:   block: StudioBlock,
+1244:   previewCase: ReturnType<typeof getPreviewCase>,
+1245: ): StudioBlock {
+1246:   if (isReportTwoDynamicFieldsBlock(block)) {
+1247:     return {
+1248:       ...block,
+1249:       sourceBlockId: block.id,
+1250:       kind: "dynamic-fields" as StudioBlockKind,
+1251:       dynamicFields: block.dynamicFields?.length
+1252:         ? block.dynamicFields
+1253:         : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+1254:     };
+1255:   }
+1256: 
+1257:   if (block.kind !== "evidence-gallery") {
+1258:     return {
+
+----- Around line 1250 -----
+1242: function normalizeReportTwoBlockForRuntime(
+1243:   block: StudioBlock,
+1244:   previewCase: ReturnType<typeof getPreviewCase>,
+1245: ): StudioBlock {
+1246:   if (isReportTwoDynamicFieldsBlock(block)) {
+1247:     return {
+1248:       ...block,
+1249:       sourceBlockId: block.id,
+1250:       kind: "dynamic-fields" as StudioBlockKind,
+1251:       dynamicFields: block.dynamicFields?.length
+1252:         ? block.dynamicFields
+1253:         : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+1254:     };
+1255:   }
+1256: 
+1257:   if (block.kind !== "evidence-gallery") {
+1258:     return {
+1259:       ...block,
+1260:       sourceBlockId: block.id,
+1261:     } as StudioBlock;
+1262:   }
+
+----- Around line 1251 -----
+1243:   block: StudioBlock,
+1244:   previewCase: ReturnType<typeof getPreviewCase>,
+1245: ): StudioBlock {
+1246:   if (isReportTwoDynamicFieldsBlock(block)) {
+1247:     return {
+1248:       ...block,
+1249:       sourceBlockId: block.id,
+1250:       kind: "dynamic-fields" as StudioBlockKind,
+1251:       dynamicFields: block.dynamicFields?.length
+1252:         ? block.dynamicFields
+1253:         : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+1254:     };
+1255:   }
+1256: 
+1257:   if (block.kind !== "evidence-gallery") {
+1258:     return {
+1259:       ...block,
+1260:       sourceBlockId: block.id,
+1261:     } as StudioBlock;
+1262:   }
+1263: 
+
+----- Around line 1252 -----
+1244:   previewCase: ReturnType<typeof getPreviewCase>,
+1245: ): StudioBlock {
+1246:   if (isReportTwoDynamicFieldsBlock(block)) {
+1247:     return {
+1248:       ...block,
+1249:       sourceBlockId: block.id,
+1250:       kind: "dynamic-fields" as StudioBlockKind,
+1251:       dynamicFields: block.dynamicFields?.length
+1252:         ? block.dynamicFields
+1253:         : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+1254:     };
+1255:   }
+1256: 
+1257:   if (block.kind !== "evidence-gallery") {
+1258:     return {
+1259:       ...block,
+1260:       sourceBlockId: block.id,
+1261:     } as StudioBlock;
+1262:   }
+1263: 
+1264:   const perPage = getEvidencePerPageFromBlock(block);
+
+----- Around line 1253 -----
+1245: ): StudioBlock {
+1246:   if (isReportTwoDynamicFieldsBlock(block)) {
+1247:     return {
+1248:       ...block,
+1249:       sourceBlockId: block.id,
+1250:       kind: "dynamic-fields" as StudioBlockKind,
+1251:       dynamicFields: block.dynamicFields?.length
+1252:         ? block.dynamicFields
+1253:         : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+1254:     };
+1255:   }
+1256: 
+1257:   if (block.kind !== "evidence-gallery") {
+1258:     return {
+1259:       ...block,
+1260:       sourceBlockId: block.id,
+1261:     } as StudioBlock;
+1262:   }
+1263: 
+1264:   const perPage = getEvidencePerPageFromBlock(block);
+1265:   const count = previewCase.evidences.length;
+
+----- Around line 1441 -----
+1433:   const nextPages = [...pages];
+1434:   const [page] = nextPages.splice(index, 1);
+1435:   nextPages.splice(targetIndex, 0, page);
+1436: 
+1437:   return nextPages;
+1438: }
+1439: 
+1440: 
+1441: function isReportTwoDynamicFieldsBlock(block: StudioBlock | null | undefined) {
+1442:   if (!block) return false;
+1443: 
+1444:   const kind = cleanText(block.kind);
+1445:   const smartKind = cleanText((block as any).settings?.smartBlockKind);
+1446:   const title = cleanText(block.title);
+1447: 
+1448:   return (
+1449:     kind === "dynamic-fields" ||
+1450:     kind === "field-list" ||
+1451:     kind === "case-meta" ||
+1452:     kind === "student-summary" ||
+1453:     kind === "service-summary" ||
+
+----- Around line 1449 -----
+1441: function isReportTwoDynamicFieldsBlock(block: StudioBlock | null | undefined) {
+1442:   if (!block) return false;
+1443: 
+1444:   const kind = cleanText(block.kind);
+1445:   const smartKind = cleanText((block as any).settings?.smartBlockKind);
+1446:   const title = cleanText(block.title);
+1447: 
+1448:   return (
+1449:     kind === "dynamic-fields" ||
+1450:     kind === "field-list" ||
+1451:     kind === "case-meta" ||
+1452:     kind === "student-summary" ||
+1453:     kind === "service-summary" ||
+1454:     smartKind === "dynamic-fields" ||
+1455:     smartKind === "field-list" ||
+1456:     title.includes("حقول") ||
+1457:     title.includes("بيانات الحالة")
+1458:   );
+1459: }
+1460: function getReportTwoLookupKey(value: unknown) {
+1461:   return cleanText(value).toLowerCase();
+
+----- Around line 1454 -----
+1446:   const title = cleanText(block.title);
+1447: 
+1448:   return (
+1449:     kind === "dynamic-fields" ||
+1450:     kind === "field-list" ||
+1451:     kind === "case-meta" ||
+1452:     kind === "student-summary" ||
+1453:     kind === "service-summary" ||
+1454:     smartKind === "dynamic-fields" ||
+1455:     smartKind === "field-list" ||
+1456:     title.includes("حقول") ||
+1457:     title.includes("بيانات الحالة")
+1458:   );
+1459: }
+1460: function getReportTwoLookupKey(value: unknown) {
+1461:   return cleanText(value).toLowerCase();
+1462: }
+1463: 
+1464: function getReportTwoDisplayText(value: unknown): string {
+1465:   if (Array.isArray(value)) {
+1466:     return value
+
+----- Around line 1505 -----
+1497:   }
+1498: 
+1499:   return cleanText(value);
+1500: }
+1501: 
+1502: function getReportTwoOptionCollections(field: any) {
+1503:   return [
+1504:     field.options,
+1505:     field.dynamicFieldOptions,
+1506:     field.fieldOptions,
+1507:     field.choices,
+1508:     field.items,
+1509:     field.field?.options,
+1510:     field.field?.dynamicFieldOptions,
+1511:     field.dynamicField?.options,
+1512:     field.workflowField?.options,
+1513:   ].filter(Array.isArray) as any[][];
+1514: }
+1515: 
+1516: function getReportTwoOptionArabicLabel(field: any, rawValue: unknown) {
+1517:   const target = getReportTwoLookupKey(rawValue);
+
+----- Around line 1510 -----
+1502: function getReportTwoOptionCollections(field: any) {
+1503:   return [
+1504:     field.options,
+1505:     field.dynamicFieldOptions,
+1506:     field.fieldOptions,
+1507:     field.choices,
+1508:     field.items,
+1509:     field.field?.options,
+1510:     field.field?.dynamicFieldOptions,
+1511:     field.dynamicField?.options,
+1512:     field.workflowField?.options,
+1513:   ].filter(Array.isArray) as any[][];
+1514: }
+1515: 
+1516: function getReportTwoOptionArabicLabel(field: any, rawValue: unknown) {
+1517:   const target = getReportTwoLookupKey(rawValue);
+1518: 
+1519:   if (!target) return "";
+1520: 
+1521:   for (const options of getReportTwoOptionCollections(field)) {
+1522:     for (const option of options) {
+
+----- Around line 1511 -----
+1503:   return [
+1504:     field.options,
+1505:     field.dynamicFieldOptions,
+1506:     field.fieldOptions,
+1507:     field.choices,
+1508:     field.items,
+1509:     field.field?.options,
+1510:     field.field?.dynamicFieldOptions,
+1511:     field.dynamicField?.options,
+1512:     field.workflowField?.options,
+1513:   ].filter(Array.isArray) as any[][];
+1514: }
+1515: 
+1516: function getReportTwoOptionArabicLabel(field: any, rawValue: unknown) {
+1517:   const target = getReportTwoLookupKey(rawValue);
+1518: 
+1519:   if (!target) return "";
+1520: 
+1521:   for (const options of getReportTwoOptionCollections(field)) {
+1522:     for (const option of options) {
+1523:       const optionValues = [
+
+----- Around line 1572 -----
+1564:     field.displayLabel,
+1565:     field.fieldLabel,
+1566:     field.labelAr,
+1567:     field.nameAr,
+1568:     field.titleAr,
+1569:     field.label,
+1570:     field.title,
+1571:     field.field?.label,
+1572:     field.dynamicField?.label,
+1573:     field.workflowField?.label,
+1574:   ];
+1575: 
+1576:   for (const candidate of candidates) {
+1577:     const text = cleanText(candidate);
+1578: 
+1579:     if (text && text !== key) return text;
+1580:   }
+1581: 
+1582:   const fromMap = getReportTwoFieldLabel(key, field.label);
+1583: 
+1584:   if (fromMap && fromMap !== key) return fromMap;
+
+----- Around line 1624 -----
+1616: 
+1617:   const fromMap = getReportTwoFieldValue(rawValue);
+1618: 
+1619:   if (fromMap && fromMap !== rawValue) return fromMap;
+1620: 
+1621:   return rawValue;
+1622: }
+1623: 
+1624: function getReportTwoDynamicFieldsFromPreviewCase(
+1625:   previewCase: ReturnType<typeof getPreviewCase>,
+1626: ): ReportTwoDynamicField[] {
+1627:   return (previewCase.values || [])
+1628:     .map((item: any, index: number) => {
+1629:       const key = cleanText(item.fieldKey) || `workflow-field-${index + 1}`;
+1630:       const label = cleanText(item.fieldLabel) || key || `حقل ${index + 1}`;
+1631:       const value = cleanText(item.value);
+1632: 
+1633:       return {
+1634:         id: key || `workflow-field-${index + 1}`,
+1635:         key,
+1636:         label,
+
+----- Around line 1626 -----
+1618: 
+1619:   if (fromMap && fromMap !== rawValue) return fromMap;
+1620: 
+1621:   return rawValue;
+1622: }
+1623: 
+1624: function getReportTwoDynamicFieldsFromPreviewCase(
+1625:   previewCase: ReturnType<typeof getPreviewCase>,
+1626: ): ReportTwoDynamicField[] {
+1627:   return (previewCase.values || [])
+1628:     .map((item: any, index: number) => {
+1629:       const key = cleanText(item.fieldKey) || `workflow-field-${index + 1}`;
+1630:       const label = cleanText(item.fieldLabel) || key || `حقل ${index + 1}`;
+1631:       const value = cleanText(item.value);
+1632: 
+1633:       return {
+1634:         id: key || `workflow-field-${index + 1}`,
+1635:         key,
+1636:         label,
+1637:         value,
+1638:         visible: Boolean(label && value),
+
+----- Around line 1644 -----
+1636:         label,
+1637:         value,
+1638:         visible: Boolean(label && value),
+1639:       };
+1640:     })
+1641:     .filter((item) => item.label && item.value);
+1642: }
+1643: 
+1644: function getDynamicFieldsForBlock(
+1645:   block: StudioBlock | null,
+1646:   previewCase: ReturnType<typeof getPreviewCase>,
+1647: ) {
+1648:   const sourceFields = getReportTwoDynamicFieldsFromPreviewCase(previewCase);
+1649: 
+1650:   if (!block?.dynamicFields?.length) {
+1651:     return sourceFields;
+1652:   }
+1653: 
+1654:   const sourceByKey = new Map<string, ReportTwoDynamicField>();
+1655: 
+1656:   sourceFields.forEach((field) => {
+
+----- Around line 1648 -----
+1640:     })
+1641:     .filter((item) => item.label && item.value);
+1642: }
+1643: 
+1644: function getDynamicFieldsForBlock(
+1645:   block: StudioBlock | null,
+1646:   previewCase: ReturnType<typeof getPreviewCase>,
+1647: ) {
+1648:   const sourceFields = getReportTwoDynamicFieldsFromPreviewCase(previewCase);
+1649: 
+1650:   if (!block?.dynamicFields?.length) {
+1651:     return sourceFields;
+1652:   }
+1653: 
+1654:   const sourceByKey = new Map<string, ReportTwoDynamicField>();
+1655: 
+1656:   sourceFields.forEach((field) => {
+1657:     [field.id, field.key, field.label].forEach((value) => {
+1658:       const key = getReportTwoLookupKey(value);
+1659: 
+1660:       if (key) {
+
+----- Around line 1650 -----
+1642: }
+1643: 
+1644: function getDynamicFieldsForBlock(
+1645:   block: StudioBlock | null,
+1646:   previewCase: ReturnType<typeof getPreviewCase>,
+1647: ) {
+1648:   const sourceFields = getReportTwoDynamicFieldsFromPreviewCase(previewCase);
+1649: 
+1650:   if (!block?.dynamicFields?.length) {
+1651:     return sourceFields;
+1652:   }
+1653: 
+1654:   const sourceByKey = new Map<string, ReportTwoDynamicField>();
+1655: 
+1656:   sourceFields.forEach((field) => {
+1657:     [field.id, field.key, field.label].forEach((value) => {
+1658:       const key = getReportTwoLookupKey(value);
+1659: 
+1660:       if (key) {
+1661:         sourceByKey.set(key, field);
+1662:       }
+
+----- Around line 1654 -----
+1646:   previewCase: ReturnType<typeof getPreviewCase>,
+1647: ) {
+1648:   const sourceFields = getReportTwoDynamicFieldsFromPreviewCase(previewCase);
+1649: 
+1650:   if (!block?.dynamicFields?.length) {
+1651:     return sourceFields;
+1652:   }
+1653: 
+1654:   const sourceByKey = new Map<string, ReportTwoDynamicField>();
+1655: 
+1656:   sourceFields.forEach((field) => {
+1657:     [field.id, field.key, field.label].forEach((value) => {
+1658:       const key = getReportTwoLookupKey(value);
+1659: 
+1660:       if (key) {
+1661:         sourceByKey.set(key, field);
+1662:       }
+1663:     });
+1664:   });
+1665: 
+1666:   return block.dynamicFields.map((field, index) => {
+
+----- Around line 1666 -----
+1658:       const key = getReportTwoLookupKey(value);
+1659: 
+1660:       if (key) {
+1661:         sourceByKey.set(key, field);
+1662:       }
+1663:     });
+1664:   });
+1665: 
+1666:   return block.dynamicFields.map((field, index) => {
+1667:     const source =
+1668:       sourceByKey.get(getReportTwoLookupKey(field.key)) ||
+1669:       sourceByKey.get(getReportTwoLookupKey(field.id)) ||
+1670:       sourceByKey.get(getReportTwoLookupKey(field.label)) ||
+1671:       sourceFields[index];
+1672: 
+1673:     const key = field.key || source?.key || `dynamic-field-${index + 1}`;
+1674: 
+1675:     return {
+1676:       id: field.id || source?.id || `dynamic-field-${index + 1}`,
+1677:       key,
+1678:       label: cleanText(source?.label) || getReportTwoFieldLabel(field.key, field.label) || key,
+
+----- Around line 1673 -----
+1665: 
+1666:   return block.dynamicFields.map((field, index) => {
+1667:     const source =
+1668:       sourceByKey.get(getReportTwoLookupKey(field.key)) ||
+1669:       sourceByKey.get(getReportTwoLookupKey(field.id)) ||
+1670:       sourceByKey.get(getReportTwoLookupKey(field.label)) ||
+1671:       sourceFields[index];
+1672: 
+1673:     const key = field.key || source?.key || `dynamic-field-${index + 1}`;
+1674: 
+1675:     return {
+1676:       id: field.id || source?.id || `dynamic-field-${index + 1}`,
+1677:       key,
+1678:       label: cleanText(source?.label) || getReportTwoFieldLabel(field.key, field.label) || key,
+1679:       value: cleanText(source?.value) || getReportTwoFieldValue(field.value) || cleanText(field.value),
+1680:       visible: field.visible !== false,
+1681:     };
+1682:   });
+1683: }
+1684: function getReportTwoTableSettings(
+1685:   settings?: Record<string, boolean>,
+
+----- Around line 1676 -----
+1668:       sourceByKey.get(getReportTwoLookupKey(field.key)) ||
+1669:       sourceByKey.get(getReportTwoLookupKey(field.id)) ||
+1670:       sourceByKey.get(getReportTwoLookupKey(field.label)) ||
+1671:       sourceFields[index];
+1672: 
+1673:     const key = field.key || source?.key || `dynamic-field-${index + 1}`;
+1674: 
+1675:     return {
+1676:       id: field.id || source?.id || `dynamic-field-${index + 1}`,
+1677:       key,
+1678:       label: cleanText(source?.label) || getReportTwoFieldLabel(field.key, field.label) || key,
+1679:       value: cleanText(source?.value) || getReportTwoFieldValue(field.value) || cleanText(field.value),
+1680:       visible: field.visible !== false,
+1681:     };
+1682:   });
+1683: }
+1684: function getReportTwoTableSettings(
+1685:   settings?: Record<string, boolean>,
+1686: ): ReportTwoTableSettings {
+1687:   return {
+1688:     highlightHeader: settings?.highlightHeader !== false,
+
+----- Around line 1961 -----
+1953:         title: "صفحة بدون محتوى",
+1954:         description: `الصفحة ${pageIndex + 1} لا تحتوي على بلوكات.`,
+1955:         pageId: page.id,
+1956:         action: "open-page",
+1957:       });
+1958:     }
+1959: 
+1960:     page.blocks.forEach((block) => {
+1961:       if (isReportTwoDynamicFieldsBlock(block)) {
+1962:         const fields = getDynamicFieldsForBlock(block, previewCase);
+1963:         const visibleFields = fields.filter((field) => field.visible !== false);
+1964:         const technicalFields = visibleFields.filter(
+1965:           (field) =>
+1966:             isReportTwoTechnicalValue(field.label) ||
+1967:             isReportTwoTechnicalValue(field.value),
+1968:         );
+1969: 
+1970:         if (!visibleFields.length) {
+1971:           alerts.push({
+1972:             id: `no-visible-fields-${page.id}-${block.id}`,
+1973:             type: "warning",
+
+----- Around line 1962 -----
+1954:         description: `الصفحة ${pageIndex + 1} لا تحتوي على بلوكات.`,
+1955:         pageId: page.id,
+1956:         action: "open-page",
+1957:       });
+1958:     }
+1959: 
+1960:     page.blocks.forEach((block) => {
+1961:       if (isReportTwoDynamicFieldsBlock(block)) {
+1962:         const fields = getDynamicFieldsForBlock(block, previewCase);
+1963:         const visibleFields = fields.filter((field) => field.visible !== false);
+1964:         const technicalFields = visibleFields.filter(
+1965:           (field) =>
+1966:             isReportTwoTechnicalValue(field.label) ||
+1967:             isReportTwoTechnicalValue(field.value),
+1968:         );
+1969: 
+1970:         if (!visibleFields.length) {
+1971:           alerts.push({
+1972:             id: `no-visible-fields-${page.id}-${block.id}`,
+1973:             type: "warning",
+1974:             title: "لا توجد حقول ظاهرة",
+
+----- Around line 2203 -----
+2195: function getBlockKindName(kind: StudioBlockKind) {
+2196:   if (kind === "hero-title") return "عنوان رئيسي";
+2197:   if (kind === "meta-strip") return "شريط بيانات";
+2198:   if (kind === "plain-text") return "نص بسيط";
+2199:   if (kind === "section-text") return "فقرة";
+2200:   if (kind === "multi-paragraph") return "فقرات";
+2201:   if (kind === "highlight-note") return "ملاحظة بارزة";
+2202:   if (kind === "bullet-list") return "قائمة";
+2203:   if (kind === "dynamic-fields") return "حقول الحالة";
+2204:   if (kind === "evidence-gallery") return "الشواهد";
+2205:   if (kind === "closing-note") return "خاتمة";
+2206:   if (kind === "report-one-table") return "جدول";
+2207:   if (kind === "signature-grid") return "تواقيع الاعتماد";
+2208: 
+2209:   return "بلوك";
+2210: }
+2211: 
+2212: export function ReportTwoStudioRuntime({
+2213:   caseId,
+2214:   selectedTemplateId,
+2215:   payload,
+
+----- Around line 2482 -----
+2474: 
+2475:   function fixReportTwoSmartAlert(alert: ReportTwoSmartAlert) {
+2476:     if (alert.action === "hide-technical-fields") {
+2477:       setTemplate((current) => ({
+2478:         ...current,
+2479:         pages: current.pages.map((page) => ({
+2480:           ...page,
+2481:           blocks: page.blocks.map((block) => {
+2482:             if (!isReportTwoDynamicFieldsBlock(block)) {
+2483:               return block;
+2484:             }
+2485: 
+2486:             const fields = getDynamicFieldsForBlock(block, previewCase).map(
+2487:               (field) => ({
+2488:                 ...field,
+2489:                 visible:
+2490:                   field.visible !== false &&
+2491:                   !isReportTwoTechnicalValue(field.label) &&
+2492:                   !isReportTwoTechnicalValue(field.value),
+2493:               }),
+2494:             );
+
+----- Around line 2486 -----
+2478:         ...current,
+2479:         pages: current.pages.map((page) => ({
+2480:           ...page,
+2481:           blocks: page.blocks.map((block) => {
+2482:             if (!isReportTwoDynamicFieldsBlock(block)) {
+2483:               return block;
+2484:             }
+2485: 
+2486:             const fields = getDynamicFieldsForBlock(block, previewCase).map(
+2487:               (field) => ({
+2488:                 ...field,
+2489:                 visible:
+2490:                   field.visible !== false &&
+2491:                   !isReportTwoTechnicalValue(field.label) &&
+2492:                   !isReportTwoTechnicalValue(field.value),
+2493:               }),
+2494:             );
+2495: 
+2496:             return {
+2497:               ...block,
+2498:               dynamicFields: fields,
+
+----- Around line 2498 -----
+2490:                   field.visible !== false &&
+2491:                   !isReportTwoTechnicalValue(field.label) &&
+2492:                   !isReportTwoTechnicalValue(field.value),
+2493:               }),
+2494:             );
+2495: 
+2496:             return {
+2497:               ...block,
+2498:               dynamicFields: fields,
+2499:             };
+2500:           }),
+2501:         })),
+2502:       }));
+2503: 
+2504:       return;
+2505:     }
+2506: 
+2507:     if (alert.action === "restore-header") {
+2508:       setHeaderValues(null);
+2509:       setHeaderAlignments(null);
+2510:       setLogoSettings(null);
+
+----- Around line 3183 -----
+3175: 
+3176:     updatePage(activePage.id, (page) => ({
+3177:       ...page,
+3178:       blocks: nextBlocks,
+3179:     }));
+3180:   }
+3181: 
+3182: 
+3183:   function updateDynamicField(
+3184:     blockId: string,
+3185:     fieldId: string,
+3186:     patch: Partial<ReportTwoDynamicField>,
+3187:   ) {
+3188:     updateBlock(blockId, (block) => ({
+3189:       ...block,
+3190:       dynamicFields: getDynamicFieldsForBlock(block, previewCase).map((field) =>
+3191:         field.id === fieldId
+3192:           ? {
+3193:               ...field,
+3194:               ...patch,
+3195:             }
+
+----- Around line 3186 -----
+3178:       blocks: nextBlocks,
+3179:     }));
+3180:   }
+3181: 
+3182: 
+3183:   function updateDynamicField(
+3184:     blockId: string,
+3185:     fieldId: string,
+3186:     patch: Partial<ReportTwoDynamicField>,
+3187:   ) {
+3188:     updateBlock(blockId, (block) => ({
+3189:       ...block,
+3190:       dynamicFields: getDynamicFieldsForBlock(block, previewCase).map((field) =>
+3191:         field.id === fieldId
+3192:           ? {
+3193:               ...field,
+3194:               ...patch,
+3195:             }
+3196:           : field,
+3197:       ),
+3198:     }));
+
+----- Around line 3190 -----
+3182: 
+3183:   function updateDynamicField(
+3184:     blockId: string,
+3185:     fieldId: string,
+3186:     patch: Partial<ReportTwoDynamicField>,
+3187:   ) {
+3188:     updateBlock(blockId, (block) => ({
+3189:       ...block,
+3190:       dynamicFields: getDynamicFieldsForBlock(block, previewCase).map((field) =>
+3191:         field.id === fieldId
+3192:           ? {
+3193:               ...field,
+3194:               ...patch,
+3195:             }
+3196:           : field,
+3197:       ),
+3198:     }));
+3199:   }
+3200: 
+3201:   function moveDynamicField(
+3202:     blockId: string,
+
+----- Around line 3201 -----
+3193:               ...field,
+3194:               ...patch,
+3195:             }
+3196:           : field,
+3197:       ),
+3198:     }));
+3199:   }
+3200: 
+3201:   function moveDynamicField(
+3202:     blockId: string,
+3203:     fieldId: string,
+3204:     direction: "up" | "down",
+3205:   ) {
+3206:     updateBlock(blockId, (block) => {
+3207:       const fields = getDynamicFieldsForBlock(block, previewCase);
+3208:       const index = fields.findIndex((field) => field.id === fieldId);
+3209: 
+3210:       if (index < 0) return block;
+3211: 
+3212:       const targetIndex = direction === "up" ? index - 1 : index + 1;
+3213: 
+
+----- Around line 3207 -----
+3199:   }
+3200: 
+3201:   function moveDynamicField(
+3202:     blockId: string,
+3203:     fieldId: string,
+3204:     direction: "up" | "down",
+3205:   ) {
+3206:     updateBlock(blockId, (block) => {
+3207:       const fields = getDynamicFieldsForBlock(block, previewCase);
+3208:       const index = fields.findIndex((field) => field.id === fieldId);
+3209: 
+3210:       if (index < 0) return block;
+3211: 
+3212:       const targetIndex = direction === "up" ? index - 1 : index + 1;
+3213: 
+3214:       if (targetIndex < 0 || targetIndex >= fields.length) return block;
+3215: 
+3216:       const nextFields = [...fields];
+3217:       const [field] = nextFields.splice(index, 1);
+3218:       nextFields.splice(targetIndex, 0, field);
+3219: 
+
+----- Around line 3222 -----
+3214:       if (targetIndex < 0 || targetIndex >= fields.length) return block;
+3215: 
+3216:       const nextFields = [...fields];
+3217:       const [field] = nextFields.splice(index, 1);
+3218:       nextFields.splice(targetIndex, 0, field);
+3219: 
+3220:       return {
+3221:         ...block,
+3222:         dynamicFields: nextFields,
+3223:       };
+3224:     });
+3225:   }
+3226: 
+3227:   function resetDynamicFields(blockId: string) {
+3228:     updateBlock(blockId, (block) => ({
+3229:       ...block,
+3230:       dynamicFields: getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+3231:     }));
+3232:   }
+3233: 
+3234:   function openTableEditor(block: StudioBlock) {
+
+----- Around line 3227 -----
+3219: 
+3220:       return {
+3221:         ...block,
+3222:         dynamicFields: nextFields,
+3223:       };
+3224:     });
+3225:   }
+3226: 
+3227:   function resetDynamicFields(blockId: string) {
+3228:     updateBlock(blockId, (block) => ({
+3229:       ...block,
+3230:       dynamicFields: getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+3231:     }));
+3232:   }
+3233: 
+3234:   function openTableEditor(block: StudioBlock) {
+3235:     setEditingTableDraft(createReportTwoTableDraft(block));
+3236:   }
+3237: 
+3238:   function closeTableEditor() {
+3239:     setEditingTableDraft(null);
+
+----- Around line 3230 -----
+3222:         dynamicFields: nextFields,
+3223:       };
+3224:     });
+3225:   }
+3226: 
+3227:   function resetDynamicFields(blockId: string) {
+3228:     updateBlock(blockId, (block) => ({
+3229:       ...block,
+3230:       dynamicFields: getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+3231:     }));
+3232:   }
+3233: 
+3234:   function openTableEditor(block: StudioBlock) {
+3235:     setEditingTableDraft(createReportTwoTableDraft(block));
+3236:   }
+3237: 
+3238:   function closeTableEditor() {
+3239:     setEditingTableDraft(null);
+3240:   }
+3241: 
+3242:   function updateEditingTableDraft(
+
+----- Around line 4243 -----
+4235:             <h2 className="text-sm font-black text-slate-950">
+4236:               إضافة بلوك داخل الصفحة
+4237:             </h2>
+4238: 
+4239:             <div className="mt-3 grid grid-cols-2 gap-2">
+4240:               {[
+4241:                 ["section-text", "فقرة"],
+4242:                 ["bullet-list", "قائمة"],
+4243:                 ["dynamic-fields", "حقول"],
+4244:                 ["evidence-gallery", "شواهد"],
+4245:                 ["report-one-table", "جدول"],
+4246:                 ["signature-grid", "تواقيع"],
+4247:                 ["closing-note", "خاتمة"],
+4248:               ].map(([kind, label]) => (
+4249:                 <button
+4250:                   key={kind}
+4251:                   type="button"
+4252:                   onClick={() => addBlock(kind as StudioBlockKind)}
+4253:                   className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+4254:                 >
+4255:                   + {label}
+
+----- Around line 4359 -----
+4351:                         ...block,
+4352:                         showTitle: event.target.checked,
+4353:                       }))
+4354:                     }
+4355:                   />
+4356:                   إظهار العنوان
+4357:                 </label>
+4358: 
+4359:                 {isReportTwoDynamicFieldsBlock(selectedBlock) ? (
+4360:                   <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
+4361:                     <div className="flex items-center justify-between gap-2">
+4362:                       <div>
+4363:                         <h3 className="text-xs font-black text-slate-900">
+4364:                           2. الحقول المختارة
+4365:                         </h3>
+4366:                         <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+4367:                           اختر أي حقل تريد عرضه، وعدّل الاسم والقيمة مباشرة.
+4368:                         </p>
+4369:                       </div>
+4370: 
+4371:                       <button
+
+----- Around line 4373 -----
+4365:                         </h3>
+4366:                         <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+4367:                           اختر أي حقل تريد عرضه، وعدّل الاسم والقيمة مباشرة.
+4368:                         </p>
+4369:                       </div>
+4370: 
+4371:                       <button
+4372:                         type="button"
+4373:                         onClick={() => resetDynamicFields(selectedBlock.id)}
+4374:                         className="rounded-full bg-white px-3 py-2 text-[11px] font-black text-emerald-700 shadow-sm"
+4375:                       >
+4376:                         تعبئة من الحالة
+4377:                       </button>
+4378:                     </div>
+4379: 
+4380:                     <div className="mt-3 max-h-[520px] space-y-3 overflow-y-auto pr-1">
+4381:                       {getDynamicFieldsForBlock(selectedBlock, previewCase).map((field) => (
+4382:                         <article
+4383:                           key={field.id}
+4384:                           className={[
+4385:                             "rounded-2xl border p-3 transition",
+
+----- Around line 4381 -----
+4373:                         onClick={() => resetDynamicFields(selectedBlock.id)}
+4374:                         className="rounded-full bg-white px-3 py-2 text-[11px] font-black text-emerald-700 shadow-sm"
+4375:                       >
+4376:                         تعبئة من الحالة
+4377:                       </button>
+4378:                     </div>
+4379: 
+4380:                     <div className="mt-3 max-h-[520px] space-y-3 overflow-y-auto pr-1">
+4381:                       {getDynamicFieldsForBlock(selectedBlock, previewCase).map((field) => (
+4382:                         <article
+4383:                           key={field.id}
+4384:                           className={[
+4385:                             "rounded-2xl border p-3 transition",
+4386:                             field.visible
+4387:                               ? "border-emerald-200 bg-white"
+4388:                               : "border-slate-200 bg-slate-50 opacity-70",
+4389:                           ].join(" ")}
+4390:                         >
+4391:                           <div className="mb-2 flex items-center justify-between gap-2">
+4392:                             <label className="flex items-center gap-2 text-[11px] font-black text-slate-600">
+4393:                               <input
+
+----- Around line 4397 -----
+4389:                           ].join(" ")}
+4390:                         >
+4391:                           <div className="mb-2 flex items-center justify-between gap-2">
+4392:                             <label className="flex items-center gap-2 text-[11px] font-black text-slate-600">
+4393:                               <input
+4394:                                 type="checkbox"
+4395:                                 checked={field.visible}
+4396:                                 onChange={(event) =>
+4397:                                   updateDynamicField(selectedBlock.id, field.id, {
+4398:                                     visible: event.target.checked,
+4399:                                   })
+4400:                                 }
+4401:                               />
+4402:                               عرض في التقرير
+4403:                             </label>
+4404: 
+4405:                             <div className="flex gap-1">
+4406:                               <button
+4407:                                 type="button"
+4408:                                 onClick={() => moveDynamicField(selectedBlock.id, field.id, "up")}
+4409:                                 className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"
+
+----- Around line 4408 -----
+4400:                                 }
+4401:                               />
+4402:                               عرض في التقرير
+4403:                             </label>
+4404: 
+4405:                             <div className="flex gap-1">
+4406:                               <button
+4407:                                 type="button"
+4408:                                 onClick={() => moveDynamicField(selectedBlock.id, field.id, "up")}
+4409:                                 className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"
+4410:                               >
+4411:                                 ↑
+4412:                               </button>
+4413: 
+4414:                               <button
+4415:                                 type="button"
+4416:                                 onClick={() => moveDynamicField(selectedBlock.id, field.id, "down")}
+4417:                                 className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"
+4418:                               >
+4419:                                 ↓
+4420:                               </button>
+
+----- Around line 4416 -----
+4408:                                 onClick={() => moveDynamicField(selectedBlock.id, field.id, "up")}
+4409:                                 className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"
+4410:                               >
+4411:                                 ↑
+4412:                               </button>
+4413: 
+4414:                               <button
+4415:                                 type="button"
+4416:                                 onClick={() => moveDynamicField(selectedBlock.id, field.id, "down")}
+4417:                                 className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"
+4418:                               >
+4419:                                 ↓
+4420:                               </button>
+4421:                             </div>
+4422:                           </div>
+4423: 
+4424:                           <label className="block">
+4425:                             <span className="text-[11px] font-black text-slate-500">
+4426:                               اسم الحقل
+4427:                             </span>
+4428: 
+
+----- Around line 4432 -----
+4424:                           <label className="block">
+4425:                             <span className="text-[11px] font-black text-slate-500">
+4426:                               اسم الحقل
+4427:                             </span>
+4428: 
+4429:                             <input
+4430:                               value={field.label}
+4431:                               onChange={(event) =>
+4432:                                 updateDynamicField(selectedBlock.id, field.id, {
+4433:                                   label: event.target.value,
+4434:                                 })
+4435:                               }
+4436:                               className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black outline-none focus:border-emerald-600"
+4437:                             />
+4438:                           </label>
+4439: 
+4440:                           <label className="mt-2 block">
+4441:                             <span className="text-[11px] font-black text-slate-500">
+4442:                               القيمة
+4443:                             </span>
+4444: 
+
+----- Around line 4448 -----
+4440:                           <label className="mt-2 block">
+4441:                             <span className="text-[11px] font-black text-slate-500">
+4442:                               القيمة
+4443:                             </span>
+4444: 
+4445:                             <textarea
+4446:                               value={field.value}
+4447:                               onChange={(event) =>
+4448:                                 updateDynamicField(selectedBlock.id, field.id, {
+4449:                                   value: event.target.value,
+4450:                                 })
+4451:                               }
+4452:                               rows={2}
+4453:                               className="mt-1 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold leading-6 outline-none focus:border-emerald-600"
+4454:                             />
+4455:                           </label>
+4456:                         </article>
+4457:                       ))}
+4458:                     </div>
+4459:                   </section>
+4460:                 ) : null}
+
+----- Around line 4461 -----
+4453:                               className="mt-1 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold leading-6 outline-none focus:border-emerald-600"
+4454:                             />
+4455:                           </label>
+4456:                         </article>
+4457:                       ))}
+4458:                     </div>
+4459:                   </section>
+4460:                 ) : null}
+4461:                 {selectedBlock.kind !== "dynamic-fields" &&
+4462:                 selectedBlock.kind !== "evidence-gallery" &&
+4463:                 selectedBlock.kind !== "report-one-table" &&
+4464:                 selectedBlock.kind !== "signature-grid" ? (
+4465:                   <label className="block">
+4466:                     <span className="text-xs font-black text-slate-500">
+4467:                       المحتوى
+4468:                     </span>
+4469: 
+4470:                     <textarea
+4471:                       value={selectedBlock.content}
+4472:                       onChange={(event) =>
+4473:                         updateBlock(selectedBlock.id, (block) => ({
+
+===== PATTERN: اسم الحقل =====
+
+----- Around line 4426 -----
+4418:                               >
+4419:                                 ↓
+4420:                               </button>
+4421:                             </div>
+4422:                           </div>
+4423: 
+4424:                           <label className="block">
+4425:                             <span className="text-[11px] font-black text-slate-500">
+4426:                               اسم الحقل
+4427:                             </span>
+4428: 
+4429:                             <input
+4430:                               value={field.label}
+4431:                               onChange={(event) =>
+4432:                                 updateDynamicField(selectedBlock.id, field.id, {
+4433:                                   label: event.target.value,
+4434:                                 })
+4435:                               }
+4436:                               className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black outline-none focus:border-emerald-600"
+4437:                             />
+4438:                           </label>
+
+===== PATTERN: القيمة =====
+
+----- Around line 4367 -----
+4359:                 {isReportTwoDynamicFieldsBlock(selectedBlock) ? (
+4360:                   <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
+4361:                     <div className="flex items-center justify-between gap-2">
+4362:                       <div>
+4363:                         <h3 className="text-xs font-black text-slate-900">
+4364:                           2. الحقول المختارة
+4365:                         </h3>
+4366:                         <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+4367:                           اختر أي حقل تريد عرضه، وعدّل الاسم والقيمة مباشرة.
+4368:                         </p>
+4369:                       </div>
+4370: 
+4371:                       <button
+4372:                         type="button"
+4373:                         onClick={() => resetDynamicFields(selectedBlock.id)}
+4374:                         className="rounded-full bg-white px-3 py-2 text-[11px] font-black text-emerald-700 shadow-sm"
+4375:                       >
+4376:                         تعبئة من الحالة
+4377:                       </button>
+4378:                     </div>
+4379: 
+
+----- Around line 4442 -----
+4434:                                 })
+4435:                               }
+4436:                               className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black outline-none focus:border-emerald-600"
+4437:                             />
+4438:                           </label>
+4439: 
+4440:                           <label className="mt-2 block">
+4441:                             <span className="text-[11px] font-black text-slate-500">
+4442:                               القيمة
+4443:                             </span>
+4444: 
+4445:                             <textarea
+4446:                               value={field.value}
+4447:                               onChange={(event) =>
+4448:                                 updateDynamicField(selectedBlock.id, field.id, {
+4449:                                   value: event.target.value,
+4450:                                 })
+4451:                               }
+4452:                               rows={2}
+4453:                               className="mt-1 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold leading-6 outline-none focus:border-emerald-600"
+4454:                             />
+
+===== PATTERN: عرض في التقرير =====
+
+----- Around line 4402 -----
+4394:                                 type="checkbox"
+4395:                                 checked={field.visible}
+4396:                                 onChange={(event) =>
+4397:                                   updateDynamicField(selectedBlock.id, field.id, {
+4398:                                     visible: event.target.checked,
+4399:                                   })
+4400:                                 }
+4401:                               />
+4402:                               عرض في التقرير
+4403:                             </label>
+4404: 
+4405:                             <div className="flex gap-1">
+4406:                               <button
+4407:                                 type="button"
+4408:                                 onClick={() => moveDynamicField(selectedBlock.id, field.id, "up")}
+4409:                                 className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"
+4410:                               >
+4411:                                 ↑
+4412:                               </button>
+4413: 
+4414:                               <button
+
+===== PATTERN: textarea =====
+
+----- Around line 4167 -----
+4159:                           <option key={`${field.key}-${key}`} value={key}>
+4160:                             {label}
+4161:                           </option>
+4162:                         ))}
+4163:                       </select>
+4164:                     </div>
+4165:                   </div>
+4166: 
+4167:                   <textarea
+4168:                     value={activeHeaderValues[field.key]}
+4169:                     onChange={(event) =>
+4170:                       updateReportTwoHeaderValue(field.key, event.target.value)
+4171:                     }
+4172:                     rows={2}
+4173:                     className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black leading-6 outline-none focus:border-emerald-600"
+4174:                   />
+4175:                 </article>
+4176:               ))}
+4177:             </div>
+4178:           
+4179: </ReportTwoCollapsibleCard>
+
+----- Around line 4445 -----
+4437:                             />
+4438:                           </label>
+4439: 
+4440:                           <label className="mt-2 block">
+4441:                             <span className="text-[11px] font-black text-slate-500">
+4442:                               القيمة
+4443:                             </span>
+4444: 
+4445:                             <textarea
+4446:                               value={field.value}
+4447:                               onChange={(event) =>
+4448:                                 updateDynamicField(selectedBlock.id, field.id, {
+4449:                                   value: event.target.value,
+4450:                                 })
+4451:                               }
+4452:                               rows={2}
+4453:                               className="mt-1 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold leading-6 outline-none focus:border-emerald-600"
+4454:                             />
+4455:                           </label>
+4456:                         </article>
+4457:                       ))}
+
+----- Around line 4470 -----
+4462:                 selectedBlock.kind !== "evidence-gallery" &&
+4463:                 selectedBlock.kind !== "report-one-table" &&
+4464:                 selectedBlock.kind !== "signature-grid" ? (
+4465:                   <label className="block">
+4466:                     <span className="text-xs font-black text-slate-500">
+4467:                       المحتوى
+4468:                     </span>
+4469: 
+4470:                     <textarea
+4471:                       value={selectedBlock.content}
+4472:                       onChange={(event) =>
+4473:                         updateBlock(selectedBlock.id, (block) => ({
+4474:                           ...block,
+4475:                           content: event.target.value,
+4476:                         }))
+4477:                       }
+4478:                       rows={7}
+4479:                       className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 outline-none focus:border-emerald-600"
+4480:                     />
+4481:                   </label>
+4482:                 ) : null}
+
+----- Around line 5116 -----
+5108:                                   columnIndex === 0
+5109:                                     ? "bg-emerald-50"
+5110:                                     : editingTableDraft.settings.stripedRows &&
+5111:                                         rowIndex % 2 === 1
+5112:                                       ? "bg-slate-50"
+5113:                                       : "bg-white",
+5114:                                 ].join(" ")}
+5115:                               >
+5116:                                 <textarea
+5117:                                   value={row[columnIndex] || ""}
+5118:                                   onChange={(event) =>
+5119:                                     updateEditingTableDraft((draft) =>
+5120:                                       updateReportTwoTableCell(
+5121:                                         draft,
+5122:                                         rowIndex,
+5123:                                         columnIndex,
+5124:                                         event.target.value,
+5125:                                       ),
+5126:                                     )
+5127:                                   }
+5128:                                   rows={3}
+
+===== PATTERN: input =====
+
+----- Around line 3478 -----
+3470:               <h3 className="text-xs font-black text-slate-950">
+3471:                 حفظ قالب Runtime
+3472:               </h3>
+3473: 
+3474:               <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+3475:                 احفظ تعديلاتك الحالية لهذه الخدمة لاستخدامها لاحقًا.
+3476:               </p>
+3477: 
+3478:               <input
+3479:                 value={runtimeTemplateName}
+3480:                 onChange={(event) => setRuntimeTemplateName(event.target.value)}
+3481:                 placeholder="مثال: قالب النشاط النهائي"
+3482:                 className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black outline-none focus:border-emerald-600"
+3483:               />
+3484: 
+3485:               <button
+3486:                 type="button"
+3487:                 onClick={saveCurrentRuntimeTemplate}
+3488:                 className="mt-2 w-full rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+3489:               >
+3490:                 {activeSavedRuntimeTemplateId ? "تحديث القالب المحفوظ" : "حفظ القالب الحالي"}
+
+----- Around line 3927 -----
+3919:                 />
+3920:               </div>
+3921: 
+3922:               <label className="mt-3 block">
+3923:                 <span className="text-xs font-black text-slate-500">
+3924:                   رابط الشعار
+3925:                 </span>
+3926: 
+3927:                 <input
+3928:                   value={activeLogoSettings.url}
+3929:                   onChange={(event) =>
+3930:                     updateReportTwoLogoSettings({
+3931:                       url: event.target.value,
+3932:                     })
+3933:                   }
+3934:                   placeholder="/uploads/school-logos/MOE.png"
+3935:                   className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left text-xs font-black outline-none focus:border-emerald-600"
+3936:                   dir="ltr"
+3937:                 />
+3938:               </label>
+3939: 
+
+----- Around line 3945 -----
+3937:                 />
+3938:               </label>
+3939: 
+3940:               <label className="mt-3 block">
+3941:                 <span className="text-xs font-black text-slate-500">
+3942:                   رفع شعار للمعاينة
+3943:                 </span>
+3944: 
+3945:                 <input
+3946:                   type="file"
+3947:                   accept="image/*"
+3948:                   onChange={(event) =>
+3949:                     uploadReportTwoLogo(event.target.files?.[0] || null)
+3950:                   }
+3951:                   className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600"
+3952:                 />
+3953:               </label>
+3954: 
+3955:               <div className="mt-3 grid grid-cols-2 gap-2">
+3956:                 <label className="block">
+3957:                   <span className="text-[11px] font-black text-slate-500">
+
+----- Around line 3961 -----
+3953:               </label>
+3954: 
+3955:               <div className="mt-3 grid grid-cols-2 gap-2">
+3956:                 <label className="block">
+3957:                   <span className="text-[11px] font-black text-slate-500">
+3958:                     العرض
+3959:                   </span>
+3960: 
+3961:                   <input
+3962:                     type="number"
+3963:                     min={24}
+3964:                     max={240}
+3965:                     value={activeLogoSettings.width}
+3966:                     onChange={(event) =>
+3967:                       updateReportTwoLogoSettings({
+3968:                         width: normalizeReportTwoLogoNumber(
+3969:                           Number(event.target.value),
+3970:                           96,
+3971:                           24,
+3972:                           240,
+3973:                         ),
+
+----- Around line 3985 -----
+3977:                   />
+3978:                 </label>
+3979: 
+3980:                 <label className="block">
+3981:                   <span className="text-[11px] font-black text-slate-500">
+3982:                     الارتفاع
+3983:                   </span>
+3984: 
+3985:                   <input
+3986:                     type="number"
+3987:                     min={20}
+3988:                     max={160}
+3989:                     value={activeLogoSettings.height}
+3990:                     onChange={(event) =>
+3991:                       updateReportTwoLogoSettings({
+3992:                         height: normalizeReportTwoLogoNumber(
+3993:                           Number(event.target.value),
+3994:                           56,
+3995:                           20,
+3996:                           160,
+3997:                         ),
+
+----- Around line 4194 -----
+4186: 
+4187:             {activePage ? (
+4188:               <div className="mt-4 space-y-3">
+4189:                 <label className="block">
+4190:                   <span className="text-xs font-black text-slate-500">
+4191:                     اسم الصفحة
+4192:                   </span>
+4193: 
+4194:                   <input
+4195:                     value={activePage.title}
+4196:                     onChange={(event) =>
+4197:                       updatePage(activePage.id, (page) => ({
+4198:                         ...page,
+4199:                         title: event.target.value,
+4200:                       }))
+4201:                     }
+4202:                     className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+4203:                   />
+4204:                 </label>
+4205: 
+4206:                 <label className="block">
+
+----- Around line 4333 -----
+4325:               </div>
+4326: 
+4327:               <div className="mt-4 space-y-3">
+4328:                 <label className="block">
+4329:                   <span className="text-xs font-black text-slate-500">
+4330:                     عنوان البلوك
+4331:                   </span>
+4332: 
+4333:                   <input
+4334:                     value={selectedBlock.title}
+4335:                     onChange={(event) =>
+4336:                       updateBlock(selectedBlock.id, (block) => ({
+4337:                         ...block,
+4338:                         title: event.target.value,
+4339:                       }))
+4340:                     }
+4341:                     className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+4342:                   />
+4343:                 </label>
+4344: 
+4345:                 <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
+
+----- Around line 4346 -----
+4338:                         title: event.target.value,
+4339:                       }))
+4340:                     }
+4341:                     className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+4342:                   />
+4343:                 </label>
+4344: 
+4345:                 <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
+4346:                   <input
+4347:                     type="checkbox"
+4348:                     checked={selectedBlock.showTitle !== false}
+4349:                     onChange={(event) =>
+4350:                       updateBlock(selectedBlock.id, (block) => ({
+4351:                         ...block,
+4352:                         showTitle: event.target.checked,
+4353:                       }))
+4354:                     }
+4355:                   />
+4356:                   إظهار العنوان
+4357:                 </label>
+4358: 
+
+----- Around line 4393 -----
+4385:                             "rounded-2xl border p-3 transition",
+4386:                             field.visible
+4387:                               ? "border-emerald-200 bg-white"
+4388:                               : "border-slate-200 bg-slate-50 opacity-70",
+4389:                           ].join(" ")}
+4390:                         >
+4391:                           <div className="mb-2 flex items-center justify-between gap-2">
+4392:                             <label className="flex items-center gap-2 text-[11px] font-black text-slate-600">
+4393:                               <input
+4394:                                 type="checkbox"
+4395:                                 checked={field.visible}
+4396:                                 onChange={(event) =>
+4397:                                   updateDynamicField(selectedBlock.id, field.id, {
+4398:                                     visible: event.target.checked,
+4399:                                   })
+4400:                                 }
+4401:                               />
+4402:                               عرض في التقرير
+4403:                             </label>
+4404: 
+4405:                             <div className="flex gap-1">
+
+----- Around line 4429 -----
+4421:                             </div>
+4422:                           </div>
+4423: 
+4424:                           <label className="block">
+4425:                             <span className="text-[11px] font-black text-slate-500">
+4426:                               اسم الحقل
+4427:                             </span>
+4428: 
+4429:                             <input
+4430:                               value={field.label}
+4431:                               onChange={(event) =>
+4432:                                 updateDynamicField(selectedBlock.id, field.id, {
+4433:                                   label: event.target.value,
+4434:                                 })
+4435:                               }
+4436:                               className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black outline-none focus:border-emerald-600"
+4437:                             />
+4438:                           </label>
+4439: 
+4440:                           <label className="mt-2 block">
+4441:                             <span className="text-[11px] font-black text-slate-500">
+
+----- Around line 4690 -----
+4682:                         className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs font-black outline-none focus:border-emerald-600"
+4683:                       >
+4684:                         <option value="contain">احتواء</option>
+4685:                         <option value="cover">قص وتعبئة</option>
+4686:                       </select>
+4687:                     </label>
+4688: 
+4689:                     <label className="flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs font-black text-slate-600">
+4690:                       <input
+4691:                         type="checkbox"
+4692:                         checked={Boolean(selectedBlock.evidenceShowCaptions)}
+4693:                         onChange={(event) =>
+4694:                           updateBlock(selectedBlock.id, (block) => ({
+4695:                             ...block,
+4696:                             evidenceShowCaptions: event.target.checked,
+4697:                           }))
+4698:                         }
+4699:                       />
+4700:                       إظهار التسميات
+4701:                     </label>
+4702:                   </div>
+
+----- Around line 4914 -----
+4906: 
+4907:                   <p className="mt-2 text-xs font-bold leading-6 text-emerald-700">
+4908:                     تأكد بصريًا من المعاينة ثم ضع علامة التأكيد.
+4909:                   </p>
+4910:                 </div>
+4911:               )}
+4912: 
+4913:               <label className="mt-5 flex items-center gap-3 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4 text-sm font-black text-slate-700">
+4914:                 <input
+4915:                   type="checkbox"
+4916:                   checked={finalChecklistConfirmed}
+4917:                   onChange={(event) =>
+4918:                     setFinalChecklistConfirmed(event.target.checked)
+4919:                   }
+4920:                 />
+4921:                 راجعت المعاينة والشواهد والحقول، والتقرير جاهز للاعتماد.
+4922:               </label>
+4923:             </main>
+4924: 
+4925:             <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-6 py-4">
+4926:               <div className="text-xs font-bold text-slate-500">
+
+----- Around line 5047 -----
+5039:                             #
+5040:                           </div>
+5041: 
+5042:                           {editingTableDraft.columns.map((column, columnIndex) => (
+5043:                             <div
+5044:                               key={`column-${columnIndex}`}
+5045:                               className="flex items-center gap-2 border-r border-emerald-100 bg-emerald-700 px-3 py-2"
+5046:                             >
+5047:                               <input
+5048:                                 value={column}
+5049:                                 onChange={(event) =>
+5050:                                   updateEditingTableDraft((draft) =>
+5051:                                     updateReportTwoTableColumn(
+5052:                                       draft,
+5053:                                       columnIndex,
+5054:                                       event.target.value,
+5055:                                     ),
+5056:                                   )
+5057:                                 }
+5058:                                 className="min-w-0 flex-1 rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-center text-xs font-black text-slate-800 outline-none focus:border-emerald-500"
+5059:                               />
+
+----- Around line 5153 -----
+5145: 
+5146:                 <aside className="min-h-0 overflow-y-auto border-r border-slate-100 bg-slate-50 p-5">
+5147:                   <div className="space-y-4">
+5148:                     <label className="block rounded-2xl border border-slate-100 bg-white p-4">
+5149:                       <span className="text-xs font-black text-slate-500">
+5150:                         عنوان الجدول
+5151:                       </span>
+5152: 
+5153:                       <input
+5154:                         value={editingTableDraft.title}
+5155:                         onChange={(event) =>
+5156:                           updateEditingTableDraft((draft) =>
+5157:                             updateReportTwoTableTitle(draft, event.target.value),
+5158:                           )
+5159:                         }
+5160:                         className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black outline-none focus:border-emerald-600"
+5161:                       />
+5162:                     </label>
+5163: 
+5164:                     <div className="rounded-2xl border border-slate-100 bg-white p-4">
+5165:                       <h3 className="text-sm font-black text-slate-900">
+
+----- Around line 5185 -----
+5177:                         ] as Array<[keyof ReportTwoTableSettings, string]>).map(
+5178:                           ([key, label]) => (
+5179:                             <label
+5180:                               key={key}
+5181:                               className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
+5182:                             >
+5183:                               <span>{label}</span>
+5184: 
+5185:                               <input
+5186:                                 type="checkbox"
+5187:                                 checked={editingTableDraft.settings[key]}
+5188:                                 onChange={(event) =>
+5189:                                   updateEditingTableDraft((draft) =>
+5190:                                     updateReportTwoTableSetting(
+5191:                                       draft,
+5192:                                       key,
+5193:                                       event.target.checked,
+5194:                                     ),
+5195:                                   )
+5196:                                 }
+5197:                               />

@@ -2023,20 +2023,29 @@ function DesignBlock({
     const highlightHeader = tableSettings.highlightHeader !== false;
     const highlightFirstColumn = Boolean(tableSettings.highlightFirstColumn);
     const stripedRows = Boolean(tableSettings.stripedRows);
+    const colorTheme = tableSettings.colorTheme || "light-gray";
+
+    const themeColors: Record<string, { border: string; headerBg: string; firstColBg: string; stripedBg: string; headerText: string; cellText: string; firstColText: string }> = {
+      "light-gray": { border: "border-slate-200", headerBg: "bg-slate-50", firstColBg: "bg-slate-50", stripedBg: "bg-slate-50/40", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+      "soft-blue": { border: "border-sky-200", headerBg: "bg-sky-50", firstColBg: "bg-sky-50", stripedBg: "bg-sky-50/40", headerText: "text-sky-900", cellText: "text-slate-700", firstColText: "text-sky-900" },
+      "green": { border: "border-emerald-200", headerBg: "bg-emerald-50", firstColBg: "bg-emerald-50", stripedBg: "bg-emerald-50/40", headerText: "text-emerald-900", cellText: "text-slate-700", firstColText: "text-emerald-900" },
+      "none": { border: "border-slate-200", headerBg: "bg-white", firstColBg: "bg-white", stripedBg: "bg-white", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
+    };
+    const tc = themeColors[colorTheme] || themeColors["light-gray"];
 
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)}>
         {block.showTitle ? <BlockTitle title={block.title} /> : null}
 
-        <div className={rounded ? "overflow-hidden rounded-2xl border border-emerald-100" : "overflow-hidden border border-emerald-100"}>
+        <div className={rounded ? `overflow-hidden rounded-2xl border ${tc.border}` : `overflow-hidden border ${tc.border}`}>
           <table className="w-full border-collapse text-xs">
-            <thead className={highlightHeader ? "bg-emerald-50" : "bg-slate-50"}>
+            <thead className={highlightHeader ? tc.headerBg : "bg-white"}>
               <tr>
                 {columns.map((column: string, columnIndex: number) => (
                   <th
                     key={`${column}-${columnIndex}`}
                     className={[
-                      "border border-emerald-100 text-center font-black text-slate-800",
+                      `border ${tc.border} text-center font-black ${tc.headerText}`,
                       compact ? "px-2 py-2" : "px-3 py-3",
                     ].join(" ")}
                   >
@@ -2050,16 +2059,16 @@ function DesignBlock({
               {rows.map((row: string[], rowIndex: number) => (
                 <tr
                   key={`row-${rowIndex}`}
-                  className={stripedRows && rowIndex % 2 === 1 ? "bg-slate-50/70" : "bg-white"}
+                  className={stripedRows && rowIndex % 2 === 1 ? tc.stripedBg : "bg-white"}
                 >
                   {columns.map((_: string, columnIndex: number) => (
                     <td
                       key={`cell-${rowIndex}-${columnIndex}`}
                       className={[
-                        "border border-emerald-100 text-center font-bold leading-6 text-slate-700",
+                        `border ${tc.border} text-center font-bold leading-6 ${tc.cellText}`,
                         compact ? "px-2 py-2" : "px-3 py-3",
                         highlightFirstColumn && columnIndex === 0
-                          ? "bg-emerald-50/70 font-black text-slate-900"
+                          ? `${tc.firstColBg} font-black ${tc.firstColText}`
                           : "",
                       ].join(" ")}
                     >

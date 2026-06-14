@@ -1,0 +1,905 @@
+Report 2 Studio files scan
+Project: D:\student-guidance-platform-clean
+Generated: 06/14/2026 23:41:32
+
+Git status:
+
+
+=== الملفات المحتملة المرتبطة بـ report-2 / studio / reports ===
+D:\student-guidance-platform-clean\app\api\admin\report-templates\preview-case\route.ts
+D:\student-guidance-platform-clean\app\api\admin\report-templates\workflow-fields\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report\prepare\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\approve\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\delete\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\duplicate\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\evidence\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report\[reportId]\export\pdf\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-1\cases\[caseId]\generate\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-1\[reportId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-1\[reportId]\approve\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-1\[reportId]\export\pdf\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-templates\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-templates\[templateId]\use\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\case\[caseId]\generate\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\case\[caseId]\prepare\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\prepare\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\approve\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\delete\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\duplicate\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\evidence\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\reports\[reportId]\export\pdf\route.ts
+D:\student-guidance-platform-clean\app\api\dev\seed-one-page-mosaic-report-template\route.ts
+D:\student-guidance-platform-clean\app\api\dev\seed-three-report-design-templates\route.ts
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\reports\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\reports\activity-card\[caseId]\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\evidence-rich-report\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\minimal-guidance-report\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\official-school-report\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\preview\[templateId]\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\designs\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\library\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\new\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\report-texts\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\admin\reports\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\assessment-center\reports\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report\new\layout.tsx
+D:\student-guidance-platform-clean\app\dashboard\report\new\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report\[reportId]\preview\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report\[reportId]\studio\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report-1\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report-1\cases\[caseId]\prepare\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report-1\[reportId]\preview\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report-1\[reportId]\studio\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report-2\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report-2\cases\[caseId]\studio\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\report-preview\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\reports\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\reports\cases\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\reports\cases\[caseId]\prepare\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\reports\new\layout.tsx
+D:\student-guidance-platform-clean\app\dashboard\reports\new\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\reports\saved\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\reports\[reportId]\preview\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\reports\[reportId]\studio\page.tsx
+D:\student-guidance-platform-clean\app\report-2-export-preview\[token]\page.tsx
+D:\student-guidance-platform-clean\components\activity-programs\reports\activity-execution-card-report.tsx
+D:\student-guidance-platform-clean\components\activity-programs\reports\report-print-button.tsx
+D:\student-guidance-platform-clean\components\admin\report-text-library-admin.tsx
+D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+D:\student-guidance-platform-clean\components\admin\workflow-health\workflow-health-report.tsx
+D:\student-guidance-platform-clean\components\document-export\guardian-summons-report-engine-pdf-button.tsx
+D:\student-guidance-platform-clean\components\report-1\report-one-case-workspace.tsx
+D:\student-guidance-platform-clean\components\report-1\report-one-home.tsx
+D:\student-guidance-platform-clean\components\report-1\report-one-preview-page.tsx
+D:\student-guidance-platform-clean\components\report-1\report-one-saved-studio.tsx
+D:\student-guidance-platform-clean\components\report-1\editor\report-one-control-panel.tsx
+D:\student-guidance-platform-clean\components\report-1\editor\report-one-editor-types.ts
+D:\student-guidance-platform-clean\components\report-1\editor\report-one-editor.tsx
+D:\student-guidance-platform-clean\components\report-1\editor\report-one-evidence-settings-panel.tsx
+D:\student-guidance-platform-clean\components\report-1\editor\report-one-template-preview.tsx
+D:\student-guidance-platform-clean\components\report-2\report-two-home.tsx
+D:\student-guidance-platform-clean\components\report-2\report-two-pdf-export-preview.tsx
+D:\student-guidance-platform-clean\components\report-2\report-two-print-document.tsx
+D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+D:\student-guidance-platform-clean\components\report-engine\appreciation-certificate-preview.tsx
+D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx
+D:\student-guidance-platform-clean\components\report-engine\official-report-document.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-builder-pdf-renderer.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-document-renderer.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-field-selection-gate.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-print-button.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-template-admin-tools.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-template-command-center.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-template-live-preview.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx
+D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+D:\student-guidance-platform-clean\components\report-engine\save-smart-report-button.tsx
+D:\student-guidance-platform-clean\components\report-engine\saved-reports-list-page.tsx
+D:\student-guidance-platform-clean\components\report-engine\saved-smart-report-preview-page.tsx
+D:\student-guidance-platform-clean\components\report-engine\smart-general-a4-report.tsx
+D:\student-guidance-platform-clean\components\report-engine\smart-report-case-preview-page.tsx
+D:\student-guidance-platform-clean\components\report-engine\smart-report-document-renderer.tsx
+D:\student-guidance-platform-clean\components\report-engine\smart-report-variant-selector.tsx
+D:\student-guidance-platform-clean\components\report-engine\text-library-block-settings-editor.tsx
+D:\student-guidance-platform-clean\components\report-engine\admin\admin-reports-center.tsx
+D:\student-guidance-platform-clean\components\report-engine\design-renderers\report-design-gallery-preview.tsx
+D:\student-guidance-platform-clean\components\report-engine\design-renderers\report-design-renderer.tsx
+D:\student-guidance-platform-clean\components\report-engine\document-editor\report-add-block-menu.tsx
+D:\student-guidance-platform-clean\components\report-engine\document-editor\report-block-frame.tsx
+D:\student-guidance-platform-clean\components\report-engine\document-editor\report-document-editor.tsx
+D:\student-guidance-platform-clean\components\report-engine\document-editor\report-final-preview-modal.tsx
+D:\student-guidance-platform-clean\components\report-engine\document-editor\report-page-canvas.tsx
+D:\student-guidance-platform-clean\components\report-engine\document-editor\report-page-tabs.tsx
+D:\student-guidance-platform-clean\components\report-engine\document-editor\report-table-editor-modal.tsx
+D:\student-guidance-platform-clean\components\report-engine\document-renderers\ministry-report-shell.tsx
+D:\student-guidance-platform-clean\components\reports\new-report-case-picker.tsx
+D:\student-guidance-platform-clean\components\reports\new-report-case-picker.tsx.tsx
+D:\student-guidance-platform-clean\components\reports\report-actions.tsx
+D:\student-guidance-platform-clean\components\reports\report-evidence-gallery.tsx
+D:\student-guidance-platform-clean\components\reports\report-list.tsx
+D:\student-guidance-platform-clean\components\reports\report-pdf-guidance-card.tsx
+D:\student-guidance-platform-clean\components\reports\report-preview-a4.tsx
+D:\student-guidance-platform-clean\components\reports\report-preview-toolbar.tsx
+D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+D:\student-guidance-platform-clean\components\reports\reports-dashboard.tsx
+D:\student-guidance-platform-clean\components\reports\studio\report-context-panel.tsx
+D:\student-guidance-platform-clean\components\reports\studio\report-gender-toggle.tsx
+D:\student-guidance-platform-clean\components\reports\studio\report-smart-editor.tsx
+D:\student-guidance-platform-clean\components\reports\studio\report-studio-shell.tsx
+D:\student-guidance-platform-clean\components\reports\studio\report-template-sidebar.tsx
+D:\student-guidance-platform-clean\components\reports\templates\report-template-form.tsx
+D:\student-guidance-platform-clean\components\reports\templates\report-template-list.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\new-report-case-picker.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\new-report-case-picker.tsx.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\report-actions.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\report-evidence-gallery.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\report-list.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\report-pdf-guidance-card.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\report-preview-a4.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\report-preview-toolbar.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\report-studio-editor.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\reports-dashboard.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\studio\report-context-panel.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\studio\report-gender-toggle.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\studio\report-smart-editor.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\studio\report-studio-shell.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\studio\report-template-sidebar.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\templates\report-template-form.tsx
+D:\student-guidance-platform-clean\components\reports-legacy\templates\report-template-list.tsx
+D:\student-guidance-platform-clean\components\surveys\survey-print-report-shell.tsx
+D:\student-guidance-platform-clean\lib\activity-programs\activity-card-report-runtime.ts
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts
+D:\student-guidance-platform-clean\lib\report-engine\guardian-summons-template-runtime.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-access-scope.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-block-builder.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-block-paginator.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-block-types.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-builder-template-runtime.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-case-data-mapper.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-data-mapper.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-draft-merger.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-identity-runtime.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-page-builder.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-smart-text-engine.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-smart-text-library.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-snapshot.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-template-portability.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-template-runtime-types.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.tscode
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-types.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-theme.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-types.ts
+D:\student-guidance-platform-clean\lib\report-engine\report-variant-registry.ts
+D:\student-guidance-platform-clean\lib\report-engine\sample-report-data.ts
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-defaults.ts
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-types.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-a4-paginator.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-adapter.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-builder.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-operations.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-serializer.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-types.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-utils.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-draft-storage.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-signature-policy.ts
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-table-utils.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\extra-official-template-presets.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\guardian-summons-template-runtime.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-builder-template-runtime.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-case-data-mapper.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-data-mapper.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-identity-runtime.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-smart-text-engine.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-smart-text-library.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-snapshot.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-template-builder-presets.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-template-builder-types.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-template-portability.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-template-runtime-types.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-template-validation.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-templates.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-text-library-runtime.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-text-studio-presets.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-text-studio-presets.tscode
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-text-studio-types.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-theme.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\report-types.ts
+D:\student-guidance-platform-clean\lib\report-engine-legacy\sample-report-data.ts
+D:\student-guidance-platform-clean\lib\reports\default-report-templates.ts
+D:\student-guidance-platform-clean\lib\reports\report-access.ts
+D:\student-guidance-platform-clean\lib\reports\report-types.ts
+D:\student-guidance-platform-clean\lib\reports\report-utils.ts
+D:\student-guidance-platform-clean\lib\reports-legacy\default-report-templates.ts
+D:\student-guidance-platform-clean\lib\reports-legacy\report-access.ts
+D:\student-guidance-platform-clean\lib\reports-legacy\report-types.ts
+D:\student-guidance-platform-clean\lib\reports-legacy\report-utils.ts
+
+=== نتائج البحث داخل الملفات ===
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 8
+TEXT: } from "@/lib/report-engine/report-text-studio-types";
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 16
+TEXT: } from "@/lib/report-engine/report-text-studio-presets";
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 20
+TEXT: export function ReportTextTemplateStudio() {
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 188
+TEXT: <StudioHero errorCount={errorCount} />
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 231
+TEXT: function StudioHero({ errorCount }: { errorCount: number }) {
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 237
+TEXT: Smart Report Template Studio
+
+FILE: D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx
+LINE: 254
+TEXT: <p className="mt-1 text-lg font-black text-white">Studio تجريبي</p>
+
+FILE: D:\student-guidance-platform-clean\components\report-1\report-one-preview-page.tsx
+LINE: 85
+TEXT: href={`/dashboard/report-1/${reportId}/studio`}
+
+FILE: D:\student-guidance-platform-clean\components\report-1\report-one-saved-studio.tsx
+LINE: 4
+TEXT: type ReportOneSavedStudioProps = {
+
+FILE: D:\student-guidance-platform-clean\components\report-1\report-one-saved-studio.tsx
+LINE: 10
+TEXT: export function ReportOneSavedStudio({
+
+FILE: D:\student-guidance-platform-clean\components\report-1\report-one-saved-studio.tsx
+LINE: 14
+TEXT: }: ReportOneSavedStudioProps) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-home.tsx
+LINE: 10
+TEXT: function openStudio() {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-home.tsx
+LINE: 18
+TEXT: router.push(`/dashboard/report-2/cases/${encodeURIComponent(id)}/studio`);
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-home.tsx
+LINE: 25
+TEXT: report-2
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-home.tsx
+LINE: 46
+TEXT: if (event.key === "Enter") openStudio();
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-home.tsx
+LINE: 56
+TEXT: onClick={openStudio}
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-home.tsx
+LINE: 59
+TEXT: فتح محرر report-2
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-pdf-export-preview.tsx
+LINE: 7
+TEXT: import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-pdf-export-preview.tsx
+LINE: 28
+TEXT: id: "report-2-export-empty",
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 89
+TEXT: type StudioBlockKind =
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 103
+TEXT: type StudioPageKind =
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 135
+TEXT: type StudioBlock = {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 137
+TEXT: kind: StudioBlockKind;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 164
+TEXT: type StudioPage = {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 166
+TEXT: kind: StudioPageKind;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 171
+TEXT: blocks: StudioBlock[];
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 174
+TEXT: type StudioTemplate = {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 179
+TEXT: pages: StudioPage[];
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 188
+TEXT: template: StudioTemplate;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 233
+TEXT: template: StudioTemplate;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 241
+TEXT: type ReportTwoStudioRuntimeProps = {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 250
+TEXT: return `report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 274
+TEXT: return "report-2:saved-runtime-templates:";
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 339
+TEXT: function cloneReportTwoTemplate(template: StudioTemplate): StudioTemplate {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 340
+TEXT: return JSON.parse(JSON.stringify(template)) as StudioTemplate;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 344
+TEXT: return `report-2:draft:${serviceSlug || "general"}:${caseId || "unknown"}`;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 406
+TEXT: function createBlock(kind: StudioBlockKind): StudioBlock {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 509
+TEXT: function createPage(index: number): StudioPage {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 519
+TEXT: function normalizeBlock(value: any, index: number): StudioBlock {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 520
+TEXT: const kind = cleanText(value?.kind || value?.settings?.smartBlockKind || "section-text") as StudioBlockKind;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 536
+TEXT: function normalizePage(value: any, index: number): StudioPage {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 541
+TEXT: kind: cleanText(value?.kind || "content") as StudioPageKind,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 550
+TEXT: function hydrateTemplate(template: TemplateOption | null): StudioTemplate {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 552
+TEXT: const smartStudio = asRecord(raw.smartStudio);
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 553
+TEXT: const source = asArray(smartStudio.pages).length ? smartStudio : raw;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 557
+TEXT: id: template?.id || "report-2-empty-template",
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 558
+TEXT: name: template?.name || "قالب report-2",
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 565
+TEXT: id: "report-2-fallback-page",
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 950
+TEXT: function getEvidencePerPageFromBlock(block: StudioBlock) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 993
+TEXT: function isReportTwoSignatureBlock(block: StudioBlock | null | undefined) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1009
+TEXT: function getReportTwoSignatureTargetPageId(pages: StudioPage[]) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1017
+TEXT: function getReportTwoSignatureHiddenKeys(block: StudioBlock | null | undefined) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1027
+TEXT: block: StudioBlock | null | undefined,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1052
+TEXT: block: StudioBlock | null | undefined,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1110
+TEXT: template: StudioTemplate,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1112
+TEXT: ): StudioTemplate {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1114
+TEXT: let signatureBlock: StudioBlock | null = null;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1141
+TEXT: const baseSignatureBlock = signatureBlock as StudioBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1145
+TEXT: kind: "signature-grid" as StudioBlockKind,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1155
+TEXT: } as StudioBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1170
+TEXT: block: StudioBlock,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1228
+TEXT: sourcePage: StudioPage,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1230
+TEXT: ): StudioPage {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1235
+TEXT: description: "صفحة تكميلية أنشأها report-2 لحماية حدود A4.",
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1239
+TEXT: } as StudioPage;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1243
+TEXT: block: StudioBlock,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1245
+TEXT: ): StudioBlock {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1250
+TEXT: kind: "dynamic-fields" as StudioBlockKind,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1261
+TEXT: } as StudioBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1273
+TEXT: } as StudioBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1277
+TEXT: template: StudioTemplate,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1279
+TEXT: ): StudioTemplate {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1280
+TEXT: const runtimePages: StudioPage[] = [];
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1287
+TEXT: let currentPage: StudioPage = {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1325
+TEXT: const evidencePage: StudioPage = {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1361
+TEXT: activePage: StudioPage | undefined,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1362
+TEXT: template: StudioTemplate,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1419
+TEXT: pages: StudioPage[],
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1441
+TEXT: function isReportTwoDynamicFieldsBlock(block: StudioBlock | null | undefined) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1645
+TEXT: block: StudioBlock | null,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1724
+TEXT: function createReportTwoTableDraft(block: StudioBlock): ReportTwoTableDraft {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1871
+TEXT: function getReportTwoFilledTableCells(block: StudioBlock) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 1893
+TEXT: visiblePreviewTemplate: StudioTemplate;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 2110
+TEXT: visiblePreviewTemplate: StudioTemplate;
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 2195
+TEXT: function getBlockKindName(kind: StudioBlockKind) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 2212
+TEXT: export function ReportTwoStudioRuntime({
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 2217
+TEXT: }: ReportTwoStudioRuntimeProps) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 2250
+TEXT: const [template, setTemplate] = useState<StudioTemplate>(() =>
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 2635
+TEXT: `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 2946
+TEXT: function updateTemplate(patch: Partial<StudioTemplate>) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 2953
+TEXT: function updatePage(pageId: string, updater: (page: StudioPage) => StudioPage) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 2962
+TEXT: function updateBlock(blockId: string, updater: (block: StudioBlock) => StudioBlock) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 3112
+TEXT: function addBlock(kind: StudioBlockKind) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 3234
+TEXT: function openTableEditor(block: StudioBlock) {
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 3311
+TEXT: // استعادة مسودة report-2
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 3454
+TEXT: report-2
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 4216
+TEXT: kind: event.target.value as StudioPageKind,
+
+FILE: D:\student-guidance-platform-clean\components\report-2\report-two-studio-runtime.tsx
+LINE: 4252
+TEXT: onClick={() => addBlock(kind as StudioBlockKind)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+LINE: 60
+TEXT: const pages = Array.isArray(templateJson?.smartStudio?.pages)
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+LINE: 61
+TEXT: ? templateJson.smartStudio.pages
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+LINE: 84
+TEXT: const pages = Array.isArray(templateJson?.smartStudio?.pages)
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+LINE: 85
+TEXT: ? templateJson.smartStudio.pages
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+LINE: 222
+TEXT: function openInStudio(template: TemplateRow) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+LINE: 225
+TEXT: "template-studio-selected",
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-library.tsx
+LINE: 489
+TEXT: onClick={() => openInStudio(template)}
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 58
+TEXT: type StudioTextSnippet = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 65
+TEXT: type StudioBlock = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 88
+TEXT: type StudioPage = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 93
+TEXT: blocks: StudioBlock[];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 96
+TEXT: type StudioTemplate = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 109
+TEXT: pages: StudioPage[];
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 182
+TEXT: const textSnippets: StudioTextSnippet[] = [
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 321
+TEXT: function createBlock(kind: BlockKind): StudioBlock {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 346
+TEXT: function createPage(kind: PageKind, index: number): StudioPage {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 347
+TEXT: const presets: Record<PageKind, Omit<StudioPage, "id" | "blocks"> & { blockKinds: BlockKind[] }> = {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 391
+TEXT: function createInitialTemplate(): StudioTemplate {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 407
+TEXT: function buildRuntimeContext(template: StudioTemplate, previewCase: PreviewCaseData | null) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 488
+TEXT: function extractUsedWorkflowFieldKeys(template: StudioTemplate) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 543
+TEXT: function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 545
+TEXT: const smartStudio = templateJson?.smartStudio || {};
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 549
+TEXT: Array.isArray(smartStudio?.pages) && smartStudio.pages.length
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 550
+TEXT: ? smartStudio.pages
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 606
+TEXT: smartStudio.designTemplateId ||
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 642
+TEXT: } as StudioTemplate;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 645
+TEXT: export function ReportTemplateStudio() {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 646
+TEXT: const [template, setTemplate] = useState<StudioTemplate>(() => createInitialTemplate());
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 689
+TEXT: const cached = sessionStorage.getItem("template-studio-selected");
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 695
+TEXT: const hydrated = hydrateStudioTemplateFromSavedItem(cachedItem);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 703
+TEXT: sessionStorage.removeItem("template-studio-selected");
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 726
+TEXT: const hydrated = hydrateStudioTemplateFromSavedItem(item);
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 817
+TEXT: function updateTemplate(next: Partial<StudioTemplate>) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 825
+TEXT: function updatePage(pageId: string, updater: (page: StudioPage) => StudioPage) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 833
+TEXT: function updateBlock(blockId: string, updater: (block: StudioBlock) => StudioBlock) {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 1060
+TEXT: smartStudio: {
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2118
+TEXT: template: StudioTemplate;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2299
+TEXT: template: StudioTemplate;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2300
+TEXT: activePage?: StudioPage;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2326
+TEXT: block: StudioBlock;
+
+FILE: D:\student-guidance-platform-clean\components\report-engine\report-template-studio.tsx
+LINE: 2629
+TEXT: function getEvidenceAspectRatioClass(block: StudioBlock) {
+
+FILE: D:\student-guidance-platform-clean\components\reports\new-report-case-picker.tsx.tsx
+LINE: 99
+TEXT: router.push(`/dashboard/report/${data.reportId}/studio`);
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-actions.tsx
+LINE: 39
+TEXT: href={`/dashboard/report/${reportId}/studio`}
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-preview-a4.tsx
+LINE: 37
+TEXT: href={`/dashboard/report/${report.id}/studio`}
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-preview-toolbar.tsx
+LINE: 148
+TEXT: href={`/dashboard/report/${reportId}/studio`}
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 8
+TEXT: type StudioReportStatus =
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 59
+TEXT: type StudioReport = {
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 63
+TEXT: status: StudioReportStatus;
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 104
+TEXT: type ReportStudioEditorProps = {
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 105
+TEXT: report: StudioReport;
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 182
+TEXT: export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 284
+TEXT: )}&studio=true&v=${previewVersion}`;
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 624
+TEXT: {/* REPORT_STUDIO_SIDE_TEXT_EDITOR */}
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1197
+TEXT: if (Array.isArray(source.smartStudio?.pages)) {
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1198
+TEXT: return source.smartStudio;
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1205
+TEXT: if (Array.isArray(source.templateJson?.smartStudio?.pages)) {
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1206
+TEXT: return source.templateJson.smartStudio;
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1223
+TEXT: snapshot?.smartStudio?.pages,
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1225
+TEXT: snapshot?.templateJson?.smartStudio?.pages,
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1245
+TEXT: function normalizeTemplateSnapshot(report: StudioReport) {
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1249
+TEXT: report.templateSnapshot?.smartStudio ||
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1318
+TEXT: function buildRuntimeContext(report: StudioReport) {
+
+FILE: D:\student-guidance-platform-clean\components\reports\report-studio-editor.tsx
+LINE: 1873
+TEXT: function buildPreviewCaseDataForRenderer(report: StudioReport) {
+
+FILE: D:\student-guidance-platform-clean\components\reports\reports-dashboard.tsx
+LINE: 477
+TEXT: href={`/dashboard/report/${report.id}/studio`}
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts
+LINE: 4
+TEXT: ReportTextStudioValidationIssue,
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts
+LINE: 5
+TEXT: } from "@/lib/report-engine/report-text-studio-types";
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts
+LINE: 393
+TEXT: ): ReportTextStudioValidationIssue[] {
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts
+LINE: 395
+TEXT: const issues: ReportTextStudioValidationIssue[] = [];
+
+FILE: D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-types.ts
+LINE: 64
+TEXT: export type ReportTextStudioValidationIssue = {
