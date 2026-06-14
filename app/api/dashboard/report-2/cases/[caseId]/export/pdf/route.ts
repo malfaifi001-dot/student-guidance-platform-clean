@@ -101,6 +101,7 @@ export async function POST(request: Request, context: RouteContext) {
   const snapshotPath = path.join(snapshotDir, `${token}.json`);
   const origin = getRequestOrigin(request);
   const previewUrl = `${origin}/report-2-export-preview/${token}`;
+  const printPreviewUrl = `${previewUrl}?print=1`;
   const fileName = safeDownloadFileName(body.fileName || "report.pdf");
 
   await fs.mkdir(snapshotDir, {
@@ -299,7 +300,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         fallback: "PRINT_PREVIEW",
-        previewUrl,
+        previewUrl: printPreviewUrl,
         fileName,
         message:
           "Server PDF generation failed. Opening print preview so the user can save as PDF.",

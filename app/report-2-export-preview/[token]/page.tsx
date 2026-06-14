@@ -9,6 +9,9 @@ type PageProps = {
   params: Promise<{
     token: string;
   }>;
+  searchParams: Promise<{
+    print?: string;
+  }>;
 };
 
 function getReportTwoExportSnapshotDir() {
@@ -32,13 +35,19 @@ async function readSnapshot(token: string) {
   }
 }
 
-export default async function ReportTwoExportPreviewPage({ params }: PageProps) {
+export default async function ReportTwoExportPreviewPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { token } = await params;
+  const { print } = await searchParams;
   const snapshot = await readSnapshot(token);
 
   if (!snapshot?.template?.pages?.length) {
     notFound();
   }
 
-  return <ReportTwoPdfExportPreview snapshot={snapshot} />;
+  return (
+    <ReportTwoPdfExportPreview snapshot={snapshot} printMode={print === "1"} />
+  );
 }
