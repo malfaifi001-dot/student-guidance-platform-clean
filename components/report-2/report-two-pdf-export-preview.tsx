@@ -128,16 +128,8 @@ export function ReportTwoPdfExportPreview({
           page-break-after: auto;
         }
 
-        .report-two-print-mode .rounded-3xl {
-          border: none !important;
-          padding: 0 !important;
-          background: transparent !important;
-          box-shadow: none !important;
-          border-radius: 0 !important;
-        }
-
         .report-two-print-mode .report-design-logo-control-style > .mb-5 {
-          display: none !important;
+          visibility: hidden !important;
         }
 
         [data-report-two-pdf-hide="evidence-overflow-note"] {

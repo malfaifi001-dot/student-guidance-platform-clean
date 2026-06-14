@@ -54,6 +54,28 @@ function getRequestOrigin(request: Request) {
   return `${proto}://${host}`;
 }
 
+async function cleanupStaleSnapshots(ttlMs = 60 * 60 * 1000) {
+  const dir = getReportTwoExportSnapshotDir();
+  try {
+    const files = await fs.readdir(dir);
+    const now = Date.now();
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      const filePath = path.join(dir, file);
+      try {
+        const stat = await fs.stat(filePath);
+        if (now - stat.mtimeMs > ttlMs) {
+          await fs.unlink(filePath);
+        }
+      } catch {
+        /* race condition with concurrent delete; skip */
+      }
+    }
+  } catch {
+    /* dir doesn't exist yet; nothing to clean */
+  }
+}
+
 async function readBody(request: Request): Promise<ExportPdfBody> {
   try {
     return (await request.json()) as ExportPdfBody;
@@ -109,6 +131,20 @@ export async function POST(request: Request, context: RouteContext) {
   });
 
   await fs.writeFile(snapshotPath, JSON.stringify(snapshot), "utf8");
+
+  cleanupStaleSnapshots().catch(() => null);
+
+  if (process.env.REPORT_TWO_PDF_BACKEND === "print-preview") {
+    return NextResponse.json(
+      {
+        fallback: "PRINT_PREVIEW",
+        previewUrl: `${previewUrl}?print=1`,
+        fileName,
+        message: "Server PDF generation is disabled. Opening browser print preview.",
+      },
+      { status: 200 },
+    );
+  }
 
   let browser: any = null;
 

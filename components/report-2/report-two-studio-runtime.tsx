@@ -2655,6 +2655,13 @@ export function ReportTwoStudioRuntime({
         const json = await response.json();
 
         if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+          setPopup({
+            type: "alert",
+            title: "تصدير PDF",
+            message:
+              "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم 'طباعة' أو 'حفظ كـ PDF' من متصفحك.",
+          });
+
           const previewWindow = window.open(
             json.previewUrl,
             "_blank",
