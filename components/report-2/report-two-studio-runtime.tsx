@@ -2649,6 +2649,26 @@ export function ReportTwoStudioRuntime({
         throw new Error("PDF_EXPORT_FAILED");
       }
 
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        const json = await response.json();
+
+        if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+          const previewWindow = window.open(
+            json.previewUrl,
+            "_blank",
+            "noopener,noreferrer",
+          );
+
+          if (!previewWindow) {
+            window.location.href = json.previewUrl;
+          }
+
+          return;
+        }
+      }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");

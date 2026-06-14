@@ -109,19 +109,21 @@ export async function POST(request: Request, context: RouteContext) {
 
   await fs.writeFile(snapshotPath, JSON.stringify(snapshot), "utf8");
 
-  const runtimeImport = new Function("specifier", "return import(specifier)") as (
-    specifier: string,
-  ) => Promise<typeof import("puppeteer")>;
-
-  const puppeteerModule = await runtimeImport("puppeteer");
-  const puppeteer = puppeteerModule.default || puppeteerModule;
-
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  let browser: any = null;
 
   try {
+    const runtimeImport = new Function("specifier", "return import(specifier)") as (
+      specifier: string,
+    ) => Promise<typeof import("puppeteer")>;
+
+    const puppeteerModule = await runtimeImport("puppeteer");
+    const puppeteer = puppeteerModule.default || puppeteerModule;
+
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+
     const page = await browser.newPage();
 
     await page.emulateMediaFeatures([
@@ -282,6 +284,8 @@ export async function POST(request: Request, context: RouteContext) {
 
     const pdfBuffer = Buffer.from(pdf);
 
+    await fs.unlink(snapshotPath).catch(() => null);
+
     return new Response(toArrayBuffer(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
@@ -289,8 +293,24 @@ export async function POST(request: Request, context: RouteContext) {
         "Cache-Control": "no-store",
       },
     });
+  } catch (error) {
+    console.error("Report-2 PDF generation failed, falling back to print preview:", error);
+
+    return NextResponse.json(
+      {
+        fallback: "PRINT_PREVIEW",
+        previewUrl,
+        fileName,
+        message:
+          "Server PDF generation failed. Opening print preview so the user can save as PDF.",
+      },
+      {
+        status: 200,
+      },
+    );
   } finally {
-    await browser.close();
-    await fs.unlink(snapshotPath).catch(() => null);
+    if (browser) {
+      await browser.close().catch(() => null);
+    }
   }
 }
