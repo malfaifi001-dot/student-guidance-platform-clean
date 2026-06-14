@@ -4,9 +4,20 @@ type ReportScopeUser = {
   schoolAccountId?: string | null;
 };
 
+const ACTIVITY_PROGRAM_SERVICE_SLUGS = [
+  "activity-programs",
+  "activity-programs-citizenship-life",
+  "activity-programs-science-technology",
+  "activity-programs-culture-arts",
+  "activity-programs-sports-health",
+  "activity-programs-scouting",
+  "activity-programs-events-occasions",
+  "activity-programs-non-class-periods",
+];
+
 function activityProgramSlugScope() {
   return {
-    startsWith: "activity-programs",
+    in: ACTIVITY_PROGRAM_SERVICE_SLUGS,
   };
 }
 
