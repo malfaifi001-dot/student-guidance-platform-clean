@@ -109,9 +109,14 @@ export async function POST(request: Request, context: RouteContext) {
 
   await fs.writeFile(snapshotPath, JSON.stringify(snapshot), "utf8");
 
-  const puppeteer = await import("puppeteer");
+  const runtimeImport = new Function("specifier", "return import(specifier)") as (
+    specifier: string,
+  ) => Promise<typeof import("puppeteer")>;
 
-  const browser = await puppeteer.default.launch({
+  const puppeteerModule = await runtimeImport("puppeteer");
+  const puppeteer = puppeteerModule.default || puppeteerModule;
+
+  const browser = await puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
