@@ -2078,11 +2078,11 @@ function DesignBlock({
     const dynamicFieldItems = getDynamicFieldCardsForBlock(block, previewCase);
 
     return (
-      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
+      <section className={getBlockShellClass(designId, block.variant, textAlign)} data-report-dynamic-fields>
         {block.showTitle ? <BlockTitle title={block.title} /> : null}
 
         {dynamicFieldItems.length ? (
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2 md:grid-cols-2 print:grid-cols-2">
             {dynamicFieldItems.map(({ id, label, value }: any, index: number) => (
               <MetaCard
                 key={`${id}-${index}`}
@@ -2108,7 +2108,7 @@ function DesignBlock({
         {block.showTitle ? <BlockTitle title={block.title} /> : null}
 
         {values.length ? (
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2 md:grid-cols-2 print:grid-cols-2">
             {values.map((item) => (
               <MetaCard
                 key={item.key || item.label}
