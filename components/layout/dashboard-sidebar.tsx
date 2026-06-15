@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import type { ComponentType, ReactNode } from "react";
 import {
   Activity,
@@ -52,8 +53,8 @@ const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
 
 const counselorImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard", icon: Home },
-  { label: "مركز الأنشطة", href: "/dashboard/cases", icon: FolderKanban },
-  { label: "التقارير", href: "/dashboard/report-2", icon: FileText },
+  { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
 ];
 
@@ -90,7 +91,7 @@ const counselorServiceLinks: SidebarLinkItem[] = [
   },
   {
     label: "تحليل النتائج",
-    href: "/dashboard/assessment-center",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
     icon: BarChart3,
   },
   {
@@ -104,7 +105,7 @@ const counselorServiceLinks: SidebarLinkItem[] = [
 const assessmentCenterLinks: SidebarLinkItem[] = [
   {
     label: "لوحة المركز",
-    href: "/dashboard/assessment-center",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
     icon: BarChart3,
   },
   {
@@ -119,8 +120,8 @@ const assessmentCenterLinks: SidebarLinkItem[] = [
   },
 ];
 const counselorToolsLinks: SidebarLinkItem[] = [
-  { label: "رفع بيانات الطلاب", href: "/dashboard/data-center/student-data-import", icon: UploadCloud },
-  { label: "الاستبيانات", href: "/dashboard/surveys", icon: ClipboardList },
+  { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
 ];
 
 const counselorAccountLinks: SidebarLinkItem[] = [
@@ -131,8 +132,8 @@ const counselorAccountLinks: SidebarLinkItem[] = [
 
 const activityLeaderImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard/activity-leader", icon: Home },
-  { label: "مركز الأنشطة", href: "/dashboard/cases", icon: FolderKanban, shortLabel: "الأنشطة" },
-  { label: "البرامج والفعاليات", href: "/dashboard/activity-leader/programs", icon: ClipboardList },
+  { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban, shortLabel: "الأنشطة" },
+  { label: "البرامج والفعاليات", href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms, icon: ClipboardList },
   { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
 ];
@@ -140,7 +141,7 @@ const activityLeaderImportantLinks: SidebarLinkItem[] = [
 const activityProgramDomainLinks: SidebarLinkItem[] = [
   {
     label: "كل برامج النشاط",
-    href: "/dashboard/activity-leader/programs",
+    href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
     icon: ClipboardList,
     shortLabel: "البرامج",
   },
@@ -153,11 +154,11 @@ const activityProgramDomainLinks: SidebarLinkItem[] = [
 ];
 const activityLeaderServiceLinks: SidebarLinkItem[] = [
   { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
-  { label: "رفع بيانات الطلاب", href: "/dashboard/data-center/student-data-import", icon: UploadCloud, shortLabel: "رفع الطلاب" },
+  { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud, shortLabel: "رفع الطلاب" },
   { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
   { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
   { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
-  { label: "التقارير", href: "/dashboard/report-2", icon: FileText },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
 ];
 
 const activityLeaderAccountLinks: SidebarLinkItem[] = [
@@ -167,14 +168,14 @@ const activityLeaderAccountLinks: SidebarLinkItem[] = [
 ];
 
 const teacherServiceLinks: SidebarLinkItem[] = [
-  { label: "الرئيسية", href: "/dashboard/teacher", icon: Home },
+  { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home },
   { label: "الأسرة والمجتمع", href: "/dashboard/teacher/family-community", icon: ClipboardList, shortLabel: "الأسرة" },
   { label: "تكليفاتي", href: "/dashboard/teacher/assignments", icon: ClipboardList, shortLabel: "تكليفاتي" },
   { label: "شواهدي", href: "/dashboard/teacher/evidence", icon: UploadCloud, shortLabel: "شواهدي" },
-  { label: "استبياناتي", href: "/dashboard/surveys", icon: ClipboardList, shortLabel: "استبياناتي" },
-  { label: "تقاريري", href: "/dashboard/report-2", icon: FileText, shortLabel: "تقاريري" },
-  { label: "بيانات الطلاب", href: "/dashboard/data-center/student-data-import", icon: Users, shortLabel: "الطلاب" },
-  { label: "مركز تحليل النتائج", href: "/dashboard/assessment-center", icon: BarChart3, shortLabel: "التحليل" },
+  { label: "استبياناتي", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList, shortLabel: "استبياناتي" },
+  { label: "تقاريري", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText, shortLabel: "تقاريري" },
+  { label: "بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: Users, shortLabel: "الطلاب" },
+  { label: "مركز تحليل النتائج", href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter, icon: BarChart3, shortLabel: "التحليل" },
   { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
 ];
 const adminMainLinks: SidebarLinkItem[] = [
@@ -306,10 +307,10 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
   const dashboardHomeHref = isAdmin
     ? "/dashboard/admin"
     : isActivityLeader
-      ? "/dashboard/activity-leader"
+      ? OFFICIAL_WORKSPACE_ROUTES.activityLeaderHome
       : isTeacher
-        ? "/dashboard/teacher"
-        : "/dashboard";
+        ? OFFICIAL_WORKSPACE_ROUTES.teacherHome
+        : OFFICIAL_WORKSPACE_ROUTES.counselorHome;
 
   const dashboardTitle = isAdmin
     ? "إدارة المنصة"

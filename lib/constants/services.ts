@@ -1,3 +1,4 @@
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import {
   ACTIVITY_PROGRAM_PARENT_SERVICE,
   ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
@@ -134,21 +135,21 @@ export const standaloneServices: AppService[] = [
     slug: "surveys",
     title: "الاستبيانات",
     description: "إنشاء الاستبيانات ونشرها وتحليل ردود المستفيدين.",
-    href: "/dashboard/surveys",
+    href: OFFICIAL_WORKSPACE_ROUTES.surveys,
     kind: "standalone",
   },
   {
     slug: "results-analysis",
     title: "تحليل النتائج",
     description: "رفع وتحليل نتائج الطلاب.",
-    href: "/dashboard/assessment-center",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
     kind: "standalone",
   },
   {
     slug: "reports",
     title: "التقارير",
     description: "إنشاء ومعاينة واعتماد التقارير.",
-    href: "/dashboard/report-2",
+    href: OFFICIAL_WORKSPACE_ROUTES.reports,
     kind: "standalone",
   },
 ];

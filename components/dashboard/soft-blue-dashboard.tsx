@@ -1,3 +1,4 @@
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -87,7 +88,7 @@ export function SoftBlueDashboard({
                 />
 
                 <HeroButton
-                  href="/dashboard/report-2"
+                  href={OFFICIAL_WORKSPACE_ROUTES.reports}
                   icon={<FileText className="h-4 w-4" />}
                   label="تقرير جديد"
                 />
@@ -107,7 +108,7 @@ export function SoftBlueDashboard({
               label="حالات تحتاج متابعة"
               value={formatCount(stats.draftCases)}
               helper="ابدأ بالحالات التي لم تكتمل."
-              href="/dashboard/cases"
+              href={OFFICIAL_WORKSPACE_ROUTES.cases}
             />
 
             <PriorityCard
@@ -115,7 +116,7 @@ export function SoftBlueDashboard({
               label="تقارير جاهزة للإصدار"
               value={formatCount(stats.readyForReport)}
               helper="من مركز الحالات تصدر التقرير."
-              href="/dashboard/cases"
+              href={OFFICIAL_WORKSPACE_ROUTES.cases}
             />
 
             <PriorityCard
@@ -177,7 +178,7 @@ export function SoftBlueDashboard({
 
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <QuietLink
-                  href="/dashboard/report-2"
+                  href={OFFICIAL_WORKSPACE_ROUTES.reports}
                   icon={<FileText className="h-5 w-5" />}
                   title="التقارير"
                 />
@@ -189,7 +190,7 @@ export function SoftBlueDashboard({
                 />
 
                 <QuietLink
-                  href="/dashboard/assessment-center"
+                  href={OFFICIAL_WORKSPACE_ROUTES.assessmentCenter}
                   icon={<BarChart3 className="h-5 w-5" />}
                   title="تحليل النتائج"
                 />

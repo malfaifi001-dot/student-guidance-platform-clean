@@ -1,3 +1,4 @@
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -97,13 +98,13 @@ export function ActivityLeaderDashboard({
                 />
 
                 <HeroButton
-                  href="/dashboard/cases"
+                  href={OFFICIAL_WORKSPACE_ROUTES.cases}
                   icon={<FolderKanban className="h-4 w-4" />}
                   label="مركز الأنشطة"
                 />
 
                 <HeroButton
-                  href="/dashboard/report-2"
+                  href={OFFICIAL_WORKSPACE_ROUTES.reports}
                   icon={<FileText className="h-4 w-4" />}
                   label="مركز التقارير"
                 />
@@ -187,7 +188,7 @@ export function ActivityLeaderDashboard({
 
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <QuietLink
-                  href="/dashboard/report-2"
+                  href={OFFICIAL_WORKSPACE_ROUTES.reports}
                   icon={<FileText className="h-5 w-5" />}
                   title="التقارير"
                 />
@@ -243,7 +244,7 @@ export function ActivityLeaderDashboard({
             </div>
 
             <Link
-              href="/dashboard/cases"
+              href={OFFICIAL_WORKSPACE_ROUTES.cases}
               className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
             >
               فتح مركز الأنشطة
