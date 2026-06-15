@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 
-const ROLES = ["ADMIN", "COUNSELOR", "SCHOOL_OWNER", "STAFF"];
+const ROLES = ["ADMIN", "COUNSELOR", "SCHOOL_OWNER", "STAFF", "TEACHER"];
 const GENDERS = ["MALE", "FEMALE"];
 
 function extractUser(sessionResult: unknown) {

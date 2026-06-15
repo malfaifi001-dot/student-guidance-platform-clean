@@ -21,6 +21,7 @@ export async function POST(request: Request) {
 
     const email = String(body?.email || "").trim().toLowerCase();
     const password = String(body?.password || "");
+    const loginPath = String(body?.loginPath || "").trim();
 
     const rateLimitResponse = enforceRateLimit(request, {
       namespace: "auth-login",
@@ -57,6 +58,13 @@ export async function POST(request: Request) {
     if (!user.isActive) {
       return NextResponse.json(
         { success: false, error: "الحساب غير مفعل." },
+        { status: 403 }
+      );
+    }
+
+    if (loginPath === "teacher" && user.role !== "TEACHER") {
+      return NextResponse.json(
+        { success: false, error: "هذا المسار مخصص لحسابات المعلمين فقط." },
         { status: 403 }
       );
     }

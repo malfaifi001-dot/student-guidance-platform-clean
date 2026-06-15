@@ -43,6 +43,9 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
     user?.role === "ACTIVITY_LEADER" ||
     pathname.startsWith("/dashboard/activity-leader");
 
+  const isTeacher =
+    user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
+
   const displayName = user?.officialName || user?.name || "حسابي";
 
   const avatar =
@@ -58,6 +61,10 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         ? user?.gender === "FEMALE"
           ? "رائدة النشاط"
           : "رائد النشاط"
+        : isTeacher
+          ? user?.gender === "FEMALE"
+            ? "معلمة"
+            : "معلم"
         : user?.gender === "FEMALE"
           ? "موجهة طلابية"
           : "موجه طلابي");
@@ -66,12 +73,16 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
     ? "ابحث عن حساب، باقة، طلب تفعيل، Workflow..."
     : isActivityLeader
       ? "ابحث عن برنامج، فعالية، مشاركة أو تقرير نشاط..."
+      : isTeacher
+        ? "ابحث في مساحة المعلم..."
       : "ابحث عن طالب، خدمة، حالة أو تقرير...";
 
   const headerBadgeText = isAdmin
     ? "Admin Center"
     : isActivityLeader
       ? "ريادة النشاط"
+      : isTeacher
+        ? "مساحة المعلم"
       : "منصة التوجيه الطلابي";
 
   async function logout() {

@@ -108,6 +108,7 @@ type UserStatusFilter =
 function roleLabel(role: string) {
   if (role === "ADMIN") return "أدمن";
   if (role === "COUNSELOR") return "موجه/موجهة";
+  if (role === "TEACHER") return "معلم";
   if (role === "SCHOOL_OWNER") return "مالك حساب";
   if (role === "STAFF") return "موظف";
   return role;
@@ -419,6 +420,7 @@ export function AdminUsersCommandCenter() {
               >
                 <option value="ALL">كل الأدوار</option>
                 <option value="COUNSELOR">الموجهون</option>
+                <option value="TEACHER">المعلمون</option>
                 <option value="ADMIN">الأدمن</option>
                 <option value="SCHOOL_OWNER">ملاك الحسابات</option>
                 <option value="STAFF">الموظفون</option>
@@ -629,7 +631,7 @@ export function AdminUsersCommandCenter() {
                     tone="danger"
                   />
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
                       disabled={processingId === selectedUser.id}
@@ -641,6 +643,19 @@ export function AdminUsersCommandCenter() {
                       className="rounded-2xl bg-slate-50 px-3 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
                     >
                       جعله موجه
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={processingId === selectedUser.id}
+                      onClick={() =>
+                        runAction("set-role", selectedUser, {
+                          role: "TEACHER",
+                        })
+                      }
+                      className="rounded-2xl bg-sky-50 px-3 py-3 text-xs font-black text-sky-700 transition hover:bg-sky-100 disabled:opacity-60"
+                    >
+                      جعله معلم
                     </button>
 
                     <button

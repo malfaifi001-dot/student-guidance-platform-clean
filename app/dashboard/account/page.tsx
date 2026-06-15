@@ -36,6 +36,7 @@ type SubscriptionInfo = {
 function roleLabel(role: string) {
   if (role === "ADMIN") return "مدير النظام";
   if (role === "COUNSELOR") return "موجه طلابي";
+  if (role === "TEACHER") return "معلم";
   if (role === "SCHOOL_OWNER") return "مالك مدرسة";
   if (role === "STAFF") return "موظف";
   return role;

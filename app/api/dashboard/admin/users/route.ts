@@ -435,7 +435,7 @@ export async function POST(request: Request) {
   if (action === "set-role") {
     const role = String(payload?.role || "").trim();
 
-    if (!["ADMIN", "COUNSELOR", "SCHOOL_OWNER", "STAFF"].includes(role)) {
+    if (!["ADMIN", "COUNSELOR", "SCHOOL_OWNER", "STAFF", "TEACHER"].includes(role)) {
       return NextResponse.json(
         { error: "الدور غير صحيح." },
         { status: 400 }
@@ -447,7 +447,7 @@ export async function POST(request: Request) {
         id: userId,
       },
       data: {
-        role: role as "ADMIN" | "COUNSELOR" | "SCHOOL_OWNER" | "STAFF",
+        role: role as "ADMIN" | "COUNSELOR" | "SCHOOL_OWNER" | "STAFF" | "TEACHER",
       },
     });
 

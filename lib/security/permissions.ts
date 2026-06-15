@@ -51,6 +51,12 @@ const ACTIVITY_LEADER_PERMISSIONS: Permission[] = [
   "subscription:read",
 ];
 
+const TEACHER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "subscription:read",
+];
+
 const STAFF_PERMISSIONS: Permission[] = [
   "dashboard:read",
   "students:read",
@@ -71,6 +77,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ADMIN: [...PERMISSIONS],
   COUNSELOR: COUNSELOR_PERMISSIONS,
   ACTIVITY_LEADER: ACTIVITY_LEADER_PERMISSIONS,
+  TEACHER: TEACHER_PERMISSIONS,
   SCHOOL_OWNER: SCHOOL_OWNER_PERMISSIONS,
   STAFF: STAFF_PERMISSIONS,
 };

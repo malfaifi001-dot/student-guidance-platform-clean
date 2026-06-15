@@ -4,7 +4,13 @@ import { notFound, redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 
-export type DashboardRole = "ADMIN" | "COUNSELOR" | "ACTIVITY_LEADER" | "SCHOOL_OWNER" | "STAFF";
+export type DashboardRole =
+  | "ADMIN"
+  | "COUNSELOR"
+  | "ACTIVITY_LEADER"
+  | "TEACHER"
+  | "SCHOOL_OWNER"
+  | "STAFF";
 
 export type DashboardAuthUser = {
   id: string;

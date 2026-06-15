@@ -4,6 +4,7 @@ const SESSION_COOKIE_NAME = "student_guidance_session";
 
 const PUBLIC_PATHS = new Set([
   "/login",
+  "/teacher/login",
   "/register",
   "/forgot-password",
 ]);

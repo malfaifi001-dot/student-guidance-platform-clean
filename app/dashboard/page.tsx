@@ -18,7 +18,11 @@ function getAttentionWindow() {
 export default async function DashboardPage() {
   const current = await requireDashboardUser();
 
-  if (current.user.role === "ADMIN" || current.user.role === "ACTIVITY_LEADER") {
+  if (
+    current.user.role === "ADMIN" ||
+    current.user.role === "ACTIVITY_LEADER" ||
+    current.user.role === "TEACHER"
+  ) {
     redirect(getDashboardHomePath(current.user.role));
   }
 
