@@ -152,7 +152,7 @@ export function ReportPreviewToolbar({
           </Link>
 
           <Link
-            href="/dashboard/report"
+            href="/dashboard/report-2"
             className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
           >
             الرجوع

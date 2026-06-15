@@ -26,7 +26,7 @@ export function StudentImportCard() {
       }
 
       setMessage("تم تحليل الملف وإنشاء دفعة مراجعة. سيتم فتح تفاصيل الدفعة الآن.");
-      router.push(`/dashboard/student-import/sessions/${data.sessionId}`);
+      router.push(`/dashboard/data-center/student-data-import/sessions/${data.sessionId}`);
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "حدث خطأ غير معروف.");

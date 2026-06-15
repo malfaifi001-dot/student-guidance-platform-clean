@@ -49,14 +49,14 @@ const mainActions = [
   {
     title: "إنشاء تقرير رسمي",
     description: "ابدأ من حالة محفوظة، واسحب البيانات والشواهد تلقائيًا.",
-    href: "/dashboard/report",
+    href: "/dashboard/report-2",
     icon: FileText,
     tone: "from-blue-600 to-cyan-500",
   },
   {
     title: "رفع بيانات الطلاب",
     description: "استورد الطلاب بذكاء وجهّزهم لكل الخدمات والتقارير.",
-    href: "/dashboard/student-import",
+    href: "/dashboard/data-center/student-data-import",
     icon: UploadCloud,
     tone: "from-emerald-600 to-teal-500",
   },
@@ -276,7 +276,7 @@ export function CreativeDashboard({ user, stats }: CreativeDashboardProps) {
             title="التقارير"
             value={stats.reports}
             icon={<FileText className="h-5 w-5" />}
-            href="/dashboard/report"
+            href="/dashboard/report-2"
           />
 
           <SmallMetricCard
@@ -362,14 +362,14 @@ export function CreativeDashboard({ user, stats }: CreativeDashboardProps) {
         <QuickPathCard
           title="ابدأ من التقارير"
           description="راجع التقارير واعتمد النسخة الرسمية."
-          href="/dashboard/report"
+          href="/dashboard/report-2"
           icon={<FileText className="h-5 w-5" />}
         />
 
         <QuickPathCard
           title="ابدأ من التحليل"
           description="ارفع Excel النتائج واستخرج مؤشرات ذكية."
-          href="/dashboard/results-analysis"
+          href="/dashboard/assessment-center"
           icon={<BarChart3 className="h-5 w-5" />}
         />
       </section>
