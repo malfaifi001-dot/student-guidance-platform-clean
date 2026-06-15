@@ -3,10 +3,13 @@ import type { ReactNode } from "react";
 import {
   BarChart3,
   Bell,
+  CalendarDays,
   ClipboardList,
   FileText,
   FolderKanban,
   GraduationCap,
+  Plus,
+  Sparkles,
   TrendingUp,
   UploadCloud,
   UserCheck,
@@ -18,12 +21,28 @@ import type {
   WorkspaceModuleIcon,
 } from "@/lib/workspace/workspace-modules";
 
+type WorkspaceStatIcon = "progress" | "students" | "reports" | "alerts" | "cases" | "evidence";
+
+type WorkspaceActionIcon = "plus" | "cases" | "reports" | "portfolio" | "calendar" | "programs";
+
 type WorkspaceStat = {
   label: string;
   value: string;
   helper: string;
-  icon: "progress" | "students" | "reports" | "alerts";
+  icon: WorkspaceStatIcon;
   href?: string;
+};
+
+type WorkspaceAction = {
+  label: string;
+  href: string;
+  icon: WorkspaceActionIcon;
+  primary?: boolean;
+};
+
+type WorkspaceNotice = {
+  title: string;
+  helper: string;
 };
 
 type WorkspaceHomeProps = {
@@ -33,6 +52,15 @@ type WorkspaceHomeProps = {
   userName?: string | null;
   modules: WorkspaceModule[];
   stats?: WorkspaceStat[];
+  actions?: WorkspaceAction[];
+  sideTitle: string;
+  sideDescription: string;
+  sideProgressLabel?: string;
+  sideProgressValue?: string;
+  sideProgressPercent?: number;
+  sideHref?: string;
+  sideHrefLabel?: string;
+  notices?: WorkspaceNotice[];
 };
 
 const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
@@ -46,15 +74,31 @@ const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
   portfolio: FolderKanban,
 };
 
-const statIconByName: Record<WorkspaceStat["icon"], typeof TrendingUp> = {
+const statIconByName: Record<WorkspaceStatIcon, typeof TrendingUp> = {
   progress: TrendingUp,
   students: Users,
   reports: FileText,
   alerts: Bell,
+  cases: FolderKanban,
+  evidence: UploadCloud,
+};
+
+const actionIconByName: Record<WorkspaceActionIcon, typeof Plus> = {
+  plus: Plus,
+  cases: FolderKanban,
+  reports: FileText,
+  portfolio: FolderKanban,
+  calendar: CalendarDays,
+  programs: ClipboardList,
 };
 
 function getDisplayName(userName?: string | null) {
-  return userName || "المعلم";
+  return userName || "المستخدم";
+}
+
+function normalizePercent(value?: number) {
+  if (typeof value !== "number") return 0;
+  return Math.max(0, Math.min(value, 100));
 }
 
 export function WorkspaceHome({
@@ -64,7 +108,18 @@ export function WorkspaceHome({
   userName,
   modules,
   stats = [],
+  actions = [],
+  sideTitle,
+  sideDescription,
+  sideProgressLabel,
+  sideProgressValue,
+  sideProgressPercent,
+  sideHref,
+  sideHrefLabel,
+  notices = [],
 }: WorkspaceHomeProps) {
+  const progress = normalizePercent(sideProgressPercent);
+
   return (
     <main className="space-y-6" dir="rtl">
       <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
@@ -91,26 +146,23 @@ export function WorkspaceHome({
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2 xl:justify-end">
-                <HeroButton
-                  href="/dashboard/teacher/family-community"
-                  icon={<ClipboardList className="h-4 w-4" />}
-                  label="خدمة جديدة"
-                  primary
-                />
+              {actions.length > 0 ? (
+                <div className="flex flex-wrap gap-2 xl:justify-end">
+                  {actions.map((action) => {
+                    const Icon = actionIconByName[action.icon];
 
-                <HeroButton
-                  href="/dashboard/teacher/portfolio"
-                  icon={<FolderKanban className="h-4 w-4" />}
-                  label="ملف إنجازي"
-                />
-
-                <HeroButton
-                  href="/dashboard/report-2"
-                  icon={<FileText className="h-4 w-4" />}
-                  label="تقاريري"
-                />
-              </div>
+                    return (
+                      <HeroButton
+                        key={`${action.href}-${action.label}`}
+                        href={action.href}
+                        icon={<Icon className="h-4 w-4" />}
+                        label={action.label}
+                        primary={action.primary}
+                      />
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -124,12 +176,12 @@ export function WorkspaceHome({
 
           <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div>
-              <p className="text-xs font-black text-sky-700">خدمات المعلم</p>
+              <p className="text-xs font-black text-sky-700">{title}</p>
               <h2 className="mt-1 text-2xl font-black text-slate-950">
                 اختر الخدمة المطلوبة
               </h2>
               <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-                نفس شكل تجربة الموجه ورائد النشاط، لكن بمحتوى مناسب لدور المعلم.
+                نفس هوية المنصة، مع محتوى وروابط مناسبة للدور الحالي.
               </p>
             </div>
 
@@ -186,43 +238,56 @@ export function WorkspaceHome({
         <aside className="space-y-5">
           <section className="rounded-[2rem] bg-gradient-to-br from-sky-700 to-cyan-500 p-6 text-white shadow-lg">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white">
-              <FolderKanban className="h-6 w-6" />
+              <Sparkles className="h-6 w-6" />
             </div>
 
-            <h2 className="mt-5 text-2xl font-black">{title}</h2>
+            <h2 className="mt-5 text-2xl font-black">{sideTitle}</h2>
 
             <p className="mt-3 text-sm font-bold leading-7 text-sky-50">
-              مساحة مختصرة تجمع التكليفات والشواهد والتقارير وملف الإنجاز في تجربة واحدة.
+              {sideDescription}
             </p>
 
-            <div className="mt-5 rounded-2xl bg-white/15 p-4">
-              <div className="flex items-center justify-between text-xs font-black text-white">
-                <span>تقدم ملف الإنجاز</span>
-                <span>٦٨٪</span>
-              </div>
+            {sideProgressLabel ? (
+              <div className="mt-5 rounded-2xl bg-white/15 p-4">
+                <div className="flex items-center justify-between text-xs font-black text-white">
+                  <span>{sideProgressLabel}</span>
+                  <span>{sideProgressValue || `${progress}%`}</span>
+                </div>
 
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
-                <div className="h-full w-[68%] rounded-full bg-white" />
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-white"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            <Link
-              href="/dashboard/teacher/portfolio"
-              className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
-            >
-              فتح ملف الإنجاز
-            </Link>
+            {sideHref && sideHrefLabel ? (
+              <Link
+                href={sideHref}
+                className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+              >
+                {sideHrefLabel}
+              </Link>
+            ) : null}
           </section>
 
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-black text-sky-700">تنبيهات قريبة</p>
+          {notices.length > 0 ? (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-black text-sky-700">تنبيهات قريبة</p>
 
-            <div className="mt-4 space-y-3">
-              <MiniNotice title="تكليف يحتاج متابعة" helper="خدمة الأسرة والمجتمع لم تكتمل بعد." />
-              <MiniNotice title="تحديث ملف الإنجاز" helper="أضف شاهدًا جديدًا لرفع نسبة الإنجاز." />
-              <MiniNotice title="استبيان متاح" helper="يوجد استبيان يمكن للمعلم المشاركة فيه." />
-            </div>
-          </section>
+              <div className="mt-4 space-y-3">
+                {notices.map((notice) => (
+                  <MiniNotice
+                    key={notice.title}
+                    title={notice.title}
+                    helper={notice.helper}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </aside>
       </section>
     </main>

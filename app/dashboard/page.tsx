@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { SoftBlueDashboard } from "@/components/dashboard/soft-blue-dashboard";
+import { CounselorWorkspacePage } from "@/components/workspace/counselor-workspace-page";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import { prisma } from "@/lib/prisma";
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <SoftBlueDashboard
+    <CounselorWorkspacePage
       user={current.user}
       stats={{
         students,
@@ -151,7 +151,7 @@ export default async function DashboardPage() {
         draftCases,
         readyForReport,
       }}
-      attentionReminders={reminders}
+      remindersCount={reminders.length}
     />
   );
 }

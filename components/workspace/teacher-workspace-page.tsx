@@ -1,5 +1,8 @@
 import { WorkspaceHome } from "@/components/workspace/workspace-home";
-import { teacherWorkspaceModules } from "@/lib/workspace/workspace-modules";
+import {
+  OFFICIAL_WORKSPACE_ROUTES,
+  teacherWorkspaceModules,
+} from "@/lib/workspace/workspace-modules";
 
 type TeacherWorkspacePageProps = {
   user?: {
@@ -21,14 +24,14 @@ const teacherStats = [
     value: "١٢٤",
     helper: "عدد الطلاب المتاحين حسب صلاحيات المعلم.",
     icon: "students" as const,
-    href: "/dashboard/data-center/student-data-import",
+    href: OFFICIAL_WORKSPACE_ROUTES.studentImport,
   },
   {
     label: "التقارير",
     value: "٧",
     helper: "تقارير مرتبطة بتكليفات أو مشاركات المعلم.",
     icon: "reports" as const,
-    href: "/dashboard/report-2",
+    href: OFFICIAL_WORKSPACE_ROUTES.reports,
   },
   {
     label: "التنبيهات",
@@ -42,11 +45,50 @@ export function TeacherWorkspacePage({ user }: TeacherWorkspacePageProps) {
   return (
     <WorkspaceHome
       eyebrow="مساحة المعلم"
-      title="لوحة المعلم"
+      title="خدمات المعلم"
       description="ابدأ من خدمات المعلم، تابع التكليفات والشواهد، ثم استعرض التقارير وملف الإنجاز بنفس هوية المنصة الموحدة."
       userName={user?.officialName || user?.name}
       modules={teacherWorkspaceModules}
       stats={teacherStats}
+      actions={[
+        {
+          label: "خدمة جديدة",
+          href: "/dashboard/teacher/family-community",
+          icon: "plus",
+          primary: true,
+        },
+        {
+          label: "ملف إنجازي",
+          href: "/dashboard/teacher/portfolio",
+          icon: "portfolio",
+        },
+        {
+          label: "تقاريري",
+          href: OFFICIAL_WORKSPACE_ROUTES.reports,
+          icon: "reports",
+        },
+      ]}
+      sideTitle="لوحة المعلم"
+      sideDescription="مساحة مختصرة تجمع التكليفات والشواهد والتقارير وملف الإنجاز في تجربة واحدة."
+      sideProgressLabel="تقدم ملف الإنجاز"
+      sideProgressValue="٦٨٪"
+      sideProgressPercent={68}
+      sideHref="/dashboard/teacher/portfolio"
+      sideHrefLabel="فتح ملف الإنجاز"
+      notices={[
+        {
+          title: "تكليف يحتاج متابعة",
+          helper: "خدمة الأسرة والمجتمع لم تكتمل بعد.",
+        },
+        {
+          title: "تحديث ملف الإنجاز",
+          helper: "أضف شاهدًا جديدًا لرفع نسبة الإنجاز.",
+        },
+        {
+          title: "استبيان متاح",
+          helper: "يوجد استبيان يمكن للمعلم المشاركة فيه.",
+        },
+      ]}
     />
   );
 }

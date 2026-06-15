@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ActivityLeaderDashboard } from "@/components/dashboard/activity-leader-dashboard";
+import { ActivityLeaderWorkspacePage } from "@/components/workspace/activity-leader-workspace-page";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import { prisma } from "@/lib/prisma";
@@ -104,7 +104,7 @@ export default async function ActivityLeaderDashboardPage() {
   ]);
 
   return (
-    <ActivityLeaderDashboard
+    <ActivityLeaderWorkspacePage
       user={current.user}
       stats={{
         students,
@@ -112,7 +112,6 @@ export default async function ActivityLeaderDashboardPage() {
         evidenceItems,
         activityReports,
       }}
-      attentionReminders={reminders}
     />
   );
 }
