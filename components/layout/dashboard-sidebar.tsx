@@ -165,6 +165,18 @@ const activityLeaderAccountLinks: SidebarLinkItem[] = [
   { label: "حسابي", href: "/dashboard/account", icon: UserRound },
   { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
 ];
+
+const teacherServiceLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard/teacher", icon: Home },
+  { label: "الأسرة والمجتمع", href: "/dashboard/teacher/family-community", icon: ClipboardList, shortLabel: "الأسرة" },
+  { label: "تكليفاتي", href: "/dashboard/teacher/assignments", icon: ClipboardList, shortLabel: "تكليفاتي" },
+  { label: "شواهدي", href: "/dashboard/teacher/evidence", icon: UploadCloud, shortLabel: "شواهدي" },
+  { label: "استبياناتي", href: "/dashboard/surveys", icon: ClipboardList, shortLabel: "استبياناتي" },
+  { label: "تقاريري", href: "/dashboard/report-2", icon: FileText, shortLabel: "تقاريري" },
+  { label: "بيانات الطلاب", href: "/dashboard/data-center/student-data-import", icon: Users, shortLabel: "الطلاب" },
+  { label: "مركز تحليل النتائج", href: "/dashboard/assessment-center", icon: BarChart3, shortLabel: "التحليل" },
+  { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
+];
 const adminMainLinks: SidebarLinkItem[] = [
   { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
   { label: "صحة النظام", href: "/dashboard/admin/system-health", icon: Activity },
@@ -288,24 +300,32 @@ export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
   const isActivityLeader =
     user?.role === "ACTIVITY_LEADER" ||
     pathname.startsWith("/dashboard/activity-leader");
+  const isTeacher =
+    user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
 
   const dashboardHomeHref = isAdmin
     ? "/dashboard/admin"
     : isActivityLeader
       ? "/dashboard/activity-leader"
-      : "/dashboard";
+      : isTeacher
+        ? "/dashboard/teacher"
+        : "/dashboard";
 
   const dashboardTitle = isAdmin
     ? "إدارة المنصة"
     : isActivityLeader
       ? "ريادة النشاط"
-      : "التوجيه الطلابي";
+      : isTeacher
+        ? "مساحة المعلم"
+        : "التوجيه الطلابي";
 
   const dashboardSubtitle = isAdmin
     ? "Admin Center"
     : isActivityLeader
       ? "Activity Leader"
-      : "Counselor";
+      : isTeacher
+        ? "Teacher Workspace"
+        : "Counselor";
 useEffect(() => {
     const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
     setCollapsed(savedValue === "true");
@@ -394,6 +414,8 @@ useEffect(() => {
           <AdminSidebar pathname={pathname} collapsed={collapsed} />
         ) : isActivityLeader ? (
           <ActivityLeaderSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isTeacher ? (
+          <TeacherSidebar pathname={pathname} collapsed={collapsed} />
         ) : (
           <CounselorSidebar pathname={pathname} collapsed={collapsed} />
         )}
@@ -579,6 +601,44 @@ function ActivityLeaderSidebar({
           <p className="text-xs font-black text-sky-700 dark:text-sky-200">اقتراح سريع</p>
           <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
             ابدأ ببرنامج أو فعالية، ثم أضف الشواهد والتقرير عند اكتمال التنفيذ.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+function TeacherSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="خدمات المعلم" collapsed={collapsed}>
+          {teacherServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
+          <p className="text-xs font-black text-sky-700 dark:text-sky-200">مساحة المعلم</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
+            تجربة تنظيمية أولية للخدمات التي سيحتاجها المعلم مستقبلًا.
           </p>
         </div>
       ) : null}
