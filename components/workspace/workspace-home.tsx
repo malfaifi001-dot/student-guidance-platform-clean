@@ -8,6 +8,7 @@ import {
   FileText,
   FolderKanban,
   GraduationCap,
+  Medal,
   Plus,
   Sparkles,
   TrendingUp,
@@ -21,9 +22,21 @@ import type {
   WorkspaceModuleIcon,
 } from "@/lib/workspace/workspace-modules";
 
-type WorkspaceStatIcon = "progress" | "students" | "reports" | "alerts" | "cases" | "evidence";
+type WorkspaceStatIcon =
+  | "progress"
+  | "students"
+  | "reports"
+  | "alerts"
+  | "cases"
+  | "evidence";
 
-type WorkspaceActionIcon = "plus" | "cases" | "reports" | "portfolio" | "calendar" | "programs";
+type WorkspaceActionIcon =
+  | "plus"
+  | "cases"
+  | "reports"
+  | "portfolio"
+  | "calendar"
+  | "programs";
 
 type WorkspaceStat = {
   label: string;
@@ -71,6 +84,7 @@ const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
   reports: FileText,
   students: GraduationCap,
   assessment: BarChart3,
+  certificates: Medal,
   portfolio: FolderKanban,
 };
 
@@ -329,7 +343,9 @@ function StatCard({ stat }: { stat: WorkspaceStat }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black text-slate-400">{stat.label}</p>
-          <p className="mt-2 text-3xl font-black text-slate-950">{stat.value}</p>
+          <p className="mt-2 text-3xl font-black text-slate-950">
+            {stat.value}
+          </p>
           <p className="mt-2 text-xs font-bold leading-6 text-slate-500">
             {stat.helper}
           </p>
@@ -351,7 +367,9 @@ function MiniNotice({ title, helper }: { title: string; helper: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
       <p className="text-sm font-black text-slate-800">{title}</p>
-      <p className="mt-1 text-xs font-bold leading-6 text-slate-500">{helper}</p>
+      <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+        {helper}
+      </p>
     </div>
   );
 }

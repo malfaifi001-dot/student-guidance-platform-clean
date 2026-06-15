@@ -8,6 +8,7 @@ export type WorkspaceModuleIcon =
   | "reports"
   | "students"
   | "assessment"
+  | "certificates"
   | "portfolio";
 
 export type WorkspaceModule = {
@@ -197,6 +198,13 @@ export const teacherWorkspaceModules: WorkspaceModule[] = [
     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
     icon: "assessment",
     status: "available",
+  },
+  {
+    title: "شهاداتي",
+    description: "الشهادات والتكريمات الصادرة لك أو المرتبطة بمشاركاتك.",
+    href: "/dashboard/teacher/certificates",
+    icon: "certificates",
+    status: "soon",
   },
   {
     title: "ملف إنجازي",
