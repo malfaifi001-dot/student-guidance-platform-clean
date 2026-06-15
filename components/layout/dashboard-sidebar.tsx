@@ -326,13 +326,13 @@ useEffect(() => {
     >
       <div
         className={[
-          "sticky top-5 flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300",
+          "sticky top-5 flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300 dark:border-slate-800/80 dark:bg-slate-950/92 dark:shadow-black/30",
           collapsed ? "p-2" : "p-4",
         ].join(" ")}
       >
         <div
           className={[
-            "flex items-center gap-2 border-b border-slate-100 pb-3",
+            "flex items-center gap-2 border-b border-slate-100 pb-3 dark:border-slate-800",
             collapsed ? "justify-center" : "justify-between",
           ].join(" ")}
         >
@@ -341,7 +341,9 @@ useEffect(() => {
             className={[
               "flex min-w-0 items-center rounded-[1.35rem] transition",
               collapsed ? "justify-center p-1" : "flex-1 gap-3 px-2 py-2",
-              isAdmin ? "hover:bg-slate-50" : "hover:bg-sky-50/60",
+              isAdmin
+                ? "hover:bg-slate-50 dark:hover:bg-slate-900"
+                : "hover:bg-sky-50/60 dark:hover:bg-sky-500/10",
             ].join(" ")}
             title={dashboardTitle}
           >
@@ -350,8 +352,8 @@ useEffect(() => {
                 "flex shrink-0 items-center justify-center rounded-2xl ring-1",
                 collapsed ? "h-11 w-11" : "h-12 w-12",
                 isAdmin
-                  ? "bg-slate-950 text-white ring-slate-900"
-                  : "bg-sky-50 text-sky-600 ring-sky-100",
+                  ? "bg-slate-950 text-white ring-slate-900 dark:bg-white dark:text-slate-950 dark:ring-slate-200"
+                  : "bg-sky-50 text-sky-600 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/20",
               ].join(" ")}
             >
               {isAdmin ? (
@@ -363,10 +365,10 @@ useEffect(() => {
 
             {!collapsed ? (
               <div className="min-w-0">
-                <h1 className="truncate text-[15px] font-black text-slate-950">
+                <h1 className="truncate text-[15px] font-black text-slate-950 dark:text-white">
                   {dashboardTitle}
                 </h1>
-                <p className="mt-1 truncate text-[11px] font-black text-slate-400">
+                <p className="mt-1 truncate text-[11px] font-black text-slate-400 dark:text-slate-500">
                   {dashboardSubtitle}
                 </p>
               </div>
@@ -376,7 +378,7 @@ useEffect(() => {
           <button
             type="button"
             onClick={() => setCollapsed((value) => !value)}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
             aria-label={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
             title={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
           >
@@ -483,9 +485,9 @@ function AdminSidebar({
       </nav>
 
       {!collapsed ? (
-        <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 p-4 text-xs leading-6 text-emerald-900">
+        <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 p-4 text-xs leading-6 text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-100">
           <p className="font-black">Admin Mode</p>
-          <p className="mt-1 text-emerald-700">
+          <p className="mt-1 text-emerald-700 dark:text-emerald-300">
             إدارة التفعيل، الاشتراكات، المدفوعات، الفواتير، النماذج، والتقارير.
           </p>
         </div>
@@ -573,9 +575,9 @@ function ActivityLeaderSidebar({
       </nav>
 
       {!collapsed ? (
-        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4">
-          <p className="text-xs font-black text-sky-700">اقتراح سريع</p>
-          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80">
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
+          <p className="text-xs font-black text-sky-700 dark:text-sky-200">اقتراح سريع</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
             ابدأ ببرنامج أو فعالية، ثم أضف الشواهد والتقرير عند اكتمال التنفيذ.
           </p>
         </div>
@@ -678,9 +680,9 @@ function CounselorSidebar({
       </nav>
 
       {!collapsed ? (
-        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4">
-          <p className="text-xs font-black text-sky-700">اقتراح سريع</p>
-          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80">
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
+          <p className="text-xs font-black text-sky-700 dark:text-sky-200">اقتراح سريع</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
             ابدأ بالتقويم، ثم افتح الحالة أو المرجع الشامل عند الحاجة.
           </p>
         </div>
@@ -701,7 +703,7 @@ function SidebarSection({
   return (
     <section>
       {!collapsed ? (
-        <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400">
+        <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400 dark:text-slate-500">
           {title}
         </p>
       ) : null}
@@ -738,8 +740,8 @@ function SidebarDropdown({
         className={[
           "mb-2 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black tracking-wide transition",
           admin
-            ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700"
-            : "text-slate-400 hover:bg-sky-50 hover:text-sky-700",
+            ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-900 dark:hover:text-slate-200"
+            : "text-slate-400 hover:bg-sky-50 hover:text-sky-700 dark:text-slate-500 dark:hover:bg-sky-500/10 dark:hover:text-sky-200",
         ].join(" ")}
       >
         <span>{title}</span>
@@ -783,16 +785,16 @@ function SidebarLink({
         compact && !collapsed ? "py-2" : "",
         active
           ? admin
-            ? "bg-slate-950 text-white shadow-sm"
-            : "bg-sky-50 text-sky-700 shadow-sm"
-          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950",
+            ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+            : "bg-sky-50 text-sky-700 shadow-sm dark:bg-sky-500/15 dark:text-sky-200 dark:ring-1 dark:ring-sky-400/20"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white",
       ].join(" ")}
     >
       {active && !collapsed ? (
         <span
           className={[
             "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
-            admin ? "bg-white" : "bg-sky-500",
+            admin ? "bg-white dark:bg-slate-950" : "bg-sky-500",
           ].join(" ")}
         />
       ) : null}
@@ -803,9 +805,9 @@ function SidebarLink({
           collapsed ? "h-9 w-9" : compact ? "h-8 w-8" : "h-9 w-9",
           active
             ? admin
-              ? "bg-white/10 text-white"
-              : "bg-white text-sky-600"
-            : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600",
+              ? "bg-white/10 text-white dark:bg-slate-950/10 dark:text-slate-950"
+              : "bg-white text-sky-600 dark:bg-sky-400/15 dark:text-sky-200"
+            : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600 dark:bg-slate-900 dark:text-slate-400 dark:group-hover:bg-slate-800 dark:group-hover:text-sky-300",
         ].join(" ")}
       >
         <Icon className={collapsed ? "h-5 w-5" : compact ? "h-4 w-4" : "h-5 w-5"} />
@@ -821,7 +823,7 @@ function SidebarLink({
             {collapsedLabel}
           </span>
 
-          <span className="pointer-events-none fixed right-[112px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">
+          <span className="pointer-events-none fixed right-[112px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block dark:border dark:border-slate-700 dark:bg-slate-900">
             {item.label}
           </span>
         </>

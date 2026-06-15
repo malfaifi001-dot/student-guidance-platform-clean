@@ -288,9 +288,9 @@ export function ReportPrepareFlow({
 
   if (step === "studio" && documentDraft) {
     return (
-      <main className="min-h-screen bg-[#eef3ef] px-4 py-5 sm:px-6" dir="rtl">
+      <main className="min-h-screen bg-[#eef3ef] px-4 py-5 transition-colors dark:bg-[#050816] sm:px-6" dir="rtl">
         <div className="mx-auto max-w-7xl space-y-5">
-          <section className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between print:hidden">
+          <section className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors lg:flex-row lg:items-center lg:justify-between print:hidden dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
             <div>
               <p className="text-sm font-black text-emerald-700">
                 المعاينة والتعديل
@@ -306,7 +306,7 @@ export function ReportPrepareFlow({
             <button
               type="button"
               onClick={() => setStep("prepare")}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               العودة للتحضير
             </button>
@@ -322,9 +322,9 @@ export function ReportPrepareFlow({
   }
 
   return (
-    <main className="min-h-screen bg-[#eef3ef] px-4 py-5 sm:px-6" dir="rtl">
+    <main className="min-h-screen bg-[#eef3ef] px-4 py-5 transition-colors dark:bg-[#050816] sm:px-6" dir="rtl">
       <div className="mx-auto max-w-6xl space-y-5">
-        <section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm">
+        <section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-black text-emerald-700">
@@ -335,7 +335,7 @@ export function ReportPrepareFlow({
                 راجع عناصر التقرير قبل المعاينة
               </h1>
 
-              <p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-slate-500">
+              <p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-slate-500 dark:text-slate-300">
                 اختر الحقول المهمة، عدّل صياغة القيم للعرض فقط، ثم ولّد وصف
                 التنفيذ من البيانات المختارة.
               </p>
@@ -344,7 +344,7 @@ export function ReportPrepareFlow({
             <div className="flex flex-wrap gap-2">
               <Link
                 href={`/dashboard/cases/${payload.caseInfo.id}`}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 <ArrowRight className="h-4 w-4" />
                 العودة للحالة
@@ -363,29 +363,29 @@ export function ReportPrepareFlow({
         </section>
 
         <section className="grid gap-4 lg:grid-cols-3">
-          <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <p className="text-xs font-black text-slate-400">عنوان التقرير</p>
-            <h2 className="mt-2 text-lg font-black leading-8 text-slate-950">
+          <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+            <p className="text-xs font-black text-slate-400 dark:text-slate-500">عنوان التقرير</p>
+            <h2 className="mt-2 text-lg font-black leading-8 text-slate-950 dark:text-white">
               {payload.title || payload.caseInfo.title}
             </h2>
           </article>
 
-          <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <p className="text-xs font-black text-slate-400">الخدمة</p>
-            <h2 className="mt-2 text-lg font-black text-slate-950">
+          <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+            <p className="text-xs font-black text-slate-400 dark:text-slate-500">الخدمة</p>
+            <h2 className="mt-2 text-lg font-black text-slate-950 dark:text-white">
               {payload.service.name}
             </h2>
-            <p className="mt-1 text-xs font-bold text-slate-400">
+            <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">
               {selectedVariant?.shortName || selectedVariant?.name || "تقرير"}
             </p>
           </article>
 
-          <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <p className="text-xs font-black text-slate-400">الحقول المختارة</p>
+          <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+            <p className="text-xs font-black text-slate-400 dark:text-slate-500">الحقول المختارة</p>
             <h2 className="mt-2 text-3xl font-black text-emerald-700">
               {selectedFields.length}
             </h2>
-            <p className="mt-1 text-xs font-bold text-slate-400">
+            <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">
               من أصل {fields.length} حقل قابل للعرض
             </p>
           </article>
@@ -398,13 +398,13 @@ export function ReportPrepareFlow({
         ) : null}
 
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
-          <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
             <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-lg font-black text-slate-950">
+                <h2 className="text-lg font-black text-slate-950 dark:text-white">
                   عناصر Workflow
                 </h2>
-                <p className="mt-1 text-sm font-bold text-slate-500">
+                <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">
                   اختر فقط ما تريد ظهوره في التقرير. التعديل هنا لا يغيّر أصل
                   الحالة.
                 </p>
@@ -414,7 +414,7 @@ export function ReportPrepareFlow({
                 <button
                   type="button"
                   onClick={selectAllVisible}
-                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   تحديد الظاهر
                 </button>
@@ -422,7 +422,7 @@ export function ReportPrepareFlow({
                 <button
                   type="button"
                   onClick={unselectAllVisible}
-                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   إلغاء الظاهر
                 </button>
@@ -433,12 +433,12 @@ export function ReportPrepareFlow({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="ابحث في الحقول..."
-              className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-300 focus:bg-white"
+              className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-300 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-950"
             />
 
             <div className="mt-4 max-h-[680px] space-y-3 overflow-y-auto pr-1">
               {visibleFields.length === 0 ? (
-                <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
+                <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                   لا توجد حقول مطابقة للبحث.
                 </div>
               ) : null}
@@ -449,12 +449,12 @@ export function ReportPrepareFlow({
                   className={[
                     "rounded-2xl border p-4 transition",
                     field.selected
-                      ? "border-emerald-100 bg-emerald-50/30"
-                      : "border-slate-100 bg-slate-50/60 opacity-80",
+                      ? "border-emerald-100 bg-emerald-50/30 dark:border-emerald-400/20 dark:bg-emerald-500/10"
+                      : "border-slate-100 bg-slate-50/60 opacity-80 dark:border-slate-800 dark:bg-slate-900/70",
                   ].join(" ")}
                 >
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700">
+                    <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200">
                       <input
                         type="checkbox"
                         checked={field.selected}
@@ -475,7 +475,7 @@ export function ReportPrepareFlow({
                     ) : null}
                   </div>
 
-                  <label className="mb-1 block text-[10px] font-black text-slate-500">
+                  <label className="mb-1 block text-[10px] font-black text-slate-500 dark:text-slate-400">
                     اسم الحقل
                   </label>
                   <input
@@ -483,10 +483,10 @@ export function ReportPrepareFlow({
                     onChange={(event) =>
                       updateField(field.id, { label: event.target.value })
                     }
-                    className="mb-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none transition focus:border-emerald-300"
+                    className="mb-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none transition focus:border-emerald-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                   />
 
-                  <label className="mb-1 block text-[10px] font-black text-slate-500">
+                  <label className="mb-1 block text-[10px] font-black text-slate-500 dark:text-slate-400">
                     القيمة
                   </label>
                   <textarea
@@ -495,7 +495,7 @@ export function ReportPrepareFlow({
                       updateField(field.id, { value: event.target.value })
                     }
                     rows={2}
-                    className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black leading-6 text-slate-950 outline-none transition focus:border-emerald-300"
+                    className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black leading-6 text-slate-950 outline-none transition focus:border-emerald-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                   />
                 </article>
               ))}
@@ -503,13 +503,13 @@ export function ReportPrepareFlow({
           </div>
 
           <aside className="space-y-4">
-            <section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm">
+            <section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-black text-slate-950">
+                  <h2 className="text-lg font-black text-slate-950 dark:text-white">
                     وصف التنفيذ
                   </h2>
-                  <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
+                  <p className="mt-1 text-sm font-bold leading-7 text-slate-500 dark:text-slate-300">
                     يولد الوصف من الحقول المختارة فقط، ويمكنك تعديله يدويًا.
                   </p>
                 </div>
@@ -545,17 +545,17 @@ export function ReportPrepareFlow({
                 }}
                 rows={8}
                 placeholder="اكتب أو ولّد وصف التنفيذ..."
-                className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-8 text-slate-950 outline-none transition focus:border-emerald-300 focus:bg-white"
+                className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-8 text-slate-950 outline-none transition focus:border-emerald-300 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-950"
               />
 
-              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400 dark:text-slate-500">
                 <span>الوصف بين 60 و80 كلمة</span>
                 <span>{countWords(executionSummary)} / 80</span>
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-black text-slate-950">
+            <section className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+              <h2 className="text-base font-black text-slate-950 dark:text-white">
                 الترتيب المقترح
               </h2>
 
@@ -570,7 +570,7 @@ export function ReportPrepareFlow({
                     <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-700">
                       {number}
                     </span>
-                    <span className="text-sm font-black text-slate-700">
+                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">
                       {label}
                     </span>
                   </div>

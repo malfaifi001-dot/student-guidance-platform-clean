@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   const current = await requireDashboardUser();
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
+    <div dir="rtl" className="min-h-screen bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100">
       <div className="flex min-h-screen">
         <DashboardSidebar user={current.user} />
 
