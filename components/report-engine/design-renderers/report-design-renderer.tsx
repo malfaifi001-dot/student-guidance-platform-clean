@@ -14,6 +14,166 @@ export type ReportDesignId =
   | "report-official-archive"
   | "report-playful-cards"
   | "report-calm-reader";
+
+export type ReportHeaderSettings = {
+  heightPx: number;
+  paddingTopPx: number;
+  paddingBottomPx: number;
+  paddingInlinePx: number;
+  itemGapPx: number;
+  logoSizePx: number;
+  headerFontSizePx: number;
+  titleFontSizePx: number;
+  subtitleFontSizePx: number;
+  fontWeight: "inherit" | "400" | "500" | "600" | "700" | "800" | "900";
+  lineHeight: number;
+  fontFamily: "inherit" | "Cairo" | "Arial";
+};
+
+export const DEFAULT_REPORT_HEADER_SETTINGS: ReportHeaderSettings = {
+  heightPx: 0,
+  paddingTopPx: 0,
+  paddingBottomPx: 0,
+  paddingInlinePx: 0,
+  itemGapPx: 0,
+  logoSizePx: 0,
+  headerFontSizePx: 0,
+  titleFontSizePx: 0,
+  subtitleFontSizePx: 0,
+  fontWeight: "inherit",
+  lineHeight: 0,
+  fontFamily: "inherit",
+};
+
+function clampHeaderNumber(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+  decimals = 0,
+) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+
+  const bounded = Math.min(max, Math.max(min, number));
+  const factor = 10 ** decimals;
+
+  return Math.round(bounded * factor) / factor;
+}
+
+export function normalizeReportHeaderSettings(
+  value: unknown,
+): ReportHeaderSettings {
+  const settings =
+    value && typeof value === "object"
+      ? (value as Partial<ReportHeaderSettings>)
+      : {};
+  const fontWeight = String(settings.fontWeight || "inherit");
+  const fontFamily = String(settings.fontFamily || "inherit");
+
+  return {
+    heightPx: clampHeaderNumber(settings.heightPx, 0, 0, 420),
+    paddingTopPx: clampHeaderNumber(settings.paddingTopPx, 0, 0, 160),
+    paddingBottomPx: clampHeaderNumber(settings.paddingBottomPx, 0, 0, 160),
+    paddingInlinePx: clampHeaderNumber(settings.paddingInlinePx, 0, 0, 180),
+    itemGapPx: clampHeaderNumber(settings.itemGapPx, 0, 0, 100),
+    logoSizePx: clampHeaderNumber(settings.logoSizePx, 0, 0, 240),
+    headerFontSizePx: clampHeaderNumber(settings.headerFontSizePx, 0, 0, 48),
+    titleFontSizePx: clampHeaderNumber(settings.titleFontSizePx, 0, 0, 72),
+    subtitleFontSizePx: clampHeaderNumber(
+      settings.subtitleFontSizePx,
+      0,
+      0,
+      48,
+    ),
+    fontWeight:
+      fontWeight === "400" ||
+      fontWeight === "500" ||
+      fontWeight === "600" ||
+      fontWeight === "700" ||
+      fontWeight === "800" ||
+      fontWeight === "900"
+        ? fontWeight
+        : "inherit",
+    lineHeight: clampHeaderNumber(settings.lineHeight, 0, 0, 3, 2),
+    fontFamily:
+      fontFamily === "Cairo" || fontFamily === "Arial"
+        ? fontFamily
+        : "inherit",
+  };
+}
+
+export function getReportHeaderSettingsStyle(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+
+  const settings = normalizeReportHeaderSettings(value);
+  const declarations = [
+    settings.heightPx > 0
+      ? `min-height: ${settings.heightPx}px !important;`
+      : "",
+    settings.paddingTopPx > 0
+      ? `padding-top: ${settings.paddingTopPx}px !important;`
+      : "",
+    settings.paddingBottomPx > 0
+      ? `padding-bottom: ${settings.paddingBottomPx}px !important;`
+      : "",
+    settings.paddingInlinePx > 0
+      ? `padding-left: ${settings.paddingInlinePx}px !important; padding-right: ${settings.paddingInlinePx}px !important;`
+      : "",
+    settings.itemGapPx > 0 ? `gap: ${settings.itemGapPx}px !important;` : "",
+    settings.headerFontSizePx > 0
+      ? `font-size: ${settings.headerFontSizePx}px !important;`
+      : "",
+    settings.fontWeight !== "inherit"
+      ? `font-weight: ${settings.fontWeight} !important;`
+      : "",
+    settings.lineHeight > 0
+      ? `line-height: ${settings.lineHeight} !important;`
+      : "",
+    settings.fontFamily === "Cairo"
+      ? `font-family: var(--font-cairo), Cairo, Arial, sans-serif !important;`
+      : settings.fontFamily === "Arial"
+        ? `font-family: Arial, Tahoma, sans-serif !important;`
+        : "",
+  ].filter(Boolean);
+
+  const rules = [
+    declarations.length
+      ? `.report-design-header { ${declarations.join(" ")} }`
+      : "",
+    settings.heightPx > 0
+      ? `.pdf-report-page > div:has(> .report-design-header.absolute) { padding-top: ${settings.heightPx + 24}px !important; }`
+      : "",
+    settings.itemGapPx > 0
+      ? `.report-design-header > .grid, .report-design-header > .flex, .report-design-header > div > .grid, .report-design-header > div > .flex { gap: ${settings.itemGapPx}px !important; }`
+      : "",
+    settings.logoSizePx > 0
+      ? `.report-design-header img { width: auto !important; max-width: ${settings.logoSizePx}px !important; height: ${settings.logoSizePx}px !important; max-height: ${settings.logoSizePx}px !important; object-fit: contain !important; }`
+      : "",
+    settings.titleFontSizePx > 0
+      ? `.report-design-header h1, .report-design-header h2, .report-design-header-title { font-size: ${settings.titleFontSizePx}px !important; }`
+      : "",
+    settings.subtitleFontSizePx > 0
+      ? `.report-design-header p { font-size: ${settings.subtitleFontSizePx}px !important; }`
+      : "",
+    settings.headerFontSizePx > 0
+      ? `.report-design-header.grid > :first-child, .report-design-header.grid > :last-child, .report-design-header > .grid > :first-child, .report-design-header > .grid > :last-child, .report-design-header > div > .grid > :first-child, .report-design-header > div > .grid > :last-child { font-size: ${settings.headerFontSizePx}px !important; } .report-design-header.grid > :first-child p, .report-design-header.grid > :last-child p, .report-design-header > .grid > :first-child p, .report-design-header > .grid > :last-child p, .report-design-header > div > .grid > :first-child p, .report-design-header > div > .grid > :last-child p { font-size: inherit !important; }`
+      : "",
+    settings.fontWeight !== "inherit"
+      ? `.report-design-header, .report-design-header * { font-weight: ${settings.fontWeight} !important; }`
+      : "",
+    settings.lineHeight > 0
+      ? `.report-design-header, .report-design-header * { line-height: ${settings.lineHeight} !important; }`
+      : "",
+  ].filter(Boolean);
+
+  return rules.join("\n");
+}
 type FinalReportValueItem = {
   fieldKey: string;
   fieldLabel: string;
@@ -222,6 +382,9 @@ export function ReportDesignRenderer({
 
   const logoFit = getDesignLogoFit(context);
   const logoFilter = getDesignLogoFilter(context);
+  const headerStyleText = getReportHeaderSettingsStyle(
+    template?.designConfig?.header,
+  );
   const pages = template?.pages || [];
 
   const logoStyle = (
@@ -237,6 +400,7 @@ export function ReportDesignRenderer({
       }
     `}</style>
   );
+  const headerStyle = headerStyleText ? <style>{headerStyleText}</style> : null;
 
   const controls = (
     <>
@@ -382,6 +546,7 @@ export function ReportDesignRenderer({
     return (
       <div className="space-y-4">
         {logoStyle}
+        {headerStyle}
 
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           {controls}
@@ -397,6 +562,7 @@ export function ReportDesignRenderer({
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       {logoStyle}
+      {headerStyle}
 
       <div className="report-design-logo-control-style">
         <div className="mb-5">{controls}</div>
@@ -426,6 +592,9 @@ export function FinalReportDesignRenderer({
   );
 
   const context = buildFinalReportContext(previewCaseData, identity);
+  const headerStyleText = getReportHeaderSettingsStyle(
+    template?.designConfig?.header,
+  );
 
   const pages = normalizedTemplate.pages?.length
     ? normalizedTemplate.pages
@@ -461,6 +630,7 @@ export function FinalReportDesignRenderer({
 
   return (
     <section className="space-y-4 bg-transparent print:space-y-0" dir="rtl">
+      {headerStyleText ? <style>{headerStyleText}</style> : null}
       {pages.map((page: any) => (
         <div key={page.id} className="break-after-page print:break-after-page">
           <A4DesignPage
@@ -1256,7 +1426,7 @@ export function A4DesignPage({
     return (
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-300 bg-white p-[10mm] shadow-xl">
         <div className="relative min-h-[277mm] border-[3px] border-slate-900 p-[8mm]">
-          <header className="grid grid-cols-[115px_1fr_115px] items-start gap-4 border-b-[3px] border-slate-900 pb-5">
+          <header className="report-design-header grid grid-cols-[115px_1fr_115px] items-start gap-4 border-b-[3px] border-slate-900 pb-5">
             <div className="text-right text-[11px] font-black leading-6 text-slate-800">
               <p>وزارة التعليم</p>
               <p>الإدارة العامة للتعليم</p>
@@ -1333,7 +1503,7 @@ export function A4DesignPage({
             </p>
           </div>
 
-          <header className="mr-[54mm] flex min-h-[52mm] items-center justify-between gap-7">
+          <header className="report-design-header mr-[54mm] flex min-h-[52mm] items-center justify-between gap-7">
             <div className="flex-1 text-center">
               <h1 className="text-4xl font-black leading-[1.45] tracking-tight text-slate-900">
                 {reportTitle}
@@ -1513,7 +1683,7 @@ export function A4DesignPage({
           </aside>
 
           <div className="relative p-[12mm]">
-            <header className="border-b border-stone-200 pb-6">
+            <header className="report-design-header border-b border-stone-200 pb-6">
               <p className="text-xs font-black text-stone-500">تقرير مريح للقراءة</p>
               <h1 className="mt-3 max-w-[135mm] text-3xl font-black leading-[1.7] text-stone-950">
                 {context["case.title"] || pageLabel}
@@ -1544,7 +1714,7 @@ export function A4DesignPage({
           </aside>
 
           <div className="relative p-[11mm]">
-            <header className="rounded-3xl border border-sky-100 bg-sky-50 p-5">
+            <header className="report-design-header rounded-3xl border border-sky-100 bg-sky-50 p-5">
               <p className="text-xs font-black text-sky-700">وزارة التعليم</p>
               <h1 className="mt-1 text-xl font-black text-slate-950">
                 {context["case.title"] || pageLabel}
@@ -1569,7 +1739,7 @@ export function A4DesignPage({
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-emerald-100 bg-emerald-50 p-[8mm] shadow-xl">
         <div className="relative min-h-[279mm] overflow-hidden rounded-[28px] bg-white p-[11mm]">
           <div className="absolute left-0 right-0 top-0 h-[44mm] bg-gradient-to-l from-emerald-800 via-teal-700 to-slate-900" />
-          <header className="relative z-10 grid grid-cols-[1fr_90px] items-start gap-5 text-white">
+          <header className="report-design-header relative z-10 grid grid-cols-[1fr_90px] items-start gap-5 text-white">
             <div>
               <p className="text-xs font-black text-emerald-100">تقرير بصري للشواهد والإنجاز</p>
               <h1 className="mt-3 text-3xl font-black leading-[1.5]">{context["case.title"] || pageLabel}</h1>
@@ -1594,7 +1764,7 @@ export function A4DesignPage({
     return (
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white p-[12mm] shadow-xl">
         <div className="relative min-h-[273mm] border-2 border-slate-800 p-[8mm]">
-          <header className="border-b-2 border-slate-800 pb-5">
+          <header className="report-design-header border-b-2 border-slate-800 pb-5">
             <div className="grid grid-cols-[110px_1fr_110px] items-center gap-4">
               <div className="text-right text-xs font-bold leading-6 text-slate-700">
                 <p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p><p>مكتب التعليم</p>
@@ -1638,7 +1808,7 @@ export function A4DesignPage({
           </aside>
 
           <div className="relative p-[11mm]">
-            <header className="border-b border-teal-100 pb-5">
+            <header className="report-design-header border-b border-teal-100 pb-5">
               <p className="text-xs font-black text-teal-700">التوجيه الطلابي · ملف متابعة</p>
               <h1 className="mt-2 text-2xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
             </header>
@@ -1654,7 +1824,7 @@ export function A4DesignPage({
     return (
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[26px] border border-amber-100 bg-amber-50 p-[8mm] shadow-xl">
         <div className="relative min-h-[279mm] rounded-[22px] bg-white p-[11mm]">
-          <header className="grid grid-cols-[1fr_100px] items-center gap-5 rounded-[26px] bg-gradient-to-l from-amber-600 to-orange-400 p-6 text-white">
+          <header className="report-design-header grid grid-cols-[1fr_100px] items-center gap-5 rounded-[26px] bg-gradient-to-l from-amber-600 to-orange-400 p-6 text-white">
             <div>
               <p className="text-xs font-black text-amber-100">خطة متابعة وتقويم سلوكي</p>
               <h1 className="mt-2 text-2xl font-black">{context["case.title"] || pageLabel}</h1>
@@ -1684,7 +1854,7 @@ export function A4DesignPage({
     return (
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-cyan-100 bg-cyan-50 p-[8mm] shadow-xl">
         <div className="relative min-h-[279mm] rounded-[28px] bg-white p-[11mm]">
-          <header className="rounded-[32px] border border-cyan-100 bg-gradient-to-l from-cyan-700 to-blue-800 p-6 text-white">
+          <header className="report-design-header rounded-[32px] border border-cyan-100 bg-gradient-to-l from-cyan-700 to-blue-800 p-6 text-white">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black text-cyan-100">تقرير أثر برنامج إرشادي</p>
@@ -1712,7 +1882,7 @@ export function A4DesignPage({
         <div className="relative min-h-[279mm] overflow-hidden rounded-[30px] bg-white p-[11mm]">
           <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-rose-100" />
           <div className="absolute -right-8 top-20 h-28 w-28 rounded-full bg-pink-100" />
-          <header className="relative z-10 rounded-[28px] border border-rose-100 bg-gradient-to-l from-rose-100 to-white p-6">
+          <header className="report-design-header relative z-10 rounded-[28px] border border-rose-100 bg-gradient-to-l from-rose-100 to-white p-6">
             <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-14 w-auto object-contain" />
             <p className="mt-5 text-xs font-black text-rose-700">تقرير إرشادي بناتي رسمي</p>
             <h1 className="mt-2 text-3xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
@@ -1730,7 +1900,7 @@ export function A4DesignPage({
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[34px] border border-violet-100 bg-violet-50 p-[8mm] shadow-xl">
         <div className="relative grid min-h-[279mm] grid-cols-[1fr_32mm] overflow-hidden rounded-[28px] bg-white">
           <div className="relative p-[11mm]">
-            <header className="border-b border-violet-100 pb-5">
+            <header className="report-design-header border-b border-violet-100 pb-5">
               <p className="text-xs font-black text-violet-700">تقرير إرشادي أنيق</p>
               <h1 className="mt-2 text-3xl font-black text-slate-950">{context["case.title"] || pageLabel}</h1>
               <p className="mt-2 text-xs font-bold text-slate-500">{context["service.name"]}</p>
@@ -1753,7 +1923,7 @@ export function A4DesignPage({
     return (
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden rounded-[36px] border border-fuchsia-100 bg-fuchsia-50 p-[8mm] shadow-xl">
         <div className="relative min-h-[279mm] rounded-[32px] border border-fuchsia-100 bg-gradient-to-b from-white via-white to-fuchsia-50 p-[11mm]">
-          <header className="grid grid-cols-[90px_1fr] items-center gap-5 rounded-[30px] border border-fuchsia-100 bg-white/80 p-5 shadow-sm">
+          <header className="report-design-header grid grid-cols-[90px_1fr] items-center gap-5 rounded-[30px] border border-fuchsia-100 bg-white/80 p-5 shadow-sm">
             <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="h-16 w-auto object-contain" />
             <div>
               <p className="text-xs font-black text-fuchsia-700">رعاية ودعم ومتابعة</p>
@@ -1774,14 +1944,14 @@ export function A4DesignPage({
   return (
     <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white shadow-xl">
       <div className="relative min-h-[297mm] bg-white p-[12mm] pt-[56mm]">
-        <header className="absolute left-0 right-0 top-0 z-10 rounded-b-[46px] bg-[#1d343f] px-[18mm] py-[13mm] text-white">
+        <header className="report-design-header absolute left-0 right-0 top-0 z-10 rounded-b-[46px] bg-[#1d343f] px-[18mm] py-[13mm] text-white">
           <div className="grid grid-cols-[138px_1fr_138px] items-center gap-5">
             <div className="text-right text-sm font-bold leading-7 text-slate-100">
               <p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p>
             </div>
             <div className="text-center">
               <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
-              <p className="mt-3 text-base font-black text-white" style={{ textAlign: getDesignHeaderAlign(context, "report.platformName", "center") }}>{getDesignHeaderText(context, "report.platformName", "منصة التوجيه الطلابي")}</p>
+              <p className="report-design-header-title mt-3 text-base font-black text-white" style={{ textAlign: getDesignHeaderAlign(context, "report.platformName", "center") }}>{getDesignHeaderText(context, "report.platformName", "منصة التوجيه الطلابي")}</p>
             </div>
             <div className="text-left text-sm font-bold leading-7 text-slate-100">
               <p style={{ textAlign: getDesignHeaderAlign(context, "case.createdAt", "center") }}>{getDesignHeaderText(context, "case.createdAt", context["case.createdAt"] || "")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "service.name", "center") }}>{getDesignHeaderText(context, "service.name", context["service.name"] || "")}</p>

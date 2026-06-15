@@ -8,6 +8,7 @@ import {
   getDesignLogoNumber,
   getDesignLogoFit,
   getDesignLogoFilter,
+  getReportHeaderSettingsStyle,
   type ReportDesignId,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
 
@@ -36,6 +37,9 @@ export function ReportTwoPrintDocument({
   const logoFit = getDesignLogoFit(context);
   const logoFilter = getDesignLogoFilter(context);
   const logoSrc = getDesignLogoSrc(context);
+  const headerStyleText = getReportHeaderSettingsStyle(
+    template?.designConfig?.header,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -132,6 +136,7 @@ export function ReportTwoPrintDocument({
           max-width: 100%;
         }
       `}</style>
+      {headerStyleText ? <style>{headerStyleText}</style> : null}
 
       {logoSrc && <link rel="preload" as="image" href={logoSrc} />}
 

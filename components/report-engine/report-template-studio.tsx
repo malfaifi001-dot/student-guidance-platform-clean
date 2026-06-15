@@ -3,9 +3,12 @@
 import { workflowUploadServices } from "@/lib/constants/services";
 import { useEffect, useMemo, useState } from "react";
 import {
+  DEFAULT_REPORT_HEADER_SETTINGS,
   ReportDesignRenderer,
+  normalizeReportHeaderSettings,
   reportDesignTemplates,
   type ReportDesignId,
+  type ReportHeaderSettings,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
 
 type TemplateStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
@@ -110,6 +113,9 @@ type StudioTemplate = {
   previewCaseId: string;
   documentType: "REPORT";
   updatedAt: string;
+  designConfig: {
+    header: ReportHeaderSettings;
+  };
   pages: StudioPage[];
 };
 
@@ -408,6 +414,9 @@ function createInitialTemplate(): StudioTemplate {
     previewCaseId: "",
     documentType: "REPORT",
     updatedAt: "غير محفوظ",
+    designConfig: {
+      header: { ...DEFAULT_REPORT_HEADER_SETTINGS },
+    },
     pages: [createPage("content", 1)],
   };
 }
@@ -650,6 +659,13 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
       item?.updatedAt ||
       templateJson.updatedAt ||
       new Date().toISOString().slice(0, 10),
+    designConfig: {
+      header: normalizeReportHeaderSettings(
+        templateJson?.designConfig?.header ??
+          smartStudio?.designConfig?.header ??
+          DEFAULT_REPORT_HEADER_SETTINGS,
+      ),
+    },
     pages,
   } as StudioTemplate;
 }
@@ -1017,6 +1033,7 @@ export function ReportTemplateStudio() {
       documentType: template.documentType,
       designTemplateId: template.designTemplateId || "ministry-form",
       designPreset: "official-smart-multi-page",
+      designConfig: template.designConfig,
       previewCaseId: template.previewCaseId,
       updatedAt: new Date().toISOString().slice(0, 10),
       officialLayout: {
@@ -1077,6 +1094,7 @@ export function ReportTemplateStudio() {
         version: 2,
         mode: "multi-page-workflow-aware",
         designTemplateId: template.designTemplateId || "ministry-form",
+        designConfig: template.designConfig,
         pages: template.pages,
       },
     };
@@ -1558,16 +1576,35 @@ export function ReportTemplateStudio() {
           
 
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <details
+            className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+            dir="rtl"
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
               <div>
                 <p className="text-sm font-black text-emerald-700">
                   معرض التصاميم الحقيقية
                 </p>
                 <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                  هذه ليست ألوان فقط؛ كل تصميم يرسم الصفحة بطريقة مختلفة. اختر التصميم وستتغير بنية المعاينة مباشرة.
+                  التصميم المحدد:{" "}
+                  {reportDesignTemplates.find(
+                    (design) =>
+                      design.id ===
+                      (template.designTemplateId || "ministry-form"),
+                  )?.name || "نموذج الوزارة الرسمي"}
                 </p>
               </div>
+
+              <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                فتح / إخفاء
+              </span>
+            </summary>
+
+            <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <p className="text-xs font-bold leading-6 text-slate-500">
+                هذه ليست ألوان فقط؛ كل تصميم يرسم الصفحة بطريقة مختلفة. اختر
+                التصميم وستتغير بنية المعاينة مباشرة.
+              </p>
 
               <select
                 value={template.designTemplateId || "ministry-form"}
@@ -1623,7 +1660,19 @@ export function ReportTemplateStudio() {
                 );
               })}
             </div>
-          </section>
+          </details>
+
+          <HeaderSettingsPanel
+            settings={template.designConfig.header}
+            onChange={(header) =>
+              updateTemplate({
+                designConfig: {
+                  ...template.designConfig,
+                  header: normalizeReportHeaderSettings(header),
+                },
+              })
+            }
+          />
 
           <OfficialPagePreview
             template={template}
@@ -2396,6 +2445,166 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] font-black text-slate-400">{label}</p>
       <p className="mt-1 text-sm font-black text-slate-900">{value}</p>
     </div>
+  );
+}
+
+function HeaderSettingsPanel({
+  settings,
+  onChange,
+}: {
+  settings: ReportHeaderSettings;
+  onChange: (settings: ReportHeaderSettings) => void;
+}) {
+  type NumericHeaderKey =
+    | "heightPx"
+    | "paddingTopPx"
+    | "paddingBottomPx"
+    | "paddingInlinePx"
+    | "itemGapPx"
+    | "logoSizePx"
+    | "headerFontSizePx"
+    | "titleFontSizePx"
+    | "subtitleFontSizePx"
+    | "lineHeight";
+
+  function updateNumber(key: NumericHeaderKey, value: string) {
+    onChange({
+      ...settings,
+      [key]: Number(value),
+    });
+  }
+
+  const numberControls: Array<{
+    key: Exclude<NumericHeaderKey, "lineHeight">;
+    label: string;
+    max: number;
+  }> = [
+    { key: "heightPx", label: "ارتفاع الترويسة", max: 420 },
+    { key: "paddingTopPx", label: "مسافة علوية", max: 160 },
+    { key: "paddingBottomPx", label: "مسافة سفلية", max: 160 },
+    { key: "paddingInlinePx", label: "مسافة يمين/يسار", max: 180 },
+    { key: "itemGapPx", label: "الفجوة بين عناصر الترويسة", max: 100 },
+    { key: "logoSizePx", label: "حجم الشعار", max: 240 },
+    { key: "headerFontSizePx", label: "حجم خط الترويسة", max: 48 },
+    { key: "titleFontSizePx", label: "حجم خط العنوان", max: 72 },
+    {
+      key: "subtitleFontSizePx",
+      label: "حجم خط العنوان الفرعي",
+      max: 48,
+    },
+  ];
+
+  return (
+    <details
+      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+      dir="rtl"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+        <div>
+          <h2 className="text-sm font-black text-slate-900">
+            إعدادات الترويسة
+          </h2>
+          <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+            القيمة 0 تحافظ على إعداد التصميم الأصلي لضمان توافق القوالب القديمة.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+          فتح / إخفاء
+        </span>
+      </summary>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {numberControls.map((control) => (
+          <label key={control.key} className="block">
+            <span className="text-xs font-black text-slate-600">
+              {control.label}
+            </span>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={control.max}
+                step={1}
+                value={settings[control.key]}
+                onChange={(event) =>
+                  updateNumber(control.key, event.target.value)
+                }
+                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+              />
+              <span className="text-[11px] font-black text-slate-400">px</span>
+            </div>
+          </label>
+        ))}
+
+        <label className="block">
+          <span className="text-xs font-black text-slate-600">سماكة الخط</span>
+          <select
+            value={settings.fontWeight}
+            onChange={(event) =>
+              onChange({
+                ...settings,
+                fontWeight: event.target
+                  .value as ReportHeaderSettings["fontWeight"],
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+          >
+            <option value="inherit">حسب التصميم</option>
+            <option value="400">عادي 400</option>
+            <option value="500">متوسط 500</option>
+            <option value="600">شبه عريض 600</option>
+            <option value="700">عريض 700</option>
+            <option value="800">عريض جدًا 800</option>
+            <option value="900">أسود 900</option>
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-black text-slate-600">
+            تباعد الأسطر
+          </span>
+          <input
+            type="number"
+            min={0}
+            max={3}
+            step={0.05}
+            value={settings.lineHeight}
+            onChange={(event) =>
+              updateNumber("lineHeight", event.target.value)
+            }
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-black text-slate-600">نوع الخط</span>
+          <select
+            value={settings.fontFamily}
+            onChange={(event) =>
+              onChange({
+                ...settings,
+                fontFamily: event.target
+                  .value as ReportHeaderSettings["fontFamily"],
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-emerald-600"
+          >
+            <option value="inherit">حسب التصميم</option>
+            <option value="Cairo">Cairo</option>
+            <option value="Arial">Arial</option>
+          </select>
+        </label>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onChange({ ...DEFAULT_REPORT_HEADER_SETTINGS })}
+        className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100"
+      >
+        استعادة إعدادات التصميم الأصلية
+      </button>
+    </details>
   );
 }
 

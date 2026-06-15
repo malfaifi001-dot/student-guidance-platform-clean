@@ -5,6 +5,7 @@ import {
   ReportDesignRenderer,
   reportDesignTemplates,
   type ReportDesignId,
+  type ReportHeaderSettings,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
@@ -179,6 +180,9 @@ type StudioTemplate = {
   name: string;
   description: string;
   designTemplateId?: ReportDesignId;
+  designConfig?: {
+    header?: ReportHeaderSettings;
+  };
   pages: StudioPage[];
 };
 
@@ -562,6 +566,17 @@ function hydrateTemplate(template: TemplateOption | null): StudioTemplate {
     name: template?.name || "قالب report-2",
     description: template?.description || "",
     designTemplateId: normalizeDesignId(source.designTemplateId || raw.designTemplateId),
+    designConfig: asRecord(source.designConfig).header
+      ? {
+          header: asRecord(source.designConfig)
+            .header as unknown as ReportHeaderSettings,
+        }
+      : asRecord(raw.designConfig).header
+        ? {
+            header: asRecord(raw.designConfig)
+              .header as unknown as ReportHeaderSettings,
+          }
+        : undefined,
     pages: pages.length
       ? pages.map(normalizePage)
       : [
