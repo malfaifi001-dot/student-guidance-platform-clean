@@ -1,13 +1,16 @@
-import { TeacherPlaceholderPage } from "@/components/workspace/teacher-placeholder-page";
+import { FeaturePlanningPlaceholderPage } from "@/components/workspace/feature-planning-placeholder-page";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 
 export default async function Page() {
   await requireDashboardUser();
 
   return (
-    <TeacherPlaceholderPage
-      title="تكليفاتي"
-      description="متابعة التكليفات المرسلة للمعلم وتنظيم حالاتها قبل ربطها لاحقًا بالنظام الحقيقي."
+    <FeaturePlanningPlaceholderPage
+      eyebrow="مساحة المعلم"
+      title="تكليفات المعلم"
+      description="هذه الصفحة مخصصة لاحقًا لتكليفات المعلم بعد تحديد مسار التكليف والاعتماد."
+      backHref="/dashboard/teacher"
+      backLabel="العودة إلى مساحة المعلم"
     />
   );
 }
