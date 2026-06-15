@@ -407,6 +407,7 @@ if (!form.principalName.trim()) {
 ${signatureUrl}`;
 
       setPrincipalSignatureLink(signatureUrl);
+      setPrincipalWhatsAppLink(whatsappUrl);
       setPrincipalSignatureRequestModal({
         signatureUrl,
         whatsappUrl,

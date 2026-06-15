@@ -21,6 +21,59 @@ function normalizeSaudiPhone(value: string) {
   return digits;
 }
 
+const DEFAULT_PUBLIC_APP_URL =
+  "https://paleturquoise-mandrill-289573.hostingersite.com";
+
+function cleanBaseUrl(value: string | undefined) {
+  const trimmed = String(value || "").trim().replace(/\/+$/, "");
+
+  if (!trimmed || !/^https?:\/\//i.test(trimmed)) {
+    return "";
+  }
+
+  return trimmed;
+}
+
+function isLocalBaseUrl(value: string) {
+  try {
+    const hostname = new URL(value).hostname;
+
+    return (
+      hostname === "0.0.0.0" ||
+      hostname === "localhost" ||
+      hostname === "127.0.0.1"
+    );
+  } catch {
+    return true;
+  }
+}
+
+function getPublicBaseUrl(request: Request) {
+  const envBaseUrl = cleanBaseUrl(
+    process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.APP_URL ||
+      process.env.SITE_URL,
+  );
+
+  if (
+    envBaseUrl &&
+    (process.env.NODE_ENV !== "production" || !isLocalBaseUrl(envBaseUrl))
+  ) {
+    return envBaseUrl;
+  }
+
+  const requestBaseUrl = cleanBaseUrl(new URL(request.url).origin);
+
+  if (
+    requestBaseUrl &&
+    (process.env.NODE_ENV !== "production" || !isLocalBaseUrl(requestBaseUrl))
+  ) {
+    return requestBaseUrl;
+  }
+
+  return DEFAULT_PUBLIC_APP_URL;
+}
+
 export async function POST(request: Request) {
   const current = await getCurrentSessionUser();
 
@@ -70,8 +123,8 @@ export async function POST(request: Request) {
     },
   });
 
-  const origin = new URL(request.url).origin;
-  const signatureUrl = `${origin}/school-signature/${token}`;
+  const publicBaseUrl = getPublicBaseUrl(request);
+  const signatureUrl = `${publicBaseUrl}/school-signature/${token}`;
   const phone = normalizeSaudiPhone(principalPhone);
   const text = encodeURIComponent(
     `السلام عليكم\nفضلاً اعتماد توقيع مدير المدرسة في منصة التوجيه الطلابي عبر الرابط:\n${signatureUrl}`,
