@@ -7,6 +7,8 @@ import {
   type ReportDesignId,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
+import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
 
 
 type ReportTwoCollapsibleCardProps = {
@@ -1218,11 +1220,11 @@ function getReportTwoBlockHeightScore(
     const perPage = getEvidencePerPageFromBlock(block);
     const shown = Math.min(perPage, Math.max(previewCase.evidences.length, 1));
 
-    if (block.evidenceLayout === "ONE_PER_PAGE") return 118;
-    if (block.evidenceLayout === "GRID_2X2") return 112;
-    if (block.evidenceLayout === "ATTACHMENT_LIST") return 28 + shown * 10;
+    if (block.evidenceLayout === "ONE_PER_PAGE") return 98;
+    if (block.evidenceLayout === "GRID_2X2") return 96;
+    if (block.evidenceLayout === "ATTACHMENT_LIST") return 24 + shown * 8;
 
-    return 92;
+    return 72;
   }
 
   return 36;
@@ -1282,7 +1284,7 @@ function buildReportTwoRuntimeTemplate(
   previewCase: ReturnType<typeof getPreviewCase>,
 ): StudioTemplate {
   const runtimePages: StudioPage[] = [];
-  const safeHeightScore = 166;
+  const safeHeightScore = 184;
 
   template.pages.forEach((sourcePage) => {
     let pageNumber = 1;
@@ -1310,7 +1312,18 @@ function buildReportTwoRuntimeTemplate(
       const block = normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
       const blockScore = getReportTwoBlockHeightScore(block, previewCase);
 
-      if (currentPage.blocks.length > 0 && usedScore + blockScore > safeHeightScore) {
+      const remainingScore = safeHeightScore - usedScore;
+      const canKeepEvidenceInCurrentPage =
+        block.kind === "evidence-gallery" &&
+        currentPage.blocks.length > 0 &&
+        remainingScore >= 58 &&
+        usedScore + blockScore <= safeHeightScore + 18;
+
+      if (
+        currentPage.blocks.length > 0 &&
+        usedScore + blockScore > safeHeightScore &&
+        !canKeepEvidenceInCurrentPage
+      ) {
         pushCurrentPage();
         startNextPage();
       }
@@ -2199,6 +2212,63 @@ function getReportTwoFinalCheckItems({
 function getReportTwoFinalCheckPassed(items: ReportTwoFinalCheckItem[]) {
   return items.every((item) => !item.required || item.passed);
 }
+function getReportTwoPreparedExecutionSummary(payload: SmartReportPayload) {
+  return cleanText(
+    (payload as any)?.narrative?.body ||
+      (payload as any)?.executionSummary ||
+      (payload as any)?.summary ||
+      "",
+  );
+}
+
+function isReportTwoExecutionSummaryBlock(block: StudioBlock) {
+  if (
+    block.kind !== "section-text" &&
+    block.kind !== "multi-paragraph" &&
+    block.kind !== "plain-text"
+  ) {
+    return false;
+  }
+
+  const title = cleanText(block.title).toLowerCase();
+  const content = cleanText(block.content).toLowerCase();
+
+  if (title.includes("وصف") && title.includes("تنفيذ")) return true;
+  if (content.includes("workflow")) return true;
+  if (content.includes("تم توثيق هذا الجزء")) return true;
+
+  return false;
+}
+
+function applyReportTwoPreparedExecutionSummary(
+  template: StudioTemplate,
+  payload: SmartReportPayload,
+): StudioTemplate {
+  const summary = getReportTwoPreparedExecutionSummary(payload);
+
+  if (!summary) return template;
+
+  let replaced = false;
+
+  return {
+    ...template,
+    pages: template.pages.map((page) => ({
+      ...page,
+      blocks: page.blocks.map((block) => {
+        if (replaced || !isReportTwoExecutionSummaryBlock(block)) {
+          return block;
+        }
+
+        replaced = true;
+
+        return {
+          ...block,
+          content: summary,
+        };
+      }),
+    })),
+  };
+}
 function getBlockKindName(kind: StudioBlockKind) {
   if (kind === "hero-title") return "عنوان رئيسي";
   if (kind === "meta-strip") return "شريط بيانات";
@@ -2222,6 +2292,21 @@ export function ReportTwoStudioRuntime({
   payload,
   templates,
 }: ReportTwoStudioRuntimeProps) {
+  const [preparedPayload, setPreparedPayload] = useState<SmartReportPayload>(payload);
+
+  useEffect(() => {
+    const preparation =
+      loadReportFlowPreparation(caseId, "official-activity-card") ||
+      loadReportFlowPreparation(caseId, "smart-general-a4");
+
+    if (preparation) {
+      setPreparedPayload(applyReportFlowPreparationToPayload(payload, preparation));
+      return;
+    }
+
+    setPreparedPayload(payload);
+  }, [caseId, payload]);
+
   const initialTemplateOption =
     templates.find((template) => template.id === selectedTemplateId) ||
     templates[0] ||
@@ -2301,7 +2386,7 @@ export function ReportTwoStudioRuntime({
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
 
-  const runtimeContext = useMemo(() => getRuntimeContext(payload), [payload]);
+  const runtimeContext = useMemo(() => getRuntimeContext(preparedPayload), [preparedPayload]);
   const [headerValues, setHeaderValues] =
     useState<ReportTwoHeaderValues | null>(null);
   const [logoSettings, setLogoSettings] =
@@ -2342,11 +2427,15 @@ export function ReportTwoStudioRuntime({
     [runtimeContext, activeHeaderValues, activeHeaderAlignments, activeLogoSettings],
   );
 
-  const previewCase = useMemo(() => getPreviewCase(payload), [payload]);
+  const previewCase = useMemo(() => getPreviewCase(preparedPayload), [preparedPayload]);
 
   const previewTemplate = useMemo(
-    () => buildReportTwoRuntimeTemplate(template, previewCase),
-    [template, previewCase],
+    () =>
+      applyReportTwoPreparedExecutionSummary(
+        buildReportTwoRuntimeTemplate(template, previewCase),
+        preparedPayload,
+      ),
+    [template, previewCase, preparedPayload],
   );
 
   const visiblePreviewPages = useMemo(() => {
@@ -2387,8 +2476,8 @@ export function ReportTwoStudioRuntime({
   );
 
   const signedVisiblePreviewTemplate = useMemo(
-    () => withReportTwoSignatureBlock(visiblePreviewTemplate, payload),
-    [visiblePreviewTemplate, payload],
+    () => withReportTwoSignatureBlock(visiblePreviewTemplate, preparedPayload),
+    [visiblePreviewTemplate, preparedPayload],
   );
   const activePage = useMemo(
     () =>
@@ -4508,7 +4597,7 @@ export function ReportTwoStudioRuntime({
                   </label>
                 ) : null}
                 {selectedBlock.kind === "signature-grid" ? (() => {
-                  const allSignatures = getReportTwoSignatureCardsFromPayload(payload);
+                  const allSignatures = getReportTwoSignatureCardsFromPayload(preparedPayload);
                   const orderedSignatures = getReportTwoOrderedSignatureCards(allSignatures, selectedBlock);
                   const hiddenKeys = getReportTwoSignatureHiddenKeys(selectedBlock);
                   const allKeys = allSignatures.map((signature) => signature.key);

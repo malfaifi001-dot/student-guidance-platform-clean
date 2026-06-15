@@ -1,0 +1,514 @@
+
+============================================================
+FILE: lib\ai\execution-summary-generator.ts
+============================================================
+
+LINE: 11
+  return String(value ?? "").trim();
+}
+
+function limitArabicWords(value: string, maxWords = 50) {
+  const words = cleanText(value)
+    .replace(/\s+/g, " ")
+    .split(" ")
+    .filter(Boolean);
+
+
+LINE: 12
+}
+
+function limitArabicWords(value: string, maxWords = 50) {
+  const words = cleanText(value)
+    .replace(/\s+/g, " ")
+    .split(" ")
+    .filter(Boolean);
+
+  return words.slice(0, maxWords).join(" ");
+
+LINE: 17
+    .split(" ")
+    .filter(Boolean);
+
+  return words.slice(0, maxWords).join(" ");
+}
+
+function buildFallbackSummary({
+  context,
+  fields,
+
+LINE: 37
+
+  const details = useful.length ? `، وشملت البيانات: ${useful.join("، ")}.` : ".";
+
+  return limitArabicWords(
+    `تم تنفيذ ${title || serviceName || "البرنامج"} وفق البيانات المعتمدة في الحالة${details}`,
+  );
+}
+
+export async function generateExecutionSummary({
+
+LINE: 68
+اكتب وصف تنفيذ رسمي عربي قصير جدًا بصياغة سياقية مترابطة، وليس مجرد سرد لحقول النموذج.
+استخدم فقط البيانات المقدمة ولا تضف أي معلومة من خارجها. افهم سياق التقرير من عنوان الخدمة، اسم البرنامج، طريقة التنفيذ، التاريخ، الفصل الدراسي، المنفذ، والفئة أو المستفيدين إن وجدت.
+لا تذكر الذكاء الاصطناعي، ولا تذكر Workflow، ولا تقل "البيانات المختارة" أو "الحقول".
+لا تتجاوز 50 كلمة.
+اجعل النص مناسبًا للتقرير الرسمي، وكأنه وصف فعلي لما تم تنفيذه في المدرسة، مع صياغة تربوية جميلة تشعر المنفذ بقيمة العمل وأثره.
+راعِ لقب المنفذ أو المنفذة إذا ظهر في البيانات.
+
+سياق التقرير:
+- عنوان التقرير: ${context.title}
+
+LINE: 96
+        },
+      ],
+      temperature: 0.2,
+      maxTokens: 180,
+    });
+
+    return {
+      summary: limitArabicWords(summary),
+      source: "AI" as const,
+
+LINE: 100
+    });
+
+    return {
+      summary: limitArabicWords(summary),
+      source: "AI" as const,
+    };
+  } catch {
+    return {
+      summary: buildFallbackSummary({ context, fields: safeFields }),
+
+============================================================
+FILE: components\report-flow\report-prepare-flow.tsx
+============================================================
+
+LINE: 46
+  return String(value ?? "").trim();
+}
+
+function countWords(value: string) {
+  return cleanText(value).split(/\s+/).filter(Boolean).length;
+}
+
+function limitWords(value: string, maxWords = 50) {
+  return cleanText(value).split(/\s+/).filter(Boolean).slice(0, maxWords).join(" ");
+
+LINE: 50
+  return cleanText(value).split(/\s+/).filter(Boolean).length;
+}
+
+function limitWords(value: string, maxWords = 50) {
+  return cleanText(value).split(/\s+/).filter(Boolean).slice(0, maxWords).join(" ");
+}
+
+function getFieldSearchText(field: ReportFlowPrepareField) {
+  return `${field.label} ${field.value} ${field.key}`.toLowerCase();
+
+LINE: 51
+}
+
+function limitWords(value: string, maxWords = 50) {
+  return cleanText(value).split(/\s+/).filter(Boolean).slice(0, maxWords).join(" ");
+}
+
+function getFieldSearchText(field: ReportFlowPrepareField) {
+  return `${field.label} ${field.value} ${field.key}`.toLowerCase();
+}
+
+LINE: 230
+        throw new Error(data?.error || "تعذر توليد وصف التنفيذ.");
+      }
+
+      const nextSummary = limitWords(String(data.summary || ""), 50);
+      const nextSource = data.source === "AI" ? "AI" : "FALLBACK";
+
+      setExecutionSummary(nextSummary);
+      setSummarySource(nextSource);
+      saveReportFlowPreparation(buildPreparation(nextSummary, nextSource));
+
+LINE: 255
+    }
+
+    const safeSummary =
+      limitWords(executionSummary, 50) || payload.narrative.body || "";
+
+    const preparation = buildPreparation(
+      safeSummary,
+      summarySource === "AI" ? "AI" : "MANUAL",
+    );
+
+LINE: 298
+              <p className="text-sm font-black text-emerald-700">
+                المعاينة والتعديل
+              </p>
+              <h1 className="mt-1 text-2xl font-black text-slate-950">
+                {documentDraft.title}
+              </h1>
+              <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+                تم تجهيز التقرير من الحقول التي اخترتها فقط.
+              </p>
+
+LINE: 301
+              <h1 className="mt-1 text-2xl font-black text-slate-950">
+                {documentDraft.title}
+              </h1>
+              <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+                تم تجهيز التقرير من الحقول التي اخترتها فقط.
+              </p>
+            </div>
+
+            <button
+
+LINE: 309
+            <button
+              type="button"
+              onClick={() => setStep("prepare")}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              العودة للتحضير
+            </button>
+          </section>
+
+
+LINE: 334
+                تحضير التقرير
+              </p>
+
+              <h1 className="mt-1 text-2xl font-black text-slate-950">
+                راجع عناصر التقرير قبل المعاينة
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-slate-500">
+                اختر الحقول المهمة، عدّل صياغة القيم للعرض فقط، ثم ولّد وصف
+
+LINE: 338
+                راجع عناصر التقرير قبل المعاينة
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-slate-500">
+                اختر الحقول المهمة، عدّل صياغة القيم للعرض فقط، ثم ولّد وصف
+                التنفيذ من البيانات المختارة.
+              </p>
+            </div>
+
+
+LINE: 347
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/dashboard/cases/${payload.caseInfo.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                <ArrowRight className="h-4 w-4" />
+                العودة للحالة
+              </Link>
+
+
+LINE: 356
+              <button
+                type="button"
+                onClick={continueToStudio}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+              >
+                متابعة إلى المعاينة والتعديل
+                <CheckCircle2 className="h-4 w-4" />
+              </button>
+            </div>
+
+LINE: 368
+        <section className="grid gap-4 lg:grid-cols-3">
+          <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
+            <p className="text-xs font-black text-slate-400">عنوان التقرير</p>
+            <h2 className="mt-2 text-lg font-black leading-8 text-slate-950">
+              {payload.title || payload.caseInfo.title}
+            </h2>
+          </article>
+
+          <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
+
+LINE: 375
+
+          <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
+            <p className="text-xs font-black text-slate-400">الخدمة</p>
+            <h2 className="mt-2 text-lg font-black text-slate-950">
+              {payload.service.name}
+            </h2>
+            <p className="mt-1 text-xs font-bold text-slate-400">
+              {selectedVariant?.shortName || selectedVariant?.name || "تقرير"}
+            </p>
+
+LINE: 395
+        </section>
+
+        {message ? (
+          <div className="rounded-[1.5rem] border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+            {message}
+          </div>
+        ) : null}
+
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
+
+LINE: 404
+          <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-lg font-black text-slate-950">
+                  عناصر Workflow
+                </h2>
+                <p className="mt-1 text-sm font-bold text-slate-500">
+                  اختر فقط ما تريد ظهوره في التقرير. التعديل هنا لا يغيّر أصل
+                  الحالة.
+
+LINE: 407
+                <h2 className="text-lg font-black text-slate-950">
+                  عناصر Workflow
+                </h2>
+                <p className="mt-1 text-sm font-bold text-slate-500">
+                  اختر فقط ما تريد ظهوره في التقرير. التعديل هنا لا يغيّر أصل
+                  الحالة.
+                </p>
+              </div>
+
+
+LINE: 417
+                <button
+                  type="button"
+                  onClick={selectAllVisible}
+                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                >
+                  تحديد الظاهر
+                </button>
+
+                <button
+
+LINE: 425
+                <button
+                  type="button"
+                  onClick={unselectAllVisible}
+                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                >
+                  إلغاء الظاهر
+                </button>
+              </div>
+            </div>
+
+LINE: 436
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="ابحث في الحقول..."
+              className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-300 focus:bg-white"
+            />
+
+            <div className="mt-4 max-h-[680px] space-y-3 overflow-y-auto pr-1">
+              {visibleFields.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
+
+LINE: 439
+              className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-300 focus:bg-white"
+            />
+
+            <div className="mt-4 max-h-[680px] space-y-3 overflow-y-auto pr-1">
+              {visibleFields.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
+                  لا توجد حقول مطابقة للبحث.
+                </div>
+              ) : null}
+
+LINE: 441
+
+            <div className="mt-4 max-h-[680px] space-y-3 overflow-y-auto pr-1">
+              {visibleFields.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
+                  لا توجد حقول مطابقة للبحث.
+                </div>
+              ) : null}
+
+              {visibleFields.map((field) => (
+
+LINE: 452
+                  className={[
+                    "rounded-2xl border p-4 transition",
+                    field.selected
+                      ? "border-emerald-100 bg-emerald-50/30"
+                      : "border-slate-100 bg-slate-50/60 opacity-80",
+                  ].join(" ")}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700">
+
+LINE: 453
+                    "rounded-2xl border p-4 transition",
+                    field.selected
+                      ? "border-emerald-100 bg-emerald-50/30"
+                      : "border-slate-100 bg-slate-50/60 opacity-80",
+                  ].join(" ")}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-700">
+                      <input
+
+LINE: 472
+                    </label>
+
+                    {field.technical ? (
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500">
+                        مخفي افتراضيًا
+                      </span>
+                    ) : null}
+                  </div>
+
+
+LINE: 478
+                    ) : null}
+                  </div>
+
+                  <label className="mb-1 block text-[10px] font-black text-slate-500">
+                    اسم الحقل
+                  </label>
+                  <input
+                    value={field.label}
+                    onChange={(event) =>
+
+LINE: 486
+                    onChange={(event) =>
+                      updateField(field.id, { label: event.target.value })
+                    }
+                    className="mb-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none transition focus:border-emerald-300"
+                  />
+
+                  <label className="mb-1 block text-[10px] font-black text-slate-500">
+                    القيمة
+                  </label>
+
+LINE: 489
+                    className="mb-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 outline-none transition focus:border-emerald-300"
+                  />
+
+                  <label className="mb-1 block text-[10px] font-black text-slate-500">
+                    القيمة
+                  </label>
+                  <textarea
+                    value={field.value}
+                    onChange={(event) =>
+
+LINE: 498
+                      updateField(field.id, { value: event.target.value })
+                    }
+                    rows={2}
+                    className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black leading-6 text-slate-950 outline-none transition focus:border-emerald-300"
+                  />
+                </article>
+              ))}
+            </div>
+          </div>
+
+LINE: 509
+            <section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-black text-slate-950">
+                    وصف التنفيذ
+                  </h2>
+                  <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
+                    يولد الوصف من الحقول المختارة فقط، ويمكنك تعديله يدويًا.
+                  </p>
+
+LINE: 512
+                  <h2 className="text-lg font-black text-slate-950">
+                    وصف التنفيذ
+                  </h2>
+                  <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
+                    يولد الوصف من الحقول المختارة فقط، ويمكنك تعديله يدويًا.
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">
+
+LINE: 517
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">
+                  {summarySource === "AI"
+                    ? "AI"
+                    : summarySource === "MANUAL"
+                      ? "يدوي"
+                      : "افتراضي"}
+
+LINE: 530
+                type="button"
+                onClick={generateSummary}
+                disabled={generating || selectedFields.length === 0}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {generating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+
+LINE: 543
+              <textarea
+                value={executionSummary}
+                onChange={(event) => {
+                  setExecutionSummary(limitWords(event.target.value, 50));
+                  setSummarySource("MANUAL");
+                }}
+                rows={8}
+                placeholder="اكتب أو ولّد وصف التنفيذ..."
+                className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-8 text-slate-950 outline-none transition focus:border-emerald-300 focus:bg-white"
+
+LINE: 548
+                }}
+                rows={8}
+                placeholder="اكتب أو ولّد وصف التنفيذ..."
+                className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-8 text-slate-950 outline-none transition focus:border-emerald-300 focus:bg-white"
+              />
+
+              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+                <span>الحد الأقصى 80 كلمة</span>
+                <span>{countWords(executionSummary)} / 50</span>
+
+LINE: 552
+              />
+
+              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+                <span>الحد الأقصى 80 كلمة</span>
+                <span>{countWords(executionSummary)} / 50</span>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
+
+LINE: 553
+
+              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+                <span>الحد الأقصى 80 كلمة</span>
+                <span>{countWords(executionSummary)} / 50</span>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
+              <h2 className="text-base font-black text-slate-950">
+
+LINE: 558
+            </section>
+
+            <section className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
+              <h2 className="text-base font-black text-slate-950">
+                الترتيب المقترح
+              </h2>
+
+              <div className="mt-4 space-y-3">
+                {[
+
+LINE: 570
+                  ["٤", "تابع إلى المعاينة والتعديل"],
+                ].map(([number, label]) => (
+                  <div key={number} className="flex items-center gap-3">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-700">
+                      {number}
+                    </span>
+                    <span className="text-sm font-black text-slate-700">
+                      {label}
+                    </span>

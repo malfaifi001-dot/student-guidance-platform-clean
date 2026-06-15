@@ -1,0 +1,1329 @@
+Report-2 runtime prepare hook scan
+Generated: 06/15/2026 01:48:40
+
+Git status:
+ M components/report-engine/smart-report-case-preview-page.tsx
+?? app/api/dashboard/reports/case/[caseId]/execution-summary/
+?? app/dashboard/report-2/cases/[caseId]/prepare/
+?? components/report-flow/
+?? lib/ai/
+?? lib/report-flow/
+?? report-2-studio-page-scan.txt
+
+
+===== PATTERN: export function ReportTwoStudioRuntime =====
+
+LINE: 2219
+  if (kind === "evidence-gallery") return "الشواهد";
+  if (kind === "closing-note") return "خاتمة";
+  if (kind === "report-one-table") return "جدول";
+  if (kind === "signature-grid") return "تواقيع الاعتماد";
+
+  return "بلوك";
+}
+
+export function ReportTwoStudioRuntime({
+  caseId,
+  selectedTemplateId,
+  payload,
+  templates,
+}: ReportTwoStudioRuntimeProps) {
+  const initialTemplateOption =
+    templates.find((template) => template.id === selectedTemplateId) ||
+    templates[0] ||
+    null;
+
+  const [selectedTemplateOptionId, setSelectedTemplateOptionId] = useState(
+    initialTemplateOption?.id || "",
+
+===== PATTERN: function ReportTwoStudioRuntime =====
+
+LINE: 2219
+  if (kind === "evidence-gallery") return "الشواهد";
+  if (kind === "closing-note") return "خاتمة";
+  if (kind === "report-one-table") return "جدول";
+  if (kind === "signature-grid") return "تواقيع الاعتماد";
+
+  return "بلوك";
+}
+
+export function ReportTwoStudioRuntime({
+  caseId,
+  selectedTemplateId,
+  payload,
+  templates,
+}: ReportTwoStudioRuntimeProps) {
+  const initialTemplateOption =
+    templates.find((template) => template.id === selectedTemplateId) ||
+    templates[0] ||
+    null;
+
+  const [selectedTemplateOptionId, setSelectedTemplateOptionId] = useState(
+    initialTemplateOption?.id || "",
+
+===== PATTERN: const previewCase =====
+
+LINE: 2345
+      "report.headerAlign.service.name": activeHeaderAlignments["service.name"],
+      "report.headerAlign.identity.ministryName": activeHeaderAlignments["identity.ministryName"],
+      "report.headerAlign.identity.educationDepartment": activeHeaderAlignments["identity.educationDepartment"],
+      "report.headerAlign.report.platformName": activeHeaderAlignments["report.platformName"],
+    }),
+    [runtimeContext, activeHeaderValues, activeHeaderAlignments, activeLogoSettings],
+  );
+
+  const previewCase = useMemo(() => getPreviewCase(payload), [payload]);
+
+  const previewTemplate = useMemo(
+    () => buildReportTwoRuntimeTemplate(template, previewCase),
+    [template, previewCase],
+  );
+
+  const visiblePreviewPages = useMemo(() => {
+    const pages = previewTemplate.pages.filter(
+      (page) => !hiddenRuntimePageIds.includes(page.id),
+    );
+
+    if (!runtimePageOrder.length) {
+
+===== PATTERN: getPreviewCase( =====
+
+LINE: 2345
+      "report.headerAlign.service.name": activeHeaderAlignments["service.name"],
+      "report.headerAlign.identity.ministryName": activeHeaderAlignments["identity.ministryName"],
+      "report.headerAlign.identity.educationDepartment": activeHeaderAlignments["identity.educationDepartment"],
+      "report.headerAlign.report.platformName": activeHeaderAlignments["report.platformName"],
+    }),
+    [runtimeContext, activeHeaderValues, activeHeaderAlignments, activeLogoSettings],
+  );
+
+  const previewCase = useMemo(() => getPreviewCase(payload), [payload]);
+
+  const previewTemplate = useMemo(
+    () => buildReportTwoRuntimeTemplate(template, previewCase),
+    [template, previewCase],
+  );
+
+  const visiblePreviewPages = useMemo(() => {
+    const pages = previewTemplate.pages.filter(
+      (page) => !hiddenRuntimePageIds.includes(page.id),
+    );
+
+    if (!runtimePageOrder.length) {
+
+===== PATTERN: const context =====
+
+LINE: 812
+  return payload as any;
+}
+
+function getRuntimeContext(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  const context: Record<string, string> = {
+    "case.id": cleanText(data.caseInfo?.id),
+    "case.title": cleanText(data.caseInfo?.title || data.title),
+    "case.status": cleanText(data.caseInfo?.status),
+    "case.createdAt": cleanText(data.caseInfo?.createdAt),
+    "case.updatedAt": cleanText(data.caseInfo?.updatedAt),
+
+    "service.name": cleanText(data.service?.name),
+    "service.slug": cleanText(data.service?.slug),
+
+    "student.name": cleanText(student.name || student.fullName),
+    "student.grade": cleanText(student.grade),
+    "student.classroom": cleanText(student.classroom),
+
+===== PATTERN: getRuntimeContext( =====
+
+LINE: 812
+  return payload as any;
+}
+
+function getRuntimeContext(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  const context: Record<string, string> = {
+    "case.id": cleanText(data.caseInfo?.id),
+    "case.title": cleanText(data.caseInfo?.title || data.title),
+    "case.status": cleanText(data.caseInfo?.status),
+    "case.createdAt": cleanText(data.caseInfo?.createdAt),
+    "case.updatedAt": cleanText(data.caseInfo?.updatedAt),
+
+    "service.name": cleanText(data.service?.name),
+    "service.slug": cleanText(data.service?.slug),
+
+    "student.name": cleanText(student.name || student.fullName),
+    "student.grade": cleanText(student.grade),
+    "student.classroom": cleanText(student.classroom),
+
+===== PATTERN: payload =====
+
+LINE: 9
+"use client";
+
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ReportDesignRenderer,
+  reportDesignTemplates,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+
+
+type ReportTwoCollapsibleCardProps = {
+  id: string;
+  title: string;
+  children: ReactNode;
+};
+
+function ReportTwoCollapsibleCard({
+  id,
+  title,
+  children,
+
+LINE: 245
+  logoSettings: ReportTwoLogoSettings | null;
+  hiddenRuntimePageIds: string[];
+  runtimePageOrder: string[];
+};
+
+type ReportTwoStudioRuntimeProps = {
+  caseId: string;
+  selectedTemplateId: string;
+  payload: SmartReportPayload;
+  templates: TemplateOption[];
+};
+
+
+function getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+  return `report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+}
+
+function readReportTwoSavedTemplates(
+  serviceSlug: string,
+): ReportTwoSavedRuntimeTemplate[] {
+  if (typeof window === "undefined") return [];
+
+LINE: 803
+  const direct = REPORT_TWO_VALUE_LABELS[lower] || REPORT_TWO_VALUE_LABELS[raw];
+  if (direct) return direct;
+  const programMatch = lower.match(/^program_(\d+)$/);
+  if (programMatch) return `برنامج النشاط رقم ${programMatch[1]}`;
+  if (/^[a-z0-9_./-]+$/i.test(raw) && /[a-z_]/i.test(raw)) return raw;
+  return raw;
+}
+
+function getPayloadAny(payload: SmartReportPayload) {
+  return payload as any;
+}
+
+function getRuntimeContext(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  const context: Record<string, string> = {
+    "case.id": cleanText(data.caseInfo?.id),
+    "case.title": cleanText(data.caseInfo?.title || data.title),
+    "case.status": cleanText(data.caseInfo?.status),
+
+LINE: 804
+  if (direct) return direct;
+  const programMatch = lower.match(/^program_(\d+)$/);
+  if (programMatch) return `برنامج النشاط رقم ${programMatch[1]}`;
+  if (/^[a-z0-9_./-]+$/i.test(raw) && /[a-z_]/i.test(raw)) return raw;
+  return raw;
+}
+
+function getPayloadAny(payload: SmartReportPayload) {
+  return payload as any;
+}
+
+function getRuntimeContext(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  const context: Record<string, string> = {
+    "case.id": cleanText(data.caseInfo?.id),
+    "case.title": cleanText(data.caseInfo?.title || data.title),
+    "case.status": cleanText(data.caseInfo?.status),
+    "case.createdAt": cleanText(data.caseInfo?.createdAt),
+
+LINE: 807
+  if (/^[a-z0-9_./-]+$/i.test(raw) && /[a-z_]/i.test(raw)) return raw;
+  return raw;
+}
+
+function getPayloadAny(payload: SmartReportPayload) {
+  return payload as any;
+}
+
+function getRuntimeContext(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  const context: Record<string, string> = {
+    "case.id": cleanText(data.caseInfo?.id),
+    "case.title": cleanText(data.caseInfo?.title || data.title),
+    "case.status": cleanText(data.caseInfo?.status),
+    "case.createdAt": cleanText(data.caseInfo?.createdAt),
+    "case.updatedAt": cleanText(data.caseInfo?.updatedAt),
+
+    "service.name": cleanText(data.service?.name),
+
+LINE: 808
+  return raw;
+}
+
+function getPayloadAny(payload: SmartReportPayload) {
+  return payload as any;
+}
+
+function getRuntimeContext(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  const context: Record<string, string> = {
+    "case.id": cleanText(data.caseInfo?.id),
+    "case.title": cleanText(data.caseInfo?.title || data.title),
+    "case.status": cleanText(data.caseInfo?.status),
+    "case.createdAt": cleanText(data.caseInfo?.createdAt),
+    "case.updatedAt": cleanText(data.caseInfo?.updatedAt),
+
+    "service.name": cleanText(data.service?.name),
+    "service.slug": cleanText(data.service?.slug),
+
+LINE: 810
+
+function getPayloadAny(payload: SmartReportPayload) {
+  return payload as any;
+}
+
+function getRuntimeContext(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  const context: Record<string, string> = {
+    "case.id": cleanText(data.caseInfo?.id),
+    "case.title": cleanText(data.caseInfo?.title || data.title),
+    "case.status": cleanText(data.caseInfo?.status),
+    "case.createdAt": cleanText(data.caseInfo?.createdAt),
+    "case.updatedAt": cleanText(data.caseInfo?.updatedAt),
+
+    "service.name": cleanText(data.service?.name),
+    "service.slug": cleanText(data.service?.slug),
+
+    "student.name": cleanText(student.name || student.fullName),
+
+LINE: 863
+  if (url.startsWith("http://")) return url;
+  if (url.startsWith("https://")) return url;
+  if (url.startsWith("data:")) return url;
+  if (url.startsWith("/")) return url;
+
+  return `/${url.replace(/^public\//, "")}`;
+}
+
+function collectEvidences(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+
+  const candidates = [
+    data.evidence?.items,
+    data.evidence?.evidences,
+    data.evidenceItems,
+    data.evidences,
+    data.attachments,
+    data.files,
+    data.caseInfo?.evidence?.items,
+    data.caseInfo?.evidenceItems,
+    data.caseInfo?.evidences,
+
+LINE: 864
+  if (url.startsWith("https://")) return url;
+  if (url.startsWith("data:")) return url;
+  if (url.startsWith("/")) return url;
+
+  return `/${url.replace(/^public\//, "")}`;
+}
+
+function collectEvidences(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+
+  const candidates = [
+    data.evidence?.items,
+    data.evidence?.evidences,
+    data.evidenceItems,
+    data.evidences,
+    data.attachments,
+    data.files,
+    data.caseInfo?.evidence?.items,
+    data.caseInfo?.evidenceItems,
+    data.caseInfo?.evidences,
+    data.caseInfo?.attachments,
+
+LINE: 909
+        fileUrl,
+        imageUrl: normalizeEvidenceUrl(item.imageUrl) || fileUrl,
+        caption: cleanText(item.caption || item.note || item.description || item.title),
+      };
+    })
+    .filter((item) => item.fileUrl || item.imageUrl);
+}
+
+function getPreviewCase(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  return {
+    found: true,
+    caseId: cleanText(data.caseInfo?.id),
+    serviceSlug: cleanText(data.service?.slug),
+    serviceName: cleanText(data.service?.name),
+    title: cleanText(data.caseInfo?.title || data.title),
+    status: cleanText(data.caseInfo?.status),
+    createdAt: cleanText(data.caseInfo?.createdAt),
+
+LINE: 910
+        imageUrl: normalizeEvidenceUrl(item.imageUrl) || fileUrl,
+        caption: cleanText(item.caption || item.note || item.description || item.title),
+      };
+    })
+    .filter((item) => item.fileUrl || item.imageUrl);
+}
+
+function getPreviewCase(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  return {
+    found: true,
+    caseId: cleanText(data.caseInfo?.id),
+    serviceSlug: cleanText(data.service?.slug),
+    serviceName: cleanText(data.service?.name),
+    title: cleanText(data.caseInfo?.title || data.title),
+    status: cleanText(data.caseInfo?.status),
+    createdAt: cleanText(data.caseInfo?.createdAt),
+    updatedAt: cleanText(data.caseInfo?.updatedAt),
+
+LINE: 912
+      };
+    })
+    .filter((item) => item.fileUrl || item.imageUrl);
+}
+
+function getPreviewCase(payload: SmartReportPayload) {
+  const data = getPayloadAny(payload);
+  const student = data.student || data.caseInfo?.student || {};
+  const fields = [...(payload.primaryFields || []), ...(payload.detailFields || [])];
+
+  return {
+    found: true,
+    caseId: cleanText(data.caseInfo?.id),
+    serviceSlug: cleanText(data.service?.slug),
+    serviceName: cleanText(data.service?.name),
+    title: cleanText(data.caseInfo?.title || data.title),
+    status: cleanText(data.caseInfo?.status),
+    createdAt: cleanText(data.caseInfo?.createdAt),
+    updatedAt: cleanText(data.caseInfo?.updatedAt),
+    student: {
+      name: cleanText(student.name || student.fullName),
+
+LINE: 947
+
+      return {
+        fieldKey,
+        fieldLabel: getReportTwoReadableFieldLabel(field, index),
+        value: getReportTwoReadableFieldValue(field),
+        rawValue: cleanText(field.value),
+      };
+    }),
+    evidences: collectEvidences(payload),
+  };
+}
+
+
+function getEvidencePerPageFromBlock(block: StudioBlock) {
+  const explicitLimit = Number(block.evidenceLimit || 0);
+
+  if (Number.isFinite(explicitLimit) && explicitLimit > 0) {
+    return Math.max(1, Math.floor(explicitLimit));
+  }
+
+  if (block.evidenceLayout === "ONE_PER_PAGE") return 1;
+
+LINE: 966
+
+  if (block.evidenceLayout === "ONE_PER_PAGE") return 1;
+  if (block.evidenceLayout === "GRID_2X2") return 4;
+  if (block.evidenceLayout === "ATTACHMENT_LIST") return 6;
+
+  return 2;
+}
+
+function getReportTwoSignatureCardsFromPayload(payload: SmartReportPayload) {
+  const priority = ["teacher", "activity_leader", "counselor", "principal"];
+
+  const signatures = [...(payload.signatures || [])].sort((a, b) => {
+    const aIndex = priority.indexOf(String(a.key || ""));
+    const bIndex = priority.indexOf(String(b.key || ""));
+
+    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+  });
+
+  return signatures
+    .filter((signature) => {
+      return Boolean(
+
+LINE: 969
+  if (block.evidenceLayout === "ATTACHMENT_LIST") return 6;
+
+  return 2;
+}
+
+function getReportTwoSignatureCardsFromPayload(payload: SmartReportPayload) {
+  const priority = ["teacher", "activity_leader", "counselor", "principal"];
+
+  const signatures = [...(payload.signatures || [])].sort((a, b) => {
+    const aIndex = priority.indexOf(String(a.key || ""));
+    const bIndex = priority.indexOf(String(b.key || ""));
+
+    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+  });
+
+  return signatures
+    .filter((signature) => {
+      return Boolean(
+        signature?.label ||
+          signature?.signerName ||
+          signature?.signerTitle ||
+
+LINE: 1028
+  return new Set(
+    Array.isArray((block as any)?.hiddenSignatureKeys)
+      ? ((block as any).hiddenSignatureKeys as string[]).map((key) => cleanText(key))
+      : [],
+  );
+}
+
+function getReportTwoOrderedSignatureCards(
+  signatures: ReturnType<typeof getReportTwoSignatureCardsFromPayload>,
+  block: StudioBlock | null | undefined,
+) {
+  const order = Array.isArray((block as any)?.signatureOrder)
+    ? ((block as any).signatureOrder as string[]).map((key) => cleanText(key)).filter(Boolean)
+    : [];
+
+  const byKey = new Map(signatures.map((signature) => [signature.key, signature]));
+  const used = new Set<string>();
+  const ordered = order
+    .map((key) => byKey.get(key))
+    .filter((signature): signature is NonNullable<typeof signature> => {
+      if (!signature || used.has(signature.key)) return false;
+
+LINE: 1053
+
+  return [
+    ...ordered,
+    ...signatures.filter((signature) => !used.has(signature.key)),
+  ];
+}
+
+function getReportTwoConfiguredSignatureCards(
+  signatures: ReturnType<typeof getReportTwoSignatureCardsFromPayload>,
+  block: StudioBlock | null | undefined,
+) {
+  const hiddenKeys = getReportTwoSignatureHiddenKeys(block);
+
+  return getReportTwoOrderedSignatureCards(signatures, block).filter(
+    (signature) => !hiddenKeys.has(signature.key),
+  );
+}
+
+function moveReportTwoSignatureOrder(
+  currentOrder: unknown,
+  allKeys: string[],
+
+LINE: 1113
+    hidden.add(key);
+  }
+
+  return Array.from(hidden);
+}
+
+function withReportTwoSignatureBlock(
+  template: StudioTemplate,
+  payload: SmartReportPayload,
+): StudioTemplate {
+  const signatures = getReportTwoSignatureCardsFromPayload(payload);
+  let signatureBlock: StudioBlock | null = null;
+
+  const pagesWithoutSignatureBlocks = template.pages.map((page) => ({
+    ...page,
+    blocks: page.blocks.filter((block) => {
+      if (isReportTwoSignatureBlock(block)) {
+        if (!signatureBlock) {
+          signatureBlock = block;
+        }
+
+
+LINE: 1115
+
+  return Array.from(hidden);
+}
+
+function withReportTwoSignatureBlock(
+  template: StudioTemplate,
+  payload: SmartReportPayload,
+): StudioTemplate {
+  const signatures = getReportTwoSignatureCardsFromPayload(payload);
+  let signatureBlock: StudioBlock | null = null;
+
+  const pagesWithoutSignatureBlocks = template.pages.map((page) => ({
+    ...page,
+    blocks: page.blocks.filter((block) => {
+      if (isReportTwoSignatureBlock(block)) {
+        if (!signatureBlock) {
+          signatureBlock = block;
+        }
+
+        return false;
+      }
+
+LINE: 2222
+  if (kind === "signature-grid") return "تواقيع الاعتماد";
+
+  return "بلوك";
+}
+
+export function ReportTwoStudioRuntime({
+  caseId,
+  selectedTemplateId,
+  payload,
+  templates,
+}: ReportTwoStudioRuntimeProps) {
+  const initialTemplateOption =
+    templates.find((template) => template.id === selectedTemplateId) ||
+    templates[0] ||
+    null;
+
+  const [selectedTemplateOptionId, setSelectedTemplateOptionId] = useState(
+    initialTemplateOption?.id || "",
+  );
+
+  const serviceSlugForSavedTemplates = cleanText(
+
+LINE: 2235
+    templates[0] ||
+    null;
+
+  const [selectedTemplateOptionId, setSelectedTemplateOptionId] = useState(
+    initialTemplateOption?.id || "",
+  );
+
+  const serviceSlugForSavedTemplates = cleanText(
+    (payload as any)?.service?.slug || (payload as any)?.serviceSlug || "general",
+  );
+
+  const reportTwoDraftStorageKey = getReportTwoDraftStorageKey(
+    serviceSlugForSavedTemplates,
+    caseId,
+  );
+
+  const [savedRuntimeTemplates, setSavedRuntimeTemplates] = useState<
+    ReportTwoSavedRuntimeTemplate[]
+  >([]);
+
+  const [savedRuntimeTemplatesLoaded, setSavedRuntimeTemplatesLoaded] =
+
+LINE: 2304
+  function closePopup() { setPopup(null); }
+
+  const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
+  const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
+  const [reportTwoPdfExporting, setReportTwoPdfExporting] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+
+  const runtimeContext = useMemo(() => getRuntimeContext(payload), [payload]);
+  const [headerValues, setHeaderValues] =
+    useState<ReportTwoHeaderValues | null>(null);
+  const [logoSettings, setLogoSettings] =
+    useState<ReportTwoLogoSettings | null>(null);
+  const [headerAlignments, setHeaderAlignments] =
+    useState<ReportTwoHeaderAlignments | null>(null);
+
+  const activeHeaderValues = useMemo(
+    () => headerValues || getDefaultReportTwoHeaderValues(runtimeContext),
+    [headerValues, runtimeContext],
+  );
+
+
+LINE: 2345
+      "report.headerAlign.service.name": activeHeaderAlignments["service.name"],
+      "report.headerAlign.identity.ministryName": activeHeaderAlignments["identity.ministryName"],
+      "report.headerAlign.identity.educationDepartment": activeHeaderAlignments["identity.educationDepartment"],
+      "report.headerAlign.report.platformName": activeHeaderAlignments["report.platformName"],
+    }),
+    [runtimeContext, activeHeaderValues, activeHeaderAlignments, activeLogoSettings],
+  );
+
+  const previewCase = useMemo(() => getPreviewCase(payload), [payload]);
+
+  const previewTemplate = useMemo(
+    () => buildReportTwoRuntimeTemplate(template, previewCase),
+    [template, previewCase],
+  );
+
+  const visiblePreviewPages = useMemo(() => {
+    const pages = previewTemplate.pages.filter(
+      (page) => !hiddenRuntimePageIds.includes(page.id),
+    );
+
+    if (!runtimePageOrder.length) {
+
+LINE: 2390
+    () => ({
+      ...previewTemplate,
+      pages: visiblePreviewPages,
+    }),
+    [previewTemplate, visiblePreviewPages],
+  );
+
+  const signedVisiblePreviewTemplate = useMemo(
+    () => withReportTwoSignatureBlock(visiblePreviewTemplate, payload),
+    [visiblePreviewTemplate, payload],
+  );
+  const activePage = useMemo(
+    () =>
+      signedVisiblePreviewTemplate.pages.find((page) => page.id === activePageId) ||
+      signedVisiblePreviewTemplate.pages[0],
+    [signedVisiblePreviewTemplate.pages, activePageId],
+  );
+
+  const editableActivePage = useMemo(
+    () =>
+      template.pages.find((page) => page.id === activePageId) ||
+
+LINE: 2391
+      ...previewTemplate,
+      pages: visiblePreviewPages,
+    }),
+    [previewTemplate, visiblePreviewPages],
+  );
+
+  const signedVisiblePreviewTemplate = useMemo(
+    () => withReportTwoSignatureBlock(visiblePreviewTemplate, payload),
+    [visiblePreviewTemplate, payload],
+  );
+  const activePage = useMemo(
+    () =>
+      signedVisiblePreviewTemplate.pages.find((page) => page.id === activePageId) ||
+      signedVisiblePreviewTemplate.pages[0],
+    [signedVisiblePreviewTemplate.pages, activePageId],
+  );
+
+  const editableActivePage = useMemo(
+    () =>
+      template.pages.find((page) => page.id === activePageId) ||
+      template.pages[0],
+
+LINE: 2602
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, " ")
+      .replace(/-+/g, "-")
+      .trim();
+  }
+
+  function getReportTwoPdfFileName() {
+    const serviceName = sanitizeReportTwoPdfFileNamePart(
+      (payload as any)?.service?.name ||
+        (payload as any)?.serviceName ||
+        previewCase.serviceName ||
+        "تقرير",
+    );
+
+    const downloadDate = new Date().toISOString().slice(0, 10);
+
+    return `${serviceName || "تقرير"} - ${downloadDate}.pdf`;
+  }
+
+  function buildReportTwoPdfExportSnapshot() {
+    return {
+
+LINE: 2603
+      .replace(/\s+/g, " ")
+      .replace(/-+/g, "-")
+      .trim();
+  }
+
+  function getReportTwoPdfFileName() {
+    const serviceName = sanitizeReportTwoPdfFileNamePart(
+      (payload as any)?.service?.name ||
+        (payload as any)?.serviceName ||
+        previewCase.serviceName ||
+        "تقرير",
+    );
+
+    const downloadDate = new Date().toISOString().slice(0, 10);
+
+    return `${serviceName || "تقرير"} - ${downloadDate}.pdf`;
+  }
+
+  function buildReportTwoPdfExportSnapshot() {
+    return {
+      template: signedVisiblePreviewTemplate,
+
+LINE: 4511
+                        }))
+                      }
+                      rows={7}
+                      className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 outline-none focus:border-emerald-600"
+                    />
+                  </label>
+                ) : null}
+                {selectedBlock.kind === "signature-grid" ? (() => {
+                  const allSignatures = getReportTwoSignatureCardsFromPayload(payload);
+                  const orderedSignatures = getReportTwoOrderedSignatureCards(allSignatures, selectedBlock);
+                  const hiddenKeys = getReportTwoSignatureHiddenKeys(selectedBlock);
+                  const allKeys = allSignatures.map((signature) => signature.key);
+
+                  return (
+                    <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
+                      <h3 className="text-xs font-black text-slate-900">
+                        ترتيب تواقيع الاعتماد
+                      </h3>
+
+                      <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                        يظهر هذا البلوك في آخر صفحة فوق الفوتر. رتّب التواقيع أو أخفِ أي توقيع لا تحتاجه.
+
+===== PATTERN: useMemo =====
+
+LINE: 3
+"use client";
+
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ReportDesignRenderer,
+  reportDesignTemplates,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+
+
+type ReportTwoCollapsibleCardProps = {
+  id: string;
+  title: string;
+  children: ReactNode;
+
+LINE: 2304
+  function closePopup() { setPopup(null); }
+
+  const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
+  const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
+  const [reportTwoPdfExporting, setReportTwoPdfExporting] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+
+  const runtimeContext = useMemo(() => getRuntimeContext(payload), [payload]);
+  const [headerValues, setHeaderValues] =
+    useState<ReportTwoHeaderValues | null>(null);
+  const [logoSettings, setLogoSettings] =
+    useState<ReportTwoLogoSettings | null>(null);
+  const [headerAlignments, setHeaderAlignments] =
+    useState<ReportTwoHeaderAlignments | null>(null);
+
+  const activeHeaderValues = useMemo(
+    () => headerValues || getDefaultReportTwoHeaderValues(runtimeContext),
+    [headerValues, runtimeContext],
+  );
+
+
+LINE: 2312
+  const runtimeContext = useMemo(() => getRuntimeContext(payload), [payload]);
+  const [headerValues, setHeaderValues] =
+    useState<ReportTwoHeaderValues | null>(null);
+  const [logoSettings, setLogoSettings] =
+    useState<ReportTwoLogoSettings | null>(null);
+  const [headerAlignments, setHeaderAlignments] =
+    useState<ReportTwoHeaderAlignments | null>(null);
+
+  const activeHeaderValues = useMemo(
+    () => headerValues || getDefaultReportTwoHeaderValues(runtimeContext),
+    [headerValues, runtimeContext],
+  );
+
+  const activeHeaderAlignments = useMemo(
+    () => headerAlignments || getDefaultReportTwoHeaderAlignments(),
+    [headerAlignments],
+  );
+
+  const activeLogoSettings = useMemo(
+    () => logoSettings || getDefaultReportTwoLogoSettings(runtimeContext),
+    [logoSettings, runtimeContext],
+
+LINE: 2317
+  const [headerAlignments, setHeaderAlignments] =
+    useState<ReportTwoHeaderAlignments | null>(null);
+
+  const activeHeaderValues = useMemo(
+    () => headerValues || getDefaultReportTwoHeaderValues(runtimeContext),
+    [headerValues, runtimeContext],
+  );
+
+  const activeHeaderAlignments = useMemo(
+    () => headerAlignments || getDefaultReportTwoHeaderAlignments(),
+    [headerAlignments],
+  );
+
+  const activeLogoSettings = useMemo(
+    () => logoSettings || getDefaultReportTwoLogoSettings(runtimeContext),
+    [logoSettings, runtimeContext],
+  );
+
+  const editableRuntimeContext = useMemo(
+    () => ({
+      ...runtimeContext,
+
+LINE: 2322
+    [headerValues, runtimeContext],
+  );
+
+  const activeHeaderAlignments = useMemo(
+    () => headerAlignments || getDefaultReportTwoHeaderAlignments(),
+    [headerAlignments],
+  );
+
+  const activeLogoSettings = useMemo(
+    () => logoSettings || getDefaultReportTwoLogoSettings(runtimeContext),
+    [logoSettings, runtimeContext],
+  );
+
+  const editableRuntimeContext = useMemo(
+    () => ({
+      ...runtimeContext,
+      ...activeHeaderValues,
+      "report.logoUrl": activeLogoSettings.url,
+      "report.logoWidthPx": String(activeLogoSettings.width),
+      "report.logoHeightPx": String(activeLogoSettings.height),
+      "report.logoFit": activeLogoSettings.fit,
+
+LINE: 2327
+    [headerAlignments],
+  );
+
+  const activeLogoSettings = useMemo(
+    () => logoSettings || getDefaultReportTwoLogoSettings(runtimeContext),
+    [logoSettings, runtimeContext],
+  );
+
+  const editableRuntimeContext = useMemo(
+    () => ({
+      ...runtimeContext,
+      ...activeHeaderValues,
+      "report.logoUrl": activeLogoSettings.url,
+      "report.logoWidthPx": String(activeLogoSettings.width),
+      "report.logoHeightPx": String(activeLogoSettings.height),
+      "report.logoFit": activeLogoSettings.fit,
+      "report.logoFilter": activeLogoSettings.filter,
+      "report.headerAlign.case.createdAt": activeHeaderAlignments["case.createdAt"],
+      "report.headerAlign.service.name": activeHeaderAlignments["service.name"],
+      "report.headerAlign.identity.ministryName": activeHeaderAlignments["identity.ministryName"],
+      "report.headerAlign.identity.educationDepartment": activeHeaderAlignments["identity.educationDepartment"],
+
+LINE: 2345
+      "report.headerAlign.service.name": activeHeaderAlignments["service.name"],
+      "report.headerAlign.identity.ministryName": activeHeaderAlignments["identity.ministryName"],
+      "report.headerAlign.identity.educationDepartment": activeHeaderAlignments["identity.educationDepartment"],
+      "report.headerAlign.report.platformName": activeHeaderAlignments["report.platformName"],
+    }),
+    [runtimeContext, activeHeaderValues, activeHeaderAlignments, activeLogoSettings],
+  );
+
+  const previewCase = useMemo(() => getPreviewCase(payload), [payload]);
+
+  const previewTemplate = useMemo(
+    () => buildReportTwoRuntimeTemplate(template, previewCase),
+    [template, previewCase],
+  );
+
+  const visiblePreviewPages = useMemo(() => {
+    const pages = previewTemplate.pages.filter(
+      (page) => !hiddenRuntimePageIds.includes(page.id),
+    );
+
+    if (!runtimePageOrder.length) {
+
+LINE: 2347
+      "report.headerAlign.identity.educationDepartment": activeHeaderAlignments["identity.educationDepartment"],
+      "report.headerAlign.report.platformName": activeHeaderAlignments["report.platformName"],
+    }),
+    [runtimeContext, activeHeaderValues, activeHeaderAlignments, activeLogoSettings],
+  );
+
+  const previewCase = useMemo(() => getPreviewCase(payload), [payload]);
+
+  const previewTemplate = useMemo(
+    () => buildReportTwoRuntimeTemplate(template, previewCase),
+    [template, previewCase],
+  );
+
+  const visiblePreviewPages = useMemo(() => {
+    const pages = previewTemplate.pages.filter(
+      (page) => !hiddenRuntimePageIds.includes(page.id),
+    );
+
+    if (!runtimePageOrder.length) {
+      return pages;
+    }
+
+LINE: 2352
+
+  const previewCase = useMemo(() => getPreviewCase(payload), [payload]);
+
+  const previewTemplate = useMemo(
+    () => buildReportTwoRuntimeTemplate(template, previewCase),
+    [template, previewCase],
+  );
+
+  const visiblePreviewPages = useMemo(() => {
+    const pages = previewTemplate.pages.filter(
+      (page) => !hiddenRuntimePageIds.includes(page.id),
+    );
+
+    if (!runtimePageOrder.length) {
+      return pages;
+    }
+
+    const orderMap = new Map(
+      runtimePageOrder.map((pageId, index) => [pageId, index]),
+    );
+
+
+LINE: 2381
+      if (firstIndex !== secondIndex) {
+        return firstIndex - secondIndex;
+      }
+
+      return pages.indexOf(firstPage) - pages.indexOf(secondPage);
+    });
+  }, [previewTemplate.pages, hiddenRuntimePageIds, runtimePageOrder]);
+
+  const visiblePreviewTemplate = useMemo(
+    () => ({
+      ...previewTemplate,
+      pages: visiblePreviewPages,
+    }),
+    [previewTemplate, visiblePreviewPages],
+  );
+
+  const signedVisiblePreviewTemplate = useMemo(
+    () => withReportTwoSignatureBlock(visiblePreviewTemplate, payload),
+    [visiblePreviewTemplate, payload],
+  );
+  const activePage = useMemo(
+
+LINE: 2389
+  const visiblePreviewTemplate = useMemo(
+    () => ({
+      ...previewTemplate,
+      pages: visiblePreviewPages,
+    }),
+    [previewTemplate, visiblePreviewPages],
+  );
+
+  const signedVisiblePreviewTemplate = useMemo(
+    () => withReportTwoSignatureBlock(visiblePreviewTemplate, payload),
+    [visiblePreviewTemplate, payload],
+  );
+  const activePage = useMemo(
+    () =>
+      signedVisiblePreviewTemplate.pages.find((page) => page.id === activePageId) ||
+      signedVisiblePreviewTemplate.pages[0],
+    [signedVisiblePreviewTemplate.pages, activePageId],
+  );
+
+  const editableActivePage = useMemo(
+    () =>
+
+LINE: 2393
+    }),
+    [previewTemplate, visiblePreviewPages],
+  );
+
+  const signedVisiblePreviewTemplate = useMemo(
+    () => withReportTwoSignatureBlock(visiblePreviewTemplate, payload),
+    [visiblePreviewTemplate, payload],
+  );
+  const activePage = useMemo(
+    () =>
+      signedVisiblePreviewTemplate.pages.find((page) => page.id === activePageId) ||
+      signedVisiblePreviewTemplate.pages[0],
+    [signedVisiblePreviewTemplate.pages, activePageId],
+  );
+
+  const editableActivePage = useMemo(
+    () =>
+      template.pages.find((page) => page.id === activePageId) ||
+      template.pages[0],
+    [template.pages, activePageId],
+  );
+
+LINE: 2400
+  );
+  const activePage = useMemo(
+    () =>
+      signedVisiblePreviewTemplate.pages.find((page) => page.id === activePageId) ||
+      signedVisiblePreviewTemplate.pages[0],
+    [signedVisiblePreviewTemplate.pages, activePageId],
+  );
+
+  const editableActivePage = useMemo(
+    () =>
+      template.pages.find((page) => page.id === activePageId) ||
+      template.pages[0],
+    [template.pages, activePageId],
+  );
+
+  const selectedBlock = useMemo(() => {
+    const runtimeBlock =
+      visiblePreviewTemplate.pages
+        .flatMap((page) => page.blocks)
+        .find((block) => block.id === selectedBlockId) || null;
+
+
+LINE: 2407
+
+  const editableActivePage = useMemo(
+    () =>
+      template.pages.find((page) => page.id === activePageId) ||
+      template.pages[0],
+    [template.pages, activePageId],
+  );
+
+  const selectedBlock = useMemo(() => {
+    const runtimeBlock =
+      visiblePreviewTemplate.pages
+        .flatMap((page) => page.blocks)
+        .find((block) => block.id === selectedBlockId) || null;
+
+    const sourceBlockId =
+      cleanText((runtimeBlock as any)?.sourceBlockId) || selectedBlockId;
+
+    const sourceBlock =
+      template.pages
+        .flatMap((page) => page.blocks)
+        .find((block) => block.id === sourceBlockId) || null;
+
+LINE: 2427
+        .find((block) => block.id === sourceBlockId) || null;
+
+    return sourceBlock || runtimeBlock || null;
+  }, [selectedBlockId, template.pages, visiblePreviewTemplate.pages]);
+
+
+
+
+  const smartAlerts = useMemo(
+    () =>
+      getReportTwoSmartAlerts({
+        visiblePreviewTemplate,
+        previewCase,
+        activeHeaderValues,
+        activeLogoSettings,
+        hiddenRuntimePageIds,
+      }),
+    [
+      visiblePreviewTemplate,
+      previewCase,
+      activeHeaderValues,
+
+LINE: 2445
+      visiblePreviewTemplate,
+      previewCase,
+      activeHeaderValues,
+      activeLogoSettings,
+      hiddenRuntimePageIds,
+    ],
+  );
+
+  const smartAlertsSummary = useMemo(
+    () => ({
+      errors: smartAlerts.filter((alert) => alert.type === "error").length,
+      warnings: smartAlerts.filter((alert) => alert.type === "warning").length,
+      infos: smartAlerts.filter((alert) => alert.type === "info").length,
+      success: smartAlerts.filter((alert) => alert.type === "success").length,
+    }),
+    [smartAlerts],
+  );
+
+  function focusReportTwoSmartAlert(alert: ReportTwoSmartAlert) {
+    if (alert.pageId) {
+      setActivePageId(alert.pageId);
+
+LINE: 2522
+      setHeaderAlignments(null);
+      setLogoSettings(null);
+      return;
+    }
+
+    focusReportTwoSmartAlert(alert);
+  }
+
+  const finalCheckItems = useMemo(
+    () =>
+      getReportTwoFinalCheckItems({
+        smartAlerts,
+        visiblePreviewTemplate,
+        activeHeaderValues,
+        activeLogoSettings,
+        lastAutoSavedAt,
+      }),
+    [
+      smartAlerts,
+      visiblePreviewTemplate,
+      activeHeaderValues,
+
+LINE: 2540
+      smartAlerts,
+      visiblePreviewTemplate,
+      activeHeaderValues,
+      activeLogoSettings,
+      lastAutoSavedAt,
+    ],
+  );
+
+  const finalCheckPassed = useMemo(
+    () => getReportTwoFinalCheckPassed(finalCheckItems),
+    [finalCheckItems],
+  );
+
+  const finalCheckBlockingItems = useMemo(
+    () => finalCheckItems.filter((item) => item.required && !item.passed),
+    [finalCheckItems],
+  );
+
+  function openReportTwoFinalWizard() {
+    saveReportTwoDraftNow(false);
+    setFinalWizardOpen(true);
+
+LINE: 2545
+    ],
+  );
+
+  const finalCheckPassed = useMemo(
+    () => getReportTwoFinalCheckPassed(finalCheckItems),
+    [finalCheckItems],
+  );
+
+  const finalCheckBlockingItems = useMemo(
+    () => finalCheckItems.filter((item) => item.required && !item.passed),
+    [finalCheckItems],
+  );
+
+  function openReportTwoFinalWizard() {
+    saveReportTwoDraftNow(false);
+    setFinalWizardOpen(true);
+  }
+
+  function confirmReportTwoFinalWizard() {
+    if (!finalCheckPassed) {
+      setPopup({ type: "alert", title: "الفحص النهائي", message: "لا يمكن تأكيد الجاهزية قبل إصلاح البنود المطلوبة." });
+
+===== PATTERN: useEffect =====
+
+LINE: 3
+"use client";
+
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ReportDesignRenderer,
+  reportDesignTemplates,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+
+
+type ReportTwoCollapsibleCardProps = {
+  id: string;
+  title: string;
+  children: ReactNode;
+
+LINE: 3300
+
+    updateBlock(selectedBlock.id, (block) => ({
+      ...block,
+      rows: rows.length ? rows : [["", "", ""]],
+    }));
+  }
+
+
+  useEffect(() => {
+    const items = readAllReportTwoSavedTemplates();
+    setSavedRuntimeTemplates(items);
+    setSavedRuntimeTemplatesLoaded(true);
+  }, [serviceSlugForSavedTemplates]);
+
+  useEffect(() => {
+    if (draftRestored) return;
+
+    const snapshot = parseReportTwoDraftSnapshot(
+      window.localStorage.getItem(reportTwoDraftStorageKey),
+    );
+
+
+LINE: 3306
+
+
+  useEffect(() => {
+    const items = readAllReportTwoSavedTemplates();
+    setSavedRuntimeTemplates(items);
+    setSavedRuntimeTemplatesLoaded(true);
+  }, [serviceSlugForSavedTemplates]);
+
+  useEffect(() => {
+    if (draftRestored) return;
+
+    const snapshot = parseReportTwoDraftSnapshot(
+      window.localStorage.getItem(reportTwoDraftStorageKey),
+    );
+
+    if (snapshot) {
+      setPendingDraftSnapshot(snapshot);
+      return;
+    }
+
+    setDraftRestored(true);
+
+LINE: 3322
+      setPendingDraftSnapshot(snapshot);
+      return;
+    }
+
+    setDraftRestored(true);
+    // استعادة مسودة report-2
+  }, [draftRestored, reportTwoDraftStorageKey]);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+
+    const timer = window.setTimeout(() => {
+      const snapshot = createReportTwoDraftSnapshot();
+      const serialized = JSON.stringify(snapshot);
+
+      if (lastDraftSerializedRef.current !== serialized) {
+        const previous = parseReportTwoDraftSnapshot(
+          lastDraftSerializedRef.current,
+        );
+
+        if (previous && !restoringDraftRef.current) {

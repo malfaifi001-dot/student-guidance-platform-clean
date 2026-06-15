@@ -76,6 +76,10 @@ type StudioBlock = {
   showMeta: boolean;
   align: "right" | "center";
   placement: BlockPlacement;
+  titleFontSize?: "xs" | "sm" | "base" | "lg" | "xl" | "2xl";
+  contentFontSize?: "xs" | "sm" | "base" | "lg" | "xl";
+  fieldLabelFontSize?: "xs" | "sm" | "base" | "lg";
+  fieldValueFontSize?: "xs" | "sm" | "base" | "lg" | "xl";
   evidenceLayout?: EvidenceLayout;
   evidenceFit?: EvidenceFit;
   evidenceAspectRatio?: EvidenceAspectRatio;
@@ -334,6 +338,10 @@ function createBlock(kind: BlockKind): StudioBlock {
     showMeta: item.kind === "hero-title" || item.kind === "meta-strip",
     align: item.defaultAlign || "right",
     placement: item.kind === "hero-title" ? "middle-center" : "flow",
+    titleFontSize: "base",
+    contentFontSize: "base",
+    fieldLabelFontSize: "sm",
+    fieldValueFontSize: "base",
     evidenceLayout: item.kind === "evidence-gallery" ? "TWO_PER_PAGE" : undefined,
     evidenceFit: item.kind === "evidence-gallery" ? "contain" : undefined,
     evidenceAspectRatio: item.kind === "evidence-gallery" ? "LANDSCAPE_4_3" : undefined,
@@ -587,6 +595,10 @@ function hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
                   showMeta: Boolean(block.settings?.showMeta),
                   align: block.settings?.align || "right",
                   placement: block.settings?.placement || "flow",
+                  titleFontSize: block.settings?.titleFontSize || block.titleFontSize || "base",
+                  contentFontSize: block.settings?.contentFontSize || block.contentFontSize || "base",
+                  fieldLabelFontSize: block.settings?.fieldLabelFontSize || block.fieldLabelFontSize || "sm",
+                  fieldValueFontSize: block.settings?.fieldValueFontSize || block.fieldValueFontSize || "base",
                   evidenceLayout: block.settings?.evidenceLayout || undefined,
                   evidenceFit: block.settings?.evidenceFit || undefined,
                   evidenceAspectRatio: block.settings?.evidenceAspectRatio || "LANDSCAPE_4_3",
@@ -1047,6 +1059,10 @@ export function ReportTemplateStudio() {
             showMeta: block.showMeta,
             align: block.align,
             placement: block.placement || "flow",
+            titleFontSize: block.titleFontSize || "base",
+            contentFontSize: block.contentFontSize || "base",
+            fieldLabelFontSize: block.fieldLabelFontSize || "sm",
+            fieldValueFontSize: block.fieldValueFontSize || "base",
             evidenceLayout: block.evidenceLayout || null,
             evidenceFit: block.evidenceFit || null,
             evidenceAspectRatio: block.evidenceAspectRatio || "LANDSCAPE_4_3",
@@ -1901,6 +1917,102 @@ export function ReportTemplateStudio() {
                       <option value="center">وسط</option>
                     </select>
                   </label>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <h3 className="text-xs font-black text-slate-900">
+                    إعدادات حجم الخط
+                  </h3>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-500">
+                        عنوان البلوك
+                      </span>
+                      <select
+                        value={selectedBlock.titleFontSize || "base"}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            titleFontSize: event.target.value as any,
+                          }))
+                        }
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                      >
+                        <option value="xs">صغير جدًا</option>
+                        <option value="sm">صغير</option>
+                        <option value="base">عادي</option>
+                        <option value="lg">كبير</option>
+                        <option value="xl">كبير جدًا</option>
+                        <option value="2xl">عنوان كبير</option>
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-500">
+                        المحتوى
+                      </span>
+                      <select
+                        value={selectedBlock.contentFontSize || "base"}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            contentFontSize: event.target.value as any,
+                          }))
+                        }
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                      >
+                        <option value="xs">صغير جدًا</option>
+                        <option value="sm">صغير</option>
+                        <option value="base">عادي</option>
+                        <option value="lg">كبير</option>
+                        <option value="xl">كبير جدًا</option>
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-500">
+                        عنوان الحقل
+                      </span>
+                      <select
+                        value={selectedBlock.fieldLabelFontSize || "sm"}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            fieldLabelFontSize: event.target.value as any,
+                          }))
+                        }
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                      >
+                        <option value="xs">صغير جدًا</option>
+                        <option value="sm">صغير</option>
+                        <option value="base">عادي</option>
+                        <option value="lg">كبير</option>
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-500">
+                        قيمة الحقل
+                      </span>
+                      <select
+                        value={selectedBlock.fieldValueFontSize || "base"}
+                        onChange={(event) =>
+                          updateBlock(selectedBlock.id, (block) => ({
+                            ...block,
+                            fieldValueFontSize: event.target.value as any,
+                          }))
+                        }
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-900 outline-none focus:border-emerald-600"
+                      >
+                        <option value="xs">صغير جدًا</option>
+                        <option value="sm">صغير</option>
+                        <option value="base">عادي</option>
+                        <option value="lg">كبير</option>
+                        <option value="xl">كبير جدًا</option>
+                      </select>
+                    </label>
+                  </div>
                 </div>
 
                 <label className="block">

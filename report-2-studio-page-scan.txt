@@ -1,0 +1,430 @@
+Report-2 studio page scan
+Generated: 06/15/2026 01:43:30
+
+Git status:
+ M components/report-engine/smart-report-case-preview-page.tsx
+?? app/api/dashboard/reports/case/[caseId]/execution-summary/
+?? components/report-flow/
+?? lib/ai/
+?? lib/report-flow/
+
+
+============================================================
+FILE: app\dashboard\report-2\cases\[caseId]\studio\page.tsx
+============================================================
+1: import { notFound, redirect } from "next/navigation";
+2: 
+3: import { ReportTwoStudioRuntime } from "@/components/report-2/report-two-studio-runtime";
+4: import { requireDashboardUser } from "@/lib/auth/require-auth";
+5: import { prisma } from "@/lib/prisma";
+6: import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+7: import {
+8:   getSchoolSubscriptionOverview,
+9:   isServiceAllowedForSchool,
+10: } from "@/lib/subscription/subscription-service";
+11: 
+12: type PageProps = {
+13:   params: Promise<{
+14:     caseId: string;
+15:   }>;
+16:   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+17: };
+18: 
+19: function firstParam(value: string | string[] | undefined) {
+20:   return Array.isArray(value) ? value[0] : value;
+21: }
+22: 
+23: function parseTemplateJson(value: unknown) {
+24:   if (!value) return null;
+25: 
+26:   if (typeof value === "string") {
+27:     try {
+28:       return JSON.parse(value);
+29:     } catch {
+30:       return null;
+31:     }
+32:   }
+33: 
+34:   if (typeof value === "object" && !Array.isArray(value)) {
+35:     return value as Record<string, unknown>;
+36:   }
+37: 
+38:   return null;
+39: }
+40: 
+41: function isVisibleTemplate(templateJson: Record<string, unknown> | null) {
+42:   const status = String(templateJson?.status || "").toUpperCase();
+43: 
+44:   if (!status) return true;
+45: 
+46:   return status === "PUBLISHED" || status === "DRAFT";
+47: }
+48: 
+49: export default async function ReportTwoCaseStudioPage({
+50:   params,
+51:   searchParams,
+52: }: PageProps) {
+53:   const current = await requireDashboardUser();
+54: 
+55:   if (current.user.role !== "ADMIN") {
+56:     if (!current.user.schoolAccountId) {
+57:       redirect("/dashboard/plans?reason=activation-required");
+58:     }
+59: 
+60:     const overview = await getSchoolSubscriptionOverview(
+61:       current.user.schoolAccountId,
+62:     );
+63: 
+64:     if (!overview.usable) {
+65:       redirect("/dashboard/plans?reason=activation-required");
+66:     }
+67:   }
+68: 
+69:   const { caseId } = await params;
+70:   const resolvedSearchParams = searchParams ? await searchParams : {};
+71:   const selectedTemplateId = firstParam(resolvedSearchParams.templateId) || "";
+72: 
+73:   const result = await buildSmartReportPayloadForCase({
+74:     caseId,
+75:     current,
+76:   });
+77: 
+78:   if (!result.ok) {
+79:     notFound();
+80:   }
+81: 
+82:   if (current.user.role !== "ADMIN") {
+83:     const access = await isServiceAllowedForSchool({
+84:       schoolAccountId: current.user.schoolAccountId || "",
+85:       serviceSlug: result.serviceSlug,
+86:     });
+87: 
+88:     if (!access.ok) {
+89:       const reason =
+90:         access.reason === "SUBSCRIPTION_INACTIVE"
+91:           ? "activation-required"
+92:           : "service-not-in-plan";
+93: 
+94:       redirect(
+95:         `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+96:           result.serviceSlug,
+97:         )}`,
+98:       );
+99:     }
+100:   }
+101: 
+102:   const templatesRaw = await prisma.reportTemplate.findMany({
+103:     where: {
+104:       isActive: true,
+105:       OR: [
+106:         {
+107:           serviceSlug: null,
+108:         },
+109:         {
+110:           serviceSlug: result.serviceSlug,
+111:         },
+112:       ],
+113:     },
+114:     orderBy: [
+115:       {
+116:         serviceSlug: "desc",
+117:       },
+118:       {
+119:         updatedAt: "desc",
+120:       },
+121:     ],
+122:     take: 30,
+123:   });
+124: 
+125:   const templates = templatesRaw
+126:     .map((template) => {
+127:       const item = template as any;
+128:       const templateJson =
+129:         parseTemplateJson(item.templateJson) || parseTemplateJson(item.content);
+130: 
+131:       return {
+132:         id: template.id,
+133:         name: template.name,
+134:         description: template.description || "",
+135:         serviceSlug: template.serviceSlug || null,
+136:         updatedAt: template.updatedAt.toISOString(),
+137:         templateJson,
+138:         visible: isVisibleTemplate(templateJson),
+139:       };
+140:     })
+141:     .filter((template) => template.visible)
+142:     .map(({ visible: _visible, ...template }) => template);
+143: 
+144:   return (
+145:     <ReportTwoStudioRuntime
+146:       caseId={caseId}
+147:       selectedTemplateId={selectedTemplateId}
+148:       payload={result.payload}
+149:       templates={templates}
+150:     />
+151:   );
+152: }
+
+============================================================
+FILE: components\report-2\report-two-studio-runtime.tsx
+============================================================
+1: "use client";
+2: 
+3: import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+4: import {
+5:   ReportDesignRenderer,
+6:   reportDesignTemplates,
+7:   type ReportDesignId,
+8: } from "@/components/report-engine/design-renderers/report-design-renderer";
+9: import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+10: 
+11: 
+12: type ReportTwoCollapsibleCardProps = {
+13:   id: string;
+14:   title: string;
+15:   children: ReactNode;
+16: };
+17: 
+18: function ReportTwoCollapsibleCard({
+19:   id,
+20:   title,
+21:   children,
+22: }: ReportTwoCollapsibleCardProps) {
+23:   const [open, setOpen] = useState(false);
+24: 
+25:   return (
+26:     <section
+27:       data-report-two-panel-id={id}
+28:       className="rounded-[2rem] border border-emerald-100 bg-white p-3 shadow-sm"
+29:     >
+30:       <button
+31:         type="button"
+32:         onClick={() => setOpen((current) => !current)}
+33:         className="flex w-full items-center justify-between gap-3 rounded-[1.4rem] bg-slate-50 px-4 py-3 text-right transition hover:bg-emerald-50"
+34:       >
+35:         <span className="text-sm font-black text-slate-950">
+36:           {title}
+37:         </span>
+38: 
+39:         <span
+40:           className={[
+41:             "rounded-full px-3 py-1 text-[11px] font-black transition",
+42:             open
+43:               ? "bg-emerald-700 text-white"
+44:               : "bg-white text-emerald-700 ring-1 ring-emerald-100",
+45:           ].join(" ")}
+46:         >
+47:           {open ? "إغلاق" : "فتح"}
+48:         </span>
+49:       </button>
+50: 
+51:       {open ? (
+52:         <div className="mt-3 rounded-[1.5rem] bg-white p-2">
+53:           {children}
+54:         </div>
+55:       ) : null}
+56:     </section>
+57: 
+58:             );
+59: }
+60: 
+61: type TemplateOption = {
+62:   id: string;
+63:   name: string;
+64:   description: string;
+65:   serviceSlug: string | null;
+66:   updatedAt: string;
+67:   templateJson: Record<string, unknown> | null;
+68: };
+69: 
+70: type ReportTwoHeaderFieldKey =
+71:   | "case.createdAt"
+72:   | "service.name"
+73:   | "identity.ministryName"
+74:   | "identity.educationDepartment"
+75:   | "report.platformName";
+76: 
+77: type ReportTwoHeaderValues = Record<ReportTwoHeaderFieldKey, string>;
+78: 
+79: type ReportTwoLogoSettings = {
+80:   url: string;
+81:   width: number;
+82:   height: number;
+83:   fit: "contain" | "cover";
+84:   filter: "invert" | "none";
+85: };
+86: type ReportTwoHeaderAlign = "right" | "center" | "left";
+87: type ReportTwoHeaderAlignments = Record<ReportTwoHeaderFieldKey, ReportTwoHeaderAlign>;
+88: 
+89: type StudioBlockKind =
+90:   | "hero-title"
+91:   | "meta-strip"
+92:   | "plain-text"
+93:   | "section-text"
+94:   | "multi-paragraph"
+95:   | "highlight-note"
+96:   | "bullet-list"
+97:   | "dynamic-fields"
+98:   | "evidence-gallery"
+99:   | "closing-note"
+100:   | "report-one-table"
+101:   | "signature-grid";
+102: 
+103: type StudioPageKind =
+104:   | "content"
+105:   | "recommendations"
+106:   | "evidence"
+107:   | "approval"
+108:   | "custom";
+109: 
+110: type ReportTwoDynamicField = {
+111:   id: string;
+112:   key: string;
+113:   label: string;
+114:   value: string;
+115:   visible: boolean;
+116: };
+117: 
+118: type ReportTwoTableSettings = {
+119:   highlightHeader: boolean;
+120:   highlightFirstColumn: boolean;
+121:   stripedRows: boolean;
+122:   rounded: boolean;
+123:   compact: boolean;
+124:   repeatHeader: boolean;
+125:   colorTheme: "light-gray" | "soft-blue" | "green" | "none";
+126: };
+127: 
+128: type ReportTwoTableDraft = {
+129:   blockId: string;
+130:   title: string;
+131:   columns: string[];
+132:   rows: string[][];
+133:   settings: ReportTwoTableSettings;
+134: };
+135: 
+136: type StudioBlock = {
+137:   id: string;
+138:   kind: StudioBlockKind;
+139:   title: string;
+140:   content: string;
+141:   variant?: string;
+142:   source?: string;
+143:   showTitle?: boolean;
+144:   showMeta?: boolean;
+145:   align?: "right" | "center";
+146:   placement?: string;
+147:   signatures?: any[];
+148:   signatureOrder?: string[];
+149:   hiddenSignatureKeys?: string[];
+150:   boundFieldKey?: string;
+151:   hideWhenMissing?: boolean;
+152:   evidenceLayout?: string;
+153:   evidenceFit?: string;
+154:   evidenceAspectRatio?: string;
+155:   evidenceShowCaptions?: boolean;
+156:   evidenceAutoCreatePages?: boolean;
+157:   evidenceEmptyBehavior?: string;
+158:   columns?: string[];
+159:   rows?: string[][];
+160:   tableSettings?: Record<string, any>;
+161:   dynamicFields?: ReportTwoDynamicField[];
+162:   [key: string]: any;
+163: };
+164: 
+165: type StudioPage = {
+166:   id: string;
+167:   kind: StudioPageKind;
+168:   title: string;
+169:   description?: string;
+170:   sourceTemplatePageId?: string | null;
+171:   reportTwoVirtualPage?: boolean;
+172:   blocks: StudioBlock[];
+173: };
+174: 
+175: type StudioTemplate = {
+176:   id: string;
+177:   name: string;
+178:   description: string;
+179:   designTemplateId?: ReportDesignId;
+180:   pages: StudioPage[];
+181: };
+182: 
+183: type ReportTwoDraftSnapshot = {
+184:   version: 1;
+185:   savedAt: string;
+186:   selectedTemplateOptionId: string;
+187:   activeSavedRuntimeTemplateId: string;
+188:   runtimeTemplateName: string;
+189:   template: StudioTemplate;
+190:   headerValues: ReportTwoHeaderValues | null;
+191:   headerAlignments: ReportTwoHeaderAlignments | null;
+192:   logoSettings: ReportTwoLogoSettings | null;
+193:   hiddenRuntimePageIds: string[];
+194:   runtimePageOrder: string[];
+195:   activePageId: string;
+196:   selectedBlockId: string;
+197:   finalCheckConfirmedAt?: string | null;
+198: };
+199: 
+200: type ReportTwoSmartAlertType = "success" | "info" | "warning" | "error";
+201: 
+202: type ReportTwoSmartAlertAction =
+203:   | "hide-technical-fields"
+204:   | "restore-header"
+205:   | "focus-preview"
+206:   | "open-page"
+207:   | "open-block";
+208: 
+209: type ReportTwoSmartAlert = {
+210:   id: string;
+211:   type: ReportTwoSmartAlertType;
+212:   title: string;
+213:   description: string;
+214:   pageId?: string;
+215:   blockId?: string;
+216:   action?: ReportTwoSmartAlertAction;
+217: };
+218: 
+219: type ReportTwoFinalCheckItem = {
+220:   id: string;
+221:   label: string;
+222:   description: string;
+223:   passed: boolean;
+224:   required: boolean;
+225: };
+226: 
+227: type ReportTwoSavedRuntimeTemplate = {
+228:   id: string;
+229:   name: string;
+230:   serviceSlug: string;
+231:   sourceTemplateId: string;
+232:   createdAt: string;
+233:   updatedAt: string;
+234:   template: StudioTemplate;
+235:   headerValues: ReportTwoHeaderValues | null;
+236:   headerAlignments: ReportTwoHeaderAlignments | null;
+237:   logoSettings: ReportTwoLogoSettings | null;
+238:   hiddenRuntimePageIds: string[];
+239:   runtimePageOrder: string[];
+240: };
+241: 
+242: type ReportTwoStudioRuntimeProps = {
+243:   caseId: string;
+244:   selectedTemplateId: string;
+245:   payload: SmartReportPayload;
+246:   templates: TemplateOption[];
+247: };
+248: 
+249: 
+250: function getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+251:   return `report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+252: }
+253: 
+254: function readReportTwoSavedTemplates(
+255:   serviceSlug: string,
+256: ): ReportTwoSavedRuntimeTemplate[] {
+257:   if (typeof window === "undefined") return [];
+258: 
+259:   try {
+260:     const raw = window.localStorage.getItem(

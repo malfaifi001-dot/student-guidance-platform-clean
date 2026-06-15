@@ -64,7 +64,8 @@ type ReportDesignRendererProps = {
   canMovePage?: (pageId: string, direction: "previous" | "next") => boolean;
   canDeletePage?: (pageId: string) => boolean;
   renderMode?: "single" | "stack";
-  chromeLayout?: "joined" | "split";
+  chromeLayout?: "joined" | "split";
+
   suppressAutoEvidencePages?: boolean;
 };
 
@@ -1772,17 +1773,17 @@ export function A4DesignPage({
 
   return (
     <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden border border-slate-200 bg-white shadow-xl">
-      <div className="relative min-h-[297mm] bg-white p-[12mm] pt-[48mm]">
-        <header className="absolute left-0 right-0 top-0 z-10 rounded-b-[42px] bg-[#1d343f] px-[18mm] py-[10mm] text-white">
-          <div className="grid grid-cols-[120px_1fr_120px] items-center gap-4">
-            <div className="text-right text-xs font-bold leading-6 text-slate-100">
+      <div className="relative min-h-[297mm] bg-white p-[12mm] pt-[56mm]">
+        <header className="absolute left-0 right-0 top-0 z-10 rounded-b-[46px] bg-[#1d343f] px-[18mm] py-[13mm] text-white">
+          <div className="grid grid-cols-[138px_1fr_138px] items-center gap-5">
+            <div className="text-right text-sm font-bold leading-7 text-slate-100">
               <p style={{ textAlign: getDesignHeaderAlign(context, "identity.ministryName", "center") }}>{getDesignHeaderText(context, "identity.ministryName", "وزارة التعليم")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "identity.educationDepartment", "center") }}>{getDesignHeaderText(context, "identity.educationDepartment", "الإدارة العامة للتعليم")}</p>
             </div>
             <div className="text-center">
               <img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 w-auto object-contain brightness-0 invert" />
-              <p className="mt-3 text-sm font-black text-white" style={{ textAlign: getDesignHeaderAlign(context, "report.platformName", "center") }}>{getDesignHeaderText(context, "report.platformName", "منصة التوجيه الطلابي")}</p>
+              <p className="mt-3 text-base font-black text-white" style={{ textAlign: getDesignHeaderAlign(context, "report.platformName", "center") }}>{getDesignHeaderText(context, "report.platformName", "منصة التوجيه الطلابي")}</p>
             </div>
-            <div className="text-left text-xs font-bold leading-6 text-slate-100">
+            <div className="text-left text-sm font-bold leading-7 text-slate-100">
               <p style={{ textAlign: getDesignHeaderAlign(context, "case.createdAt", "center") }}>{getDesignHeaderText(context, "case.createdAt", context["case.createdAt"] || "")}</p><p style={{ textAlign: getDesignHeaderAlign(context, "service.name", "center") }}>{getDesignHeaderText(context, "service.name", context["service.name"] || "")}</p>
             </div>
           </div>
@@ -1957,7 +1958,7 @@ function DesignBlock({
   if (block.kind === "hero-title") {
     return (
       <section className={getBlockShellClass(designId, "hero", "text-center")}>
-        <p className={["text-xs font-black", accent.subtleTextClass].join(" ")}>
+        <p className={["text-sm font-black", accent.subtleTextClass].join(" ")}>
           {context["service.name"]}
         </p>
         <h1 className="mx-auto mt-3 max-w-[145mm] text-3xl font-black leading-[1.7] text-slate-950">{rendered}</h1>
@@ -1980,12 +1981,13 @@ function DesignBlock({
   }
 
   if (block.kind === "bullet-list") {
+    const contentFontSizeClass = getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-sm");
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)}>
-        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
         <ul className="space-y-2">
           {splitLines(rendered).map((line) => (
-            <li key={line} className="flex gap-2 text-sm leading-7 text-slate-700">
+            <li key={line} className={["flex gap-2 leading-7 text-slate-700", contentFontSizeClass].join(" ")}>
               <span className={["mt-2 h-2 w-2 shrink-0 rounded-full", accent.dotClass].join(" ")} />
               <span>{line}</span>
             </li>
@@ -1998,10 +2000,10 @@ function DesignBlock({
   if (block.kind === "multi-paragraph") {
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)}>
-        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
         <div className="space-y-3">
           {splitParagraphs(rendered).map((paragraph) => (
-            <p key={paragraph} className="text-sm leading-8 text-slate-700">{paragraph}</p>
+            <p key={paragraph} className={["leading-8 text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}>{paragraph}</p>
           ))}
         </div>
       </section>
@@ -2035,7 +2037,7 @@ function DesignBlock({
 
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)}>
-        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
 
         <div className={rounded ? `overflow-hidden rounded-2xl border ${tc.border}` : `overflow-hidden border ${tc.border}`}>
           <table className="w-full border-collapse text-xs">
@@ -2088,7 +2090,7 @@ function DesignBlock({
 
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)} data-report-dynamic-fields>
-        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
 
         {dynamicFieldItems.length ? (
           <div className="grid gap-2 md:grid-cols-2 print:grid-cols-2">
@@ -2097,6 +2099,8 @@ function DesignBlock({
                 key={`${id}-${index}`}
                 label={label}
                 value={value || "غير متوفر"}
+                labelFontSize={getBlockSetting(block, "fieldLabelFontSize")}
+                valueFontSize={getBlockSetting(block, "fieldValueFontSize")}
               />
             ))}
           </div>
@@ -2114,7 +2118,7 @@ function DesignBlock({
 
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)}>
-        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
 
         {values.length ? (
           <div className="grid gap-2 md:grid-cols-2 print:grid-cols-2">
@@ -2123,6 +2127,8 @@ function DesignBlock({
                 key={item.key || item.label}
                 label={item.label}
                 value={item.value || "غير متوفر"}
+                labelFontSize={getBlockSetting(block, "fieldLabelFontSize")}
+                valueFontSize={getBlockSetting(block, "fieldValueFontSize")}
               />
             ))}
           </div>
@@ -2157,7 +2163,7 @@ function DesignBlock({
             : undefined
         }
       >
-        {block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} /> : null}
+        {block.showTitle ? <BlockTitle title={block.title || "تواقيع الاعتماد"} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
 
         <div
           className={[
@@ -2211,16 +2217,16 @@ function DesignBlock({
   if (block.kind === "closing-note") {
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)}>
-        {block.showTitle ? <BlockTitle title={block.title} /> : null}
-        <p className="text-sm leading-8 text-slate-700">{rendered}</p>
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        <p className={["leading-8 text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-base")].join(" ")}>{rendered}</p>
       </section>
     );
   }
 
   return (
     <section className={getBlockShellClass(designId, block.variant, textAlign)}>
-      {block.showTitle ? <BlockTitle title={block.title} /> : null}
-      <p className="whitespace-pre-line text-sm leading-8 text-slate-700">{rendered}</p>
+      {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+      <p className={["whitespace-pre-line leading-8 text-slate-700", getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-lg")].join(" ")}>{rendered}</p>
     </section>
   );
 }
@@ -2365,7 +2371,7 @@ function EvidenceBlock({
   if (block.evidenceLayout === "ATTACHMENT_LIST") {
     return (
       <section className={getBlockShellClass(designId, block.variant, textAlign)}>
-        {block.showTitle ? <BlockTitle title={block.title} /> : null}
+        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
         <div className="space-y-2">
           {visibleEvidences.map((evidence, index) => (
             <div key={evidence.id || String(index)} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
@@ -2382,7 +2388,7 @@ function EvidenceBlock({
 
   return (
     <section className={getBlockShellClass(designId, block.variant, textAlign)}>
-      {block.showTitle ? <BlockTitle title={block.title} /> : null}
+      {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
 
       <div className={getEvidenceGridClass(block)} style={getEvidenceGridStyle(block)}>
         {visibleEvidences.map((evidence, index) => {
@@ -2481,11 +2487,11 @@ function AutoEvidencePages({
   );
 }
 
-function MetaCard({ label, value }: { label: string; value: string }) {
+function MetaCard({ label, value, labelFontSize, valueFontSize }: { label: string; value: string; labelFontSize?: string; valueFontSize?: string }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-white px-3 py-2">
-      <p className="text-[10px] font-black text-slate-400">{label}</p>
-      <p className="mt-1 text-xs font-black text-slate-800">{value}</p>
+      <p className={[getReportFontSizeClass(labelFontSize, "text-[10px]"), "font-black text-slate-400"].join(" ")}>{label}</p>
+      <p className={["mt-1", getReportFontSizeClass(valueFontSize, "text-xs"), "font-black text-slate-800"].join(" ")}>{value}</p>
     </div>
   );
 }
@@ -2520,8 +2526,8 @@ function DesignFooter({ text, barClass }: { text: string; barClass: string }) {
   );
 }
 
-function BlockTitle({ title }: { title: string }) {
-  return <h3 className="mb-3 text-base font-black text-slate-950">{title}</h3>;
+function BlockTitle({ title, fontSize }: { title: string; fontSize?: string }) {
+  return <h3 className={["mb-3", getReportFontSizeClass(fontSize, "text-base"), "font-black text-slate-950"].join(" ")}>{title}</h3>;
 }
 
 function renderText(text: string, context: Record<string, string>) {
@@ -2773,6 +2779,22 @@ function getDesignAccentClasses(designId: ReportDesignId) {
         heroShellClass: "rounded-3xl border border-slate-200 bg-gradient-to-l from-slate-50 to-white p-5",
       };
   }
+}
+
+function getReportFontSizeClass(value: unknown, fallback = "text-base") {
+  switch (value) {
+    case "xs": return "text-xs";
+    case "sm": return "text-sm";
+    case "base": return "text-base";
+    case "lg": return "text-lg";
+    case "xl": return "text-xl";
+    case "2xl": return "text-2xl";
+    default: return fallback;
+  }
+}
+
+function getBlockSetting(block: any, key: string) {
+  return block?.[key] ?? block?.settings?.[key];
 }
 
 function getBlockShellClass(designId: ReportDesignId, variant: string, textAlign: string) {

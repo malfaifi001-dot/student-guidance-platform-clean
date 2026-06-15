@@ -1,0 +1,637 @@
+Report-2 execution description scan
+Generated: 06/15/2026 01:52:27
+
+Git status:
+ M components/report-2/report-two-studio-runtime.tsx
+ M components/report-engine/smart-report-case-preview-page.tsx
+?? app/api/dashboard/reports/case/[caseId]/execution-summary/
+?? app/dashboard/report-2/cases/[caseId]/prepare/
+?? components/report-flow/
+?? lib/ai/
+?? lib/report-flow/
+?? report-2-runtime-prepare-hook-scan.txt
+?? report-2-studio-page-scan.txt
+
+
+===== PATTERN: وصف التنفيذ =====
+No matches.
+
+===== PATTERN: execution =====
+
+LINE: 708
+    "service.name": "center",
+    "identity.ministryName": "center",
+    "identity.educationDepartment": "center",
+    "report.platformName": "center",
+  };
+}
+const REPORT_TWO_FIELD_LABELS: Record<string, string> = {
+  activity_domain: "مجال النشاط",
+  activity_program: "برنامج النشاط",
+  activity_program_scouting: "برنامج النشاط الكشفي",
+  execution_mode: "طريقة التنفيذ",
+  execution_method: "طريقة التنفيذ",
+  start_day: "يوم البداية",
+  end_day: "يوم النهاية",
+  start_week: "أسبوع البداية",
+  end_week: "أسبوع النهاية",
+  start_date: "تاريخ البداية",
+  end_date: "تاريخ النهاية",
+  semester: "الفصل الدراسي",
+  term: "الفصل الدراسي",
+  week: "الأسبوع",
+  target_group: "الفئة المستهدفة",
+  target_class: "الفئة المستهدفة",
+  executor: "المعلم المنفذ",
+  execution_date: "تاريخ التنفيذ",
+  planned_sessions: "عدد اللقاءات المخططة",
+  sessions_count: "عدد اللقاءات",
+
+LINE: 709
+    "identity.ministryName": "center",
+    "identity.educationDepartment": "center",
+    "report.platformName": "center",
+  };
+}
+const REPORT_TWO_FIELD_LABELS: Record<string, string> = {
+  activity_domain: "مجال النشاط",
+  activity_program: "برنامج النشاط",
+  activity_program_scouting: "برنامج النشاط الكشفي",
+  execution_mode: "طريقة التنفيذ",
+  execution_method: "طريقة التنفيذ",
+  start_day: "يوم البداية",
+  end_day: "يوم النهاية",
+  start_week: "أسبوع البداية",
+  end_week: "أسبوع النهاية",
+  start_date: "تاريخ البداية",
+  end_date: "تاريخ النهاية",
+  semester: "الفصل الدراسي",
+  term: "الفصل الدراسي",
+  week: "الأسبوع",
+  target_group: "الفئة المستهدفة",
+  target_class: "الفئة المستهدفة",
+  executor: "المعلم المنفذ",
+  execution_date: "تاريخ التنفيذ",
+  planned_sessions: "عدد اللقاءات المخططة",
+  sessions_count: "عدد اللقاءات",
+  participant_students_count: "عدد الطلاب المشاركين",
+
+LINE: 722
+  start_week: "أسبوع البداية",
+  end_week: "أسبوع النهاية",
+  start_date: "تاريخ البداية",
+  end_date: "تاريخ النهاية",
+  semester: "الفصل الدراسي",
+  term: "الفصل الدراسي",
+  week: "الأسبوع",
+  target_group: "الفئة المستهدفة",
+  target_class: "الفئة المستهدفة",
+  executor: "المعلم المنفذ",
+  execution_date: "تاريخ التنفيذ",
+  planned_sessions: "عدد اللقاءات المخططة",
+  sessions_count: "عدد اللقاءات",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  parents_participated: "مشاركة أولياء الأمور",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  beneficiary_count: "عدد المستفيدين",
+  beneficiaries_count: "عدد المستفيدين",
+  location: "موقع التنفيذ",
+  place: "المكان",
+  execution_location: "موقع التنفيذ",
+  activity_leader: "رائد النشاط",
+  counselor: "الموجه الطلابي",
+  principal: "قائد المدرسة",
+};
+
+
+LINE: 733
+  planned_sessions: "عدد اللقاءات المخططة",
+  sessions_count: "عدد اللقاءات",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  parents_participated: "مشاركة أولياء الأمور",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  beneficiary_count: "عدد المستفيدين",
+  beneficiaries_count: "عدد المستفيدين",
+  location: "موقع التنفيذ",
+  place: "المكان",
+  execution_location: "موقع التنفيذ",
+  activity_leader: "رائد النشاط",
+  counselor: "الموجه الطلابي",
+  principal: "قائد المدرسة",
+};
+
+const REPORT_TWO_VALUE_LABELS: Record<string, string> = {
+  scouting: "النشاط الكشفي",
+  citizenship_life: "المواطنة والحياة",
+  science_technology: "العلوم والتقنية",
+  culture_arts: "الثقافة والفنون",
+  sports_health: "الرياضة والصحة",
+  events_occasions: "الأيام والمناسبات",
+  non_class_periods: "الفترات اللاصفية",
+  activity_leader: "رائد النشاط",
+  teacher: "المعلم",
+  counselor: "الموجه الطلابي",
+
+===== PATTERN: narrative =====
+No matches.
+
+===== PATTERN: section-text =====
+
+LINE: 95
+  fit: "contain" | "cover";
+  filter: "invert" | "none";
+};
+type ReportTwoHeaderAlign = "right" | "center" | "left";
+type ReportTwoHeaderAlignments = Record<ReportTwoHeaderFieldKey, ReportTwoHeaderAlign>;
+
+type StudioBlockKind =
+  | "hero-title"
+  | "meta-strip"
+  | "plain-text"
+  | "section-text"
+  | "multi-paragraph"
+  | "highlight-note"
+  | "bullet-list"
+  | "dynamic-fields"
+  | "evidence-gallery"
+  | "closing-note"
+  | "report-one-table"
+  | "signature-grid";
+
+type StudioPageKind =
+  | "content"
+  | "recommendations"
+  | "evidence"
+  | "approval"
+  | "custom";
+
+
+LINE: 508
+        rounded: true,
+        compact: false,
+        repeatHeader: true,
+        colorTheme: "light-gray",
+      },
+    };
+  }
+
+  return {
+    ...base,
+    title: kind === "section-text" ? "فقرة" : "نص",
+    content: "اكتب النص هنا.",
+  };
+}
+
+function createPage(index: number): StudioPage {
+  return {
+    id: makeId("page"),
+    kind: "content",
+    title: `صفحة محتوى ${index}`,
+    description: "",
+    blocks: [createBlock("section-text")],
+  };
+}
+
+function normalizeBlock(value: any, index: number): StudioBlock {
+  const kind = cleanText(value?.kind || value?.settings?.smartBlockKind || "section-text") as StudioBlockKind;
+
+LINE: 519
+    content: "اكتب النص هنا.",
+  };
+}
+
+function createPage(index: number): StudioPage {
+  return {
+    id: makeId("page"),
+    kind: "content",
+    title: `صفحة محتوى ${index}`,
+    description: "",
+    blocks: [createBlock("section-text")],
+  };
+}
+
+function normalizeBlock(value: any, index: number): StudioBlock {
+  const kind = cleanText(value?.kind || value?.settings?.smartBlockKind || "section-text") as StudioBlockKind;
+
+  return {
+    ...createBlock(kind),
+    ...value,
+    id: cleanText(value?.id) || makeId(`block-${index + 1}`),
+    kind,
+    title: cleanText(value?.title) || `بلوك ${index + 1}`,
+    content: cleanText(value?.content ?? value?.defaultContent ?? value?.customContent ?? ""),
+    showTitle: value?.showTitle !== false,
+    showMeta: Boolean(value?.showMeta),
+    align: value?.align === "center" ? "center" : "right",
+
+LINE: 524
+  return {
+    id: makeId("page"),
+    kind: "content",
+    title: `صفحة محتوى ${index}`,
+    description: "",
+    blocks: [createBlock("section-text")],
+  };
+}
+
+function normalizeBlock(value: any, index: number): StudioBlock {
+  const kind = cleanText(value?.kind || value?.settings?.smartBlockKind || "section-text") as StudioBlockKind;
+
+  return {
+    ...createBlock(kind),
+    ...value,
+    id: cleanText(value?.id) || makeId(`block-${index + 1}`),
+    kind,
+    title: cleanText(value?.title) || `بلوك ${index + 1}`,
+    content: cleanText(value?.content ?? value?.defaultContent ?? value?.customContent ?? ""),
+    showTitle: value?.showTitle !== false,
+    showMeta: Boolean(value?.showMeta),
+    align: value?.align === "center" ? "center" : "right",
+    placement: cleanText(value?.placement) || "flow",
+  };
+}
+
+function normalizePage(value: any, index: number): StudioPage {
+
+LINE: 550
+function normalizePage(value: any, index: number): StudioPage {
+  const rawBlocks = asArray(value?.blocks);
+
+  return {
+    id: cleanText(value?.id) || makeId(`page-${index + 1}`),
+    kind: cleanText(value?.kind || "content") as StudioPageKind,
+    title: cleanText(value?.title) || `صفحة ${index + 1}`,
+    description: cleanText(value?.description),
+    blocks: rawBlocks.length
+      ? rawBlocks.map(normalizeBlock)
+      : [createBlock("section-text")],
+  };
+}
+
+function hydrateTemplate(template: TemplateOption | null): StudioTemplate {
+  const raw = asRecord(template?.templateJson);
+  const smartStudio = asRecord(raw.smartStudio);
+  const source = asArray(smartStudio.pages).length ? smartStudio : raw;
+  const pages = asArray(source.pages);
+
+  return {
+    id: template?.id || "report-2-empty-template",
+    name: template?.name || "قالب report-2",
+    description: template?.description || "",
+    designTemplateId: normalizeDesignId(source.designTemplateId || raw.designTemplateId),
+    pages: pages.length
+      ? pages.map(normalizePage)
+
+LINE: 576
+      ? pages.map(normalizePage)
+      : [
+          {
+            id: "report-2-fallback-page",
+            kind: "content",
+            title: "صفحة التقرير",
+            description: "",
+            blocks: [
+              createBlock("hero-title"),
+              createBlock("dynamic-fields"),
+              createBlock("section-text"),
+            ],
+          },
+        ],
+  };
+}
+
+
+
+function getDefaultReportTwoLogoSettings(
+  context: Record<string, string>,
+): ReportTwoLogoSettings {
+  return {
+    url:
+      cleanText(context["report.logoUrl"]) ||
+      cleanText(context["identity.logoUrl"]) ||
+      "/uploads/school-logos/MOE.png",
+
+LINE: 1190
+  if (block.kind === "highlight-note") return 34;
+  if (block.kind === "plain-text") return 26;
+
+  if (block.kind === "dynamic-fields") {
+    const fields = getDynamicFieldsForBlock(block, previewCase);
+    const visibleFields = fields.filter((f) => f.visible !== false);
+    const count = Math.max(visibleFields.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+  }
+
+  if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+    const contentLength = cleanText(block.content).length;
+    const lineCount = Math.max(
+      cleanText(block.content).split("\n").length,
+      Math.ceil(contentLength / 80),
+      1,
+    );
+
+    return 24 + lineCount * 5.8;
+  }
+
+  if (block.kind === "bullet-list") {
+    const count = Math.max(
+      cleanText(block.content)
+        .split("\n")
+        .filter(Boolean).length,
+      1,
+
+LINE: 2078
+            title: "جدول كبير",
+            description: "الجدول كبير وقد لا يكون مريحًا داخل A4. يفضّل تقليل الأعمدة أو نقله لصفحة مستقلة.",
+            pageId: page.id,
+            blockId: block.id,
+            action: "open-block",
+          });
+        }
+      }
+
+      if (
+        (block.kind === "section-text" || block.kind === "multi-paragraph") &&
+        cleanText(block.content).length > 700
+      ) {
+        alerts.push({
+          id: `long-text-${page.id}-${block.id}`,
+          type: "warning",
+          title: "فقرة طويلة",
+          description: "الفقرة طويلة وقد تضغط الصفحة. اختصرها أو انقل جزءًا منها لبلوك جديد.",
+          pageId: page.id,
+          blockId: block.id,
+          action: "open-block",
+        });
+      }
+    });
+  });
+
+  if (!alerts.length) {
+
+LINE: 2208
+  ];
+}
+
+function getReportTwoFinalCheckPassed(items: ReportTwoFinalCheckItem[]) {
+  return items.every((item) => !item.required || item.passed);
+}
+function getBlockKindName(kind: StudioBlockKind) {
+  if (kind === "hero-title") return "عنوان رئيسي";
+  if (kind === "meta-strip") return "شريط بيانات";
+  if (kind === "plain-text") return "نص بسيط";
+  if (kind === "section-text") return "فقرة";
+  if (kind === "multi-paragraph") return "فقرات";
+  if (kind === "highlight-note") return "ملاحظة بارزة";
+  if (kind === "bullet-list") return "قائمة";
+  if (kind === "dynamic-fields") return "حقول الحالة";
+  if (kind === "evidence-gallery") return "الشواهد";
+  if (kind === "closing-note") return "خاتمة";
+  if (kind === "report-one-table") return "جدول";
+  if (kind === "signature-grid") return "تواقيع الاعتماد";
+
+  return "بلوك";
+}
+
+export function ReportTwoStudioRuntime({
+  caseId,
+  selectedTemplateId,
+  payload,
+
+LINE: 4272
+</ReportTwoCollapsibleCard>
+
+          <ReportTwoCollapsibleCard id="add-block" title="إضافة بلوك داخل الصفحة">
+
+            <h2 className="text-sm font-black text-slate-950">
+              إضافة بلوك داخل الصفحة
+            </h2>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {[
+                ["section-text", "فقرة"],
+                ["bullet-list", "قائمة"],
+                ["dynamic-fields", "حقول"],
+                ["evidence-gallery", "شواهد"],
+                ["report-one-table", "جدول"],
+                ["signature-grid", "تواقيع"],
+                ["closing-note", "خاتمة"],
+              ].map(([kind, label]) => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => addBlock(kind as StudioBlockKind)}
+                  className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-xs font-black text-emerald-800 transition hover:bg-emerald-100"
+                >
+                  + {label}
+                </button>
+              ))}
+
+===== PATTERN: plain-text =====
+
+LINE: 94
+  height: number;
+  fit: "contain" | "cover";
+  filter: "invert" | "none";
+};
+type ReportTwoHeaderAlign = "right" | "center" | "left";
+type ReportTwoHeaderAlignments = Record<ReportTwoHeaderFieldKey, ReportTwoHeaderAlign>;
+
+type StudioBlockKind =
+  | "hero-title"
+  | "meta-strip"
+  | "plain-text"
+  | "section-text"
+  | "multi-paragraph"
+  | "highlight-note"
+  | "bullet-list"
+  | "dynamic-fields"
+  | "evidence-gallery"
+  | "closing-note"
+  | "report-one-table"
+  | "signature-grid";
+
+type StudioPageKind =
+  | "content"
+  | "recommendations"
+  | "evidence"
+  | "approval"
+  | "custom";
+
+LINE: 1181
+  };
+}
+function getReportTwoBlockHeightScore(
+  block: StudioBlock,
+  previewCase: ReturnType<typeof getPreviewCase>,
+) {
+  if (block.kind === "hero-title") return 32;
+  if (block.kind === "meta-strip") return 28;
+  if (block.kind === "closing-note") return 34;
+  if (block.kind === "highlight-note") return 34;
+  if (block.kind === "plain-text") return 26;
+
+  if (block.kind === "dynamic-fields") {
+    const fields = getDynamicFieldsForBlock(block, previewCase);
+    const visibleFields = fields.filter((f) => f.visible !== false);
+    const count = Math.max(visibleFields.length, 1);
+    return 24 + Math.ceil(count / 2) * 10.5;
+  }
+
+  if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+    const contentLength = cleanText(block.content).length;
+    const lineCount = Math.max(
+      cleanText(block.content).split("\n").length,
+      Math.ceil(contentLength / 80),
+      1,
+    );
+
+
+LINE: 2207
+    },
+  ];
+}
+
+function getReportTwoFinalCheckPassed(items: ReportTwoFinalCheckItem[]) {
+  return items.every((item) => !item.required || item.passed);
+}
+function getBlockKindName(kind: StudioBlockKind) {
+  if (kind === "hero-title") return "عنوان رئيسي";
+  if (kind === "meta-strip") return "شريط بيانات";
+  if (kind === "plain-text") return "نص بسيط";
+  if (kind === "section-text") return "فقرة";
+  if (kind === "multi-paragraph") return "فقرات";
+  if (kind === "highlight-note") return "ملاحظة بارزة";
+  if (kind === "bullet-list") return "قائمة";
+  if (kind === "dynamic-fields") return "حقول الحالة";
+  if (kind === "evidence-gallery") return "الشواهد";
+  if (kind === "closing-note") return "خاتمة";
+  if (kind === "report-one-table") return "جدول";
+  if (kind === "signature-grid") return "تواقيع الاعتماد";
+
+  return "بلوك";
+}
+
+export function ReportTwoStudioRuntime({
+  caseId,
+  selectedTemplateId,
+
+===== PATTERN: Workflow =====
+
+LINE: 1518
+function getReportTwoOptionCollections(field: any) {
+  return [
+    field.options,
+    field.dynamicFieldOptions,
+    field.fieldOptions,
+    field.choices,
+    field.items,
+    field.field?.options,
+    field.field?.dynamicFieldOptions,
+    field.dynamicField?.options,
+    field.workflowField?.options,
+  ].filter(Array.isArray) as any[][];
+}
+
+function getReportTwoOptionArabicLabel(field: any, rawValue: unknown) {
+  const target = getReportTwoLookupKey(rawValue);
+
+  if (!target) return "";
+
+  for (const options of getReportTwoOptionCollections(field)) {
+    for (const option of options) {
+      const optionValues = [
+        option.value,
+        option.key,
+        option.code,
+        option.slug,
+        option.id,
+
+LINE: 1579
+  const candidates = [
+    field.displayLabel,
+    field.fieldLabel,
+    field.labelAr,
+    field.nameAr,
+    field.titleAr,
+    field.label,
+    field.title,
+    field.field?.label,
+    field.dynamicField?.label,
+    field.workflowField?.label,
+  ];
+
+  for (const candidate of candidates) {
+    const text = cleanText(candidate);
+
+    if (text && text !== key) return text;
+  }
+
+  const fromMap = getReportTwoFieldLabel(key, field.label);
+
+  if (fromMap && fromMap !== key) return fromMap;
+
+  return key;
+}
+
+function getReportTwoReadableFieldValue(field: any) {
+
+LINE: 1635
+  if (fromMap && fromMap !== rawValue) return fromMap;
+
+  return rawValue;
+}
+
+function getReportTwoDynamicFieldsFromPreviewCase(
+  previewCase: ReturnType<typeof getPreviewCase>,
+): ReportTwoDynamicField[] {
+  return (previewCase.values || [])
+    .map((item: any, index: number) => {
+      const key = cleanText(item.fieldKey) || `workflow-field-${index + 1}`;
+      const label = cleanText(item.fieldLabel) || key || `حقل ${index + 1}`;
+      const value = cleanText(item.value);
+
+      return {
+        id: key || `workflow-field-${index + 1}`,
+        key,
+        label,
+        value,
+        visible: Boolean(label && value),
+      };
+    })
+    .filter((item) => item.label && item.value);
+}
+
+function getDynamicFieldsForBlock(
+  block: StudioBlock | null,
+
+LINE: 1640
+function getReportTwoDynamicFieldsFromPreviewCase(
+  previewCase: ReturnType<typeof getPreviewCase>,
+): ReportTwoDynamicField[] {
+  return (previewCase.values || [])
+    .map((item: any, index: number) => {
+      const key = cleanText(item.fieldKey) || `workflow-field-${index + 1}`;
+      const label = cleanText(item.fieldLabel) || key || `حقل ${index + 1}`;
+      const value = cleanText(item.value);
+
+      return {
+        id: key || `workflow-field-${index + 1}`,
+        key,
+        label,
+        value,
+        visible: Boolean(label && value),
+      };
+    })
+    .filter((item) => item.label && item.value);
+}
+
+function getDynamicFieldsForBlock(
+  block: StudioBlock | null,
+  previewCase: ReturnType<typeof getPreviewCase>,
+) {
+  const sourceFields = getReportTwoDynamicFieldsFromPreviewCase(previewCase);
+
+  if (!block?.dynamicFields?.length) {
