@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function LegacyReportPreviewRedirectPage() {
-  redirect("/dashboard/report");
+export default function Page() {
+  redirect("/dashboard/report-2");
 }

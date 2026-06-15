@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default function LegacyStudentImportPage() {
+export default function Page() {
   redirect("/dashboard/data-center/student-data-import");
 }
