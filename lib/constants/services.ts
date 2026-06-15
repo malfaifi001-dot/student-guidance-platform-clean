@@ -141,14 +141,14 @@ export const standaloneServices: AppService[] = [
     slug: "results-analysis",
     title: "تحليل النتائج",
     description: "رفع وتحليل نتائج الطلاب.",
-    href: "/dashboard/results-analysis",
+    href: "/dashboard/assessment-center",
     kind: "standalone",
   },
   {
     slug: "reports",
     title: "التقارير",
     description: "إنشاء ومعاينة واعتماد التقارير.",
-    href: "/dashboard/report",
+    href: "/dashboard/report-2",
     kind: "standalone",
   },
 ];
