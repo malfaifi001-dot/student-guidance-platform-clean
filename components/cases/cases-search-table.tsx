@@ -103,7 +103,7 @@ function normalizeText(value: string) {
 }
 
 function getReportUrl(caseItem: CaseRow) {
-  return `/dashboard/report/cases/${encodeURIComponent(caseItem.id)}/prepare`;
+  return `/dashboard/report-2/cases/${encodeURIComponent(caseItem.id)}/prepare`;
 }
 
 function getCasePrimaryAction(caseItem: CaseRow) {

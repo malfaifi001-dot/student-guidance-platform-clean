@@ -15,7 +15,7 @@ export function ReportOneHome() {
       return;
     }
 
-    router.push(`/dashboard/report-1/cases/${encodeURIComponent(cleanCaseId)}/prepare`);
+    router.push(`/dashboard/report-2/cases/${encodeURIComponent(cleanCaseId)}/prepare`);
   }
 
   return (

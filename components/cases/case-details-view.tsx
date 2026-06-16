@@ -856,7 +856,7 @@ function SavedReportsPanel({
         </div>
 
         <Link
-          href={`/dashboard/report/cases/${caseId}/prepare`}
+          href={`/dashboard/report-2/cases/${encodeURIComponent(caseId)}/prepare`}
           className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
         >
           <FileText className="h-4 w-4" />
@@ -930,7 +930,7 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
       size: item.size || 0,
     })) || [];
 
-  const primaryReportHref = `/dashboard/report/cases/${caseEntry.id}/prepare`;
+  const primaryReportHref = `/dashboard/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`;
 
   const isCommitteesCase = caseEntry.service?.slug === COMMITTEE_SERVICE_SLUG;
 

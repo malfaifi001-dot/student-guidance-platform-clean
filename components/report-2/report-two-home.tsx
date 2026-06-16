@@ -15,7 +15,7 @@ export function ReportTwoHome() {
       return;
     }
 
-    router.push(`/dashboard/report-2/cases/${encodeURIComponent(id)}/studio`);
+    router.push(`/dashboard/report-2/cases/${encodeURIComponent(id)}/prepare`);
   }
 
   return (

@@ -29,7 +29,7 @@ export function SmartReportVariantSelector({
           return (
             <Link
               key={variant.id}
-              href={`/dashboard/report/cases/${caseId}/prepare?variant=${variant.id}`}
+              href={`/dashboard/report-2/cases/${encodeURIComponent(caseId)}/prepare?variant=${variant.id}`}
               className={[
                 "rounded-2xl px-4 py-3 text-xs font-black transition",
                 active
