@@ -9,7 +9,7 @@ import { getSurveyTemplateByKey, surveyTemplates } from "@/lib/surveys/survey-te
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const allowedOwnerRoles = new Set(["ADMIN", "COUNSELOR", "ACTIVITY_LEADER"]);
+const allowedOwnerRoles = new Set(["ADMIN", "COUNSELOR", "ACTIVITY_LEADER", "TEACHER"]);
 
 async function createUniqueToken() {
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -99,7 +99,9 @@ export async function POST(request: NextRequest) {
       ? requestedOwnerRole
       : current.user.role === "ACTIVITY_LEADER"
         ? "ACTIVITY_LEADER"
-        : "COUNSELOR";
+        : current.user.role === "TEACHER"
+          ? "TEACHER"
+          : "COUNSELOR";
 
   const template = getSurveyTemplateByKey(templateKey);
 

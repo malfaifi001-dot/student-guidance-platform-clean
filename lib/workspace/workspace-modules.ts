@@ -9,7 +9,10 @@ export type WorkspaceModuleIcon =
   | "students"
   | "assessment"
   | "certificates"
-  | "portfolio";
+  | "portfolio"
+  | "subscription"
+  | "account"
+  | "schoolSettings";
 
 export type WorkspaceModule = {
   title: string;
@@ -25,10 +28,14 @@ export const OFFICIAL_WORKSPACE_ROUTES = {
   surveys: "/dashboard/surveys",
   studentImport: "/dashboard/data-center/student-data-import",
   assessmentCenter: "/dashboard/assessment-center",
+  teacherReportIssuance: "/dashboard/teacher/report-issuance",
   counselorHome: "/dashboard",
   activityLeaderHome: "/dashboard/activity-leader",
   activityLeaderPrograms: "/dashboard/activity-leader/programs",
   teacherHome: "/dashboard/teacher",
+  teacherSurveys: "/dashboard/teacher/surveys",
+  teacherStudentData: "/dashboard/teacher/student-data",
+  teacherAssessmentCenter: "/dashboard/teacher/assessment-center",
 } as const;
 
 export const counselorWorkspaceModules: WorkspaceModule[] = [
@@ -86,7 +93,7 @@ export const counselorWorkspaceModules: WorkspaceModule[] = [
     description: "وحدة مستقبلية لتجميع أعمال الموجه وإنجازاته.",
     href: "/dashboard/portfolio",
     icon: "portfolio",
-    status: "soon",
+    status: "available",
   },
 ];
 
@@ -145,17 +152,24 @@ export const activityLeaderWorkspaceModules: WorkspaceModule[] = [
     description: "وحدة مستقبلية لتجميع أعمال رائد النشاط.",
     href: "/dashboard/activity-leader/portfolio",
     icon: "portfolio",
-    status: "soon",
+    status: "available",
   },
 ];
 
 export const teacherWorkspaceModules: WorkspaceModule[] = [
   {
-    title: "الأسرة والمجتمع",
-    description: "خدمة Workflow تجريبية للمعلم، ويمكن لاحقًا ربطها بنموذج ديناميكي.",
-    href: "/dashboard/teacher/family-community",
+    title: "الحالات",
+    description: "متابعة الحالات المتاحة ضمن نطاق المدرسة والصلاحيات.",
+    href: OFFICIAL_WORKSPACE_ROUTES.cases,
+    icon: "assignments",
+    status: "available",
+  },
+  {
+    title: "إصدار تقرير",
+    description: "مساحة Workflow لإصدار تقرير المعلم، وهي قيد التصميم لحين اعتماد المتطلبات.",
+    href: OFFICIAL_WORKSPACE_ROUTES.teacherReportIssuance,
     icon: "workflow",
-    status: "soon",
+    status: "available",
   },
   {
     title: "تكليفاتي",
@@ -165,38 +179,52 @@ export const teacherWorkspaceModules: WorkspaceModule[] = [
     status: "soon",
   },
   {
-    title: "شواهدي",
-    description: "رفع وتنظيم الشواهد والمرفقات المرتبطة بمشاركاتك.",
-    href: "/dashboard/teacher/evidence",
-    icon: "evidence",
-    status: "soon",
-  },
-  {
-    title: "استبياناتي",
-    description: "الوصول إلى الاستبيانات المطلوبة منك أو التي شاركت بها.",
+    title: "الاستبيانات",
+    description: "إنشاء ومتابعة الاستبيانات من مركز الاستبيانات المشترك.",
     href: OFFICIAL_WORKSPACE_ROUTES.surveys,
     icon: "surveys",
     status: "available",
   },
   {
-    title: "تقاريري",
-    description: "استعراض التقارير المرتبطة بالتكليفات والمشاركات.",
+    title: "التقارير",
+    description: "استعراض التقارير من محرك التقارير الرسمي.",
     href: OFFICIAL_WORKSPACE_ROUTES.reports,
     icon: "reports",
     status: "available",
   },
   {
-    title: "بيانات الطلاب",
-    description: "الوصول إلى بيانات الطلاب حسب الصلاحيات المتاحة.",
+    title: "رفع الطلاب",
+    description: "الوصول إلى مركز رفع بيانات الطلاب المشترك عند توفر الصلاحية.",
     href: OFFICIAL_WORKSPACE_ROUTES.studentImport,
     icon: "students",
     status: "available",
   },
   {
-    title: "مركز تحليل النتائج",
-    description: "الاطلاع على التحليلات والمؤشرات المرتبطة بالطلاب.",
+    title: "مركز التحليل",
+    description: "الوصول إلى مركز التحليل والمؤشرات المشترك عند توفر الصلاحية.",
     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
     icon: "assessment",
+    status: "available",
+  },
+  {
+    title: "الباقات",
+    description: "إدارة الاشتراك والباقات المرتبطة بالحساب.",
+    href: "/dashboard/subscription",
+    icon: "subscription",
+    status: "available",
+  },
+  {
+    title: "حسابي",
+    description: "إدارة بيانات الحساب والجلسات.",
+    href: "/dashboard/account",
+    icon: "account",
+    status: "available",
+  },
+  {
+    title: "إعدادات المدرسة",
+    description: "تحديث بيانات المدرسة والهوية الرسمية.",
+    href: "/dashboard/settings/school",
+    icon: "schoolSettings",
     status: "available",
   },
   {

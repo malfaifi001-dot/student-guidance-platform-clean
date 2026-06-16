@@ -652,6 +652,9 @@ model Plan {
   priceMonthly Int     @default(0)
   priceYearly  Int     @default(0)
   isActive     Boolean @default(true)
+  isPublic     Boolean @default(true)
+  isArchived   Boolean @default(false)
+  visibleRoles Json?
 
   features      PlanFeature[]
   subscriptions Subscription[]

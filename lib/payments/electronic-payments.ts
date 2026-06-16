@@ -7,6 +7,7 @@ import {
 import { logAdminActivity } from "@/lib/admin/activity-log";
 import { getOrCreateInvoiceForPaymentTransaction } from "@/lib/admin/invoices";
 import { prisma } from "@/lib/prisma";
+import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
 
 export class ElectronicPaymentError extends Error {
   status: number;
@@ -102,6 +103,10 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
         priceMonthly: true,
         priceYearly: true,
         isActive: true,
+        isPublic: true,
+        isArchived: true,
+        visibleRoles: true,
+        features: true,
       },
     }),
     prisma.paymentProvider.findUnique({
@@ -119,12 +124,13 @@ export async function createCheckoutPaymentTransaction(input: CheckoutInput) {
         officialName: true,
         email: true,
         jobTitle: true,
+        role: true,
         schoolAccountId: true,
       },
     }),
   ]);
 
-  if (!plan || !plan.isActive) {
+  if (!plan || !requesterUser || !isPlanSelfServiceVisible(plan, requesterUser.role)) {
     throw new ElectronicPaymentError("الباقة غير متاحة.", 404);
   }
 

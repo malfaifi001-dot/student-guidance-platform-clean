@@ -9,9 +9,14 @@ export const BOARDS: BoardDef[] = [
   { id: "all", label: "الكل" },
   { id: "guidance", label: "الموجه الطلابي" },
   { id: "activity", label: "رائد النشاط" },
+  { id: "teacher", label: "المعلم" },
 ];
 
 export function classifyServiceSlug(slug: string): string {
+  if (slug === "teacher-report-issuance" || slug.startsWith("teacher-")) {
+    return "teacher";
+  }
+
   if (isActivityProgramDomainServiceSlug(slug)) return "activity";
   return "guidance";
 }

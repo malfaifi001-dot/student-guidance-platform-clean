@@ -10,11 +10,13 @@ import {
   GraduationCap,
   Medal,
   Plus,
+  School,
   Sparkles,
   TrendingUp,
   UploadCloud,
   UserCheck,
   Users,
+  WalletCards,
 } from "lucide-react";
 
 import type {
@@ -86,6 +88,9 @@ const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
   assessment: BarChart3,
   certificates: Medal,
   portfolio: FolderKanban,
+  subscription: WalletCards,
+  account: UserCheck,
+  schoolSettings: School,
 };
 
 const statIconByName: Record<WorkspaceStatIcon, typeof TrendingUp> = {

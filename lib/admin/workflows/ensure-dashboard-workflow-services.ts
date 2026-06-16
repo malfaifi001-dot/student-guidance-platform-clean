@@ -53,6 +53,10 @@ export function isWorkflowUploadEligibleService(
   const slug = String(service.slug || "").toLowerCase().trim();
   const title = normalizeArabicText(service.title);
 
+  if (slug === "teacher-report-issuance") {
+    return service.kind === "workflow";
+  }
+
   const isExplicitlyExcludedBySlug = EXCLUDED_WORKFLOW_UPLOAD_SLUG_PARTS.some(
     (part) => slug.includes(part),
   );

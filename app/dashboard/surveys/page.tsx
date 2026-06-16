@@ -15,5 +15,9 @@ export default async function CounselorSurveysPage() {
     redirect("/dashboard/activity-leader/surveys");
   }
 
+  if (current.user.role === "TEACHER") {
+    return <SurveyCenterShell ownerRole="TEACHER" boardPath="/dashboard/surveys" />;
+  }
+
   return <SurveyCenterShell ownerRole="COUNSELOR" boardPath="/dashboard/surveys" />;
 }

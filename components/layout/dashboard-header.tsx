@@ -193,7 +193,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
                   {!isAdmin ? (
                     <HeaderMenuLink
-                      href="/dashboard/plans"
+                      href="/dashboard/subscription"
                       icon={<WalletCards className="h-4 w-4" />}
                       label="الباقات"
                     />

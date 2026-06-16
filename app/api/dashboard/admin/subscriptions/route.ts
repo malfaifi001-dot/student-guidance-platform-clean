@@ -3,7 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
-import type { PlanAudience } from "@/lib/subscription/plan-audience";
+import {
+  getDefaultVisibleRolesForAudience,
+  normalizePlanVisibleRoles,
+  type PlanAudience,
+} from "@/lib/subscription/plan-audience";
 
 function getSchoolDisplayName(account: {
   profile?: {
@@ -227,6 +231,12 @@ export async function POST(request: Request) {
       targetAudienceRaw === "GUIDANCE" || targetAudienceRaw === "ACTIVITY"
         ? targetAudienceRaw
         : "ALL";
+    const visibleRoles =
+      normalizePlanVisibleRoles(payload?.visibleRoles) ??
+      getDefaultVisibleRolesForAudience(targetAudience);
+    const isPublic =
+      typeof payload?.isPublic === "boolean" ? payload.isPublic : true;
+    const isArchived = Boolean(payload?.isArchived);
 
     if (!name) {
       return NextResponse.json(
@@ -262,6 +272,9 @@ export async function POST(request: Request) {
         priceMonthly: priceMonthly >= 0 ? priceMonthly : 0,
         priceYearly: priceYearly >= 0 ? priceYearly : 0,
         isActive: true,
+        isPublic,
+        isArchived,
+        visibleRoles,
         features: {
           create: [
             {
@@ -323,6 +336,53 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: isActive ? "تم تفعيل الباقة." : "تم إيقاف الباقة.",
+    });
+  }
+
+  if (action === "update-plan-visibility") {
+    const planId = String(payload?.planId || "").trim();
+    const isPublic =
+      typeof payload?.isPublic === "boolean" ? payload.isPublic : undefined;
+    const isArchived =
+      typeof payload?.isArchived === "boolean" ? payload.isArchived : undefined;
+    const visibleRoles = normalizePlanVisibleRoles(payload?.visibleRoles) ?? [];
+
+    if (!planId) {
+      return NextResponse.json(
+        { error: "رقم الباقة مطلوب." },
+        { status: 400 }
+      );
+    }
+
+    const plan = await prisma.plan.findUnique({
+      where: {
+        id: planId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!plan) {
+      return NextResponse.json(
+        { error: "الباقة غير موجودة." },
+        { status: 404 }
+      );
+    }
+
+    await prisma.plan.update({
+      where: {
+        id: planId,
+      },
+      data: {
+        ...(typeof isPublic === "boolean" ? { isPublic } : {}),
+        ...(typeof isArchived === "boolean" ? { isArchived } : {}),
+        visibleRoles,
+      },
+    });
+
+    return NextResponse.json({
+      message: "تم تحديث ظهور الباقة.",
     });
   }
 

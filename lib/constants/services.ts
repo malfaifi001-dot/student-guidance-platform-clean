@@ -15,6 +15,13 @@ export type AppService = {
 export const workflowServices: AppService[] = [
   ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
   {
+    slug: "teacher-report-issuance",
+    title: "إصدار تقرير",
+    description: "خدمة للمعلم لإصدار تقرير عبر نموذج Workflow منشور من الأدمن.",
+    href: "/dashboard/teacher/report-issuance",
+    kind: "workflow",
+  },
+  {
     slug: "guidance-programs",
     title: "البرامج الإرشادية",
     description: "إدارة البرامج الإرشادية وخطط التنفيذ.",

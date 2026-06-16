@@ -34,12 +34,17 @@ function createSlugFromName(name: string) {
 }
 
 function normalizeAccountRole(value: unknown) {
+  if (value === "TEACHER") return "TEACHER";
   return value === "ACTIVITY_LEADER" ? "ACTIVITY_LEADER" : "COUNSELOR";
 }
 
 function getJobTitle(role: string, gender: "MALE" | "FEMALE") {
   if (role === "ACTIVITY_LEADER") {
     return gender === "FEMALE" ? "رائدة النشاط" : "رائد النشاط";
+  }
+
+  if (role === "TEACHER") {
+    return gender === "FEMALE" ? "معلمة" : "معلم";
   }
 
   return gender === "FEMALE" ? "موجهة طلابية" : "موجه طلابي";
@@ -163,7 +168,10 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       success: true,
-      redirectTo: getOnboardingPathForRole(result.user.role),
+      redirectTo:
+        result.user.role === "TEACHER"
+          ? "/dashboard/teacher"
+          : getOnboardingPathForRole(result.user.role),
     });
 
     response.cookies.set(

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { CheckoutPlanPage } from "@/components/payments/checkout-plan-page";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import { isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
 
 type PageProps = {
   params: Promise<{
@@ -30,6 +31,10 @@ export default async function CheckoutPlanRoutePage({ params }: PageProps) {
         priceMonthly: true,
         priceYearly: true,
         isActive: true,
+        isPublic: true,
+        isArchived: true,
+        visibleRoles: true,
+        features: true,
       },
     }),
     prisma.paymentProvider.findMany({
@@ -47,7 +52,7 @@ export default async function CheckoutPlanRoutePage({ params }: PageProps) {
     }),
   ]);
 
-  if (!plan || !plan.isActive) {
+  if (!plan || !isPlanSelfServiceVisible(plan, current.user.role)) {
     notFound();
   }
 

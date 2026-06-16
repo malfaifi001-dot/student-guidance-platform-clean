@@ -21,6 +21,7 @@ type WorkflowServiceHomePageProps = {
   newButtonLabel: string;
   caseSingularName: string;
   casePluralName: string;
+  basePath?: string;
   emptyTitle?: string;
   emptyDescription?: string;
 };
@@ -143,6 +144,7 @@ export async function WorkflowServiceHomePage({
   newButtonLabel,
   caseSingularName,
   casePluralName,
+  basePath = `/dashboard/${serviceSlug}`,
   emptyTitle = "لا توجد حالات بعد",
   emptyDescription = "ابدأ بإنشاء أول حالة. بعد الحفظ ستظهر هنا كبطاقات سهلة.",
 }: WorkflowServiceHomePageProps) {
@@ -274,7 +276,7 @@ export async function WorkflowServiceHomePage({
           </div>
 
           <Link
-            href={`/dashboard/${serviceSlug}/new`}
+            href={`${basePath}/new`}
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
           >
             <Plus className="h-4 w-4" />
@@ -345,7 +347,7 @@ export async function WorkflowServiceHomePage({
           </div>
 
           <Link
-            href={`/dashboard/${serviceSlug}/new`}
+            href={`${basePath}/new`}
             className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
           >
             <Plus className="h-4 w-4" />
@@ -457,7 +459,7 @@ export async function WorkflowServiceHomePage({
             </p>
 
             <Link
-              href={`/dashboard/${serviceSlug}/new`}
+              href={`${basePath}/new`}
               className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
             >
               <Plus className="h-4 w-4" />

@@ -24,6 +24,7 @@ import {
   Home,
   KeyRound,
   LayoutDashboard,
+  Medal,
   MessageCircle,
   PenTool,
   School,
@@ -169,14 +170,20 @@ const activityLeaderAccountLinks: SidebarLinkItem[] = [
 
 const teacherServiceLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home },
-  { label: "الأسرة والمجتمع", href: "/dashboard/teacher/family-community", icon: ClipboardList, shortLabel: "الأسرة" },
+  { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "إصدار تقرير", href: OFFICIAL_WORKSPACE_ROUTES.teacherReportIssuance, icon: FilePlus2, shortLabel: "تقرير" },
   { label: "تكليفاتي", href: "/dashboard/teacher/assignments", icon: ClipboardList, shortLabel: "تكليفاتي" },
-  { label: "شواهدي", href: "/dashboard/teacher/evidence", icon: UploadCloud, shortLabel: "شواهدي" },
-  { label: "استبياناتي", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList, shortLabel: "استبياناتي" },
-  { label: "تقاريري", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText, shortLabel: "تقاريري" },
-  { label: "بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: Users, shortLabel: "الطلاب" },
-  { label: "مركز تحليل النتائج", href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter, icon: BarChart3, shortLabel: "التحليل" },
+  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "رفع الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
   { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
+  { label: "شهاداتي", href: "/dashboard/teacher/certificates", icon: Medal, shortLabel: "شهاداتي" },
+];
+
+const teacherAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/subscription", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
 ];
 const adminMainLinks: SidebarLinkItem[] = [
   { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
@@ -633,6 +640,46 @@ function TeacherSidebar({
             />
           ))}
         </SidebarSection>
+
+        <SidebarDropdown
+          title="مركز التحليل والاختبارات"
+          defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
+          collapsed={collapsed}
+        >
+          {assessmentCenterLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/assessment-center"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/subscription") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {teacherAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
       </nav>
 
       {!collapsed ? (

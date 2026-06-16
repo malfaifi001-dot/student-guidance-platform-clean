@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type AccountType = "COUNSELOR" | "ACTIVITY_LEADER";
+type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -20,6 +20,10 @@ export default function RegisterPage() {
       ? gender === "FEMALE"
         ? "رائدة النشاط"
         : "رائد النشاط"
+      : accountType === "TEACHER"
+        ? gender === "FEMALE"
+          ? "معلمة"
+          : "معلم"
       : gender === "FEMALE"
         ? "موجهة طلابية"
         : "موجه طلابي";
@@ -114,6 +118,12 @@ export default function RegisterPage() {
                   title="ريادة النشاط"
                   description="لوحة رائد النشاط للبرامج والفعاليات والمشاركات."
                   onClick={() => setAccountType("ACTIVITY_LEADER")}
+                />
+                <RoleButton
+                  active={accountType === "TEACHER"}
+                  title="مساحة المعلم"
+                  description="لوحة المعلم المستقلة لمتابعة مساحة العمل المخصصة له."
+                  onClick={() => setAccountType("TEACHER")}
                 />
               </div>
             </div>

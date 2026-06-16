@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 import { logPlanOrderCreatedEvent } from "@/lib/admin/activity-events";
-import { getPlanAudience, getAllowedPlanAudiencesForRole } from "@/lib/subscription/plan-audience";
+import { getPlanAudience, isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
 import {
   assignPlanToSchool,
   getPlanFeatureValue,
@@ -32,6 +32,8 @@ export async function GET() {
     prisma.plan.findMany({
       where: {
         isActive: true,
+        isPublic: true,
+        isArchived: false,
       },
       orderBy: {
         priceMonthly: "asc",
@@ -58,12 +60,7 @@ export async function GET() {
   ]);
 
   const role = current.user.role;
-  const allowedAudiences = getAllowedPlanAudiencesForRole(role);
-
-  const visiblePlans = plans.filter((plan: any) => {
-    const audience = getPlanAudience(plan.features);
-    return allowedAudiences.includes(audience);
-  });
+  const visiblePlans = plans.filter((plan: any) => isPlanSelfServiceVisible(plan, role));
 
   const mappedPlans = visiblePlans.map((plan: any) => {
     const serviceSlugs = getPlanServiceSlugs(plan.features);
@@ -148,7 +145,7 @@ export async function POST(request: Request) {
     },
   });
 
-  if (!plan || !plan.isActive) {
+  if (!plan || !isPlanSelfServiceVisible(plan as any, current.user.role)) {
     return NextResponse.json(
       {
         error: "الباقة غير متاحة حاليًا.",

@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { surveyAudienceLabels } from "@/lib/surveys/survey-config";
+import { surveyAudienceLabels, type SurveyBoardRole } from "@/lib/surveys/survey-config";
 import { surveyTemplates } from "@/lib/surveys/survey-templates";
 
 type SurveyTemplatesShellProps = {
-  ownerRole: "ADMIN" | "COUNSELOR" | "ACTIVITY_LEADER";
+  ownerRole: SurveyBoardRole;
   boardPath: string;
 };
 

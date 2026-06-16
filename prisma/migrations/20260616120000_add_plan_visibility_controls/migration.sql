@@ -1,0 +1,4 @@
+ALTER TABLE `Plan`
+  ADD COLUMN `isPublic` BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN `isArchived` BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN `visibleRoles` JSON NULL;

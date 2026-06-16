@@ -6,6 +6,11 @@ import {
   getPlanAudience,
   getPlanAudienceLabel,
   filterServicesByPlanAudience,
+  getDefaultVisibleRolesForAudience,
+  getPlanRoleLabel,
+  getPlanVisibilityRoles,
+  OPERATIONAL_PLAN_ROLES,
+  type PlanVisibleRole,
 } from "@/lib/subscription/plan-audience";
 
 import {
@@ -52,6 +57,9 @@ type PlanItem = {
   priceMonthly: number;
   priceYearly: number;
   isActive: boolean;
+  isPublic: boolean;
+  isArchived: boolean;
+  visibleRoles: PlanVisibleRole[] | null;
   features: PlanFeature[];
 };
 
@@ -117,6 +125,30 @@ function getStatusLabel(status: string) {
   return status;
 }
 
+function getRoleVisibilityLabel(role: PlanVisibleRole) {
+  if (role === "COUNSELOR") return "يظهر للموجه";
+  if (role === "ACTIVITY_LEADER") return "يظهر لرائد النشاط";
+  if (role === "TEACHER") return "يظهر للمعلم";
+  if (role === "SCHOOL_OWNER") return "يظهر لمالك المدرسة";
+  return "يظهر للموظف";
+}
+
+async function readApiResponse(response: Response) {
+  const text = await response.text();
+
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return {
+      error: response.ok
+        ? "تم تنفيذ العملية لكن تعذر قراءة استجابة الخادم."
+        : "تعذر تنفيذ العملية. راجع سجل الخادم للتفاصيل.",
+    };
+  }
+}
+
 export function AdminSubscriptionsControlCenter() {
   const [data, setData] = useState<AdminSubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,6 +167,10 @@ export function AdminSubscriptionsControlCenter() {
   const [maxUsers, setMaxUsers] = useState("1");
   const [maxReports, setMaxReports] = useState("100");
   const [enabledServiceSlugs, setEnabledServiceSlugs] = useState<string[]>([]);
+  const [planIsPublic, setPlanIsPublic] = useState(true);
+  const [planVisibleRoles, setPlanVisibleRoles] = useState<PlanVisibleRole[]>(
+    getDefaultVisibleRolesForAudience("ALL"),
+  );
 
   const [selectedSchoolId, setSelectedSchoolId] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState("");
@@ -210,18 +246,24 @@ export function AdminSubscriptionsControlCenter() {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result = await readApiResponse(response);
 
     if (response.ok) {
       setMessage({
         type: "success",
-        text: result.message || "تم تنفيذ العملية.",
+        text:
+          typeof result.message === "string"
+            ? result.message
+            : "تم تنفيذ العملية.",
       });
       await load();
     } else {
       setMessage({
         type: "error",
-        text: result.error || "تعذر تنفيذ العملية.",
+        text:
+          typeof result.error === "string"
+            ? result.error
+            : "تعذر تنفيذ العملية.",
       });
     }
   }
@@ -236,10 +278,28 @@ export function AdminSubscriptionsControlCenter() {
 
   function handleAudienceChange(audience: PlanAudience) {
     setPlanAudience(audience);
+    setPlanVisibleRoles(getDefaultVisibleRolesForAudience(audience));
     if (data?.services) {
       const filtered = filterServicesByPlanAudience(data.services, audience);
       setEnabledServiceSlugs(filtered.map((s) => s.slug));
     }
+  }
+
+  function toggleCreateVisibleRole(role: PlanVisibleRole) {
+    setPlanVisibleRoles((current) =>
+      current.includes(role)
+        ? current.filter((item) => item !== role)
+        : [...current, role],
+    );
+  }
+
+  function togglePlanVisibleRole(plan: PlanItem, role: PlanVisibleRole) {
+    const currentRoles = getPlanVisibilityRoles(plan);
+    const nextRoles = currentRoles.includes(role)
+      ? currentRoles.filter((item) => item !== role)
+      : [...currentRoles, role];
+
+    void updatePlanVisibility(plan, { visibleRoles: nextRoles });
   }
 
   async function createPlan() {
@@ -255,6 +315,8 @@ export function AdminSubscriptionsControlCenter() {
       maxUsers,
       maxReports,
       enabledServiceSlugs,
+      isPublic: planIsPublic,
+      visibleRoles: planVisibleRoles,
     });
   }
 
@@ -273,6 +335,23 @@ export function AdminSubscriptionsControlCenter() {
       action: "toggle-plan",
       planId: plan.id,
       isActive: !plan.isActive,
+    });
+  }
+
+  async function updatePlanVisibility(
+    plan: PlanItem,
+    patch: {
+      isPublic?: boolean;
+      isArchived?: boolean;
+      visibleRoles?: PlanVisibleRole[];
+    },
+  ) {
+    await runAction({
+      action: "update-plan-visibility",
+      planId: plan.id,
+      isPublic: patch.isPublic ?? plan.isPublic,
+      isArchived: patch.isArchived ?? plan.isArchived,
+      visibleRoles: patch.visibleRoles ?? getPlanVisibilityRoles(plan),
     });
   }
 
@@ -458,6 +537,57 @@ export function AdminSubscriptionsControlCenter() {
               </div>
             </div>
 
+            <div className="mt-5 rounded-[1.25rem] border border-slate-100 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[13px] font-black text-slate-700">
+                  ظهور الباقة للمستخدمين
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setPlanIsPublic((value) => !value)}
+                  className={[
+                    "rounded-full px-3 py-1.5 text-[12px] font-black",
+                    planIsPublic
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-slate-200 text-slate-600",
+                  ].join(" ")}
+                >
+                  {planIsPublic ? "ظاهر للمستخدمين" : "مخفي من المستخدمين"}
+                </button>
+              </div>
+
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {OPERATIONAL_PLAN_ROLES.map((role) => {
+                  const active = planVisibleRoles.includes(role);
+
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => toggleCreateVisibleRole(role)}
+                      className={[
+                        "rounded-2xl border px-3 py-2 text-right text-[12px] font-black transition",
+                        active
+                          ? "border-sky-100 bg-white text-sky-700 shadow-sm"
+                          : "border-slate-200 bg-slate-100 text-slate-500",
+                      ].join(" ")}
+                    >
+                      {getRoleVisibilityLabel(role)}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPlanVisibleRoles([...OPERATIONAL_PLAN_ROLES])}
+                className="mt-3 rounded-full bg-white px-3 py-1.5 text-[12px] font-black text-slate-600 ring-1 ring-slate-100"
+              >
+                ظاهر لكل الأدوار التشغيلية
+              </button>
+            </div>
+
             <div className="mt-5">
               <p className="text-[13px] font-black text-slate-700">
                 الخدمات المشمولة في الباقة
@@ -518,11 +648,9 @@ export function AdminSubscriptionsControlCenter() {
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {data?.plans.map((plan) => {
                 const services = getPlanServices(plan);
-
-                  const audience =
-                    getPlanAudience(plan.features);
-                  const audienceLabel =
-                    getPlanAudienceLabel(audience);
+                const audience = getPlanAudience(plan.features);
+                const audienceLabel = getPlanAudienceLabel(audience);
+                const visibilityRoles = getPlanVisibilityRoles(plan);
 
                   return (
                     <article
@@ -543,6 +671,25 @@ export function AdminSubscriptionsControlCenter() {
                               {audienceLabel}
                             </span>
                           ) : null}
+
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <span
+                              className={[
+                                "rounded-full px-2 py-0.5 text-[10px] font-black",
+                                plan.isPublic
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "bg-slate-200 text-slate-600",
+                              ].join(" ")}
+                            >
+                              {plan.isPublic ? "ظاهر للمستخدمين" : "مخفي من المستخدمين"}
+                            </span>
+
+                            {plan.isArchived ? (
+                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
+                                مؤرشف
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
 
                       <button
@@ -571,6 +718,15 @@ export function AdminSubscriptionsControlCenter() {
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-1.5">
+                      {visibilityRoles.map((role) => (
+                        <span
+                          key={role}
+                          className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600"
+                        >
+                          {getPlanRoleLabel(role)}
+                        </span>
+                      ))}
+
                       {services.slice(0, 4).map((slug) => (
                         <span
                           key={slug}
@@ -584,6 +740,55 @@ export function AdminSubscriptionsControlCenter() {
                           +{services.length - 4}
                         </span>
                       ) : null}
+                    </div>
+
+                    <div className="mt-4 grid gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updatePlanVisibility(plan, { isPublic: !plan.isPublic })
+                        }
+                        className="rounded-2xl bg-white px-3 py-2 text-[12px] font-black text-slate-700 ring-1 ring-slate-100"
+                      >
+                        {plan.isPublic ? "إخفاء من المستخدمين" : "إظهار للمستخدمين"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updatePlanVisibility(plan, { isArchived: !plan.isArchived })
+                        }
+                        className={[
+                          "rounded-2xl px-3 py-2 text-[12px] font-black",
+                          plan.isArchived
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-700",
+                        ].join(" ")}
+                      >
+                        {plan.isArchived ? "إلغاء الأرشفة" : "أرشفة الباقة"}
+                      </button>
+
+                      <div className="grid gap-1.5 sm:grid-cols-2">
+                        {OPERATIONAL_PLAN_ROLES.map((role) => {
+                          const active = visibilityRoles.includes(role);
+
+                          return (
+                            <button
+                              key={role}
+                              type="button"
+                              onClick={() => togglePlanVisibleRole(plan, role)}
+                              className={[
+                                "rounded-xl border px-2 py-1.5 text-[11px] font-black",
+                                active
+                                  ? "border-sky-100 bg-sky-50 text-sky-700"
+                                  : "border-slate-200 bg-white text-slate-400",
+                              ].join(" ")}
+                            >
+                              {getRoleVisibilityLabel(role)}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </article>
                 );
@@ -728,10 +933,11 @@ export function AdminSubscriptionsControlCenter() {
               >
                 <option value="">اختر الباقة</option>
                 {data?.plans
-                  .filter((plan) => plan.isActive)
                   .map((plan) => (
                     <option key={plan.id} value={plan.id}>
                       {plan.name}
+                      {plan.isArchived ? " - مؤرشف" : ""}
+                      {!plan.isPublic ? " - مخفي" : ""}
                     </option>
                   ))}
               </select>

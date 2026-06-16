@@ -61,7 +61,7 @@ export function sortRuntimeWorkflow(workflow: RuntimeWorkflow): RuntimeWorkflow 
 
 export async function getRuntimeWorkflowByServiceSlug(
   serviceSlug: string,
-  workflowType = "default",
+  workflowType: string = "service-main",
 ) {
   const service = await prisma.service.findUnique({
     where: {
