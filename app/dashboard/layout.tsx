@@ -1,9 +1,15 @@
 import type { ReactNode } from "react";
+import type { Viewport } from "next";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboarding-reminder";
 import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
+
+export const viewport: Viewport = {
+  width: 1280,
+  initialScale: 1,
+};
 
 export default async function DashboardLayout({
   children,
@@ -13,8 +19,11 @@ export default async function DashboardLayout({
   const current = await requireDashboardUser();
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100">
-      <div className="flex min-h-screen">
+    <div
+      dir="rtl"
+      className="min-h-screen overflow-x-auto bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
+    >
+      <div className="flex min-h-screen min-w-[1180px]">
         <DashboardSidebar user={current.user} />
 
         <main className="min-w-0 flex-1 text-[15.5px] leading-relaxed">
@@ -34,4 +43,3 @@ export default async function DashboardLayout({
     </div>
   );
 }
-
