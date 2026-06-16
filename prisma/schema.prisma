@@ -985,6 +985,37 @@ model GuidanceReport {
   @@index([generatedAt])
 }
 
+model ReportSnapshot {
+  id              String  @id @default(cuid())
+  caseEntryId     String
+  schoolAccountId String?
+  serviceSlug     String?
+  serviceName     String?
+  reportTitle     String
+  templateId      String?
+  templateName    String?
+  variantId       String?
+
+  snapshotPayload      Json
+  snapshotTemplateJson Json?
+  snapshotPagesJson    Json?
+  snapshotHtml         String @db.LongText
+  pdfUrl               String?
+
+  approvedById   String?
+  approvedByName String?
+  approvedAt     DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([schoolAccountId])
+  @@index([serviceSlug])
+  @@index([approvedAt])
+  @@index([approvedById])
+}
+
 model ReportEvidence {
   id String @id @default(cuid())
 

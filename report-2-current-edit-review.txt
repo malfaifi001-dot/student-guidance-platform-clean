@@ -1,3 +1,1364 @@
+Report-2 current edit review
+Project: D:\student-guidance-platform-clean
+Generated: 06/16/2026 21:03:31
+
+Git status:
+ M app/dashboard/report-2/cases/[caseId]/studio/page.tsx
+ M components/report-2/report-two-home.tsx
+ M components/report-2/report-two-studio-runtime.tsx
+ M next-env.d.ts
+ M prisma/schema.prisma
+?? app/api/dashboard/report-2/cases/[caseId]/approve/
+?? app/api/dashboard/report-2/snapshots/
+?? app/dashboard/report-2/snapshots/
+?? components/report-2/report-two-snapshot-preview.tsx
+?? lib/report-2/
+?? prisma/migrations/20260616124500_add_report_two_snapshots/
+
+
+############################################################
+FOLDER: app\dashboard\report-2
+############################################################
+
+============================================================
+FILE: app\dashboard\report-2\cases\[caseId]\prepare\page.tsx
+============================================================
+import { notFound, redirect } from "next/navigation";
+
+import { ReportPrepareFlow } from "@/components/report-flow/report-prepare-flow";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  reportVariants,
+  resolveReportVariantId,
+} from "@/lib/report-engine/report-variant-registry";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function ReportTwoPreparePage({
+  params,
+  searchParams,
+}: PageProps) {
+  const current = await requireDashboardUser();
+
+  if (current.user.role !== "ADMIN") {
+    if (!current.user.schoolAccountId) {
+      redirect("/dashboard/plans?reason=activation-required");
+    }
+
+    const overview = await getSchoolSubscriptionOverview(
+      current.user.schoolAccountId,
+    );
+
+    if (!overview.usable) {
+      redirect("/dashboard/plans?reason=activation-required");
+    }
+  }
+
+  const resolvedParams = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const caseId = String(resolvedParams.caseId || "").trim();
+  const selectedVariantId = resolveReportVariantId(
+    firstParam(resolvedSearchParams.variant),
+  );
+
+  const result = await buildSmartReportPayloadForCase({
+    caseId,
+    current,
+  });
+
+  if (!result.ok) {
+    notFound();
+  }
+
+  if (current.user.role !== "ADMIN") {
+    const access = await isServiceAllowedForSchool({
+      schoolAccountId: current.user.schoolAccountId || "",
+      serviceSlug: result.serviceSlug,
+    });
+
+    if (!access.ok) {
+      const reason =
+        access.reason === "SUBSCRIPTION_INACTIVE"
+          ? "activation-required"
+          : "service-not-in-plan";
+
+      redirect(
+        `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+          result.serviceSlug,
+        )}`,
+      );
+    }
+  }
+
+  return (
+    <ReportPrepareFlow
+      payload={result.payload}
+      selectedVariantId={selectedVariantId}
+      variants={reportVariants}
+      continueHref={`/dashboard/report-2/cases/${caseId}/studio`}
+    />
+  );
+}
+
+============================================================
+FILE: app\dashboard\report-2\cases\[caseId]\studio\page.tsx
+============================================================
+import { notFound, redirect } from "next/navigation";
+
+import { ReportTwoStudioRuntime } from "@/components/report-2/report-two-studio-runtime";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { prisma } from "@/lib/prisma";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseTemplateJson(value: unknown) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return null;
+}
+
+function isVisibleTemplate(templateJson: Record<string, unknown> | null) {
+  const status = String(templateJson?.status || "").toUpperCase();
+
+  if (!status) return true;
+
+  return status === "PUBLISHED" || status === "DRAFT";
+}
+
+export default async function ReportTwoCaseStudioPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const current = await requireDashboardUser();
+
+  if (current.user.role !== "ADMIN") {
+    if (!current.user.schoolAccountId) {
+      redirect("/dashboard/plans?reason=activation-required");
+    }
+
+    const overview = await getSchoolSubscriptionOverview(
+      current.user.schoolAccountId,
+    );
+
+    if (!overview.usable) {
+      redirect("/dashboard/plans?reason=activation-required");
+    }
+  }
+
+  const { caseId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedTemplateId = firstParam(resolvedSearchParams.templateId) || "";
+  const selectedVariantId = firstParam(resolvedSearchParams.variant) || "";
+
+  const result = await buildSmartReportPayloadForCase({
+    caseId,
+    current,
+  });
+
+  if (!result.ok) {
+    notFound();
+  }
+
+  if (current.user.role !== "ADMIN") {
+    const access = await isServiceAllowedForSchool({
+      schoolAccountId: current.user.schoolAccountId || "",
+      serviceSlug: result.serviceSlug,
+    });
+
+    if (!access.ok) {
+      const reason =
+        access.reason === "SUBSCRIPTION_INACTIVE"
+          ? "activation-required"
+          : "service-not-in-plan";
+
+      redirect(
+        `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+          result.serviceSlug,
+        )}`,
+      );
+    }
+  }
+
+  const templatesRaw = await prisma.reportTemplate.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        {
+          serviceSlug: null,
+        },
+        {
+          serviceSlug: result.serviceSlug,
+        },
+      ],
+    },
+    orderBy: [
+      {
+        serviceSlug: "desc",
+      },
+      {
+        updatedAt: "desc",
+      },
+    ],
+    take: 30,
+  });
+
+  const templates = templatesRaw
+    .map((template) => {
+      const item = template as any;
+      const templateJson =
+        parseTemplateJson(item.templateJson) || parseTemplateJson(item.content);
+
+      return {
+        id: template.id,
+        name: template.name,
+        description: template.description || "",
+        serviceSlug: template.serviceSlug || null,
+        updatedAt: template.updatedAt.toISOString(),
+        templateJson,
+        visible: isVisibleTemplate(templateJson),
+      };
+    })
+    .filter((template) => template.visible)
+    .map(({ visible: _visible, ...template }) => template);
+
+  return (
+    <ReportTwoStudioRuntime
+      caseId={caseId}
+      selectedTemplateId={selectedTemplateId}
+      selectedVariantId={selectedVariantId}
+      payload={result.payload}
+      templates={templates}
+    />
+  );
+}
+
+
+============================================================
+FILE: app\dashboard\report-2\page.tsx
+============================================================
+import { ReportTwoHome } from "@/components/report-2/report-two-home";
+
+export default function ReportTwoPage() {
+  return <ReportTwoHome />;
+}
+
+============================================================
+FILE: app\dashboard\report-2\snapshots\[snapshotId]\preview\page.tsx
+============================================================
+import { notFound } from "next/navigation";
+
+import { ReportTwoSnapshotPreview } from "@/components/report-2/report-two-snapshot-preview";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { getReportTwoSnapshotById } from "@/lib/report-2/report-snapshot-service";
+
+type PageProps = {
+  params: Promise<{
+    snapshotId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function ReportTwoSnapshotPreviewPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const context = await requireDashboardPageContext();
+  const { snapshotId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const snapshot = await getReportTwoSnapshotById(context, snapshotId);
+
+  if (!snapshot) {
+    notFound();
+  }
+
+  return (
+    <ReportTwoSnapshotPreview
+      snapshot={snapshot}
+      printMode={firstParam(resolvedSearchParams.print) === "1"}
+    />
+  );
+}
+
+
+############################################################
+FOLDER: app\api\dashboard\report-2
+############################################################
+
+============================================================
+FILE: app\api\dashboard\report-2\cases\[caseId]\approve\route.ts
+============================================================
+import { NextResponse } from "next/server";
+
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { createReportTwoSnapshot } from "@/lib/report-2/report-snapshot-service";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+async function readBody(request: Request) {
+  try {
+    return await request.json();
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  try {
+    const dashboardContext = await requireDashboardApiContext();
+
+    if (dashboardContext instanceof NextResponse) {
+      return dashboardContext;
+    }
+
+    const { caseId } = await context.params;
+    const body = await readBody(request);
+
+    const result = await createReportTwoSnapshot(dashboardContext, {
+      caseId,
+      reportTitle: body.reportTitle,
+      templateId: body.templateId,
+      templateName: body.templateName,
+      variantId: body.variantId,
+      snapshotPayload: body.snapshotPayload || {},
+      snapshotTemplateJson: body.snapshotTemplateJson || null,
+      snapshotPagesJson: body.snapshotPagesJson || null,
+      snapshotHtml: body.snapshotHtml,
+      pdfUrl: body.pdfUrl || null,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          error: result.message,
+        },
+        {
+          status: result.status,
+        },
+      );
+    }
+
+    return NextResponse.json({
+      snapshot: result.snapshot,
+      previewUrl: `/dashboard/report-2/snapshots/${result.snapshot.id}/preview`,
+    });
+  } catch (error) {
+    console.error("report-2 approval failed:", error);
+
+    return NextResponse.json(
+      {
+        error: "تعذر اعتماد التقرير بسبب خطأ في الخادم.",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+}
+
+
+============================================================
+FILE: app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+============================================================
+import crypto from "crypto";
+import fs from "fs/promises";
+import path from "path";
+import { NextResponse } from "next/server";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+
+export const runtime = "nodejs";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+type ExportPdfBody = {
+  fileName?: string;
+  snapshot?: unknown;
+};
+
+function getReportTwoExportSnapshotDir() {
+  return path.join(process.cwd(), ".tmp", "report-2-export");
+}
+
+function safeDownloadFileName(value: unknown) {
+  const name = String(value || "report.pdf")
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 150);
+
+  return name.endsWith(".pdf") ? name : `${name || "report"}.pdf`;
+}
+
+function buildContentDisposition(fileName: string) {
+  const safeName = safeDownloadFileName(fileName);
+  const encoded = encodeURIComponent(safeName);
+
+  return `attachment; filename="report.pdf"; filename*=UTF-8''${encoded}`;
+}
+
+function toArrayBuffer(buffer: Buffer) {
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  ) as ArrayBuffer;
+}
+
+function getRequestOrigin(request: Request) {
+  const url = new URL(request.url);
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || url.host;
+  const proto = request.headers.get("x-forwarded-proto") || url.protocol.replace(":", "") || "http";
+
+  return `${proto}://${host}`;
+}
+
+async function cleanupStaleSnapshots(ttlMs = 60 * 60 * 1000) {
+  const dir = getReportTwoExportSnapshotDir();
+  try {
+    const files = await fs.readdir(dir);
+    const now = Date.now();
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      const filePath = path.join(dir, file);
+      try {
+        const stat = await fs.stat(filePath);
+        if (now - stat.mtimeMs > ttlMs) {
+          await fs.unlink(filePath);
+        }
+      } catch {
+        /* race condition with concurrent delete; skip */
+      }
+    }
+  } catch {
+    /* dir doesn't exist yet; nothing to clean */
+  }
+}
+
+async function readBody(request: Request): Promise<ExportPdfBody> {
+  try {
+    return (await request.json()) as ExportPdfBody;
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  const current = await requireDashboardUser();
+  const { caseId } = await context.params;
+
+  const access = await buildSmartReportPayloadForCase({
+    caseId,
+    current,
+  });
+
+  if (!access.ok) {
+    return NextResponse.json(
+      {
+        error: "لا تملك صلاحية تصدير هذا التقرير أو أن الحالة غير موجودة.",
+      },
+      {
+        status: access.status || 404,
+      },
+    );
+  }
+
+  const body = await readBody(request);
+  const snapshot = body.snapshot as any;
+
+  if (!snapshot?.template?.pages?.length) {
+    return NextResponse.json(
+      {
+        error: "بيانات التقرير غير جاهزة للتصدير.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const token = crypto.randomUUID();
+  const snapshotDir = getReportTwoExportSnapshotDir();
+  const snapshotPath = path.join(snapshotDir, `${token}.json`);
+  const origin = getRequestOrigin(request);
+  const previewUrl = `${origin}/report-2-export-preview/${token}`;
+  const printPreviewUrl = `${previewUrl}?print=1`;
+  const fileName = safeDownloadFileName(body.fileName || "report.pdf");
+
+  await fs.mkdir(snapshotDir, {
+    recursive: true,
+  });
+
+  await fs.writeFile(snapshotPath, JSON.stringify(snapshot), "utf8");
+
+  cleanupStaleSnapshots().catch(() => null);
+
+  if (process.env.REPORT_TWO_PDF_BACKEND === "print-preview") {
+    return NextResponse.json(
+      {
+        fallback: "PRINT_PREVIEW",
+        previewUrl: `${previewUrl}?print=1`,
+        fileName,
+        message: "Server PDF generation is disabled. Opening browser print preview.",
+      },
+      { status: 200 },
+    );
+  }
+
+  let browser: any = null;
+
+  try {
+    const runtimeImport = new Function("specifier", "return import(specifier)") as (
+      specifier: string,
+    ) => Promise<typeof import("puppeteer")>;
+
+    const puppeteerModule = await runtimeImport("puppeteer");
+    const puppeteer = puppeteerModule.default || puppeteerModule;
+
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+
+    const page = await browser.newPage();
+
+    await page.emulateMediaFeatures([
+      {
+        name: "prefers-color-scheme",
+        value: "light",
+      },
+    ]);
+
+    await page.setViewport({
+      width: 1240,
+      height: 1754,
+      deviceScaleFactor: 1,
+    });
+
+    await page.goto(previewUrl, {
+      waitUntil: "load",
+    });
+
+    await page.waitForSelector(
+      ".pdf-report-page, [data-report-design-page], .report-design-page",
+      {
+        timeout: 30000,
+      },
+    );
+
+    await page.evaluate(async () => {
+      const fonts = (document as any).fonts;
+
+      if (fonts?.ready) {
+        await fonts.ready;
+      }
+    });
+
+    await page.addStyleTag({
+      content: `
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        :root,
+        html,
+        body,
+        main {
+          color-scheme: light !important;
+        }
+
+        .report-two-force-light-export {
+          color-scheme: light !important;
+        }
+
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 210mm !important;
+          min-height: 297mm !important;
+          background: #ffffff !important;
+          overflow: visible !important;
+        }
+
+        .pdf-report-page,
+        [data-report-design-page],
+        .report-design-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          margin: 0 !important;
+          box-shadow: none !important;
+          transform: none !important;
+          zoom: 1 !important;
+          overflow: hidden !important;
+          break-after: page !important;
+          page-break-after: always !important;
+          page-break-inside: avoid !important;
+        }
+
+        .pdf-report-page:last-child,
+        [data-report-design-page]:last-child,
+        .report-design-page:last-child {
+          break-after: auto !important;
+          page-break-after: auto !important;
+        }
+
+        [data-report-two-pdf-hide="evidence-overflow-note"] {
+          display: none !important;
+        }
+      `,
+    });
+
+    const pageCount = await page.evaluate(() => {
+      const selectors = [
+        ".pdf-report-page",
+        "[data-report-design-page]",
+        ".report-design-page",
+      ];
+
+      const pages = Array.from(
+        new Set(
+          selectors.flatMap((selector) =>
+            Array.from(document.querySelectorAll<HTMLElement>(selector)),
+          ),
+        ),
+      ).filter((item) => {
+        const rect = item.getBoundingClientRect();
+
+        return rect.width > 100 && rect.height > 100;
+      });
+
+      const main = document.createElement("main");
+
+      main.setAttribute("dir", "rtl");
+      main.style.width = "210mm";
+      main.style.margin = "0";
+      main.style.padding = "0";
+      main.style.background = "#ffffff";
+
+      pages.forEach((item) => {
+        main.appendChild(item.cloneNode(true));
+      });
+
+      document.body.replaceChildren(main);
+
+      return pages.length;
+    });
+
+    if (!pageCount) {
+      return NextResponse.json(
+        {
+          error: "لم يتم العثور على صفحات A4 داخل المعاينة.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: "0",
+        right: "0",
+        bottom: "0",
+        left: "0",
+      },
+    });
+
+    const pdfBuffer = Buffer.from(pdf);
+
+    await fs.unlink(snapshotPath).catch(() => null);
+
+    return new Response(toArrayBuffer(pdfBuffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": buildContentDisposition(fileName),
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("Report-2 PDF generation failed, falling back to print preview:", error);
+
+    return NextResponse.json(
+      {
+        fallback: "PRINT_PREVIEW",
+        previewUrl: printPreviewUrl,
+        fileName,
+        message:
+          "Server PDF generation failed. Opening print preview so the user can save as PDF.",
+      },
+      {
+        status: 200,
+      },
+    );
+  } finally {
+    if (browser) {
+      await browser.close().catch(() => null);
+    }
+  }
+}
+
+============================================================
+FILE: app\api\dashboard\report-2\snapshots\[snapshotId]\route.ts
+============================================================
+import { NextResponse } from "next/server";
+
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { getReportTwoSnapshotById } from "@/lib/report-2/report-snapshot-service";
+
+type RouteContext = {
+  params: Promise<{
+    snapshotId: string;
+  }>;
+};
+
+export async function GET(_request: Request, context: RouteContext) {
+  const dashboardContext = await requireDashboardApiContext();
+
+  if (dashboardContext instanceof NextResponse) {
+    return dashboardContext;
+  }
+
+  const { snapshotId } = await context.params;
+  const snapshot = await getReportTwoSnapshotById(dashboardContext, snapshotId);
+
+  if (!snapshot) {
+    return NextResponse.json(
+      {
+        error: "التقرير المعتمد غير موجود.",
+      },
+      {
+        status: 404,
+      },
+    );
+  }
+
+  return NextResponse.json({
+    snapshot,
+  });
+}
+
+
+============================================================
+FILE: app\api\dashboard\report-2\snapshots\route.ts
+============================================================
+import { NextResponse } from "next/server";
+
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { listReportTwoSnapshots } from "@/lib/report-2/report-snapshot-service";
+
+export async function GET() {
+  const context = await requireDashboardApiContext();
+
+  if (context instanceof NextResponse) {
+    return context;
+  }
+
+  const snapshots = await listReportTwoSnapshots(context);
+
+  return NextResponse.json({
+    snapshots,
+  });
+}
+
+
+############################################################
+FOLDER: components\report-2
+############################################################
+
+============================================================
+FILE: components\report-2\report-two-home.tsx
+============================================================
+import Link from "next/link";
+
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { listReportTwoSnapshots } from "@/lib/report-2/report-snapshot-service";
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+export async function ReportTwoHome() {
+  const context = await requireDashboardPageContext();
+  const snapshots = await listReportTwoSnapshots(context);
+
+  return (
+    <main className="min-h-screen bg-[#eef3ef] px-6 py-10" dir="rtl">
+      <section className="mx-auto max-w-6xl space-y-5">
+        <div className="rounded-[2rem] border border-emerald-100 bg-white p-7 shadow-sm">
+          <p className="text-sm font-black text-emerald-700">report-2</p>
+
+          <h1 className="mt-2 text-3xl font-black text-slate-950">
+            التقارير المعتمدة
+          </h1>
+
+          <p className="mt-3 text-sm font-bold leading-7 text-slate-500">
+            أرشيف ثابت للتقارير التي تم اعتمادها من مسار report-2. تعرض هذه
+            الصفحة النسخ المعتمدة فقط.
+          </p>
+        </div>
+
+        {snapshots.length ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {snapshots.map((snapshot) => (
+              <article
+                key={snapshot.id}
+                className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-emerald-700">
+                      {snapshot.serviceName ||
+                        snapshot.serviceSlug ||
+                        "خدمة غير محددة"}
+                    </p>
+
+                    <h2 className="mt-2 text-xl font-black leading-8 text-slate-950">
+                      {snapshot.reportTitle}
+                    </h2>
+
+                    <p className="mt-2 text-xs font-bold text-slate-500" dir="ltr">
+                      {snapshot.caseEntryId}
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                    تم اعتماد التقرير
+                  </span>
+                </div>
+
+                <dl className="mt-5 grid gap-3 rounded-3xl bg-slate-50 p-4 text-xs font-bold text-slate-600 sm:grid-cols-2">
+                  <div>
+                    <dt className="font-black text-slate-400">تاريخ الاعتماد</dt>
+                    <dd className="mt-1 text-slate-800">
+                      {formatDate(snapshot.approvedAt)}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="font-black text-slate-400">اعتمد بواسطة</dt>
+                    <dd className="mt-1 text-slate-800">
+                      {snapshot.approvedByName || "غير محدد"}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/report-2/snapshots/${snapshot.id}/preview`}
+                    className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
+                  >
+                    معاينة التقرير
+                  </Link>
+
+                  <Link
+                    href={
+                      snapshot.pdfUrl ||
+                      `/dashboard/report-2/snapshots/${snapshot.id}/preview?print=1`
+                    }
+                    className="inline-flex items-center justify-center rounded-2xl bg-sky-700 px-5 py-3 text-xs font-black text-white transition hover:bg-sky-800"
+                  >
+                    تحميل PDF
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+            <h2 className="text-2xl font-black text-slate-950">
+              لا توجد تقارير معتمدة بعد
+            </h2>
+
+            <p className="mt-3 text-sm font-bold text-slate-500">
+              ستظهر هنا التقارير بعد اعتمادها من استوديو report-2.
+            </p>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-pdf-export-preview.tsx
+============================================================
+"use client";
+
+import {
+  ReportDesignRenderer,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+
+type ReportTwoPdfExportSnapshot = {
+  template: any;
+  context: Record<string, string>;
+  previewCase: any;
+  designTemplateId?: ReportDesignId;
+};
+
+export function ReportTwoPdfExportPreview({
+  snapshot,
+  printMode = false,
+}: {
+  snapshot: ReportTwoPdfExportSnapshot;
+  printMode?: boolean;
+}) {
+  if (printMode) {
+    return <ReportTwoPrintDocument snapshot={snapshot} />;
+  }
+
+  const template = snapshot.template || {
+    id: "report-2-export-empty",
+    name: "تقرير",
+    pages: [],
+  };
+
+  const pages = Array.isArray(template.pages) ? template.pages : [];
+  const activePage = pages[0] || null;
+  const activePageId = activePage?.id || "";
+
+  return (
+    <main className="report-two-pdf-export-preview report-two-pdf-force-light" dir="rtl">
+      <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        :root,
+        html,
+        body,
+        .report-two-pdf-export-preview {
+          color-scheme: light !important;
+        }
+
+        .report-two-pdf-force-light {
+          color-scheme: light !important;
+        }
+
+        * {
+          box-sizing: border-box;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a;
+          direction: rtl;
+          width: 210mm;
+          min-height: 297mm;
+        }
+
+        body {
+          overflow: visible !important;
+        }
+
+        .report-two-pdf-export-preview {
+          width: 210mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+        }
+
+        .report-two-pdf-export-preview .pdf-report-page,
+        .report-two-pdf-export-preview [data-report-design-page],
+        .report-two-pdf-export-preview .report-design-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          margin: 0 !important;
+          box-shadow: none !important;
+          transform: none !important;
+          zoom: 1 !important;
+          overflow: hidden !important;
+          background: #ffffff !important;
+          break-after: page;
+          page-break-after: always;
+          page-break-inside: avoid;
+        }
+
+        .report-two-pdf-export-preview .pdf-report-page:last-child,
+        .report-two-pdf-export-preview [data-report-design-page]:last-child,
+        .report-two-pdf-export-preview .report-design-page:last-child {
+          break-after: auto;
+          page-break-after: auto;
+        }
+
+        [data-report-two-pdf-hide="evidence-overflow-note"] {
+          display: none !important;
+        }
+
+        img {
+          max-width: 100%;
+        }
+      `}</style>
+
+      <ReportDesignRenderer
+        suppressAutoEvidencePages
+        renderMode="stack"
+        chromeLayout="joined"
+        designId={snapshot.designTemplateId || template.designTemplateId || "ministry-form"}
+        template={template}
+        activePage={activePage}
+        activePageId={activePageId}
+        context={snapshot.context || {}}
+        previewCase={snapshot.previewCase || {}}
+        onActivePageChange={() => undefined}
+        onAddPage={() => undefined}
+        onMovePage={() => undefined}
+        onDeletePage={() => undefined}
+        canMovePage={() => false}
+        canDeletePage={() => false}
+      />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-print-document.tsx
+============================================================
+"use client";
+
+import { useEffect } from "react";
+import {
+  A4DesignPage,
+  normalizeDesignId,
+  getDesignLogoSrc,
+  getDesignLogoNumber,
+  getDesignLogoFit,
+  getDesignLogoFilter,
+  getReportHeaderSettingsStyle,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+
+type PrintDocumentSnapshot = {
+  template: any;
+  context: Record<string, string>;
+  previewCase: any;
+  designTemplateId?: ReportDesignId;
+};
+
+export function ReportTwoPrintDocument({
+  snapshot,
+}: {
+  snapshot: PrintDocumentSnapshot;
+}) {
+  const template = snapshot.template || { pages: [] };
+  const pages = Array.isArray(template.pages) ? template.pages : [];
+  const context = snapshot.context || {};
+  const previewCase = snapshot.previewCase || null;
+  const designId = normalizeDesignId(
+    snapshot.designTemplateId || template.designTemplateId || "ministry-form",
+  );
+
+  const logoWidthPx = getDesignLogoNumber(context, "report.logoWidthPx", 96, 24, 240);
+  const logoHeightPx = getDesignLogoNumber(context, "report.logoHeightPx", 56, 20, 160);
+  const logoFit = getDesignLogoFit(context);
+  const logoFilter = getDesignLogoFilter(context);
+  const logoSrc = getDesignLogoSrc(context);
+  const headerStyleText = getReportHeaderSettingsStyle(
+    template?.designConfig?.header,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      await document.fonts.ready;
+      if (cancelled) return;
+
+      const images = document.querySelectorAll<HTMLImageElement>(
+        ".report-two-print-document img",
+      );
+      await Promise.all(
+        Array.from(images).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) {
+                resolve();
+              } else {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              }
+            }),
+        ),
+      );
+      if (cancelled) return;
+
+      await new Promise<void>((r) => setTimeout(r, 500));
+      if (cancelled) return;
+
+      window.print();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <main className="report-two-print-document" dir="rtl">
+      <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        :root,
+        html,
+        body {
+          color-scheme: light !important;
+        }
+
+        * {
+          box-sizing: border-box;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a;
+          direction: rtl;
+        }
+
+        body {
+          overflow: visible !important;
+        }
+
+        .report-two-print-document {
+          background: #ffffff;
+        }
+
+        .report-two-print-document .pdf-report-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          overflow: hidden !important;
+          break-after: page !important;
+          page-break-after: always !important;
+          page-break-inside: avoid !important;
+        }
+
+        .report-two-print-document .pdf-report-page:last-child {
+          break-after: auto !important;
+          page-break-after: auto !important;
+        }
+
+        img {
+          max-width: 100%;
+        }
+      `}</style>
+      {headerStyleText ? <style>{headerStyleText}</style> : null}
+
+      {logoSrc && <link rel="preload" as="image" href={logoSrc} />}
+
+      {pages.map((page: any) => (
+        <div key={page.id}>
+          <A4DesignPage
+            designId={designId}
+            page={page}
+            context={context}
+            previewCase={previewCase}
+            pageLabel={page.title || "صفحة"}
+          />
+        </div>
+      ))}
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-snapshot-preview.tsx
+============================================================
+type ReportTwoSnapshotPreviewProps = {
+  snapshot: {
+    reportTitle: string;
+    serviceName?: string | null;
+    serviceSlug?: string | null;
+    approvedAt?: string | null;
+    approvedByName?: string | null;
+    snapshotHtml: string;
+    pdfUrl?: string | null;
+  };
+  printMode?: boolean;
+};
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+export function ReportTwoSnapshotPreview({
+  snapshot,
+  printMode = false,
+}: ReportTwoSnapshotPreviewProps) {
+  return (
+    <main
+      className={printMode ? "bg-white" : "min-h-screen bg-slate-100 px-6 py-8"}
+      dir="rtl"
+    >
+      <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        @media print {
+          body {
+            background: #ffffff !important;
+          }
+
+          [data-report-two-snapshot-toolbar] {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      {!printMode ? (
+        <section
+          data-report-two-snapshot-toolbar
+          className="mx-auto mb-6 max-w-6xl rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-black text-emerald-700">
+                التقارير المعتمدة
+              </p>
+
+              <h1 className="mt-2 text-2xl font-black text-slate-950">
+                {snapshot.reportTitle}
+              </h1>
+
+              <p className="mt-2 text-sm font-bold text-slate-500">
+                {snapshot.serviceName || snapshot.serviceSlug || "خدمة غير محددة"}
+                {" · "}
+                تم اعتماد التقرير {formatDate(snapshot.approvedAt)}
+                {snapshot.approvedByName ? ` · ${snapshot.approvedByName}` : ""}
+              </p>
+            </div>
+
+            <a
+              href={snapshot.pdfUrl || "?print=1"}
+              className="inline-flex items-center justify-center rounded-2xl bg-sky-700 px-5 py-3 text-xs font-black text-white transition hover:bg-sky-800"
+            >
+              تحميل PDF
+            </a>
+          </div>
+        </section>
+      ) : null}
+
+      <section
+        className={printMode ? "" : "mx-auto max-w-6xl"}
+        dangerouslySetInnerHTML={{ __html: snapshot.snapshotHtml }}
+      />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-studio-runtime.tsx
+============================================================
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -5629,3 +6990,199 @@ export function ReportTwoStudioRuntime({
     </main>
   );
 }
+
+
+############################################################
+FOLDER: lib\report-2
+############################################################
+
+============================================================
+FILE: lib\report-2\report-snapshot-service.ts
+============================================================
+import "server-only";
+
+import { prisma } from "@/lib/prisma";
+import type { DashboardContext } from "@/lib/auth/dashboard-context";
+import { canAccessSchool } from "@/lib/auth/dashboard-context";
+
+type JsonValue = unknown;
+
+type CreateReportTwoSnapshotInput = {
+  caseId: string;
+  reportTitle?: string;
+  templateId?: string | null;
+  templateName?: string | null;
+  variantId?: string | null;
+  snapshotPayload: JsonValue;
+  snapshotTemplateJson?: JsonValue;
+  snapshotPagesJson?: JsonValue;
+  snapshotHtml: string;
+  pdfUrl?: string | null;
+};
+
+function cleanString(value: unknown, fallback = "") {
+  const text = String(value || "").trim();
+  return text || fallback;
+}
+
+function toNullableString(value: unknown) {
+  const text = cleanString(value);
+  return text || null;
+}
+
+function toPrismaJson(value: unknown, fallback: unknown = null) {
+  if (value === undefined) return fallback;
+
+  try {
+    return JSON.parse(
+      JSON.stringify(value, (_key, item) =>
+        item === undefined ? null : item,
+      ),
+    );
+  } catch {
+    return fallback;
+  }
+}
+
+function serializeSnapshot(snapshot: any) {
+  return {
+    id: snapshot.id,
+    caseEntryId: snapshot.caseEntryId,
+    schoolAccountId: snapshot.schoolAccountId,
+    serviceSlug: snapshot.serviceSlug,
+    serviceName: snapshot.serviceName,
+    reportTitle: snapshot.reportTitle,
+    templateId: snapshot.templateId,
+    templateName: snapshot.templateName,
+    variantId: snapshot.variantId,
+    snapshotPayload: snapshot.snapshotPayload,
+    snapshotTemplateJson: snapshot.snapshotTemplateJson,
+    snapshotPagesJson: snapshot.snapshotPagesJson,
+    snapshotHtml: snapshot.snapshotHtml,
+    pdfUrl: snapshot.pdfUrl,
+    approvedById: snapshot.approvedById,
+    approvedByName: snapshot.approvedByName,
+    approvedAt: snapshot.approvedAt?.toISOString?.() || snapshot.approvedAt,
+    createdAt: snapshot.createdAt?.toISOString?.() || snapshot.createdAt,
+    updatedAt: snapshot.updatedAt?.toISOString?.() || snapshot.updatedAt,
+  };
+}
+
+export async function createReportTwoSnapshot(
+  context: DashboardContext,
+  input: CreateReportTwoSnapshotInput,
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: context.isAdmin
+      ? {
+          id: input.caseId,
+        }
+      : {
+          id: input.caseId,
+          schoolAccountId: context.schoolAccountId || "__missing__",
+        },
+    include: {
+      service: {
+        select: {
+          slug: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!caseEntry || !canAccessSchool(context, caseEntry.schoolAccountId)) {
+    return {
+      ok: false as const,
+      status: 404,
+      message: "الحالة غير موجودة أو لا تملك صلاحية الوصول إليها.",
+    };
+  }
+
+  const snapshotHtml = cleanString(input.snapshotHtml);
+
+  if (!snapshotHtml) {
+    return {
+      ok: false as const,
+      status: 400,
+      message: "لا يمكن اعتماد التقرير قبل تجهيز معاينة ثابتة.",
+    };
+  }
+
+  const reportTitle =
+    cleanString(input.reportTitle) ||
+    cleanString(caseEntry.title) ||
+    cleanString(caseEntry.service?.name, "تقرير معتمد");
+
+  const snapshot = await prisma.reportSnapshot.create({
+    data: {
+      caseEntryId: caseEntry.id,
+      schoolAccountId: caseEntry.schoolAccountId,
+      serviceSlug: caseEntry.service?.slug || null,
+      serviceName: caseEntry.service?.name || null,
+      reportTitle,
+      templateId: toNullableString(input.templateId),
+      templateName: toNullableString(input.templateName),
+      variantId: toNullableString(input.variantId),
+      snapshotPayload: toPrismaJson(input.snapshotPayload, {}) as any,
+      snapshotTemplateJson: toPrismaJson(input.snapshotTemplateJson, null) as any,
+      snapshotPagesJson: toPrismaJson(input.snapshotPagesJson, null) as any,
+      snapshotHtml,
+      pdfUrl: toNullableString(input.pdfUrl),
+      approvedById: context.user.id,
+      approvedByName: toNullableString(context.user.name) || context.user.email,
+    },
+  });
+
+  return {
+    ok: true as const,
+    snapshot: serializeSnapshot(snapshot),
+  };
+}
+
+export async function listReportTwoSnapshots(context: DashboardContext) {
+  const snapshots = await prisma.reportSnapshot.findMany({
+    where: context.isAdmin
+      ? {}
+      : {
+          schoolAccountId: context.schoolAccountId || "__missing__",
+        },
+    orderBy: {
+      approvedAt: "desc",
+    },
+    take: 100,
+  });
+
+  return snapshots.map(serializeSnapshot);
+}
+
+export async function getReportTwoSnapshotById(
+  context: DashboardContext,
+  snapshotId: string,
+) {
+  const snapshot = await prisma.reportSnapshot.findFirst({
+    where: context.isAdmin
+      ? {
+          id: snapshotId,
+        }
+      : {
+          id: snapshotId,
+          schoolAccountId: context.schoolAccountId || "__missing__",
+        },
+  });
+
+  return snapshot ? serializeSnapshot(snapshot) : null;
+}
+
+
+############################################################
+SEARCH: caseId / تحميل / PDF / preview / snapshots
+############################################################
+
+app\api\dashboard\report-2\snapshots\route.ts:4:import { listReportTwoSnapshots } 
+from "@/lib/report-2/report-snapshot-service";
+app\api\dashboard\report-2\snapshots\route.ts:13:  const snapshots = await 
+listReportTwoSnapshots(context);
+app\api\dashboard\report-2\snapshots\route.ts:16:    snapshots,
+
+

@@ -69,6 +69,7 @@ export default async function ReportTwoCaseStudioPage({
   const { caseId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const selectedTemplateId = firstParam(resolvedSearchParams.templateId) || "";
+  const selectedVariantId = firstParam(resolvedSearchParams.variant) || "";
 
   const result = await buildSmartReportPayloadForCase({
     caseId,
@@ -145,6 +146,7 @@ export default async function ReportTwoCaseStudioPage({
     <ReportTwoStudioRuntime
       caseId={caseId}
       selectedTemplateId={selectedTemplateId}
+      selectedVariantId={selectedVariantId}
       payload={result.payload}
       templates={templates}
     />
