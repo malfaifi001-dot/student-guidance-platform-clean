@@ -5,6 +5,7 @@ import { CasesSearchTable } from "@/components/cases/cases-search-table";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
 import { prisma } from "@/lib/prisma";
+import { listLatestReportTwoSnapshotsForCases } from "@/lib/report-2/report-snapshot-service";
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) return "غير محدد";
@@ -403,6 +404,11 @@ export default async function CasesPage() {
     take: 240,
   });
 
+  const snapshotMap = await listLatestReportTwoSnapshotsForCases(
+    context,
+    cases.map((c) => c.id),
+  );
+
   const rows = cases.map((caseItem) => {
     const latestReport = caseItem.guidanceReports[0] || null;
     const reportPreviewUrl = latestReport
@@ -476,6 +482,7 @@ export default async function CasesPage() {
       valuesCount: caseItem._count.values,
       evidencesCount: caseItem._count.evidences,
       reportsCount: caseItem._count.guidanceReports,
+      reportTwoSnapshotId: snapshotMap.get(caseItem.id) || null,
 
       latestReport: latestReport
         ? {

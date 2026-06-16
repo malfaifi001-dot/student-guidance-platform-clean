@@ -288,9 +288,9 @@ export function ReportPrepareFlow({
 
   if (step === "studio" && documentDraft) {
     return (
-      <main className="min-h-screen bg-[#eef3ef] px-4 py-5 transition-colors dark:bg-[#050816] sm:px-6" dir="rtl">
+      <main className="min-h-screen bg-slate-50 px-4 py-5 transition-colors dark:bg-slate-950 sm:px-6" dir="rtl">
         <div className="mx-auto max-w-7xl space-y-5">
-          <section className="flex flex-col gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors lg:flex-row lg:items-center lg:justify-between print:hidden dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+          <section className="flex flex-col gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition-colors lg:flex-row lg:items-center lg:justify-between print:hidden dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
             <div>
               <p className="text-sm font-black text-emerald-700">
                 المعاينة والتعديل
@@ -322,9 +322,9 @@ export function ReportPrepareFlow({
   }
 
   return (
-    <main className="min-h-screen bg-[#eef3ef] px-4 py-5 transition-colors dark:bg-[#050816] sm:px-6" dir="rtl">
+    <main className="min-h-screen bg-slate-50 px-4 py-5 transition-colors dark:bg-slate-950 sm:px-6" dir="rtl">
       <div className="mx-auto max-w-6xl space-y-5">
-        <section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-black text-emerald-700">

@@ -3639,7 +3639,7 @@ export function ReportTwoStudioRuntime({
 
   if (!templates.length) {
     return (
-      <main className="min-h-screen bg-[#eef3ef] px-6 py-10 dark:bg-[#050816]" dir="rtl">
+      <main className="min-h-screen bg-slate-50 px-6 py-10 dark:bg-slate-950" dir="rtl">
         <section className="mx-auto max-w-3xl rounded-[2rem] border border-amber-100 bg-white p-7 text-center shadow-sm">
           <p className="text-sm font-black text-amber-600">
             لا توجد قوالب
@@ -3654,8 +3654,8 @@ export function ReportTwoStudioRuntime({
   }
 
   return (
-    <main className="min-h-screen bg-[#eef3ef] px-5 py-5 transition-colors dark:bg-[#050816]" dir="rtl">
-      <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-emerald-100 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+    <main className="min-h-screen bg-slate-50 px-5 py-5 transition-colors dark:bg-slate-950" dir="rtl">
+      <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
         <div className="text-xs font-black text-slate-500 dark:text-slate-400">
           تحكم سريع بمساحة العمل
         </div>
@@ -3727,10 +3727,6 @@ export function ReportTwoStudioRuntime({
 
             <p className="mt-2 text-xs font-bold leading-6 text-slate-500">
               هذا تحكم Runtime للتقرير فقط، وليس استديو نشر القوالب.
-            </p>
-
-            <p className="mt-3 rounded-2xl bg-slate-50 px-3 py-2 text-[11px] font-black text-slate-500" dir="ltr">
-              {caseId}
             </p>
 
             <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">

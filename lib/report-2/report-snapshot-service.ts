@@ -172,3 +172,55 @@ export async function getReportTwoSnapshotById(
 
   return snapshot ? serializeSnapshot(snapshot) : null;
 }
+
+export async function getLatestReportTwoSnapshotForCase(
+  context: DashboardContext,
+  caseId: string,
+) {
+  const snapshot = await prisma.reportSnapshot.findFirst({
+    where: context.isAdmin
+      ? {
+          caseEntryId: caseId,
+        }
+      : {
+          caseEntryId: caseId,
+          schoolAccountId: context.schoolAccountId || "__missing__",
+        },
+    orderBy: {
+      approvedAt: "desc",
+    },
+  });
+
+  return snapshot ? serializeSnapshot(snapshot) : null;
+}
+
+export async function listLatestReportTwoSnapshotsForCases(
+  context: DashboardContext,
+  caseIds: string[],
+) {
+  if (!caseIds.length) return new Map<string, string>();
+
+  const snapshots = await prisma.reportSnapshot.findMany({
+    where: context.isAdmin
+      ? {
+          caseEntryId: { in: caseIds },
+        }
+      : {
+          caseEntryId: { in: caseIds },
+          schoolAccountId: context.schoolAccountId || "__missing__",
+        },
+    orderBy: {
+      approvedAt: "desc",
+    },
+  });
+
+  const map = new Map<string, string>();
+
+  for (const snapshot of snapshots) {
+    if (!map.has(snapshot.caseEntryId)) {
+      map.set(snapshot.caseEntryId, snapshot.id);
+    }
+  }
+
+  return map;
+}

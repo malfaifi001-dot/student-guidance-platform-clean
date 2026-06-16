@@ -60,6 +60,7 @@ type CaseRow = {
   valuesCount: number;
   evidencesCount: number;
   reportsCount: number;
+  reportTwoSnapshotId: string | null;
 
   latestReport?: {
     id: string;
@@ -113,6 +114,15 @@ function getCasePrimaryAction(caseItem: CaseRow) {
       href: `/dashboard/cases/${caseItem.id}/edit`,
       className: "bg-slate-950 text-white hover:bg-slate-800",
       icon: <PencilLine className="h-4 w-4" />,
+    };
+  }
+
+  if (caseItem.reportTwoSnapshotId) {
+    return {
+      label: "تقرير معتمد",
+      href: `/dashboard/report-2/snapshots/${caseItem.reportTwoSnapshotId}/preview`,
+      className: "bg-emerald-700 text-white hover:bg-emerald-800",
+      icon: <FileText className="h-4 w-4" />,
     };
   }
 
@@ -593,13 +603,19 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
             عرض
           </Link>
 
-          <Link
-            href={`/dashboard/cases/${caseItem.id}/edit`}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50"
-          >
-            <PencilLine className="h-4 w-4" />
-            متابعة
-          </Link>
+          {caseItem.reportTwoSnapshotId ? (
+            <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-500">
+              تم إصدار التقرير — الحالة مقفلة
+            </span>
+          ) : (
+            <Link
+              href={`/dashboard/cases/${caseItem.id}/edit`}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50"
+            >
+              <PencilLine className="h-4 w-4" />
+              متابعة
+            </Link>
+          )}
         </div>
 
         <Link

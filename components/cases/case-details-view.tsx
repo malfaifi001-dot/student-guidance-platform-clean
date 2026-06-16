@@ -24,6 +24,7 @@ import {
 
 type CaseDetailsViewProps = {
   caseEntry: any;
+  reportTwoSnapshotId?: string | null;
 };
 
 type FieldLookupItem = WorkflowFieldLike & {
@@ -837,6 +838,7 @@ function SavedReportsPanel({
   }
 
   const visibleReports = reports.slice(0, 6);
+  const prepareHref = `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/prepare`;
 
   return (
     <section className="rounded-[2rem] border border-emerald-100 bg-emerald-50/40 p-5 shadow-sm">
@@ -856,7 +858,7 @@ function SavedReportsPanel({
         </div>
 
         <Link
-          href={`/dashboard/report-2/cases/${encodeURIComponent(caseId)}/prepare`}
+          href={prepareHref}
           className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
         >
           <FileText className="h-4 w-4" />
@@ -905,7 +907,7 @@ function SavedReportsPanel({
     </section>
   );
 }
-export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
+export function CaseDetailsView({ caseEntry, reportTwoSnapshotId = null }: CaseDetailsViewProps) {
   const displayTitle = getSmartCaseDisplayTitle(caseEntry);
   const fieldMap = buildFieldMap(caseEntry);
   const latestReport = getLatestReport(caseEntry);
@@ -930,7 +932,11 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
       size: item.size || 0,
     })) || [];
 
-  const primaryReportHref = `/dashboard/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`;
+  const reportTwoSnapshotHref = reportTwoSnapshotId
+    ? `/dashboard/report-2/snapshots/${reportTwoSnapshotId}/preview`
+    : null;
+  const primaryReportHref = reportTwoSnapshotHref || `/dashboard/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`;
+  const primaryReportLabel = reportTwoSnapshotHref ? "تقرير معتمد" : "إصدار تقرير جديد";
 
   const isCommitteesCase = caseEntry.service?.slug === COMMITTEE_SERVICE_SLUG;
 
@@ -1034,20 +1040,31 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
                 الحالات
               </Link>
 
-              <Link
-                href={`/dashboard/cases/${caseEntry.id}/edit`}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-              >
-                <PencilLine className="h-4 w-4" />
-                تعديل
-              </Link>
+              {!reportTwoSnapshotHref ? (
+                <Link
+                  href={`/dashboard/cases/${caseEntry.id}/edit`}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                >
+                  <PencilLine className="h-4 w-4" />
+                  تعديل
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-xs font-black text-slate-500">
+                  تم إصدار التقرير — الحالة مقفلة
+                </span>
+              )}
 
               <Link
                 href={primaryReportHref}
-                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
+                className={[
+                  "inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-xs font-black text-white transition",
+                  reportTwoSnapshotHref
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-emerald-700 hover:bg-emerald-800",
+                ].join(" ")}
               >
                 <FileText className="h-4 w-4" />
-                إصدار تقرير جديد
+                {primaryReportLabel}
               </Link>
             </div>
           </div>
@@ -1252,20 +1269,31 @@ export function CaseDetailsView({ caseEntry }: CaseDetailsViewProps) {
               الحالات
             </Link>
 
-            <Link
-              href={`/dashboard/cases/${caseEntry.id}/edit`}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-            >
-              <PencilLine className="h-4 w-4" />
-              متابعة
-            </Link>
+            {!reportTwoSnapshotHref ? (
+              <Link
+                href={`/dashboard/cases/${caseEntry.id}/edit`}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                <PencilLine className="h-4 w-4" />
+                متابعة
+              </Link>
+            ) : (
+              <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-xs font-black text-slate-500">
+                تم إصدار التقرير — الحالة مقفلة
+              </span>
+            )}
 
             <Link
               href={primaryReportHref}
-              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800"
+              className={[
+                "inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-xs font-black text-white transition",
+                reportTwoSnapshotHref
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-emerald-700 hover:bg-emerald-800",
+              ].join(" ")}
             >
               <FileText className="h-4 w-4" />
-              إصدار تقرير جديد
+              {primaryReportLabel}
             </Link>
           </div>
         </div>

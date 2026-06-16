@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ReportTwoSnapshotPreview } from "@/components/report-2/report-two-snapshot-preview";
+import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { getReportTwoSnapshotById } from "@/lib/report-2/report-snapshot-service";
 
@@ -22,6 +23,7 @@ export default async function ReportTwoSnapshotPreviewPage({
   const context = await requireDashboardPageContext();
   const { snapshotId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  const printMode = firstParam(resolvedSearchParams.print) === "1";
   const snapshot = await getReportTwoSnapshotById(context, snapshotId);
 
   if (!snapshot) {
@@ -29,9 +31,12 @@ export default async function ReportTwoSnapshotPreviewPage({
   }
 
   return (
-    <ReportTwoSnapshotPreview
-      snapshot={snapshot}
-      printMode={firstParam(resolvedSearchParams.print) === "1"}
-    />
+    <>
+      {printMode ? <ReportTwoSnapshotPrintController /> : null}
+      <ReportTwoSnapshotPreview
+        snapshot={snapshot}
+        printMode={printMode}
+      />
+    </>
   );
 }
