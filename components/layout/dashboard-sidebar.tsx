@@ -172,6 +172,7 @@ const teacherServiceLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home },
   { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
   { label: "إصدار تقرير", href: OFFICIAL_WORKSPACE_ROUTES.teacherReportIssuance, icon: FilePlus2, shortLabel: "تقرير" },
+  { label: "التقويم والتنبيهات", href: "/dashboard/teacher/calendar", icon: CalendarDays },
   { label: "تكليفاتي", href: "/dashboard/teacher/assignments", icon: ClipboardList, shortLabel: "تكليفاتي" },
   { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },

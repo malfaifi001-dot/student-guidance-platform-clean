@@ -91,6 +91,7 @@ const iconByName: Record<WorkspaceModuleIcon, typeof ClipboardList> = {
   subscription: WalletCards,
   account: UserCheck,
   schoolSettings: School,
+  calendar: CalendarDays,
 };
 
 const statIconByName: Record<WorkspaceStatIcon, typeof TrendingUp> = {

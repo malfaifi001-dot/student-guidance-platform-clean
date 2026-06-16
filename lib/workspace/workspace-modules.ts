@@ -12,7 +12,8 @@ export type WorkspaceModuleIcon =
   | "portfolio"
   | "subscription"
   | "account"
-  | "schoolSettings";
+  | "schoolSettings"
+  | "calendar";
 
 export type WorkspaceModule = {
   title: string;
@@ -169,6 +170,13 @@ export const teacherWorkspaceModules: WorkspaceModule[] = [
     description: "مساحة Workflow لإصدار تقرير المعلم، وهي قيد التصميم لحين اعتماد المتطلبات.",
     href: OFFICIAL_WORKSPACE_ROUTES.teacherReportIssuance,
     icon: "workflow",
+    status: "available",
+  },
+  {
+    title: "التقويم والتنبيهات",
+    description: "التقويم والتنبيهات لإدارة المهام والمواعيد اليومية.",
+    href: "/dashboard/teacher/calendar",
+    icon: "calendar",
     status: "available",
   },
   {

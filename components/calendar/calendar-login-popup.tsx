@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   AlertCircle,
@@ -131,6 +132,10 @@ function canShowPopupNow() {
 }
 
 export function CalendarLoginPopup() {
+  const pathname = usePathname();
+  const calendarHref = pathname?.startsWith("/dashboard/teacher")
+    ? "/dashboard/teacher/calendar"
+    : "/dashboard/calendar";
   const [open, setOpen] = useState(false);
   const [reminders, setReminders] = useState<DueReminder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -330,7 +335,7 @@ export function CalendarLoginPopup() {
                       ) : null}
 
                       <Link
-                        href="/dashboard/calendar"
+                        href={calendarHref}
                         onClick={closeForSession}
                         className="inline-flex items-center gap-2 rounded-2xl bg-sky-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-sky-800"
                       >

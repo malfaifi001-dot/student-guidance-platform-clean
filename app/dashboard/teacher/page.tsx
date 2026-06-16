@@ -1,8 +1,13 @@
 import { TeacherWorkspacePage } from "@/components/workspace/teacher-workspace-page";
-import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 
 export default async function TeacherDashboardPage() {
-  const current = await requireDashboardUser();
+  const context = await requireDashboardPageContext();
 
-  return <TeacherWorkspacePage user={current.user} />;
+  return (
+    <TeacherWorkspacePage
+      user={context.user}
+      schoolAccountId={context.schoolAccountId}
+    />
+  );
 }
