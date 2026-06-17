@@ -1,0 +1,1242 @@
+Dashboard desktop wrapper review
+Project: D:\student-guidance-platform-clean
+Generated: 06/17/2026 02:43:59
+
+Git status:
+
+
+============================================================
+FILE: app\dashboard\layout.tsx
+============================================================
+import type { ReactNode } from "react";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboarding-reminder";
+import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const current = await requireDashboardUser();
+
+  return (
+    <div dir="rtl" className="min-h-screen bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100">
+      <div className="flex min-h-screen">
+        <DashboardSidebar user={current.user} />
+
+        <main className="min-w-0 flex-1 text-[15.5px] leading-relaxed">
+          <DashboardHeader user={current.user} />
+
+          <DashboardOnboardingReminder
+            onboardingCompleted={current.user.onboardingCompleted}
+          />
+
+          <CalendarLoginPopup />
+
+          <div className="mx-auto w-full max-w-[1680px] px-3 py-4 md:px-4 xl:px-5">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+
+
+============================================================
+FILE: components\layout\dashboard-header.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  UserRound,
+  WalletCards,
+} from "lucide-react";
+
+type DashboardHeaderProps = {
+  user?: {
+    name?: string | null;
+    officialName?: string | null;
+    gender?: string | null;
+    jobTitle?: string | null;
+    role?: string | null;
+    schoolAccount?: {
+      name?: string | null;
+      profile?: {
+        schoolName?: string | null;
+        logoUrl?: string | null;
+      } | null;
+    } | null;
+  } | null;
+};
+
+export function DashboardHeader({ user }: DashboardHeaderProps) {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+
+  const isActivityLeader =
+    user?.role === "ACTIVITY_LEADER" ||
+    pathname.startsWith("/dashboard/activity-leader");
+
+  const isTeacher =
+    user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
+
+  const displayName = user?.officialName || user?.name || "حسابي";
+
+  const avatar =
+    user?.schoolAccount?.profile?.logoUrl ||
+    (user?.gender === "FEMALE"
+      ? "/uploads/VD/girl.png"
+      : "/uploads/VD/boy.png");
+
+  const roleText = isAdmin
+    ? "مدير النظام"
+    : user?.jobTitle ||
+      (isActivityLeader
+        ? user?.gender === "FEMALE"
+          ? "رائدة النشاط"
+          : "رائد النشاط"
+        : isTeacher
+          ? user?.gender === "FEMALE"
+            ? "معلمة"
+            : "معلم"
+        : user?.gender === "FEMALE"
+          ? "موجهة طلابية"
+          : "موجه طلابي");
+
+  const searchPlaceholder = isAdmin
+    ? "ابحث عن حساب، باقة، طلب تفعيل، Workflow..."
+    : isActivityLeader
+      ? "ابحث عن برنامج، فعالية، مشاركة أو تقرير نشاط..."
+      : isTeacher
+        ? "ابحث في مساحة المعلم..."
+      : "ابحث عن طالب، خدمة، حالة أو تقرير...";
+
+  const headerBadgeText = isAdmin
+    ? "Admin Center"
+    : isActivityLeader
+      ? "ريادة النشاط"
+      : isTeacher
+        ? "مساحة المعلم"
+      : "منصة التوجيه الطلابي";
+
+  async function logout() {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    window.location.href = "/login";
+  }
+
+  return (
+    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7faff]/85 px-4 py-2.5 backdrop-blur-xl dark:border-slate-800 dark:bg-[#070b18]/88">
+      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4">
+        <div className="hidden min-w-[360px] max-w-2xl flex-1 lg:block">
+          <div className="relative">
+            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <input
+              suppressHydrationWarning
+              type="search"
+              placeholder={searchPlaceholder}
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-12 text-[15px] font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:ring-4 focus:ring-sky-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-sky-500/50 dark:focus:ring-sky-500/10"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center gap-2 lg:flex-none">
+          <div
+            className={[
+              "hidden items-center gap-2 rounded-2xl border bg-white px-4 py-2 text-[13px] font-black shadow-sm md:flex dark:border-slate-800 dark:bg-slate-950",
+              isAdmin
+                ? "border-slate-200 text-slate-700 dark:text-slate-200"
+                : "border-slate-200 text-slate-500 dark:text-slate-300",
+            ].join(" ")}
+          >
+            {isAdmin ? (
+              <ShieldCheck className="h-4 w-4 text-slate-900 dark:text-white" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-sky-500" />
+            )}
+            {headerBadgeText}
+          </div>
+
+          <ThemeToggleButton />
+
+          <button
+            type="button"
+            className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-sky-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-sky-300"
+            aria-label="الإشعارات"
+          >
+            <Bell className="h-5 w-5" />
+            <span className="absolute -left-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">
+              4
+            </span>
+          </button>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((value) => !value)}
+              className="group flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/70 hover:shadow-lg hover:shadow-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 dark:hover:border-sky-500/40 dark:hover:bg-slate-900 dark:hover:shadow-black/40"
+            >
+              <div className="h-8 w-8 overflow-hidden rounded-xl bg-sky-50 ring-2 ring-transparent transition group-hover:ring-sky-200 dark:bg-sky-500/10 dark:group-hover:ring-sky-400/30">
+                {avatar ? (
+                  <img
+                    src={avatar}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserRound className="h-5 w-5" />
+                )}
+              </div>
+
+              <div className="hidden max-w-[140px] text-right sm:block">
+                <p className="truncate text-[13px] font-black text-slate-900 dark:text-white">
+                  {displayName}
+                </p>
+                <p className="truncate text-[12px] font-bold text-slate-400 dark:text-slate-500">
+                  {roleText}
+                </p>
+              </div>
+
+              <ChevronDown
+                className={[
+                  "h-4 w-4 text-slate-400 transition dark:text-slate-500",
+                  menuOpen ? "rotate-180" : "",
+                ].join(" ")}
+              />
+            </button>
+
+            {menuOpen ? (
+              <div className="absolute left-0 top-14 z-50 w-72 overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/95 p-2 text-right shadow-2xl shadow-slate-300/60 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/40">
+                <div className="border-b border-slate-100 px-3 py-3 dark:border-slate-800">
+                  <p className="truncate text-sm font-black text-slate-950 dark:text-white">
+                    {displayName}
+                  </p>
+                  <p className="mt-1 truncate text-xs font-bold text-slate-400 dark:text-slate-500">
+                    {roleText}
+                  </p>
+                </div>
+
+                <div className="py-2">
+                  <HeaderMenuLink
+                    href="/dashboard/account"
+                    icon={<UserRound className="h-4 w-4" />}
+                    label={isAdmin ? "حساب الأدمن" : "حسابي والجلسات"}
+                  />
+
+                  {!isAdmin ? (
+                    <HeaderMenuLink
+                      href="/dashboard/subscription"
+                      icon={<WalletCards className="h-4 w-4" />}
+                      label="الباقات"
+                    />
+                  ) : null}
+                </div>
+
+                <div className="border-t border-slate-100 pt-2 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="flex w-full items-center gap-2 rounded-2xl px-3 py-2.5 text-right text-xs font-bold text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-200"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    تسجيل الخروج
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function HeaderMenuLink({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-black text-slate-600 transition hover:bg-sky-50 hover:text-sky-700 dark:text-slate-300 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
+    >
+      <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-50 text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+        {icon}
+      </span>
+      {label}
+    </Link>
+  );
+}
+
+
+============================================================
+FILE: components\layout\dashboard-sidebar.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+import type { ComponentType, ReactNode } from "react";
+import {
+  Activity,
+  BarChart3,
+  BookOpen,
+  BrainCircuit,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Crown,
+  FilePlus2,
+  FileText,
+  FolderKanban,
+  GitBranch,
+  Home,
+  KeyRound,
+  LayoutDashboard,
+  Medal,
+  MessageCircle,
+  PenTool,
+  School,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  UserRound,
+  Users,
+  WalletCards,
+} from "lucide-react";
+
+type SidebarUser = {
+  role?: string | null;
+  name?: string | null;
+  officialName?: string | null;
+};
+
+type SidebarLinkItem = {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  shortLabel?: string;
+};
+
+const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
+
+const counselorImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard", icon: Home },
+  { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+];
+
+const counselorServiceLinks: SidebarLinkItem[] = [
+  {
+    label: "البرامج الإرشادية",
+    href: "/dashboard/guidance-programs",
+    icon: ClipboardList,
+  },
+  {
+    label: "اللجان والاجتماعات",
+    href: "/dashboard/committees-meetings",
+    icon: ShieldCheck,
+  },
+  {
+    label: "متابعة الطلاب",
+    href: "/dashboard/student-follow-up",
+    icon: Users,
+  },
+  {
+    label: "الخدمات الإرشادية المقدمة للطلاب",
+    href: "/dashboard/student-guidance-services",
+    icon: FileText,
+  },
+  {
+    label: "المرجع الشامل للطالب",
+    href: "/dashboard/student-comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "المرجع الشامل للموجه الطلابي",
+    href: "/dashboard/comprehensive-reference",
+    icon: BookOpen,
+  },
+  {
+    label: "تحليل النتائج",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    icon: BarChart3,
+  },
+  {
+    label: "التواصل بين الأسرة والمدرسة",
+    href: "/dashboard/family-school-communication",
+    icon: MessageCircle,
+  },
+];
+
+
+const assessmentCenterLinks: SidebarLinkItem[] = [
+  {
+    label: "لوحة المركز",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    icon: BarChart3,
+  },
+  {
+    label: "ربط الطلاب",
+    href: "/dashboard/assessment-center/linking",
+    icon: GitBranch,
+  },
+  {
+    label: "الموجه الذكي",
+    href: "/dashboard/assessment-center/smart-counselor",
+    icon: Sparkles,
+  },
+];
+const counselorToolsLinks: SidebarLinkItem[] = [
+  { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+];
+
+const counselorAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const activityLeaderImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard/activity-leader", icon: Home },
+  { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban, shortLabel: "الأنشطة" },
+  { label: "البرامج والفعاليات", href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms, icon: ClipboardList },
+  { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+];
+
+const activityProgramDomainLinks: SidebarLinkItem[] = [
+  {
+    label: "كل برامج النشاط",
+    href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
+    icon: ClipboardList,
+    shortLabel: "البرامج",
+  },
+  ...ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
+    label: domain.title,
+    href: `/dashboard/activity-leader/programs/${domain.slug}`,
+    icon: ClipboardList,
+    shortLabel: domain.shortLabel,
+  })),
+];
+const activityLeaderServiceLinks: SidebarLinkItem[] = [
+  { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
+  { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud, shortLabel: "رفع الطلاب" },
+  { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
+  { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
+  { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+];
+
+const activityLeaderAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const teacherServiceLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home },
+  { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "إصدار تقرير", href: OFFICIAL_WORKSPACE_ROUTES.teacherReportIssuance, icon: FilePlus2, shortLabel: "تقرير" },
+  { label: "التقويم والتنبيهات", href: "/dashboard/teacher/calendar", icon: CalendarDays },
+  { label: "تكليفاتي", href: "/dashboard/teacher/assignments", icon: ClipboardList, shortLabel: "تكليفاتي" },
+  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "رفع الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+  { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
+  { label: "شهاداتي", href: "/dashboard/teacher/certificates", icon: Medal, shortLabel: "شهاداتي" },
+];
+
+const teacherAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/subscription", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+const adminMainLinks: SidebarLinkItem[] = [
+  { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
+  { label: "صحة النظام", href: "/dashboard/admin/system-health", icon: Activity },
+  { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
+  { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
+  { label: "الاستبيانات", href: "/dashboard/admin/surveys", icon: ClipboardList },
+  { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
+  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
+  { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
+  { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
+];
+
+const adminPaymentLinks: SidebarLinkItem[] = [
+  { label: "عمليات الدفع", href: "/dashboard/admin/payments", icon: WalletCards },
+  { label: "مزودو الدفع", href: "/dashboard/admin/payments/providers", icon: WalletCards },
+  { label: "التسوية المالية", href: "/dashboard/admin/payments/reconciliation", icon: WalletCards },
+  { label: "الفواتير", href: "/dashboard/admin/payments/invoices", icon: FileText },
+  {
+    label: "إعدادات الفواتير والضريبة",
+    href: "/dashboard/admin/payments/invoice-settings",
+    icon: Settings,
+  },
+];
+
+const adminBuilderLinks: SidebarLinkItem[] = [
+  {
+    label: "مصمم Workflow",
+    href: "/dashboard/admin/workflow-builder",
+    icon: PenTool,
+  },
+  {
+    label: "قوالب التقارير",
+    href: "/dashboard/admin/report-templates",
+    icon: FileText,
+  },
+  {
+    label: "قالب تقرير جديد",
+    href: "/dashboard/admin/report-templates/new",
+    icon: FilePlus2,
+  },
+];
+
+const adminAccountLinks: SidebarLinkItem[] = [
+  { label: "حساب الأدمن", href: "/dashboard/account", icon: UserRound },
+  { label: "هوية المنصة", href: "/dashboard/settings/school", icon: Settings },
+];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function hasActive(pathname: string, items: SidebarLinkItem[]) {
+  return items.some((item) => isActivePath(pathname, item.href));
+}
+
+const collapsedLabelByLabel: Record<string, string> = {
+  "الرئيسية": "الرئيسية",
+  "الحالات": "الحالات",
+  "مركز الأنشطة": "الأنشطة",
+  "متابعة أنشطة المعلمين": "المعلمون",
+  "التقارير": "التقارير",
+  "التقويم والتنبيهات": "التقويم",
+
+  "البرامج الإرشادية": "البرامج",
+  "اللجان والاجتماعات": "اللجان",
+  "متابعة الطلاب": "المتابعة",
+  "الخدمات الإرشادية المقدمة للطلاب": "الإرشاد",
+  "المرجع الشامل للطالب": "مرجع الطالب",
+  "المرجع الشامل للموجه الطلابي": "مرجع الموجه",
+  "تحليل النتائج": "التحليل",
+  "التواصل بين الأسرة والمدرسة": "الأسرة",
+
+  "لوحة المركز": "المركز",
+  "تحليل جديد": "تحليل جديد",
+  "التحليلات السابقة": "السابقة",
+  "تحليل المواد": "المواد",
+  "تحليل الصفوف والفصول": "الصفوف",
+  "الطلاب المعرضون للخطر": "الخطر",
+  "التوصيات العلاجية": "التوصيات",
+  "تقارير التحليل": "تقارير",
+
+  "رفع بيانات الطلاب": "رفع الطلاب",
+  "الباقات": "الباقات",
+  "حسابي": "حسابي",
+  "إعدادات المدرسة": "المدرسة",
+
+  "مركز الإدارة": "الإدارة",
+  "صحة النظام": "الصحة",
+  "المستخدمين": "المستخدمون",
+  "سجل العمليات": "السجل",
+  "التفعيلات": "التفعيلات",
+  "الاشتراكات": "الاشتراكات",
+  "المشتركين": "المشتركون",
+  "Workflows": "Workflows",
+
+  "عمليات الدفع": "الدفع",
+  "مزودو الدفع": "المزودون",
+  "التسوية المالية": "التسوية",
+  "الفواتير": "الفواتير",
+  "إعدادات الفواتير والضريبة": "الضريبة",
+
+  "مصمم Workflow": "المصمم",
+  "قوالب التقارير": "القوالب",
+  "قالب تقرير جديد": "قالب جديد",
+  "حساب الأدمن": "حساب الأدمن",
+  "هوية المنصة": "الهوية",
+};
+
+function getCollapsedLabel(item: SidebarLinkItem) {
+  return item.shortLabel || collapsedLabelByLabel[item.label] || item.label;
+}
+
+export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+  const isActivityLeader =
+    user?.role === "ACTIVITY_LEADER" ||
+    pathname.startsWith("/dashboard/activity-leader");
+  const isTeacher =
+    user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
+
+  const dashboardHomeHref = isAdmin
+    ? "/dashboard/admin"
+    : isActivityLeader
+      ? OFFICIAL_WORKSPACE_ROUTES.activityLeaderHome
+      : isTeacher
+        ? OFFICIAL_WORKSPACE_ROUTES.teacherHome
+        : OFFICIAL_WORKSPACE_ROUTES.counselorHome;
+
+  const dashboardTitle = isAdmin
+    ? "إدارة المنصة"
+    : isActivityLeader
+      ? "ريادة النشاط"
+      : isTeacher
+        ? "مساحة المعلم"
+        : "التوجيه الطلابي";
+
+  const dashboardSubtitle = isAdmin
+    ? "Admin Center"
+    : isActivityLeader
+      ? "Activity Leader"
+      : isTeacher
+        ? "Teacher Workspace"
+        : "Counselor";
+useEffect(() => {
+    const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    setCollapsed(savedValue === "true");
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  }, [collapsed, ready]);
+
+  return (
+    <aside
+      className={[
+        "hidden min-h-screen shrink-0 bg-transparent py-4 transition-all duration-300 md:block xl:py-5",
+        collapsed ? "w-[92px] px-2 lg:w-[96px] xl:w-[104px] xl:px-3" : "w-[232px] px-2 lg:w-[280px] lg:px-3 xl:w-[320px] xl:px-4",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "sticky top-5 flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300 dark:border-slate-800/80 dark:bg-slate-950/92 dark:shadow-black/30",
+          collapsed ? "p-2" : "p-4",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "flex items-center gap-2 border-b border-slate-100 pb-3 dark:border-slate-800",
+            collapsed ? "justify-center" : "justify-between",
+          ].join(" ")}
+        >
+          <Link
+            href={dashboardHomeHref}
+            className={[
+              "flex min-w-0 items-center rounded-[1.35rem] transition",
+              collapsed ? "justify-center p-1" : "flex-1 gap-3 px-2 py-2",
+              isAdmin
+                ? "hover:bg-slate-50 dark:hover:bg-slate-900"
+                : "hover:bg-sky-50/60 dark:hover:bg-sky-500/10",
+            ].join(" ")}
+            title={dashboardTitle}
+          >
+            <div
+              className={[
+                "flex shrink-0 items-center justify-center rounded-2xl ring-1",
+                collapsed ? "h-11 w-11" : "h-12 w-12",
+                isAdmin
+                  ? "bg-slate-950 text-white ring-slate-900 dark:bg-white dark:text-slate-950 dark:ring-slate-200"
+                  : "bg-sky-50 text-sky-600 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/20",
+              ].join(" ")}
+            >
+              {isAdmin ? (
+                <ShieldCheck className="h-5 w-5" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
+            </div>
+
+            {!collapsed ? (
+              <div className="min-w-0">
+                <h1 className="truncate text-[15px] font-black text-slate-950 dark:text-white">
+                  {dashboardTitle}
+                </h1>
+                <p className="mt-1 truncate text-[11px] font-black text-slate-400 dark:text-slate-500">
+                  {dashboardSubtitle}
+                </p>
+              </div>
+            ) : null}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+            aria-label={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+            title={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+          >
+            {collapsed ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+
+        {isAdmin ? (
+          <AdminSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isActivityLeader ? (
+          <ActivityLeaderSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isTeacher ? (
+          <TeacherSidebar pathname={pathname} collapsed={collapsed} />
+        ) : (
+          <CounselorSidebar pathname={pathname} collapsed={collapsed} />
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function AdminSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الإدارة" collapsed={collapsed}>
+          {adminMainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="المدفوعات"
+          defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
+          admin
+          collapsed={collapsed}
+        >
+          {adminPaymentLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="أدوات البناء"
+          defaultOpen={hasActive(pathname, adminBuilderLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminBuilderLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والإعدادات"
+          defaultOpen={hasActive(pathname, adminAccountLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 p-4 text-xs leading-6 text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+          <p className="font-black">Admin Mode</p>
+          <p className="mt-1 text-emerald-700 dark:text-emerald-300">
+            إدارة التفعيل، الاشتراكات، المدفوعات، الفواتير، النماذج، والتقارير.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function ActivityLeaderSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {activityLeaderImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="برامج النشاط"
+          defaultOpen={pathname.startsWith("/dashboard/activity-leader/programs")}
+          collapsed={collapsed}
+        >
+          {activityProgramDomainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/activity-leader/programs"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarSection title="إدارة النشاط" collapsed={collapsed}>
+          {activityLeaderServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {activityLeaderAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
+          <p className="text-xs font-black text-sky-700 dark:text-sky-200">اقتراح سريع</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
+            ابدأ ببرنامج أو فعالية، ثم أضف الشواهد والتقرير عند اكتمال التنفيذ.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+function TeacherSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="خدمات المعلم" collapsed={collapsed}>
+          {teacherServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="مركز التحليل والاختبارات"
+          defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
+          collapsed={collapsed}
+        >
+          {assessmentCenterLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/assessment-center"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/subscription") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {teacherAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
+          <p className="text-xs font-black text-sky-700 dark:text-sky-200">مساحة المعلم</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
+            تجربة تنظيمية أولية للخدمات التي سيحتاجها المعلم مستقبلًا.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+function CounselorSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 flex-1 overflow-y-auto",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {counselorImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="الخدمات" collapsed={collapsed}>
+          {counselorServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="مركز التحليل والاختبارات"
+          defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
+          collapsed={collapsed}
+        >
+          {assessmentCenterLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/assessment-center"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="أدوات إضافية"
+          defaultOpen={hasActive(pathname, counselorToolsLinks)}
+          collapsed={collapsed}
+        >
+          {counselorToolsLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {counselorAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+
+      {!collapsed ? (
+        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
+          <p className="text-xs font-black text-sky-700 dark:text-sky-200">اقتراح سريع</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
+            ابدأ بالتقويم، ثم افتح الحالة أو المرجع الشامل عند الحاجة.
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function SidebarSection({
+  title,
+  children,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  collapsed: boolean;
+}) {
+  return (
+    <section>
+      {!collapsed ? (
+        <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400 dark:text-slate-500">
+          {title}
+        </p>
+      ) : null}
+
+      <div className={collapsed ? "space-y-1.5" : "space-y-1.5"}>{children}</div>
+    </section>
+  );
+}
+
+function SidebarDropdown({
+  title,
+  children,
+  defaultOpen = false,
+  admin,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  admin?: boolean;
+  collapsed: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (collapsed) {
+    return <div className="space-y-1.5">{children}</div>;
+  }
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={[
+          "mb-2 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black tracking-wide transition",
+          admin
+            ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-900 dark:hover:text-slate-200"
+            : "text-slate-400 hover:bg-sky-50 hover:text-sky-700 dark:text-slate-500 dark:hover:bg-sky-500/10 dark:hover:text-sky-200",
+        ].join(" ")}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={["h-4 w-4 transition", open ? "rotate-180" : ""].join(
+            " "
+          )}
+        />
+      </button>
+
+      {open ? <div className="space-y-1.5">{children}</div> : null}
+    </section>
+  );
+}
+
+function SidebarLink({
+  item,
+  active,
+  admin,
+  compact,
+  collapsed,
+}: {
+  item: SidebarLinkItem;
+  active: boolean;
+  admin?: boolean;
+  compact?: boolean;
+  collapsed: boolean;
+}) {
+  const Icon = item.icon;
+  const collapsedLabel = getCollapsedLabel(item);
+
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      className={[
+        "group relative flex items-center rounded-2xl transition",
+        collapsed
+          ? "min-h-[66px] flex-col justify-center gap-1 px-1 py-1.5 text-center"
+          : "min-h-11 gap-3 px-4 py-2.5",
+        compact && !collapsed ? "py-2" : "",
+        active
+          ? admin
+            ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+            : "bg-sky-50 text-sky-700 shadow-sm dark:bg-sky-500/15 dark:text-sky-200 dark:ring-1 dark:ring-sky-400/20"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white",
+      ].join(" ")}
+    >
+      {active && !collapsed ? (
+        <span
+          className={[
+            "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
+            admin ? "bg-white dark:bg-slate-950" : "bg-sky-500",
+          ].join(" ")}
+        />
+      ) : null}
+
+      <div
+        className={[
+          "flex shrink-0 items-center justify-center rounded-xl transition",
+          collapsed ? "h-9 w-9" : compact ? "h-8 w-8" : "h-9 w-9",
+          active
+            ? admin
+              ? "bg-white/10 text-white dark:bg-slate-950/10 dark:text-slate-950"
+              : "bg-white text-sky-600 dark:bg-sky-400/15 dark:text-sky-200"
+            : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600 dark:bg-slate-900 dark:text-slate-400 dark:group-hover:bg-slate-800 dark:group-hover:text-sky-300",
+        ].join(" ")}
+      >
+        <Icon className={collapsed ? "h-5 w-5" : compact ? "h-4 w-4" : "h-5 w-5"} />
+      </div>
+
+      {!collapsed ? (
+        <span className="min-w-0 flex-1 whitespace-normal break-words text-right text-[14px] font-black leading-6">
+          {item.label}
+        </span>
+      ) : (
+        <>
+          <span className="line-clamp-2 max-w-[64px] text-center text-[9px] font-black leading-[11px] text-current">
+            {collapsedLabel}
+          </span>
+
+          <span className="pointer-events-none fixed right-[112px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block dark:border dark:border-slate-700 dark:bg-slate-900">
+            {item.label}
+          </span>
+        </>
+      )}
+    </Link>
+  );
+}
+

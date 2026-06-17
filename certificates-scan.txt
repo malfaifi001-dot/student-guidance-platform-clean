@@ -1,0 +1,538 @@
+Certificates feature scan
+Generated: 06/18/2026 02:28:29
+
+Git status:
+ M components/report-2/report-two-studio-runtime.tsx
+ M next-env.d.ts
+?? dashboard-layout-review.txt
+?? report-2-pagination-code-review.txt
+?? report-2-pagination-current-code.txt
+
+
+Package scripts:
+
+>     "scripts": {
+>         "dev": "next dev",
+>         "build": "prisma generate && next build",
+>         "start": "next start -H 0.0.0.0 -p 3000",
+          "lint": "eslint",
+>         "postinstall": "prisma generate"
+      },
+      "dependencies": {
+          "@hookform/resolvers": "^5.4.0",
+>         "@prisma/adapter-better-sqlite3": "^7.8.0",
+>         "@prisma/adapter-mariadb": "^7.8.0",
+>         "@prisma/client": "^7.8.0",
+          "@types/qrcode": "^1.5.6",
+          "bcryptjs": "^3.0.3",
+          "better-sqlite3": "^12.10.0",
+          "class-variance-authority": "^0.7.1",
+          "clsx": "^2.1.1",
+          "date-fns": "^4.3.0",
+          "exceljs": "^4.4.0",
+          "html2canvas": "^1.4.1",
+>         "prisma": "^7.8.0",
+          "puppeteer": "^25.1.0",
+          "qrcode": "^1.5.4",
+          "radix-ui": "^1.4.3",
+          "react": "19.2.4",
+          "react-dom": "19.2.4",
+          "react-hook-form": "^7.76.1",
+          "recharts": "^3.8.1",
+          "shadcn": "^4.8.2",
+>     "devDependencies": {
+          "@tailwindcss/postcss": "^4",
+          "@types/better-sqlite3": "^7.6.13",
+          "@types/node": "^20",
+          "@types/react": "^19",
+          "@types/react-dom": "^19",
+          "dotenv": "^17.4.2",
+          "eslint": "^9",
+          "eslint-config-next": "16.2.6",
+
+
+
+
+Prisma important models:
+
+> prisma\schema.prisma:165:model SchoolAccount {
+  prisma\schema.prisma:166:  id                    String                 @id @default(cuid())
+  prisma\schema.prisma:167:  name                  String
+  prisma\schema.prisma:168:  slug                  String                 @unique
+  prisma\schema.prisma:169:  isActive              Boolean                @default(true)
+  prisma\schema.prisma:170:  studentImportSessions StudentImportSession[]
+  prisma\schema.prisma:171:  users                 User[]
+  prisma\schema.prisma:172:
+  prisma\schema.prisma:173:  profile           SchoolProfile?
+  prisma\schema.prisma:174:  students          Student[]
+  prisma\schema.prisma:175:  guardians         Guardian[]
+  prisma\schema.prisma:176:  staff             StaffMember[]
+  prisma\schema.prisma:177:  services          ServiceAccess[]
+  prisma\schema.prisma:178:  cases             CaseEntry[]
+  prisma\schema.prisma:179:  subscription      Subscription?
+  prisma\schema.prisma:180:  resultsAnalyses   ResultsAnalysis[]
+  prisma\schema.prisma:181:  assessmentAnalyses AssessmentAnalysis[]
+  prisma\schema.prisma:182:  calendarReminders CalendarReminder[]
+  prisma\schema.prisma:183:  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsBySchool")
+  prisma\schema.prisma:184:  surveys             Survey[]           @relation("SurveysBySchool")
+  prisma\schema.prisma:185:  surveyResponses     SurveyResponse[]   @relation("SurveyResponsesBySchool")
+  prisma\schema.prisma:186:  createdAt         DateTime           @default(now())
+  prisma\schema.prisma:187:  updatedAt         DateTime           @updatedAt
+  prisma\schema.prisma:188:}
+  prisma\schema.prisma:189:
+> prisma\schema.prisma:190:model User {
+  prisma\schema.prisma:191:  id              String         @id @default(cuid())
+  prisma\schema.prisma:192:  schoolAccountId String?
+  prisma\schema.prisma:193:  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+  prisma\schema.prisma:194:
+  prisma\schema.prisma:195:  name         String
+  prisma\schema.prisma:196:  email        String   @unique
+  prisma\schema.prisma:197:  phone        String?
+  prisma\schema.prisma:198:  passwordHash String?
+  prisma\schema.prisma:199:  role         UserRole @default(COUNSELOR)
+  prisma\schema.prisma:200:  gender       Gender   @default(UNKNOWN)
+  prisma\schema.prisma:201:  officialName String?
+  prisma\schema.prisma:202:  jobTitle     String?
+  prisma\schema.prisma:203:  isActive     Boolean  @default(true)
+  prisma\schema.prisma:204:
+  prisma\schema.prisma:205:  onboardingCompleted   Boolean   @default(false)
+  prisma\schema.prisma:206:  onboardingCompletedAt DateTime?
+  prisma\schema.prisma:207:  onboardingSkippedAt   DateTime?
+  prisma\schema.prisma:208:
+  prisma\schema.prisma:209:  cases             CaseEntry[]
+  prisma\schema.prisma:210:  sessions          UserSession[]
+  prisma\schema.prisma:211:  calendarReminders CalendarReminder[]
+  prisma\schema.prisma:212:  createdActivityAssignments ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
+  prisma\schema.prisma:213:  createdSurveys            Survey[]             @relation("SurveysCreatedBy")
+  prisma\schema.prisma:214:
+  prisma\schema.prisma:215:  createdAt              DateTime         @default(now())
+  prisma\schema.prisma:216:  updatedAt              DateTime         @updatedAt
+  prisma\schema.prisma:217:  caseEvidences          CaseEvidence[]
+  prisma\schema.prisma:218:  createdReportTemplates ReportTemplate[]
+  prisma\schema.prisma:219:
+  prisma\schema.prisma:220:  @@index([schoolAccountId])
+  prisma\schema.prisma:221:}
+  prisma\schema.prisma:222:
+> prisma\schema.prisma:223:model UserSession {
+  prisma\schema.prisma:224:  id String @id @default(cuid())
+  prisma\schema.prisma:225:
+  prisma\schema.prisma:226:  userId String
+  prisma\schema.prisma:227:  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:228:
+  prisma\schema.prisma:229:  tokenId String @unique
+  prisma\schema.prisma:230:
+  prisma\schema.prisma:231:  userAgent String?
+  prisma\schema.prisma:232:  ipAddress String?
+  prisma\schema.prisma:233:
+  prisma\schema.prisma:234:  isActive   Boolean   @default(true)
+  prisma\schema.prisma:235:  expiresAt  DateTime
+  prisma\schema.prisma:236:  lastSeenAt DateTime  @default(now())
+  prisma\schema.prisma:237:  revokedAt  DateTime?
+  prisma\schema.prisma:238:
+  prisma\schema.prisma:239:  createdAt DateTime @default(now())
+  prisma\schema.prisma:240:
+  prisma\schema.prisma:241:  @@index([userId])
+  prisma\schema.prisma:242:  @@index([tokenId])
+  prisma\schema.prisma:243:  @@index([isActive])
+  prisma\schema.prisma:244:  @@index([expiresAt])
+  prisma\schema.prisma:245:}
+  prisma\schema.prisma:246:
+> prisma\schema.prisma:247:model SchoolProfile {
+  prisma\schema.prisma:248:  id              String        @id @default(cuid())
+  prisma\schema.prisma:249:  schoolAccountId String        @unique
+  prisma\schema.prisma:250:  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:251:
+  prisma\schema.prisma:252:  schoolName          String
+  prisma\schema.prisma:253:  principalName       String?
+  prisma\schema.prisma:254:  principalPhone      String?
+  prisma\schema.prisma:255:  principalSignatureUrl String?
+  prisma\schema.prisma:256:  principalSignatureToken String? @unique
+  prisma\schema.prisma:257:  principalSignatureRequestedAt DateTime?
+  prisma\schema.prisma:258:  principalSignatureSignedAt DateTime?
+  prisma\schema.prisma:259:
+  prisma\schema.prisma:260:  activityLeaderName String?
+  prisma\schema.prisma:261:  activityLeaderSignatureUrl String?
+  prisma\schema.prisma:262:  activityLeaderSignedAt DateTime?
+  prisma\schema.prisma:263:
+  prisma\schema.prisma:264:  counselorSignatureUrl String?
+  prisma\schema.prisma:265:  counselorSignedAt DateTime?
+  prisma\schema.prisma:266:
+  prisma\schema.prisma:267:  educationDepartment String?
+  prisma\schema.prisma:268:  educationOffice     String?
+  prisma\schema.prisma:269:  city                String?
+  prisma\schema.prisma:270:  district            String?
+  prisma\schema.prisma:271:  stage               String?
+  prisma\schema.prisma:272:  academicYear        String?
+  prisma\schema.prisma:273:  currentSemester     String?
+  prisma\schema.prisma:274:  logoUrl             String?
+  prisma\schema.prisma:275:
+  prisma\schema.prisma:276:  createdAt DateTime @default(now())
+  prisma\schema.prisma:277:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:278:}
+  prisma\schema.prisma:279:
+  prisma\schema.prisma:280:model Guardian {
+  prisma\schema.prisma:281:  id              String        @id @default(cuid())
+  prisma\schema.prisma:282:  schoolAccountId String
+> prisma\schema.prisma:342:model Service {
+  prisma\schema.prisma:343:  id          String        @id @default(cuid())
+  prisma\schema.prisma:344:  slug        String        @unique
+  prisma\schema.prisma:345:  name        String
+  prisma\schema.prisma:346:  description String?
+  prisma\schema.prisma:347:  status      ServiceStatus @default(ACTIVE)
+  prisma\schema.prisma:348:
+  prisma\schema.prisma:349:  workflows         Workflow[]
+  prisma\schema.prisma:350:  cases             CaseEntry[]
+  prisma\schema.prisma:351:  access            ServiceAccess[]
+  prisma\schema.prisma:352:  calendarReminders CalendarReminder[]
+  prisma\schema.prisma:353:  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
+  prisma\schema.prisma:354:  surveys             Survey[]             @relation("SurveysService")
+  prisma\schema.prisma:355:
+  prisma\schema.prisma:356:  createdAt DateTime @default(now())
+  prisma\schema.prisma:357:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:358:}
+  prisma\schema.prisma:359:
+  prisma\schema.prisma:360:model Workflow {
+  prisma\schema.prisma:361:  id        String  @id @default(cuid())
+  prisma\schema.prisma:362:  serviceId String
+  prisma\schema.prisma:363:  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:364:
+  prisma\schema.prisma:365:  name         String
+  prisma\schema.prisma:366:  version      Int            @default(1)
+  prisma\schema.prisma:367:  status       WorkflowStatus @default(DRAFT)
+  prisma\schema.prisma:368:  isActive     Boolean        @default(false)
+  prisma\schema.prisma:369:  workflowType String         @default("default")
+  prisma\schema.prisma:370:
+  prisma\schema.prisma:371:  studentPickerMode StudentPickerMode @default(SERVICE_DEFAULT)
+  prisma\schema.prisma:372:  steps             WorkflowStep[]
+  prisma\schema.prisma:373:  cases             CaseEntry[]
+  prisma\schema.prisma:374:  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
+  prisma\schema.prisma:375:
+  prisma\schema.prisma:376:  createdAt DateTime @default(now())
+  prisma\schema.prisma:377:  updatedAt DateTime @updatedAt
+> prisma\schema.prisma:451:model CaseEntry {
+  prisma\schema.prisma:452:  id String @id @default(cuid())
+  prisma\schema.prisma:453:
+  prisma\schema.prisma:454:  schoolAccountId String
+  prisma\schema.prisma:455:  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:456:
+  prisma\schema.prisma:457:  serviceId String
+  prisma\schema.prisma:458:  service   Service @relation(fields: [serviceId], references: [id])
+  prisma\schema.prisma:459:
+  prisma\schema.prisma:460:  workflowId       String?
+  prisma\schema.prisma:461:  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+  prisma\schema.prisma:462:  workflowSnapshot Json?
+  prisma\schema.prisma:463:  guidanceReports  GuidanceReport[]
+  prisma\schema.prisma:464:  studentId        String?
+  prisma\schema.prisma:465:  student          Student?         @relation(fields: [studentId], references: [id])
+  prisma\schema.prisma:466:
+  prisma\schema.prisma:467:  createdById String?
+  prisma\schema.prisma:468:  createdBy   User?   @relation(fields: [createdById], references: [id])
+  prisma\schema.prisma:469:
+  prisma\schema.prisma:470:  title       String?
+  prisma\schema.prisma:471:  status      CaseStatus @default(DRAFT)
+  prisma\schema.prisma:472:  submittedAt DateTime?
+  prisma\schema.prisma:473:
+  prisma\schema.prisma:474:  values            CaseValue[]
+  prisma\schema.prisma:475:  evidences         Evidence[]
+  prisma\schema.prisma:476:  calendarReminders CalendarReminder[]
+  prisma\schema.prisma:477:  activityAssignment  ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+  prisma\schema.prisma:478:
+  prisma\schema.prisma:479:  createdAt              DateTime         @default(now())
+  prisma\schema.prisma:480:  updatedAt              DateTime         @updatedAt
+  prisma\schema.prisma:481:  caseEvidences          CaseEvidence[]
+  prisma\schema.prisma:482:  createdReportTemplates ReportTemplate[]
+  prisma\schema.prisma:483:
+  prisma\schema.prisma:484:  @@index([schoolAccountId])
+  prisma\schema.prisma:485:  @@index([serviceId])
+  prisma\schema.prisma:486:  @@index([workflowId])
+> prisma\schema.prisma:491:model CaseValue {
+  prisma\schema.prisma:492:  id String @id @default(cuid())
+  prisma\schema.prisma:493:
+  prisma\schema.prisma:494:  caseEntryId String
+  prisma\schema.prisma:495:  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:496:
+  prisma\schema.prisma:497:  fieldId String?
+  prisma\schema.prisma:498:  field   DynamicField? @relation(fields: [fieldId], references: [id])
+  prisma\schema.prisma:499:
+  prisma\schema.prisma:500:  fieldKey  String
+  prisma\schema.prisma:501:  value     String? @db.Text
+  prisma\schema.prisma:502:  jsonValue Json?
+  prisma\schema.prisma:503:
+  prisma\schema.prisma:504:  createdAt DateTime @default(now())
+  prisma\schema.prisma:505:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:506:
+  prisma\schema.prisma:507:  @@index([caseEntryId])
+  prisma\schema.prisma:508:  @@index([fieldKey])
+  prisma\schema.prisma:509:}
+  prisma\schema.prisma:510:
+  prisma\schema.prisma:511:model Evidence {
+  prisma\schema.prisma:512:  id String @id @default(cuid())
+  prisma\schema.prisma:513:
+  prisma\schema.prisma:514:  caseEntryId String
+  prisma\schema.prisma:515:  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:516:
+  prisma\schema.prisma:517:  type     EvidenceType
+  prisma\schema.prisma:518:  fileName String?
+  prisma\schema.prisma:519:  fileUrl  String?
+  prisma\schema.prisma:520:  mimeType String?
+  prisma\schema.prisma:521:  size     Int?
+  prisma\schema.prisma:522:  note     String?
+  prisma\schema.prisma:523:
+  prisma\schema.prisma:524:  createdAt DateTime @default(now())
+  prisma\schema.prisma:525:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:526:
+> prisma\schema.prisma:682:model Subscription {
+  prisma\schema.prisma:683:  id              String        @id @default(cuid())
+  prisma\schema.prisma:684:  schoolAccountId String        @unique
+  prisma\schema.prisma:685:  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:686:
+  prisma\schema.prisma:687:  planId String
+  prisma\schema.prisma:688:  plan   Plan   @relation(fields: [planId], references: [id])
+  prisma\schema.prisma:689:
+  prisma\schema.prisma:690:  status   SubscriptionStatus @default(TRIAL)
+  prisma\schema.prisma:691:  startsAt DateTime           @default(now())
+  prisma\schema.prisma:692:  endsAt   DateTime?
+  prisma\schema.prisma:693:
+  prisma\schema.prisma:694:  transactions PaymentTransaction[]
+  prisma\schema.prisma:695:
+  prisma\schema.prisma:696:  createdAt DateTime @default(now())
+  prisma\schema.prisma:697:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:698:}
+  prisma\schema.prisma:699:
+> prisma\schema.prisma:700:model ServiceAccess {
+  prisma\schema.prisma:701:  id              String        @id @default(cuid())
+  prisma\schema.prisma:702:  schoolAccountId String
+  prisma\schema.prisma:703:  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:704:
+  prisma\schema.prisma:705:  serviceId String
+  prisma\schema.prisma:706:  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  prisma\schema.prisma:707:
+  prisma\schema.prisma:708:  isEnabled Boolean @default(true)
+  prisma\schema.prisma:709:  isPaid    Boolean @default(false)
+  prisma\schema.prisma:710:
+  prisma\schema.prisma:711:  createdAt DateTime @default(now())
+  prisma\schema.prisma:712:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:713:
+  prisma\schema.prisma:714:  @@unique([schoolAccountId, serviceId])
+  prisma\schema.prisma:715:}
+  prisma\schema.prisma:716:
+  prisma\schema.prisma:717:model FeatureFlag {
+  prisma\schema.prisma:718:  id        String  @id @default(cuid())
+  prisma\schema.prisma:719:  key       String  @unique
+  prisma\schema.prisma:720:  label     String
+  prisma\schema.prisma:721:  isEnabled Boolean @default(false)
+  prisma\schema.prisma:722:
+  prisma\schema.prisma:723:  createdAt DateTime @default(now())
+  prisma\schema.prisma:724:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:725:}
+  prisma\schema.prisma:726:
+  prisma\schema.prisma:727:model UsageLimit {
+  prisma\schema.prisma:728:  id         String @id @default(cuid())
+  prisma\schema.prisma:729:  planSlug   String
+  prisma\schema.prisma:730:  featureKey String
+  prisma\schema.prisma:731:  limit      Int
+  prisma\schema.prisma:732:
+  prisma\schema.prisma:733:  createdAt DateTime @default(now())
+  prisma\schema.prisma:734:  updatedAt DateTime @updatedAt
+  prisma\schema.prisma:735:
+> prisma\schema.prisma:1041:model ReportTemplate {
+  prisma\schema.prisma:1042:  id String @id @default(cuid())
+  prisma\schema.prisma:1043:
+  prisma\schema.prisma:1044:  name        String
+  prisma\schema.prisma:1045:  description String?
+  prisma\schema.prisma:1046:
+  prisma\schema.prisma:1047:  serviceSlug String?
+  prisma\schema.prisma:1048:
+  prisma\schema.prisma:1049:  type ReportTemplateType @default(SYSTEM)
+  prisma\schema.prisma:1050:  content      String? @db.LongText
+  prisma\schema.prisma:1051:
+  prisma\schema.prisma:1052:  templateJson Json?
+  prisma\schema.prisma:1053:  version      Int   @default(1)
+  prisma\schema.prisma:1054:
+  prisma\schema.prisma:1055:  genderAware Boolean @default(true)
+  prisma\schema.prisma:1056:
+  prisma\schema.prisma:1057:  usageCount Int     @default(0)
+  prisma\schema.prisma:1058:  isActive   Boolean @default(true)
+  prisma\schema.prisma:1059:
+  prisma\schema.prisma:1060:  createdById String?
+  prisma\schema.prisma:1061:  createdBy   User?   @relation(fields: [createdById], references: [id])
+  prisma\schema.prisma:1062:
+  prisma\schema.prisma:1063:  createdAt   DateTime   @default(now())
+  prisma\schema.prisma:1064:  updatedAt   DateTime   @updatedAt
+  prisma\schema.prisma:1065:  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  prisma\schema.prisma:1066:  caseEntryId String?
+  prisma\schema.prisma:1067:
+  prisma\schema.prisma:1068:  @@index([serviceSlug])
+  prisma\schema.prisma:1069:  @@index([type])
+  prisma\schema.prisma:1070:  @@index([isActive])
+  prisma\schema.prisma:1071:  @@index([createdById])
+  prisma\schema.prisma:1072:}
+  prisma\schema.prisma:1073:
+  prisma\schema.prisma:1074:model StudentImportSession {
+  prisma\schema.prisma:1075:  id              String        @id @default(cuid())
+  prisma\schema.prisma:1076:  schoolAccountId String
+
+
+
+
+Existing dashboard routes:
+account
+activity-leader
+activity-programs
+activity-programs-citizenship-life
+activity-programs-culture-arts
+activity-programs-events-occasions
+activity-programs-non-class-periods
+activity-programs-science-technology
+activity-programs-scouting
+activity-programs-sports-health
+admin
+assessment-center
+calendar
+cases
+checkout
+committees-meetings
+comprehensive-reference
+data-center
+family-school-communication
+guardian-summons
+guidance-programs
+onboarding
+plans
+portfolio
+report
+report-1
+report-2
+report-preview
+reports
+results-analysis
+runtime-lab
+settings
+student-comprehensive-reference
+student-follow-up
+student-guidance-services
+student-import
+subscription
+surveys
+teacher
+
+
+Existing API dashboard routes:
+account
+activity-leader
+admin
+assessment-center
+calendar
+cases
+data-center
+evidence
+family-school-communication
+onboarding
+plans
+report
+report-1
+report-2
+report-templates
+reports
+results-analysis
+school-data
+settings
+student-follow-up
+students
+subscription
+surveys
+workflow-builder
+
+
+Subscription guards:
+D:\student-guidance-platform-clean\lib\subscription\payment-provider-contract.ts
+D:\student-guidance-platform-clean\lib\subscription\plan-audience.ts
+D:\student-guidance-platform-clean\lib\subscription\subscription-api-guard.ts
+D:\student-guidance-platform-clean\lib\subscription\subscription-guard.ts
+D:\student-guidance-platform-clean\lib\subscription\subscription-service.ts
+
+
+Upload/public patterns:
+
+app\api\dashboard\admin\payments\export\route.ts:1:import ExcelJS from "exceljs";
+app\api\dashboard\admin\payments\export\route.ts:82:function applyHeaderStyle(row: ExcelJS.Row) {
+app\api\dashboard\admin\payments\export\route.ts:108:function applyBodyStyle(worksheet: ExcelJS.Worksheet) {
+app\api\dashboard\admin\payments\export\route.ts:282:  const workbook = new ExcelJS.Workbook();
+app\api\dashboard\admin\payments\export\route.ts:420:  const buffer = await workbook.xlsx.writeBuffer();
+app\api\dashboard\admin\payments\export\route.ts:421:  const filename = `payments-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+app\api\dashboard\admin\payments\invoices\export\route.ts:2:import ExcelJS from "exceljs";
+app\api\dashboard\admin\payments\invoices\export\route.ts:139:  const workbook = new ExcelJS.Workbook();
+app\api\dashboard\admin\payments\invoices\export\route.ts:232:    title: "تصدير الفواتير إلى Excel",
+app\api\dashboard\admin\payments\invoices\export\route.ts:247:  const buffer = await workbook.xlsx.writeBuffer();
+app\api\dashboard\admin\payments\invoices\export\route.ts:248:  const fileName = `invoices-${new Date().toISOString().slice(0, 10)}.xlsx`;
+app\api\dashboard\admin\payments\invoices\[invoiceId]\pdf\route.ts:426:    await fs.mkdir(publicDir, {
+app\api\dashboard\admin\payments\invoices\[invoiceId]\pdf\route.ts:430:    await fs.writeFile(filePath, pdfBuffer);
+app\api\dashboard\admin\workflows\upload\route.ts:12:import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
+app\api\dashboard\admin\workflows\upload\route.ts:38:  "application/vnd.ms-excel",
+app\api\dashboard\admin\workflows\upload\route.ts:43:function hasExcelExtension(fileName: string) {
+app\api\dashboard\admin\workflows\upload\route.ts:44:  return /\.(xlsx|xls)$/i.test(fileName);
+app\api\dashboard\admin\workflows\upload\route.ts:56:  if (!hasExcelExtension(file.name)) {
+app\api\dashboard\admin\workflows\upload\route.ts:57:    return "صيغة ملف Workflow غير مدعومة. استخدم xlsx أو xls.";
+app\api\dashboard\admin\workflows\upload\route.ts:78:    const formData = await request.formData();
+app\api\dashboard\admin\workflows\upload\route.ts:80:    const serviceSlug = String(formData.get("serviceSlug") ?? "").trim();
+app\api\dashboard\admin\workflows\upload\route.ts:82:      String(formData.get("workflowType") ?? ""),
+app\api\dashboard\admin\workflows\upload\route.ts:85:      formData.get("studentPickerMode"),
+app\api\dashboard\admin\workflows\upload\route.ts:88:    const file = formData.get("file");
+app\api\dashboard\admin\workflows\upload\route.ts:104:          error: "ملف Excel مطلوب.",
+app\api\dashboard\admin\workflows\upload\route.ts:130:          error: "هذه الخدمة لا تستخدم Workflow من Excel.",
+app\api\dashboard\admin\workflows\upload\route.ts:139:    const rows = await parseWorkflowExcel(buffer);
+app\api\dashboard\assessment-center\interventions\create-case\route.ts:118:    interventionPackage.targetType === "STUDENT_EXCELLENCE"
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:2:import * as XLSX from "xlsx";
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:49:  extension: "pdf" | "xlsx"
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:63:function buildExcelBuffer({
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:80:  const workbook = XLSX.utils.book_new();
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:94:  XLSX.utils.book_append_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:96:    XLSX.utils.aoa_to_sheet(overviewRows),
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:100:  XLSX.utils.book_append_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:102:    XLSX.utils.json_to_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:111:  XLSX.utils.book_append_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:113:    XLSX.utils.json_to_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:122:  XLSX.utils.book_append_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:124:    XLSX.utils.json_to_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:136:  XLSX.utils.book_append_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:138:    XLSX.utils.json_to_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:156:  XLSX.utils.book_append_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:158:    XLSX.utils.json_to_sheet(summary?.subjectAverages || []),
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:162:  XLSX.utils.book_append_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:164:    XLSX.utils.json_to_sheet(summary?.classroomAverages || []),
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:168:  XLSX.utils.book_append_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:170:    XLSX.utils.json_to_sheet(summary?.gradeAverages || []),
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:174:  XLSX.utils.book_append_sheet(
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:176:    XLSX.utils.json_to_sheet(summary?.riskStudents || []),
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:180:  return XLSX.write(workbook, {
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:182:    bookType: "xlsx",
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:555:  const format = url.searchParams.get("format") || "excel";
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:620:  const excelBuffer = buildExcelBuffer({
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:626:  return new Response(toArrayBuffer(excelBuffer), {
+app\api\dashboard\assessment-center\[analysisId]\export\route.ts:630:      "Content-Disposition": buildAttachmentContentDisposition(fileBaseName, "xlsx"),
+app\api\dashboard\assessment-center\route.ts:5:import { parseAssessmentExcel } from "@/lib/assessment-center/assessment-center-parser";
+app\api\dashboard\assessment-center\route.ts:13:function hasExcelExtension(fileName: string) {
+app\api\dashboard\assessment-center\route.ts:14:  return /\.(xlsx|xls|csv)$/i.test(fileName);
+app\api\dashboard\assessment-center\route.ts:24:  if (!hasExcelExtension(file.name)) {
+app\api\dashboard\assessment-center\route.ts:25:    return "صيغة الملف غير مدعومة. ارفع ملف xlsx أو xls أو csv.";
+app\api\dashboard\assessment-center\route.ts:42:    const formData = await request.formData();
+app\api\dashboard\assessment-center\route.ts:44:    const file = formData.get("file");
+app\api\dashboard\assessment-center\route.ts:45:    const title = String(formData.get("title") || "").trim();
+app\api\dashboard\assessment-center\route.ts:46:    const uploadMode = String(formData.get("uploadMode") || "GENERAL").trim();
+app\api\dashboard\assessment-center\route.ts:52:          error: "ملف Excel مطلوب.",
+app\api\dashboard\assessment-center\route.ts:71:    const parsedRows = await parseAssessmentExcel(buffer);
+app\api\dashboard\data-center\noor-import\preview\route.ts:112:    const formData = await request.formData();
+app\api\dashboard\data-center\noor-import\preview\route.ts:114:    const uploaded = formData.get("file");
+app\api\dashboard\data-center\noor-import\preview\route.ts:115:    const academicYear = String(formData.get("academicYear") || "").trim() || null;
+app\api\dashboard\data-center\noor-import\preview\route.ts:116:    const term = String(formData.get("term") || "").trim() || null;
+app\api\dashboard\data-center\noor-import\preview\route.ts:117:    const cycleId = String(formData.get("cycleId") || "").trim() || null;
+app\api\dashboard\data-center\noor-import\preview\route.ts:165:        { error: "الرجاء اختيار ملف Excel صادر من نور." },
+app\api\dashboard\data-center\noor-import\preview\route.ts:171:    const fileName = file.name || "noor-students.xlsx";
+app\api\dashboard\data-center\noor-import\preview\route.ts:174:    if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xls")) {
+app\api\dashboard\data-center\noor-import\preview\route.ts:176:        { error: "صيغة الملف غير مدعومة. ارفع ملف Excel بصيغة xlsx أو xls." },
+app\api\dashboard\data-center\noor-import\preview\route.ts:262:          source: "NOOR_EXCEL",
+app\api\dashboard\data-center\student-data-import\preview\route.ts:112:    const formData = await request.formData();
+app\api\dashboard\data-center\student-data-import\preview\route.ts:114:    const uploaded = formData.get("file");
+app\api\dashboard\data-center\student-data-import\preview\route.ts:115:    const academicYear = String(formData.get("academicYear") || "").trim() || null;
+
+

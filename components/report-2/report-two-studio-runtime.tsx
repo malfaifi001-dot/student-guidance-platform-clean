@@ -253,6 +253,13 @@ type ReportTwoStudioRuntimeProps = {
   templates: TemplateOption[];
 };
 
+const REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 184;
+const REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE = 6;
+const REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE = REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE;
+const REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE =
+  REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE - REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE;
+const REPORT_TWO_BLOCK_MOVED_NOTICE =
+  "لا توجد مساحة كافية في هذه الصفحة، سيتم نقل البلوك إلى الصفحة التالية.";
 
 function getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
   return `report-2:saved-runtime-templates:${serviceSlug || "general"}`;
@@ -1300,11 +1307,11 @@ function buildReportTwoRuntimeTemplate(
   previewCase: ReturnType<typeof getPreviewCase>,
 ): StudioTemplate {
   const runtimePages: StudioPage[] = [];
-  const safeHeightScore = 184;
 
   template.pages.forEach((sourcePage) => {
     let pageNumber = 1;
     let usedScore = 0;
+    let currentPageAlreadyPushed = false;
 
     let currentPage: StudioPage = {
       ...sourcePage,
@@ -1312,33 +1319,33 @@ function buildReportTwoRuntimeTemplate(
     };
 
     function pushCurrentPage() {
+      if (currentPageAlreadyPushed) return;
+
       runtimePages.push({
         ...currentPage,
         blocks: currentPage.blocks,
       });
+      currentPageAlreadyPushed = true;
     }
 
     function startNextPage() {
       pageNumber += 1;
       usedScore = 0;
       currentPage = makeReportTwoContinuationPage(sourcePage, pageNumber);
+      currentPageAlreadyPushed = false;
     }
 
     sourcePage.blocks.forEach((originalBlock) => {
       const block = normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
       const blockScore = getReportTwoBlockHeightScore(block, previewCase);
-
-      const remainingScore = safeHeightScore - usedScore;
-      const canKeepEvidenceInCurrentPage =
-        block.kind === "evidence-gallery" &&
-        currentPage.blocks.length > 0 &&
-        remainingScore >= 58 &&
-        usedScore + blockScore <= safeHeightScore + 18;
+      const pageSafeHeightScore =
+        block.kind === "evidence-gallery"
+          ? REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
+          : REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
 
       if (
         currentPage.blocks.length > 0 &&
-        usedScore + blockScore > safeHeightScore &&
-        !canKeepEvidenceInCurrentPage
+        usedScore + blockScore > pageSafeHeightScore
       ) {
         pushCurrentPage();
         startNextPage();
@@ -1353,6 +1360,8 @@ function buildReportTwoRuntimeTemplate(
         const pagesCount = Math.ceil(count / perPage);
 
         if (pagesCount > 1) {
+          pushCurrentPage();
+
           for (let index = 1; index < pagesCount; index += 1) {
             const evidencePageNumber = pageNumber + index;
             const evidencePage: StudioPage = {
@@ -1377,6 +1386,9 @@ function buildReportTwoRuntimeTemplate(
 
             runtimePages.push(evidencePage);
           }
+
+          pageNumber += pagesCount - 1;
+          usedScore = REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
         }
       }
     });
@@ -1446,6 +1458,38 @@ function getReportTwoSourcePageId(pageId: string, runtimePage: any) {
   }
 
   return pageId;
+}
+
+function findReportTwoRuntimePageIdForBlock(
+  runtimeTemplate: StudioTemplate,
+  blockId: string,
+  fallbackPageId: string,
+) {
+  const runtimePage = runtimeTemplate.pages.find((page) =>
+    page.blocks.some((block) => {
+      return block.id === blockId || cleanText((block as any).sourceBlockId) === blockId;
+    }),
+  );
+
+  return runtimePage?.id || fallbackPageId;
+}
+
+function resolveReportTwoEquivalentPageId(
+  pages: StudioPage[],
+  activePageId: string,
+) {
+  if (!pages.length) return "";
+  if (pages.some((page) => page.id === activePageId)) return activePageId;
+
+  const sourcePageId = getReportTwoSourcePageId(activePageId, null);
+  const equivalentPage =
+    pages.find((page) => page.id === sourcePageId) ||
+    pages.find(
+      (page) => cleanText((page as any).sourceTemplatePageId) === sourcePageId,
+    ) ||
+    pages.find((page) => page.id.startsWith(`${sourcePageId}-auto-page-`));
+
+  return equivalentPage?.id || pages[0]?.id || "";
 }
 
 function reorderReportTwoPages(
@@ -2378,6 +2422,7 @@ export function ReportTwoStudioRuntime({
 
   const [hiddenRuntimePageIds, setHiddenRuntimePageIds] = useState<string[]>([]);
   const [runtimePageOrder, setRuntimePageOrder] = useState<string[]>([]);
+  const [pageSafePlacementNotice, setPageSafePlacementNotice] = useState("");
 
   const [draftRestored, setDraftRestored] = useState(false);
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState("");
@@ -2515,6 +2560,23 @@ export function ReportTwoStudioRuntime({
       template.pages[0],
     [template.pages, activePageId],
   );
+
+  useEffect(() => {
+    const pages = signedVisiblePreviewTemplate.pages;
+
+    if (!pages.length || pages.some((page) => page.id === activePageId)) {
+      return;
+    }
+
+    const equivalentPageId = resolveReportTwoEquivalentPageId(
+      pages,
+      activePageId,
+    );
+
+    if (equivalentPageId && equivalentPageId !== activePageId) {
+      setActivePageId(equivalentPageId);
+    }
+  }, [activePageId, signedVisiblePreviewTemplate.pages]);
 
   const selectedBlock = useMemo(() => {
     const runtimeBlock =
@@ -3062,7 +3124,12 @@ export function ReportTwoStudioRuntime({
     setLogoSettings(snapshot.logoSettings || null);
     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
     setRuntimePageOrder(snapshot.runtimePageOrder || []);
-    setActivePageId(snapshot.activePageId || snapshot.template.pages[0]?.id || "");
+    setActivePageId(
+      resolveReportTwoEquivalentPageId(
+        snapshot.template.pages,
+        snapshot.activePageId || activePageId,
+      ),
+    );
     setSelectedBlockId(snapshot.selectedBlockId || "");
     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
@@ -3159,9 +3226,9 @@ export function ReportTwoStudioRuntime({
     setSelectedQuickSavedTemplateId(saved.id);
     setRuntimeTemplateName(saved.name);
 
-    const firstPage = saved.template.pages[0];
-
-    setActivePageId(firstPage?.id || "");
+    setActivePageId(
+      resolveReportTwoEquivalentPageId(saved.template.pages, activePageId),
+    );
     setSelectedBlockId("");
   }
 
@@ -3199,7 +3266,9 @@ export function ReportTwoStudioRuntime({
     setProtectedPageIds(nextTemplate.pages.map((page) => page.id));
     setHiddenRuntimePageIds([]);
     setRuntimePageOrder([]);
-    setActivePageId(nextTemplate.pages[0]?.id || "");
+    setActivePageId(
+      resolveReportTwoEquivalentPageId(nextTemplate.pages, activePageId),
+    );
     setSelectedBlockId("");
   }
 
@@ -3386,14 +3455,37 @@ export function ReportTwoStudioRuntime({
     if (!targetPage) return;
 
     const block = createBlock(kind);
+    const nextTemplate = {
+      ...template,
+      pages: template.pages.map((page) =>
+        page.id === targetPage.id
+          ? {
+              ...page,
+              blocks: [...page.blocks, block],
+            }
+          : page,
+      ),
+    };
+    const nextRuntimeTemplate = buildReportTwoRuntimeTemplate(
+      nextTemplate,
+      previewCase,
+    );
+    const runtimePageId = findReportTwoRuntimePageIdForBlock(
+      nextRuntimeTemplate,
+      block.id,
+      targetPage.id,
+    );
 
-    updatePage(targetPage.id, (page) => ({
-      ...page,
-      blocks: [...page.blocks, block],
-    }));
+    setTemplate(nextTemplate);
 
-    setActivePageId(targetPage.id);
+    setActivePageId(runtimePageId);
     setSelectedBlockId(block.id);
+
+    if (runtimePageId !== targetPage.id) {
+      setPageSafePlacementNotice(REPORT_TWO_BLOCK_MOVED_NOTICE);
+    } else {
+      setPageSafePlacementNotice("");
+    }
   }
 
   function removeSelectedBlock() {
@@ -3886,6 +3978,20 @@ export function ReportTwoStudioRuntime({
         <section className="space-y-3">
 
                     
+          {pageSafePlacementNotice ? (
+            <div className="flex items-center justify-between gap-3 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800 shadow-sm">
+              <span>{pageSafePlacementNotice}</span>
+
+              <button
+                type="button"
+                onClick={() => setPageSafePlacementNotice("")}
+                className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-amber-700 ring-1 ring-amber-200"
+              >
+                إخفاء
+              </button>
+            </div>
+          ) : null}
+
 <section className="report-two-productivity-card grid w-full items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-2">
