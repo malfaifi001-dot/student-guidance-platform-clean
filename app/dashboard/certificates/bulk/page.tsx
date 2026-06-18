@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { BulkCertificatesPage } from "@/components/certificates/bulk-certificates-page";
 
-export default function BulkCertificatesRedirectPage() {
-  redirect("/dashboard/certificates");
+export default function CertificatesBulkPage() {
+  return <BulkCertificatesPage />;
 }

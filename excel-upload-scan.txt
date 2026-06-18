@@ -1,0 +1,333 @@
+Excel upload scan
+Generated: 06/18/2026 03:52:33
+
+===== package.json excel libs =====
+23:         "exceljs": "^4.4.0",
+41:         "xlsx": "^0.18.5",
+
+===== Excel/import related files =====
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\cycles\[cycleId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\cycles\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\sessions\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\archive\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\rows\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\cycles\[cycleId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\cycles\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\sessions\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\archive\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\rows\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\student-import-sessions\[sessionId]\commit\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\student-import-sessions\[sessionId]\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\student-import-sessions\route.ts
+D:\student-guidance-platform-clean\app\api\teacher\activity-assignment\[token]\upload\route.ts
+D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\upload\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\data-center\noor-import\cycles\[cycleId]\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\data-center\noor-import\sessions\[sessionId]\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\data-center\noor-import\sessions\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\data-center\noor-import\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\data-center\student-data-import\cycles\[cycleId]\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\data-center\student-data-import\sessions\[sessionId]\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\data-center\student-data-import\sessions\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\data-center\student-data-import\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\student-import\sessions\[sessionId]\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\student-import\page.tsx
+D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx
+D:\student-guidance-platform-clean\components\admin\workflow-upload-card.tsx
+D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycles-client.tsx
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-session-detail-client.tsx
+D:\student-guidance-platform-clean\components\evidence\evidence-upload-card.tsx
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx
+D:\student-guidance-platform-clean\components\students\student-import-card.tsx
+D:\student-guidance-platform-clean\components\students\student-import-session-details.tsx
+D:\student-guidance-platform-clean\components\students\student-import-sessions-table.tsx
+D:\student-guidance-platform-clean\lib\data-center\noor-import-audit.ts
+D:\student-guidance-platform-clean\lib\noor\excel-parser.ts
+D:\student-guidance-platform-clean\lib\noor-import\noor-import-cycle-sync.ts
+D:\student-guidance-platform-clean\lib\noor-import\noor-student-data-list-parser.ts
+D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts
+
+===== Keyword matches =====
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\export\route.ts:1: import ExcelJS from "exceljs";
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\export\route.ts:82: function applyHeaderStyle(row: ExcelJS.Row) {
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\export\route.ts:108: function applyBodyStyle(worksheet: ExcelJS.Worksheet) {
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\export\route.ts:282: const workbook = new ExcelJS.Workbook();
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\export\route.ts:420: const buffer = await workbook.xlsx.writeBuffer();
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\export\route.ts:421: const filename = `payments-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts:2: import ExcelJS from "exceljs";
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts:139: const workbook = new ExcelJS.Workbook();
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts:247: const buffer = await workbook.xlsx.writeBuffer();
+D:\student-guidance-platform-clean\app\api\dashboard\admin\payments\invoices\export\route.ts:248: const fileName = `invoices-${new Date().toISOString().slice(0, 10)}.xlsx`;
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts:44: return /\.(xlsx|xls)$/i.test(fileName);
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts:57: return "صيغة ملف Workflow غير مدعومة. استخدم xlsx أو xls.";
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts:78: const formData = await request.formData();
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts:80: const serviceSlug = String(formData.get("serviceSlug") ?? "").trim();
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts:82: String(formData.get("workflowType") ?? ""),
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts:85: formData.get("studentPickerMode"),
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts:88: const file = formData.get("file");
+D:\student-guidance-platform-clean\app\api\dashboard\admin\workflows\upload\route.ts:138: const buffer = await file.arrayBuffer();
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:2: import * as XLSX from "xlsx";
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:49: extension: "pdf" | "xlsx"
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:56: function toArrayBuffer(buffer: Buffer) {
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:60: ) as ArrayBuffer;
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:80: const workbook = XLSX.utils.book_new();
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:94: XLSX.utils.book_append_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:96: XLSX.utils.aoa_to_sheet(overviewRows),
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:100: XLSX.utils.book_append_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:102: XLSX.utils.json_to_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:111: XLSX.utils.book_append_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:113: XLSX.utils.json_to_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:122: XLSX.utils.book_append_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:124: XLSX.utils.json_to_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:136: XLSX.utils.book_append_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:138: XLSX.utils.json_to_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:156: XLSX.utils.book_append_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:158: XLSX.utils.json_to_sheet(summary?.subjectAverages || []),
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:162: XLSX.utils.book_append_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:164: XLSX.utils.json_to_sheet(summary?.classroomAverages || []),
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:168: XLSX.utils.book_append_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:170: XLSX.utils.json_to_sheet(summary?.gradeAverages || []),
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:174: XLSX.utils.book_append_sheet(
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:176: XLSX.utils.json_to_sheet(summary?.riskStudents || []),
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:180: return XLSX.write(workbook, {
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:182: bookType: "xlsx",
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:609: return new Response(toArrayBuffer(pdfBuffer), {
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:626: return new Response(toArrayBuffer(excelBuffer), {
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\[analysisId]\export\route.ts:630: "Content-Disposition": buildAttachmentContentDisposition(fileBaseName, "xlsx"),
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\route.ts:14: return /\.(xlsx|xls|csv)$/i.test(fileName);
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\route.ts:25: return "صيغة الملف غير مدعومة. ارفع ملف xlsx أو xls أو csv.";
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\route.ts:42: const formData = await request.formData();
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\route.ts:44: const file = formData.get("file");
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\route.ts:45: const title = String(formData.get("title") || "").trim();
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\route.ts:46: const uploadMode = String(formData.get("uploadMode") || "GENERAL").trim();
+D:\student-guidance-platform-clean\app\api\dashboard\assessment-center\route.ts:70: const buffer = await file.arrayBuffer();
+D:\student-guidance-platform-clean\app\api\dashboard\certificates\[certificateId]\export\pdf\route.ts:108: ) as ArrayBuffer;
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\cycles\route.ts:4: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:9: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:13: } from "@/lib/noor-import/noor-student-data-list-parser";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:14: import { syncNoorImportCycle } from "@/lib/noor-import/noor-import-cycle-sync";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:112: const formData = await request.formData();
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:114: const uploaded = formData.get("file");
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:115: const academicYear = String(formData.get("academicYear") || "").trim() || null;
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:116: const term = String(formData.get("term") || "").trim() || null;
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:117: const cycleId = String(formData.get("cycleId") || "").trim() || null;
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:163: if (!uploaded || typeof uploaded === "string" || typeof uploaded.arrayBuffer !== "function") {
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:171: const fileName = file.name || "noor-students.xlsx";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:174: if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xls")) {
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:176: { error: "صيغة الملف غير مدعومة. ارفع ملف Excel بصيغة xlsx أو xls." },
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:181: const buffer = Buffer.from(await file.arrayBuffer());
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:362: ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل رفع بيانات الطلاب."
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\preview\route.ts:363: : "تعذر إنشاء معاينة استيراد نور. راجع Terminal لمعرفة السبب التفصيلي.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\sessions\route.ts:43: : "تعذر جلب جلسات الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\archive\route.ts:4: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\archive\route.ts:30: { error: "لم يتم العثور على جلسة الاستيراد." },
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\archive\route.ts:57: title: "تمت أرشفة جلسة استيراد نور",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\archive\route.ts:66: message: "تمت أرشفة جلسة الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\archive\route.ts:75: : "تعذر أرشفة جلسة الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts:5: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts:97: { error: "لم يتم العثور على جلسة الاستيراد." },
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts:361: title: "تم اعتماد استيراد بيانات الطلاب",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\commit\route.ts:391: : "تعذر اعتماد جلسة الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\rows\route.ts:43: { error: "لم يتم العثور على جلسة الاستيراد." },
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\rows\route.ts:97: : "تعذر جلب صفوف جلسة الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\route.ts:4: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\noor-import\[sessionId]\route.ts:5: import { syncNoorImportCycle } from "@/lib/noor-import/noor-import-cycle-sync";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\cycles\route.ts:4: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:9: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:13: } from "@/lib/noor-import/noor-student-data-list-parser";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:14: import { syncNoorImportCycle } from "@/lib/noor-import/noor-import-cycle-sync";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:112: const formData = await request.formData();
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:114: const uploaded = formData.get("file");
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:115: const academicYear = String(formData.get("academicYear") || "").trim() || null;
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:116: const term = String(formData.get("term") || "").trim() || null;
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:117: const cycleId = String(formData.get("cycleId") || "").trim() || null;
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:163: if (!uploaded || typeof uploaded === "string" || typeof uploaded.arrayBuffer !== "function") {
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:171: const fileName = file.name || "noor-students.xlsx";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:174: if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xls")) {
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:176: { error: "صيغة الملف غير مدعومة. ارفع ملف Excel بصيغة xlsx أو xls." },
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:181: const buffer = Buffer.from(await file.arrayBuffer());
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:362: ? "يجب تسجيل الدخول بحساب مرتبط بمدرسة قبل رفع بيانات الطلاب."
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\preview\route.ts:363: : "تعذر إنشاء معاينة استيراد نور. راجع Terminal لمعرفة السبب التفصيلي.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\sessions\route.ts:43: : "تعذر جلب جلسات الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\archive\route.ts:4: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\archive\route.ts:30: { error: "لم يتم العثور على جلسة الاستيراد." },
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\archive\route.ts:57: title: "تمت أرشفة جلسة استيراد نور",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\archive\route.ts:66: message: "تمت أرشفة جلسة الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\archive\route.ts:75: : "تعذر أرشفة جلسة الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts:5: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts:97: { error: "لم يتم العثور على جلسة الاستيراد." },
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts:361: title: "تم اعتماد استيراد بيانات الطلاب",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\commit\route.ts:391: : "تعذر اعتماد جلسة الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\rows\route.ts:43: { error: "لم يتم العثور على جلسة الاستيراد." },
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\rows\route.ts:97: : "تعذر جلب صفوف جلسة الاستيراد.",
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\route.ts:4: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\student-data-import\[sessionId]\route.ts:5: import { syncNoorImportCycle } from "@/lib/noor-import/noor-import-cycle-sync";
+D:\student-guidance-platform-clean\app\api\dashboard\data-center\students\[studentId]\route.ts:4: import { writeNoorImportActivity } from "@/lib/data-center/noor-import-audit";
+D:\student-guidance-platform-clean\app\api\dashboard\evidence\route.ts:86: const formData = await request.formData();
+D:\student-guidance-platform-clean\app\api\dashboard\evidence\route.ts:87: const caseEntryId = String(formData.get("caseEntryId") || "").trim() || null;
+D:\student-guidance-platform-clean\app\api\dashboard\evidence\route.ts:88: const note = String(formData.get("note") || "").trim() || null;
+D:\student-guidance-platform-clean\app\api\dashboard\evidence\route.ts:90: const files = formData
+D:\student-guidance-platform-clean\app\api\dashboard\evidence\route.ts:179: const buffer = Buffer.from(await file.arrayBuffer());
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:42: function toArrayBuffer(buffer: Buffer) {
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:46: ) as ArrayBuffer;
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:326: return new Response(toArrayBuffer(pdfBuffer), {
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:37: return /\.(xlsx|xls|csv)$/i.test(fileName);
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:50: return "صيغة ملف النتائج غير مدعومة. ارفع ملف xlsx أو xls أو csv.";
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:71: const formData = await request.formData();
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:73: const uploadedFiles = formData.getAll("files");
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:74: const fallbackFile = formData.get("file");
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:83: const title = String(formData.get("title") || "").trim();
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:84: const grade = String(formData.get("grade") || "").trim();
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:85: const classroom = String(formData.get("classroom") || "").trim();
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:86: const semester = String(formData.get("semester") || "").trim();
+D:\student-guidance-platform-clean\app\api\dashboard\results-analysis\route.ts:129: const buffer = await file.arrayBuffer();
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\student-import-sessions\[sessionId]\commit\route.ts:28: message: "تم اعتماد دفعة الاستيراد بنجاح.",
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\student-import-sessions\[sessionId]\route.ts:39: error: "دفعة الاستيراد غير موجودة أو لا تملك صلاحية الوصول إليها.",
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\students\route.ts:19: return /\.(xlsx|xls|csv)$/i.test(fileName);
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\students\route.ts:32: return "صيغة الملف غير مدعومة. ارفع ملف xlsx أو xls أو csv.";
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\students\route.ts:76: const formData = await request.formData();
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\students\route.ts:77: const file = formData.get("file");
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\students\route.ts:101: const buffer = await file.arrayBuffer();
+D:\student-guidance-platform-clean\app\api\dashboard\school-data\students\route.ts:124: message: "تم تحليل الملف وإنشاء دفعة استيراد للمراجعة.",
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\logo\route.ts:54: const formData = await request.formData();
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\logo\route.ts:55: const file = formData.get("logo");
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\logo\route.ts:123: const buffer = Buffer.from(await file.arrayBuffer());
+D:\student-guidance-platform-clean\app\api\dashboard\surveys\[surveyId]\export\pdf\route.ts:805: const pdfArrayBuffer = pdfBuffer.buffer.slice(
+D:\student-guidance-platform-clean\app\api\dashboard\surveys\[surveyId]\export\pdf\route.ts:808: ) as ArrayBuffer;
+D:\student-guidance-platform-clean\app\api\dashboard\surveys\[surveyId]\export\pdf\route.ts:810: return new NextResponse(pdfArrayBuffer, {
+D:\student-guidance-platform-clean\app\api\dashboard\surveys\[surveyId]\export\route.ts:2: import { Workbook } from "exceljs";
+D:\student-guidance-platform-clean\app\api\dashboard\surveys\[surveyId]\export\route.ts:369: const buffer = await workbook.xlsx.writeBuffer();
+D:\student-guidance-platform-clean\app\api\dashboard\surveys\[surveyId]\export\route.ts:378: const fallbackFileName = `survey-${survey!.id}.xlsx`;
+D:\student-guidance-platform-clean\app\api\dashboard\surveys\[surveyId]\export\route.ts:379: const encodedFileName = encodeURIComponent(`${safeTitle}.xlsx`);
+D:\student-guidance-platform-clean\app\api\teacher\activity-assignment\[token]\upload\route.ts:63: const formData = await request.formData();
+D:\student-guidance-platform-clean\app\api\teacher\activity-assignment\[token]\upload\route.ts:64: const file = formData.get("file");
+D:\student-guidance-platform-clean\app\api\teacher\activity-assignment\[token]\upload\route.ts:86: const bytes = Buffer.from(await file.arrayBuffer());
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:145: async function toggleActivityLeaderReportTemplate(formData: FormData) {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:150: const templateId = String(formData.get("templateId") || "");
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:151: const nextActive = String(formData.get("nextActive") || "") === "true";
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:176: async function moveActivityLeaderReportTemplate(formData: FormData) {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:181: const templateId = String(formData.get("templateId") || "");
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:182: const direction = String(formData.get("direction") || "");
+D:\student-guidance-platform-clean\app\dashboard\data-center\noor-import\cycles\[cycleId]\page.tsx:3: import { NoorImportCycleDetailClient } from "@/components/data-center/noor-import/noor-import-cycle-detail-client";
+D:\student-guidance-platform-clean\app\dashboard\data-center\noor-import\sessions\[sessionId]\page.tsx:3: import { NoorImportSessionDetailClient } from "@/components/data-center/noor-import/noor-import-session-detail-client";
+D:\student-guidance-platform-clean\app\dashboard\data-center\student-data-import\cycles\[cycleId]\page.tsx:3: import { NoorImportCycleDetailClient } from "@/components/data-center/noor-import/noor-import-cycle-detail-client";
+D:\student-guidance-platform-clean\app\dashboard\data-center\student-data-import\sessions\[sessionId]\page.tsx:3: import { NoorImportSessionDetailClient } from "@/components/data-center/noor-import/noor-import-session-detail-client";
+D:\student-guidance-platform-clean\app\dashboard\data-center\student-data-import\page.tsx:3: import { NoorImportCyclesClient } from "@/components/data-center/noor-import/noor-import-cycles-client";
+D:\student-guidance-platform-clean\app\dashboard\onboarding\page.tsx:94: يمكنك تخطي هذه الخطوة الآن، لكن سيتم طلبها لاحقًا قبل استخدام التقارير الرسمية ورفع بيانات الطلاب.
+D:\student-guidance-platform-clean\app\dashboard\settings\school\page.tsx:15: أكمل هذه البيانات مرة واحدة لتظهر تلقائيًا في التقارير الرسمية وملفات PDF، ولتفعيل الميزات الحساسة مثل رفع بيانات الطلاب وإصدار التقارير الرسمية.
+D:\student-guidance-platform-clean\app\report-2-export-preview\[token]\page.tsx:30: const raw = await fs.readFile(filePath, "utf8");
+D:\student-guidance-platform-clean\app\page.tsx:36: title: "رفع بيانات الطلاب",
+D:\student-guidance-platform-clean\app\page.tsx:37: desc: "استيراد بيانات الطلاب ومراجعتها قبل اعتمادها داخل المنصة.",
+D:\student-guidance-platform-clean\app\page.tsx:54: "ارفع بيانات الطلاب",
+D:\student-guidance-platform-clean\components\activity-programs\public-teacher-assignment-form.tsx:109: const formData = new FormData();
+D:\student-guidance-platform-clean\components\activity-programs\public-teacher-assignment-form.tsx:110: formData.append("file", file);
+D:\student-guidance-platform-clean\components\activity-programs\public-teacher-assignment-form.tsx:114: body: formData,
+D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx:3: import * as XLSX from "xlsx";
+D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx:388: const buffer = await file.arrayBuffer();
+D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx:389: const workbook = XLSX.read(buffer, { type: "array" });
+D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx:399: const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx:485: accept=".xlsx,.xls"
+D:\student-guidance-platform-clean\components\admin\workflow-upload-card.tsx:44: async function uploadWorkflow(formData: FormData) {
+D:\student-guidance-platform-clean\components\admin\workflow-upload-card.tsx:48: formData.set("serviceSlug", serviceSlug);
+D:\student-guidance-platform-clean\components\admin\workflow-upload-card.tsx:49: formData.set("workflowType", workflowType);
+D:\student-guidance-platform-clean\components\admin\workflow-upload-card.tsx:54: body: formData,
+D:\student-guidance-platform-clean\components\admin\workflow-upload-card.tsx:115: accept=".xlsx,.xls"
+D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx:45: description: "اختر ملف نتائج بصيغة xlsx أو xls أو csv قبل بدء التحليل.",
+D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx:66: const formData = new FormData();
+D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx:67: formData.append("file", file);
+D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx:68: formData.append("title", title);
+D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx:69: formData.append("uploadMode", uploadMode);
+D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx:73: body: formData,
+D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx:163: xlsx / xls / csv
+D:\student-guidance-platform-clean\components\assessment-center\assessment-center-upload-client.tsx:167: accept=".xlsx,.xls,.csv"
+D:\student-guidance-platform-clean\components\dashboard\creative-dashboard.tsx:57: title: "رفع بيانات الطلاب",
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:181: throw new Error(result.error || "تعذر جلب جلسات الاستيراد.");
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:225: const formData = new FormData();
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:226: formData.append("file", file);
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:227: formData.append("academicYear", academicYear.trim());
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:228: formData.append("term", term.trim());
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:232: body: formData,
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:265: <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز استيراد بيانات الطلاب</h1>
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:267: أنشئ جلسة استيراد لكل سنة وفصل دراسي، ثم راجع الطلاب والتحديثات قبل اعتمادها في سجل مدرسة {schoolName}.
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:295: <h2 className="text-lg font-black">بيانات فترة الاستيراد</h2>
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:347: <span className="mt-2 text-xs font-bold text-slate-500">xlsx / xls</span>
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:350: accept=".xlsx,.xls"
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:453: <h2 className="text-lg font-black">سجل استيرادات نور السابقة</h2>
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-client.tsx:520: لا توجد جلسات استيراد سابقة.
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx:162: const formData = new FormData();
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx:163: formData.append("file", file);
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx:164: formData.append("cycleId", cycle.id);
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx:165: formData.append("academicYear", cycle.academicYear);
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx:166: formData.append("term", cycle.term);
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx:170: body: formData,
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx:334: <span className="mt-2 text-xs font-bold text-slate-500">xlsx / xls</span>
+D:\student-guidance-platform-clean\components\data-center\noor-import\noor-import-cycle-detail-client.tsx:337: accept=".xlsx,.xls"
+D:\student-guidance-platform-clean\components\evidence\evidence-upload-card.tsx:38: const formData = new FormData();
+D:\student-guidance-platform-clean\components\evidence\evidence-upload-card.tsx:41: formData.append("files", file);
+D:\student-guidance-platform-clean\components\evidence\evidence-upload-card.tsx:46: body: formData,
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:124: { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:158: { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud, shortLabel: "رفع الطلاب" },
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:271: "رفع بيانات الطلاب": "رفع الطلاب",
+D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx:233: `تم التحقق من الملف بنجاح: ${packageData.template.name}. الاستيراد الحقيقي سيُربط لاحقًا بإنشاء Draft جديد بدل استبدال القالب الحالي مباشرة.`
+D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx:238: "تعذر استيراد القالب",
+D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx:260: استيراده كملف JSON. لاحقًا سيتم ربط هذه العمليات بقاعدة البيانات
+D:\student-guidance-platform-clean\components\report-engine\report-template-publish-tools.tsx:386: title="استيراد JSON"
+D:\student-guidance-platform-clean\components\reports\templates\report-template-form.tsx:20: const formData = new FormData(event.currentTarget);
+D:\student-guidance-platform-clean\components\reports\templates\report-template-form.tsx:23: name: String(formData.get("name") || ""),
+D:\student-guidance-platform-clean\components\reports\templates\report-template-form.tsx:24: content: String(formData.get("content") || ""),
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx:25: const formData = new FormData();
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx:28: formData.append("files", file);
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx:31: formData.append("title", title);
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx:32: formData.append("grade", grade);
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx:33: formData.append("classroom", classroom);
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx:34: formData.append("semester", semester);
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx:35: formData.append("mergeSections", String(mergeSections));
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx:39: body: formData,
+D:\student-guidance-platform-clean\components\results-analysis\results-analysis-upload-card.tsx:85: accept=".xlsx,.xls"
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:189: const formData = new FormData();
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:190: formData.append("logo", file);
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:194: body: formData,
+D:\student-guidance-platform-clean\components\students\student-import-card.tsx:12: async function handleUpload(formData: FormData) {
+D:\student-guidance-platform-clean\components\students\student-import-card.tsx:19: body: formData,
+D:\student-guidance-platform-clean\components\students\student-import-card.tsx:59: accept=".xlsx,.xls"
+D:\student-guidance-platform-clean\components\students\student-import-session-details.tsx:20: لا توجد جلسة استيراد محددة.
+D:\student-guidance-platform-clean\components\students\student-import-session-details.tsx:29: تفاصيل جلسة الاستيراد
+D:\student-guidance-platform-clean\components\students\student-import-sessions-table.tsx:24: FAILED: "فشل الاستيراد",
+D:\student-guidance-platform-clean\components\students\student-import-sessions-table.tsx:34: لا توجد عمليات استيراد حتى الآن
+D:\student-guidance-platform-clean\components\students\student-import-sessions-table.tsx:37: عند رفع ملف طلاب من نظام نور ستظهر جلسات الاستيراد هنا.
+D:\student-guidance-platform-clean\components\students\student-table.tsx:65: لم يتم رفع بيانات الطلاب بعد.
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-parser.ts:1: import * as XLSX from "xlsx";
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-parser.ts:595: function parseStudentReportWorkbook(workbook: XLSX.WorkBook) {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-parser.ts:603: const rows = XLSX.utils.sheet_to_json<SheetRow>(sheet, {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-parser.ts:620: function parseTabularWorkbook(workbook: XLSX.WorkBook) {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-parser.ts:628: const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-parser.ts:675: buffer: ArrayBuffer
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-parser.ts:677: const workbook = XLSX.read(buffer, { type: "array" });
+D:\student-guidance-platform-clean\lib\data-center\noor-import-audit.ts:35: // لا نكسر استيراد نور بسبب اختلاف شكل ActivityLog الحالي.
+D:\student-guidance-platform-clean\lib\noor\excel-parser.ts:1: import * as XLSX from "xlsx";
+D:\student-guidance-platform-clean\lib\noor\excel-parser.ts:78: export async function parseNoorExcel(buffer: ArrayBuffer): Promise<NoorStudentRow[]> {
+D:\student-guidance-platform-clean\lib\noor\excel-parser.ts:79: const workbook = XLSX.read(buffer, { type: "array" });
+D:\student-guidance-platform-clean\lib\noor\excel-parser.ts:85: const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+D:\student-guidance-platform-clean\lib\noor-import\noor-student-data-list-parser.ts:1: import * as XLSX from "xlsx";
+D:\student-guidance-platform-clean\lib\noor-import\noor-student-data-list-parser.ts:486: const workbook = XLSX.read(buffer, {
+D:\student-guidance-platform-clean\lib\noor-import\noor-student-data-list-parser.ts:504: const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+D:\student-guidance-platform-clean\lib\results-analysis\results-analysis-parser.ts:1: import * as XLSX from "xlsx";
+D:\student-guidance-platform-clean\lib\results-analysis\results-analysis-parser.ts:23: export async function parseResultsExcel(buffer: ArrayBuffer): Promise<StudentResultRow[]> {
+D:\student-guidance-platform-clean\lib\results-analysis\results-analysis-parser.ts:24: const workbook = XLSX.read(buffer, { type: "array" });
+D:\student-guidance-platform-clean\lib\results-analysis\results-analysis-parser.ts:27: const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts:1: import * as XLSX from "xlsx";
+D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts:312: export async function parseWorkflowExcel(buffer: ArrayBuffer) {
+D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts:313: const workbook = XLSX.read(buffer, { type: "array" });
+D:\student-guidance-platform-clean\lib\workflow-upload\workflow-excel-parser.ts:320: const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:72: title: "رفع بيانات الطلاب",
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:131: title: "رفع بيانات الطلاب",
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:205: description: "الوصول إلى مركز رفع بيانات الطلاب المشترك عند توفر الصلاحية.",

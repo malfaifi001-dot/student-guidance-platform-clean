@@ -1,0 +1,3586 @@
+Report 2 export scan
+Generated: 06/18/2026 03:29:54
+
+===== app\dashboard\report-2\cases\[caseId]\studio\page.tsx =====
+---- around line 49 ----
+41: function isVisibleTemplate(templateJson: Record<string, unknown> | null) {
+42:   const status = String(templateJson?.status || "").toUpperCase();
+43: 
+44:   if (!status) return true;
+45: 
+46:   return status === "PUBLISHED" || status === "DRAFT";
+47: }
+48: 
+49: export default async function ReportTwoCaseStudioPage({
+50:   params,
+51:   searchParams,
+52: }: PageProps) {
+53:   const current = await requireDashboardUser();
+54: 
+55:   if (current.user.role !== "ADMIN") {
+56:     if (!current.user.schoolAccountId) {
+57:       redirect("/dashboard/plans?reason=activation-required");
+58:     }
+59: 
+60:     const overview = await getSchoolSubscriptionOverview(
+61:       current.user.schoolAccountId,
+62:     );
+63: 
+
+===== components\report-2\report-two-studio-runtime.tsx =====
+---- around line 189 ----
+181:   description: string;
+182:   designTemplateId?: ReportDesignId;
+183:   designConfig?: {
+184:     header?: ReportHeaderSettings;
+185:   };
+186:   pages: StudioPage[];
+187: };
+188: 
+189: type ReportTwoDraftSnapshot = {
+190:   version: 1;
+191:   savedAt: string;
+192:   selectedTemplateOptionId: string;
+193:   activeSavedRuntimeTemplateId: string;
+194:   runtimeTemplateName: string;
+195:   template: StudioTemplate;
+196:   headerValues: ReportTwoHeaderValues | null;
+197:   headerAlignments: ReportTwoHeaderAlignments | null;
+198:   logoSettings: ReportTwoLogoSettings | null;
+199:   hiddenRuntimePageIds: string[];
+200:   runtimePageOrder: string[];
+201:   activePageId: string;
+202:   selectedBlockId: string;
+203:   finalCheckConfirmedAt?: string | null;
+
+---- around line 271 ----
+263: 
+264: function getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+265:   return `report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+266: }
+267: 
+268: function readReportTwoSavedTemplates(
+269:   serviceSlug: string,
+270: ): ReportTwoSavedRuntimeTemplate[] {
+271:   if (typeof window === "undefined") return [];
+272: 
+273:   try {
+274:     const raw = window.localStorage.getItem(
+275:       getReportTwoSavedTemplatesStorageKey(serviceSlug),
+276:     );
+277: 
+278:     if (!raw) return [];
+279: 
+280:     const parsed = JSON.parse(raw);
+281: 
+282:     return Array.isArray(parsed) ? parsed : [];
+283:   } catch {
+284:     return [];
+285:   }
+
+---- around line 274 ----
+266: }
+267: 
+268: function readReportTwoSavedTemplates(
+269:   serviceSlug: string,
+270: ): ReportTwoSavedRuntimeTemplate[] {
+271:   if (typeof window === "undefined") return [];
+272: 
+273:   try {
+274:     const raw = window.localStorage.getItem(
+275:       getReportTwoSavedTemplatesStorageKey(serviceSlug),
+276:     );
+277: 
+278:     if (!raw) return [];
+279: 
+280:     const parsed = JSON.parse(raw);
+281: 
+282:     return Array.isArray(parsed) ? parsed : [];
+283:   } catch {
+284:     return [];
+285:   }
+286: }
+287: 
+288: function getReportTwoSavedTemplatesStoragePrefix() {
+
+---- around line 293 ----
+285:   }
+286: }
+287: 
+288: function getReportTwoSavedTemplatesStoragePrefix() {
+289:   return "report-2:saved-runtime-templates:";
+290: }
+291: 
+292: function readAllReportTwoSavedTemplates() {
+293:   if (typeof window === "undefined") return [];
+294: 
+295:   const prefix = getReportTwoSavedTemplatesStoragePrefix();
+296:   const items: ReportTwoSavedRuntimeTemplate[] = [];
+297: 
+298:   for (let index = 0; index < window.localStorage.length; index += 1) {
+299:     const key = window.localStorage.key(index);
+300: 
+301:     if (!key || !key.startsWith(prefix)) continue;
+302: 
+303:     const serviceSlug = key.slice(prefix.length);
+304:     const templates = readReportTwoSavedTemplates(serviceSlug);
+305: 
+306:     templates.forEach((template) => {
+307:       items.push({
+
+---- around line 298 ----
+290: }
+291: 
+292: function readAllReportTwoSavedTemplates() {
+293:   if (typeof window === "undefined") return [];
+294: 
+295:   const prefix = getReportTwoSavedTemplatesStoragePrefix();
+296:   const items: ReportTwoSavedRuntimeTemplate[] = [];
+297: 
+298:   for (let index = 0; index < window.localStorage.length; index += 1) {
+299:     const key = window.localStorage.key(index);
+300: 
+301:     if (!key || !key.startsWith(prefix)) continue;
+302: 
+303:     const serviceSlug = key.slice(prefix.length);
+304:     const templates = readReportTwoSavedTemplates(serviceSlug);
+305: 
+306:     templates.forEach((template) => {
+307:       items.push({
+308:         ...template,
+309:         serviceSlug: (template as any).serviceSlug || serviceSlug,
+310:       } as ReportTwoSavedRuntimeTemplate);
+311:     });
+312:   }
+
+---- around line 299 ----
+291: 
+292: function readAllReportTwoSavedTemplates() {
+293:   if (typeof window === "undefined") return [];
+294: 
+295:   const prefix = getReportTwoSavedTemplatesStoragePrefix();
+296:   const items: ReportTwoSavedRuntimeTemplate[] = [];
+297: 
+298:   for (let index = 0; index < window.localStorage.length; index += 1) {
+299:     const key = window.localStorage.key(index);
+300: 
+301:     if (!key || !key.startsWith(prefix)) continue;
+302: 
+303:     const serviceSlug = key.slice(prefix.length);
+304:     const templates = readReportTwoSavedTemplates(serviceSlug);
+305: 
+306:     templates.forEach((template) => {
+307:       items.push({
+308:         ...template,
+309:         serviceSlug: (template as any).serviceSlug || serviceSlug,
+310:       } as ReportTwoSavedRuntimeTemplate);
+311:     });
+312:   }
+313: 
+
+---- around line 322 ----
+314:   return items.sort((a, b) => {
+315:     return String((b as any).updatedAt || (b as any).createdAt || "").localeCompare(
+316:       String((a as any).updatedAt || (a as any).createdAt || ""),
+317:     );
+318:   });
+319: }
+320: 
+321: function deleteReportTwoSavedTemplateFromAllServices(templateId: string) {
+322:   if (typeof window === "undefined") return [];
+323: 
+324:   const prefix = getReportTwoSavedTemplatesStoragePrefix();
+325: 
+326:   for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+327:     const key = window.localStorage.key(index);
+328: 
+329:     if (!key || !key.startsWith(prefix)) continue;
+330: 
+331:     const serviceSlug = key.slice(prefix.length);
+332:     const templates = readReportTwoSavedTemplates(serviceSlug);
+333:     const nextTemplates = templates.filter((template) => template.id !== templateId);
+334: 
+335:     if (nextTemplates.length !== templates.length) {
+336:       writeReportTwoSavedTemplates(serviceSlug, nextTemplates);
+
+---- around line 326 ----
+318:   });
+319: }
+320: 
+321: function deleteReportTwoSavedTemplateFromAllServices(templateId: string) {
+322:   if (typeof window === "undefined") return [];
+323: 
+324:   const prefix = getReportTwoSavedTemplatesStoragePrefix();
+325: 
+326:   for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+327:     const key = window.localStorage.key(index);
+328: 
+329:     if (!key || !key.startsWith(prefix)) continue;
+330: 
+331:     const serviceSlug = key.slice(prefix.length);
+332:     const templates = readReportTwoSavedTemplates(serviceSlug);
+333:     const nextTemplates = templates.filter((template) => template.id !== templateId);
+334: 
+335:     if (nextTemplates.length !== templates.length) {
+336:       writeReportTwoSavedTemplates(serviceSlug, nextTemplates);
+337:     }
+338:   }
+339: 
+340:   return readAllReportTwoSavedTemplates();
+
+---- around line 327 ----
+319: }
+320: 
+321: function deleteReportTwoSavedTemplateFromAllServices(templateId: string) {
+322:   if (typeof window === "undefined") return [];
+323: 
+324:   const prefix = getReportTwoSavedTemplatesStoragePrefix();
+325: 
+326:   for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+327:     const key = window.localStorage.key(index);
+328: 
+329:     if (!key || !key.startsWith(prefix)) continue;
+330: 
+331:     const serviceSlug = key.slice(prefix.length);
+332:     const templates = readReportTwoSavedTemplates(serviceSlug);
+333:     const nextTemplates = templates.filter((template) => template.id !== templateId);
+334: 
+335:     if (nextTemplates.length !== templates.length) {
+336:       writeReportTwoSavedTemplates(serviceSlug, nextTemplates);
+337:     }
+338:   }
+339: 
+340:   return readAllReportTwoSavedTemplates();
+341: }
+
+---- around line 346 ----
+338:   }
+339: 
+340:   return readAllReportTwoSavedTemplates();
+341: }
+342: function writeReportTwoSavedTemplates(
+343:   serviceSlug: string,
+344:   items: ReportTwoSavedRuntimeTemplate[],
+345: ) {
+346:   if (typeof window === "undefined") return;
+347: 
+348:   window.localStorage.setItem(
+349:     getReportTwoSavedTemplatesStorageKey(serviceSlug),
+350:     JSON.stringify(items),
+351:   );
+352: }
+353: 
+354: function cloneReportTwoTemplate(template: StudioTemplate): StudioTemplate {
+355:   return JSON.parse(JSON.stringify(template)) as StudioTemplate;
+356: }
+357: 
+358: function getReportTwoDraftStorageKey(serviceSlug: string, caseId: string) {
+359:   return `report-2:draft:${serviceSlug || "general"}:${caseId || "unknown"}`;
+360: }
+
+---- around line 348 ----
+340:   return readAllReportTwoSavedTemplates();
+341: }
+342: function writeReportTwoSavedTemplates(
+343:   serviceSlug: string,
+344:   items: ReportTwoSavedRuntimeTemplate[],
+345: ) {
+346:   if (typeof window === "undefined") return;
+347: 
+348:   window.localStorage.setItem(
+349:     getReportTwoSavedTemplatesStorageKey(serviceSlug),
+350:     JSON.stringify(items),
+351:   );
+352: }
+353: 
+354: function cloneReportTwoTemplate(template: StudioTemplate): StudioTemplate {
+355:   return JSON.parse(JSON.stringify(template)) as StudioTemplate;
+356: }
+357: 
+358: function getReportTwoDraftStorageKey(serviceSlug: string, caseId: string) {
+359:   return `report-2:draft:${serviceSlug || "general"}:${caseId || "unknown"}`;
+360: }
+361: 
+362: function formatReportTwoSavedAt(value: string) {
+
+---- around line 376 ----
+368:       minute: "2-digit",
+369:       second: "2-digit",
+370:     });
+371:   } catch {
+372:     return "تم الحفظ";
+373:   }
+374: }
+375: 
+376: function parseReportTwoDraftSnapshot(value: string | null) {
+377:   if (!value) return null;
+378: 
+379:   try {
+380:     const parsed = JSON.parse(value) as ReportTwoDraftSnapshot;
+381: 
+382:     if (!parsed || parsed.version !== 1 || !parsed.template?.pages) {
+383:       return null;
+384:     }
+385: 
+386:     return parsed;
+387:   } catch {
+388:     return null;
+389:   }
+390: }
+
+---- around line 380 ----
+372:     return "تم الحفظ";
+373:   }
+374: }
+375: 
+376: function parseReportTwoDraftSnapshot(value: string | null) {
+377:   if (!value) return null;
+378: 
+379:   try {
+380:     const parsed = JSON.parse(value) as ReportTwoDraftSnapshot;
+381: 
+382:     if (!parsed || parsed.version !== 1 || !parsed.template?.pages) {
+383:       return null;
+384:     }
+385: 
+386:     return parsed;
+387:   } catch {
+388:     return null;
+389:   }
+390: }
+391: function makeId(prefix: string) {
+392:   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+393: }
+394: 
+
+---- around line 2349 ----
+2341:   if (kind === "evidence-gallery") return "الشواهد";
+2342:   if (kind === "closing-note") return "خاتمة";
+2343:   if (kind === "report-one-table") return "جدول";
+2344:   if (kind === "signature-grid") return "تواقيع الاعتماد";
+2345: 
+2346:   return "بلوك";
+2347: }
+2348: 
+2349: export function ReportTwoStudioRuntime({
+2350:   caseId,
+2351:   selectedTemplateId,
+2352:   selectedVariantId = "",
+2353:   payload,
+2354:   templates,
+2355: }: ReportTwoStudioRuntimeProps) {
+2356:   const [preparedPayload, setPreparedPayload] = useState<SmartReportPayload>(payload);
+2357:   const [approvedSnapshot, setApprovedSnapshot] = useState<{
+2358:     id: string;
+2359:     previewUrl: string;
+2360:   } | null>(null);
+2361:   const [reportTwoApprovalSubmitting, setReportTwoApprovalSubmitting] =
+2362:     useState(false);
+2363: 
+
+---- around line 2357 ----
+2349: export function ReportTwoStudioRuntime({
+2350:   caseId,
+2351:   selectedTemplateId,
+2352:   selectedVariantId = "",
+2353:   payload,
+2354:   templates,
+2355: }: ReportTwoStudioRuntimeProps) {
+2356:   const [preparedPayload, setPreparedPayload] = useState<SmartReportPayload>(payload);
+2357:   const [approvedSnapshot, setApprovedSnapshot] = useState<{
+2358:     id: string;
+2359:     previewUrl: string;
+2360:   } | null>(null);
+2361:   const [reportTwoApprovalSubmitting, setReportTwoApprovalSubmitting] =
+2362:     useState(false);
+2363: 
+2364:   useEffect(() => {
+2365:     const preparation =
+2366:       loadReportFlowPreparation(caseId, "official-activity-card") ||
+2367:       loadReportFlowPreparation(caseId, "smart-general-a4");
+2368: 
+2369:     if (preparation) {
+2370:       setPreparedPayload(applyReportFlowPreparationToPayload(payload, preparation));
+2371:       return;
+
+---- around line 2429 ----
+2421:   const [selectedBlockId, setSelectedBlockId] = useState("");
+2422: 
+2423:   const [hiddenRuntimePageIds, setHiddenRuntimePageIds] = useState<string[]>([]);
+2424:   const [runtimePageOrder, setRuntimePageOrder] = useState<string[]>([]);
+2425:   const [pageSafePlacementNotice, setPageSafePlacementNotice] = useState("");
+2426: 
+2427:   const [draftRestored, setDraftRestored] = useState(false);
+2428:   const [lastAutoSavedAt, setLastAutoSavedAt] = useState("");
+2429:   const [undoSnapshots, setUndoSnapshots] = useState<ReportTwoDraftSnapshot[]>([]);
+2430:   const lastDraftSerializedRef = useRef("");
+2431:   const restoringDraftRef = useRef(false);
+2432:   const [editingTableDraft, setEditingTableDraft] =
+2433:     useState<ReportTwoTableDraft | null>(null);
+2434: 
+2435:   const [finalWizardOpen, setFinalWizardOpen] = useState(false);
+2436:   const [finalChecklistConfirmed, setFinalChecklistConfirmed] = useState(false);
+2437:   const [finalCheckConfirmedAt, setFinalCheckConfirmedAt] = useState<string | null>(null);
+2438:   const [pendingDraftSnapshot, setPendingDraftSnapshot] =
+2439:     useState<ReportTwoDraftSnapshot | null>(null);
+2440: 
+2441:   const [popup, setPopup] = useState<{
+2442:     type: "alert" | "confirm";
+2443:     title: string;
+
+---- around line 2438 ----
+2430:   const lastDraftSerializedRef = useRef("");
+2431:   const restoringDraftRef = useRef(false);
+2432:   const [editingTableDraft, setEditingTableDraft] =
+2433:     useState<ReportTwoTableDraft | null>(null);
+2434: 
+2435:   const [finalWizardOpen, setFinalWizardOpen] = useState(false);
+2436:   const [finalChecklistConfirmed, setFinalChecklistConfirmed] = useState(false);
+2437:   const [finalCheckConfirmedAt, setFinalCheckConfirmedAt] = useState<string | null>(null);
+2438:   const [pendingDraftSnapshot, setPendingDraftSnapshot] =
+2439:     useState<ReportTwoDraftSnapshot | null>(null);
+2440: 
+2441:   const [popup, setPopup] = useState<{
+2442:     type: "alert" | "confirm";
+2443:     title: string;
+2444:     message: string;
+2445:     onConfirm?: () => void;
+2446:     onCancel?: () => void;
+2447:   } | null>(null);
+2448: 
+2449:   function closePopup() { setPopup(null); }
+2450: 
+2451:   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
+2452:   const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
+
+---- around line 2439 ----
+2431:   const restoringDraftRef = useRef(false);
+2432:   const [editingTableDraft, setEditingTableDraft] =
+2433:     useState<ReportTwoTableDraft | null>(null);
+2434: 
+2435:   const [finalWizardOpen, setFinalWizardOpen] = useState(false);
+2436:   const [finalChecklistConfirmed, setFinalChecklistConfirmed] = useState(false);
+2437:   const [finalCheckConfirmedAt, setFinalCheckConfirmedAt] = useState<string | null>(null);
+2438:   const [pendingDraftSnapshot, setPendingDraftSnapshot] =
+2439:     useState<ReportTwoDraftSnapshot | null>(null);
+2440: 
+2441:   const [popup, setPopup] = useState<{
+2442:     type: "alert" | "confirm";
+2443:     title: string;
+2444:     message: string;
+2445:     onConfirm?: () => void;
+2446:     onCancel?: () => void;
+2447:   } | null>(null);
+2448: 
+2449:   function closePopup() { setPopup(null); }
+2450: 
+2451:   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
+2452:   const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
+2453:   const [reportTwoPdfExporting, setReportTwoPdfExporting] = useState(false);
+
+---- around line 2451 ----
+2443:     title: string;
+2444:     message: string;
+2445:     onConfirm?: () => void;
+2446:     onCancel?: () => void;
+2447:   } | null>(null);
+2448: 
+2449:   function closePopup() { setPopup(null); }
+2450: 
+2451:   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
+2452:   const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
+2453:   const [reportTwoPdfExporting, setReportTwoPdfExporting] = useState(false);
+2454:   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+2455:   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+2456: 
+2457:   const runtimeContext = useMemo(() => getRuntimeContext(preparedPayload), [preparedPayload]);
+2458:   const [headerValues, setHeaderValues] =
+2459:     useState<ReportTwoHeaderValues | null>(null);
+2460:   const [logoSettings, setLogoSettings] =
+2461:     useState<ReportTwoLogoSettings | null>(null);
+2462:   const [headerAlignments, setHeaderAlignments] =
+2463:     useState<ReportTwoHeaderAlignments | null>(null);
+2464: 
+2465:   const activeHeaderValues = useMemo(
+
+---- around line 2452 ----
+2444:     message: string;
+2445:     onConfirm?: () => void;
+2446:     onCancel?: () => void;
+2447:   } | null>(null);
+2448: 
+2449:   function closePopup() { setPopup(null); }
+2450: 
+2451:   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
+2452:   const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
+2453:   const [reportTwoPdfExporting, setReportTwoPdfExporting] = useState(false);
+2454:   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+2455:   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+2456: 
+2457:   const runtimeContext = useMemo(() => getRuntimeContext(preparedPayload), [preparedPayload]);
+2458:   const [headerValues, setHeaderValues] =
+2459:     useState<ReportTwoHeaderValues | null>(null);
+2460:   const [logoSettings, setLogoSettings] =
+2461:     useState<ReportTwoLogoSettings | null>(null);
+2462:   const [headerAlignments, setHeaderAlignments] =
+2463:     useState<ReportTwoHeaderAlignments | null>(null);
+2464: 
+2465:   const activeHeaderValues = useMemo(
+2466:     () => headerValues || getDefaultReportTwoHeaderValues(runtimeContext),
+
+---- around line 2453 ----
+2445:     onConfirm?: () => void;
+2446:     onCancel?: () => void;
+2447:   } | null>(null);
+2448: 
+2449:   function closePopup() { setPopup(null); }
+2450: 
+2451:   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
+2452:   const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
+2453:   const [reportTwoPdfExporting, setReportTwoPdfExporting] = useState(false);
+2454:   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+2455:   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+2456: 
+2457:   const runtimeContext = useMemo(() => getRuntimeContext(preparedPayload), [preparedPayload]);
+2458:   const [headerValues, setHeaderValues] =
+2459:     useState<ReportTwoHeaderValues | null>(null);
+2460:   const [logoSettings, setLogoSettings] =
+2461:     useState<ReportTwoLogoSettings | null>(null);
+2462:   const [headerAlignments, setHeaderAlignments] =
+2463:     useState<ReportTwoHeaderAlignments | null>(null);
+2464: 
+2465:   const activeHeaderValues = useMemo(
+2466:     () => headerValues || getDefaultReportTwoHeaderValues(runtimeContext),
+2467:     [headerValues, runtimeContext],
+
+---- around line 2647 ----
+2639:       setRightSidebarCollapsed(true);
+2640:       setLeftSidebarCollapsed(true);
+2641:     }
+2642: 
+2643:     if (alert.action === "open-block") {
+2644:       setLeftSidebarCollapsed(false);
+2645:     }
+2646: 
+2647:     window.setTimeout(() => {
+2648:       document
+2649:         .querySelector(".report-two-a4-host")
+2650:         ?.scrollIntoView({ behavior: "smooth", block: "start" });
+2651:     }, 50);
+2652:   }
+2653: 
+2654:   function fixReportTwoSmartAlert(alert: ReportTwoSmartAlert) {
+2655:     if (alert.action === "hide-technical-fields") {
+2656:       setTemplate((current) => ({
+2657:         ...current,
+2658:         pages: current.pages.map((page) => ({
+2659:           ...page,
+2660:           blocks: page.blocks.map((block) => {
+2661:             if (!isReportTwoDynamicFieldsBlock(block)) {
+
+---- around line 2741 ----
+2733:     }
+2734: 
+2735:     if (!finalChecklistConfirmed) {
+2736:       setPopup({ type: "alert", title: "الفحص النهائي", message: "ضع علامة التأكيد بعد مراجعة المعاينة." });
+2737:       return;
+2738:     }
+2739: 
+2740:     const now = new Date().toISOString();
+2741:     const snapshot: ReportTwoDraftSnapshot = {
+2742:       ...createReportTwoDraftSnapshot(),
+2743:       savedAt: now,
+2744:       finalCheckConfirmedAt: now,
+2745:     };
+2746:     const serialized = JSON.stringify(snapshot);
+2747: 
+2748:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+2749:     lastDraftSerializedRef.current = serialized;
+2750:     setLastAutoSavedAt(now);
+2751:     setFinalCheckConfirmedAt(now);
+2752:     setFinalWizardOpen(false);
+2753: 
+2754:     setPopup({ type: "alert", title: "جاهزية التقرير", message: "تم تأكيد جاهزية التقرير. يمكنك المتابعة للاعتماد أو التصدير لاحقًا." });
+2755:   }
+
+---- around line 2742 ----
+2734: 
+2735:     if (!finalChecklistConfirmed) {
+2736:       setPopup({ type: "alert", title: "الفحص النهائي", message: "ضع علامة التأكيد بعد مراجعة المعاينة." });
+2737:       return;
+2738:     }
+2739: 
+2740:     const now = new Date().toISOString();
+2741:     const snapshot: ReportTwoDraftSnapshot = {
+2742:       ...createReportTwoDraftSnapshot(),
+2743:       savedAt: now,
+2744:       finalCheckConfirmedAt: now,
+2745:     };
+2746:     const serialized = JSON.stringify(snapshot);
+2747: 
+2748:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+2749:     lastDraftSerializedRef.current = serialized;
+2750:     setLastAutoSavedAt(now);
+2751:     setFinalCheckConfirmedAt(now);
+2752:     setFinalWizardOpen(false);
+2753: 
+2754:     setPopup({ type: "alert", title: "جاهزية التقرير", message: "تم تأكيد جاهزية التقرير. يمكنك المتابعة للاعتماد أو التصدير لاحقًا." });
+2755:   }
+2756: 
+
+---- around line 2746 ----
+2738:     }
+2739: 
+2740:     const now = new Date().toISOString();
+2741:     const snapshot: ReportTwoDraftSnapshot = {
+2742:       ...createReportTwoDraftSnapshot(),
+2743:       savedAt: now,
+2744:       finalCheckConfirmedAt: now,
+2745:     };
+2746:     const serialized = JSON.stringify(snapshot);
+2747: 
+2748:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+2749:     lastDraftSerializedRef.current = serialized;
+2750:     setLastAutoSavedAt(now);
+2751:     setFinalCheckConfirmedAt(now);
+2752:     setFinalWizardOpen(false);
+2753: 
+2754:     setPopup({ type: "alert", title: "جاهزية التقرير", message: "تم تأكيد جاهزية التقرير. يمكنك المتابعة للاعتماد أو التصدير لاحقًا." });
+2755:   }
+2756: 
+2757:   function fixAllReportTwoSmartAlerts() {
+2758:     smartAlerts
+2759:       .filter((alert) =>
+2760:         ["hide-technical-fields", "restore-header", "focus-preview"].includes(
+
+---- around line 2748 ----
+2740:     const now = new Date().toISOString();
+2741:     const snapshot: ReportTwoDraftSnapshot = {
+2742:       ...createReportTwoDraftSnapshot(),
+2743:       savedAt: now,
+2744:       finalCheckConfirmedAt: now,
+2745:     };
+2746:     const serialized = JSON.stringify(snapshot);
+2747: 
+2748:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+2749:     lastDraftSerializedRef.current = serialized;
+2750:     setLastAutoSavedAt(now);
+2751:     setFinalCheckConfirmedAt(now);
+2752:     setFinalWizardOpen(false);
+2753: 
+2754:     setPopup({ type: "alert", title: "جاهزية التقرير", message: "تم تأكيد جاهزية التقرير. يمكنك المتابعة للاعتماد أو التصدير لاحقًا." });
+2755:   }
+2756: 
+2757:   function fixAllReportTwoSmartAlerts() {
+2758:     smartAlerts
+2759:       .filter((alert) =>
+2760:         ["hide-technical-fields", "restore-header", "focus-preview"].includes(
+2761:           alert.action || "",
+2762:         ),
+
+---- around line 2766 ----
+2758:     smartAlerts
+2759:       .filter((alert) =>
+2760:         ["hide-technical-fields", "restore-header", "focus-preview"].includes(
+2761:           alert.action || "",
+2762:         ),
+2763:       )
+2764:       .forEach((alert) => fixReportTwoSmartAlert(alert));
+2765:   }
+2766:   function sanitizeReportTwoPdfFileNamePart(value: unknown) {
+2767:     return cleanText(value)
+2768:       .replace(/[\\/:*?"<>|]+/g, "-")
+2769:       .replace(/\s+/g, " ")
+2770:       .replace(/-+/g, "-")
+2771:       .trim();
+2772:   }
+2773: 
+2774:   function getReportTwoPdfFileName() {
+2775:     const serviceName = sanitizeReportTwoPdfFileNamePart(
+2776:       (payload as any)?.service?.name ||
+2777:         (payload as any)?.serviceName ||
+2778:         previewCase.serviceName ||
+2779:         "تقرير",
+2780:     );
+
+---- around line 2774 ----
+2766:   function sanitizeReportTwoPdfFileNamePart(value: unknown) {
+2767:     return cleanText(value)
+2768:       .replace(/[\\/:*?"<>|]+/g, "-")
+2769:       .replace(/\s+/g, " ")
+2770:       .replace(/-+/g, "-")
+2771:       .trim();
+2772:   }
+2773: 
+2774:   function getReportTwoPdfFileName() {
+2775:     const serviceName = sanitizeReportTwoPdfFileNamePart(
+2776:       (payload as any)?.service?.name ||
+2777:         (payload as any)?.serviceName ||
+2778:         previewCase.serviceName ||
+2779:         "تقرير",
+2780:     );
+2781: 
+2782:     const downloadDate = new Date().toISOString().slice(0, 10);
+2783: 
+2784:     return `${serviceName || "تقرير"} - ${downloadDate}.pdf`;
+2785:   }
+2786: 
+2787:   function buildReportTwoPdfExportSnapshot() {
+2788:     return {
+
+---- around line 2775 ----
+2767:     return cleanText(value)
+2768:       .replace(/[\\/:*?"<>|]+/g, "-")
+2769:       .replace(/\s+/g, " ")
+2770:       .replace(/-+/g, "-")
+2771:       .trim();
+2772:   }
+2773: 
+2774:   function getReportTwoPdfFileName() {
+2775:     const serviceName = sanitizeReportTwoPdfFileNamePart(
+2776:       (payload as any)?.service?.name ||
+2777:         (payload as any)?.serviceName ||
+2778:         previewCase.serviceName ||
+2779:         "تقرير",
+2780:     );
+2781: 
+2782:     const downloadDate = new Date().toISOString().slice(0, 10);
+2783: 
+2784:     return `${serviceName || "تقرير"} - ${downloadDate}.pdf`;
+2785:   }
+2786: 
+2787:   function buildReportTwoPdfExportSnapshot() {
+2788:     return {
+2789:       template: signedVisiblePreviewTemplate,
+
+---- around line 2782 ----
+2774:   function getReportTwoPdfFileName() {
+2775:     const serviceName = sanitizeReportTwoPdfFileNamePart(
+2776:       (payload as any)?.service?.name ||
+2777:         (payload as any)?.serviceName ||
+2778:         previewCase.serviceName ||
+2779:         "تقرير",
+2780:     );
+2781: 
+2782:     const downloadDate = new Date().toISOString().slice(0, 10);
+2783: 
+2784:     return `${serviceName || "تقرير"} - ${downloadDate}.pdf`;
+2785:   }
+2786: 
+2787:   function buildReportTwoPdfExportSnapshot() {
+2788:     return {
+2789:       template: signedVisiblePreviewTemplate,
+2790:       context: editableRuntimeContext,
+2791:       previewCase,
+2792:       designTemplateId: template.designTemplateId || "ministry-form",
+2793:     };
+2794:   }
+2795: 
+2796:   function buildReportTwoSnapshotHtml() {
+
+---- around line 2784 ----
+2776:       (payload as any)?.service?.name ||
+2777:         (payload as any)?.serviceName ||
+2778:         previewCase.serviceName ||
+2779:         "تقرير",
+2780:     );
+2781: 
+2782:     const downloadDate = new Date().toISOString().slice(0, 10);
+2783: 
+2784:     return `${serviceName || "تقرير"} - ${downloadDate}.pdf`;
+2785:   }
+2786: 
+2787:   function buildReportTwoPdfExportSnapshot() {
+2788:     return {
+2789:       template: signedVisiblePreviewTemplate,
+2790:       context: editableRuntimeContext,
+2791:       previewCase,
+2792:       designTemplateId: template.designTemplateId || "ministry-form",
+2793:     };
+2794:   }
+2795: 
+2796:   function buildReportTwoSnapshotHtml() {
+2797:     const source =
+2798:       document.querySelector<HTMLElement>(
+
+---- around line 2787 ----
+2779:         "تقرير",
+2780:     );
+2781: 
+2782:     const downloadDate = new Date().toISOString().slice(0, 10);
+2783: 
+2784:     return `${serviceName || "تقرير"} - ${downloadDate}.pdf`;
+2785:   }
+2786: 
+2787:   function buildReportTwoPdfExportSnapshot() {
+2788:     return {
+2789:       template: signedVisiblePreviewTemplate,
+2790:       context: editableRuntimeContext,
+2791:       previewCase,
+2792:       designTemplateId: template.designTemplateId || "ministry-form",
+2793:     };
+2794:   }
+2795: 
+2796:   function buildReportTwoSnapshotHtml() {
+2797:     const source =
+2798:       document.querySelector<HTMLElement>(
+2799:         '[data-report-two-snapshot-source="print-stack"]',
+2800:       ) ||
+2801:       document.querySelector<HTMLElement>(
+
+---- around line 2796 ----
+2788:     return {
+2789:       template: signedVisiblePreviewTemplate,
+2790:       context: editableRuntimeContext,
+2791:       previewCase,
+2792:       designTemplateId: template.designTemplateId || "ministry-form",
+2793:     };
+2794:   }
+2795: 
+2796:   function buildReportTwoSnapshotHtml() {
+2797:     const source =
+2798:       document.querySelector<HTMLElement>(
+2799:         '[data-report-two-snapshot-source="print-stack"]',
+2800:       ) ||
+2801:       document.querySelector<HTMLElement>(
+2802:         '[data-report-two-snapshot-source="preview"]',
+2803:       );
+2804: 
+2805:     if (!source) return "";
+2806: 
+2807:     const clone = source.cloneNode(true) as HTMLElement;
+2808:     clone.removeAttribute("aria-hidden");
+2809:     clone.removeAttribute("style");
+2810:     clone.className = "report-two-a4-host report-two-snapshot-approved-root";
+
+---- around line 2799 ----
+2791:       previewCase,
+2792:       designTemplateId: template.designTemplateId || "ministry-form",
+2793:     };
+2794:   }
+2795: 
+2796:   function buildReportTwoSnapshotHtml() {
+2797:     const source =
+2798:       document.querySelector<HTMLElement>(
+2799:         '[data-report-two-snapshot-source="print-stack"]',
+2800:       ) ||
+2801:       document.querySelector<HTMLElement>(
+2802:         '[data-report-two-snapshot-source="preview"]',
+2803:       );
+2804: 
+2805:     if (!source) return "";
+2806: 
+2807:     const clone = source.cloneNode(true) as HTMLElement;
+2808:     clone.removeAttribute("aria-hidden");
+2809:     clone.removeAttribute("style");
+2810:     clone.className = "report-two-a4-host report-two-snapshot-approved-root";
+2811: 
+2812:     return `
+2813:       <style>
+
+---- around line 2802 ----
+2794:   }
+2795: 
+2796:   function buildReportTwoSnapshotHtml() {
+2797:     const source =
+2798:       document.querySelector<HTMLElement>(
+2799:         '[data-report-two-snapshot-source="print-stack"]',
+2800:       ) ||
+2801:       document.querySelector<HTMLElement>(
+2802:         '[data-report-two-snapshot-source="preview"]',
+2803:       );
+2804: 
+2805:     if (!source) return "";
+2806: 
+2807:     const clone = source.cloneNode(true) as HTMLElement;
+2808:     clone.removeAttribute("aria-hidden");
+2809:     clone.removeAttribute("style");
+2810:     clone.className = "report-two-a4-host report-two-snapshot-approved-root";
+2811: 
+2812:     return `
+2813:       <style>
+2814:         .report-two-snapshot-approved-root {
+2815:           background: #ffffff;
+2816:           direction: rtl;
+
+---- around line 2810 ----
+2802:         '[data-report-two-snapshot-source="preview"]',
+2803:       );
+2804: 
+2805:     if (!source) return "";
+2806: 
+2807:     const clone = source.cloneNode(true) as HTMLElement;
+2808:     clone.removeAttribute("aria-hidden");
+2809:     clone.removeAttribute("style");
+2810:     clone.className = "report-two-a4-host report-two-snapshot-approved-root";
+2811: 
+2812:     return `
+2813:       <style>
+2814:         .report-two-snapshot-approved-root {
+2815:           background: #ffffff;
+2816:           direction: rtl;
+2817:         }
+2818: 
+2819:         .report-two-snapshot-approved-root .pdf-report-page {
+2820:           width: 210mm !important;
+2821:           min-width: 210mm !important;
+2822:           max-width: 210mm !important;
+2823:           height: 297mm !important;
+2824:           min-height: 297mm !important;
+
+---- around line 2814 ----
+2806: 
+2807:     const clone = source.cloneNode(true) as HTMLElement;
+2808:     clone.removeAttribute("aria-hidden");
+2809:     clone.removeAttribute("style");
+2810:     clone.className = "report-two-a4-host report-two-snapshot-approved-root";
+2811: 
+2812:     return `
+2813:       <style>
+2814:         .report-two-snapshot-approved-root {
+2815:           background: #ffffff;
+2816:           direction: rtl;
+2817:         }
+2818: 
+2819:         .report-two-snapshot-approved-root .pdf-report-page {
+2820:           width: 210mm !important;
+2821:           min-width: 210mm !important;
+2822:           max-width: 210mm !important;
+2823:           height: 297mm !important;
+2824:           min-height: 297mm !important;
+2825:           max-height: 297mm !important;
+2826:           margin: 0 auto 16px auto !important;
+2827:           overflow: hidden !important;
+2828:           background: #ffffff !important;
+
+---- around line 2819 ----
+2811: 
+2812:     return `
+2813:       <style>
+2814:         .report-two-snapshot-approved-root {
+2815:           background: #ffffff;
+2816:           direction: rtl;
+2817:         }
+2818: 
+2819:         .report-two-snapshot-approved-root .pdf-report-page {
+2820:           width: 210mm !important;
+2821:           min-width: 210mm !important;
+2822:           max-width: 210mm !important;
+2823:           height: 297mm !important;
+2824:           min-height: 297mm !important;
+2825:           max-height: 297mm !important;
+2826:           margin: 0 auto 16px auto !important;
+2827:           overflow: hidden !important;
+2828:           background: #ffffff !important;
+2829:           box-shadow: none !important;
+2830:         }
+2831: 
+2832:         @media print {
+2833:           .report-two-snapshot-approved-root .pdf-report-page {
+
+---- around line 2832 ----
+2824:           min-height: 297mm !important;
+2825:           max-height: 297mm !important;
+2826:           margin: 0 auto 16px auto !important;
+2827:           overflow: hidden !important;
+2828:           background: #ffffff !important;
+2829:           box-shadow: none !important;
+2830:         }
+2831: 
+2832:         @media print {
+2833:           .report-two-snapshot-approved-root .pdf-report-page {
+2834:             margin: 0 !important;
+2835:             break-after: page;
+2836:             page-break-after: always;
+2837:           }
+2838: 
+2839:           .report-two-snapshot-approved-root .pdf-report-page:last-child {
+2840:             break-after: auto;
+2841:             page-break-after: auto;
+2842:           }
+2843:         }
+2844:       </style>
+2845:       ${clone.outerHTML}
+2846:     `;
+
+---- around line 2833 ----
+2825:           max-height: 297mm !important;
+2826:           margin: 0 auto 16px auto !important;
+2827:           overflow: hidden !important;
+2828:           background: #ffffff !important;
+2829:           box-shadow: none !important;
+2830:         }
+2831: 
+2832:         @media print {
+2833:           .report-two-snapshot-approved-root .pdf-report-page {
+2834:             margin: 0 !important;
+2835:             break-after: page;
+2836:             page-break-after: always;
+2837:           }
+2838: 
+2839:           .report-two-snapshot-approved-root .pdf-report-page:last-child {
+2840:             break-after: auto;
+2841:             page-break-after: auto;
+2842:           }
+2843:         }
+2844:       </style>
+2845:       ${clone.outerHTML}
+2846:     `;
+2847:   }
+
+---- around line 2839 ----
+2831: 
+2832:         @media print {
+2833:           .report-two-snapshot-approved-root .pdf-report-page {
+2834:             margin: 0 !important;
+2835:             break-after: page;
+2836:             page-break-after: always;
+2837:           }
+2838: 
+2839:           .report-two-snapshot-approved-root .pdf-report-page:last-child {
+2840:             break-after: auto;
+2841:             page-break-after: auto;
+2842:           }
+2843:         }
+2844:       </style>
+2845:       ${clone.outerHTML}
+2846:     `;
+2847:   }
+2848: 
+2849:   async function approveReportTwoSnapshot() {
+2850:     if (reportTwoApprovalSubmitting || approvedSnapshot) return;
+2851: 
+2852:     if (!signedVisiblePreviewTemplate.pages.length) {
+2853:       setPopup({
+
+---- around line 2849 ----
+2841:             page-break-after: auto;
+2842:           }
+2843:         }
+2844:       </style>
+2845:       ${clone.outerHTML}
+2846:     `;
+2847:   }
+2848: 
+2849:   async function approveReportTwoSnapshot() {
+2850:     if (reportTwoApprovalSubmitting || approvedSnapshot) return;
+2851: 
+2852:     if (!signedVisiblePreviewTemplate.pages.length) {
+2853:       setPopup({
+2854:         type: "alert",
+2855:         title: "اعتماد التقرير",
+2856:         message: "لا توجد صفحات جاهزة للاعتماد.",
+2857:       });
+2858:       return;
+2859:     }
+2860: 
+2861:     const snapshotHtml = buildReportTwoSnapshotHtml();
+2862: 
+2863:     if (!snapshotHtml.trim()) {
+
+---- around line 2850 ----
+2842:           }
+2843:         }
+2844:       </style>
+2845:       ${clone.outerHTML}
+2846:     `;
+2847:   }
+2848: 
+2849:   async function approveReportTwoSnapshot() {
+2850:     if (reportTwoApprovalSubmitting || approvedSnapshot) return;
+2851: 
+2852:     if (!signedVisiblePreviewTemplate.pages.length) {
+2853:       setPopup({
+2854:         type: "alert",
+2855:         title: "اعتماد التقرير",
+2856:         message: "لا توجد صفحات جاهزة للاعتماد.",
+2857:       });
+2858:       return;
+2859:     }
+2860: 
+2861:     const snapshotHtml = buildReportTwoSnapshotHtml();
+2862: 
+2863:     if (!snapshotHtml.trim()) {
+2864:       setPopup({
+
+---- around line 2861 ----
+2853:       setPopup({
+2854:         type: "alert",
+2855:         title: "اعتماد التقرير",
+2856:         message: "لا توجد صفحات جاهزة للاعتماد.",
+2857:       });
+2858:       return;
+2859:     }
+2860: 
+2861:     const snapshotHtml = buildReportTwoSnapshotHtml();
+2862: 
+2863:     if (!snapshotHtml.trim()) {
+2864:       setPopup({
+2865:         type: "alert",
+2866:         title: "اعتماد التقرير",
+2867:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+2868:       });
+2869:       return;
+2870:     }
+2871: 
+2872:     setReportTwoApprovalSubmitting(true);
+2873: 
+2874:     try {
+2875:       const activeTemplate = templates.find(
+
+---- around line 2863 ----
+2855:         title: "اعتماد التقرير",
+2856:         message: "لا توجد صفحات جاهزة للاعتماد.",
+2857:       });
+2858:       return;
+2859:     }
+2860: 
+2861:     const snapshotHtml = buildReportTwoSnapshotHtml();
+2862: 
+2863:     if (!snapshotHtml.trim()) {
+2864:       setPopup({
+2865:         type: "alert",
+2866:         title: "اعتماد التقرير",
+2867:         message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+2868:       });
+2869:       return;
+2870:     }
+2871: 
+2872:     setReportTwoApprovalSubmitting(true);
+2873: 
+2874:     try {
+2875:       const activeTemplate = templates.find(
+2876:         (item) => item.id === selectedTemplateOptionId,
+2877:       );
+
+---- around line 2878 ----
+2870:     }
+2871: 
+2872:     setReportTwoApprovalSubmitting(true);
+2873: 
+2874:     try {
+2875:       const activeTemplate = templates.find(
+2876:         (item) => item.id === selectedTemplateOptionId,
+2877:       );
+2878:       const response = await fetch(
+2879:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/approve`,
+2880:         {
+2881:           method: "POST",
+2882:           headers: {
+2883:             "Content-Type": "application/json",
+2884:           },
+2885:           body: JSON.stringify({
+2886:             reportTitle:
+2887:               (previewCase as any)?.title ||
+2888:               (previewCase as any)?.caseTitle ||
+2889:               (preparedPayload as any)?.caseInfo?.title ||
+2890:               "تقرير معتمد",
+2891:             templateId: selectedTemplateOptionId || null,
+2892:             templateName: activeTemplate?.name || template.name || null,
+
+---- around line 2894 ----
+2886:             reportTitle:
+2887:               (previewCase as any)?.title ||
+2888:               (previewCase as any)?.caseTitle ||
+2889:               (preparedPayload as any)?.caseInfo?.title ||
+2890:               "تقرير معتمد",
+2891:             templateId: selectedTemplateOptionId || null,
+2892:             templateName: activeTemplate?.name || template.name || null,
+2893:             variantId: selectedVariantId || null,
+2894:             snapshotPayload: preparedPayload,
+2895:             snapshotTemplateJson: signedVisiblePreviewTemplate,
+2896:             snapshotPagesJson: signedVisiblePreviewTemplate.pages,
+2897:             snapshotHtml,
+2898:           }),
+2899:         },
+2900:       );
+2901:       const text = await response.text();
+2902:       let result: any = {};
+2903: 
+2904:       try {
+2905:         result = text ? JSON.parse(text) : {};
+2906:       } catch {
+2907:         result = {
+2908:           error: text || `HTTP ${response.status}`,
+
+---- around line 2895 ----
+2887:               (previewCase as any)?.title ||
+2888:               (previewCase as any)?.caseTitle ||
+2889:               (preparedPayload as any)?.caseInfo?.title ||
+2890:               "تقرير معتمد",
+2891:             templateId: selectedTemplateOptionId || null,
+2892:             templateName: activeTemplate?.name || template.name || null,
+2893:             variantId: selectedVariantId || null,
+2894:             snapshotPayload: preparedPayload,
+2895:             snapshotTemplateJson: signedVisiblePreviewTemplate,
+2896:             snapshotPagesJson: signedVisiblePreviewTemplate.pages,
+2897:             snapshotHtml,
+2898:           }),
+2899:         },
+2900:       );
+2901:       const text = await response.text();
+2902:       let result: any = {};
+2903: 
+2904:       try {
+2905:         result = text ? JSON.parse(text) : {};
+2906:       } catch {
+2907:         result = {
+2908:           error: text || `HTTP ${response.status}`,
+2909:         };
+
+---- around line 2896 ----
+2888:               (previewCase as any)?.caseTitle ||
+2889:               (preparedPayload as any)?.caseInfo?.title ||
+2890:               "تقرير معتمد",
+2891:             templateId: selectedTemplateOptionId || null,
+2892:             templateName: activeTemplate?.name || template.name || null,
+2893:             variantId: selectedVariantId || null,
+2894:             snapshotPayload: preparedPayload,
+2895:             snapshotTemplateJson: signedVisiblePreviewTemplate,
+2896:             snapshotPagesJson: signedVisiblePreviewTemplate.pages,
+2897:             snapshotHtml,
+2898:           }),
+2899:         },
+2900:       );
+2901:       const text = await response.text();
+2902:       let result: any = {};
+2903: 
+2904:       try {
+2905:         result = text ? JSON.parse(text) : {};
+2906:       } catch {
+2907:         result = {
+2908:           error: text || `HTTP ${response.status}`,
+2909:         };
+2910:       }
+
+---- around line 2897 ----
+2889:               (preparedPayload as any)?.caseInfo?.title ||
+2890:               "تقرير معتمد",
+2891:             templateId: selectedTemplateOptionId || null,
+2892:             templateName: activeTemplate?.name || template.name || null,
+2893:             variantId: selectedVariantId || null,
+2894:             snapshotPayload: preparedPayload,
+2895:             snapshotTemplateJson: signedVisiblePreviewTemplate,
+2896:             snapshotPagesJson: signedVisiblePreviewTemplate.pages,
+2897:             snapshotHtml,
+2898:           }),
+2899:         },
+2900:       );
+2901:       const text = await response.text();
+2902:       let result: any = {};
+2903: 
+2904:       try {
+2905:         result = text ? JSON.parse(text) : {};
+2906:       } catch {
+2907:         result = {
+2908:           error: text || `HTTP ${response.status}`,
+2909:         };
+2910:       }
+2911: 
+
+---- around line 2920 ----
+2912:       if (!response.ok) {
+2913:         throw new Error(
+2914:           result?.details ||
+2915:             result?.error ||
+2916:             `APPROVAL_FAILED_${response.status}`,
+2917:         );
+2918:       }
+2919: 
+2920:       setApprovedSnapshot({
+2921:         id: result.snapshot?.id,
+2922:         previewUrl:
+2923:           result.previewUrl ||
+2924:           `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+2925:       });
+2926:       setPopup({
+2927:         type: "alert",
+2928:         title: "تم اعتماد التقرير",
+2929:         message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+2930:       });
+2931:     } catch (error) {
+2932:       console.error(error);
+2933:       setPopup({
+2934:         type: "alert",
+
+---- around line 2921 ----
+2913:         throw new Error(
+2914:           result?.details ||
+2915:             result?.error ||
+2916:             `APPROVAL_FAILED_${response.status}`,
+2917:         );
+2918:       }
+2919: 
+2920:       setApprovedSnapshot({
+2921:         id: result.snapshot?.id,
+2922:         previewUrl:
+2923:           result.previewUrl ||
+2924:           `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+2925:       });
+2926:       setPopup({
+2927:         type: "alert",
+2928:         title: "تم اعتماد التقرير",
+2929:         message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+2930:       });
+2931:     } catch (error) {
+2932:       console.error(error);
+2933:       setPopup({
+2934:         type: "alert",
+2935:         title: "اعتماد التقرير",
+
+---- around line 2924 ----
+2916:             `APPROVAL_FAILED_${response.status}`,
+2917:         );
+2918:       }
+2919: 
+2920:       setApprovedSnapshot({
+2921:         id: result.snapshot?.id,
+2922:         previewUrl:
+2923:           result.previewUrl ||
+2924:           `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+2925:       });
+2926:       setPopup({
+2927:         type: "alert",
+2928:         title: "تم اعتماد التقرير",
+2929:         message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+2930:       });
+2931:     } catch (error) {
+2932:       console.error(error);
+2933:       setPopup({
+2934:         type: "alert",
+2935:         title: "اعتماد التقرير",
+2936:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+2937:       });
+2938:     } finally {
+
+---- around line 2943 ----
+2935:         title: "اعتماد التقرير",
+2936:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+2937:       });
+2938:     } finally {
+2939:       setReportTwoApprovalSubmitting(false);
+2940:     }
+2941:   }
+2942: 
+2943:   async function exportReportTwoPdf() {
+2944:     if (reportTwoPdfExporting) return;
+2945: 
+2946:     if (!visiblePreviewTemplate.pages.length) {
+2947:       setPopup({
+2948:         type: "alert",
+2949:         title: "تصدير PDF",
+2950:         message: "لا توجد صفحات جاهزة للتصدير.",
+2951:       });
+2952:       return;
+2953:     }
+2954: 
+2955:     setReportTwoPdfExporting(true);
+2956: 
+2957:     try {
+
+---- around line 2944 ----
+2936:         message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+2937:       });
+2938:     } finally {
+2939:       setReportTwoApprovalSubmitting(false);
+2940:     }
+2941:   }
+2942: 
+2943:   async function exportReportTwoPdf() {
+2944:     if (reportTwoPdfExporting) return;
+2945: 
+2946:     if (!visiblePreviewTemplate.pages.length) {
+2947:       setPopup({
+2948:         type: "alert",
+2949:         title: "تصدير PDF",
+2950:         message: "لا توجد صفحات جاهزة للتصدير.",
+2951:       });
+2952:       return;
+2953:     }
+2954: 
+2955:     setReportTwoPdfExporting(true);
+2956: 
+2957:     try {
+2958:       const fileName = getReportTwoPdfFileName();
+
+---- around line 2949 ----
+2941:   }
+2942: 
+2943:   async function exportReportTwoPdf() {
+2944:     if (reportTwoPdfExporting) return;
+2945: 
+2946:     if (!visiblePreviewTemplate.pages.length) {
+2947:       setPopup({
+2948:         type: "alert",
+2949:         title: "تصدير PDF",
+2950:         message: "لا توجد صفحات جاهزة للتصدير.",
+2951:       });
+2952:       return;
+2953:     }
+2954: 
+2955:     setReportTwoPdfExporting(true);
+2956: 
+2957:     try {
+2958:       const fileName = getReportTwoPdfFileName();
+2959: 
+2960:       const response = await fetch(
+2961:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+2962:         {
+2963:           method: "POST",
+
+---- around line 2955 ----
+2947:       setPopup({
+2948:         type: "alert",
+2949:         title: "تصدير PDF",
+2950:         message: "لا توجد صفحات جاهزة للتصدير.",
+2951:       });
+2952:       return;
+2953:     }
+2954: 
+2955:     setReportTwoPdfExporting(true);
+2956: 
+2957:     try {
+2958:       const fileName = getReportTwoPdfFileName();
+2959: 
+2960:       const response = await fetch(
+2961:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+2962:         {
+2963:           method: "POST",
+2964:           headers: {
+2965:             "Content-Type": "application/json",
+2966:           },
+2967:           body: JSON.stringify({
+2968:             fileName,
+2969:             snapshot: buildReportTwoPdfExportSnapshot(),
+
+---- around line 2958 ----
+2950:         message: "لا توجد صفحات جاهزة للتصدير.",
+2951:       });
+2952:       return;
+2953:     }
+2954: 
+2955:     setReportTwoPdfExporting(true);
+2956: 
+2957:     try {
+2958:       const fileName = getReportTwoPdfFileName();
+2959: 
+2960:       const response = await fetch(
+2961:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+2962:         {
+2963:           method: "POST",
+2964:           headers: {
+2965:             "Content-Type": "application/json",
+2966:           },
+2967:           body: JSON.stringify({
+2968:             fileName,
+2969:             snapshot: buildReportTwoPdfExportSnapshot(),
+2970:           }),
+2971:         },
+2972:       );
+
+---- around line 2960 ----
+2952:       return;
+2953:     }
+2954: 
+2955:     setReportTwoPdfExporting(true);
+2956: 
+2957:     try {
+2958:       const fileName = getReportTwoPdfFileName();
+2959: 
+2960:       const response = await fetch(
+2961:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+2962:         {
+2963:           method: "POST",
+2964:           headers: {
+2965:             "Content-Type": "application/json",
+2966:           },
+2967:           body: JSON.stringify({
+2968:             fileName,
+2969:             snapshot: buildReportTwoPdfExportSnapshot(),
+2970:           }),
+2971:         },
+2972:       );
+2973: 
+2974:       if (!response.ok) {
+
+---- around line 2961 ----
+2953:     }
+2954: 
+2955:     setReportTwoPdfExporting(true);
+2956: 
+2957:     try {
+2958:       const fileName = getReportTwoPdfFileName();
+2959: 
+2960:       const response = await fetch(
+2961:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+2962:         {
+2963:           method: "POST",
+2964:           headers: {
+2965:             "Content-Type": "application/json",
+2966:           },
+2967:           body: JSON.stringify({
+2968:             fileName,
+2969:             snapshot: buildReportTwoPdfExportSnapshot(),
+2970:           }),
+2971:         },
+2972:       );
+2973: 
+2974:       if (!response.ok) {
+2975:         throw new Error("PDF_EXPORT_FAILED");
+
+---- around line 2969 ----
+2961:         `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+2962:         {
+2963:           method: "POST",
+2964:           headers: {
+2965:             "Content-Type": "application/json",
+2966:           },
+2967:           body: JSON.stringify({
+2968:             fileName,
+2969:             snapshot: buildReportTwoPdfExportSnapshot(),
+2970:           }),
+2971:         },
+2972:       );
+2973: 
+2974:       if (!response.ok) {
+2975:         throw new Error("PDF_EXPORT_FAILED");
+2976:       }
+2977: 
+2978:       const contentType = response.headers.get("content-type") || "";
+2979: 
+2980:       if (contentType.includes("application/json")) {
+2981:         const json = await response.json();
+2982: 
+2983:         if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+
+---- around line 2975 ----
+2967:           body: JSON.stringify({
+2968:             fileName,
+2969:             snapshot: buildReportTwoPdfExportSnapshot(),
+2970:           }),
+2971:         },
+2972:       );
+2973: 
+2974:       if (!response.ok) {
+2975:         throw new Error("PDF_EXPORT_FAILED");
+2976:       }
+2977: 
+2978:       const contentType = response.headers.get("content-type") || "";
+2979: 
+2980:       if (contentType.includes("application/json")) {
+2981:         const json = await response.json();
+2982: 
+2983:         if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+2984:           setPopup({
+2985:             type: "alert",
+2986:             title: "تصدير PDF",
+2987:             message:
+2988:               "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم 'طباعة' أو 'حفظ كـ PDF' من متصفحك.",
+2989:           });
+
+---- around line 2983 ----
+2975:         throw new Error("PDF_EXPORT_FAILED");
+2976:       }
+2977: 
+2978:       const contentType = response.headers.get("content-type") || "";
+2979: 
+2980:       if (contentType.includes("application/json")) {
+2981:         const json = await response.json();
+2982: 
+2983:         if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+2984:           setPopup({
+2985:             type: "alert",
+2986:             title: "تصدير PDF",
+2987:             message:
+2988:               "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم 'طباعة' أو 'حفظ كـ PDF' من متصفحك.",
+2989:           });
+2990: 
+2991:           const previewWindow = window.open(
+2992:             json.previewUrl,
+2993:             "_blank",
+2994:             "noopener,noreferrer",
+2995:           );
+2996: 
+2997:           if (!previewWindow) {
+
+---- around line 2986 ----
+2978:       const contentType = response.headers.get("content-type") || "";
+2979: 
+2980:       if (contentType.includes("application/json")) {
+2981:         const json = await response.json();
+2982: 
+2983:         if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+2984:           setPopup({
+2985:             type: "alert",
+2986:             title: "تصدير PDF",
+2987:             message:
+2988:               "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم 'طباعة' أو 'حفظ كـ PDF' من متصفحك.",
+2989:           });
+2990: 
+2991:           const previewWindow = window.open(
+2992:             json.previewUrl,
+2993:             "_blank",
+2994:             "noopener,noreferrer",
+2995:           );
+2996: 
+2997:           if (!previewWindow) {
+2998:             window.location.href = json.previewUrl;
+2999:           }
+3000: 
+
+---- around line 2988 ----
+2980:       if (contentType.includes("application/json")) {
+2981:         const json = await response.json();
+2982: 
+2983:         if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+2984:           setPopup({
+2985:             type: "alert",
+2986:             title: "تصدير PDF",
+2987:             message:
+2988:               "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم 'طباعة' أو 'حفظ كـ PDF' من متصفحك.",
+2989:           });
+2990: 
+2991:           const previewWindow = window.open(
+2992:             json.previewUrl,
+2993:             "_blank",
+2994:             "noopener,noreferrer",
+2995:           );
+2996: 
+2997:           if (!previewWindow) {
+2998:             window.location.href = json.previewUrl;
+2999:           }
+3000: 
+3001:           return;
+3002:         }
+
+---- around line 2991 ----
+2983:         if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+2984:           setPopup({
+2985:             type: "alert",
+2986:             title: "تصدير PDF",
+2987:             message:
+2988:               "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم 'طباعة' أو 'حفظ كـ PDF' من متصفحك.",
+2989:           });
+2990: 
+2991:           const previewWindow = window.open(
+2992:             json.previewUrl,
+2993:             "_blank",
+2994:             "noopener,noreferrer",
+2995:           );
+2996: 
+2997:           if (!previewWindow) {
+2998:             window.location.href = json.previewUrl;
+2999:           }
+3000: 
+3001:           return;
+3002:         }
+3003:       }
+3004: 
+3005:       const blob = await response.blob();
+
+---- around line 2997 ----
+2989:           });
+2990: 
+2991:           const previewWindow = window.open(
+2992:             json.previewUrl,
+2993:             "_blank",
+2994:             "noopener,noreferrer",
+2995:           );
+2996: 
+2997:           if (!previewWindow) {
+2998:             window.location.href = json.previewUrl;
+2999:           }
+3000: 
+3001:           return;
+3002:         }
+3003:       }
+3004: 
+3005:       const blob = await response.blob();
+3006:       const url = window.URL.createObjectURL(blob);
+3007:       const link = document.createElement("a");
+3008: 
+3009:       link.href = url;
+3010:       link.download = fileName;
+3011:       document.body.appendChild(link);
+
+---- around line 2998 ----
+2990: 
+2991:           const previewWindow = window.open(
+2992:             json.previewUrl,
+2993:             "_blank",
+2994:             "noopener,noreferrer",
+2995:           );
+2996: 
+2997:           if (!previewWindow) {
+2998:             window.location.href = json.previewUrl;
+2999:           }
+3000: 
+3001:           return;
+3002:         }
+3003:       }
+3004: 
+3005:       const blob = await response.blob();
+3006:       const url = window.URL.createObjectURL(blob);
+3007:       const link = document.createElement("a");
+3008: 
+3009:       link.href = url;
+3010:       link.download = fileName;
+3011:       document.body.appendChild(link);
+3012:       link.click();
+
+---- around line 3005 ----
+2997:           if (!previewWindow) {
+2998:             window.location.href = json.previewUrl;
+2999:           }
+3000: 
+3001:           return;
+3002:         }
+3003:       }
+3004: 
+3005:       const blob = await response.blob();
+3006:       const url = window.URL.createObjectURL(blob);
+3007:       const link = document.createElement("a");
+3008: 
+3009:       link.href = url;
+3010:       link.download = fileName;
+3011:       document.body.appendChild(link);
+3012:       link.click();
+3013:       link.remove();
+3014: 
+3015:       window.URL.revokeObjectURL(url);
+3016:     } catch (error) {
+3017:       console.error(error);
+3018:       setPopup({
+3019:         type: "alert",
+
+---- around line 3006 ----
+2998:             window.location.href = json.previewUrl;
+2999:           }
+3000: 
+3001:           return;
+3002:         }
+3003:       }
+3004: 
+3005:       const blob = await response.blob();
+3006:       const url = window.URL.createObjectURL(blob);
+3007:       const link = document.createElement("a");
+3008: 
+3009:       link.href = url;
+3010:       link.download = fileName;
+3011:       document.body.appendChild(link);
+3012:       link.click();
+3013:       link.remove();
+3014: 
+3015:       window.URL.revokeObjectURL(url);
+3016:     } catch (error) {
+3017:       console.error(error);
+3018:       setPopup({
+3019:         type: "alert",
+3020:         title: "تصدير PDF",
+
+---- around line 3010 ----
+3002:         }
+3003:       }
+3004: 
+3005:       const blob = await response.blob();
+3006:       const url = window.URL.createObjectURL(blob);
+3007:       const link = document.createElement("a");
+3008: 
+3009:       link.href = url;
+3010:       link.download = fileName;
+3011:       document.body.appendChild(link);
+3012:       link.click();
+3013:       link.remove();
+3014: 
+3015:       window.URL.revokeObjectURL(url);
+3016:     } catch (error) {
+3017:       console.error(error);
+3018:       setPopup({
+3019:         type: "alert",
+3020:         title: "تصدير PDF",
+3021:         message: "تعذر تصدير التقرير. حاول مرة أخرى.",
+3022:       });
+3023:     } finally {
+3024:       setReportTwoPdfExporting(false);
+
+---- around line 3015 ----
+3007:       const link = document.createElement("a");
+3008: 
+3009:       link.href = url;
+3010:       link.download = fileName;
+3011:       document.body.appendChild(link);
+3012:       link.click();
+3013:       link.remove();
+3014: 
+3015:       window.URL.revokeObjectURL(url);
+3016:     } catch (error) {
+3017:       console.error(error);
+3018:       setPopup({
+3019:         type: "alert",
+3020:         title: "تصدير PDF",
+3021:         message: "تعذر تصدير التقرير. حاول مرة أخرى.",
+3022:       });
+3023:     } finally {
+3024:       setReportTwoPdfExporting(false);
+3025:     }
+3026:   }
+3027:   function updateReportTwoLogoSettings(
+3028:     patch: Partial<ReportTwoLogoSettings>,
+3029:   ) {
+
+---- around line 3020 ----
+3012:       link.click();
+3013:       link.remove();
+3014: 
+3015:       window.URL.revokeObjectURL(url);
+3016:     } catch (error) {
+3017:       console.error(error);
+3018:       setPopup({
+3019:         type: "alert",
+3020:         title: "تصدير PDF",
+3021:         message: "تعذر تصدير التقرير. حاول مرة أخرى.",
+3022:       });
+3023:     } finally {
+3024:       setReportTwoPdfExporting(false);
+3025:     }
+3026:   }
+3027:   function updateReportTwoLogoSettings(
+3028:     patch: Partial<ReportTwoLogoSettings>,
+3029:   ) {
+3030:     setLogoSettings((current) => ({
+3031:       ...getDefaultReportTwoLogoSettings(runtimeContext),
+3032:       ...(current || {}),
+3033:       ...patch,
+3034:     }));
+
+---- around line 3024 ----
+3016:     } catch (error) {
+3017:       console.error(error);
+3018:       setPopup({
+3019:         type: "alert",
+3020:         title: "تصدير PDF",
+3021:         message: "تعذر تصدير التقرير. حاول مرة أخرى.",
+3022:       });
+3023:     } finally {
+3024:       setReportTwoPdfExporting(false);
+3025:     }
+3026:   }
+3027:   function updateReportTwoLogoSettings(
+3028:     patch: Partial<ReportTwoLogoSettings>,
+3029:   ) {
+3030:     setLogoSettings((current) => ({
+3031:       ...getDefaultReportTwoLogoSettings(runtimeContext),
+3032:       ...(current || {}),
+3033:       ...patch,
+3034:     }));
+3035:   }
+3036: 
+3037:   function resetReportTwoLogoSettings() {
+3038:     setLogoSettings(null);
+
+---- around line 3096 ----
+3088:   }
+3089: 
+3090:   function resetReportTwoHeaderValues() {
+3091:     setHeaderValues(null);
+3092:     setHeaderAlignments(null);
+3093:   }
+3094: 
+3095: 
+3096:   function createReportTwoDraftSnapshot(): ReportTwoDraftSnapshot {
+3097:     return {
+3098:       version: 1,
+3099:       savedAt: new Date().toISOString(),
+3100:       selectedTemplateOptionId,
+3101:       activeSavedRuntimeTemplateId,
+3102:       runtimeTemplateName,
+3103:       template: cloneReportTwoTemplate(template),
+3104:       headerValues,
+3105:       headerAlignments,
+3106:       logoSettings,
+3107:       hiddenRuntimePageIds,
+3108:       runtimePageOrder,
+3109:       activePageId,
+3110:       selectedBlockId,
+
+---- around line 3115 ----
+3107:       hiddenRuntimePageIds,
+3108:       runtimePageOrder,
+3109:       activePageId,
+3110:       selectedBlockId,
+3111:       finalCheckConfirmedAt,
+3112:     };
+3113:   }
+3114: 
+3115:   function restoreReportTwoDraftSnapshot(snapshot: ReportTwoDraftSnapshot) {
+3116:     restoringDraftRef.current = true;
+3117: 
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+
+---- around line 3118 ----
+3110:       selectedBlockId,
+3111:       finalCheckConfirmedAt,
+3112:     };
+3113:   }
+3114: 
+3115:   function restoreReportTwoDraftSnapshot(snapshot: ReportTwoDraftSnapshot) {
+3116:     restoringDraftRef.current = true;
+3117: 
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+
+---- around line 3119 ----
+3111:       finalCheckConfirmedAt,
+3112:     };
+3113:   }
+3114: 
+3115:   function restoreReportTwoDraftSnapshot(snapshot: ReportTwoDraftSnapshot) {
+3116:     restoringDraftRef.current = true;
+3117: 
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+
+---- around line 3120 ----
+3112:     };
+3113:   }
+3114: 
+3115:   function restoreReportTwoDraftSnapshot(snapshot: ReportTwoDraftSnapshot) {
+3116:     restoringDraftRef.current = true;
+3117: 
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+
+---- around line 3121 ----
+3113:   }
+3114: 
+3115:   function restoreReportTwoDraftSnapshot(snapshot: ReportTwoDraftSnapshot) {
+3116:     restoringDraftRef.current = true;
+3117: 
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+
+---- around line 3122 ----
+3114: 
+3115:   function restoreReportTwoDraftSnapshot(snapshot: ReportTwoDraftSnapshot) {
+3116:     restoringDraftRef.current = true;
+3117: 
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+
+---- around line 3123 ----
+3115:   function restoreReportTwoDraftSnapshot(snapshot: ReportTwoDraftSnapshot) {
+3116:     restoringDraftRef.current = true;
+3117: 
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+
+---- around line 3124 ----
+3116:     restoringDraftRef.current = true;
+3117: 
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+
+---- around line 3125 ----
+3117: 
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+
+---- around line 3126 ----
+3118:     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
+3119:     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
+3120:     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+
+---- around line 3129 ----
+3121:     setTemplate(cloneReportTwoTemplate(snapshot.template));
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+3141: 
+3142:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3143:     lastDraftSerializedRef.current = serialized;
+
+---- around line 3130 ----
+3122:     setHeaderValues(snapshot.headerValues || null);
+3123:     setHeaderAlignments(snapshot.headerAlignments || null);
+3124:     setLogoSettings(snapshot.logoSettings || null);
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+3141: 
+3142:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3143:     lastDraftSerializedRef.current = serialized;
+3144:     setLastAutoSavedAt(snapshot.savedAt);
+
+---- around line 3133 ----
+3125:     setHiddenRuntimePageIds(snapshot.hiddenRuntimePageIds || []);
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+3141: 
+3142:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3143:     lastDraftSerializedRef.current = serialized;
+3144:     setLastAutoSavedAt(snapshot.savedAt);
+3145: 
+3146:     if (showMessage) {
+3147:       setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
+
+---- around line 3134 ----
+3126:     setRuntimePageOrder(snapshot.runtimePageOrder || []);
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+3141: 
+3142:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3143:     lastDraftSerializedRef.current = serialized;
+3144:     setLastAutoSavedAt(snapshot.savedAt);
+3145: 
+3146:     if (showMessage) {
+3147:       setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
+3148:     }
+
+---- around line 3135 ----
+3127:     setActivePageId(
+3128:       resolveReportTwoEquivalentPageId(
+3129:         snapshot.template.pages,
+3130:         snapshot.activePageId || activePageId,
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+3141: 
+3142:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3143:     lastDraftSerializedRef.current = serialized;
+3144:     setLastAutoSavedAt(snapshot.savedAt);
+3145: 
+3146:     if (showMessage) {
+3147:       setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
+3148:     }
+3149:   }
+
+---- around line 3139 ----
+3131:       ),
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+3141: 
+3142:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3143:     lastDraftSerializedRef.current = serialized;
+3144:     setLastAutoSavedAt(snapshot.savedAt);
+3145: 
+3146:     if (showMessage) {
+3147:       setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
+3148:     }
+3149:   }
+3150: 
+3151:   function undoReportTwoLastChange() {
+3152:     const previous = undoSnapshots[0];
+3153: 
+
+---- around line 3140 ----
+3132:     );
+3133:     setSelectedBlockId(snapshot.selectedBlockId || "");
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+3141: 
+3142:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3143:     lastDraftSerializedRef.current = serialized;
+3144:     setLastAutoSavedAt(snapshot.savedAt);
+3145: 
+3146:     if (showMessage) {
+3147:       setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
+3148:     }
+3149:   }
+3150: 
+3151:   function undoReportTwoLastChange() {
+3152:     const previous = undoSnapshots[0];
+3153: 
+3154:     if (!previous) {
+
+---- around line 3142 ----
+3134:     setFinalCheckConfirmedAt(snapshot.finalCheckConfirmedAt || null);
+3135:     setFinalChecklistConfirmed(Boolean(snapshot.finalCheckConfirmedAt));
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+3141: 
+3142:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3143:     lastDraftSerializedRef.current = serialized;
+3144:     setLastAutoSavedAt(snapshot.savedAt);
+3145: 
+3146:     if (showMessage) {
+3147:       setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
+3148:     }
+3149:   }
+3150: 
+3151:   function undoReportTwoLastChange() {
+3152:     const previous = undoSnapshots[0];
+3153: 
+3154:     if (!previous) {
+3155:       setPopup({ type: "alert", title: "التراجع", message: "لا يوجد تعديل سابق للرجوع إليه." });
+3156:       return;
+
+---- around line 3144 ----
+3136:   }
+3137: 
+3138:   function saveReportTwoDraftNow(showMessage = true) {
+3139:     const snapshot = createReportTwoDraftSnapshot();
+3140:     const serialized = JSON.stringify(snapshot);
+3141: 
+3142:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3143:     lastDraftSerializedRef.current = serialized;
+3144:     setLastAutoSavedAt(snapshot.savedAt);
+3145: 
+3146:     if (showMessage) {
+3147:       setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
+3148:     }
+3149:   }
+3150: 
+3151:   function undoReportTwoLastChange() {
+3152:     const previous = undoSnapshots[0];
+3153: 
+3154:     if (!previous) {
+3155:       setPopup({ type: "alert", title: "التراجع", message: "لا يوجد تعديل سابق للرجوع إليه." });
+3156:       return;
+3157:     }
+3158: 
+
+---- around line 3152 ----
+3144:     setLastAutoSavedAt(snapshot.savedAt);
+3145: 
+3146:     if (showMessage) {
+3147:       setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
+3148:     }
+3149:   }
+3150: 
+3151:   function undoReportTwoLastChange() {
+3152:     const previous = undoSnapshots[0];
+3153: 
+3154:     if (!previous) {
+3155:       setPopup({ type: "alert", title: "التراجع", message: "لا يوجد تعديل سابق للرجوع إليه." });
+3156:       return;
+3157:     }
+3158: 
+3159:     restoreReportTwoDraftSnapshot(previous);
+3160: 
+3161:     const serialized = JSON.stringify(previous);
+3162:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3163:     lastDraftSerializedRef.current = serialized;
+3164:     setLastAutoSavedAt(previous.savedAt);
+3165:     setUndoSnapshots((current) => current.slice(1));
+3166:   }
+
+---- around line 3159 ----
+3151:   function undoReportTwoLastChange() {
+3152:     const previous = undoSnapshots[0];
+3153: 
+3154:     if (!previous) {
+3155:       setPopup({ type: "alert", title: "التراجع", message: "لا يوجد تعديل سابق للرجوع إليه." });
+3156:       return;
+3157:     }
+3158: 
+3159:     restoreReportTwoDraftSnapshot(previous);
+3160: 
+3161:     const serialized = JSON.stringify(previous);
+3162:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3163:     lastDraftSerializedRef.current = serialized;
+3164:     setLastAutoSavedAt(previous.savedAt);
+3165:     setUndoSnapshots((current) => current.slice(1));
+3166:   }
+3167:   function persistSavedRuntimeTemplates(items: ReportTwoSavedRuntimeTemplate[]) {
+3168:     setSavedRuntimeTemplates(items);
+3169:     writeReportTwoSavedTemplates(serviceSlugForSavedTemplates, items);
+3170:   }
+3171: 
+3172:   function saveCurrentRuntimeTemplate() {
+3173:     const name = runtimeTemplateName.trim();
+
+---- around line 3162 ----
+3154:     if (!previous) {
+3155:       setPopup({ type: "alert", title: "التراجع", message: "لا يوجد تعديل سابق للرجوع إليه." });
+3156:       return;
+3157:     }
+3158: 
+3159:     restoreReportTwoDraftSnapshot(previous);
+3160: 
+3161:     const serialized = JSON.stringify(previous);
+3162:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3163:     lastDraftSerializedRef.current = serialized;
+3164:     setLastAutoSavedAt(previous.savedAt);
+3165:     setUndoSnapshots((current) => current.slice(1));
+3166:   }
+3167:   function persistSavedRuntimeTemplates(items: ReportTwoSavedRuntimeTemplate[]) {
+3168:     setSavedRuntimeTemplates(items);
+3169:     writeReportTwoSavedTemplates(serviceSlugForSavedTemplates, items);
+3170:   }
+3171: 
+3172:   function saveCurrentRuntimeTemplate() {
+3173:     const name = runtimeTemplateName.trim();
+3174: 
+3175:     if (!name) {
+3176:       setPopup({ type: "alert", title: "حفظ القالب", message: "اكتب اسم القالب أولًا." });
+
+---- around line 3165 ----
+3157:     }
+3158: 
+3159:     restoreReportTwoDraftSnapshot(previous);
+3160: 
+3161:     const serialized = JSON.stringify(previous);
+3162:     window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3163:     lastDraftSerializedRef.current = serialized;
+3164:     setLastAutoSavedAt(previous.savedAt);
+3165:     setUndoSnapshots((current) => current.slice(1));
+3166:   }
+3167:   function persistSavedRuntimeTemplates(items: ReportTwoSavedRuntimeTemplate[]) {
+3168:     setSavedRuntimeTemplates(items);
+3169:     writeReportTwoSavedTemplates(serviceSlugForSavedTemplates, items);
+3170:   }
+3171: 
+3172:   function saveCurrentRuntimeTemplate() {
+3173:     const name = runtimeTemplateName.trim();
+3174: 
+3175:     if (!name) {
+3176:       setPopup({ type: "alert", title: "حفظ القالب", message: "اكتب اسم القالب أولًا." });
+3177:       return;
+3178:     }
+3179: 
+
+---- around line 3660 ----
+3652:     const items = readAllReportTwoSavedTemplates();
+3653:     setSavedRuntimeTemplates(items);
+3654:     setSavedRuntimeTemplatesLoaded(true);
+3655:   }, [serviceSlugForSavedTemplates]);
+3656: 
+3657:   useEffect(() => {
+3658:     if (draftRestored) return;
+3659: 
+3660:     const snapshot = parseReportTwoDraftSnapshot(
+3661:       window.localStorage.getItem(reportTwoDraftStorageKey),
+3662:     );
+3663: 
+3664:     if (snapshot) {
+3665:       setPendingDraftSnapshot(snapshot);
+3666:       return;
+3667:     }
+3668: 
+3669:     setDraftRestored(true);
+3670:     // استعادة مسودة report-2
+3671:   }, [draftRestored, reportTwoDraftStorageKey]);
+3672: 
+3673:   useEffect(() => {
+3674:     if (!draftRestored) return;
+
+---- around line 3661 ----
+3653:     setSavedRuntimeTemplates(items);
+3654:     setSavedRuntimeTemplatesLoaded(true);
+3655:   }, [serviceSlugForSavedTemplates]);
+3656: 
+3657:   useEffect(() => {
+3658:     if (draftRestored) return;
+3659: 
+3660:     const snapshot = parseReportTwoDraftSnapshot(
+3661:       window.localStorage.getItem(reportTwoDraftStorageKey),
+3662:     );
+3663: 
+3664:     if (snapshot) {
+3665:       setPendingDraftSnapshot(snapshot);
+3666:       return;
+3667:     }
+3668: 
+3669:     setDraftRestored(true);
+3670:     // استعادة مسودة report-2
+3671:   }, [draftRestored, reportTwoDraftStorageKey]);
+3672: 
+3673:   useEffect(() => {
+3674:     if (!draftRestored) return;
+3675: 
+
+---- around line 3664 ----
+3656: 
+3657:   useEffect(() => {
+3658:     if (draftRestored) return;
+3659: 
+3660:     const snapshot = parseReportTwoDraftSnapshot(
+3661:       window.localStorage.getItem(reportTwoDraftStorageKey),
+3662:     );
+3663: 
+3664:     if (snapshot) {
+3665:       setPendingDraftSnapshot(snapshot);
+3666:       return;
+3667:     }
+3668: 
+3669:     setDraftRestored(true);
+3670:     // استعادة مسودة report-2
+3671:   }, [draftRestored, reportTwoDraftStorageKey]);
+3672: 
+3673:   useEffect(() => {
+3674:     if (!draftRestored) return;
+3675: 
+3676:     const timer = window.setTimeout(() => {
+3677:       const snapshot = createReportTwoDraftSnapshot();
+3678:       const serialized = JSON.stringify(snapshot);
+
+---- around line 3665 ----
+3657:   useEffect(() => {
+3658:     if (draftRestored) return;
+3659: 
+3660:     const snapshot = parseReportTwoDraftSnapshot(
+3661:       window.localStorage.getItem(reportTwoDraftStorageKey),
+3662:     );
+3663: 
+3664:     if (snapshot) {
+3665:       setPendingDraftSnapshot(snapshot);
+3666:       return;
+3667:     }
+3668: 
+3669:     setDraftRestored(true);
+3670:     // استعادة مسودة report-2
+3671:   }, [draftRestored, reportTwoDraftStorageKey]);
+3672: 
+3673:   useEffect(() => {
+3674:     if (!draftRestored) return;
+3675: 
+3676:     const timer = window.setTimeout(() => {
+3677:       const snapshot = createReportTwoDraftSnapshot();
+3678:       const serialized = JSON.stringify(snapshot);
+3679: 
+
+---- around line 3676 ----
+3668: 
+3669:     setDraftRestored(true);
+3670:     // استعادة مسودة report-2
+3671:   }, [draftRestored, reportTwoDraftStorageKey]);
+3672: 
+3673:   useEffect(() => {
+3674:     if (!draftRestored) return;
+3675: 
+3676:     const timer = window.setTimeout(() => {
+3677:       const snapshot = createReportTwoDraftSnapshot();
+3678:       const serialized = JSON.stringify(snapshot);
+3679: 
+3680:       if (lastDraftSerializedRef.current !== serialized) {
+3681:         const previous = parseReportTwoDraftSnapshot(
+3682:           lastDraftSerializedRef.current,
+3683:         );
+3684: 
+3685:         if (previous && !restoringDraftRef.current) {
+3686:           setUndoSnapshots((current) => [previous, ...current].slice(0, 20));
+3687:         }
+3688: 
+3689:         window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3690:         lastDraftSerializedRef.current = serialized;
+
+---- around line 3677 ----
+3669:     setDraftRestored(true);
+3670:     // استعادة مسودة report-2
+3671:   }, [draftRestored, reportTwoDraftStorageKey]);
+3672: 
+3673:   useEffect(() => {
+3674:     if (!draftRestored) return;
+3675: 
+3676:     const timer = window.setTimeout(() => {
+3677:       const snapshot = createReportTwoDraftSnapshot();
+3678:       const serialized = JSON.stringify(snapshot);
+3679: 
+3680:       if (lastDraftSerializedRef.current !== serialized) {
+3681:         const previous = parseReportTwoDraftSnapshot(
+3682:           lastDraftSerializedRef.current,
+3683:         );
+3684: 
+3685:         if (previous && !restoringDraftRef.current) {
+3686:           setUndoSnapshots((current) => [previous, ...current].slice(0, 20));
+3687:         }
+3688: 
+3689:         window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3690:         lastDraftSerializedRef.current = serialized;
+3691:         setLastAutoSavedAt(snapshot.savedAt);
+
+---- around line 3678 ----
+3670:     // استعادة مسودة report-2
+3671:   }, [draftRestored, reportTwoDraftStorageKey]);
+3672: 
+3673:   useEffect(() => {
+3674:     if (!draftRestored) return;
+3675: 
+3676:     const timer = window.setTimeout(() => {
+3677:       const snapshot = createReportTwoDraftSnapshot();
+3678:       const serialized = JSON.stringify(snapshot);
+3679: 
+3680:       if (lastDraftSerializedRef.current !== serialized) {
+3681:         const previous = parseReportTwoDraftSnapshot(
+3682:           lastDraftSerializedRef.current,
+3683:         );
+3684: 
+3685:         if (previous && !restoringDraftRef.current) {
+3686:           setUndoSnapshots((current) => [previous, ...current].slice(0, 20));
+3687:         }
+3688: 
+3689:         window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3690:         lastDraftSerializedRef.current = serialized;
+3691:         setLastAutoSavedAt(snapshot.savedAt);
+3692:       }
+
+---- around line 3681 ----
+3673:   useEffect(() => {
+3674:     if (!draftRestored) return;
+3675: 
+3676:     const timer = window.setTimeout(() => {
+3677:       const snapshot = createReportTwoDraftSnapshot();
+3678:       const serialized = JSON.stringify(snapshot);
+3679: 
+3680:       if (lastDraftSerializedRef.current !== serialized) {
+3681:         const previous = parseReportTwoDraftSnapshot(
+3682:           lastDraftSerializedRef.current,
+3683:         );
+3684: 
+3685:         if (previous && !restoringDraftRef.current) {
+3686:           setUndoSnapshots((current) => [previous, ...current].slice(0, 20));
+3687:         }
+3688: 
+3689:         window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3690:         lastDraftSerializedRef.current = serialized;
+3691:         setLastAutoSavedAt(snapshot.savedAt);
+3692:       }
+3693: 
+3694:       restoringDraftRef.current = false;
+3695:     }, 900);
+
+---- around line 3686 ----
+3678:       const serialized = JSON.stringify(snapshot);
+3679: 
+3680:       if (lastDraftSerializedRef.current !== serialized) {
+3681:         const previous = parseReportTwoDraftSnapshot(
+3682:           lastDraftSerializedRef.current,
+3683:         );
+3684: 
+3685:         if (previous && !restoringDraftRef.current) {
+3686:           setUndoSnapshots((current) => [previous, ...current].slice(0, 20));
+3687:         }
+3688: 
+3689:         window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3690:         lastDraftSerializedRef.current = serialized;
+3691:         setLastAutoSavedAt(snapshot.savedAt);
+3692:       }
+3693: 
+3694:       restoringDraftRef.current = false;
+3695:     }, 900);
+3696: 
+3697:     return () => window.clearTimeout(timer);
+3698:   }, [
+3699:     draftRestored,
+3700:     reportTwoDraftStorageKey,
+
+---- around line 3689 ----
+3681:         const previous = parseReportTwoDraftSnapshot(
+3682:           lastDraftSerializedRef.current,
+3683:         );
+3684: 
+3685:         if (previous && !restoringDraftRef.current) {
+3686:           setUndoSnapshots((current) => [previous, ...current].slice(0, 20));
+3687:         }
+3688: 
+3689:         window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3690:         lastDraftSerializedRef.current = serialized;
+3691:         setLastAutoSavedAt(snapshot.savedAt);
+3692:       }
+3693: 
+3694:       restoringDraftRef.current = false;
+3695:     }, 900);
+3696: 
+3697:     return () => window.clearTimeout(timer);
+3698:   }, [
+3699:     draftRestored,
+3700:     reportTwoDraftStorageKey,
+3701:     selectedTemplateOptionId,
+3702:     activeSavedRuntimeTemplateId,
+3703:     runtimeTemplateName,
+
+---- around line 3691 ----
+3683:         );
+3684: 
+3685:         if (previous && !restoringDraftRef.current) {
+3686:           setUndoSnapshots((current) => [previous, ...current].slice(0, 20));
+3687:         }
+3688: 
+3689:         window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3690:         lastDraftSerializedRef.current = serialized;
+3691:         setLastAutoSavedAt(snapshot.savedAt);
+3692:       }
+3693: 
+3694:       restoringDraftRef.current = false;
+3695:     }, 900);
+3696: 
+3697:     return () => window.clearTimeout(timer);
+3698:   }, [
+3699:     draftRestored,
+3700:     reportTwoDraftStorageKey,
+3701:     selectedTemplateOptionId,
+3702:     activeSavedRuntimeTemplateId,
+3703:     runtimeTemplateName,
+3704:     template,
+3705:     headerValues,
+
+---- around line 3697 ----
+3689:         window.localStorage.setItem(reportTwoDraftStorageKey, serialized);
+3690:         lastDraftSerializedRef.current = serialized;
+3691:         setLastAutoSavedAt(snapshot.savedAt);
+3692:       }
+3693: 
+3694:       restoringDraftRef.current = false;
+3695:     }, 900);
+3696: 
+3697:     return () => window.clearTimeout(timer);
+3698:   }, [
+3699:     draftRestored,
+3700:     reportTwoDraftStorageKey,
+3701:     selectedTemplateOptionId,
+3702:     activeSavedRuntimeTemplateId,
+3703:     runtimeTemplateName,
+3704:     template,
+3705:     headerValues,
+3706:     headerAlignments,
+3707:     logoSettings,
+3708:     hiddenRuntimePageIds,
+3709:     runtimePageOrder,
+3710:     activePageId,
+3711:     selectedBlockId,
+
+---- around line 4019 ----
+4011: 
+4012:           <div className="mt-2 flex flex-wrap items-center gap-2">
+4013:             <button
+4014:               type="button"
+4015:               onClick={undoReportTwoLastChange}
+4016:               className="rounded-2xl bg-slate-950 px-3 py-2 text-[11px] font-black text-white transition hover:bg-slate-800"
+4017:             >
+4018:               رجوع عن آخر تعديل
+4019:               {undoSnapshots.length ? ` (${undoSnapshots.length})` : ""}
+4020:             </button>
+4021: 
+4022:             <button
+4023:               type="button"
+4024:               onClick={() => saveReportTwoDraftNow(true)}
+4025:               className="rounded-2xl bg-emerald-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-emerald-800"
+4026:             >
+4027:               حفظ الآن
+4028:             </button>
+4029: 
+4030:             <button
+4031:               type="button"
+4032:               onClick={openReportTwoFinalWizard}
+4033:               className="rounded-2xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-indigo-800"
+
+---- around line 4037 ----
+4029: 
+4030:             <button
+4031:               type="button"
+4032:               onClick={openReportTwoFinalWizard}
+4033:               className="rounded-2xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-indigo-800"
+4034:             >
+4035:               فحص نهائي قبل الاعتماد
+4036:             </button>
+4037:             {!approvedSnapshot ? (
+4038:               <button
+4039:                 type="button"
+4040:                 disabled={reportTwoApprovalSubmitting}
+4041:                 onClick={approveReportTwoSnapshot}
+4042:                 className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+4043:               >
+4044:                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+4045:               </button>
+4046:             ) : (
+4047:               <>
+4048:                 <a
+4049:                   href={approvedSnapshot.previewUrl}
+4050:                   className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+4051:                 >
+
+---- around line 4041 ----
+4033:               className="rounded-2xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-indigo-800"
+4034:             >
+4035:               فحص نهائي قبل الاعتماد
+4036:             </button>
+4037:             {!approvedSnapshot ? (
+4038:               <button
+4039:                 type="button"
+4040:                 disabled={reportTwoApprovalSubmitting}
+4041:                 onClick={approveReportTwoSnapshot}
+4042:                 className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+4043:               >
+4044:                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+4045:               </button>
+4046:             ) : (
+4047:               <>
+4048:                 <a
+4049:                   href={approvedSnapshot.previewUrl}
+4050:                   className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+4051:                 >
+4052:                   معاينة التقرير
+4053:                 </a>
+4054: 
+4055:                 <button
+
+---- around line 4049 ----
+4041:                 onClick={approveReportTwoSnapshot}
+4042:                 className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+4043:               >
+4044:                 {reportTwoApprovalSubmitting ? "جاري الاعتماد..." : "اعتماد التقرير"}
+4045:               </button>
+4046:             ) : (
+4047:               <>
+4048:                 <a
+4049:                   href={approvedSnapshot.previewUrl}
+4050:                   className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+4051:                 >
+4052:                   معاينة التقرير
+4053:                 </a>
+4054: 
+4055:                 <button
+4056:                   type="button"
+4057:                   disabled={reportTwoPdfExporting}
+4058:                   onClick={exportReportTwoPdf}
+4059:                   className="rounded-2xl bg-sky-700 px-4 py-2 text-xs font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+4060:                 >
+4061:                   {reportTwoPdfExporting ? "جاري التحميل..." : "تحميل PDF"}
+4062:                 </button>
+4063:               </>
+
+---- around line 4057 ----
+4049:                   href={approvedSnapshot.previewUrl}
+4050:                   className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+4051:                 >
+4052:                   معاينة التقرير
+4053:                 </a>
+4054: 
+4055:                 <button
+4056:                   type="button"
+4057:                   disabled={reportTwoPdfExporting}
+4058:                   onClick={exportReportTwoPdf}
+4059:                   className="rounded-2xl bg-sky-700 px-4 py-2 text-xs font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+4060:                 >
+4061:                   {reportTwoPdfExporting ? "جاري التحميل..." : "تحميل PDF"}
+4062:                 </button>
+4063:               </>
+4064:             )}
+4065: 
+4066:             {approvedSnapshot ? (
+4067:               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+4068:                 تم اعتماد التقرير
+4069:               </span>
+4070:             ) : null}
+4071: 
+
+---- around line 4058 ----
+4050:                   className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+4051:                 >
+4052:                   معاينة التقرير
+4053:                 </a>
+4054: 
+4055:                 <button
+4056:                   type="button"
+4057:                   disabled={reportTwoPdfExporting}
+4058:                   onClick={exportReportTwoPdf}
+4059:                   className="rounded-2xl bg-sky-700 px-4 py-2 text-xs font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+4060:                 >
+4061:                   {reportTwoPdfExporting ? "جاري التحميل..." : "تحميل PDF"}
+4062:                 </button>
+4063:               </>
+4064:             )}
+4065: 
+4066:             {approvedSnapshot ? (
+4067:               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+4068:                 تم اعتماد التقرير
+4069:               </span>
+4070:             ) : null}
+4071: 
+4072:             {finalCheckConfirmedAt ? (
+
+---- around line 4061 ----
+4053:                 </a>
+4054: 
+4055:                 <button
+4056:                   type="button"
+4057:                   disabled={reportTwoPdfExporting}
+4058:                   onClick={exportReportTwoPdf}
+4059:                   className="rounded-2xl bg-sky-700 px-4 py-2 text-xs font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+4060:                 >
+4061:                   {reportTwoPdfExporting ? "جاري التحميل..." : "تحميل PDF"}
+4062:                 </button>
+4063:               </>
+4064:             )}
+4065: 
+4066:             {approvedSnapshot ? (
+4067:               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+4068:                 تم اعتماد التقرير
+4069:               </span>
+4070:             ) : null}
+4071: 
+4072:             {finalCheckConfirmedAt ? (
+4073:               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+4074:                 جاهز منذ {formatReportTwoSavedAt(finalCheckConfirmedAt)}
+4075:               </span>
+
+---- around line 4066 ----
+4058:                   onClick={exportReportTwoPdf}
+4059:                   className="rounded-2xl bg-sky-700 px-4 py-2 text-xs font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+4060:                 >
+4061:                   {reportTwoPdfExporting ? "جاري التحميل..." : "تحميل PDF"}
+4062:                 </button>
+4063:               </>
+4064:             )}
+4065: 
+4066:             {approvedSnapshot ? (
+4067:               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+4068:                 تم اعتماد التقرير
+4069:               </span>
+4070:             ) : null}
+4071: 
+4072:             {finalCheckConfirmedAt ? (
+4073:               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
+4074:                 جاهز منذ {formatReportTwoSavedAt(finalCheckConfirmedAt)}
+4075:               </span>
+4076:             ) : null}
+4077:           </div>
+4078:         </div>
+4079: 
+4080:         <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
+
+---- around line 4123 ----
+4115:               onClick={() => applySavedRuntimeTemplate(selectedQuickSavedTemplateId)}
+4116:               className="rounded-2xl bg-emerald-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+4117:             >
+4118:               تطبيق
+4119:             </button>
+4120:           </div>
+4121:         </div>
+4122:       </section>
+4123: <section ref={reportTwoPreviewExportRef} data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
+4124:             <style>{`
+4125:               .report-two-a4-host {
+4126:                 overflow-x: hidden;
+4127:               }
+4128: 
+4129:               .report-two-a4-host .report-design-logo-control-style {
+4130:                 display: flex;
+4131:                 flex-direction: column;
+4132:                 align-items: center;
+4133:               }
+4134: 
+4135:               .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4136:                 zoom: 0.72;
+4137:               }
+
+---- around line 4135 ----
+4127:               }
+4128: 
+4129:               .report-two-a4-host .report-design-logo-control-style {
+4130:                 display: flex;
+4131:                 flex-direction: column;
+4132:                 align-items: center;
+4133:               }
+4134: 
+4135:               .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4136:                 zoom: 0.72;
+4137:               }
+4138: 
+4139:               .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+4140:                 zoom: 0.86;
+4141:               }
+4142: 
+4143:               .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+4144:                 zoom: 0.98;
+4145:               }
+4146: 
+4147:               @media (max-width: 1500px) {
+4148:                 .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4149:                   zoom: 0.66;
+
+---- around line 4139 ----
+4131:                 flex-direction: column;
+4132:                 align-items: center;
+4133:               }
+4134: 
+4135:               .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4136:                 zoom: 0.72;
+4137:               }
+4138: 
+4139:               .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+4140:                 zoom: 0.86;
+4141:               }
+4142: 
+4143:               .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+4144:                 zoom: 0.98;
+4145:               }
+4146: 
+4147:               @media (max-width: 1500px) {
+4148:                 .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4149:                   zoom: 0.66;
+4150:                 }
+4151: 
+4152:                 .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+4153:                   zoom: 0.78;
+
+---- around line 4143 ----
+4135:               .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4136:                 zoom: 0.72;
+4137:               }
+4138: 
+4139:               .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+4140:                 zoom: 0.86;
+4141:               }
+4142: 
+4143:               .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+4144:                 zoom: 0.98;
+4145:               }
+4146: 
+4147:               @media (max-width: 1500px) {
+4148:                 .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4149:                   zoom: 0.66;
+4150:                 }
+4151: 
+4152:                 .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+4153:                   zoom: 0.78;
+4154:                 }
+4155: 
+4156:                 .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+4157:                   zoom: 0.9;
+
+---- around line 4148 ----
+4140:                 zoom: 0.86;
+4141:               }
+4142: 
+4143:               .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+4144:                 zoom: 0.98;
+4145:               }
+4146: 
+4147:               @media (max-width: 1500px) {
+4148:                 .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4149:                   zoom: 0.66;
+4150:                 }
+4151: 
+4152:                 .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+4153:                   zoom: 0.78;
+4154:                 }
+4155: 
+4156:                 .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+4157:                   zoom: 0.9;
+4158:                 }
+4159:               }
+4160: 
+4161:               .report-two-a4-host .pdf-report-page {
+4162:                 position: relative !important;
+
+---- around line 4152 ----
+4144:                 zoom: 0.98;
+4145:               }
+4146: 
+4147:               @media (max-width: 1500px) {
+4148:                 .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4149:                   zoom: 0.66;
+4150:                 }
+4151: 
+4152:                 .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+4153:                   zoom: 0.78;
+4154:                 }
+4155: 
+4156:                 .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+4157:                   zoom: 0.9;
+4158:                 }
+4159:               }
+4160: 
+4161:               .report-two-a4-host .pdf-report-page {
+4162:                 position: relative !important;
+4163:                 width: 210mm !important;
+4164:                 min-width: 210mm !important;
+4165:                 max-width: 210mm !important;
+4166:                 height: 297mm !important;
+
+---- around line 4156 ----
+4148:                 .report-two-a4-host.report-two-preview-normal .pdf-report-page {
+4149:                   zoom: 0.66;
+4150:                 }
+4151: 
+4152:                 .report-two-a4-host.report-two-preview-wide .pdf-report-page {
+4153:                   zoom: 0.78;
+4154:                 }
+4155: 
+4156:                 .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+4157:                   zoom: 0.9;
+4158:                 }
+4159:               }
+4160: 
+4161:               .report-two-a4-host .pdf-report-page {
+4162:                 position: relative !important;
+4163:                 width: 210mm !important;
+4164:                 min-width: 210mm !important;
+4165:                 max-width: 210mm !important;
+4166:                 height: 297mm !important;
+4167:                 min-height: 297mm !important;
+4168:                 max-height: 297mm !important;
+4169:                 margin-left: auto !important;
+4170:                 margin-right: auto !important;
+
+---- around line 4161 ----
+4153:                   zoom: 0.78;
+4154:                 }
+4155: 
+4156:                 .report-two-a4-host.report-two-preview-focus .pdf-report-page {
+4157:                   zoom: 0.9;
+4158:                 }
+4159:               }
+4160: 
+4161:               .report-two-a4-host .pdf-report-page {
+4162:                 position: relative !important;
+4163:                 width: 210mm !important;
+4164:                 min-width: 210mm !important;
+4165:                 max-width: 210mm !important;
+4166:                 height: 297mm !important;
+4167:                 min-height: 297mm !important;
+4168:                 max-height: 297mm !important;
+4169:                 margin-left: auto !important;
+4170:                 margin-right: auto !important;
+4171:                 box-sizing: border-box !important;
+4172:                 overflow: hidden !important;
+4173:                 border: 1.5px solid #64748b !important;
+4174:                 outline: 6px solid rgba(15, 23, 42, 0.05) !important;
+4175:                 box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16) !important;
+
+---- around line 4179 ----
+4171:                 box-sizing: border-box !important;
+4172:                 overflow: hidden !important;
+4173:                 border: 1.5px solid #64748b !important;
+4174:                 outline: 6px solid rgba(15, 23, 42, 0.05) !important;
+4175:                 box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16) !important;
+4176:                 aspect-ratio: 210 / 297 !important;
+4177:               }
+4178: 
+4179:               .report-two-a4-host .pdf-report-page::before {
+4180:                 display: none !important;
+4181:               }
+4182:               .report-two-a4-host .pdf-report-page::after {
+4183:                 display: none !important;
+4184:               }
+4185: 
+4186:               @media print {
+4187:                 @page {
+4188:                   size: A4;
+4189:                   margin: 0;
+4190:                 }
+4191: 
+4192:                 .report-two-a4-host {
+4193:                   padding: 0 !important;
+
+---- around line 4182 ----
+4174:                 outline: 6px solid rgba(15, 23, 42, 0.05) !important;
+4175:                 box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16) !important;
+4176:                 aspect-ratio: 210 / 297 !important;
+4177:               }
+4178: 
+4179:               .report-two-a4-host .pdf-report-page::before {
+4180:                 display: none !important;
+4181:               }
+4182:               .report-two-a4-host .pdf-report-page::after {
+4183:                 display: none !important;
+4184:               }
+4185: 
+4186:               @media print {
+4187:                 @page {
+4188:                   size: A4;
+4189:                   margin: 0;
+4190:                 }
+4191: 
+4192:                 .report-two-a4-host {
+4193:                   padding: 0 !important;
+4194:                   background: #ffffff !important;
+4195:                   border: 0 !important;
+4196:                   box-shadow: none !important;
+
+---- around line 4186 ----
+4178: 
+4179:               .report-two-a4-host .pdf-report-page::before {
+4180:                 display: none !important;
+4181:               }
+4182:               .report-two-a4-host .pdf-report-page::after {
+4183:                 display: none !important;
+4184:               }
+4185: 
+4186:               @media print {
+4187:                 @page {
+4188:                   size: A4;
+4189:                   margin: 0;
+4190:                 }
+4191: 
+4192:                 .report-two-a4-host {
+4193:                   padding: 0 !important;
+4194:                   background: #ffffff !important;
+4195:                   border: 0 !important;
+4196:                   box-shadow: none !important;
+4197:                 }
+4198: 
+4199:                 .report-two-a4-host .pdf-report-page {
+4200:                   zoom: 1 !important;
+
+---- around line 4199 ----
+4191: 
+4192:                 .report-two-a4-host {
+4193:                   padding: 0 !important;
+4194:                   background: #ffffff !important;
+4195:                   border: 0 !important;
+4196:                   box-shadow: none !important;
+4197:                 }
+4198: 
+4199:                 .report-two-a4-host .pdf-report-page {
+4200:                   zoom: 1 !important;
+4201:                   margin: 0 !important;
+4202:                   border: 0 !important;
+4203:                   outline: 0 !important;
+4204:                   box-shadow: none !important;
+4205:                 }
+4206: 
+4207:                 .report-two-a4-host .pdf-report-page::before,
+4208:                 .report-two-a4-host .pdf-report-page::after {
+4209:                   display: none !important;
+4210:                 }
+4211:               }
+4212:             `}</style>
+4213: 
+
+---- around line 4207 ----
+4199:                 .report-two-a4-host .pdf-report-page {
+4200:                   zoom: 1 !important;
+4201:                   margin: 0 !important;
+4202:                   border: 0 !important;
+4203:                   outline: 0 !important;
+4204:                   box-shadow: none !important;
+4205:                 }
+4206: 
+4207:                 .report-two-a4-host .pdf-report-page::before,
+4208:                 .report-two-a4-host .pdf-report-page::after {
+4209:                   display: none !important;
+4210:                 }
+4211:               }
+4212:             `}</style>
+4213: 
+4214:             <ReportDesignRenderer
+4215:               suppressAutoEvidencePages
+4216:               chromeLayout="split"
+4217:               designId={template.designTemplateId || "ministry-form"}
+4218:               template={signedVisiblePreviewTemplate}
+4219:               activePage={activePage}
+4220:               activePageId={activePage?.id || activePageId}
+4221:               context={editableRuntimeContext}
+
+---- around line 4208 ----
+4200:                   zoom: 1 !important;
+4201:                   margin: 0 !important;
+4202:                   border: 0 !important;
+4203:                   outline: 0 !important;
+4204:                   box-shadow: none !important;
+4205:                 }
+4206: 
+4207:                 .report-two-a4-host .pdf-report-page::before,
+4208:                 .report-two-a4-host .pdf-report-page::after {
+4209:                   display: none !important;
+4210:                 }
+4211:               }
+4212:             `}</style>
+4213: 
+4214:             <ReportDesignRenderer
+4215:               suppressAutoEvidencePages
+4216:               chromeLayout="split"
+4217:               designId={template.designTemplateId || "ministry-form"}
+4218:               template={signedVisiblePreviewTemplate}
+4219:               activePage={activePage}
+4220:               activePageId={activePage?.id || activePageId}
+4221:               context={editableRuntimeContext}
+4222:               previewCase={previewCase}
+
+---- around line 4248 ----
+4240:               onMovePage={moveReportTwoPage}
+4241:               onDeletePage={deleteReportTwoPage}
+4242:               canMovePage={canMoveReportTwoPage}
+4243:               canDeletePage={canDeleteReportTwoPage}
+4244:             />
+4245:           </section>
+4246: 
+4247:           <section
+4248:             ref={reportTwoPdfStackExportRef}
+4249:             aria-hidden="true"
+4250:             data-report-two-snapshot-source="print-stack"
+4251:             className="report-two-a4-host report-two-pdf-stack-export-root"
+4252:             style={{
+4253:               position: "fixed",
+4254:               top: 0,
+4255:               left: "-10000px",
+4256:               width: "210mm",
+4257:               minHeight: "297mm",
+4258:               background: "#ffffff",
+4259:               pointerEvents: "none",
+4260:               zIndex: -1,
+4261:             }}
+4262:           >
+
+---- around line 4250 ----
+4242:               canMovePage={canMoveReportTwoPage}
+4243:               canDeletePage={canDeleteReportTwoPage}
+4244:             />
+4245:           </section>
+4246: 
+4247:           <section
+4248:             ref={reportTwoPdfStackExportRef}
+4249:             aria-hidden="true"
+4250:             data-report-two-snapshot-source="print-stack"
+4251:             className="report-two-a4-host report-two-pdf-stack-export-root"
+4252:             style={{
+4253:               position: "fixed",
+4254:               top: 0,
+4255:               left: "-10000px",
+4256:               width: "210mm",
+4257:               minHeight: "297mm",
+4258:               background: "#ffffff",
+4259:               pointerEvents: "none",
+4260:               zIndex: -1,
+4261:             }}
+4262:           >
+4263:             <ReportDesignRenderer
+4264:               suppressAutoEvidencePages
+
+---- around line 4251 ----
+4243:               canDeletePage={canDeleteReportTwoPage}
+4244:             />
+4245:           </section>
+4246: 
+4247:           <section
+4248:             ref={reportTwoPdfStackExportRef}
+4249:             aria-hidden="true"
+4250:             data-report-two-snapshot-source="print-stack"
+4251:             className="report-two-a4-host report-two-pdf-stack-export-root"
+4252:             style={{
+4253:               position: "fixed",
+4254:               top: 0,
+4255:               left: "-10000px",
+4256:               width: "210mm",
+4257:               minHeight: "297mm",
+4258:               background: "#ffffff",
+4259:               pointerEvents: "none",
+4260:               zIndex: -1,
+4261:             }}
+4262:           >
+4263:             <ReportDesignRenderer
+4264:               suppressAutoEvidencePages
+4265:               renderMode="stack"
+
+---- around line 5185 ----
+5177:                   حسناً
+5178:                 </button>
+5179:               )}
+5180:             </footer>
+5181:           </section>
+5182:         </div>
+5183:       ) : null}
+5184: 
+5185:       {pendingDraftSnapshot ? (
+5186:         <div
+5187:           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+5188:           dir="rtl"
+5189:         >
+5190:           <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+5191:             <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+5192:               <div>
+5193:                 <p className="text-xs font-black text-emerald-700">
+5194:                   استعادة المسودة
+5195:                 </p>
+5196: 
+5197:                 <h2 className="mt-1 text-xl font-black text-slate-950">
+5198:                   توجد مسودة محفوظة
+5199:                 </h2>
+
+---- around line 5211 ----
+5203:                 </p>
+5204:               </div>
+5205:             </header>
+5206: 
+5207:             <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+5208:               <button
+5209:                 type="button"
+5210:                 onClick={() => {
+5211:                   setPendingDraftSnapshot(null);
+5212:                   setDraftRestored(true);
+5213:                 }}
+5214:                 className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+5215:               >
+5216:                 لا، بداية جديدة
+5217:               </button>
+5218: 
+5219:               <button
+5220:                 type="button"
+5221:                 onClick={() => {
+5222:                   const snapshot = pendingDraftSnapshot;
+5223:                   setPendingDraftSnapshot(null);
+5224:                   restoreReportTwoDraftSnapshot(snapshot);
+5225:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+
+---- around line 5222 ----
+5214:                 className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+5215:               >
+5216:                 لا، بداية جديدة
+5217:               </button>
+5218: 
+5219:               <button
+5220:                 type="button"
+5221:                 onClick={() => {
+5222:                   const snapshot = pendingDraftSnapshot;
+5223:                   setPendingDraftSnapshot(null);
+5224:                   restoreReportTwoDraftSnapshot(snapshot);
+5225:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+5226:                   setLastAutoSavedAt(snapshot.savedAt);
+5227:                   setDraftRestored(true);
+5228:                 }}
+5229:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+5230:               >
+5231:                 نعم، استعادة المسودة
+5232:               </button>
+5233:             </footer>
+5234:           </section>
+5235:         </div>
+5236:       ) : null}
+
+---- around line 5223 ----
+5215:               >
+5216:                 لا، بداية جديدة
+5217:               </button>
+5218: 
+5219:               <button
+5220:                 type="button"
+5221:                 onClick={() => {
+5222:                   const snapshot = pendingDraftSnapshot;
+5223:                   setPendingDraftSnapshot(null);
+5224:                   restoreReportTwoDraftSnapshot(snapshot);
+5225:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+5226:                   setLastAutoSavedAt(snapshot.savedAt);
+5227:                   setDraftRestored(true);
+5228:                 }}
+5229:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+5230:               >
+5231:                 نعم، استعادة المسودة
+5232:               </button>
+5233:             </footer>
+5234:           </section>
+5235:         </div>
+5236:       ) : null}
+5237:       {finalWizardOpen ? (
+
+---- around line 5224 ----
+5216:                 لا، بداية جديدة
+5217:               </button>
+5218: 
+5219:               <button
+5220:                 type="button"
+5221:                 onClick={() => {
+5222:                   const snapshot = pendingDraftSnapshot;
+5223:                   setPendingDraftSnapshot(null);
+5224:                   restoreReportTwoDraftSnapshot(snapshot);
+5225:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+5226:                   setLastAutoSavedAt(snapshot.savedAt);
+5227:                   setDraftRestored(true);
+5228:                 }}
+5229:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+5230:               >
+5231:                 نعم، استعادة المسودة
+5232:               </button>
+5233:             </footer>
+5234:           </section>
+5235:         </div>
+5236:       ) : null}
+5237:       {finalWizardOpen ? (
+5238:         <div
+
+---- around line 5225 ----
+5217:               </button>
+5218: 
+5219:               <button
+5220:                 type="button"
+5221:                 onClick={() => {
+5222:                   const snapshot = pendingDraftSnapshot;
+5223:                   setPendingDraftSnapshot(null);
+5224:                   restoreReportTwoDraftSnapshot(snapshot);
+5225:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+5226:                   setLastAutoSavedAt(snapshot.savedAt);
+5227:                   setDraftRestored(true);
+5228:                 }}
+5229:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+5230:               >
+5231:                 نعم، استعادة المسودة
+5232:               </button>
+5233:             </footer>
+5234:           </section>
+5235:         </div>
+5236:       ) : null}
+5237:       {finalWizardOpen ? (
+5238:         <div
+5239:           className="final-wizard-modal fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+
+---- around line 5226 ----
+5218: 
+5219:               <button
+5220:                 type="button"
+5221:                 onClick={() => {
+5222:                   const snapshot = pendingDraftSnapshot;
+5223:                   setPendingDraftSnapshot(null);
+5224:                   restoreReportTwoDraftSnapshot(snapshot);
+5225:                   lastDraftSerializedRef.current = JSON.stringify(snapshot);
+5226:                   setLastAutoSavedAt(snapshot.savedAt);
+5227:                   setDraftRestored(true);
+5228:                 }}
+5229:                 className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+5230:               >
+5231:                 نعم، استعادة المسودة
+5232:               </button>
+5233:             </footer>
+5234:           </section>
+5235:         </div>
+5236:       ) : null}
+5237:       {finalWizardOpen ? (
+5238:         <div
+5239:           className="final-wizard-modal fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+5240:           dir="rtl"
+
+
+===== related report-2 api files =====
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\approve\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\snapshots\route.ts
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\snapshots\[snapshotId]\route.ts

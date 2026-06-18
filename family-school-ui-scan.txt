@@ -1,0 +1,352 @@
+Family School Communication UI Scan
+Generated: 06/18/2026 03:42:22
+
+===== Route files =====
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\layout.tsx
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\new\page.tsx
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx
+
+===== Keyword matches =====
+D:\student-guidance-platform-clean\app\dashboard\comprehensive-reference\demo\page.tsx:53: subtitle: "التواصل بين الأسرة والمدرسة · مولد · يحتوي ملخص التواصل والتوصيات المنزلية.",
+D:\student-guidance-platform-clean\app\dashboard\comprehensive-reference\demo\page.tsx:62: subtitle: "التواصل بين الأسرة والمدرسة · مرسلة · تم الاتفاق على متابعة الحضور أسبوعيًا.",
+D:\student-guidance-platform-clean\app\dashboard\comprehensive-reference\demo\page.tsx:259: service="التواصل بين الأسرة والمدرسة"
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\new\page.tsx:7: "family-school-communication",
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\new\page.tsx:33: href="/dashboard/family-school-communication"
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\page.tsx:1: import { GuardianSummonsClient } from "@/components/family-school-communication/guardian-summons-client";
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx:7: slug: "family-school-communication",
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx:8: name: "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx:9: description: "توثيق التواصل بين الأسرة والمدرسة.",
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx:35: name: "نموذج التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx:136: export default async function NewFamilySchoolCommunicationPage() {
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\layout.tsx:9: await requireServiceAccessForCurrentUser("family-school-communication");
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\page.tsx:3: export default function FamilySchoolCommunicationPage() {
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\page.tsx:6: serviceSlug="family-school-communication"
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\page.tsx:7: title="التواصل بين الأسرة والمدرسة"
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\page.tsx:9: newButtonLabel="إنشاء تواصل جديد"
+D:\student-guidance-platform-clean\app\pdf-preview\guardian-summons\page.tsx:180: serviceSlug: "family-school-communication",
+D:\student-guidance-platform-clean\app\pdf-preview\guardian-summons\page.tsx:181: serviceName: "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\components\admin\workflows\guardian-summons-workflow-admin-card.tsx:50: ينشئ Workflow مستقل باسم guardian-summons داخل خدمة التواصل بين الأسرة والمدرسة، ثم يظهر للموجه/الموجهة في الداشبورد ويُحفظ كسجل حالة طبيعي.
+D:\student-guidance-platform-clean\components\admin\workflows\guardian-summons-workflow-admin-card.tsx:84: href="/dashboard/family-school-communication/guardian-summons/new"
+D:\student-guidance-platform-clean\components\admin\admin-activity-metrics-panel.tsx:94: "family-school-communication": "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\components\admin\report-text-template-studio.tsx:40: return template.serviceSlug === "family-school-communication";
+D:\student-guidance-platform-clean\components\dashboard\creative-dashboard.tsx:82: href: "/dashboard/family-school-communication",
+D:\student-guidance-platform-clean\components\dashboard\soft-blue-dashboard.tsx:199: href="/dashboard/family-school-communication"
+D:\student-guidance-platform-clean\components\dashboard\soft-blue-dashboard.tsx:201: title="التواصل بين الأسرة والمدرسة"
+D:\student-guidance-platform-clean\components\dashboard\student-guidance-dashboard.tsx:111: title: "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\components\dashboard\student-guidance-dashboard.tsx:142: service: "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\components\document-export\guardian-summons-report-engine-pdf-button.tsx:36: "/api/dashboard/family-school-communication/guardian-summons/export/pdf",
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-client.tsx:12: } from "@/components/family-school-communication/guardian-summons-types";
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-client.tsx:168: التواصل بين الأسرة والمدرسة
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-client.tsx:182: href="/dashboard/family-school-communication/guardian-summons/new"
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-client.tsx:325: href="/dashboard/family-school-communication/guardian-summons/new"
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx:18: } from "@/components/family-school-communication/guardian-summons-types";
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx:126: router.push("/dashboard/family-school-communication/guardian-summons");
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx:135: التواصل بين الأسرة والمدرسة
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx:151: router.push("/dashboard/family-school-communication/guardian-summons")
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx:283: router.push("/dashboard/family-school-communication/guardian-summons");
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx:775: serviceSlug: "family-school-communication",
+D:\student-guidance-platform-clean\components\family-school-communication\guardian-summons-new-client.tsx:776: serviceName: "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:99: label: "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:100: href: "/dashboard/family-school-communication",
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:260: "التواصل بين الأسرة والمدرسة": "الأسرة",
+D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx:98: serviceSlug: "family-school-communication",
+D:\student-guidance-platform-clean\components\report-engine\guardian-summons-letter-preview.tsx:99: serviceName: "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\components\subscription\counselor-plans-page.tsx:87: "family-school-communication": "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx:68: "family-school-communication",
+D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx:80: "family-school-communication",
+D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx:225: "family-school-communication": "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\lib\constants\services.ts:46: slug: "family-school-communication",
+D:\student-guidance-platform-clean\lib\constants\services.ts:47: title: "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\lib\constants\services.ts:48: description: "توثيق التواصل بين الأسرة والمدرسة.",
+D:\student-guidance-platform-clean\lib\constants\services.ts:49: href: "/dashboard/family-school-communication",
+D:\student-guidance-platform-clean\lib\design\tokens.ts:29: "family-school-communication": "from-amber-500 to-orange-500",
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts:242: id: "family-school-communication-official",
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts:246: serviceSlug: "family-school-communication",
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts:247: serviceName: "التواصل بين الأسرة والمدرسة",
+D:\student-guidance-platform-clean\lib\services\service-runtime-policy.ts:26: "family-school-communication": {
+D:\student-guidance-platform-clean\lib\services\service-runtime-policy.ts:27: serviceSlug: "family-school-communication",
+D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts:2: slug: "family-school-communication",
+D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts:3: name: "التواصل بين الأسرة والمدرسة",
+
+===== Route file contents =====
+
+----- D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\new\page.tsx -----
+1: import Link from "next/link";
+2: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+3: import { getRuntimeWorkflowByServiceSlug } from "@/engine/runtime/runtime-resolver";
+4: 
+5: export default async function NewGuardianSummonsPage() {
+6:   const result = await getRuntimeWorkflowByServiceSlug(
+7:     "family-school-communication",
+8:     "guardian-summons",
+9:   );
+10: 
+11:   if (!result) {
+12:     return (
+13:       <main dir="rtl" className="space-y-6 rounded-[2rem] border border-amber-200 bg-amber-50 p-8">
+14:         <div>
+15:           <p className="text-sm font-black text-amber-700">Workflow غير منشور</p>
+16:           <h1 className="mt-2 text-3xl font-black text-amber-950">
+17:             لم يتم نشر نموذج استدعاء ولي أمر بعد
+18:           </h1>
+19:           <p className="mt-3 max-w-3xl text-sm font-semibold leading-7 text-amber-800">
+20:             يجب على الأدمن إنشاء/نشر Workflow استدعاء ولي أمر من صفحة إدارة Workflows قبل استخدامه من الموجه/الموجهة.
+21:           </p>
+22:         </div>
+23: 
+24:         <div className="flex flex-wrap gap-3">
+25:           <Link
+26:             href="/dashboard/admin/workflows"
+27:             className="rounded-2xl bg-amber-700 px-5 py-3 text-sm font-black text-white transition hover:bg-amber-800"
+28:           >
+29:             الذهاب لإدارة Workflows
+30:           </Link>
+31: 
+32:           <Link
+33:             href="/dashboard/family-school-communication"
+34:             className="rounded-2xl border border-amber-300 px-5 py-3 text-sm font-black text-amber-800 transition hover:bg-amber-100"
+35:           >
+36:             رجوع للتواصل مع الأسرة
+37:           </Link>
+38:         </div>
+39:       </main>
+40:     );
+41:   }
+42: 
+43:   return (
+44:     <DynamicFormRenderer
+45:       workflow={result.workflow}
+46:       serviceId={result.service.id}
+47:       requiresStudent
+48:       title="استدعاء ولي أمر"
+49:     />
+50:   );
+51: }
+
+----- D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\page.tsx -----
+1: import { GuardianSummonsClient } from "@/components/family-school-communication/guardian-summons-client";
+2: 
+3: export default function GuardianSummonsPage() {
+4:   return <GuardianSummonsClient />;
+5: }
+
+----- D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx -----
+1: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+2: import { ensureServiceBySlug } from "@/engine/services/service-workspace-engine";
+3: import { prisma } from "@/lib/prisma";
+4: 
+5: async function ensureFamilyCommunicationWorkflow() {
+6:   const service = await ensureServiceBySlug({
+7:     slug: "family-school-communication",
+8:     name: "التواصل بين الأسرة والمدرسة",
+9:     description: "توثيق التواصل بين الأسرة والمدرسة.",
+10:   });
+11: 
+12:   const existingWorkflow = await prisma.workflow.findFirst({
+13:     where: {
+14:       serviceId: service.id,
+15:       isActive: true,
+16:     },
+17:     include: {
+18:       steps: {
+19:         include: {
+20:           fields: {
+21:             include: {
+22:               options: true,
+23:             },
+24:           },
+25:         },
+26:       },
+27:     },
+28:   });
+29: 
+30:   if (existingWorkflow) return { service, workflow: existingWorkflow };
+31: 
+32:   const workflow = await prisma.workflow.create({
+33:     data: {
+34:       serviceId: service.id,
+35:       name: "نموذج التواصل بين الأسرة والمدرسة",
+36:       version: 1,
+37:       status: "ACTIVE",
+38:       isActive: true,
+39:       steps: {
+40:         create: [
+41:           {
+42:             title: "بيانات التواصل",
+43:             description: "حدد طريقة التواصل وسببه.",
+44:             order: 1,
+45:             fields: {
+46:               create: [
+47:                 {
+48:                   key: "communication_method",
+49:                   label: "طريقة التواصل",
+50:                   type: "SELECT",
+51:                   isRequired: true,
+52:                   order: 1,
+53:                   options: {
+54:                     create: [
+55:                       { label: "اتصال هاتفي", value: "phone", order: 1 },
+56:                       { label: "رسالة", value: "message", order: 2 },
+57:                       { label: "حضور ولي الأمر", value: "visit", order: 3 },
+58:                     ],
+59:                   },
+60:                 },
+61:                 {
+62:                   key: "communication_reason",
+63:                   label: "سبب التواصل",
+64:                   type: "SELECT",
+65:                   isRequired: true,
+66:                   order: 2,
+67:                   allowOther: true,
+68:                   options: {
+69:                     create: [
+70:                       { label: "غياب الطالب", value: "absence", order: 1 },
+71:                       { label: "ضعف تحصيلي", value: "low_achievement", order: 2 },
+72:                       { label: "سلوك داخل المدرسة", value: "behavior", order: 3 },
+73:                     ],
+74:                   },
+75:                 },
+76:               ],
+77:             },
+78:           },
+79:           {
+80:             title: "محتوى التواصل",
+81:             description: "وثّق ما تم مناقشته والنتيجة.",
+82:             order: 2,
+83:             fields: {
+84:               create: [
+85:                 {
+86:                   key: "discussion_summary",
+87:                   label: "ما تم مناقشته",
+88:                   type: "TEXTAREA",
+89:                   isRequired: true,
+90:                   order: 1,
+91:                 },
+92:                 {
+93:                   key: "communication_result",
+94:                   label: "نتيجة التواصل",
+95:                   type: "SELECT",
+96:                   isRequired: true,
+97:                   order: 2,
+98:                   allowOther: true,
+99:                   options: {
+100:                     create: [
+101:                       { label: "تم الاتفاق على متابعة", value: "followup", order: 1 },
+102:                       { label: "تم حل المشكلة", value: "resolved", order: 2 },
+103:                       { label: "لم يتم الرد", value: "no_response", order: 3 },
+104:                     ],
+105:                   },
+106:                 },
+107:                 {
+108:                   key: "notes",
+109:                   label: "ملاحظات",
+110:                   type: "TEXTAREA",
+111:                   isRequired: false,
+112:                   order: 3,
+113:                 },
+114:               ],
+115:             },
+116:           },
+117:         ],
+118:       },
+119:     },
+120:     include: {
+121:       steps: {
+122:         include: {
+123:           fields: {
+124:             include: {
+125:               options: true,
+126:             },
+127:           },
+128:         },
+129:       },
+130:     },
+131:   });
+132: 
+133:   return { service, workflow };
+134: }
+135: 
+136: export default async function NewFamilySchoolCommunicationPage() {
+137:   const { service, workflow } = await ensureFamilyCommunicationWorkflow();
+138: 
+139:   const runtimeWorkflow = {
+140:     id: workflow.id,
+141:     name: workflow.name,
+142:     serviceSlug: service.slug,
+143:     steps: workflow.steps
+144:       .sort((a, b) => a.order - b.order)
+145:       .map((step) => ({
+146:         id: step.id,
+147:         title: step.title,
+148:         description: step.description,
+149:         order: step.order,
+150:         fields: step.fields
+151:           .sort((a, b) => a.order - b.order)
+152:           .map((field) => ({
+153:             id: field.id,
+154:             key: field.key,
+155:             label: field.label,
+156:             type: field.type,
+157:             placeholder: field.placeholder,
+158:             helpText: field.helpText,
+159:             isRequired: field.isRequired,
+160:             order: field.order,
+161:             dependsOnFieldKey: field.dependsOnFieldKey,
+162:             linkedToValue: field.linkedToValue,
+163:             allowOther: field.allowOther,
+164:             options: field.options
+165:               .sort((a, b) => a.order - b.order)
+166:               .map((option) => ({
+167:                 id: option.id,
+168:                 label: option.label,
+169:                 value: option.value,
+170:                 order: option.order,
+171:                 linkedToValue: option.linkedToValue,
+172:               })),
+173:           })),
+174:       })),
+175:   };
+176: 
+177:   return (
+178:     <DynamicFormRenderer
+179:       workflow={runtimeWorkflow}
+180:       serviceId={service.id}
+181:       requiresStudent
+182:       title="تواصل بين الأسرة والمدرسة"
+183:     />
+184:   );
+185: }
+
+----- D:\student-guidance-platform-clean\app\dashboard\family-school-communication\layout.tsx -----
+1: import type { ReactNode } from "react";
+2: import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+3: 
+4: export default async function ServiceAccessLayout({
+5:   children,
+6: }: {
+7:   children: ReactNode;
+8: }) {
+9:   await requireServiceAccessForCurrentUser("family-school-communication");
+10: 
+11:   return <>{children}</>;
+12: }
+
+----- D:\student-guidance-platform-clean\app\dashboard\family-school-communication\page.tsx -----
+1: import { WorkflowServiceHomePage } from "@/components/services/workflow-service-home-page";
+2: 
+3: export default function FamilySchoolCommunicationPage() {
+4:   return (
+5:     <WorkflowServiceHomePage
+6:       serviceSlug="family-school-communication"
+7:       title="التواصل بين الأسرة والمدرسة"
+8:       description="وثّق التواصل مع ولي الأمر، واستكمل المسودات، وأصدر التقارير عند الحاجة."
+9:       newButtonLabel="إنشاء تواصل جديد"
+10:       caseSingularName="تواصل"
+11:       casePluralName="تواصلات"
+12:       emptyTitle="لا توجد تواصلات بعد"
+13:       emptyDescription="ابدأ بتوثيق أول تواصل. بعد الحفظ سيظهر هنا كبطاقة سهلة."
+14:     />
+15:   );
+16: }
