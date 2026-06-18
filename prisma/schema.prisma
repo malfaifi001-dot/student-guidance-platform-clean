@@ -1552,3 +1552,109 @@ model SurveyAnswer {
   @@unique([responseId, questionId])
   @@index([questionId])
 }
+
+model CertificateTemplate {
+  id String @id @default(cuid())
+
+  key         String  @unique
+  name        String
+  description String?
+
+  status      String @default("ACTIVE") @db.VarChar(30)
+  pageSize    String @default("A4") @db.VarChar(20)
+  orientation String @default("LANDSCAPE") @db.VarChar(20)
+
+  templatePath     String?
+  previewImagePath String?
+
+  isSystem        Boolean @default(false)
+  schoolAccountId String?
+  createdById     String?
+
+  themeJson Json?
+
+  issuedCertificates IssuedCertificate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([status])
+}
+
+model CertificateBatch {
+  id String @id @default(cuid())
+
+  batchNumber String @unique
+
+  schoolAccountId String
+  createdById     String?
+
+  sourceType String @default("BULK_IMPORT") @db.VarChar(40)
+  sourceId   String?
+
+  status      String @default("DRAFT") @db.VarChar(30)
+  totalCount  Int    @default(0)
+  issuedCount Int    @default(0)
+  failedCount Int    @default(0)
+
+  fileName    String?
+  notes       String? @db.Text
+  optionsJson Json?
+
+  certificates IssuedCertificate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([status])
+}
+
+model IssuedCertificate {
+  id String @id @default(cuid())
+
+  certificateNumber String @unique
+
+  schoolAccountId String
+  createdById     String?
+
+  templateId String?
+  template   CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  batchId String?
+  batch   CertificateBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  certificateType String @db.VarChar(50)
+  recipientType   String @db.VarChar(50)
+
+  recipientName     String
+  recipientIdentity String?
+  recipientStudentId String?
+
+  title  String
+  reason String? @db.Text
+  body   String  @db.Text
+
+  issueDate DateTime @default(now())
+  status    String   @default("ISSUED") @db.VarChar(30)
+
+  sourceType String @default("MANUAL") @db.VarChar(40)
+  sourceId   String?
+
+  pdfUrl       String?
+  htmlSnapshot String? @db.LongText
+  dataJson     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([templateId])
+  @@index([batchId])
+  @@index([recipientStudentId])
+  @@index([sourceType, sourceId])
+  @@index([status])
+}
