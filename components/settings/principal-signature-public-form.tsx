@@ -83,8 +83,7 @@ export function PrincipalSignaturePublicForm({ token }: { token: string }) {
     if (!context) return;
 
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, rect.width, 230);
+    context.clearRect(0, 0, rect.width, 230);
     context.lineWidth = 3;
     context.lineCap = "round";
     context.lineJoin = "round";
@@ -166,8 +165,7 @@ export function PrincipalSignaturePublicForm({ token }: { token: string }) {
 
     const rect = canvas.getBoundingClientRect();
 
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, rect.width, 230);
+    context.clearRect(0, 0, rect.width, 230);
 
     hasSignatureRef.current = false;
     setDraftSignature("");

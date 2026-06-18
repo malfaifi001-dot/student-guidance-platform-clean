@@ -1,5 +1,7 @@
 "use client";
 
+import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+
 import { workflowUploadServices } from "@/lib/constants/services";
 import { useEffect, useMemo, useState } from "react";
 import {

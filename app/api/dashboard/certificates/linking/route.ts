@@ -177,8 +177,10 @@ export async function POST(request: Request) {
   }
 
   const caseId = safeString(body.caseId);
-  const requestedIds = Array.isArray(body.certificateIds)
-    ? body.certificateIds.map(safeString).filter(Boolean)
+  const requestedIds: string[] = Array.isArray(body.certificateIds)
+    ? body.certificateIds
+        .map((item: unknown) => safeString(item))
+        .filter((id: string) => Boolean(id))
     : [];
 
   if (!caseId) {
@@ -209,7 +211,7 @@ export async function POST(request: Request) {
   let validIds: string[] = [];
 
   if (requestedIds.length) {
-    const uniqueIds = Array.from(new Set(requestedIds));
+    const uniqueIds: string[] = Array.from(new Set<string>(requestedIds));
     const placeholders = uniqueIds.map(() => "?").join(", ");
 
     const rows = await certificatePrisma.$queryRawUnsafe<{ id: string }[]>(

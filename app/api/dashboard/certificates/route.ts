@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { certificatePrisma } from "@/lib/certificates/certificate-db";
 import { getCertificateActor } from "@/lib/certificates/certificate-auth";
+import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
 import {
   getCertificateTypeLabel,
   getRecipientPrefix,
@@ -229,6 +230,11 @@ export async function POST(request: Request) {
   const now = new Date();
   const certificateNumber = generateLocalCertificateNumber();
   const columns = await getTableColumns("IssuedCertificate");
+  const signatureProfile = await getCertificateSignatureProfile(
+    actor.schoolAccountId,
+    actor.role,
+    actor.name,
+  );
 
   await insertDynamic("IssuedCertificate", columns, {
     id: certificateId,
@@ -254,8 +260,17 @@ export async function POST(request: Request) {
     pdfUrl: null,
     htmlSnapshot: null,
     dataJson: JSON.stringify({
-      principalName: safeString(payload.principalName),
-      issuerName: safeString(payload.issuerName) || actor.name,
+      principalName:
+        safeString(payload.principalName) ||
+        signatureProfile?.principalName ||
+        "مدير المدرسة",
+      principalSignatureUrl: signatureProfile?.principalSignatureUrl || "",
+      issuerName:
+        safeString(payload.issuerName) ||
+        signatureProfile?.issuerName ||
+        actor.name,
+      issuerTitle: signatureProfile?.issuerTitle || "الموجه الطلابي",
+      issuerSignatureUrl: signatureProfile?.issuerSignatureUrl || "",
     }),
     createdAt: now,
     updatedAt: now,

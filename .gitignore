@@ -19,3 +19,13 @@ noor-workflow-banktransfer-debug.txt
 remaining-mojibake-check.txt
 local-services-plans-check.txt
 production-services-plans-check.txt
+
+
+_local-diagnostics/
+app/api/local-diagnostics/
+public/uploads/certificates/
+public/uploads/school-signatures/
+/_local-diagnostics/
+/app/api/local-diagnostics/
+/public/uploads/certificates/
+/public/uploads/school-signatures/

@@ -1,3 +1,4 @@
+import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
@@ -28,7 +29,7 @@ function safeFileName(value: string) {
 async function getCertificate(certificateId: string, schoolAccountId: string) {
   const rows = await certificatePrisma.$queryRawUnsafe<CertificateRenderRecord[]>(
     `
-    SELECT id, certificateNumber, certificateType, recipientType, recipientName,
+    SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
     WHERE id = ? AND schoolAccountId = ?
@@ -68,7 +69,16 @@ export async function POST(request: Request, context: RouteContext) {
     safeFileName(requestedFileName) ||
     safeFileName(`${certificate.recipientName} - ${certificate.certificateNumber}.pdf`);
 
-  const html = renderCertificateDocumentHtml(certificate);
+  const signatureProfile = await getCertificateSignatureProfile(
+    certificate.schoolAccountId,
+    actor.role,
+    actor.name,
+  );
+
+  const html = renderCertificateDocumentHtml(certificate, {
+    baseUrl: new URL(request.url).origin,
+    signatureProfile,
+  });
 
   try {
     const puppeteer = await import("puppeteer");

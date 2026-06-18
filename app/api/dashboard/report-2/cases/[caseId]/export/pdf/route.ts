@@ -4,6 +4,10 @@ import path from "path";
 import { NextResponse } from "next/server";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  REPORT_ATTACHED_CERTIFICATES_FIELD_KEY,
+  renderLinkedCertificatesAttachmentHtml,
+} from "@/lib/certificates/report-certificate-attachments";
 
 export const runtime = "nodejs";
 
@@ -48,22 +52,110 @@ function toArrayBuffer(buffer: Buffer) {
 
 function getRequestOrigin(request: Request) {
   const url = new URL(request.url);
-  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || url.host;
-  const proto = request.headers.get("x-forwarded-proto") || url.protocol.replace(":", "") || "http";
+  const host =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    url.host;
+  const proto =
+    request.headers.get("x-forwarded-proto") ||
+    url.protocol.replace(":", "") ||
+    "http";
 
   return `${proto}://${host}`;
 }
 
+function isPrivateReportFieldObject(value: Record<string, unknown>) {
+  const directKeys = [
+    "fieldKey",
+    "key",
+    "name",
+    "id",
+    "code",
+    "slug",
+    "fieldName",
+    "technicalName",
+  ];
+
+  for (const key of directKeys) {
+    if (String(value[key] || "").trim() === REPORT_ATTACHED_CERTIFICATES_FIELD_KEY) {
+      return true;
+    }
+  }
+
+  const textKeys = ["label", "title", "text", "content"];
+
+  for (const key of textKeys) {
+    const text = String(value[key] || "").trim();
+
+    if (text === REPORT_ATTACHED_CERTIFICATES_FIELD_KEY) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function sanitizeReportTwoSnapshot(value: unknown, depth = 0): unknown {
+  if (depth > 80) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizeReportTwoSnapshot(item, depth + 1))
+      .filter((item) => item !== null && item !== undefined);
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    if (isPrivateReportFieldObject(record)) {
+      return null;
+    }
+
+    const output: Record<string, unknown> = {};
+
+    for (const [key, item] of Object.entries(record)) {
+      if (key === REPORT_ATTACHED_CERTIFICATES_FIELD_KEY) {
+        continue;
+      }
+
+      const cleaned = sanitizeReportTwoSnapshot(item, depth + 1);
+
+      if (cleaned !== null && cleaned !== undefined) {
+        output[key] = cleaned;
+      }
+    }
+
+    return output;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    if (trimmed === REPORT_ATTACHED_CERTIFICATES_FIELD_KEY) {
+      return "";
+    }
+  }
+
+  return value;
+}
+
 async function cleanupStaleSnapshots(ttlMs = 60 * 60 * 1000) {
   const dir = getReportTwoExportSnapshotDir();
+
   try {
     const files = await fs.readdir(dir);
     const now = Date.now();
+
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
+
       const filePath = path.join(dir, file);
+
       try {
         const stat = await fs.stat(filePath);
+
         if (now - stat.mtimeMs > ttlMs) {
           await fs.unlink(filePath);
         }
@@ -96,7 +188,8 @@ export async function POST(request: Request, context: RouteContext) {
   if (!access.ok) {
     return NextResponse.json(
       {
-        error: "لا تملك صلاحية تصدير هذا التقرير أو أن الحالة غير موجودة.",
+        error:
+          "لا تملك صلاحية تصدير هذا التقرير أو أن الحالة غير موجودة.",
       },
       {
         status: access.status || 404,
@@ -105,7 +198,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const body = await readBody(request);
-  const snapshot = body.snapshot as any;
+  const snapshot = sanitizeReportTwoSnapshot(body.snapshot) as any;
 
   if (!snapshot?.template?.pages?.length) {
     return NextResponse.json(
@@ -125,6 +218,15 @@ export async function POST(request: Request, context: RouteContext) {
   const previewUrl = `${origin}/report-2-export-preview/${token}`;
   const printPreviewUrl = `${previewUrl}?print=1`;
   const fileName = safeDownloadFileName(body.fileName || "report.pdf");
+  const linkedCertificatesHtml = await renderLinkedCertificatesAttachmentHtml(
+    caseId,
+    {
+      baseUrl: origin,
+      role: current.user.role,
+      fallbackIssuerName:
+        current.user.officialName || current.user.name || "المستخدم",
+    },
+  );
 
   await fs.mkdir(snapshotDir, {
     recursive: true,
@@ -140,7 +242,8 @@ export async function POST(request: Request, context: RouteContext) {
         fallback: "PRINT_PREVIEW",
         previewUrl: `${previewUrl}?print=1`,
         fileName,
-        message: "Server PDF generation is disabled. Opening browser print preview.",
+        message:
+          "Server PDF generation is disabled. Opening browser print preview.",
       },
       { status: 200 },
     );
@@ -149,9 +252,10 @@ export async function POST(request: Request, context: RouteContext) {
   let browser: any = null;
 
   try {
-    const runtimeImport = new Function("specifier", "return import(specifier)") as (
-      specifier: string,
-    ) => Promise<typeof import("puppeteer")>;
+    const runtimeImport = new Function(
+      "specifier",
+      "return import(specifier)",
+    ) as (specifier: string) => Promise<typeof import("puppeteer")>;
 
     const puppeteerModule = await runtimeImport("puppeteer");
     const puppeteer = puppeteerModule.default || puppeteerModule;
@@ -222,8 +326,17 @@ export async function POST(request: Request, context: RouteContext) {
         body {
           margin: 0 !important;
           padding: 0 !important;
-          width: 210mm !important;
+          width: auto !important;
+          min-width: 210mm !important;
           min-height: 297mm !important;
+          background: #ffffff !important;
+          overflow: visible !important;
+        }
+
+        main {
+          width: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
           background: #ffffff !important;
           overflow: visible !important;
         }
@@ -237,7 +350,7 @@ export async function POST(request: Request, context: RouteContext) {
           height: 297mm !important;
           min-height: 297mm !important;
           max-height: 297mm !important;
-          margin: 0 !important;
+          margin: 0 auto !important;
           box-shadow: none !important;
           transform: none !important;
           zoom: 1 !important;
@@ -260,41 +373,85 @@ export async function POST(request: Request, context: RouteContext) {
       `,
     });
 
-    const pageCount = await page.evaluate(() => {
-      const selectors = [
-        ".pdf-report-page",
-        "[data-report-design-page]",
-        ".report-design-page",
-      ];
+    const pageCount = await page.evaluate(
+      ({
+        attachmentHtml,
+        privateFieldKey,
+      }: {
+        attachmentHtml: string;
+        privateFieldKey: string;
+      }) => {
+        function removePrivateFieldBlocks() {
+          const nodes = Array.from(
+            document.querySelectorAll<HTMLElement>(
+              "[data-field-key], [data-key], [data-field-id], tr, li, div, p, span",
+            ),
+          );
 
-      const pages = Array.from(
-        new Set(
-          selectors.flatMap((selector) =>
-            Array.from(document.querySelectorAll<HTMLElement>(selector)),
+          for (const node of nodes) {
+            const text = node.textContent || "";
+
+            if (!text.includes(privateFieldKey)) continue;
+
+            const rect = node.getBoundingClientRect();
+
+            if (rect.height > 280 || rect.width > 900) continue;
+
+            const target =
+              (node.closest(
+                "[data-field-key], [data-key], [data-field-id], tr, li",
+              ) as HTMLElement | null) || node;
+
+            target.remove();
+          }
+        }
+
+        removePrivateFieldBlocks();
+
+        const selectors = [
+          ".pdf-report-page",
+          "[data-report-design-page]",
+          ".report-design-page",
+        ];
+
+        const pages = Array.from(
+          new Set(
+            selectors.flatMap((selector) =>
+              Array.from(document.querySelectorAll<HTMLElement>(selector)),
+            ),
           ),
-        ),
-      ).filter((item) => {
-        const rect = item.getBoundingClientRect();
+        ).filter((item) => {
+          const rect = item.getBoundingClientRect();
 
-        return rect.width > 100 && rect.height > 100;
-      });
+          return rect.width > 100 && rect.height > 100;
+        });
 
-      const main = document.createElement("main");
+        const main = document.createElement("main");
 
-      main.setAttribute("dir", "rtl");
-      main.style.width = "210mm";
-      main.style.margin = "0";
-      main.style.padding = "0";
-      main.style.background = "#ffffff";
+        main.setAttribute("dir", "rtl");
+        main.style.width = "auto";
+        main.style.margin = "0";
+        main.style.padding = "0";
+        main.style.background = "#ffffff";
+        main.style.overflow = "visible";
 
-      pages.forEach((item) => {
-        main.appendChild(item.cloneNode(true));
-      });
+        pages.forEach((item) => {
+          main.appendChild(item.cloneNode(true));
+        });
 
-      document.body.replaceChildren(main);
+        if (attachmentHtml.trim()) {
+          main.insertAdjacentHTML("beforeend", attachmentHtml);
+        }
 
-      return pages.length;
-    });
+        document.body.replaceChildren(main);
+
+        return pages.length;
+      },
+      {
+        attachmentHtml: linkedCertificatesHtml,
+        privateFieldKey: REPORT_ATTACHED_CERTIFICATES_FIELD_KEY,
+      },
+    );
 
     if (!pageCount) {
       return NextResponse.json(
@@ -331,7 +488,10 @@ export async function POST(request: Request, context: RouteContext) {
       },
     });
   } catch (error) {
-    console.error("Report-2 PDF generation failed, falling back to print preview:", error);
+    console.error(
+      "Report-2 PDF generation failed, falling back to print preview:",
+      error,
+    );
 
     return NextResponse.json(
       {

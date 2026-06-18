@@ -1,3 +1,5 @@
+import { CertificatePrintButton } from "@/components/certificates/certificate-print-button";
+import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
 import { notFound, redirect } from "next/navigation";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +17,7 @@ type PageProps = {
 async function getCertificate(certificateId: string, schoolAccountId: string) {
   const rows = await prisma.$queryRawUnsafe<CertificateRenderRecord[]>(
     `
-    SELECT id, certificateNumber, certificateType, recipientType, recipientName,
+    SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
     WHERE id = ? AND schoolAccountId = ?
@@ -42,7 +44,15 @@ export default async function CertificatePrintPreviewPage({ params }: PageProps)
     notFound();
   }
 
-  const html = renderCertificateDocumentHtml(certificate);
+  const signatureProfile = await getCertificateSignatureProfile(
+    certificate.schoolAccountId,
+    current.user.role,
+    current.user.officialName || current.user.name || "المستخدم",
+  );
+
+  const html = renderCertificateDocumentHtml(certificate, {
+    signatureProfile,
+  });
 
   return (
     <main className="min-h-screen bg-slate-200" dir="rtl">
@@ -59,13 +69,7 @@ export default async function CertificatePrintPreviewPage({ params }: PageProps)
             >
               العودة للأرشيف
             </a>
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="rounded-full bg-slate-950 px-5 py-2 text-sm font-bold text-white"
-            >
-              طباعة / حفظ PDF
-            </button>
+            <CertificatePrintButton />
           </div>
         </div>
       </div>

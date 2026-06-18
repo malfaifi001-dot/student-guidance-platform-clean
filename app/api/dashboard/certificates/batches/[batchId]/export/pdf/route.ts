@@ -5,6 +5,7 @@ import {
   renderCertificatesBatchDocumentHtml,
   type BatchCertificateRenderRecord,
 } from "@/lib/certificates/certificate-batch-renderer";
+import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ type RouteContext = {
 async function getBatchCertificates(batchId: string, schoolAccountId: string) {
   const rows = await certificatePrisma.$queryRawUnsafe<BatchCertificateRenderRecord[]>(
     `
-    SELECT id, certificateNumber, certificateType, recipientType, recipientName,
+    SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
     WHERE batchId = ? AND schoolAccountId = ?
@@ -56,6 +57,20 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
+  const batchSchoolAccountId = certificates[0].schoolAccountId;
+  const isAuthenticatedSchoolBatch = certificates.every(
+    (certificate) =>
+      certificate.schoolAccountId === actor.schoolAccountId &&
+      certificate.schoolAccountId === batchSchoolAccountId,
+  );
+
+  if (!isAuthenticatedSchoolBatch) {
+    return NextResponse.json(
+      { error: "لم يتم العثور على شهادات هذه الدفعة." },
+      { status: 404 },
+    );
+  }
+
   let requestedFileName = "";
 
   try {
@@ -69,7 +84,16 @@ export async function POST(request: Request, context: RouteContext) {
     safeFileName(requestedFileName) ||
     safeFileName(`دفعة شهادات - ${new Date().toISOString().slice(0, 10)}.pdf`);
 
-  const html = renderCertificatesBatchDocumentHtml(certificates);
+  const signatureProfile = await getCertificateSignatureProfile(
+    batchSchoolAccountId,
+    actor.role,
+    actor.name,
+  );
+
+  const html = renderCertificatesBatchDocumentHtml(certificates, {
+    baseUrl: new URL(request.url).origin,
+    signatureProfile,
+  });
 
   try {
     const puppeteer = await import("puppeteer");

@@ -1,3 +1,4 @@
+import { CertificatePrintButton } from "@/components/certificates/certificate-print-button";
 import { notFound, redirect } from "next/navigation";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/prisma";
@@ -5,6 +6,7 @@ import {
   renderCertificatesBatchDocumentHtml,
   type BatchCertificateRenderRecord,
 } from "@/lib/certificates/certificate-batch-renderer";
+import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
 
 type PageProps = {
   params: Promise<{
@@ -15,7 +17,7 @@ type PageProps = {
 async function getBatchCertificates(batchId: string, schoolAccountId: string) {
   const rows = await prisma.$queryRawUnsafe<BatchCertificateRenderRecord[]>(
     `
-    SELECT id, certificateNumber, certificateType, recipientType, recipientName,
+    SELECT id, schoolAccountId, certificateNumber, certificateType, recipientType, recipientName,
            title, reason, body, issueDate, dataJson
     FROM IssuedCertificate
     WHERE batchId = ? AND schoolAccountId = ?
@@ -42,7 +44,26 @@ export default async function CertificatesBatchPrintPreviewPage({ params }: Page
     notFound();
   }
 
-  const html = renderCertificatesBatchDocumentHtml(certificates);
+  const batchSchoolAccountId = certificates[0].schoolAccountId;
+  const isAuthenticatedSchoolBatch = certificates.every(
+    (certificate) =>
+      certificate.schoolAccountId === current.user.schoolAccountId &&
+      certificate.schoolAccountId === batchSchoolAccountId,
+  );
+
+  if (!isAuthenticatedSchoolBatch) {
+    notFound();
+  }
+
+  const signatureProfile = await getCertificateSignatureProfile(
+    batchSchoolAccountId,
+    current.user.role,
+    current.user.officialName || current.user.name || "المستخدم",
+  );
+
+  const html = renderCertificatesBatchDocumentHtml(certificates, {
+    signatureProfile,
+  });
 
   return (
     <main className="min-h-screen bg-slate-200" dir="rtl">
@@ -63,28 +84,12 @@ export default async function CertificatesBatchPrintPreviewPage({ params }: Page
               العودة للأرشيف
             </a>
 
-            <button
-              id="print-batch-certificates"
-              type="button"
-              className="rounded-full bg-slate-950 px-5 py-2 text-sm font-bold text-white"
-            >
-              طباعة / حفظ PDF
-            </button>
+            <CertificatePrintButton />
           </div>
         </div>
       </div>
 
       <div dangerouslySetInnerHTML={{ __html: html }} />
-
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            document.getElementById("print-batch-certificates")?.addEventListener("click", function () {
-              window.print();
-            });
-          `,
-        }}
-      />
     </main>
   );
 }

@@ -1,3 +1,4 @@
+import { isPrivateReportFieldKey } from "@/lib/report-engine/report-private-fields";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -88,6 +89,10 @@ function cleanText(value: unknown) {
 
 function shouldHideCaseValue(fieldKey: string) {
   const key = String(fieldKey || "").trim();
+
+  if (isPrivateReportFieldKey(key)) {
+    return true;
+  }
 
   return (
     ["student", "guardian", "metadata", "selectedStudent"].includes(key) ||

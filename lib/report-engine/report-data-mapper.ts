@@ -1,3 +1,4 @@
+import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import type {
   EvidenceLayout,
   OfficialReportData,
@@ -173,6 +174,7 @@ export function buildOfficialReportDataFromCase({
 }
 
 function buildReportSections(values?: CaseValueLike[]): ReportSection[] {
+  values = filterPrivateReportValues(values || []);
   const safeValues = values || [];
 
   const intro =

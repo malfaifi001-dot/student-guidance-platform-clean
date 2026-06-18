@@ -1072,8 +1072,7 @@ function SchoolSignaturePadModal({
     if (!context) return;
 
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, rect.width, 190);
+    context.clearRect(0, 0, rect.width, 190);
     context.lineWidth = 3;
     context.lineCap = "round";
     context.lineJoin = "round";
@@ -1149,8 +1148,7 @@ function SchoolSignaturePadModal({
 
     const rect = canvas.getBoundingClientRect();
 
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, rect.width, 190);
+    context.clearRect(0, 0, rect.width, 190);
 
     hasSignatureRef.current = false;
     setDraftSignature("");

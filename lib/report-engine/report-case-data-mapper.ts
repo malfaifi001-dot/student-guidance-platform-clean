@@ -1,3 +1,4 @@
+import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 export type ReportMappedStudent = {
   id?: string;
   fullName: string;

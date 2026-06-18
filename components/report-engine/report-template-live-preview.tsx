@@ -1,5 +1,7 @@
 "use client";
 
+import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+
 import type { ReactNode } from "react";
 import type {
   ReportTemplateBlock,

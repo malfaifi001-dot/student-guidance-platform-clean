@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { certificatePrisma } from "@/lib/certificates/certificate-db";
 import { getCertificateActor } from "@/lib/certificates/certificate-auth";
+import { getCertificateSignatureProfile } from "@/lib/certificates/certificate-signature-profile";
 import {
   getCertificateTypeLabel,
   getRecipientPrefix,
@@ -162,6 +163,11 @@ export async function POST(request: Request) {
   const batchTitle =
     safeString(body.batchTitle) ||
     `دفعة شهادات - ${new Date().toISOString().slice(0, 10)}`;
+  const signatureProfile = await getCertificateSignatureProfile(
+    actor.schoolAccountId,
+    actor.role,
+    actor.name,
+  );
 
   try {
     const result = await certificatePrisma.$transaction(async (tx) => {
@@ -232,8 +238,20 @@ export async function POST(request: Request) {
             source,
             batchId,
             batchNumber,
-            principalName: row.principalName || "",
-            issuerName: row.issuerName || actor.name,
+            principalName:
+              row.principalName ||
+              signatureProfile?.principalName ||
+              "مدير المدرسة",
+            principalSignatureUrl:
+              signatureProfile?.principalSignatureUrl || "",
+            issuerName:
+              row.issuerName ||
+              signatureProfile?.issuerName ||
+              actor.name,
+            issuerTitle:
+              signatureProfile?.issuerTitle || "الموجه الطلابي",
+            issuerSignatureUrl:
+              signatureProfile?.issuerSignatureUrl || "",
           }),
           createdAt: now,
           updatedAt: now,

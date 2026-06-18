@@ -1,3 +1,4 @@
+import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type {
@@ -162,7 +163,7 @@ export async function GET(request: Request) {
           }
         : undefined,
 
-      values: normalizeCaseValues(caseEntry),
+      values: filterPrivateReportValues(normalizeCaseValues(caseEntry)),
       evidences: normalizeEvidences(caseEntry),
     };
 

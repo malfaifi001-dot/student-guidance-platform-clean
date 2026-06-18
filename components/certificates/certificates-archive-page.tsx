@@ -488,13 +488,7 @@ export function CertificatesArchivePage() {
             </p>
           </div>
 
-          <Link
-            href="/dashboard/certificates/new"
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-            إنشاء شهادة
-          </Link>
+          
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[1.3fr_0.8fr_0.8fr]">

@@ -1,3 +1,4 @@
+import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { prisma } from "@/lib/prisma";
 import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
 import type {
@@ -467,7 +468,7 @@ export async function buildSmartReportPayloadForCase({
     };
   }
 
-  const values = normalizeCaseValues(caseEntry);
+  const values = filterPrivateReportValues(normalizeCaseValues(caseEntry));
   const title = findTitle(caseEntry, values);
   const serviceSlug = caseEntry.service?.slug || "general";
   const serviceName = caseEntry.service?.name || "خدمة";
