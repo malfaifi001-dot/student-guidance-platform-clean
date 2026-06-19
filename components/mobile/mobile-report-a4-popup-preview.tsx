@@ -321,6 +321,57 @@ export function MobileReportA4PopupPreview({
         .mobile-a4-popup-frame .report-design-page:last-child {
           margin-bottom: 0 !important;
         }
+
+        /*
+          Force A4 print layout inside the popup.
+          Tailwind sm:/md: classes depend on the real phone viewport,
+          so we override them here to keep A4 fields side-by-side.
+        */
+        .mobile-a4-popup-frame .sm\:grid-cols-2,
+        .mobile-a4-popup-frame .md\:grid-cols-2,
+        .mobile-a4-popup-frame .lg\:grid-cols-2 {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame .sm\:grid-cols-3,
+        .mobile-a4-popup-frame .md\:grid-cols-3,
+        .mobile-a4-popup-frame .lg\:grid-cols-3 {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame .sm\:grid-cols-4,
+        .mobile-a4-popup-frame .md\:grid-cols-4,
+        .mobile-a4-popup-frame .lg\:grid-cols-4 {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame .sm\:grid-cols-5,
+        .mobile-a4-popup-frame .md\:grid-cols-5,
+        .mobile-a4-popup-frame .lg\:grid-cols-5 {
+          grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        }
+        /*
+          Force A4 print layout inside the popup.
+          Tailwind responsive classes depend on the real phone viewport,
+          so these selectors keep A4 grids side-by-side.
+        */
+        .mobile-a4-popup-frame [class~="sm:grid-cols-2"],
+        .mobile-a4-popup-frame [class~="md:grid-cols-2"],
+        .mobile-a4-popup-frame [class~="lg:grid-cols-2"] {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame [class~="sm:grid-cols-3"],
+        .mobile-a4-popup-frame [class~="md:grid-cols-3"],
+        .mobile-a4-popup-frame [class~="lg:grid-cols-3"] {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame [class~="sm:grid-cols-4"],
+        .mobile-a4-popup-frame [class~="md:grid-cols-4"],
+        .mobile-a4-popup-frame [class~="lg:grid-cols-4"] {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        }
       `}</style>
 
       <div className="flex max-h-[86vh] w-full max-w-[390px] flex-col overflow-hidden rounded-[2.1rem] bg-white shadow-2xl shadow-sky-950/20 ring-1 ring-white/80" onClick={(event) => event.stopPropagation()}>
