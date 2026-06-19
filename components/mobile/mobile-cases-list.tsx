@@ -199,7 +199,7 @@ export function MobileCasesList({ cases }: { cases: MobileCaseRow[] }) {
   return (
     <MobileAppShell activeSection="cases">
       <div className="space-y-4">
-        <section className="relative overflow-hidden rounded-[1.8rem] bg-sky-100/80 p-4 text-slate-950 shadow-xl shadow-sky-100">
+        <section className="mobile-hero-card-dark relative overflow-hidden rounded-[1.8rem] p-4">
           <div className="absolute -left-12 -top-12 h-32 w-32 rounded-full bg-sky-200/70 blur-2xl" />
           <div className="absolute -bottom-16 right-10 h-36 w-36 rounded-full bg-cyan-100/80 blur-2xl" />
 

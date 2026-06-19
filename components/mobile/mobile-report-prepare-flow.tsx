@@ -77,21 +77,6 @@ function buildInitialSummarySource(): ReportFlowExecutionSummarySource {
 function getFieldSearchText(field: ReportFlowPrepareField) {
   return `${field.label} ${field.value} ${field.key}`.toLowerCase();
 }
-
-function formatUpdatedAt(value: string) {
-  if (!value) return "بدون تاريخ";
-
-  try {
-    return new Date(value).toLocaleDateString("ar-SA", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "بدون تاريخ";
-  }
-}
-
 function HeroCard({
   title,
   subtitle,
@@ -100,25 +85,25 @@ function HeroCard({
   subtitle: string;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-[1.8rem] bg-sky-100/80 p-4 text-slate-950 shadow-xl shadow-sky-100">
+    <section className="relative overflow-hidden rounded-[1.8rem] bg-gradient-to-br from-[#064967] to-[#075f7a] p-4 text-white shadow-xl shadow-sky-900/20">
       <div className="absolute -left-12 -top-12 h-32 w-32 rounded-full bg-sky-200/70 blur-2xl" />
       <div className="absolute -bottom-16 right-10 h-36 w-36 rounded-full bg-cyan-100/80 blur-2xl" />
 
       <div className="relative">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-black text-sky-700">تقرير الجوال</p>
+            <p className="text-xs font-black text-sky-100">تقرير الجوال</p>
             <h1 className="mt-1 text-[1.55rem] font-black leading-tight tracking-tight">
               {title}
             </h1>
           </div>
 
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80 text-sky-700 ring-1 ring-sky-100">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20">
             <MobileIcon name="file" className="h-5 w-5" />
           </span>
         </div>
 
-        <p className="mt-3 text-sm font-bold leading-7 text-slate-700">
+        <p className="mt-3 text-sm font-bold leading-7 text-sky-50/90">
           {subtitle}
         </p>
       </div>
@@ -136,7 +121,7 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[1.6rem] bg-white/85 p-4 shadow-sm ring-1 ring-white/90 backdrop-blur-xl">
+    <section className="rounded-[1.6rem] bg-white/95 p-4 shadow-sm ring-1 ring-sky-100/70 backdrop-blur-xl">
       <div className="mb-3">
         <h2 className="text-base font-black text-slate-950">{title}</h2>
         {description ? (
@@ -159,10 +144,11 @@ export function MobileReportPrepareFlow({
   initialTemplateId = "",
 }: MobileReportPrepareFlowProps) {
   const router = useRouter();
+  void variants;
+  void templates;
   const context = useMemo(() => buildReportFlowContext(payload), [payload]);
-  const [activeVariantId, setActiveVariantId] =
-    useState<ReportVariantId>(selectedVariantId);
-  const [activeTemplateId, setActiveTemplateId] = useState(initialTemplateId);
+  const [activeVariantId] = useState<ReportVariantId>(selectedVariantId);
+  const [activeTemplateId] = useState(initialTemplateId);
   const [hydratedVariantId, setHydratedVariantId] = useState<string>("");
   const [fields, setFields] = useState<ReportFlowPrepareField[]>(() =>
     buildReportFlowPrepareFields(payload),
@@ -173,6 +159,7 @@ export function MobileReportPrepareFlow({
   const [summarySource, setSummarySource] =
     useState<ReportFlowExecutionSummarySource>(() => buildInitialSummarySource());
   const [search, setSearch] = useState("");
+  const [fieldsPanelOpen, setFieldsPanelOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>({
     open: false,
@@ -199,14 +186,7 @@ export function MobileReportPrepareFlow({
     setSummarySource(buildInitialSummarySource());
     setHydratedVariantId(activeVariantId);
   }, [activeVariantId, payload]);
-
-  const selectedVariant =
-    variants.find((variant) => variant.id === activeVariantId) || variants[0];
-
-  const selectedTemplate =
-    templates.find((template) => template.id === activeTemplateId) || null;
-
-  const selectedFields = useMemo(
+const selectedFields = useMemo(
     () =>
       fields
         .filter((field) => field.selected)
@@ -384,137 +364,38 @@ export function MobileReportPrepareFlow({
           <MobileIcon name="arrow" className="h-4 w-4" />
           العودة إلى الحالة
         </Link>
-
-        <SectionCard title="ملخص سريع" description="نفس بيانات الحالة المستخدمة في تقرير لوحة التحكم.">
-          <div className="space-y-2.5">
-            <div className="rounded-[1.35rem] bg-sky-50/90 p-3 ring-1 ring-sky-100">
-              <p className="text-[11px] font-black text-sky-700">عنوان التقرير</p>
-              <p className="mt-1 text-sm font-black leading-7 text-slate-950">
-                {payload.title || payload.caseInfo.title || "تقرير بدون عنوان"}
+        <section className="overflow-hidden rounded-[1.7rem] bg-white p-0 shadow-sm ring-1 ring-slate-100">
+          <button
+            type="button"
+            onClick={() => setFieldsPanelOpen((open) => !open)}
+            aria-expanded={fieldsPanelOpen}
+            className="flex w-full items-center justify-between gap-3 p-4 text-right transition active:scale-[0.995]"
+          >
+            <div className="min-w-0">
+              <p className="text-[11px] font-black text-sky-700">
+                الحقول المختارة
+              </p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">
+                {selectedFields.length} من أصل {fields.length} حقل
+              </h2>
+              <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                اضغط لعرض الحقول وتعديل طريقة ظهورها داخل التقرير.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-[1.35rem] bg-slate-50/90 p-3 ring-1 ring-slate-100">
-                <p className="text-[11px] font-black text-slate-500">الخدمة</p>
-                <p className="mt-1 text-sm font-black text-slate-900">
-                  {payload.service.name}
-                </p>
-              </div>
+            <span
+              className={[
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-sky-700 ring-1 ring-slate-100 transition",
+                fieldsPanelOpen ? "-rotate-90" : "rotate-0",
+              ].join(" ")}
+            >
+              <MobileIcon name="arrow" className="h-5 w-5" />
+            </span>
+          </button>
 
-              <div className="rounded-[1.35rem] bg-slate-50/90 p-3 ring-1 ring-slate-100">
-                <p className="text-[11px] font-black text-slate-500">الشواهد</p>
-                <p className="mt-1 text-sm font-black text-slate-900">
-                  {payload.evidence.items.length}
-                </p>
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="نوع التقرير" description="اختيار النوع يحدد مفتاح التحضير المخزن للاستديو.">
-          <div className="space-y-2.5">
-            {variants.map((variant) => {
-              const active = variant.id === activeVariantId;
-
-              return (
-                <button
-                  key={variant.id}
-                  type="button"
-                  onClick={() => setActiveVariantId(variant.id)}
-                  className={[
-                    "w-full rounded-[1.45rem] p-4 text-right transition",
-                    active
-                      ? "bg-sky-100 text-slate-950 ring-2 ring-sky-200"
-                      : "bg-slate-50/90 text-slate-700 ring-1 ring-slate-100",
-                  ].join(" ")}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-black">{variant.name}</p>
-                      <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                        {variant.description}
-                      </p>
-                    </div>
-
-                    <span
-                      className={[
-                        "mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-[10px] font-black",
-                        active
-                          ? "bg-white text-sky-700"
-                          : "bg-white text-slate-400 ring-1 ring-slate-200",
-                      ].join(" ")}
-                    >
-                      {active ? "محدد" : "اختر"}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          title="القالب"
-          description="اختيار القالب هنا يمر إلى التقرير الجاهز مباشرة، ويمكن استخدام الاستديو الكامل لاحقًا عند الحاجة."
-        >
-          {templates.length ? (
-            <div className="space-y-2.5">
-              {templates.map((template) => {
-                const active = template.id === activeTemplateId;
-
-                return (
-                  <button
-                    key={template.id}
-                    type="button"
-                    onClick={() => setActiveTemplateId(template.id)}
-                    className={[
-                      "w-full rounded-[1.45rem] p-4 text-right transition",
-                      active
-                        ? "bg-sky-50 text-slate-950 ring-2 ring-sky-200"
-                        : "bg-slate-50/90 text-slate-700 ring-1 ring-slate-100",
-                    ].join(" ")}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-black">{template.name}</p>
-                        {template.description ? (
-                          <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-                            {template.description}
-                          </p>
-                        ) : null}
-                        <p className="mt-2 text-[11px] font-bold text-slate-400">
-                          آخر تحديث: {formatUpdatedAt(template.updatedAt)}
-                        </p>
-                      </div>
-
-                      <span
-                        className={[
-                          "mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-[10px] font-black",
-                          active
-                            ? "bg-white text-sky-700"
-                            : "bg-white text-slate-400 ring-1 ring-slate-200",
-                        ].join(" ")}
-                      >
-                        {active ? "محدد" : "اختر"}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-[1.35rem] bg-amber-50 p-3 text-sm font-bold leading-7 text-amber-800 ring-1 ring-amber-100">
-              لا يوجد قالب جاهز لهذه الخدمة الآن. يمكنك المتابعة ثم فتح الاستديو الكامل عند الحاجة.
-            </div>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="الحقول المختارة"
-          description="التعديل هنا للعرض داخل التقرير فقط، ولا يغيّر بيانات الحالة الأصلية."
-        >
-          <div className="space-y-3">
+          {fieldsPanelOpen ? (
+            <div className="border-t border-slate-100 p-4">
+<div className="space-y-3">
             <div className="rounded-[1.35rem] bg-slate-50/90 p-3 ring-1 ring-slate-100">
               <div className="flex items-center justify-between gap-2">
                 <div>
@@ -602,7 +483,9 @@ export function MobileReportPrepareFlow({
               ) : null}
             </div>
           </div>
-        </SectionCard>
+            </div>
+          ) : null}
+        </section>
 
         <SectionCard
           title="وصف التنفيذ"
@@ -658,15 +541,9 @@ export function MobileReportPrepareFlow({
           >
             المتابعة إلى التقرير الجاهز
             <MobileIcon name="arrow" className="h-4 w-4 rotate-180" />
-          </button>
-
-          {selectedVariant ? (
-            <p className="px-1 text-center text-[11px] font-bold leading-6 text-slate-400">
-              سيتم حفظ التحضير على نوع: {selectedVariant.shortName}
-              {selectedTemplate ? ` · القالب: ${selectedTemplate.name}` : ""}
-            </p>
-          ) : null}
-        </div>
+          </button>          <p className="px-1 text-center text-[11px] font-bold leading-6 text-slate-400">
+            سيتم تجهيز التقرير حسب إعدادات النظام، ثم فتح المعاينة مباشرة.
+          </p></div>
       </div>
 
       <MobilePopCard

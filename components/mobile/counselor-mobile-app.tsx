@@ -184,55 +184,44 @@ function IconBox({ icon, dark = false }: { icon: MobileIconName; dark?: boolean 
   );
 }
 
-function HomeHero() {
+function HomeHero({ userName }: { userName?: string }) {
+  const firstName = String(userName || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)[0];
+
   return (
-    <section className="relative overflow-hidden rounded-[1.8rem] bg-sky-100/80 p-4 text-slate-950 shadow-xl shadow-sky-100">
-      <div className="absolute -left-12 -top-12 h-32 w-32 rounded-full bg-sky-200/70 blur-2xl" />
-      <div className="absolute -bottom-16 right-10 h-36 w-36 rounded-full bg-cyan-100/80 blur-2xl" />
+    <section className="relative overflow-hidden rounded-[1.85rem] bg-[radial-gradient(circle_at_25%_100%,rgba(14,116,144,0.32),transparent_35%),linear-gradient(135deg,#0f2742_0%,#030712_50%,#020617_100%)] p-4 text-white shadow-[0_10px_24px_rgba(2,6,23,0.16)]">
+      <div className="absolute -left-14 -top-14 h-36 w-36 rounded-full bg-sky-500/10 blur-3xl" />
+      <div className="absolute bottom-0 right-0 h-32 w-32 rounded-full bg-cyan-300/10 blur-3xl" />
 
       <div className="relative">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-black text-sky-700">صباح الخير</p>
-            <h1 className="mt-1 text-[1.7rem] font-black leading-tight tracking-tight">
-              ابدأ من الطالب
-            </h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-black leading-7 text-sky-100">
+              {firstName ? `صباح الخير، ${firstName}` : "صباح الخير"}
+            </p>
           </div>
 
-          <IconBox icon="search" dark />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.25rem] bg-white/12 text-white ring-1 ring-white/10">
+            <MobileIcon name="spark" className="h-5 w-5" />
+          </span>
         </div>
 
-        <Link
-          href="/mobile/counselor/students-upload/students"
-          className="mt-5 flex h-12 items-center justify-between rounded-2xl bg-white px-4 text-slate-950 shadow-lg shadow-sky-100 transition active:scale-[0.99]"
-        >
-          <span className="text-sm font-black">بحث سريع</span>
-          <MobileIcon name="search" className="h-5 w-5 text-slate-500" />
-        </Link>
-
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <Link
-            href="/mobile/counselor/cases"
-            className="rounded-2xl bg-white/75 p-2.5 text-center ring-1 ring-sky-100"
-          >
-            <p className="text-xl font-black">12</p>
-            <p className="mt-0.5 text-[10px] font-bold text-slate-500">حالات</p>
+        <div className="mt-3 grid grid-cols-3 gap-1 text-center">
+          <Link href="/mobile/counselor/cases" className="rounded-[1rem] px-1 py-1.5 transition active:scale-[0.98]">
+            <p className="text-[1.35rem] font-black leading-none text-white">12</p>
+            <p className="mt-1 text-[9px] font-black leading-none text-white/75">حالات نشطة</p>
           </Link>
 
-          <Link
-            href="/mobile/counselor/reports"
-            className="rounded-2xl bg-white/75 p-2.5 text-center ring-1 ring-sky-100"
-          >
-            <p className="text-xl font-black">8</p>
-            <p className="mt-0.5 text-[10px] font-bold text-slate-500">تقارير</p>
+          <Link href="/mobile/counselor/reports" className="rounded-[1rem] px-1 py-1.5 transition active:scale-[0.98]">
+            <p className="text-[1.35rem] font-black leading-none text-white">8</p>
+            <p className="mt-1 text-[9px] font-black leading-none text-white/75">تقارير جاهزة</p>
           </Link>
 
-          <Link
-            href="/mobile/counselor/surveys"
-            className="rounded-2xl bg-white/75 p-2.5 text-center ring-1 ring-sky-100"
-          >
-            <p className="text-xl font-black">5</p>
-            <p className="mt-0.5 text-[10px] font-bold text-slate-500">استبيانات</p>
+          <Link href="/mobile/counselor/surveys" className="rounded-[1rem] px-1 py-1.5 transition active:scale-[0.98]">
+            <p className="text-[1.35rem] font-black leading-none text-white">5</p>
+            <p className="mt-1 text-[9px] font-black leading-none text-white/75">استبيانات</p>
           </Link>
         </div>
       </div>
@@ -329,10 +318,10 @@ function GuidanceServicesPager() {
   );
 }
 
-function HomeView() {
+function HomeView({ userName }: { userName?: string }) {
   return (
     <div className="space-y-4">
-      <HomeHero />
+      <HomeHero userName={userName} />
       <MainActions />
       <GuidanceServicesPager />
     </div>
@@ -361,10 +350,10 @@ function ServiceLauncherCard({ module }: { module: MobileModule }) {
 function ServicesView() {
   return (
     <div className="space-y-4">
-      <section className="rounded-[1.8rem] bg-sky-100/80 p-4 text-slate-950 shadow-xl shadow-sky-100">
+      <section className="rounded-[1.8rem] bg-gradient-to-br from-[#064967] to-[#075f7a] p-4 text-white shadow-[0_10px_24px_rgba(6,73,103,0.16)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-black text-sky-700">القائمة</p>
+            <p className="text-xs font-black text-sky-100">القائمة</p>
             <h1 className="mt-1 text-[1.55rem] font-black leading-tight tracking-tight">
               الخدمات
             </h1>
@@ -384,14 +373,14 @@ function ServicesView() {
 
 function ModuleHeader({ module }: { module: MobileModule }) {
   return (
-    <section className="rounded-[1.8rem] bg-sky-100/80 p-4 text-slate-950 shadow-xl shadow-sky-100">
+    <section className="rounded-[1.8rem] bg-gradient-to-br from-[#064967] to-[#075f7a] p-4 text-white shadow-[0_10px_24px_rgba(6,73,103,0.16)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black text-sky-700">{module.metric}</p>
+          <p className="text-xs font-black text-sky-100">{module.metric}</p>
           <h1 className="mt-1 text-[1.55rem] font-black leading-tight tracking-tight">
             {module.title}
           </h1>
-          <p className="mt-2 text-xs leading-6 text-slate-300">{module.subtitle}</p>
+          <p className="mt-2 text-xs font-bold leading-6 text-sky-50/80">{module.subtitle}</p>
         </div>
 
         <IconBox icon={module.icon} dark />
@@ -441,10 +430,10 @@ function ActionRouteView({ module, actionId }: { module: MobileModule; actionId:
 
   return (
     <div className="space-y-4">
-      <section className="rounded-[1.8rem] bg-sky-100/80 p-4 text-slate-950 shadow-xl shadow-sky-100">
+      <section className="rounded-[1.8rem] bg-gradient-to-br from-[#064967] to-[#075f7a] p-4 text-white shadow-[0_10px_24px_rgba(6,73,103,0.16)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-black text-sky-700">{module.title}</p>
+            <p className="text-xs font-black text-sky-100">{module.title}</p>
             <h1 className="mt-1 text-[1.55rem] font-black leading-tight tracking-tight">
               {action.title}
             </h1>
@@ -479,16 +468,18 @@ function ActionRouteView({ module, actionId }: { module: MobileModule; actionId:
 export function CounselorMobileApp({
   initialSection = "home",
   initialAction,
+  userName,
 }: {
   initialSection?: string;
   initialAction?: string;
+  userName?: string;
 }) {
   const section = getSection(initialSection);
   const module = getModule(section);
 
   return (
     <MobileAppShell activeSection={section}>
-      {section === "home" ? <HomeView /> : null}
+      {section === "home" ? <HomeView userName={userName} /> : null}
       {section !== "home" && module && !initialAction ? <ModuleView module={module} /> : null}
       {section !== "home" && module && initialAction ? (
         <ActionRouteView module={module} actionId={initialAction} />

@@ -596,7 +596,7 @@ function StepHeader({
   currentStep: RuntimeStep;
 }) {
   return (
-    <section className="rounded-[1.6rem] bg-sky-100/80 p-4 shadow-xl shadow-sky-100">
+    <section className="mobile-hero-card-dark rounded-[1.6rem] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-black text-sky-700">
