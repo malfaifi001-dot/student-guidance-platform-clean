@@ -56,6 +56,7 @@ type Props = {
   initialValues?: RuntimeValues;
   initialEvidenceItems?: EvidenceItem[];
   previewMode?: boolean;
+  caseDetailsBasePath?: string;
 };
 
 /**
@@ -412,6 +413,7 @@ export function DynamicFormRenderer({
   initialValues,
   initialEvidenceItems,
   previewMode = false,
+  caseDetailsBasePath = "/dashboard/cases",
 }: Props) {
   const router = useRouter();
 
