@@ -132,3 +132,29 @@
 .dark tbody {
   border-color: rgb(51 65 85) !important;
 }
+
+/* Mobile app behavior: reduce browser zoom gestures inside the app shell */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Prevent iOS input-focus zoom by keeping form controls at 16px minimum */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
