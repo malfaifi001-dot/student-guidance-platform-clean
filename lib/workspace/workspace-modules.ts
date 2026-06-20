@@ -29,6 +29,7 @@ export const OFFICIAL_WORKSPACE_ROUTES = {
   surveys: "/dashboard/surveys",
   studentImport: "/dashboard/data-center/student-data-import",
   assessmentCenter: "/dashboard/assessment-center",
+  certificates: "/dashboard/certificates",
   teacherReportIssuance: "/dashboard/teacher/report-issuance",
   counselorHome: "/dashboard",
   activityLeaderHome: "/dashboard/activity-leader",
@@ -85,7 +86,7 @@ export const counselorWorkspaceModules: WorkspaceModule[] = [
   {
     title: "الشهادات",
     description: "إصدار شهادات وتكريمات الطلاب.",
-    href: "/dashboard/student-follow-up/appreciation-certificates",
+    href: OFFICIAL_WORKSPACE_ROUTES.certificates,
     icon: "evidence",
     status: "available",
   },
@@ -139,6 +140,13 @@ export const activityLeaderWorkspaceModules: WorkspaceModule[] = [
     description: "تحليل المؤشرات والنتائج المرتبطة بالطلاب.",
     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
     icon: "assessment",
+    status: "available",
+  },
+  {
+    title: "الشهادات",
+    description: "إصدار شهادات وتكريمات للطلاب والمشاركين.",
+    href: OFFICIAL_WORKSPACE_ROUTES.certificates,
+    icon: "certificates",
     status: "available",
   },
   {
@@ -236,11 +244,11 @@ export const teacherWorkspaceModules: WorkspaceModule[] = [
     status: "available",
   },
   {
-    title: "شهاداتي",
-    description: "الشهادات والتكريمات الصادرة لك أو المرتبطة بمشاركاتك.",
-    href: "/dashboard/teacher/certificates",
+    title: "الشهادات",
+    description: "إصدار شهادات وتكريمات للطلاب والمشاركين.",
+    href: OFFICIAL_WORKSPACE_ROUTES.certificates,
     icon: "certificates",
-    status: "soon",
+    status: "available",
   },
   {
     title: "ملف إنجازي",

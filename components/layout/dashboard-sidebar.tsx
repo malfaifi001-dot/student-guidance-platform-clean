@@ -123,6 +123,7 @@ const assessmentCenterLinks: SidebarLinkItem[] = [
 const counselorToolsLinks: SidebarLinkItem[] = [
   { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
   { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
 ];
 
 const counselorAccountLinks: SidebarLinkItem[] = [
@@ -157,6 +158,7 @@ const activityLeaderServiceLinks: SidebarLinkItem[] = [
   { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
   { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud, shortLabel: "رفع الطلاب" },
   { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
   { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
   { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
@@ -175,10 +177,10 @@ const teacherServiceLinks: SidebarLinkItem[] = [
   { label: "التقويم والتنبيهات", href: "/dashboard/teacher/calendar", icon: CalendarDays },
   { label: "تكليفاتي", href: "/dashboard/teacher/assignments", icon: ClipboardList, shortLabel: "تكليفاتي" },
   { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal, shortLabel: "شهادات" },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
   { label: "رفع الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
   { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
-  { label: "شهاداتي", href: "/dashboard/teacher/certificates", icon: Medal, shortLabel: "شهاداتي" },
 ];
 
 const teacherAccountLinks: SidebarLinkItem[] = [

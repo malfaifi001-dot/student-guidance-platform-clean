@@ -11,7 +11,7 @@ export async function getCertificateActor(): Promise<CertificateActor | null> {
   const current = await getCurrentSessionUser();
   const user = current?.user;
 
-  if (!user?.id || !user.schoolAccountId) {
+  if (!user?.id || !user.schoolAccountId || user.role === "ADMIN") {
     return null;
   }
 
