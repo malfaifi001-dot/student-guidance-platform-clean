@@ -70,95 +70,112 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
-  const url = new URL(request.url);
-  const reportQuery = url.searchParams.get("reportQuery")?.trim() || "";
-  const certificateQuery = url.searchParams.get("certificateQuery")?.trim() || "";
+  try {
+    const url = new URL(request.url);
+    const reportQuery = url.searchParams.get("reportQuery")?.trim() || "";
+    const certificateQuery =
+      url.searchParams.get("certificateQuery")?.trim() || "";
 
-  const reportLike = `%${reportQuery}%`;
-  const certificateLike = `%${certificateQuery}%`;
+    const reportWhere: string[] = ["c.schoolAccountId = ?"];
+    const reportParams: unknown[] = [actor.schoolAccountId];
 
-  const reports = await certificatePrisma.$queryRawUnsafe<ReportOptionRow[]>(
-    `
-    SELECT
-      c.id,
-      c.title,
-      c.status,
-      s.name AS serviceName,
-      st.fullName AS studentName,
-      c.createdAt,
-      c.updatedAt,
-      (
-        SELECT cv.value
-        FROM CaseValue cv
-        WHERE cv.caseEntryId = c.id AND cv.fieldKey = ?
-        ORDER BY cv.updatedAt DESC
-        LIMIT 1
-      ) AS linkedValue,
-      (
-        SELECT cv.jsonValue
-        FROM CaseValue cv
-        WHERE cv.caseEntryId = c.id AND cv.fieldKey = ?
-        ORDER BY cv.updatedAt DESC
-        LIMIT 1
-      ) AS linkedJsonValue
-    FROM CaseEntry c
-    LEFT JOIN Service s ON s.id = c.serviceId
-    LEFT JOIN Student st ON st.id = c.studentId
-    WHERE c.schoolAccountId = ?
-      AND (
-        ? = ''
-        OR c.title LIKE ?
-        OR c.id LIKE ?
-        OR s.name LIKE ?
-        OR st.fullName LIKE ?
-      )
-    ORDER BY c.updatedAt DESC, c.createdAt DESC
-    LIMIT 120
-    `,
-    LINK_FIELD_KEY,
-    LINK_FIELD_KEY,
-    actor.schoolAccountId,
-    reportQuery,
-    reportLike,
-    reportLike,
-    reportLike,
-    reportLike,
-  );
+    if (reportQuery) {
+      const reportLike = `%${reportQuery}%`;
 
-  const certificates = await certificatePrisma.$queryRawUnsafe<CertificateOptionRow[]>(
-    `
-    SELECT id, certificateNumber, certificateType, recipientName, reason, issueDate, createdAt
-    FROM IssuedCertificate
-    WHERE schoolAccountId = ?
-      AND (
-        ? = ''
-        OR recipientName LIKE ?
-        OR certificateNumber LIKE ?
-        OR reason LIKE ?
-      )
-    ORDER BY createdAt DESC
-    LIMIT 250
-    `,
-    actor.schoolAccountId,
-    certificateQuery,
-    certificateLike,
-    certificateLike,
-    certificateLike,
-  );
+      reportWhere.push(
+        "(c.title LIKE ? OR c.id LIKE ? OR s.name LIKE ? OR st.fullName LIKE ?)",
+      );
+      reportParams.push(reportLike, reportLike, reportLike, reportLike);
+    }
 
-  return NextResponse.json({
-    reports: reports.map((report) => ({
-      id: report.id,
-      title: report.title,
-      status: report.status,
-      serviceName: report.serviceName,
-      studentName: report.studentName,
-      createdAt: report.createdAt,
-      updatedAt: report.updatedAt,
-      linkedCertificateIds: readLinkedIds(report),
-    })),
-    certificates,
-  });
+    const certificateWhere: string[] = ["schoolAccountId = ?"];
+    const certificateParams: unknown[] = [actor.schoolAccountId];
+
+    if (certificateQuery) {
+      const certificateLike = `%${certificateQuery}%`;
+
+      certificateWhere.push(
+        "(recipientName LIKE ? OR certificateNumber LIKE ? OR reason LIKE ?)",
+      );
+      certificateParams.push(certificateLike, certificateLike, certificateLike);
+    }
+
+    const reports = await certificatePrisma.$queryRawUnsafe<ReportOptionRow[]>(
+      `
+      SELECT
+        c.id,
+        c.title,
+        c.status,
+        s.name AS serviceName,
+        st.fullName AS studentName,
+        c.createdAt,
+        c.updatedAt,
+        (
+          SELECT cv.value
+          FROM CaseValue cv
+          WHERE cv.caseEntryId = c.id AND cv.fieldKey = ?
+          ORDER BY cv.updatedAt DESC
+          LIMIT 1
+        ) AS linkedValue,
+        (
+          SELECT cv.jsonValue
+          FROM CaseValue cv
+          WHERE cv.caseEntryId = c.id AND cv.fieldKey = ?
+          ORDER BY cv.updatedAt DESC
+          LIMIT 1
+        ) AS linkedJsonValue
+      FROM CaseEntry c
+      LEFT JOIN Service s ON s.id = c.serviceId
+      LEFT JOIN Student st ON st.id = c.studentId
+      WHERE ${reportWhere.join(" AND ")}
+      ORDER BY c.updatedAt DESC, c.createdAt DESC
+      LIMIT 120
+      `,
+      LINK_FIELD_KEY,
+      LINK_FIELD_KEY,
+      ...reportParams,
+    );
+
+    const certificates =
+      await certificatePrisma.$queryRawUnsafe<CertificateOptionRow[]>(
+        `
+        SELECT
+          id,
+          certificateNumber,
+          certificateType,
+          recipientName,
+          reason,
+          issueDate,
+          createdAt
+        FROM IssuedCertificate
+        WHERE ${certificateWhere.join(" AND ")}
+        ORDER BY createdAt DESC
+        LIMIT 250
+        `,
+        ...certificateParams,
+      );
+
+    return NextResponse.json({
+      reports: reports.map((report) => ({
+        id: report.id,
+        title: report.title,
+        status: report.status,
+        serviceName: report.serviceName,
+        studentName: report.studentName,
+        createdAt: report.createdAt,
+        updatedAt: report.updatedAt,
+        linkedCertificateIds: readLinkedIds(report),
+      })),
+      certificates,
+    });
+  } catch (error) {
+    console.error("CERTIFICATES_LINKING_GET_ERROR", error);
+
+    return NextResponse.json(
+      { error: "تعذر تحميل خيارات ربط الشهادات." },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: Request) {
