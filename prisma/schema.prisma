@@ -1658,3 +1658,41 @@ model IssuedCertificate {
   @@index([sourceType, sourceId])
   @@index([status])
 }
+
+model CustomReportTemplate {
+  id              String   @id @default(cuid())
+  schoolAccountId String?
+  createdById     String
+  title           String
+  description     String?  @db.Text
+  prompt          String?  @db.Text
+  schemaJson      Json
+  source          String   @default("AI")
+  status          String   @default("ACTIVE")
+  isArchived      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([isArchived])
+  @@index([status])
+}
+
+model CustomReportEntry {
+  id                 String   @id @default(cuid())
+  schoolAccountId    String?
+  createdById        String
+  templateId         String?
+  title              String
+  valuesJson         Json
+  snapshotSchemaJson Json
+  status             String   @default("DRAFT")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([templateId])
+  @@index([status])
+}

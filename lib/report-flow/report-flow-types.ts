@@ -1,3 +1,4 @@
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
 import type {
   SmartReportField,
   SmartReportPayload,
@@ -24,6 +25,7 @@ export type ReportFlowPreparation = {
   caseId: string;
   variantId: string;
   reportType: string;
+  languageMode: ReportLanguageMode;
   selectedFieldIds: string[];
   fields: ReportFlowPrepareField[];
   executionSummary: string;
@@ -33,6 +35,7 @@ export type ReportFlowPreparation = {
 
 export type ReportFlowPrepareContext = {
   caseId: string;
+  languageMode: ReportLanguageMode;
   title: string;
   serviceName: string;
   serviceSlug: string;

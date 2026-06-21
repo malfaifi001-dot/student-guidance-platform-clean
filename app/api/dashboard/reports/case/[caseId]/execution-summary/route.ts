@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { generateExecutionSummary } from "@/lib/ai/execution-summary-generator";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { normalizeReportLanguageMode } from "@/lib/report-engine/report-language-mode";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
 import {
   requireActiveSubscriptionApi,
@@ -44,6 +45,7 @@ function normalizeContext(value: unknown): Partial<ReportFlowPrepareContext> {
   const record = toRecord(value);
 
   return {
+    languageMode: normalizeReportLanguageMode(record.languageMode),
     title: String(record.title || "").trim(),
     serviceName: String(record.serviceName || "").trim(),
     serviceSlug: String(record.serviceSlug || "").trim(),
@@ -108,6 +110,9 @@ export async function POST(request: Request, context: RouteContext) {
     const generated = await generateExecutionSummary({
       context: {
         caseId,
+        languageMode: normalizeReportLanguageMode(
+          clientContext.languageMode || result.payload.languageMode,
+        ),
         title:
           clientContext.title ||
           result.payload.title ||

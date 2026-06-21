@@ -13,6 +13,7 @@ const ACTIVITY_PROGRAM_SERVICE_SLUGS = [
   "activity-programs-scouting",
   "activity-programs-events-occasions",
   "activity-programs-non-class-periods",
+  "custom-report",
 ];
 
 function activityProgramSlugScope() {

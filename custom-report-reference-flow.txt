@@ -1,0 +1,563 @@
+===== FILE: app\dashboard\activity-leader\programs\[domainSlug]\page.tsx =====
+import { notFound } from "next/navigation";
+
+import { SendActivityAssignmentCard } from "@/components/activity-programs/send-activity-assignment-card";
+import { WorkflowServiceHomePage } from "@/components/services/workflow-service-home-page";
+import { getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
+
+type PageProps = {
+  params: Promise<{
+    domainSlug: string;
+  }>;
+};
+
+export default async function ActivityProgramDomainPage({ params }: PageProps) {
+  const { domainSlug } = await params;
+  const domain = getActivityProgramDomainBySlug(domainSlug);
+
+  if (!domain) {
+    notFound();
+  }
+
+  return (
+    <div className="space-y-6" dir="rtl">
+      <SendActivityAssignmentCard
+        domainSlug={domain.slug}
+        domainTitle={domain.title}
+      />
+
+      <WorkflowServiceHomePage
+        serviceSlug={domain.serviceSlug}
+        title={domain.title}
+        description={`${domain.description} يمكنك إنشاء نشاط مباشرة، أو إرسال النموذج لمعلم عبر رابط واتساب.`}
+        newButtonLabel="إنشاء نشاط"
+        caseSingularName="نشاط"
+        casePluralName="الأنشطة"
+        emptyTitle="لا توجد أنشطة في هذا المجال"
+        emptyDescription="ابدأ بإنشاء نشاط لهذا المجال، أو أرسل النموذج لمعلم دون إنشاء حالة مباشرة."
+      />
+    </div>
+  );
+}
+
+===== FILE: app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx =====
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import { sortRuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+import { getActivityProgramDomainBySlug } from "@/lib/activity-programs/activity-program-catalog";
+import { prisma } from "@/lib/prisma";
+
+type PageProps = {
+  params: Promise<{
+    domainSlug: string;
+  }>;
+};
+
+export default async function NewActivityProgramDomainCasePage({
+  params,
+}: PageProps) {
+  const { domainSlug } = await params;
+  const domain = getActivityProgramDomainBySlug(domainSlug);
+
+  if (!domain) {
+    notFound();
+  }
+
+  const workflow = await prisma.workflow.findFirst({
+    where: {
+      service: {
+        slug: domain.serviceSlug,
+      },
+      isActive: true,
+    },
+    include: {
+      service: true,
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+        orderBy: {
+          order: "asc",
+        },
+      },
+    },
+    orderBy: {
+      version: "desc",
+    },
+  });
+
+  if (!workflow) {
+    return (
+      <main className="space-y-6" dir="rtl">
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8">
+          <p className="text-xs font-black text-amber-700">برامج النشاط</p>
+
+          <h1 className="mt-3 text-2xl font-black text-amber-950">
+            لا يوجد Workflow منشور لمجال {domain.title}
+          </h1>
+
+          <p className="mt-3 max-w-2xl text-sm font-bold leading-7 text-amber-800">
+            ارفع Workflow لهذا المجال من لوحة الأدمن، ثم ارجع لإنشاء البطاقة.
+          </p>
+
+          <div className="mt-6">
+            <Link
+              href={`/dashboard/activity-leader/programs/${domain.slug}`}
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-amber-900 ring-1 ring-amber-200"
+            >
+              العودة للمجال
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  const runtimeWorkflow = {
+    ...sortRuntimeWorkflow({
+      id: workflow.id,
+      name: workflow.name,
+      serviceSlug: workflow.service.slug,
+      steps: workflow.steps.map((step) => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        order: step.order,
+        fields: step.fields.map((field) => ({
+          id: field.id,
+          key: field.key,
+          label: field.label,
+          type: field.type,
+          placeholder: field.placeholder,
+          helpText: field.helpText,
+          isRequired: field.isRequired,
+          order: field.order,
+          dependsOnFieldKey: field.dependsOnFieldKey,
+          linkedToValue: field.linkedToValue,
+          allowOther: field.allowOther,
+          isRepeater: field.isRepeater,
+          options: field.options.map((option) => ({
+            id: option.id,
+            label: option.label,
+            value: option.value,
+            order: option.order,
+            linkedToValue: option.linkedToValue,
+          })),
+        })),
+      })),
+    }),
+    studentPickerMode: workflow.studentPickerMode || "DISABLED",
+  };
+
+  return (
+    <main className="space-y-6">
+      <DynamicFormRenderer
+        workflow={runtimeWorkflow}
+        serviceId={workflow.serviceId}
+        requiresStudent={false}
+        initialValues={{
+          activity_domain: domain.title,
+        }}
+        title={`تنفيذ برنامج نشاط - ${domain.title}`}
+      />
+    </main>
+  );
+}
+
+===== FILE: app\dashboard\cases\[caseId]\page.tsx =====
+import { notFound, redirect } from "next/navigation";
+
+import { CaseDetailsView } from "@/components/cases/case-details-view";
+import { getCaseById } from "@/engine/cases/case-runtime-engine";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { getLatestReportTwoSnapshotForCase } from "@/lib/report-2/report-snapshot-service";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+export default async function CaseDetailsPage({ params }: PageProps) {
+  const { caseId } = await params;
+  const context = await requireDashboardPageContext();
+
+  if (!context.isAdmin && !context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  try {
+    const caseEntry = await getCaseById(caseId, {
+      schoolAccountId: context.schoolAccountId,
+      isAdmin: context.isAdmin,
+    });
+
+    const snapshot = await getLatestReportTwoSnapshotForCase(context, caseId);
+
+    return (
+      <CaseDetailsView
+        caseEntry={caseEntry}
+        reportTwoSnapshotId={snapshot?.id || null}
+      />
+    );
+  } catch {
+    notFound();
+  }
+}
+
+
+===== Search related components =====
+D:\student-guidance-platform-clean\app\about\page.tsx:14:             الشواهد، التقارير، وبيانات الطلاب من خلال بنية Workflow Runtime قابلة للتوسع.
+D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts:190:         domainSlug: assignment.domainSlug,
+D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts:240:   const domainSlug = String(body?.domainSlug || "").trim();
+D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts:248:   const domain = getActivityProgramDomainBySlug(domainSlug);
+D:\student-guidance-platform-clean\app\api\dashboard\activity-leader\teacher-assignments\route.ts:304:       domainSlug: domain.slug,
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\signature\route.ts:9: type SignatureKind = "activityLeader" | "counselor";
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\signature\route.ts:12:   return value === "activityLeader" || value === "counselor";
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\signature\route.ts:93:       kind === "activityLeader"
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\signature\route.ts:95:             activityLeaderSignatureUrl: signatureUrl,
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\signature\route.ts:96:             activityLeaderSignedAt: signedAt,
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\signature\route.ts:108:       ...(kind === "activityLeader"
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\signature\route.ts:110:             activityLeaderSignatureUrl: signatureUrl,
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\signature\route.ts:111:             activityLeaderSignedAt: signedAt,
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\route.ts:33:       activityLeaderName: profile?.activityLeaderName || "",
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\route.ts:34:       activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || "",
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\route.ts:35:       activityLeaderSignedAt:
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\route.ts:36:         profile?.activityLeaderSignedAt?.toISOString() || "",
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\route.ts:74:     const activityLeaderName = String(body?.activityLeaderName || "").trim();
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\route.ts:126:           activityLeaderName,
+D:\student-guidance-platform-clean\app\api\dashboard\settings\school\route.ts:141:           activityLeaderName,
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\evidence\page.tsx:1: import { ActivityLeaderFeaturePage } from "@/components/dashboard/activity-leader-feature-page";
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\evidence\page.tsx:3: export default function ActivityLeaderEvidencePage() {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\evidence\page.tsx:5:     <ActivityLeaderFeaturePage
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\participations\page.tsx:1: import { ActivityLeaderFeaturePage } from "@/components/dashboard/activity-leader-feature-page";
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\participations\page.tsx:3: export default function ActivityLeaderParticipationsPage() {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\participations\page.tsx:5:     <ActivityLeaderFeaturePage
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\plans\page.tsx:1: import { ActivityLeaderFeaturePage } from "@/components/dashboard/activity-leader-feature-page";
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\plans\page.tsx:3: export default function ActivityLeaderPlansPage() {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\plans\page.tsx:5:     <ActivityLeaderFeaturePage
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\portfolio\page.tsx:12:       backHref="/dashboard/activity-leader"
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\new\page.tsx:3: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\new\page.tsx:69:               href="/dashboard/activity-leader/programs"
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\new\page.tsx:118:       <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx:4: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx:11:     domainSlug: string;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx:18:   const { domainSlug } = await params;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx:19:   const domain = getActivityProgramDomainBySlug(domainSlug);
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx:68:               href={`/dashboard/activity-leader/programs/${domain.slug}`}
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\new\page.tsx:117:       <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\page.tsx:9:     domainSlug: string;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\page.tsx:14:   const { domainSlug } = await params;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\page.tsx:15:   const domain = getActivityProgramDomainBySlug(domainSlug);
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\[domainSlug]\page.tsx:24:         domainSlug={domain.slug}
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\page.tsx:6: export default function ActivityLeaderProgramsPage() {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\programs\page.tsx:26:               href={`/dashboard/activity-leader/programs/${domain.slug}`}
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\reports\page.tsx:3: export default function ActivityLeaderReportsRedirectPage() {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\templates\page.tsx:7: export default async function ActivityLeaderSurveyTemplatesPage() {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\templates\page.tsx:18:   return <SurveyTemplatesShell ownerRole="ACTIVITY_LEADER" boardPath="/dashboard/activity-leader/surveys" />;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\analysis\page.tsx:13: export default async function ActivityLeaderSurveyAnalysisPage({ params }: PageProps) {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\analysis\page.tsx:25:   return <SurveyAnalysisShell surveyId={surveyId} boardPath="/dashboard/activity-leader/surveys" />;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\edit\page.tsx:13: export default async function ActivityLeaderSurveyEditPage({ params }: PageProps) {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\edit\page.tsx:25:   return <SurveyEditShell surveyId={surveyId} boardPath="/dashboard/activity-leader/surveys" />;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\pdf\page.tsx:13: export default async function ActivityLeaderSurveyPdfPage({ params }: PageProps) {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\pdf\page.tsx:28:       backPath={`/dashboard/activity-leader/surveys/${surveyId}/analysis`}
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\responses\page.tsx:13: export default async function ActivityLeaderSurveyResponsesPage({ params }: PageProps) {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\responses\page.tsx:25:   return <SurveyResponsesShell surveyId={surveyId} boardPath="/dashboard/activity-leader/surveys" />;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\share\page.tsx:13: export default async function ActivityLeaderSurveySharePage({ params }: PageProps) {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\[surveyId]\share\page.tsx:25:   return <SurveyShareShell surveyId={surveyId} boardPath="/dashboard/activity-leader/surveys" />;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\page.tsx:7: export default async function ActivityLeaderSurveysPage() {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\surveys\page.tsx:18:   return <SurveyCenterShell ownerRole="ACTIVITY_LEADER" boardPath="/dashboard/activity-leader/surveys" />;
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\teacher-assignments\page.tsx:110:           domainSlug: assignment.domainSlug,
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\layout.tsx:6: export default async function ActivityLeaderDashboardLayout({
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\page.tsx:2: import { ActivityLeaderWorkspacePage } from "@/components/workspace/activity-leader-workspace-page";
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\page.tsx:18: export default async function ActivityLeaderDashboardPage() {
+D:\student-guidance-platform-clean\app\dashboard\activity-leader\page.tsx:107:     <ActivityLeaderWorkspacePage
+D:\student-guidance-platform-clean\app\dashboard\activity-programs\new\page.tsx:18:     ? `/dashboard/activity-leader/programs/new?domain=${encodeURIComponent(domain)}`
+D:\student-guidance-platform-clean\app\dashboard\activity-programs\new\page.tsx:19:     : "/dashboard/activity-leader/programs/new";
+D:\student-guidance-platform-clean\app\dashboard\activity-programs\page.tsx:4:   redirect("/dashboard/activity-leader/programs");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-citizenship-life\new\page.tsx:4:   redirect("/dashboard/activity-leader/programs/citizenship-life/new");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-citizenship-life\page.tsx:4:   redirect("/dashboard/activity-leader/programs/citizenship-life");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-culture-arts\new\page.tsx:4:   redirect("/dashboard/activity-leader/programs/culture-arts/new");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-culture-arts\page.tsx:4:   redirect("/dashboard/activity-leader/programs/culture-arts");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-events-occasions\new\page.tsx:4:   redirect("/dashboard/activity-leader/programs/events-occasions/new");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-events-occasions\page.tsx:4:   redirect("/dashboard/activity-leader/programs/events-occasions");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-non-class-periods\new\page.tsx:4:   redirect("/dashboard/activity-leader/programs/non-class-periods/new");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-non-class-periods\page.tsx:4:   redirect("/dashboard/activity-leader/programs/non-class-periods");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-science-technology\new\page.tsx:4:   redirect("/dashboard/activity-leader/programs/science-technology/new");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-science-technology\page.tsx:4:   redirect("/dashboard/activity-leader/programs/science-technology");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-scouting\new\page.tsx:4:   redirect("/dashboard/activity-leader/programs/scouting/new");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-scouting\page.tsx:4:   redirect("/dashboard/activity-leader/programs/scouting");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-sports-health\new\page.tsx:4:   redirect("/dashboard/activity-leader/programs/sports-health/new");
+D:\student-guidance-platform-clean\app\dashboard\activity-programs-sports-health\page.tsx:4:   redirect("/dashboard/activity-leader/programs/sports-health");
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\preview\[templateId]\page.tsx:7: import { getActivityLeaderReportTemplateConfig } from "@/lib/activity-programs/activity-report-templates";
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\preview\[templateId]\page.tsx:91:       activityLeaderName: "رائد النشاط",
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\preview\[templateId]\page.tsx:97: export default async function ActivityLeaderReportTemplatePreviewPage({
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\preview\[templateId]\page.tsx:103:   const config = getActivityLeaderReportTemplateConfig(templateId);
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\preview\[templateId]\page.tsx:123:             href="/dashboard/admin/report-templates/activity-leader"
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\preview\[templateId]\page.tsx:154:               href="/dashboard/admin/report-templates/activity-leader"
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:8:   activityLeaderReportTemplates,
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:9:   buildActivityLeaderReportTemplateJson,
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:10:   getActivityLeaderReportTemplateConfig,
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:11:   getActivityLeaderTemplateIdFromJson,
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:12:   getActivityLeaderTemplateSortOrder,
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:13:   isActivityLeaderReportTemplateJson,
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:15:   type ActivityLeaderReportTemplateConfig,
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:18: const PAGE_PATH = "/dashboard/admin/report-templates/activity-leader";
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:40: async function getActivityLeaderStoredTemplates() {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:64:     if (!isActivityLeaderReportTemplateJson(json)) {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:68:     const templateId = getActivityLeaderTemplateIdFromJson(json);
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:78: async function upsertActivityLeaderTemplate(input: {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:79:   config: ActivityLeaderReportTemplateConfig;
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:83:   const existingMap = await getActivityLeaderStoredTemplates();
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:86:   const templateJson = buildActivityLeaderReportTemplateJson(input.config, {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:123: async function seedActivityLeaderReportTemplates() {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:128:   const existingMap = await getActivityLeaderStoredTemplates();
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:130:   for (const config of activityLeaderReportTemplates) {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:135:     await upsertActivityLeaderTemplate({
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:145: async function toggleActivityLeaderReportTemplate(formData: FormData) {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:153:   const config = getActivityLeaderReportTemplateConfig(templateId);
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:159:   const existingMap = await getActivityLeaderStoredTemplates();
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:162:   const sortOrder = getActivityLeaderTemplateSortOrder(
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:167:   await upsertActivityLeaderTemplate({
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:176: async function moveActivityLeaderReportTemplate(formData: FormData) {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:184:   const existingMap = await getActivityLeaderStoredTemplates();
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:186:   const items = activityLeaderReportTemplates
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:195:         sortOrder: getActivityLeaderTemplateSortOrder(
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:219:     upsertActivityLeaderTemplate({
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:224:     upsertActivityLeaderTemplate({
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:240: export default async function AdminActivityLeaderReportTemplatesPage() {
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:243:   const existingMap = await getActivityLeaderStoredTemplates();
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:245:   const templates = activityLeaderReportTemplates
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:255:         sortOrder: getActivityLeaderTemplateSortOrder(
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:304:             <form action={seedActivityLeaderReportTemplates}>
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:425:                   <form action={toggleActivityLeaderReportTemplate}>
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:450:                   <form action={moveActivityLeaderReportTemplate}>
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:467:                   <form action={moveActivityLeaderReportTemplate}>
+D:\student-guidance-platform-clean\app\dashboard\admin\report-templates\activity-leader\page.tsx:487:                     href={`/dashboard/admin/report-templates/activity-leader/preview/${template.config.id}`}
+D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx:3: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\admin\workflows\[serviceSlug]\preview\page.tsx:188:       <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx:3: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\edit\page.tsx:274:       <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\page.tsx:3: import { CaseDetailsView } from "@/components/cases/case-details-view";
+D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\page.tsx:14: export default async function CaseDetailsPage({ params }: PageProps) {
+D:\student-guidance-platform-clean\app\dashboard\cases\[caseId]\page.tsx:31:       <CaseDetailsView
+D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx:4: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\committees-meetings\new\page.tsx:201:       <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\new\page.tsx:2: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\guardian-summons\new\page.tsx:44:     <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx:1: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\family-school-communication\new\page.tsx:178:     <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\guidance-programs\new\page.tsx:8: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\guidance-programs\new\page.tsx:95:       <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx:1: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\runtime-lab\page.tsx:193:     <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx:1: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\student-follow-up\new\page.tsx:200:     <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\student-guidance-services\new\page.tsx:1: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\student-guidance-services\new\page.tsx:28:       <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\dashboard\surveys\templates\page.tsx:15:     redirect("/dashboard/activity-leader/surveys/templates");
+D:\student-guidance-platform-clean\app\dashboard\surveys\[surveyId]\analysis\page.tsx:22:     redirect(`/dashboard/activity-leader/surveys/${surveyId}/analysis`);
+D:\student-guidance-platform-clean\app\dashboard\surveys\[surveyId]\edit\page.tsx:22:     redirect(`/dashboard/activity-leader/surveys/${surveyId}/edit`);
+D:\student-guidance-platform-clean\app\dashboard\surveys\[surveyId]\pdf\page.tsx:22:     redirect(`/dashboard/activity-leader/surveys/${surveyId}/pdf`);
+D:\student-guidance-platform-clean\app\dashboard\surveys\[surveyId]\responses\page.tsx:22:     redirect(`/dashboard/activity-leader/surveys/${surveyId}/responses`);
+D:\student-guidance-platform-clean\app\dashboard\surveys\[surveyId]\share\page.tsx:22:     redirect(`/dashboard/activity-leader/surveys/${surveyId}/share`);
+D:\student-guidance-platform-clean\app\dashboard\surveys\page.tsx:15:     redirect("/dashboard/activity-leader/surveys");
+D:\student-guidance-platform-clean\app\dashboard\teacher\report-issuance\new\page.tsx:1: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\app\dashboard\teacher\report-issuance\new\page.tsx:28:       <DynamicFormRenderer
+D:\student-guidance-platform-clean\app\features\page.tsx:5:   const features = ["Workflow Runtime", "Case Engine", "Noor Import", "Evidence Upload", "Reports", "SaaS Billing Ready"];
+D:\student-guidance-platform-clean\app\mobile\counselor\cases\[caseId]\page.tsx:4: import { MobileCaseDetails } from "@/components/mobile/mobile-case-details";
+D:\student-guidance-platform-clean\app\mobile\counselor\cases\[caseId]\page.tsx:17: export default async function MobileCaseDetailsPage({ params }: PageProps) {
+D:\student-guidance-platform-clean\app\mobile\counselor\cases\[caseId]\page.tsx:39:       <MobileCaseDetails
+D:\student-guidance-platform-clean\components\activity-programs\reports\activity-execution-card-report.tsx:66:     activityLeaderName: string;
+D:\student-guidance-platform-clean\components\activity-programs\reports\activity-execution-card-report.tsx:543:         <strong>{data.approvals.activityLeaderName}</strong>
+D:\student-guidance-platform-clean\components\activity-programs\send-activity-assignment-card.tsx:7:   domainSlug: string;
+D:\student-guidance-platform-clean\components\activity-programs\send-activity-assignment-card.tsx:21: export function SendActivityAssignmentCard({ domainSlug, domainTitle }: Props) {
+D:\student-guidance-platform-clean\components\activity-programs\send-activity-assignment-card.tsx:44:       const response = await fetch("/api/dashboard/activity-leader/teacher-assignments", {
+D:\student-guidance-platform-clean\components\activity-programs\send-activity-assignment-card.tsx:50:           domainSlug,
+D:\student-guidance-platform-clean\components\activity-programs\send-activity-assignment-card.tsx:165:             href="/dashboard/activity-leader/teacher-assignments"
+D:\student-guidance-platform-clean\components\activity-programs\teacher-assignments-client.tsx:57:   domainSlug: string;
+D:\student-guidance-platform-clean\components\activity-programs\teacher-assignments-client.tsx:301:       const response = await fetch("/api/dashboard/activity-leader/teacher-assignments");
+D:\student-guidance-platform-clean\components\activity-programs\teacher-assignments-client.tsx:344:         `/api/dashboard/activity-leader/teacher-assignments/${assignmentId}/review`,
+D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx:15: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\components\admin\workflows\workflow-inline-import-workbench.tsx:640:               <DynamicFormRenderer
+D:\student-guidance-platform-clean\components\cases\case-details-view.tsx:26: type CaseDetailsViewProps = {
+D:\student-guidance-platform-clean\components\cases\case-details-view.tsx:915: export function CaseDetailsView({ caseEntry, reportTwoSnapshotId = null }: CaseDetailsViewProps) {
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:22: type ActivityLeaderUser = {
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:35: type ActivityLeaderStats = {
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:43:   user: ActivityLeaderUser;
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:44:   stats: ActivityLeaderStats;
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:52: function getDisplayName(user: ActivityLeaderUser) {
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:56: export function ActivityLeaderDashboard({
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:94:                   href="/dashboard/activity-leader/programs/new"
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:121:               href="/dashboard/activity-leader/programs/new"
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:154:                 href="/dashboard/activity-leader/programs/new"
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:161:                 href="/dashboard/activity-leader/plans"
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:168:                 href="/dashboard/activity-leader/participations"
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-dashboard.tsx:175:                 href="/dashboard/activity-leader/evidence"
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-feature-page.tsx:13: export async function ActivityLeaderFeaturePage({
+D:\student-guidance-platform-clean\components\dashboard\activity-leader-feature-page.tsx:53:             href="/dashboard/activity-leader"
+D:\student-guidance-platform-clean\components\layout\dashboard-header.tsx:42:   const isActivityLeader =
+D:\student-guidance-platform-clean\components\layout\dashboard-header.tsx:44:     pathname.startsWith("/dashboard/activity-leader");
+D:\student-guidance-platform-clean\components\layout\dashboard-header.tsx:60:       (isActivityLeader
+D:\student-guidance-platform-clean\components\layout\dashboard-header.tsx:74:     : isActivityLeader
+D:\student-guidance-platform-clean\components\layout\dashboard-header.tsx:82:     : isActivityLeader
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:136: const activityLeaderImportantLinks: SidebarLinkItem[] = [
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:137:   { label: "الرئيسية", href: "/dashboard/activity-leader", icon: Home },
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:139:   { label: "البرامج والفعاليات", href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms, icon: ClipboardList },
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:140:   { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:147:     href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:153:     href: `/dashboard/activity-leader/programs/${domain.slug}`,
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:158: const activityLeaderServiceLinks: SidebarLinkItem[] = [
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:159:   { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:161:   { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:163:   { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:164:   { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:169: const activityLeaderAccountLinks: SidebarLinkItem[] = [
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:315:   const isActivityLeader =
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:317:     pathname.startsWith("/dashboard/activity-leader");
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:323:     : isActivityLeader
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:324:       ? OFFICIAL_WORKSPACE_ROUTES.activityLeaderHome
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:331:     : isActivityLeader
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:339:     : isActivityLeader
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:430:         ) : isActivityLeader ? (
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:431:           <ActivityLeaderSidebar pathname={pathname} collapsed={collapsed} />
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:527: function ActivityLeaderSidebar({
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:543:           {activityLeaderImportantLinks.map((item) => (
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:555:           defaultOpen={pathname.startsWith("/dashboard/activity-leader/programs")}
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:563:                 item.href === "/dashboard/activity-leader/programs"
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:574:           {activityLeaderServiceLinks.map((item) => (
+D:\student-guidance-platform-clean\components\layout\dashboard-sidebar.tsx:593:           {activityLeaderAccountLinks.map((item) => (
+D:\student-guidance-platform-clean\components\mobile\mobile-case-details.tsx:288: export function MobileCaseDetails({
+D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx:43: type MobileDynamicFormRendererProps = {
+D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx:51:   caseDetailsBasePath?: string;
+D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx:634: export function MobileDynamicFormRenderer({
+D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx:642:   caseDetailsBasePath = "/mobile/counselor/cases",
+D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx:643: }: MobileDynamicFormRendererProps) {
+D:\student-guidance-platform-clean\components\mobile\mobile-dynamic-form-renderer.tsx:949:         const cleanBasePath = caseDetailsBasePath.replace(/\/$/, "");
+D:\student-guidance-platform-clean\components\mobile\mobile-new-case-workflow-page.tsx:4: import { MobileDynamicFormRenderer } from "@/components/mobile/mobile-dynamic-form-renderer";
+D:\student-guidance-platform-clean\components\mobile\mobile-new-case-workflow-page.tsx:43:       <MobileDynamicFormRenderer
+D:\student-guidance-platform-clean\components\mobile\mobile-new-case-workflow-page.tsx:48:         caseDetailsBasePath="/mobile/counselor/cases"
+D:\student-guidance-platform-clean\components\report-engine\smart-report-document-renderer.tsx:140:   const activityLeaderSignature =
+D:\student-guidance-platform-clean\components\report-engine\smart-report-document-renderer.tsx:147:     activityLeaderSignature;
+D:\student-guidance-platform-clean\components\report-engine\smart-report-document-renderer.tsx:241:       activityLeaderName:
+D:\student-guidance-platform-clean\components\report-engine\smart-report-document-renderer.tsx:242:         activityLeaderSignature?.signerName ||
+D:\student-guidance-platform-clean\components\services\workflow-service-home-page.tsx:269:             <p className="text-sm font-black text-sky-100">Workflow Runtime</p>
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:16:   activityLeaderName: string;
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:17:   activityLeaderSignatureUrl: string;
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:18:   activityLeaderSignedAt: string;
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:43:     activityLeaderName: data?.activityLeaderName || "",
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:44:     activityLeaderSignatureUrl: data?.activityLeaderSignatureUrl || "",
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:45:     activityLeaderSignedAt: data?.activityLeaderSignedAt || "",
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:70:   activityLeaderName: "",
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:71:   activityLeaderSignatureUrl: "",
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:72:   activityLeaderSignedAt: "",
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:98:     useState<"activityLeader" | null>(null);
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:100:     "activityLeader" | ""
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:306:   async function saveActivityLeaderSignature(dataUrl: string) {
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:310:       setSignatureSavingKind("activityLeader");
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:318:           kind: "activityLeader",
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:330:         activityLeaderSignatureUrl: data.signatureUrl || "",
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:331:         activityLeaderSignedAt: data.signedAt || "",
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:481:         onOpenActivityLeaderSignature={() => setSchoolSignaturePadOpen("activityLeader")}
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:514:       {schoolSignaturePadOpen === "activityLeader" ? (
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:517:           signerName={form.activityLeaderName || form.officialName || "رائد النشاط"}
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:518:           saving={signatureSavingKind === "activityLeader"}
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:520:           onSave={saveActivityLeaderSignature}
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:680:   onOpenActivityLeaderSignature,
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:685:   signatureSavingKind: "activityLeader" | "";
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:689:   onOpenActivityLeaderSignature: () => void;
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:722:                 {form.activityLeaderName || form.officialName || "رائد النشاط"}
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:726:             <SignatureStatusBadge signed={Boolean(form.activityLeaderSignatureUrl)} />
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:730:             {form.activityLeaderSignatureUrl ? (
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:732:                 src={form.activityLeaderSignatureUrl}
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:743:           {form.activityLeaderSignedAt ? (
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:745:               آخر توقيع: {formatSignatureDate(form.activityLeaderSignedAt)}
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:751:             onClick={onOpenActivityLeaderSignature}
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:752:             disabled={signatureSavingKind === "activityLeader"}
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:755:             {signatureSavingKind === "activityLeader"
+D:\student-guidance-platform-clean\components\settings\school-settings-form.tsx:757:               : form.activityLeaderSignatureUrl
+D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx:59:   caseDetailsBasePath?: string;
+D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx:407: export function DynamicFormRenderer({
+D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx:416:   caseDetailsBasePath = "/dashboard/cases",
+D:\student-guidance-platform-clean\components\workflow\dynamic-form-renderer.tsx:911:         <p className="text-sm font-bold text-sky-100">Workflow Runtime</p>
+D:\student-guidance-platform-clean\components\workflow\dynamic-form-resume.tsx:1: import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+D:\student-guidance-platform-clean\components\workflow\dynamic-form-resume.tsx:63:     <DynamicFormRenderer
+D:\student-guidance-platform-clean\components\workspace\activity-leader-workspace-page.tsx:3:   activityLeaderWorkspaceModules,
+D:\student-guidance-platform-clean\components\workspace\activity-leader-workspace-page.tsx:7: type ActivityLeaderWorkspacePageProps = {
+D:\student-guidance-platform-clean\components\workspace\activity-leader-workspace-page.tsx:30: export function ActivityLeaderWorkspacePage({
+D:\student-guidance-platform-clean\components\workspace\activity-leader-workspace-page.tsx:33: }: ActivityLeaderWorkspacePageProps) {
+D:\student-guidance-platform-clean\components\workspace\activity-leader-workspace-page.tsx:45:       modules={activityLeaderWorkspaceModules}
+D:\student-guidance-platform-clean\components\workspace\activity-leader-workspace-page.tsx:66:           href: "/dashboard/activity-leader/evidence",
+D:\student-guidance-platform-clean\components\workspace\activity-leader-workspace-page.tsx:79:           href: "/dashboard/activity-leader/programs/new",
+D:\student-guidance-platform-clean\components\workspace\activity-leader-workspace-page.tsx:85:           href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
+D:\student-guidance-platform-clean\lib\activity-programs\activity-card-report-runtime.ts:652:       activityLeaderName: caseEntry.createdBy?.name || "رائد النشاط",
+D:\student-guidance-platform-clean\lib\activity-programs\activity-program-catalog.ts:61:   href: "/dashboard/activity-leader/programs",
+D:\student-guidance-platform-clean\lib\activity-programs\activity-program-catalog.ts:70:     href: `/dashboard/activity-leader/programs/${domain.slug}`,
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:4: export type ActivityLeaderReportTemplateId =
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:10: export type ActivityLeaderReportTemplateStatus = "READY" | "PLANNED";
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:12: export type ActivityLeaderReportTemplateConfig = {
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:13:   id: ActivityLeaderReportTemplateId;
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:25:   status: ActivityLeaderReportTemplateStatus;
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:31: export const activityLeaderReportTemplates: ActivityLeaderReportTemplateConfig[] =
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:50:       outputRoute: "/dashboard/activity-leader/reports/activity-card",
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:96: export function getActivityLeaderReportTemplateConfig(
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:99:   return activityLeaderReportTemplates.find(
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:126: export function isActivityLeaderReportTemplateJson(value: unknown) {
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:132: export function getActivityLeaderTemplateIdFromJson(value: unknown) {
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:134:   const activityLeader = parseJsonRecord(json.activityLeader);
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:136:   return String(activityLeader.templateId || json.activityReportTemplateId || "");
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:139: export function getActivityLeaderTemplateSortOrder(
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:144:   const activityLeader = parseJsonRecord(json.activityLeader);
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:145:   const sortOrder = Number(activityLeader.sortOrder ?? json.sortOrder);
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:150: export function buildActivityLeaderReportTemplateJson(
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:151:   config: ActivityLeaderReportTemplateConfig,
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:170:     activityLeader: {
+D:\student-guidance-platform-clean\lib\auth\dashboard-redirects.ts:3: export const ACTIVITY_LEADER_DASHBOARD_PATH = "/dashboard/activity-leader";
+D:\student-guidance-platform-clean\lib\auth\dashboard-redirects.ts:16:     return "/dashboard/onboarding?role=activity-leader";
+D:\student-guidance-platform-clean\lib\certificates\certificate-signature-profile.ts:32:       activityLeaderName: true,
+D:\student-guidance-platform-clean\lib\certificates\certificate-signature-profile.ts:33:       activityLeaderSignatureUrl: true,
+D:\student-guidance-platform-clean\lib\certificates\certificate-signature-profile.ts:43:   const isActivityLeader = clean(role) === "ACTIVITY_LEADER";
+D:\student-guidance-platform-clean\lib\certificates\certificate-signature-profile.ts:45:   const issuerTitle = isActivityLeader ? "رائد النشاط" : "الموجه الطلابي";
+D:\student-guidance-platform-clean\lib\certificates\certificate-signature-profile.ts:46:   const issuerName = isActivityLeader
+D:\student-guidance-platform-clean\lib\certificates\certificate-signature-profile.ts:47:     ? clean(profile.activityLeaderName) || clean(fallbackIssuerName) || issuerTitle
+D:\student-guidance-platform-clean\lib\certificates\certificate-signature-profile.ts:50:   const issuerSignatureUrl = isActivityLeader
+D:\student-guidance-platform-clean\lib\certificates\certificate-signature-profile.ts:51:     ? clean(profile.activityLeaderSignatureUrl)
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:34:         activityLeaderName?: string | null;
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:35:         activityLeaderSignatureUrl?: string | null;
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:384:         profile?.activityLeaderName ||
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:388:       imageUrl: profile?.activityLeaderSignatureUrl || null,
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:35:   activityLeaderHome: "/dashboard/activity-leader",
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:36:   activityLeaderPrograms: "/dashboard/activity-leader/programs",
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:102: export const activityLeaderWorkspaceModules: WorkspaceModule[] = [
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:106:     href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:127:     href: "/dashboard/activity-leader/surveys",
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:155:     href: "/dashboard/activity-leader/evidence",
+D:\student-guidance-platform-clean\lib\workspace\workspace-modules.ts:162:     href: "/dashboard/activity-leader/portfolio",
+
+===== Git status =====
+ M app/api/dashboard/reports/case/[caseId]/execution-summary/route.ts
+ M components/layout/dashboard-sidebar.tsx
+ M components/mobile/mobile-report-prepare-flow.tsx
+ M components/mobile/mobile-report-studio-entry.tsx
+ M components/report-flow/report-prepare-flow.tsx
+ M lib/ai/execution-summary-generator.ts
+ M lib/report-engine/smart-report-defaults.ts
+ M lib/report-engine/smart-report-payload-builder.ts
+ M lib/report-engine/smart-report-types.ts
+ M lib/report-flow/report-flow-payload.ts
+ M lib/report-flow/report-flow-storage.ts
+ M lib/report-flow/report-flow-types.ts
+ M next-env.d.ts
+ M prisma/schema.prisma
+?? app/api/dashboard/custom-report/
+?? app/dashboard/custom-report/
+?? components/custom-report/
+?? lib/custom-report/
+?? lib/report-engine/report-language-mode.ts
+?? prisma/migrations/20260621000000_add_custom_report_service/

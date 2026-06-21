@@ -18,6 +18,12 @@ export const reportVariants: ReportVariantConfig[] = [
     shortName: "بطاقة نشاط",
     description: "تقرير رسمي لبرامج النشاط الطلابي بتصميم A4.",
   },
+  {
+    id: "smart-general-a4",
+    name: "تقرير عام ذكي",
+    shortName: "تقرير عام",
+    description: "تقرير A4 عام يناسب الحالات والتقارير الخاصة.",
+  },
 ];
 
 export function resolveReportVariantId(

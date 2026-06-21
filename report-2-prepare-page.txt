@@ -46,7 +46,9 @@ export default async function ReportTwoPreparePage({
   const resolvedParams = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const caseId = String(resolvedParams.caseId || "").trim();
-  const requestedVariant = firstParam(resolvedSearchParams.variant);
+  const selectedVariantId = resolveReportVariantId(
+    firstParam(resolvedSearchParams.variant),
+  );
 
   const result = await buildSmartReportPayloadForCase({
     caseId,
@@ -57,12 +59,7 @@ export default async function ReportTwoPreparePage({
     notFound();
   }
 
-  const selectedVariantId = resolveReportVariantId(
-    requestedVariant ||
-      (result.serviceSlug === "custom-report" ? "smart-general-a4" : undefined),
-  );
-
-  if (current.user.role !== "ADMIN" && result.serviceSlug !== "custom-report") {
+  if (current.user.role !== "ADMIN") {
     const access = await isServiceAllowedForSchool({
       schoolAccountId: current.user.schoolAccountId || "",
       serviceSlug: result.serviceSlug,

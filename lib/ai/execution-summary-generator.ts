@@ -1,4 +1,10 @@
 import { callDeepSeekChat } from "@/lib/ai/deepseek-client";
+import {
+  applyReportLanguageModeToText,
+  getReportLanguageModeInstruction,
+  getReportLanguageModeLabel,
+  normalizeReportLanguageMode,
+} from "@/lib/report-engine/report-language-mode";
 import type {
   ReportFlowPrepareContext,
   ReportFlowSummaryField,
@@ -31,18 +37,24 @@ function buildFallbackSummary({
   context: ReportFlowPrepareContext;
   fields: ReportFlowSummaryField[];
 }) {
+  const languageMode = normalizeReportLanguageMode(context.languageMode);
   const title = cleanText(context.title);
   const serviceName = cleanText(context.serviceName);
 
   const useful = fields
     .filter((field) => cleanText(field.label) && cleanText(field.value))
     .slice(0, 5)
-    .map((field) => `${field.label}: ${field.value}`);
+    .map((field) =>
+      applyReportLanguageModeToText(`${field.label}: ${field.value}`, languageMode),
+    );
 
   const details = useful.length ? `، وشملت البيانات: ${useful.join("، ")}.` : ".";
 
   return limitArabicWords(
-    `تم تنفيذ ${title || serviceName || "البرنامج"} وفق البيانات المعتمدة في الحالة${details}`,
+    applyReportLanguageModeToText(
+      `تم تنفيذ ${title || serviceName || "البرنامج"} وفق البيانات المعتمدة في الحالة${details}`,
+      languageMode,
+    ),
   );
 }
 
@@ -53,6 +65,7 @@ export async function generateExecutionSummary({
   context: ReportFlowPrepareContext;
   fields: ReportFlowSummaryField[];
 }) {
+  const languageMode = normalizeReportLanguageMode(context.languageMode);
   const safeFields = fields
     .filter((field) => cleanText(field.label) && cleanText(field.value))
     .slice(0, 20);
@@ -73,8 +86,10 @@ export async function generateExecutionSummary({
 استخدم فقط البيانات المقدمة ولا تضف أي معلومة من خارجها. افهم سياق التقرير من عنوان الخدمة، اسم البرنامج، طريقة التنفيذ، التاريخ، الفصل الدراسي، المنفذ، والفئة أو المستفيدين إن وجدت.
 لا تذكر الذكاء الاصطناعي، ولا تذكر Workflow، ولا تقل "البيانات المختارة" أو "الحقول".
 اجعل الوصف بين 60 و80 كلمة. لا تكتب أقل من 60 كلمة إذا كانت البيانات كافية، ولا تتجاوز 80 كلمة.
-اجعل النص مناسبًا للتقرير الرسمي، وكأنه وصف فعلي لما تم تنفيذه في المدرسة، مع صياغة تربوية جميلة تشعر المنفذ بقيمة العمل وأثره. أضف سياقًا تربويًا مناسبًا في النهاية مثل: مما يعزز تنمية مهارات الطلاب، أو يسهم في بناء اتجاهات إيجابية، أو يدعم القيم المدرسية، دون اختراع نتائج غير مذكورة.
-لا تذكر اسم المستخدم أو اسم المنفذ أو اسم المعلم داخل الوصف نهائيًا، حتى لو كان موجودًا في البيانات. استخدم صياغة محايدة مثل: تم تنفيذ البرنامج، جرى تنفيذ النشاط، تم تفعيل المبادرة. راعِ التذكير والتأنيث فقط إذا احتجت لوصف دور عام دون أسماء.
+اجعل النص مناسبًا للتقرير الرسمي، وكأنه وصف فعلي لما تم تنفيذه في المدرسة، مع صياغة تربوية جميلة تشعر المنفذ بقيمة العمل وأثره. أضف سياقًا تربويًا مناسبًا في النهاية دون اختراع نتائج غير مذكورة.
+لا تذكر اسم المستخدم أو اسم المنفذ أو اسم المعلم داخل الوصف نهائيًا، حتى لو كان موجودًا في البيانات. استخدم صياغة محايدة مثل: تم تنفيذ البرنامج، جرى تنفيذ النشاط، تم تفعيل المبادرة.
+صيغة التقرير المطلوبة: ${getReportLanguageModeLabel(languageMode)}
+${getReportLanguageModeInstruction(languageMode)}
 
 سياق التقرير:
 - عنوان التقرير: ${context.title}
@@ -103,7 +118,8 @@ ${fieldLines}
       maxTokens: 320,
     });
 
-    let finalSummary = limitArabicWords(summary, 80);
+    let finalSummary = applyReportLanguageModeToText(summary, languageMode);
+    finalSummary = limitArabicWords(finalSummary, 80);
 
     if (getArabicWordCount(finalSummary) < 60) {
       const expandedSummary = await callDeepSeekChat({
@@ -115,14 +131,19 @@ ${fieldLines}
           },
           {
             role: "user",
-            content: `وسّع وصف التنفيذ التالي ليصبح بين 60 و80 كلمة، بصياغة تربوية مدرسية جميلة ومترابطة، دون إضافة معلومات غير موجودة، ودون ذكر أسماء الأشخاص أو المستخدمين، ودون تجاوز 80 كلمة:\n\n${finalSummary}`,
+            content: `وسّع وصف التنفيذ التالي ليصبح بين 60 و80 كلمة، بصياغة تربوية مدرسية جميلة ومترابطة، دون إضافة معلومات غير موجودة، ودون ذكر أسماء الأشخاص أو المستخدمين، ودون تجاوز 80 كلمة.
+صيغة التقرير المطلوبة: ${getReportLanguageModeLabel(languageMode)}
+${getReportLanguageModeInstruction(languageMode)}
+
+${finalSummary}`,
           },
         ],
         temperature: 0.35,
         maxTokens: 320,
       });
 
-      finalSummary = limitArabicWords(expandedSummary, 80);
+      finalSummary = applyReportLanguageModeToText(expandedSummary, languageMode);
+      finalSummary = limitArabicWords(finalSummary, 80);
     }
 
     return {

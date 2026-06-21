@@ -284,6 +284,7 @@ export function MobileReportStudioEntry({
       executionSummary:
         cleanText(executionSummary) || cleanText(payload.narrative.body),
       executionSummarySource: summarySource,
+      languageMode: payload.languageMode,
     });
   }
 

@@ -1,3 +1,5 @@
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+
 export type SmartReportType =
   | "GENERAL_CASE_REPORT"
   | "ACTIVITY_REPORT"
@@ -150,6 +152,7 @@ export type SmartReportCustomBlock = {
 
 export type SmartReportPayload = {
   reportType: SmartReportType;
+  languageMode: ReportLanguageMode;
   title: string;
   identity: SmartReportIdentity;
   caseInfo: SmartReportCaseInfo;

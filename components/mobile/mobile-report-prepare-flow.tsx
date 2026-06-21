@@ -241,6 +241,7 @@ const selectedFields = useMemo(
       fields,
       executionSummary: summary,
       executionSummarySource: source,
+      languageMode: payload.languageMode,
     });
   }
 

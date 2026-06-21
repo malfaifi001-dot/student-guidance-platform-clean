@@ -1,0 +1,1406 @@
+===== FILE: lib\report-engine\smart-report-payload-builder.ts =====
+import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+import {
+  applyReportLanguageModeToFieldValue,
+  applyReportLanguageModeToText,
+  getReportLanguageModeFromUserGender,
+} from "@/lib/report-engine/report-language-mode";
+import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
+import type {
+  SmartReportEvidenceItem,
+  SmartReportField,
+  SmartReportFieldImportance,
+  SmartReportPayload,
+  SmartReportSignature,
+  SmartReportType,
+} from "@/lib/report-engine/smart-report-types";
+import { prisma } from "@/lib/prisma";
+
+type CurrentUserLike = {
+  user: {
+    id: string;
+    name: string;
+    role: string;
+    gender?: string | null;
+    officialName?: string | null;
+    jobTitle?: string | null;
+    schoolAccountId?: string | null;
+    schoolAccount?: {
+      name?: string | null;
+      profile?: {
+        schoolName?: string | null;
+        principalName?: string | null;
+        principalSignatureUrl?: string | null;
+        activityLeaderName?: string | null;
+        activityLeaderSignatureUrl?: string | null;
+        counselorSignatureUrl?: string | null;
+        educationDepartment?: string | null;
+        educationOffice?: string | null;
+        academicYear?: string | null;
+        currentSemester?: string | null;
+        logoUrl?: string | null;
+      } | null;
+    } | null;
+  };
+};
+
+type BuildSmartReportPayloadResult =
+  | {
+      ok: true;
+      payload: SmartReportPayload;
+      serviceSlug: string;
+      caseEntryId: string;
+    }
+  | {
+      ok: false;
+      status: number;
+      message: string;
+    };
+
+type CaseValueItem = {
+  key: string;
+  label: string;
+  value: string;
+  importance: SmartReportFieldImportance;
+};
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function normalizeArabicText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stringifyValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value).trim();
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => stringifyValue(item))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    for (const key of ["label", "name", "title", "value", "text"]) {
+      const text = stringifyValue(record[key]);
+      if (text) return text;
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
+function formatDateOnly(value: Date | string | null | undefined) {
+  if (!value) return "";
+
+  try {
+    const date = value instanceof Date ? value : new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return date.toISOString().slice(0, 10);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatDayName(value: Date | string | null | undefined) {
+  if (!value) return "";
+
+  try {
+    const date = value instanceof Date ? value : new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
+      weekday: "long",
+    }).format(date);
+  } catch {
+    return "";
+  }
+}
+
+function isTechnicalField(key: string, label: string, value: string) {
+  const text = normalizeArabicText(`${key} ${label}`);
+
+  return (
+    !value ||
+    text.includes("json") ||
+    key.endsWith("_json") ||
+    key.endsWith("__other") ||
+    text.includes("metadata") ||
+    text === "student" ||
+    text === "guardian" ||
+    text.includes("token") ||
+    text.includes("signature url") ||
+    text.includes("signed at")
+  );
+}
+
+function classifyField(key: string, label: string): SmartReportFieldImportance {
+  const text = normalizeArabicText(`${key} ${label}`);
+
+  if (
+    text.includes("وصف") ||
+    text.includes("description") ||
+    text.includes("ملخص") ||
+    text.includes("summary") ||
+    text.includes("نتيجه") ||
+    text.includes("result") ||
+    text.includes("توصيه")
+  ) {
+    return "NARRATIVE";
+  }
+
+  if (
+    text.includes("شاهد") ||
+    text.includes("مرفق") ||
+    text.includes("evidence") ||
+    text.includes("file") ||
+    text.includes("image")
+  ) {
+    return "EVIDENCE_RELATED";
+  }
+
+  if (text.includes("signature") || text.includes("توقيع")) {
+    return "SIGNATURE_RELATED";
+  }
+
+  return "DETAIL";
+}
+
+function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
+  return (caseEntry.values || [])
+    .map((item: any) => {
+      const key = item.field?.key || item.fieldKey || "";
+      const label = item.field?.label || item.fieldKey || "حقل بدون اسم";
+      const value = stringifyValue(item.value ?? item.jsonValue);
+
+      return {
+        key,
+        label,
+        value,
+        importance: classifyField(key, label),
+      };
+    })
+    .filter((item: CaseValueItem) => {
+      return !isTechnicalField(item.key, item.label, item.value);
+    });
+}
+
+function findByIntent(values: CaseValueItem[], intents: string[]) {
+  const normalizedIntents = intents.map(normalizeArabicText);
+
+  return (
+    values.find((item) => {
+      const text = normalizeArabicText(`${item.key} ${item.label}`);
+      return normalizedIntents.some((intent) => text.includes(intent));
+    }) || null
+  );
+}
+
+function findTitle(caseEntry: any, values: CaseValueItem[]) {
+  const fromCase = String(caseEntry.title || "").trim();
+
+  if (fromCase && fromCase !== "بدون عنوان" && fromCase.length < 120) {
+    return fromCase;
+  }
+
+  const titleField = findByIntent(values, [
+    "activity title",
+    "activity name",
+    "program title",
+    "program name",
+    "عنوان النشاط",
+    "اسم النشاط",
+    "عنوان البرنامج",
+    "اسم البرنامج",
+    "الموضوع",
+    "title",
+  ]);
+
+  return titleField?.value || caseEntry.service?.name || "تقرير حالة";
+}
+
+function buildReportType(serviceSlug: string): SmartReportType {
+  if (serviceSlug.startsWith("activity-programs")) return "ACTIVITY_REPORT";
+
+  if (serviceSlug.includes("committees") || serviceSlug.includes("meetings")) {
+    return "MEETING_REPORT";
+  }
+
+  if (serviceSlug.includes("family") || serviceSlug.includes("guardian")) {
+    return "FAMILY_COMMUNICATION_REPORT";
+  }
+
+  if (serviceSlug.includes("follow")) return "STUDENT_FOLLOWUP_REPORT";
+
+  return "GENERAL_CASE_REPORT";
+}
+
+function makePrimaryField({
+  key,
+  label,
+  value,
+  languageMode,
+  transformValue = true,
+}: {
+  key: string;
+  label: string;
+  value: string;
+  languageMode: ReportLanguageMode;
+  transformValue?: boolean;
+}): SmartReportField {
+  return {
+    key,
+    label: applyReportLanguageModeToText(label, languageMode),
+    value: transformValue
+      ? applyReportLanguageModeToFieldValue(
+          value || "غير محدد",
+          languageMode,
+          key,
+          label,
+        )
+      : value || "غير محدد",
+    importance: "PRIMARY",
+  };
+}
+
+function makeDetailField(
+  item: CaseValueItem,
+  languageMode: ReportLanguageMode,
+): SmartReportField {
+  return {
+    key: item.key,
+    label: applyReportLanguageModeToText(item.label, languageMode),
+    value: applyReportLanguageModeToFieldValue(
+      item.value,
+      languageMode,
+      item.key,
+      item.label,
+    ),
+    importance: item.importance,
+    group: item.importance === "NARRATIVE" ? "وصف وتفاصيل" : "تفاصيل الحالة",
+  };
+}
+
+function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
+  const normalItems: SmartReportEvidenceItem[] = (caseEntry.evidences || [])
+    .filter((item: any) => Boolean(item.fileUrl))
+    .map((item: any) => ({
+      id: item.id,
+      title: item.fileName || item.note || "شاهد",
+      caption: item.note || undefined,
+      url: item.fileUrl || undefined,
+      type: item.type === "IMAGE" ? "IMAGE" : "FILE",
+    }));
+
+  const caseEvidenceItems: SmartReportEvidenceItem[] = (
+    caseEntry.caseEvidences || []
+  )
+    .filter((item: any) => Boolean(item.fileUrl))
+    .map((item: any) => ({
+      id: item.id,
+      title: item.fileName || "شاهد",
+      url: item.fileUrl,
+      type: String(item.mimeType || "").startsWith("image/") ? "IMAGE" : "FILE",
+    }));
+
+  const assignmentEvidenceItems: SmartReportEvidenceItem[] = Array.isArray(
+    caseEntry.activityAssignment?.submittedEvidenceItems,
+  )
+    ? caseEntry.activityAssignment.submittedEvidenceItems
+        .filter((item: any) => Boolean(item?.fileUrl || item?.url))
+        .map((item: any, index: number) => ({
+          id: item.id || `assignment-evidence-${index + 1}`,
+          title: item.fileName || item.title || `شاهد ${index + 1}`,
+          caption: item.caption || item.note || undefined,
+          url: item.fileUrl || item.url,
+          type: String(item.mimeType || "").startsWith("image/")
+            ? "IMAGE"
+            : "FILE",
+        }))
+    : [];
+
+  return [...normalItems, ...caseEvidenceItems, ...assignmentEvidenceItems];
+}
+
+function buildSignatures(
+  caseEntry: any,
+  current: CurrentUserLike,
+  languageMode: ReportLanguageMode,
+): SmartReportSignature[] {
+  const profile = current.user.schoolAccount?.profile;
+  const serviceSlug = caseEntry.service?.slug || "";
+  const isActivity = serviceSlug.startsWith("activity-programs");
+  const transformTitle = (value: string) =>
+    applyReportLanguageModeToText(value, languageMode);
+
+  const signatures: SmartReportSignature[] = [];
+
+  signatures.push({
+    key: "principal",
+    label: transformTitle("مدير المدرسة"),
+    signerName: profile?.principalName || "مدير المدرسة",
+    signerTitle: transformTitle("مدير المدرسة"),
+    imageUrl: profile?.principalSignatureUrl || null,
+    required: false,
+  });
+
+  if (isActivity) {
+    signatures.push({
+      key: "activity_leader",
+      label: transformTitle("رائد النشاط"),
+      signerName:
+        profile?.activityLeaderName ||
+        current.user.officialName ||
+        current.user.name,
+      signerTitle: transformTitle("رائد النشاط"),
+      imageUrl: profile?.activityLeaderSignatureUrl || null,
+      required: true,
+    });
+  } else {
+    signatures.push({
+      key: "counselor",
+      label: transformTitle("الموجه الطلابي"),
+      signerName: current.user.officialName || current.user.name,
+      signerTitle: current.user.jobTitle || transformTitle("الموجه الطلابي"),
+      imageUrl: profile?.counselorSignatureUrl || null,
+      required: true,
+    });
+  }
+
+  if (caseEntry.activityAssignment?.teacherName) {
+    signatures.push({
+      key: "teacher",
+      label: transformTitle("توقيع المعلم المنفذ"),
+      signerName:
+        caseEntry.activityAssignment.teacherSignedName ||
+        caseEntry.activityAssignment.teacherName,
+      signerTitle: transformTitle("المعلم المنفذ"),
+      imageUrl: caseEntry.activityAssignment.teacherSignatureUrl || null,
+      signedAt: caseEntry.activityAssignment.teacherSignedAt?.toISOString?.() || null,
+      required: true,
+    });
+  }
+
+  return signatures;
+}
+
+function buildNarrative({
+  title,
+  serviceName,
+  semester,
+  executor,
+  executionDate,
+  targetGroup,
+  executionMethod,
+  evidenceCount,
+  languageMode,
+}: {
+  title: string;
+  serviceName: string;
+  semester: string;
+  executor: string;
+  executionDate: string;
+  targetGroup: string;
+  executionMethod: string;
+  evidenceCount: number;
+  languageMode: ReportLanguageMode;
+}) {
+  const executorRole = applyReportLanguageModeToText("المعلم المنفذ", languageMode);
+  const safeTargetGroup = applyReportLanguageModeToFieldValue(
+    targetGroup || "الفئة المستهدفة",
+    languageMode,
+    "target_group",
+    "الفئة المستهدفة",
+  );
+  const safeExecutionMethod = applyReportLanguageModeToFieldValue(
+    executionMethod || "غير محددة",
+    languageMode,
+    "execution_method",
+    "طريقة التنفيذ",
+  );
+
+  return [
+    `تم تنفيذ برنامج النشاط الطلابي «${title}» ضمن مجال ${serviceName}.`,
+    `ونُفذ البرنامج خلال ${semester || "الفصل الدراسي المحدد"}، ${languageMode === "FEMALE" ? "وتولت التنفيذ" : "وتولى التنفيذ"} ${executorRole} ${executor || "غير محدد"}.`,
+    `وكان تاريخ التنفيذ ${executionDate || "غير محدد"}.`,
+    `واستهدف البرنامج ${safeTargetGroup}.`,
+    `وجرى التنفيذ وفق آلية: ${safeExecutionMethod}.`,
+    `وتم توثيق النشاط من خلال ${evidenceCount} شاهد/مرفق محفوظ في الحالة.`,
+  ].join(" ");
+}
+
+export async function buildSmartReportPayloadForCase({
+  caseId,
+  current,
+}: {
+  caseId: string;
+  current: CurrentUserLike;
+}): Promise<BuildSmartReportPayloadResult> {
+  if (!caseId) {
+    return {
+      ok: false,
+      status: 400,
+      message: "رقم الحالة مطلوب.",
+    };
+  }
+
+  const isAdmin = current.user.role === "ADMIN";
+
+  if (!isAdmin && !current.user.schoolAccountId) {
+    return {
+      ok: false,
+      status: 401,
+      message: "يلزم تسجيل الدخول بحساب مدرسة.",
+    };
+  }
+
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: {
+      id: caseId,
+      ...buildCaseEntryReportWhereForUser(current.user),
+    },
+    include: {
+      schoolAccount: {
+        include: {
+          profile: true,
+        },
+      },
+      service: true,
+      workflow: true,
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      createdBy: true,
+      values: {
+        include: {
+          field: {
+            include: {
+              options: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      evidences: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      caseEvidences: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      activityAssignment: true,
+    },
+  });
+
+  if (!caseEntry) {
+    return {
+      ok: false,
+      status: 404,
+      message: "لم يتم العثور على الحالة أو لا تملك صلاحية الوصول لها.",
+    };
+  }
+
+  const languageMode = getReportLanguageModeFromUserGender(current.user.gender);
+  const values = filterPrivateReportValues(normalizeCaseValues(caseEntry));
+  const title = findTitle(caseEntry, values);
+  const serviceSlug = caseEntry.service?.slug || "general";
+  const serviceName = caseEntry.service?.name || "خدمة";
+  const reportType = buildReportType(serviceSlug);
+  const profile =
+    caseEntry.schoolAccount?.profile || current.user.schoolAccount?.profile;
+
+  const executionDateField = findByIntent(values, [
+    "execution date",
+    "activity date",
+    "meeting date",
+    "gregorian date",
+    "date",
+    "تاريخ التنفيذ",
+    "تاريخ",
+    "اليوم",
+  ]);
+
+  const semesterField = findByIntent(values, [
+    "semester",
+    "term",
+    "الفصل الدراسي",
+    "الفصل",
+  ]);
+
+  const executorField = findByIntent(values, [
+    "executor",
+    "teacher",
+    "activity leader",
+    "assigned teacher",
+    "المعلم المنفذ",
+    "المعلم",
+    "المنفذ",
+    "رائد النشاط",
+  ]);
+
+  const targetGroupField = findByIntent(values, [
+    "target group",
+    "beneficiaries",
+    "target",
+    "الفئة المستهدفة",
+    "المستفيدون",
+    "الصف",
+    "الفصول",
+  ]);
+
+  const executionMethodField = findByIntent(values, [
+    "execution method",
+    "method",
+    "mechanism",
+    "آلية التنفيذ",
+    "الية التنفيذ",
+    "طريقة التنفيذ",
+  ]);
+
+  const weekField = findByIntent(values, [
+    "week",
+    "school week",
+    "الأسبوع",
+    "اسبوع",
+  ]);
+
+  const dateText =
+    executionDateField?.value ||
+    formatDateOnly(caseEntry.submittedAt || caseEntry.createdAt);
+
+  const dayText = formatDayName(executionDateField?.value || caseEntry.createdAt);
+  const executionDateText = dayText ? `${dateText} - ${dayText}` : dateText;
+
+  const semesterText =
+    semesterField?.value ||
+    profile?.currentSemester ||
+    "الفصل الدراسي غير محدد";
+
+  const executorText =
+    executorField?.value ||
+    caseEntry.activityAssignment?.teacherName ||
+    current.user.officialName ||
+    current.user.name ||
+    "غير محدد";
+
+  const targetGroupText =
+    targetGroupField?.value ||
+    caseEntry.student?.grade ||
+    caseEntry.student?.stage ||
+    "غير محدد";
+
+  const executionMethodText = executionMethodField?.value || "غير محدد";
+  const weekText = weekField?.value || "غير محدد";
+
+  const evidence = normalizeEvidence(caseEntry);
+  const consumedKeys = new Set(
+    [
+      executionDateField?.key,
+      semesterField?.key,
+      executorField?.key,
+      targetGroupField?.key,
+      executionMethodField?.key,
+      weekField?.key,
+    ].filter(Boolean) as string[],
+  );
+
+  const detailFields: SmartReportField[] = values
+    .filter((item) => !consumedKeys.has(item.key))
+    .slice(0, 24)
+    .map((item) => makeDetailField(item, languageMode));
+
+  const missingItems: string[] = [];
+
+  if (!evidence.length) {
+    missingItems.push("لا توجد شواهد مرفقة.");
+  }
+
+  if (!executorText || executorText === "غير محدد") {
+    missingItems.push("اسم المنفذ غير محدد.");
+  }
+
+  const percentage = Math.max(40, 100 - missingItems.length * 15);
+
+  const payload: SmartReportPayload = {
+    reportType,
+    languageMode,
+    title,
+    identity: {
+      ministryName: "وزارة التعليم",
+      educationDepartment:
+        profile?.educationDepartment || "الإدارة العامة للتعليم",
+      educationOffice: profile?.educationOffice || "مكتب التعليم",
+      schoolName:
+        profile?.schoolName ||
+        caseEntry.schoolAccount?.name ||
+        current.user.schoolAccount?.name ||
+        "اسم المدرسة",
+      schoolLogoUrl: profile?.logoUrl || "/uploads/school-logos/MOE.png",
+      academicYear: profile?.academicYear || "العام الدراسي",
+      currentSemester: profile?.currentSemester || semesterText,
+    },
+    caseInfo: {
+      id: caseEntry.id,
+      title,
+      status: caseEntry.status,
+      createdAt: formatDateOnly(caseEntry.createdAt),
+      issuedAt: formatDateOnly(new Date()),
+      issuedBy: current.user.officialName || current.user.name,
+    },
+    service: {
+      slug: serviceSlug,
+      name: serviceName,
+    },
+    student: caseEntry.student
+      ? {
+          name: caseEntry.student.fullName || undefined,
+          nationalId: caseEntry.student.nationalId || undefined,
+          grade: caseEntry.student.grade || undefined,
+          classroom: caseEntry.student.classroom || undefined,
+          stage: caseEntry.student.stage || undefined,
+          guardianName: caseEntry.student.guardian?.name || undefined,
+          guardianPhone: caseEntry.student.guardian?.phone || undefined,
+        }
+      : null,
+    primaryFields: [
+      makePrimaryField({
+        key: "execution_date",
+        label: "تاريخ التنفيذ / اليوم",
+        value: executionDateText,
+        languageMode,
+      }),
+      makePrimaryField({
+        key: "semester",
+        label: "الفصل الدراسي",
+        value: semesterText,
+        languageMode,
+      }),
+      makePrimaryField({
+        key: "executor",
+        label: "المعلم المنفذ",
+        value: executorText,
+        languageMode,
+        transformValue: false,
+      }),
+      makePrimaryField({
+        key: "target_group",
+        label: "الفئة المستهدفة",
+        value: targetGroupText,
+        languageMode,
+      }),
+      makePrimaryField({
+        key: "execution_method",
+        label: "طريقة التنفيذ",
+        value: executionMethodText,
+        languageMode,
+      }),
+      makePrimaryField({
+        key: "week",
+        label: "الأسبوع",
+        value: weekText,
+        languageMode,
+      }),
+    ],
+    detailFields,
+    narrative: {
+      title: "وصف التنفيذ",
+      body: buildNarrative({
+        title,
+        serviceName,
+        semester: semesterText,
+        executor: executorText,
+        executionDate: executionDateText,
+        targetGroup: targetGroupText,
+        executionMethod: executionMethodText,
+        evidenceCount: evidence.length,
+        languageMode,
+      }),
+    },
+    evidence: {
+      layout: "GRID_2X2",
+      items: evidence,
+    },
+    signatures: buildSignatures(caseEntry, current, languageMode),
+    readiness: {
+      status: missingItems.length ? "NEEDS_REVIEW" : "READY",
+      percentage,
+      missingItems,
+      notes: [],
+    },
+  };
+
+  return {
+    ok: true,
+    payload,
+    serviceSlug,
+    caseEntryId: caseEntry.id,
+  };
+}
+
+
+===== FILE: lib\report-engine\smart-report-types.ts =====
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+
+export type SmartReportType =
+  | "GENERAL_CASE_REPORT"
+  | "ACTIVITY_REPORT"
+  | "MEETING_REPORT"
+  | "FAMILY_COMMUNICATION_REPORT"
+  | "STUDENT_FOLLOWUP_REPORT"
+  | "EVIDENCE_REPORT"
+  | "SUMMARY_REPORT";
+
+export type SmartReportFieldImportance =
+  | "PRIMARY"
+  | "DETAIL"
+  | "NARRATIVE"
+  | "EVIDENCE_RELATED"
+  | "SIGNATURE_RELATED"
+  | "HIDDEN"
+  | "TECHNICAL";
+
+export type SmartReportReadinessStatus =
+  | "READY"
+  | "NEEDS_REVIEW"
+  | "BLOCKED";
+
+export type SmartReportEvidenceLayout =
+  | "ONE_PER_PAGE"
+  | "TWO_PER_PAGE"
+  | "GRID_2X2"
+  | "ATTACHMENT_LIST";
+
+export type SmartReportField = {
+  key: string;
+  label: string;
+  value: string | string[] | number | boolean | null;
+  importance: SmartReportFieldImportance;
+  group?: string;
+};
+
+export type SmartReportEvidenceItem = {
+  id: string;
+  title: string;
+  url?: string;
+  caption?: string;
+  type?: "IMAGE" | "FILE";
+};
+
+export type SmartReportSignature = {
+  key: string;
+  label: string;
+  signerName?: string | null;
+  signerTitle?: string | null;
+  signedAt?: string | null;
+  imageUrl?: string | null;
+  required?: boolean;
+};
+
+export type SmartReportIdentity = {
+  ministryName?: string;
+  educationDepartment?: string;
+  educationOffice?: string;
+  schoolName?: string;
+  schoolLogoUrl?: string;
+  academicYear?: string;
+  currentSemester?: string;
+};
+
+export type SmartReportCaseInfo = {
+  id: string;
+  title: string;
+  status?: string;
+  createdAt?: string;
+  issuedAt?: string;
+  issuedBy?: string;
+};
+
+export type SmartReportServiceInfo = {
+  slug: string;
+  name: string;
+};
+
+export type SmartReportStudentInfo = {
+  name?: string;
+  nationalId?: string;
+  grade?: string;
+  classroom?: string;
+  stage?: string;
+  guardianName?: string;
+  guardianPhone?: string;
+};
+
+export type SmartReportReadiness = {
+  status: SmartReportReadinessStatus;
+  percentage: number;
+  missingItems: string[];
+  notes: string[];
+};
+
+export type ReportEvidenceImageSize =
+  | "large-square"
+  | "small-squares"
+  | "portrait"
+  | "landscape";
+
+export type ReportEvidenceConfig = {
+  visible: boolean;
+  itemsPerPage: 1 | 2 | 4;
+  showCaptions: boolean;
+  imageSize: ReportEvidenceImageSize;
+};
+
+export type SmartReportCustomBlockType = "PARAGRAPH" | "BULLET_LIST" | "TABLE" | "PAGE_BREAK";
+
+export type SmartReportCustomTableData = {
+  settings: {
+    highlightHeaderRow: boolean;
+    highlightFirstColumn: boolean;
+    repeatHeaderOnPageBreak: boolean;
+    rounded: boolean;
+    compact: boolean;
+  };
+  columns: Array<{
+    id: string;
+    title: string;
+    width?: number;
+  }>;
+  rows: Array<{
+    id: string;
+    cells: Array<{
+      id: string;
+      value: string;
+    }>;
+  }>;
+};
+
+export type SmartReportCustomBlockZone =
+  | "PAGE_TOP"
+  | "BEFORE_EVIDENCE"
+  | "AFTER_EVIDENCE"
+  | "BEFORE_SIGNATURES";
+
+export type SmartReportCustomBlock = {
+  id: string;
+  type: SmartReportCustomBlockType;
+  title: string;
+  body: string;
+  table?: SmartReportCustomTableData;
+  targetPageIndex?: number;
+  targetZone?: SmartReportCustomBlockZone;
+  order?: number;
+};
+
+export type SmartReportPayload = {
+  reportType: SmartReportType;
+  languageMode: ReportLanguageMode;
+  title: string;
+  identity: SmartReportIdentity;
+  caseInfo: SmartReportCaseInfo;
+  service: SmartReportServiceInfo;
+  student?: SmartReportStudentInfo | null;
+  primaryFields: SmartReportField[];
+  detailFields: SmartReportField[];
+  narrative: {
+    title: string;
+    body: string;
+  };
+  evidence: {
+    layout: SmartReportEvidenceLayout;
+    items: SmartReportEvidenceItem[];
+  };
+  signatures: SmartReportSignature[];
+  readiness: SmartReportReadiness;
+  evidenceConfig?: ReportEvidenceConfig;
+  customBlocks?: SmartReportCustomBlock[];
+};
+
+export type ReportDraftAdjustments = {
+  title?: string;
+  narrative?: {
+    title?: string;
+    body?: string;
+  };
+  primaryFields?: Array<{
+    key: string;
+    value: string;
+  }>;
+  detailFields?: Array<{
+    key: string;
+    value: string;
+  }>;
+  caseInfo?: {
+    issuedAt?: string;
+    issuedBy?: string;
+  };
+  evidenceConfig?: ReportEvidenceConfig;
+  customBlocks?: SmartReportCustomBlock[];
+};
+
+
+===== FILE: lib\report-engine\report-variant-registry.ts =====
+export const DEFAULT_REPORT_VARIANT_ID = "official-activity-card" as const;
+
+export type ReportVariantId =
+  | "official-activity-card"
+  | "smart-general-a4";
+
+export type ReportVariantConfig = {
+  id: ReportVariantId;
+  name: string;
+  shortName: string;
+  description: string;
+};
+
+export const reportVariants: ReportVariantConfig[] = [
+  {
+    id: "official-activity-card",
+    name: "بطاقة نشاط رسمية",
+    shortName: "بطاقة نشاط",
+    description: "تقرير رسمي لبرامج النشاط الطلابي بتصميم A4.",
+  },
+];
+
+export function resolveReportVariantId(
+  value: string | null | undefined,
+): ReportVariantId {
+  if (value === "smart-general-a4") {
+    return "smart-general-a4";
+  }
+
+  return DEFAULT_REPORT_VARIANT_ID;
+}
+
+export function getReportVariantById(
+  id: ReportVariantId | string | null | undefined,
+) {
+  const resolvedId = resolveReportVariantId(id);
+
+  return (
+    reportVariants.find((variant) => variant.id === resolvedId) ||
+    reportVariants.find((variant) => variant.id === DEFAULT_REPORT_VARIANT_ID) ||
+    reportVariants[0]
+  );
+}
+
+===== FILE: lib\report-engine\report-case-data-mapper.ts =====
+import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+export type ReportMappedStudent = {
+  id?: string;
+  fullName: string;
+  nationalId?: string | null;
+  stage?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  guardianName?: string | null;
+  guardianPhone?: string | null;
+};
+
+export type ReportMappedService = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export type ReportMappedValue = {
+  fieldKey: string;
+  fieldLabel: string;
+  value: string;
+};
+
+export type ReportMappedEvidence = {
+  id: string;
+  title: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType?: string | null;
+  size?: number | null;
+  note?: string | null;
+  imageUrl?: string;
+};
+
+export type ReportMappedCase = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt?: string | null;
+  service: ReportMappedService;
+  student?: ReportMappedStudent | null;
+  values: ReportMappedValue[];
+  evidences: ReportMappedEvidence[];
+};
+
+type CaseEntryForReport = {
+  id: string;
+  title?: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  submittedAt?: Date | null;
+
+  service: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  student?: {
+    id: string;
+    fullName: string;
+    nationalId?: string | null;
+    stage?: string | null;
+    grade?: string | null;
+    classroom?: string | null;
+    guardian?: {
+      name?: string | null;
+      phone?: string | null;
+    } | null;
+  } | null;
+
+  values: Array<{
+    fieldKey: string;
+    value?: string | null;
+    jsonValue?: unknown;
+    field?: {
+      key?: string | null;
+      label?: string | null;
+    } | null;
+  }>;
+
+  evidences?: Array<{
+    id: string;
+    fileName?: string | null;
+    fileUrl?: string | null;
+    mimeType?: string | null;
+    size?: number | null;
+    note?: string | null;
+  }>;
+
+  caseEvidences?: Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    mimeType?: string | null;
+    size?: number | null;
+  }>;
+};
+
+function stringifyReportValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => stringifyReportValue(item))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+function isImageEvidence(mimeType?: string | null, fileUrl?: string | null) {
+  if (mimeType?.startsWith("image/")) {
+    return true;
+  }
+
+  if (!fileUrl) {
+    return false;
+  }
+
+  return /\.(png|jpg|jpeg|webp|gif)$/i.test(fileUrl);
+}
+
+function normalizeReportValues(
+  values: CaseEntryForReport["values"]
+): ReportMappedValue[] {
+  return values.map((item) => ({
+    fieldKey: item.field?.key || item.fieldKey,
+    fieldLabel: item.field?.label || item.fieldKey,
+    value: stringifyReportValue(item.jsonValue ?? item.value),
+  }));
+}
+
+function normalizeReportEvidences(
+  caseEntry: CaseEntryForReport
+): ReportMappedEvidence[] {
+  const normalEvidences: ReportMappedEvidence[] = (caseEntry.evidences || [])
+    .filter((item) => Boolean(item.fileUrl))
+    .map((item) => {
+      const fileUrl = item.fileUrl || "";
+
+      return {
+        id: item.id,
+        title: item.note || item.fileName || "شاهد",
+        fileName: item.fileName || "شاهد",
+        fileUrl,
+        mimeType: item.mimeType,
+        size: item.size,
+        note: item.note,
+        imageUrl: isImageEvidence(item.mimeType, fileUrl) ? fileUrl : undefined,
+      };
+    });
+
+  const legacyCaseEvidences: ReportMappedEvidence[] = (
+    caseEntry.caseEvidences || []
+  )
+    .filter((item) => Boolean(item.fileUrl))
+    .map((item) => {
+      const fileUrl = item.fileUrl || "";
+
+      return {
+        id: item.id,
+        title: item.fileName || "شاهد",
+        fileName: item.fileName || "شاهد",
+        fileUrl,
+        mimeType: item.mimeType,
+        size: item.size,
+        imageUrl: isImageEvidence(item.mimeType, fileUrl) ? fileUrl : undefined,
+      };
+    });
+
+  return [...normalEvidences, ...legacyCaseEvidences];
+}
+
+export function mapCaseEntryToReportData(
+  caseEntry: CaseEntryForReport
+): ReportMappedCase {
+  return {
+    id: caseEntry.id,
+    title: caseEntry.title || caseEntry.service.name,
+    status: caseEntry.status,
+    createdAt: caseEntry.createdAt.toISOString(),
+    updatedAt: caseEntry.updatedAt.toISOString(),
+    submittedAt: caseEntry.submittedAt?.toISOString() || null,
+
+    service: {
+      id: caseEntry.service.id,
+      name: caseEntry.service.name,
+      slug: caseEntry.service.slug,
+    },
+
+    student: caseEntry.student
+      ? {
+          id: caseEntry.student.id,
+          fullName: caseEntry.student.fullName,
+          nationalId: caseEntry.student.nationalId,
+          stage: caseEntry.student.stage,
+          grade: caseEntry.student.grade,
+          classroom: caseEntry.student.classroom,
+          guardianName: caseEntry.student.guardian?.name || null,
+          guardianPhone: caseEntry.student.guardian?.phone || null,
+        }
+      : null,
+
+    values: normalizeReportValues(caseEntry.values),
+    evidences: normalizeReportEvidences(caseEntry),
+  };
+}
+
+export function findReportValue(
+  reportData: ReportMappedCase,
+  fieldKey: string,
+  fallback = ""
+) {
+  return (
+    reportData.values.find((item) => item.fieldKey === fieldKey)?.value ||
+    fallback
+  );
+}
+
+===== Search custom-report/serviceSlug handling =====
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-builder.ts:60: function isTechnicalMetaFieldKey(key: string) {
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-builder.ts:142:   if (isTechnicalMetaFieldKey(field.key)) return null;
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-builder.ts:156:       : field.label;
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-operations.ts:414:   fieldKey: string,
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-operations.ts:421:         (field) => field.key !== fieldKey,
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-operations.ts:424:         (field) => field.key !== fieldKey,
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-operations.ts:434:                 fields: block.fields.filter((field) => field.key !== fieldKey),
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-operations.ts:448:   fieldKey: string,
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-operations.ts:457:     if (field.key !== fieldKey) return field;
+D:\student-guidance-platform-clean\lib\report-engine\document-draft\report-document-operations.ts:461:       label: patch.label ?? field.label,
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts:14:   fieldKey = "title",
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts:23:       source: "caseValues",
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts:26:       fieldKey,
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts:176:     serviceSlug: "guidance-services",
+D:\student-guidance-platform-clean\lib\report-engine\guardian-summons-template-runtime.ts:11:   serviceSlug?: string | null;
+D:\student-guidance-platform-clean\lib\report-engine\guardian-summons-template-runtime.ts:109:     serviceSlug:
+D:\student-guidance-platform-clean\lib\report-engine\guardian-summons-template-runtime.ts:110:       typeof template.serviceSlug === "string"
+D:\student-guidance-platform-clean\lib\report-engine\guardian-summons-template-runtime.ts:111:         ? template.serviceSlug
+D:\student-guidance-platform-clean\lib\report-engine\guardian-summons-template-runtime.ts:112:         : row.serviceSlug || undefined,
+D:\student-guidance-platform-clean\lib\report-engine\report-access-scope.ts:61:       serviceSlug: activityProgramSlugScope(),
+D:\student-guidance-platform-clean\lib\report-engine\report-builder-template-runtime.ts:92:     serviceSlug: templateRecord.serviceSlug || templateJson.serviceSlug || null,
+D:\student-guidance-platform-clean\lib\report-engine\report-builder-template-runtime.ts:120:     fieldKey: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-builder-template-runtime.ts:173:     serviceSlug: report.caseEntry.service.slug,
+D:\student-guidance-platform-clean\lib\report-engine\report-builder-template-runtime.ts:195:       fieldKey: item.fieldKey,
+D:\student-guidance-platform-clean\lib\report-engine\report-case-data-mapper.ts:20:   fieldKey: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-case-data-mapper.ts:77:     fieldKey: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-case-data-mapper.ts:146:     fieldKey: item.field?.key || item.fieldKey,
+D:\student-guidance-platform-clean\lib\report-engine\report-case-data-mapper.ts:147:     fieldLabel: item.field?.label || item.fieldKey,
+D:\student-guidance-platform-clean\lib\report-engine\report-case-data-mapper.ts:230:   fieldKey: string,
+D:\student-guidance-platform-clean\lib\report-engine\report-case-data-mapper.ts:234:     reportData.values.find((item) => item.fieldKey === fieldKey)?.value ||
+D:\student-guidance-platform-clean\lib\report-engine\report-data-mapper.ts:10: type CaseValueLike = {
+D:\student-guidance-platform-clean\lib\report-engine\report-data-mapper.ts:52:   values?: CaseValueLike[];
+D:\student-guidance-platform-clean\lib\report-engine\report-data-mapper.ts:176: function buildReportSections(values?: CaseValueLike[]): ReportSection[] {
+D:\student-guidance-platform-clean\lib\report-engine\report-data-mapper.ts:280:   values: CaseValueLike[] | undefined,
+D:\student-guidance-platform-clean\lib\report-engine\report-data-mapper.ts:303:   values: CaseValueLike[] | undefined,
+D:\student-guidance-platform-clean\lib\report-engine\report-private-fields.ts:8: export function isPrivateReportFieldKey(fieldKey: unknown) {
+D:\student-guidance-platform-clean\lib\report-engine\report-private-fields.ts:9:   return PRIVATE_REPORT_FIELD_KEYS.has(String(fieldKey || "").trim());
+D:\student-guidance-platform-clean\lib\report-engine\report-private-fields.ts:12: function getPossibleFieldKey(item: unknown) {
+D:\student-guidance-platform-clean\lib\report-engine\report-private-fields.ts:20:     record.fieldKey ||
+D:\student-guidance-platform-clean\lib\report-engine\report-private-fields.ts:27:       record.field?.fieldKey ||
+D:\student-guidance-platform-clean\lib\report-engine\report-private-fields.ts:29:       record.dynamicField?.fieldKey ||
+D:\student-guidance-platform-clean\lib\report-engine\report-private-fields.ts:40:     const key = getPossibleFieldKey(item);
+D:\student-guidance-platform-clean\lib\report-engine\report-private-fields.ts:42:     return !isPrivateReportFieldKey(key);
+D:\student-guidance-platform-clean\lib\report-engine\report-smart-text-engine.ts:9:   fieldKey: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-smart-text-engine.ts:134:     const key = normalizeSearchText(item.fieldKey);
+D:\student-guidance-platform-clean\lib\report-engine\report-smart-text-library.ts:21:   serviceSlug?: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:12:     serviceSlug: "guidance-programs",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:20:     serviceSlug: "guidance-programs",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:86:                 fieldKey: "programTitle",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:124:           description: "مقدمة، أهداف، إجراءات، نتائج وتوصيات من CaseValue.",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:131:                 source: "caseValues",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:134:                 fieldKey: "intro",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:214:       serviceSlug: "guidance-programs",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:241:                 fieldKey: "programTitle",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:48:   | "caseValues"
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:60:   fieldKey?: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:109:   serviceSlug?: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:131:   serviceSlug?: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:184:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:189:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:194:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:199:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:204:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:209:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:214:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:219:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:224:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:229:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:234:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:239:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:244:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:249:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:254:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:259:     source: "caseValues" as const,
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:291:       fieldKey: "programTitle",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:349:       source: "caseValues",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:352:         "مقدمة، وصف، إجراءات، نتائج، أو توصيات محفوظة داخل CaseValue.",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:353:       fieldKey: "intro",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:366:       source: "caseValues",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:369:       fieldKey: "goals",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:402:         "عنوان ومحتوى يكتبه الأدمن داخل القالب ولا يعتمد على CaseValue.",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-runtime-types.ts:9: export type RuntimePreviewCaseValue = {
+D:\student-guidance-platform-clean\lib\report-engine\report-template-runtime-types.ts:10:   fieldKey: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-template-runtime-types.ts:26:   serviceSlug?: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-template-runtime-types.ts:44:   values: RuntimePreviewCaseValue[];
+D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts:38:   if (template.scope === "SERVICE" && !template.serviceSlug) {
+D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts:127:         block.source?.source === "caseValues" &&
+D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts:128:         !block.source?.fieldKey &&
+D:\student-guidance-platform-clean\lib\report-engine\report-template-validation.ts:136:             "حدد الحقل الذي سيقرأ منه هذا البلوك من Workflow/CaseValue.",
+D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts:4:   ReportTemplateFieldKey,
+D:\student-guidance-platform-clean\lib\report-engine\report-templates.ts:101:   key: ReportTemplateFieldKey
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts:81:   serviceSlug?: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts:94:   serviceSlug: "",
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts:112:   serviceSlug: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts:178:     if (!settings.serviceSlug) {
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts:182:     return snippet.serviceSlug === settings.serviceSlug;
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts:190:     if (template.scope === "SERVICE" && template.serviceSlug) {
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts:191:       return snippet.serviceSlug === template.serviceSlug;
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts:269:       serviceSlug: snippet.serviceSlug ?? "",
+D:\student-guidance-platform-clean\lib\report-engine\report-text-library-runtime.ts:408:   return !snippet.serviceSlug;
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts:171:     serviceSlug: "guidance-programs",
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts:246:     serviceSlug: "family-school-communication",
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts:290:     serviceSlug: "committees-meetings",
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-presets.ts:333:     serviceSlug: "general",
+D:\student-guidance-platform-clean\lib\report-engine\report-text-studio-types.ts:55:   serviceSlug: string;
+D:\student-guidance-platform-clean\lib\report-engine\report-types.ts:77: export type ReportTemplateFieldKey =
+D:\student-guidance-platform-clean\lib\report-engine\report-types.ts:96:   requiredFields: ReportTemplateFieldKey[];
+D:\student-guidance-platform-clean\lib\report-engine\report-types.ts:97:   optionalFields: ReportTemplateFieldKey[];
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:51:       serviceSlug: string;
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:60: type CaseValueItem = {
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:201: function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:204:       const key = item.field?.key || item.fieldKey || "";
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:205:       const label = item.field?.label || item.fieldKey || "حقل بدون اسم";
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:215:     .filter((item: CaseValueItem) => {
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:220: function findByIntent(values: CaseValueItem[], intents: string[]) {
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:231: function findTitle(caseEntry: any, values: CaseValueItem[]) {
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:254: function buildReportType(serviceSlug: string): SmartReportType {
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:255:   if (serviceSlug.startsWith("activity-programs")) return "ACTIVITY_REPORT";
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:257:   if (serviceSlug.includes("committees") || serviceSlug.includes("meetings")) {
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:261:   if (serviceSlug.includes("family") || serviceSlug.includes("guardian")) {
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:265:   if (serviceSlug.includes("follow")) return "STUDENT_FOLLOWUP_REPORT";
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:299:   item: CaseValueItem,
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:363:   const serviceSlug = caseEntry.service?.slug || "";
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:364:   const isActivity = serviceSlug.startsWith("activity-programs");
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:464: export async function buildSmartReportPayloadForCase({
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:543:   const values = filterPrivateReportValues(normalizeCaseValues(caseEntry));
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:545:   const serviceSlug = caseEntry.service?.slug || "general";
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:547:   const reportType = buildReportType(serviceSlug);
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:690:       slug: serviceSlug,
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:774:     serviceSlug,
+D:\student-guidance-platform-clean\components\report-flow\report-prepare-flow.tsx:64:   return `${field.label} ${field.value} ${field.key}`.toLowerCase();
+D:\student-guidance-platform-clean\components\report-flow\report-prepare-flow.tsx:172:         .filter((field) => cleanText(field.label) && cleanText(field.value)),
+D:\student-guidance-platform-clean\components\report-flow\report-prepare-flow.tsx:295:               label: field.label,
+D:\student-guidance-platform-clean\components\report-flow\report-prepare-flow.tsx:571:                       value={field.label}
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:6: import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:69:     "fieldKey",
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:183:   const access = await buildSmartReportPayloadForCase({
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:379:         privateFieldKey,
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:382:         privateFieldKey: string;
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:394:             if (!text.includes(privateFieldKey)) continue;
+D:\student-guidance-platform-clean\app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts:452:         privateFieldKey: REPORT_ATTACHED_CERTIFICATES_FIELD_KEY,

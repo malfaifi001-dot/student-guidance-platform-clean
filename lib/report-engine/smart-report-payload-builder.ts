@@ -1,5 +1,10 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
-import { prisma } from "@/lib/prisma";
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+import {
+  applyReportLanguageModeToFieldValue,
+  applyReportLanguageModeToText,
+  getReportLanguageModeFromUserGender,
+} from "@/lib/report-engine/report-language-mode";
 import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
 import type {
   SmartReportEvidenceItem,
@@ -9,12 +14,14 @@ import type {
   SmartReportSignature,
   SmartReportType,
 } from "@/lib/report-engine/smart-report-types";
+import { prisma } from "@/lib/prisma";
 
 type CurrentUserLike = {
   user: {
     id: string;
     name: string;
     role: string;
+    gender?: string | null;
     officialName?: string | null;
     jobTitle?: string | null;
     schoolAccountId?: string | null;
@@ -57,13 +64,17 @@ type CaseValueItem = {
   importance: SmartReportFieldImportance;
 };
 
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
 function normalizeArabicText(value: string) {
   return value
     .toLowerCase()
     .replace(/[أإآ]/g, "ا")
     .replace(/ى/g, "ي")
     .replace(/ة/g, "ه")
-    .replace(/[_\-]+/g, " ")
+    .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -109,7 +120,10 @@ function formatDateOnly(value: Date | string | null | undefined) {
 
   try {
     const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) return String(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
 
     return date.toISOString().slice(0, 10);
   } catch {
@@ -122,7 +136,10 @@ function formatDayName(value: Date | string | null | undefined) {
 
   try {
     const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
 
     return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
       weekday: "long",
@@ -236,12 +253,15 @@ function findTitle(caseEntry: any, values: CaseValueItem[]) {
 
 function buildReportType(serviceSlug: string): SmartReportType {
   if (serviceSlug.startsWith("activity-programs")) return "ACTIVITY_REPORT";
+
   if (serviceSlug.includes("committees") || serviceSlug.includes("meetings")) {
     return "MEETING_REPORT";
   }
+
   if (serviceSlug.includes("family") || serviceSlug.includes("guardian")) {
     return "FAMILY_COMMUNICATION_REPORT";
   }
+
   if (serviceSlug.includes("follow")) return "STUDENT_FOLLOWUP_REPORT";
 
   return "GENERAL_CASE_REPORT";
@@ -251,16 +271,45 @@ function makePrimaryField({
   key,
   label,
   value,
+  languageMode,
+  transformValue = true,
 }: {
   key: string;
   label: string;
   value: string;
+  languageMode: ReportLanguageMode;
+  transformValue?: boolean;
 }): SmartReportField {
   return {
     key,
-    label,
-    value: value || "غير محدد",
+    label: applyReportLanguageModeToText(label, languageMode),
+    value: transformValue
+      ? applyReportLanguageModeToFieldValue(
+          value || "غير محدد",
+          languageMode,
+          key,
+          label,
+        )
+      : value || "غير محدد",
     importance: "PRIMARY",
+  };
+}
+
+function makeDetailField(
+  item: CaseValueItem,
+  languageMode: ReportLanguageMode,
+): SmartReportField {
+  return {
+    key: item.key,
+    label: applyReportLanguageModeToText(item.label, languageMode),
+    value: applyReportLanguageModeToFieldValue(
+      item.value,
+      languageMode,
+      item.key,
+      item.label,
+    ),
+    importance: item.importance,
+    group: item.importance === "NARRATIVE" ? "وصف وتفاصيل" : "تفاصيل الحالة",
   };
 }
 
@@ -305,18 +354,24 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
   return [...normalItems, ...caseEvidenceItems, ...assignmentEvidenceItems];
 }
 
-function buildSignatures(caseEntry: any, current: CurrentUserLike): SmartReportSignature[] {
+function buildSignatures(
+  caseEntry: any,
+  current: CurrentUserLike,
+  languageMode: ReportLanguageMode,
+): SmartReportSignature[] {
   const profile = current.user.schoolAccount?.profile;
   const serviceSlug = caseEntry.service?.slug || "";
   const isActivity = serviceSlug.startsWith("activity-programs");
+  const transformTitle = (value: string) =>
+    applyReportLanguageModeToText(value, languageMode);
 
   const signatures: SmartReportSignature[] = [];
 
   signatures.push({
     key: "principal",
-    label: "مدير المدرسة",
+    label: transformTitle("مدير المدرسة"),
     signerName: profile?.principalName || "مدير المدرسة",
-    signerTitle: "مدير المدرسة",
+    signerTitle: transformTitle("مدير المدرسة"),
     imageUrl: profile?.principalSignatureUrl || null,
     required: false,
   });
@@ -324,21 +379,21 @@ function buildSignatures(caseEntry: any, current: CurrentUserLike): SmartReportS
   if (isActivity) {
     signatures.push({
       key: "activity_leader",
-      label: "رائد النشاط",
+      label: transformTitle("رائد النشاط"),
       signerName:
         profile?.activityLeaderName ||
         current.user.officialName ||
         current.user.name,
-      signerTitle: "رائد النشاط",
+      signerTitle: transformTitle("رائد النشاط"),
       imageUrl: profile?.activityLeaderSignatureUrl || null,
       required: true,
     });
   } else {
     signatures.push({
       key: "counselor",
-      label: "الموجه الطلابي",
+      label: transformTitle("الموجه الطلابي"),
       signerName: current.user.officialName || current.user.name,
-      signerTitle: current.user.jobTitle || "الموجه الطلابي",
+      signerTitle: current.user.jobTitle || transformTitle("الموجه الطلابي"),
       imageUrl: profile?.counselorSignatureUrl || null,
       required: true,
     });
@@ -347,11 +402,11 @@ function buildSignatures(caseEntry: any, current: CurrentUserLike): SmartReportS
   if (caseEntry.activityAssignment?.teacherName) {
     signatures.push({
       key: "teacher",
-      label: "توقيع المعلم المنفذ",
+      label: transformTitle("توقيع المعلم المنفذ"),
       signerName:
         caseEntry.activityAssignment.teacherSignedName ||
         caseEntry.activityAssignment.teacherName,
-      signerTitle: "المعلم المنفذ",
+      signerTitle: transformTitle("المعلم المنفذ"),
       imageUrl: caseEntry.activityAssignment.teacherSignatureUrl || null,
       signedAt: caseEntry.activityAssignment.teacherSignedAt?.toISOString?.() || null,
       required: true,
@@ -370,6 +425,7 @@ function buildNarrative({
   targetGroup,
   executionMethod,
   evidenceCount,
+  languageMode,
 }: {
   title: string;
   serviceName: string;
@@ -379,13 +435,28 @@ function buildNarrative({
   targetGroup: string;
   executionMethod: string;
   evidenceCount: number;
+  languageMode: ReportLanguageMode;
 }) {
+  const executorRole = applyReportLanguageModeToText("المعلم المنفذ", languageMode);
+  const safeTargetGroup = applyReportLanguageModeToFieldValue(
+    targetGroup || "الفئة المستهدفة",
+    languageMode,
+    "target_group",
+    "الفئة المستهدفة",
+  );
+  const safeExecutionMethod = applyReportLanguageModeToFieldValue(
+    executionMethod || "غير محددة",
+    languageMode,
+    "execution_method",
+    "طريقة التنفيذ",
+  );
+
   return [
-    `تم تنفيذ برنامج النشاط الطلابي «${title}»، ضمن مجال ${serviceName}.`,
-    `ونُفذ البرنامج خلال ${semester || "الفصل الدراسي المحدد"}، وتولى التنفيذ المعلم/المعلمة ${executor || "غير محدد"}.`,
+    `تم تنفيذ برنامج النشاط الطلابي «${title}» ضمن مجال ${serviceName}.`,
+    `ونُفذ البرنامج خلال ${semester || "الفصل الدراسي المحدد"}، ${languageMode === "FEMALE" ? "وتولت التنفيذ" : "وتولى التنفيذ"} ${executorRole} ${executor || "غير محدد"}.`,
     `وكان تاريخ التنفيذ ${executionDate || "غير محدد"}.`,
-    `واستهدف البرنامج ${targetGroup || "الفئة المستهدفة"}.`,
-    `وجرى التنفيذ وفق آلية: ${executionMethod || "غير محددة"}.`,
+    `واستهدف البرنامج ${safeTargetGroup}.`,
+    `وجرى التنفيذ وفق آلية: ${safeExecutionMethod}.`,
     `وتم توثيق النشاط من خلال ${evidenceCount} شاهد/مرفق محفوظ في الحالة.`,
   ].join(" ");
 }
@@ -468,6 +539,7 @@ export async function buildSmartReportPayloadForCase({
     };
   }
 
+  const languageMode = getReportLanguageModeFromUserGender(current.user.gender);
   const values = filterPrivateReportValues(normalizeCaseValues(caseEntry));
   const title = findTitle(caseEntry, values);
   const serviceSlug = caseEntry.service?.slug || "general";
@@ -574,13 +646,7 @@ export async function buildSmartReportPayloadForCase({
   const detailFields: SmartReportField[] = values
     .filter((item) => !consumedKeys.has(item.key))
     .slice(0, 24)
-    .map((item) => ({
-      key: item.key,
-      label: item.label,
-      value: item.value,
-      importance: item.importance,
-      group: item.importance === "NARRATIVE" ? "وصف وتفاصيل" : "تفاصيل الحالة",
-    }));
+    .map((item) => makeDetailField(item, languageMode));
 
   const missingItems: string[] = [];
 
@@ -596,10 +662,12 @@ export async function buildSmartReportPayloadForCase({
 
   const payload: SmartReportPayload = {
     reportType,
+    languageMode,
     title,
     identity: {
       ministryName: "وزارة التعليم",
-      educationDepartment: profile?.educationDepartment || "الإدارة العامة للتعليم",
+      educationDepartment:
+        profile?.educationDepartment || "الإدارة العامة للتعليم",
       educationOffice: profile?.educationOffice || "مكتب التعليم",
       schoolName:
         profile?.schoolName ||
@@ -638,31 +706,38 @@ export async function buildSmartReportPayloadForCase({
         key: "execution_date",
         label: "تاريخ التنفيذ / اليوم",
         value: executionDateText,
+        languageMode,
       }),
       makePrimaryField({
         key: "semester",
         label: "الفصل الدراسي",
         value: semesterText,
+        languageMode,
       }),
       makePrimaryField({
         key: "executor",
         label: "المعلم المنفذ",
         value: executorText,
+        languageMode,
+        transformValue: false,
       }),
       makePrimaryField({
         key: "target_group",
         label: "الفئة المستهدفة",
         value: targetGroupText,
+        languageMode,
       }),
       makePrimaryField({
         key: "execution_method",
         label: "طريقة التنفيذ",
         value: executionMethodText,
+        languageMode,
       }),
       makePrimaryField({
         key: "week",
         label: "الأسبوع",
         value: weekText,
+        languageMode,
       }),
     ],
     detailFields,
@@ -677,13 +752,14 @@ export async function buildSmartReportPayloadForCase({
         targetGroup: targetGroupText,
         executionMethod: executionMethodText,
         evidenceCount: evidence.length,
+        languageMode,
       }),
     },
     evidence: {
       layout: "GRID_2X2",
       items: evidence,
     },
-    signatures: buildSignatures(caseEntry, current),
+    signatures: buildSignatures(caseEntry, current, languageMode),
     readiness: {
       status: missingItems.length ? "NEEDS_REVIEW" : "READY",
       percentage,

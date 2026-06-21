@@ -1,12 +1,18 @@
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+import {
+  applyReportLanguageModeToFieldValue,
+  applyReportLanguageModeToText,
+  normalizeReportLanguageMode,
+} from "@/lib/report-engine/report-language-mode";
 import type {
   SmartReportField,
   SmartReportPayload,
 } from "@/lib/report-engine/smart-report-types";
 import type {
+  ReportFlowFieldSource,
+  ReportFlowPrepareContext,
   ReportFlowPrepareField,
   ReportFlowPreparation,
-  ReportFlowPrepareContext,
-  ReportFlowFieldSource,
 } from "@/lib/report-flow/report-flow-types";
 
 const FIELD_LABEL_TRANSLATIONS: Record<string, string> = {
@@ -168,22 +174,28 @@ function makePrepareField(
   field: SmartReportField,
   source: ReportFlowFieldSource,
   index: number,
+  languageMode: ReportLanguageMode,
 ): ReportFlowPrepareField | null {
   const key = cleanText(field.key) || `${source}-${index + 1}`;
-  const label = displayLabel(field);
-  const value = displayValue(field.value);
-  const technical = isTechnicalField(key, label, value);
+  const originalLabel = displayLabel(field);
+  const originalValue = displayValue(field.value);
+  const technical = isTechnicalField(key, originalLabel, originalValue);
 
-  if (!label || !value) return null;
+  if (!originalLabel || !originalValue) return null;
 
   return {
     id: `${source}:${key}:${index}`,
     source,
     key,
-    label,
-    value,
-    originalLabel: label,
-    originalValue: value,
+    label: applyReportLanguageModeToText(originalLabel, languageMode),
+    value: applyReportLanguageModeToFieldValue(
+      originalValue,
+      languageMode,
+      key,
+      originalLabel,
+    ),
+    originalLabel,
+    originalValue,
     selected: !technical,
     technical,
   };
@@ -192,19 +204,21 @@ function makePrepareField(
 export function buildReportFlowPrepareFields(
   payload: SmartReportPayload,
 ): ReportFlowPrepareField[] {
+  const languageMode = normalizeReportLanguageMode(payload.languageMode);
+
   const fields = [
     ...payload.primaryFields.map((field, index) =>
-      makePrepareField(field, "primary", index),
+      makePrepareField(field, "primary", index, languageMode),
     ),
     ...payload.detailFields.map((field, index) =>
-      makePrepareField(field, "detail", index),
+      makePrepareField(field, "detail", index, languageMode),
     ),
   ].filter((field): field is ReportFlowPrepareField => Boolean(field));
 
   const unique = new Map<string, ReportFlowPrepareField>();
 
   for (const field of fields) {
-    const key = `${field.label}::${field.value}`;
+    const key = `${field.originalLabel}::${field.originalValue}`;
 
     if (!unique.has(key)) {
       unique.set(key, field);
@@ -214,10 +228,32 @@ export function buildReportFlowPrepareFields(
   return Array.from(unique.values());
 }
 
+export function applyReportFlowLanguageModeToFields(
+  fields: ReportFlowPrepareField[],
+  languageMode: ReportLanguageMode,
+): ReportFlowPrepareField[] {
+  const normalizedMode = normalizeReportLanguageMode(languageMode);
+
+  return fields.map((field) => ({
+    ...field,
+    label: applyReportLanguageModeToText(
+      field.originalLabel || field.label,
+      normalizedMode,
+    ),
+    value: applyReportLanguageModeToFieldValue(
+      field.originalValue || field.value,
+      normalizedMode,
+      field.key,
+      field.originalLabel || field.label,
+    ),
+  }));
+}
+
 export function buildReportFlowContext(
   payload: SmartReportPayload,
 ): ReportFlowPrepareContext {
   const allFields = [...payload.primaryFields, ...payload.detailFields];
+  const languageMode = normalizeReportLanguageMode(payload.languageMode);
 
   const executor =
     allFields.find((field) =>
@@ -226,12 +262,15 @@ export function buildReportFlowContext(
 
   return {
     caseId: payload.caseInfo.id,
+    languageMode,
     title: payload.title || payload.caseInfo.title || "تقرير",
     serviceName: payload.service.name,
     serviceSlug: payload.service.slug,
     studentName: payload.student?.name || "",
     executorName: cleanText(executor),
-    executorTitle: cleanText(executor) ? "المعلم المنفذ" : "",
+    executorTitle: cleanText(executor)
+      ? applyReportLanguageModeToText("المعلم المنفذ", languageMode)
+      : "",
   };
 }
 
@@ -275,6 +314,7 @@ export function applyReportFlowPreparationToPayload(
 
   return {
     ...payload,
+    languageMode: normalizeReportLanguageMode(preparation.languageMode),
     primaryFields,
     detailFields,
     narrative: {
@@ -293,18 +333,21 @@ export function createReportFlowPreparation({
   fields,
   executionSummary,
   executionSummarySource,
+  languageMode,
 }: {
   payload: SmartReportPayload;
   variantId: string;
   fields: ReportFlowPrepareField[];
   executionSummary: string;
   executionSummarySource: ReportFlowPreparation["executionSummarySource"];
+  languageMode: ReportLanguageMode;
 }): ReportFlowPreparation {
   return {
     version: 1,
     caseId: payload.caseInfo.id,
     variantId,
     reportType: payload.reportType,
+    languageMode: normalizeReportLanguageMode(languageMode),
     selectedFieldIds: fields
       .filter((field) => field.selected)
       .map((field) => field.id),

@@ -56,6 +56,7 @@ const counselorImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard", icon: Home },
   { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
 ];
 
@@ -162,6 +163,7 @@ const activityLeaderServiceLinks: SidebarLinkItem[] = [
   { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
   { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
 ];
 
 const activityLeaderAccountLinks: SidebarLinkItem[] = [
@@ -179,6 +181,7 @@ const teacherServiceLinks: SidebarLinkItem[] = [
   { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
   { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal, shortLabel: "شهادات" },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
   { label: "رفع الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
   { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
 ];
@@ -250,6 +253,7 @@ const collapsedLabelByLabel: Record<string, string> = {
   "مركز الأنشطة": "الأنشطة",
   "متابعة أنشطة المعلمين": "المعلمون",
   "التقارير": "التقارير",
+  "تقرير خاص": "خاص",
   "التقويم والتنبيهات": "التقويم",
 
   "البرامج الإرشادية": "البرامج",
