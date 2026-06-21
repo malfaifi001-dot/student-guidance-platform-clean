@@ -1,375 +1,229 @@
-warning: in the working copy of 'components/layout/dashboard-sidebar.tsx', LF will be replaced by CRLF the next time Git touches it
-[1mdiff --git a/components/layout/dashboard-sidebar.tsx b/components/layout/dashboard-sidebar.tsx[m
-[1mindex b1a193f..9161036 100644[m
-[1m--- a/components/layout/dashboard-sidebar.tsx[m
-[1m+++ b/components/layout/dashboard-sidebar.tsx[m
-[36m@@ -44,6 +44,7 @@[m [mtype SidebarLinkItem = {[m
-   label: string;[m
-   href: string;[m
-   icon: ComponentType<{ className?: string }>;[m
-[32m+[m[32m  shortLabel?: string;[m
- };[m
+[1mdiff --git a/components/surveys/survey-analysis-shell.tsx b/components/surveys/survey-analysis-shell.tsx[m
+[1mindex 892fb09..3a65e9f 100644[m
+[1m--- a/components/surveys/survey-analysis-shell.tsx[m
+[1m+++ b/components/surveys/survey-analysis-shell.tsx[m
+[36m@@ -105,6 +105,7 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+   const [isLoading, setIsLoading] = useState(true);[m
+   const [error, setError] = useState<string | null>(null);[m
+   const [feedback, setFeedback] = useState<string | null>(null);[m
+[32m+[m[32m  const [selectedReportQuestionIds, setSelectedReportQuestionIds] = useState<string[]>([]);[m
  [m
- const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";[m
-[36m@@ -205,6 +206,60 @@[m [mfunction hasActive(pathname: string, items: SidebarLinkItem[]) {[m
-   return items.some((item) => isActivePath(pathname, item.href));[m
- }[m
+   const numericQuestions = useMemo([m
+     () => analysis?.questions.filter((question) => question.average !== null) || [],[m
+[36m@@ -143,6 +144,23 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+     loadAnalysis();[m
+   }, [surveyId]);[m
  [m
-[32m+[m[32mconst collapsedLabelByLabel: Record<string, string> = {[m
-[32m+[m[32m  "الرئيسية": "الرئيسية",[m
-[32m+[m[32m  "الحالات": "الحالات",[m
-[32m+[m[32m  "التقارير": "التقارير",[m
-[32m+[m[32m  "التقويم والتنبيهات": "التقويم",[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    if (!analysis?.questions.length) return;[m
 [32m+[m
-[32m+[m[32m  "البرامج الإرشادية": "البرامج",[m
-[32m+[m[32m  "اللجان والاجتماعات": "اللجان",[m
-[32m+[m[32m  "متابعة الطلاب": "المتابعة",[m
-[32m+[m[32m  "الخدمات الإرشادية المقدمة للطلاب": "الإرشاد",[m
-[32m+[m[32m  "المرجع الشامل للطالب": "مرجع الطالب",[m
-[32m+[m[32m  "المرجع الشامل للموجه الطلابي": "مرجع الموجه",[m
-[32m+[m[32m  "تحليل النتائج": "التحليل",[m
-[32m+[m[32m  "التواصل بين الأسرة والمدرسة": "الأسرة",[m
+[32m+[m[32m    setSelectedReportQuestionIds((previous) => {[m
+[32m+[m[32m      const validIds = new Set(analysis.questions.map((question) => question.id));[m
+[32m+[m[32m      const keptIds = previous.filter((questionId) => validIds.has(questionId));[m
 [32m+[m
-[32m+[m[32m  "لوحة المركز": "المركز",[m
-[32m+[m[32m  "تحليل جديد": "تحليل جديد",[m
-[32m+[m[32m  "التحليلات السابقة": "السابقة",[m
-[32m+[m[32m  "تحليل المواد": "المواد",[m
-[32m+[m[32m  "تحليل الصفوف والفصول": "الصفوف",[m
-[32m+[m[32m  "الطلاب المعرضون للخطر": "الخطر",[m
-[32m+[m[32m  "التوصيات العلاجية": "التوصيات",[m
-[32m+[m[32m  "تقارير التحليل": "تقارير",[m
+[32m+[m[32m      if (keptIds.length) {[m
+[32m+[m[32m        return keptIds;[m
+[32m+[m[32m      }[m
 [32m+[m
-[32m+[m[32m  "رفع بيانات الطلاب": "رفع الطلاب",[m
-[32m+[m[32m  "الباقات": "الباقات",[m
-[32m+[m[32m  "حسابي": "حسابي",[m
-[32m+[m[32m  "إعدادات المدرسة": "المدرسة",[m
+[32m+[m[32m      return analysis.questions[m
+[32m+[m[32m        .slice(0, Math.min(analysis.questions.length, 6))[m
+[32m+[m[32m        .map((question) => question.id);[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }, [analysis]);[m
 [32m+[m
-[32m+[m[32m  "مركز الإدارة": "الإدارة",[m
-[32m+[m[32m  "المستخدمين": "المستخدمون",[m
-[32m+[m[32m  "سجل العمليات": "السجل",[m
-[32m+[m[32m  "التفعيلات": "التفعيلات",[m
-[32m+[m[32m  "الاشتراكات": "الاشتراكات",[m
-[32m+[m[32m  "المشتركين": "المشتركون",[m
-[32m+[m[32m  "Workflows": "Workflows",[m
-[32m+[m
-[32m+[m[32m  "عمليات الدفع": "الدفع",[m
-[32m+[m[32m  "مزودو الدفع": "المزودون",[m
-[32m+[m[32m  "التسوية المالية": "التسوية",[m
-[32m+[m[32m  "الفواتير": "الفواتير",[m
-[32m+[m[32m  "إعدادات الفواتير والضريبة": "الضريبة",[m
-[32m+[m
-[32m+[m[32m  "مصمم Workflow": "المصمم",[m
-[32m+[m[32m  "قوالب التقارير": "القوالب",[m
-[32m+[m[32m  "قالب تقرير جديد": "قالب جديد",[m
-[32m+[m[32m  "حساب الأدمن": "حساب الأدمن",[m
-[32m+[m[32m  "هوية المنصة": "الهوية",[m
-[32m+[m[32m};[m
-[32m+[m
-[32m+[m[32mfunction getCollapsedLabel(item: SidebarLinkItem) {[m
-[32m+[m[32m  return item.shortLabel || collapsedLabelByLabel[item.label] || item.label;[m
-[32m+[m[32m}[m
-[32m+[m
- export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {[m
-   const pathname = usePathname();[m
-   const [collapsed, setCollapsed] = useState(false);[m
-[36m@@ -228,7 +283,7 @@[m [mexport function DashboardSidebar({ user }: { user?: SidebarUser | null }) {[m
-     <aside[m
-       className={[[m
-         "hidden min-h-screen shrink-0 bg-transparent py-5 transition-all duration-300 xl:block",[m
-[31m-        collapsed ? "w-[96px] px-3" : "w-[320px] px-4",[m
-[32m+[m[32m        collapsed ? "w-[104px] px-3" : "w-[320px] px-4",[m
-       ].join(" ")}[m
-     >[m
-       <div[m
-[36m@@ -317,7 +372,7 @@[m [mfunction AdminSidebar({[m
-       <nav[m
-         className={[[m
-           "mt-4 flex-1 overflow-y-auto",[m
-[31m-          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",[m
-[32m+[m[32m          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",[m
-         ].join(" ")}[m
-       >[m
-         <SidebarSection title="الإدارة" collapsed={collapsed}>[m
-[36m@@ -411,7 +466,7 @@[m [mfunction CounselorSidebar({[m
-       <nav[m
-         className={[[m
-           "mt-4 flex-1 overflow-y-auto",[m
-[31m-          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",[m
-[32m+[m[32m          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",[m
-         ].join(" ")}[m
-       >[m
-         <SidebarSection title="الأهم" collapsed={collapsed}>[m
-[36m@@ -522,7 +577,7 @@[m [mfunction SidebarSection({[m
-         </p>[m
-       ) : null}[m
+   async function copySurveyLink() {[m
+     if (!analysis?.survey.token) return;[m
  [m
-[31m-      <div className={collapsed ? "space-y-2" : "space-y-1.5"}>{children}</div>[m
-[32m+[m[32m      <div className={collapsed ? "space-y-1.5" : "space-y-1.5"}>{children}</div>[m
-     </section>[m
-   );[m
- }[m
-[36m@@ -543,7 +598,7 @@[m [mfunction SidebarDropdown({[m
-   const [open, setOpen] = useState(defaultOpen);[m
- [m
-   if (collapsed) {[m
-[31m-    return <div className="space-y-2">{children}</div>;[m
-[32m+[m[32m    return <div className="space-y-1.5">{children}</div>;[m
+[36m@@ -155,8 +173,49 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+     window.location.href = `/api/dashboard/surveys/${surveyId}/export`;[m
    }[m
  [m
-   return ([m
-[36m@@ -585,6 +640,7 @@[m [mfunction SidebarLink({[m
-   collapsed: boolean;[m
- }) {[m
-   const Icon = item.icon;[m
-[32m+[m[32m  const collapsedLabel = getCollapsedLabel(item);[m
- [m
-   return ([m
-     <Link[m
-[36m@@ -593,7 +649,7 @@[m [mfunction SidebarLink({[m
-       className={[[m
-         "group relative flex items-center rounded-2xl transition",[m
-         collapsed[m
-[31m-          ? "h-11 justify-center px-0"[m
-[32m+[m[32m          ? "min-h-[66px] flex-col justify-center gap-1 px-1 py-1.5 text-center"[m
-           : "min-h-11 gap-3 px-4 py-2.5",[m
-         compact && !collapsed ? "py-2" : "",[m
-         active[m
-[36m@@ -623,7 +679,7 @@[m [mfunction SidebarLink({[m
-             : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600",[m
-         ].join(" ")}[m
-       >[m
-[31m-        <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />[m
-[32m+[m[32m        <Icon className={collapsed ? "h-5 w-5" : compact ? "h-4 w-4" : "h-5 w-5"} />[m
-       </div>[m
- [m
-       {!collapsed ? ([m
-[36m@@ -631,9 +687,15 @@[m [mfunction SidebarLink({[m
-           {item.label}[m
-         </span>[m
-       ) : ([m
-[31m-        <span className="pointer-events-none fixed right-[105px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">[m
-[31m-          {item.label}[m
-[31m-        </span>[m
-[32m+[m[32m        <>[m
-[32m+[m[32m          <span className="line-clamp-2 max-w-[64px] text-center text-[9px] font-black leading-[11px] text-current">[m
-[32m+[m[32m            {collapsedLabel}[m
-[32m+[m[32m          </span>[m
+[32m+[m[32m  function toggleReportQuestion(questionId: string) {[m
+[32m+[m[32m    setSelectedReportQuestionIds((previous) => {[m
+[32m+[m[32m      if (previous.includes(questionId)) {[m
+[32m+[m[32m        return previous.filter((item) => item !== questionId);[m
+[32m+[m[32m      }[m
 [32m+[m
-[32m+[m[32m          <span className="pointer-events-none fixed right-[112px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">[m
-[32m+[m[32m            {item.label}[m
-[32m+[m[32m          </span>[m
-[32m+[m[32m        </>[m
-       )}[m
-     </Link>[m
-   );[m
-[1mdiff --git a/components/layout/dashboard-sidebar.tsx b/components/layout/dashboard-sidebar.tsx[m
-[1mindex b1a193f..de402bf 100644[m
-[1m--- a/components/layout/dashboard-sidebar.tsx[m
-[1m+++ b/components/layout/dashboard-sidebar.tsx[m
-[36m@@ -44,6 +44,7 @@[m [mtype SidebarLinkItem = {[m
-   label: string;[m
-   href: string;[m
-   icon: ComponentType<{ className?: string }>;[m
-[32m+[m[32m  shortLabel?: string;[m
- };[m
- [m
- const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";[m
-[36m@@ -106,40 +107,15 @@[m [mconst assessmentCenterLinks: SidebarLinkItem[] = [[m
-     icon: BarChart3,[m
-   },[m
-   {[m
-[31m-    label: "تحليل جديد",[m
-[31m-    href: "/dashboard/assessment-center/new",[m
-[31m-    icon: UploadCloud,[m
-[32m+[m[32m    label: "ربط الطلاب",[m
-[32m+[m[32m    href: "/dashboard/assessment-center/linking",[m
-[32m+[m[32m    icon: GitBranch,[m
-   },[m
-   {[m
-[31m-    label: "التحليلات السابقة",[m
-[31m-    href: "/dashboard/assessment-center/analyses",[m
-[31m-    icon: FileText,[m
-[31m-  },[m
-[31m-  {[m
-[31m-    label: "تحليل المواد",[m
-[31m-    href: "/dashboard/assessment-center/subjects",[m
-[31m-    icon: BookOpen,[m
-[31m-  },[m
-[31m-  {[m
-[31m-    label: "تحليل الصفوف والفصول",[m
-[31m-    href: "/dashboard/assessment-center/classes",[m
-[31m-    icon: School,[m
-[31m-  },[m
-[31m-  {[m
-[31m-    label: "الطلاب المعرضون للخطر",[m
-[31m-    href: "/dashboard/assessment-center/risk-students",[m
-[31m-    icon: Users,[m
-[31m-  },[m
-[31m-  {[m
-[31m-    label: "التوصيات العلاجية",[m
-[31m-    href: "/dashboard/assessment-center/recommendations",[m
-[32m+[m[32m    label: "الموجه الذكي",[m
-[32m+[m[32m    href: "/dashboard/assessment-center/smart-counselor",[m
-     icon: Sparkles,[m
-   },[m
-[31m-  {[m
-[31m-    label: "تقارير التحليل",[m
-[31m-    href: "/dashboard/assessment-center/reports",[m
-[31m-    icon: FileText,[m
-[31m-  },[m
- ];[m
- const counselorToolsLinks: SidebarLinkItem[] = [[m
-   { label: "رفع بيانات الطلاب", href: "/dashboard/student-import", icon: UploadCloud },[m
-[36m@@ -205,6 +181,60 @@[m [mfunction hasActive(pathname: string, items: SidebarLinkItem[]) {[m
-   return items.some((item) => isActivePath(pathname, item.href));[m
- }[m
- [m
-[32m+[m[32mconst collapsedLabelByLabel: Record<string, string> = {[m
-[32m+[m[32m  "الرئيسية": "الرئيسية",[m
-[32m+[m[32m  "الحالات": "الحالات",[m
-[32m+[m[32m  "التقارير": "التقارير",[m
-[32m+[m[32m  "التقويم والتنبيهات": "التقويم",[m
+[32m+[m[32m      if (previous.length >= 10) {[m
+[32m+[m[32m        setFeedback("التقرير الرسمي صفحة واحدة، لذلك اختر 10 أسئلة كحد أقصى.");[m
+[32m+[m[32m        return previous;[m
+[32m+[m[32m      }[m
 [32m+[m
-[32m+[m[32m  "البرامج الإرشادية": "البرامج",[m
-[32m+[m[32m  "اللجان والاجتماعات": "اللجان",[m
-[32m+[m[32m  "متابعة الطلاب": "المتابعة",[m
-[32m+[m[32m  "الخدمات الإرشادية المقدمة للطلاب": "الإرشاد",[m
-[32m+[m[32m  "المرجع الشامل للطالب": "مرجع الطالب",[m
-[32m+[m[32m  "المرجع الشامل للموجه الطلابي": "مرجع الموجه",[m
-[32m+[m[32m  "تحليل النتائج": "التحليل",[m
-[32m+[m[32m  "التواصل بين الأسرة والمدرسة": "الأسرة",[m
+[32m+[m[32m      return [...previous, questionId];[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
 [32m+[m
-[32m+[m[32m  "لوحة المركز": "المركز",[m
-[32m+[m[32m  "تحليل جديد": "تحليل جديد",[m
-[32m+[m[32m  "التحليلات السابقة": "السابقة",[m
-[32m+[m[32m  "تحليل المواد": "المواد",[m
-[32m+[m[32m  "تحليل الصفوف والفصول": "الصفوف",[m
-[32m+[m[32m  "الطلاب المعرضون للخطر": "الخطر",[m
-[32m+[m[32m  "التوصيات العلاجية": "التوصيات",[m
-[32m+[m[32m  "تقارير التحليل": "تقارير",[m
+[32m+[m[32m  function selectAllReportQuestions() {[m
+[32m+[m[32m    if (!analysis?.questions.length) return;[m
 [32m+[m
-[32m+[m[32m  "رفع بيانات الطلاب": "رفع الطلاب",[m
-[32m+[m[32m  "الباقات": "الباقات",[m
-[32m+[m[32m  "حسابي": "حسابي",[m
-[32m+[m[32m  "إعدادات المدرسة": "المدرسة",[m
+[32m+[m[32m    setSelectedReportQuestionIds([m
+[32m+[m[32m      analysis.questions[m
+[32m+[m[32m        .slice(0, Math.min(analysis.questions.length, 10))[m
+[32m+[m[32m        .map((question) => question.id),[m
+[32m+[m[32m    );[m
 [32m+[m
-[32m+[m[32m  "مركز الإدارة": "الإدارة",[m
-[32m+[m[32m  "المستخدمين": "المستخدمون",[m
-[32m+[m[32m  "سجل العمليات": "السجل",[m
-[32m+[m[32m  "التفعيلات": "التفعيلات",[m
-[32m+[m[32m  "الاشتراكات": "الاشتراكات",[m
-[32m+[m[32m  "المشتركين": "المشتركون",[m
-[32m+[m[32m  "Workflows": "Workflows",[m
+[32m+[m[32m    if (analysis.questions.length > 10) {[m
+[32m+[m[32m      setFeedback("تم اختيار أول 10 أسئلة فقط لأن التقرير صفحة واحدة.");[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }[m
 [32m+[m
-[32m+[m[32m  "عمليات الدفع": "الدفع",[m
-[32m+[m[32m  "مزودو الدفع": "المزودون",[m
-[32m+[m[32m  "التسوية المالية": "التسوية",[m
-[32m+[m[32m  "الفواتير": "الفواتير",[m
-[32m+[m[32m  "إعدادات الفواتير والضريبة": "الضريبة",[m
+[32m+[m[32m  function clearReportQuestions() {[m
+[32m+[m[32m    setSelectedReportQuestionIds([]);[m
+[32m+[m[32m  }[m
 [32m+[m
-[32m+[m[32m  "مصمم Workflow": "المصمم",[m
-[32m+[m[32m  "قوالب التقارير": "القوالب",[m
-[32m+[m[32m  "قالب تقرير جديد": "قالب جديد",[m
-[32m+[m[32m  "حساب الأدمن": "حساب الأدمن",[m
-[32m+[m[32m  "هوية المنصة": "الهوية",[m
-[32m+[m[32m};[m
+   function openSurveyPdf() {[m
+[31m-    window.location.href = `/api/dashboard/surveys/${surveyId}/export/pdf`;[m
+[32m+[m[32m    if (!selectedReportQuestionIds.length) {[m
+[32m+[m[32m      setFeedback("اختر سؤالًا واحدًا على الأقل قبل تصدير PDF.");[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
 [32m+[m
-[32m+[m[32mfunction getCollapsedLabel(item: SidebarLinkItem) {[m
-[32m+[m[32m  return item.shortLabel || collapsedLabelByLabel[item.label] || item.label;[m
-[32m+[m[32m}[m
+[32m+[m[32m    const params = new URLSearchParams();[m
+[32m+[m[32m    params.set("questionIds", selectedReportQuestionIds.join(","));[m
 [32m+[m
- export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {[m
-   const pathname = usePathname();[m
-   const [collapsed, setCollapsed] = useState(false);[m
-[36m@@ -227,8 +257,8 @@[m [mexport function DashboardSidebar({ user }: { user?: SidebarUser | null }) {[m
-   return ([m
-     <aside[m
-       className={[[m
-[31m-        "hidden min-h-screen shrink-0 bg-transparent py-5 transition-all duration-300 xl:block",[m
-[31m-        collapsed ? "w-[96px] px-3" : "w-[320px] px-4",[m
-[32m+[m[32m        "hidden min-h-screen shrink-0 bg-transparent py-4 transition-all duration-300 md:block xl:py-5",[m
-[32m+[m[32m        collapsed ? "w-[92px] px-2 lg:w-[96px] xl:w-[104px] xl:px-3" : "w-[232px] px-2 lg:w-[280px] lg:px-3 xl:w-[320px] xl:px-4",[m
-       ].join(" ")}[m
-     >[m
-       <div[m
-[36m@@ -317,7 +347,7 @@[m [mfunction AdminSidebar({[m
-       <nav[m
-         className={[[m
-           "mt-4 flex-1 overflow-y-auto",[m
-[31m-          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",[m
-[32m+[m[32m          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",[m
-         ].join(" ")}[m
-       >[m
-         <SidebarSection title="الإدارة" collapsed={collapsed}>[m
-[36m@@ -411,7 +441,7 @@[m [mfunction CounselorSidebar({[m
-       <nav[m
-         className={[[m
-           "mt-4 flex-1 overflow-y-auto",[m
-[31m-          collapsed ? "space-y-2 px-1" : "space-y-5 pr-1",[m
-[32m+[m[32m          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",[m
-         ].join(" ")}[m
-       >[m
-         <SidebarSection title="الأهم" collapsed={collapsed}>[m
-[36m@@ -522,7 +552,7 @@[m [mfunction SidebarSection({[m
-         </p>[m
-       ) : null}[m
- [m
-[31m-      <div className={collapsed ? "space-y-2" : "space-y-1.5"}>{children}</div>[m
-[32m+[m[32m      <div className={collapsed ? "space-y-1.5" : "space-y-1.5"}>{children}</div>[m
-     </section>[m
-   );[m
- }[m
-[36m@@ -543,7 +573,7 @@[m [mfunction SidebarDropdown({[m
-   const [open, setOpen] = useState(defaultOpen);[m
- [m
-   if (collapsed) {[m
-[31m-    return <div className="space-y-2">{children}</div>;[m
-[32m+[m[32m    return <div className="space-y-1.5">{children}</div>;[m
+[32m+[m[32m    window.location.href = `/api/dashboard/surveys/${surveyId}/export/pdf?${params.toString()}`;[m
    }[m
  [m
-   return ([m
-[36m@@ -585,6 +615,7 @@[m [mfunction SidebarLink({[m
-   collapsed: boolean;[m
- }) {[m
-   const Icon = item.icon;[m
-[32m+[m[32m  const collapsedLabel = getCollapsedLabel(item);[m
+   if (isLoading) {[m
+[36m@@ -185,7 +244,7 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+         <details className="group rounded-3xl border border-slate-200 bg-white shadow-sm">[m
+           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-6">[m
+             <div>[m
+[31m-              <p className="text-sm font-bold text-sky-700">قراءة ذكية للنتائج</p>[m
+[32m+[m[32m              <p className="text-sm font-bold text-sky-700 dark:text-sky-400">قراءة ذكية للنتائج</p>[m
+               <h2 className="mt-1 text-xl font-bold text-slate-950">[m
+                 توصيات ومؤشرات سريعة[m
+               </h2>[m
+[36m@@ -249,10 +308,10 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+           </div>[m
+         </details>[m
+       ) : null}[m
+[31m-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">[m
+[32m+[m[32m      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">[m
+         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">[m
+           <div>[m
+[31m-            <Link href={boardPath} className="text-sm font-bold text-sky-700">[m
+[32m+[m[32m            <Link href={boardPath} className="text-sm font-bold text-sky-700 dark:text-sky-400">[m
+               العودة إلى مركز الاستبيانات[m
+             </Link>[m
  [m
-   return ([m
-     <Link[m
-[36m@@ -593,7 +624,7 @@[m [mfunction SidebarLink({[m
-       className={[[m
-         "group relative flex items-center rounded-2xl transition",[m
-         collapsed[m
-[31m-          ? "h-11 justify-center px-0"[m
-[32m+[m[32m          ? "min-h-[66px] flex-col justify-center gap-1 px-1 py-1.5 text-center"[m
-           : "min-h-11 gap-3 px-4 py-2.5",[m
-         compact && !collapsed ? "py-2" : "",[m
-         active[m
-[36m@@ -623,7 +654,7 @@[m [mfunction SidebarLink({[m
-             : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600",[m
-         ].join(" ")}[m
-       >[m
-[31m-        <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />[m
-[32m+[m[32m        <Icon className={collapsed ? "h-5 w-5" : compact ? "h-4 w-4" : "h-5 w-5"} />[m
-       </div>[m
+[36m@@ -281,7 +340,7 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+             <button[m
+               type="button"[m
+               onClick={openSurveyPdf}[m
+[31m-              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-100"[m
+[32m+[m[32m              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 dark:text-sky-400 transition hover:bg-sky-100"[m
+             >[m
+               تصدير PDF[m
+             </button>[m
+[36m@@ -311,6 +370,83 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+         </div>[m
+       ) : null}[m
  [m
-       {!collapsed ? ([m
-[36m@@ -631,9 +662,15 @@[m [mfunction SidebarLink({[m
-           {item.label}[m
-         </span>[m
-       ) : ([m
-[31m-        <span className="pointer-events-none fixed right-[105px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">[m
-[31m-          {item.label}[m
-[31m-        </span>[m
-[32m+[m[32m        <>[m
-[32m+[m[32m          <span className="line-clamp-2 max-w-[64px] text-center text-[9px] font-black leading-[11px] text-current">[m
-[32m+[m[32m            {collapsedLabel}[m
-[32m+[m[32m          </span>[m
+[32m+[m[32m      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">[m
+[32m+[m[32m        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">[m
+[32m+[m[32m          <div>[m
+[32m+[m[32m            <p className="text-sm font-bold text-sky-700 dark:text-sky-400">تجهيز التقرير الرسمي</p>[m
+[32m+[m[32m            <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">اختر البيانات التي ستظهر في PDF</h2>[m
+[32m+[m[32m</div>[m
 [32m+[m
-[32m+[m[32m          <span className="pointer-events-none fixed right-[112px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block">[m
-[32m+[m[32m            {item.label}[m
-[32m+[m[32m          </span>[m
-[32m+[m[32m        </>[m
-       )}[m
-     </Link>[m
-   );[m
+[32m+[m[32m          <div className="flex flex-wrap gap-2">[m
+[32m+[m[32m<button[m
+[32m+[m[32m              type="button"[m
+[32m+[m[32m              onClick={selectAllReportQuestions}[m
+[32m+[m[32m              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"[m
+[32m+[m[32m            >[m
+[32m+[m[32m              أول 10 أسئلة[m
+[32m+[m[32m            </button>[m
+[32m+[m
+[32m+[m[32m            <button[m
+[32m+[m[32m              type="button"[m
+[32m+[m[32m              onClick={clearReportQuestions}[m
+[32m+[m[32m              className="rounded-2xl border border-rose-200 px-4 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-50"[m
+[32m+[m[32m            >[m
+[32m+[m[32m              إلغاء التحديد[m
+[32m+[m[32m            </button>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        </div>[m
+[32m+[m
+[32m+[m[32m        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">[m
+[32m+[m[32m          {analysis.questions.map((question, index) => {[m
+[32m+[m[32m            const checked = selectedReportQuestionIds.includes(question.id);[m
+[32m+[m
+[32m+[m[32m            return ([m
+[32m+[m[32m              <button[m
+[32m+[m[32m                key={question.id}[m
+[32m+[m[32m                type="button"[m
+[32m+[m[32m                onClick={() => toggleReportQuestion(question.id)}[m
+[32m+[m[32m                className={[[m
+[32m+[m[32m                  "rounded-2xl border p-4 text-right transition",[m
+[32m+[m[32m                  checked[m
+[32m+[m[32m                    ? "border-sky-300 bg-sky-50"[m
+[32m+[m[32m                    : "border-slate-200 bg-white hover:border-sky-200 hover:bg-slate-50",[m
+[32m+[m[32m                ].join(" ")}[m
+[32m+[m[32m              >[m
+[32m+[m[32m                <div className="flex items-start justify-between gap-3">[m
+[32m+[m[32m                  <div className="min-w-0">[m
+[32m+[m[32m                    <p className="text-xs font-black text-slate-400">س{index + 1} · {questionTypeLabel(question.type)}</p>[m
+[32m+[m[32m                    <h3 className="mt-1 line-clamp-2 text-sm font-black leading-6 text-slate-950">[m
+[32m+[m[32m                      {question.label}[m
+[32m+[m[32m                    </h3>[m
+[32m+[m[32m                  </div>[m
+[32m+[m
+[32m+[m[32m                  <span[m
+[32m+[m[32m                    className={[[m
+[32m+[m[32m                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-black",[m
+[32m+[m[32m                      checked[m
+[32m+[m[32m                        ? "border-sky-700 bg-sky-700 text-white"[m
+[32m+[m[32m                        : "border-slate-300 bg-white text-slate-300",[m
+[32m+[m[32m                    ].join(" ")}[m
+[32m+[m[32m                  >[m
+[32m+[m[32m                    ✓[m
+[32m+[m[32m                  </span>[m
+[32m+[m[32m                </div>[m
+[32m+[m
+[32m+[m[32m                <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-slate-500">[m
+[32m+[m[32m                  <span>{question.answeredCount} إجابة</span>[m
+[32m+[m[32m                  <span>{question.answerRate}% معدل</span>[m
+[32m+[m[32m                  {question.average !== null ? <span>متوسط {question.average}</span> : null}[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m              </button>[m
+[32m+[m[32m            );[m
+[32m+[m[32m          })}[m
+[32m+[m[32m        </div>[m
+[32m+[m
+[32m+[m[32m        <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">[m
+[32m+[m[32m          المحدد الآن: {selectedReportQuestionIds.length} سؤال · الحد الأعلى للتقرير الرسمي صفحة واحدة: 10 أسئلة.[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </section>[m
+[32m+[m
+       <section className="grid gap-4 md:grid-cols-4">[m
+         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">[m
+           <p className="text-sm text-slate-500">عدد الردود</p>[m
+[36m@@ -334,7 +470,7 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+       </section>[m
+ [m
+       <section className="grid gap-4 xl:grid-cols-2">[m
+[31m-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">[m
+[32m+[m[32m        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">[m
+           <h2 className="text-lg font-bold text-slate-950">متوسط الأسئلة الرقمية</h2>[m
+           <p className="mt-1 text-sm text-slate-500">يعرض متوسط التقييم والمقاييس الرقمية داخل الاستبيان.</p>[m
+ [m
+[36m@@ -358,7 +494,7 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+           </div>[m
+         </div>[m
+ [m
+[31m-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">[m
+[32m+[m[32m        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">[m
+           <h2 className="text-lg font-bold text-slate-950">ملخص توزيع أول سؤال اختيارات</h2>[m
+           <p className="mt-1 text-sm text-slate-500">يعرض Pie Chart لأول سؤال اختيارات لديه ردود.</p>[m
+ [m
+[36m@@ -394,7 +530,7 @@[m [mexport function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell[m
+         </div>[m
+       </section>[m
+ [m
+[31m-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">[m
+[32m+[m[32m      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">[m
+         <h2 className="text-lg font-bold text-slate-950">تحليل الأسئلة</h2>[m
+         <p className="mt-1 text-sm text-slate-500">[m
+           يعرض هذا القسم القيم المستخرجة من كل سؤال حسب نوعه.[m

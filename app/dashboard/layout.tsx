@@ -21,12 +21,12 @@ export default async function DashboardLayout({
   return (
     <div
       dir="rtl"
-      className="min-h-screen overflow-x-auto bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
+      className="h-screen overflow-x-auto overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
     >
-      <div className="flex min-h-screen min-w-[1180px]">
+      <div className="flex h-screen min-w-[1180px]">
         <DashboardSidebar user={current.user} />
 
-        <main className="min-w-0 flex-1 text-[15.5px] leading-relaxed">
+        <main className="h-screen min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
           <DashboardHeader user={current.user} />
 
           <DashboardOnboardingReminder

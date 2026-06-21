@@ -1,0 +1,630 @@
+
+============================================================
+app\api\dashboard\reports\case\[caseId]\execution-summary\route.ts
+============================================================
+
+import { NextResponse } from "next/server";
+
+import { generateExecutionSummary } from "@/lib/ai/execution-summary-generator";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  requireActiveSubscriptionApi,
+  requireServiceAccessApi,
+} from "@/lib/subscription/subscription-api-guard";
+import type {
+  ReportFlowPrepareContext,
+  ReportFlowSummaryField,
+} from "@/lib/report-flow/report-flow-types";
+
+type RouteContext = {
+  params: Promise<{
+    caseId: string;
+  }>;
+};
+
+function toRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function normalizeFields(value: unknown): ReportFlowSummaryField[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => toRecord(item))
+    .map((item) => ({
+      key: String(item.key || "").trim(),
+      label: String(item.label || "").trim(),
+      value: String(item.value || "").trim(),
+    }))
+    .filter((item) => item.label && item.value)
+    .slice(0, 30);
+}
+
+function normalizeContext(value: unknown): Partial<ReportFlowPrepareContext> {
+  const record = toRecord(value);
+
+  return {
+    title: String(record.title || "").trim(),
+    serviceName: String(record.serviceName || "").trim(),
+    serviceSlug: String(record.serviceSlug || "").trim(),
+    studentName: String(record.studentName || "").trim(),
+    executorName: String(record.executorName || "").trim(),
+    executorTitle: String(record.executorTitle || "").trim(),
+  };
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  try {
+    const current = await getCurrentSessionUser();
+
+    if (!current) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "يلزم تسجيل الدخول.",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (current.user.role !== "ADMIN") {
+      const subscriptionGuard = await requireActiveSubscriptionApi();
+
+      if (subscriptionGuard) {
+        return subscriptionGuard;
+      }
+    }
+
+    const params = await context.params;
+    const caseId = String(params.caseId || "").trim();
+
+    const result = await buildSmartReportPayloadForCase({
+      caseId,
+      current,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.message,
+        },
+        { status: result.status },
+      );
+    }
+
+    if (current.user.role !== "ADMIN") {
+      const serviceGuard = await requireServiceAccessApi(result.serviceSlug);
+
+      if (serviceGuard) {
+        return serviceGuard;
+      }
+    }
+
+    const body = toRecord(await request.json().catch(() => ({})));
+    const selectedFields = normalizeFields(body.fields);
+    const clientContext = normalizeContext(body.context);
+
+    const generated = await generateExecutionSummary({
+      context: {
+        caseId,
+        title:
+          clientContext.title ||
+          result.payload.title ||
+          result.payload.caseInfo.title ||
+          "تقرير",
+        serviceName:
+          clientContext.serviceName || result.payload.service.name || "خدمة",
+        serviceSlug:
+          clientContext.serviceSlug || result.payload.service.slug || "general",
+        studentName:
+          clientContext.studentName || result.payload.student?.name || "",
+        executorName: clientContext.executorName || "",
+        executorTitle: clientContext.executorTitle || "",
+      },
+      fields: selectedFields,
+    });
+
+    return NextResponse.json({
+      success: true,
+      summary: generated.summary,
+      source: generated.source,
+    });
+  } catch (error) {
+    console.error("REPORT_FLOW_EXECUTION_SUMMARY_ERROR", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "تعذر توليد وصف التنفيذ.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+============================================================
+lib\report-flow\report-flow-payload.ts
+============================================================
+
+import type {
+  SmartReportField,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+import type {
+  ReportFlowPrepareField,
+  ReportFlowPreparation,
+  ReportFlowPrepareContext,
+  ReportFlowFieldSource,
+} from "@/lib/report-flow/report-flow-types";
+
+const FIELD_LABEL_TRANSLATIONS: Record<string, string> = {
+  execution_date: "تاريخ التنفيذ / اليوم",
+  semester: "الفصل الدراسي",
+  week: "الأسبوع",
+  executor: "المعلم المنفذ",
+  target_group: "الفئة المستهدفة",
+  execution_method: "طريقة التنفيذ",
+  execution_mode: "طريقة التنفيذ",
+  activity_domain: "مجال النشاط",
+  activity_program: "برنامج النشاط",
+  beneficiary_count: "عدد المستفيدين",
+  beneficiaries_count: "عدد المستفيدين",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  parents_participated: "مشاركة أولياء الأمور",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  location: "مكان التنفيذ",
+  execution_location: "مكان التنفيذ",
+};
+
+const VALUE_TRANSLATIONS: Record<string, string> = {
+  yes: "نعم",
+  no: "لا",
+  true: "نعم",
+  false: "لا",
+  term_1: "الفصل الدراسي الأول",
+  term_2: "الفصل الدراسي الثاني",
+  term_3: "الفصل الدراسي الثالث",
+  semester_1: "الفصل الدراسي الأول",
+  semester_2: "الفصل الدراسي الثاني",
+  semester_3: "الفصل الدراسي الثالث",
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+  activity_leader: "رائد النشاط",
+  counselor: "الموجه الطلابي",
+  teacher: "المعلم",
+  lecture: "محاضرة",
+  workshop: "ورشة عمل",
+  meeting: "لقاء",
+  competition: "مسابقة",
+  field_visit: "زيارة ميدانية",
+};
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function hasArabic(value: string) {
+  return /[\u0600-\u06FF]/.test(value);
+}
+
+function looksLikeJson(value: string) {
+  const text = value.trim();
+
+  return (
+    (text.startsWith("{") && text.endsWith("}")) ||
+    (text.startsWith("[") && text.endsWith("]")) ||
+    text.includes('":') ||
+    text.includes('","')
+  );
+}
+
+function isEnglishTechnicalText(value: string) {
+  return /^[a-z0-9_\-.@:/]+$/i.test(value.trim());
+}
+
+function isTechnicalField(key: string, label: string, value: string) {
+  const text = `${key} ${label}`.toLowerCase().replace(/\s+/g, "");
+
+  if (!value) return true;
+  if (looksLikeJson(value)) return true;
+
+  return (
+    /(^|_)id$/i.test(key) ||
+    text.includes("json") ||
+    text.includes("metadata") ||
+    text.includes("token") ||
+    text.includes("url") ||
+    text.includes("signatureurl") ||
+    text.includes("signedat") ||
+    text.includes("raw") ||
+    text.includes("email") ||
+    text.includes("phone")
+  );
+}
+
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (typeof value === "boolean") return value ? "نعم" : "لا";
+
+  if (Array.isArray(value)) {
+    return value.map(displayValue).filter(Boolean).join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    const candidates = [
+      record.displayValue,
+      record.valueLabel,
+      record.optionLabel,
+      record.selectedOptionLabel,
+      record.labelAr,
+      record.nameAr,
+      record.titleAr,
+      record.fullName,
+      record.name,
+      record.title,
+      record.label,
+      record.text,
+      record.value,
+    ];
+
+    for (const candidate of candidates) {
+      const text = displayValue(candidate);
+      if (text) return text;
+    }
+
+    return "";
+  }
+
+  const raw = cleanText(value);
+  const lower = raw.toLowerCase();
+
+  if (VALUE_TRANSLATIONS[lower]) return VALUE_TRANSLATIONS[lower];
+
+  if (looksLikeJson(raw)) {
+    try {
+      return displayValue(JSON.parse(raw));
+    } catch {
+      return "";
+    }
+  }
+
+  if (isEnglishTechnicalText(raw) && !VALUE_TRANSLATIONS[lower]) return "";
+
+  return raw;
+}
+
+function displayLabel(field: SmartReportField) {
+  const key = cleanText(field.key);
+  const label = cleanText(field.label);
+
+  if (FIELD_LABEL_TRANSLATIONS[key]) return FIELD_LABEL_TRANSLATIONS[key];
+  if (label && label !== key && hasArabic(label)) return label;
+
+  return "";
+}
+
+function makePrepareField(
+  field: SmartReportField,
+  source: ReportFlowFieldSource,
+  index: number,
+): ReportFlowPrepareField | null {
+  const key = cleanText(field.key) || `${source}-${index + 1}`;
+  const label = displayLabel(field);
+  const value = displayValue(field.value);
+  const technical = isTechnicalField(key, label, value);
+
+  if (!label || !value) return null;
+
+  return {
+    id: `${source}:${key}:${index}`,
+    source,
+    key,
+    label,
+    value,
+    originalLabel: label,
+    originalValue: value,
+    selected: !technical,
+    technical,
+  };
+}
+
+export function buildReportFlowPrepareFields(
+  payload: SmartReportPayload,
+): ReportFlowPrepareField[] {
+  const fields = [
+    ...payload.primaryFields.map((field, index) =>
+      makePrepareField(field, "primary", index),
+    ),
+    ...payload.detailFields.map((field, index) =>
+      makePrepareField(field, "detail", index),
+    ),
+  ].filter((field): field is ReportFlowPrepareField => Boolean(field));
+
+  const unique = new Map<string, ReportFlowPrepareField>();
+
+  for (const field of fields) {
+    const key = `${field.label}::${field.value}`;
+
+    if (!unique.has(key)) {
+      unique.set(key, field);
+    }
+  }
+
+  return Array.from(unique.values());
+}
+
+export function buildReportFlowContext(
+  payload: SmartReportPayload,
+): ReportFlowPrepareContext {
+  const allFields = [...payload.primaryFields, ...payload.detailFields];
+
+  const executor =
+    allFields.find((field) =>
+      ["executor", "assigned_teacher", "teacher"].includes(field.key),
+    )?.value || "";
+
+  return {
+    caseId: payload.caseInfo.id,
+    title: payload.title || payload.caseInfo.title || "تقرير",
+    serviceName: payload.service.name,
+    serviceSlug: payload.service.slug,
+    studentName: payload.student?.name || "",
+    executorName: cleanText(executor),
+    executorTitle: cleanText(executor) ? "المعلم المنفذ" : "",
+  };
+}
+
+function applyFields(
+  sourceFields: SmartReportField[],
+  preparation: ReportFlowPreparation,
+  source: ReportFlowFieldSource,
+): SmartReportField[] {
+  const selectedIds = new Set(preparation.selectedFieldIds);
+
+  return preparation.fields
+    .filter((field) => field.source === source)
+    .filter((field) => selectedIds.has(field.id))
+    .map((field) => {
+      const original =
+        sourceFields.find((item) => item.key === field.key) || sourceFields[0];
+
+      return {
+        ...(original || {
+          key: field.key,
+          importance: source === "primary" ? "PRIMARY" : "DETAIL",
+        }),
+        key: field.key,
+        label: field.label,
+        value: field.value,
+      } as SmartReportField;
+    });
+}
+
+export function applyReportFlowPreparationToPayload(
+  payload: SmartReportPayload,
+  preparation: ReportFlowPreparation,
+): SmartReportPayload {
+  const primaryFields = applyFields(
+    payload.primaryFields,
+    preparation,
+    "primary",
+  );
+
+  const detailFields = applyFields(payload.detailFields, preparation, "detail");
+
+  return {
+    ...payload,
+    primaryFields,
+    detailFields,
+    narrative: {
+      ...payload.narrative,
+      title: payload.narrative.title || "وصف التنفيذ",
+      body:
+        cleanText(preparation.executionSummary) ||
+        cleanText(payload.narrative.body),
+    },
+  };
+}
+
+export function createReportFlowPreparation({
+  payload,
+  variantId,
+  fields,
+  executionSummary,
+  executionSummarySource,
+}: {
+  payload: SmartReportPayload;
+  variantId: string;
+  fields: ReportFlowPrepareField[];
+  executionSummary: string;
+  executionSummarySource: ReportFlowPreparation["executionSummarySource"];
+}): ReportFlowPreparation {
+  return {
+    version: 1,
+    caseId: payload.caseInfo.id,
+    variantId,
+    reportType: payload.reportType,
+    selectedFieldIds: fields
+      .filter((field) => field.selected)
+      .map((field) => field.id),
+    fields,
+    executionSummary,
+    executionSummarySource,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+============================================================
+lib\report-flow\report-flow-types.ts
+============================================================
+
+import type {
+  SmartReportField,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+
+export type ReportFlowFieldSource = "primary" | "detail";
+
+export type ReportFlowPrepareField = {
+  id: string;
+  source: ReportFlowFieldSource;
+  key: string;
+  label: string;
+  value: string;
+  originalLabel: string;
+  originalValue: string;
+  selected: boolean;
+  technical?: boolean;
+};
+
+export type ReportFlowExecutionSummarySource = "AI" | "MANUAL" | "FALLBACK";
+
+export type ReportFlowPreparation = {
+  version: 1;
+  caseId: string;
+  variantId: string;
+  reportType: string;
+  selectedFieldIds: string[];
+  fields: ReportFlowPrepareField[];
+  executionSummary: string;
+  executionSummarySource: ReportFlowExecutionSummarySource;
+  updatedAt: string;
+};
+
+export type ReportFlowPrepareContext = {
+  caseId: string;
+  title: string;
+  serviceName: string;
+  serviceSlug: string;
+  studentName?: string;
+  executorName?: string;
+  executorTitle?: string;
+};
+
+export type ReportFlowApplyResult = {
+  payload: SmartReportPayload;
+  preparation: ReportFlowPreparation;
+};
+
+export type ReportFlowSummaryField = Pick<
+  ReportFlowPrepareField,
+  "key" | "label" | "value"
+>;
+
+export type SmartReportFieldWithSource = SmartReportField & {
+  source?: ReportFlowFieldSource;
+};
+
+============================================================
+SEARCH: DeepSeek / OpenAI / execution-summary / prompt
+============================================================
+
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:8: | "activity-annual-summary";
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:22: | "ANNUAL_SUMMARY";
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:81: id: "activity-annual-summary",
+D:\student-guidance-platform-clean\lib\activity-programs\activity-report-templates.ts:87: reportKind: "ANNUAL_SUMMARY",
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:1: type DeepSeekMessage = {
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:6: type DeepSeekChatOptions = {
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:7: messages: DeepSeekMessage[];
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:12: function getDeepSeekConfig() {
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:14: apiKey: process.env.DEEPSEEK_API_KEY || "",
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:15: baseUrl: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:16: model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:20: export async function callDeepSeekChat({
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:24: }: DeepSeekChatOptions): Promise<string> {
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:25: const config = getDeepSeekConfig();
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:28: throw new Error("DEEPSEEK_API_KEY is missing.");
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:47: throw new Error(`DeepSeek request failed with status ${response.status}.`);
+D:\student-guidance-platform-clean\lib\ai\deepseek-client.ts:54: throw new Error("DeepSeek returned an empty response.");
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:1: import { callDeepSeekChat } from "@/lib/ai/deepseek-client";
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:4: ReportFlowSummaryField,
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:27: function buildFallbackSummary({
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:32: fields: ReportFlowSummaryField[];
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:49: export async function generateExecutionSummary({
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:54: fields: ReportFlowSummaryField[];
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:62: summary: buildFallbackSummary({ context, fields: safeFields }),
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:71: const prompt = `
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:90: const summary = await callDeepSeekChat({
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:99: content: prompt,
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:106: let finalSummary = limitArabicWords(summary, 80);
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:108: if (getArabicWordCount(finalSummary) < 60) {
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:109: const expandedSummary = await callDeepSeekChat({
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:118: content: `وسّع وصف التنفيذ التالي ليصبح بين 60 و80 كلمة، بصياغة تربوية مدرسية جميلة ومترابطة، دون إضافة معلومات غير موجودة، ودون ذكر أسماء الأشخاص أو المستخدمين، ودون تجاوز 80 كلمة:\n\n${finalSummary}`,
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:125: finalSummary = limitArabicWords(expandedSummary, 80);
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:129: summary: finalSummary,
+D:\student-guidance-platform-clean\lib\ai\execution-summary-generator.ts:134: summary: buildFallbackSummary({ context, fields: safeFields }),
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:2: AssessmentAnalysisSummary,
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:3: AssessmentGroupSummary,
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:4: AssessmentSubjectSummary,
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:15: subjects: AssessmentSubjectSummary[] | undefined
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:16: ): AssessmentSubjectSummary | null {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:25: subjects: AssessmentSubjectSummary[] | undefined
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:26: ): AssessmentSubjectSummary | null {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:35: groups: AssessmentGroupSummary[] | undefined
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:36: ): AssessmentGroupSummary | null {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:45: summary: AssessmentAnalysisSummary | null
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:51: if (!summary) {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:63: const weakestSubject = getWeakestSubject(summary.subjectAverages);
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:64: const strongestSubject = getStrongestSubject(summary.subjectAverages);
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:65: const weakestClassroom = getWeakestGroup(summary.classroomAverages);
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:66: const weakestGrade = getWeakestGroup(summary.gradeAverages);
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:73: `تم تحليل ${summary.totalRows} نتيجة لـ ${summary.totalStudents} طالب/طالبة في ${summary.totalSubjects} مادة، بمتوسط عام ${summary.averagePercentage}%.`
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:100: if (summary.averagePercentage < 60) {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:104: } else if (summary.averagePercentage < 75) {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:127: if (summary.riskStudentsCount > 0) {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-insights.ts:129: `يوجد ${summary.riskStudentsCount} طالب/طالبة يحتاجون متابعة فردية حسب نتائج التحليل.`
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-types.ts:35: export type AssessmentSubjectSummary = {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-types.ts:42: export type AssessmentGroupSummary = {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-types.ts:58: export type AssessmentAnalysisSummary = {
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-types.ts:71: subjectAverages: AssessmentSubjectSummary[];
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-types.ts:72: classroomAverages: AssessmentGroupSummary[];
+D:\student-guidance-platform-clean\lib\assessment-center\assessment-center-types.ts:73: gradeAverages: AssessmentGroupSummary[];
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts:86: block("minimal-paragraph", "custom-paragraph", "نص التقارير", "نص ثابت مع متغيرات ديناميكية من Case وWorkflow.", "summary"),
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts:140: "evidence-summary",
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts:141: "summary",
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts:203: "summary",
+D:\student-guidance-platform-clean\lib\report-engine\extra-official-template-presets.ts:207: block("session-student-summary", "student-summary", "بيانات الطالب/الفئة", "بيانات المستفيد من الحالة.", "studentName"),
+D:\student-guidance-platform-clean\lib\report-engine\report-smart-text-library.ts:161: id: "smart-general-summary",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:97: id: "page-summary",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:98: kind: "summary",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-presets.ts:103: id: "summary-case-meta",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:25: | "summary"
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:36: | "student-summary"
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:37: | "service-summary"
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:315: id: "block-student-summary",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:316: kind: "student-summary",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:331: id: "block-service-summary",
+D:\student-guidance-platform-clean\lib\report-engine\report-template-builder-types.ts:332: kind: "service-summary",
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-defaults.ts:13: SUMMARY_REPORT: "تقرير مختصر",
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-defaults.ts:23: SUMMARY_REPORT: "تقرير مختصر يصلح للأرشفة والطباعة السريعة.",
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-payload-builder.ts:159: text.includes("summary") ||
+D:\student-guidance-platform-clean\lib\report-engine\smart-report-types.ts:8: | "SUMMARY_REPORT";
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts:284: cleanText(preparation.executionSummary) ||
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts:294: executionSummary,
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts:295: executionSummarySource,
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts:300: executionSummary: string;
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts:301: executionSummarySource: ReportFlowPreparation["executionSummarySource"];
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts:312: executionSummary,
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-payload.ts:313: executionSummarySource,
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-types.ts:20: export type ReportFlowExecutionSummarySource = "AI" | "MANUAL" | "FALLBACK";
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-types.ts:29: executionSummary: string;
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-types.ts:30: executionSummarySource: ReportFlowExecutionSummarySource;
+D:\student-guidance-platform-clean\lib\report-flow\report-flow-types.ts:49: export type ReportFlowSummaryField = Pick<
+D:\student-guidance-platform-clean\lib\results-analysis\results-analysis-types.ts:18: export type ResultsAnalysisSummary = {
+D:\student-guidance-platform-clean\lib\results-analysis\results-analysis-types.ts:30: summary: ResultsAnalysisSummary;
+D:\student-guidance-platform-clean\lib\workflows\guardian-summons-workflow-template.ts:167: key: "discussion_summary",

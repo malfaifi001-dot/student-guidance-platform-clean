@@ -351,13 +351,13 @@ useEffect(() => {
   return (
     <aside
       className={[
-        "hidden min-h-screen shrink-0 bg-transparent py-4 transition-all duration-300 md:block xl:py-5",
+        "sticky top-0 hidden h-screen shrink-0 overflow-hidden bg-transparent py-4 transition-all duration-300 md:block xl:py-5",
         collapsed ? "w-[92px] px-2 lg:w-[96px] xl:w-[104px] xl:px-3" : "w-[232px] px-2 lg:w-[280px] lg:px-3 xl:w-[320px] xl:px-4",
       ].join(" ")}
     >
       <div
         className={[
-          "sticky top-5 flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300 dark:border-slate-800/80 dark:bg-slate-950/92 dark:shadow-black/30",
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300 dark:border-slate-800/80 dark:bg-slate-950/92 dark:shadow-black/30",
           collapsed ? "p-2" : "p-4",
         ].join(" ")}
       >
@@ -446,7 +446,7 @@ function AdminSidebar({
     <>
       <nav
         className={[
-          "mt-4 flex-1 overflow-y-auto",
+          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
@@ -516,15 +516,6 @@ function AdminSidebar({
           ))}
         </SidebarDropdown>
       </nav>
-
-      {!collapsed ? (
-        <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 p-4 text-xs leading-6 text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-100">
-          <p className="font-black">Admin Mode</p>
-          <p className="mt-1 text-emerald-700 dark:text-emerald-300">
-            إدارة التفعيل، الاشتراكات، المدفوعات، الفواتير، النماذج، والتقارير.
-          </p>
-        </div>
-      ) : null}
     </>
   );
 }
@@ -540,7 +531,7 @@ function ActivityLeaderSidebar({
     <>
       <nav
         className={[
-          "mt-4 flex-1 overflow-y-auto",
+          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
@@ -606,15 +597,6 @@ function ActivityLeaderSidebar({
           ))}
         </SidebarDropdown>
       </nav>
-
-      {!collapsed ? (
-        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
-          <p className="text-xs font-black text-sky-700 dark:text-sky-200">اقتراح سريع</p>
-          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
-            ابدأ ببرنامج أو فعالية، ثم أضف الشواهد والتقرير عند اكتمال التنفيذ.
-          </p>
-        </div>
-      ) : null}
     </>
   );
 }
@@ -629,7 +611,7 @@ function TeacherSidebar({
     <>
       <nav
         className={[
-          "mt-4 flex-1 overflow-y-auto",
+          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
@@ -684,15 +666,6 @@ function TeacherSidebar({
           ))}
         </SidebarDropdown>
       </nav>
-
-      {!collapsed ? (
-        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
-          <p className="text-xs font-black text-sky-700 dark:text-sky-200">مساحة المعلم</p>
-          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
-            تجربة تنظيمية أولية للخدمات التي سيحتاجها المعلم مستقبلًا.
-          </p>
-        </div>
-      ) : null}
     </>
   );
 }
@@ -707,7 +680,7 @@ function CounselorSidebar({
     <>
       <nav
         className={[
-          "mt-4 flex-1 overflow-y-auto",
+          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
@@ -789,15 +762,6 @@ function CounselorSidebar({
           ))}
         </SidebarDropdown>
       </nav>
-
-      {!collapsed ? (
-        <div className="mt-5 rounded-[1.35rem] border border-sky-100 bg-sky-50 p-4 dark:border-sky-400/20 dark:bg-sky-500/10">
-          <p className="text-xs font-black text-sky-700 dark:text-sky-200">اقتراح سريع</p>
-          <p className="mt-2 text-xs font-bold leading-6 text-sky-700/80 dark:text-sky-300/80">
-            ابدأ بالتقويم، ثم افتح الحالة أو المرجع الشامل عند الحاجة.
-          </p>
-        </div>
-      ) : null}
     </>
   );
 }

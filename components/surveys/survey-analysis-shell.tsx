@@ -105,6 +105,7 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [selectedReportQuestionIds, setSelectedReportQuestionIds] = useState<string[]>([]);
 
   const numericQuestions = useMemo(
     () => analysis?.questions.filter((question) => question.average !== null) || [],
@@ -143,6 +144,23 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
     loadAnalysis();
   }, [surveyId]);
 
+  useEffect(() => {
+    if (!analysis?.questions.length) return;
+
+    setSelectedReportQuestionIds((previous) => {
+      const validIds = new Set(analysis.questions.map((question) => question.id));
+      const keptIds = previous.filter((questionId) => validIds.has(questionId));
+
+      if (keptIds.length) {
+        return keptIds;
+      }
+
+      return analysis.questions
+        .slice(0, Math.min(analysis.questions.length, 6))
+        .map((question) => question.id);
+    });
+  }, [analysis]);
+
   async function copySurveyLink() {
     if (!analysis?.survey.token) return;
 
@@ -155,8 +173,49 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
     window.location.href = `/api/dashboard/surveys/${surveyId}/export`;
   }
 
+  function toggleReportQuestion(questionId: string) {
+    setSelectedReportQuestionIds((previous) => {
+      if (previous.includes(questionId)) {
+        return previous.filter((item) => item !== questionId);
+      }
+
+      if (previous.length >= 10) {
+        setFeedback("التقرير الرسمي صفحة واحدة، لذلك اختر 10 أسئلة كحد أقصى.");
+        return previous;
+      }
+
+      return [...previous, questionId];
+    });
+  }
+
+  function selectAllReportQuestions() {
+    if (!analysis?.questions.length) return;
+
+    setSelectedReportQuestionIds(
+      analysis.questions
+        .slice(0, Math.min(analysis.questions.length, 10))
+        .map((question) => question.id),
+    );
+
+    if (analysis.questions.length > 10) {
+      setFeedback("تم اختيار أول 10 أسئلة فقط لأن التقرير صفحة واحدة.");
+    }
+  }
+
+  function clearReportQuestions() {
+    setSelectedReportQuestionIds([]);
+  }
+
   function openSurveyPdf() {
-    window.location.href = `/api/dashboard/surveys/${surveyId}/export/pdf`;
+    if (!selectedReportQuestionIds.length) {
+      setFeedback("اختر سؤالًا واحدًا على الأقل قبل تصدير PDF.");
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.set("questionIds", selectedReportQuestionIds.join(","));
+
+    window.location.href = `/api/dashboard/surveys/${surveyId}/export/pdf?${params.toString()}`;
   }
 
   if (isLoading) {
@@ -185,7 +244,7 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
         <details className="group rounded-3xl border border-slate-200 bg-white shadow-sm">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-6">
             <div>
-              <p className="text-sm font-bold text-sky-700">قراءة ذكية للنتائج</p>
+              <p className="text-sm font-bold text-sky-700 dark:text-sky-400">قراءة ذكية للنتائج</p>
               <h2 className="mt-1 text-xl font-bold text-slate-950">
                 توصيات ومؤشرات سريعة
               </h2>
@@ -249,10 +308,10 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
           </div>
         </details>
       ) : null}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Link href={boardPath} className="text-sm font-bold text-sky-700">
+            <Link href={boardPath} className="text-sm font-bold text-sky-700 dark:text-sky-400">
               العودة إلى مركز الاستبيانات
             </Link>
 
@@ -281,7 +340,7 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
             <button
               type="button"
               onClick={openSurveyPdf}
-              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-100"
+              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 dark:text-sky-400 transition hover:bg-sky-100"
             >
               تصدير PDF
             </button>
@@ -311,6 +370,83 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
         </div>
       ) : null}
 
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-sm font-bold text-sky-700 dark:text-sky-400">تجهيز التقرير الرسمي</p>
+            <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">اختر البيانات التي ستظهر في PDF</h2>
+</div>
+
+          <div className="flex flex-wrap gap-2">
+<button
+              type="button"
+              onClick={selectAllReportQuestions}
+              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              أول 10 أسئلة
+            </button>
+
+            <button
+              type="button"
+              onClick={clearReportQuestions}
+              className="rounded-2xl border border-rose-200 px-4 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-50"
+            >
+              إلغاء التحديد
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {analysis.questions.map((question, index) => {
+            const checked = selectedReportQuestionIds.includes(question.id);
+
+            return (
+              <button
+                key={question.id}
+                type="button"
+                onClick={() => toggleReportQuestion(question.id)}
+                className={[
+                  "rounded-2xl border p-4 text-right transition",
+                  checked
+                    ? "border-sky-300 bg-sky-50"
+                    : "border-slate-200 bg-white hover:border-sky-200 hover:bg-slate-50",
+                ].join(" ")}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-slate-400">س{index + 1} · {questionTypeLabel(question.type)}</p>
+                    <h3 className="mt-1 line-clamp-2 text-sm font-black leading-6 text-slate-950">
+                      {question.label}
+                    </h3>
+                  </div>
+
+                  <span
+                    className={[
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-black",
+                      checked
+                        ? "border-sky-700 bg-sky-700 text-white"
+                        : "border-slate-300 bg-white text-slate-300",
+                    ].join(" ")}
+                  >
+                    ✓
+                  </span>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-slate-500">
+                  <span>{question.answeredCount} إجابة</span>
+                  <span>{question.answerRate}% معدل</span>
+                  {question.average !== null ? <span>متوسط {question.average}</span> : null}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+          المحدد الآن: {selectedReportQuestionIds.length} سؤال · الحد الأعلى للتقرير الرسمي صفحة واحدة: 10 أسئلة.
+        </div>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-4">
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">عدد الردود</p>
@@ -334,7 +470,7 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <h2 className="text-lg font-bold text-slate-950">متوسط الأسئلة الرقمية</h2>
           <p className="mt-1 text-sm text-slate-500">يعرض متوسط التقييم والمقاييس الرقمية داخل الاستبيان.</p>
 
@@ -358,7 +494,7 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <h2 className="text-lg font-bold text-slate-950">ملخص توزيع أول سؤال اختيارات</h2>
           <p className="mt-1 text-sm text-slate-500">يعرض Pie Chart لأول سؤال اختيارات لديه ردود.</p>
 
@@ -394,7 +530,7 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <h2 className="text-lg font-bold text-slate-950">تحليل الأسئلة</h2>
         <p className="mt-1 text-sm text-slate-500">
           يعرض هذا القسم القيم المستخرجة من كل سؤال حسب نوعه.
