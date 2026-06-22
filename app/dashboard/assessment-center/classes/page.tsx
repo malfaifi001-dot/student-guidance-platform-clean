@@ -6,26 +6,26 @@ import {
 export default function AssessmentClassesPage() {
   return (
     <AssessmentCenterSectionPage
-      badge="Classes Comparison"
-      title="تحليل الصفوف والفصول"
-      description="مقارنة الصفوف والفصول لمعرفة مواطن القوة والضعف على مستوى المدرسة."
+      badge=""
+      title="تحليل الصفوف"
+      description="راجع الصفوف بعد فتح تحليل."
       icon={assessmentSectionIcons.classes}
       items={[
         {
           title: "مقارنة الصفوف",
-          description: "مقارنة متوسطات الصفوف ونسب التعثر والإتقان.",
+          description: "عرض الفروق بين الصفوف.",
         },
         {
           title: "مقارنة الفصول",
-          description: "اكتشاف أكثر فصل يحتاج تدخلًا أو متابعة جماعية.",
+          description: "تحديد الفصول التي تحتاج متابعة.",
         },
         {
           title: "أفضل وأضعف فصل",
-          description: "تحديد الفصول الأعلى أداءً والأقل أداءً بشكل واضح.",
+          description: "إبراز الفصول الأعلى والأقل أداءً.",
         },
         {
-          title: "تدخل جماعي",
-          description: "اقتراح برنامج جماعي إذا ظهر ضعف في فصل كامل.",
+          title: "خطة جماعية",
+          description: "اقتراح متابعة جماعية عند الحاجة.",
         },
       ]}
     />

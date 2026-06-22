@@ -129,7 +129,7 @@ function createGroups(rows: AssessmentResultRow[], mode: TabKey) {
   }
 
   return Array.from(map.values()).sort((a, b) =>
-    a.studentName.localeCompare(b.studentName, "ar")
+    a.studentName.localeCompare(b.studentName, "ar"),
   );
 }
 
@@ -178,7 +178,7 @@ function getCandidateLabel(student: StudentCandidate) {
     student.classroom ? `فصل: ${student.classroom}` : null,
   ]
     .filter(Boolean)
-    .join(" — ");
+    .join(" • ");
 }
 
 async function readApiResponse(response: Response) {
@@ -192,6 +192,46 @@ async function readApiResponse(response: Response) {
       error: text || "تعذر قراءة استجابة الخادم.",
     };
   }
+}
+
+function SummaryCard({
+  label,
+  value,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const content = (
+    <>
+      <p className="text-sm font-black text-slate-500">{label}</p>
+      <p className="mt-3 text-4xl font-black text-slate-950">{value}</p>
+    </>
+  );
+
+  if (!onClick) {
+    return (
+      <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
+        {content}
+      </article>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-[1.7rem] border bg-white p-5 text-right shadow-sm transition hover:shadow-md",
+        active ? "border-cyan-300 ring-2 ring-cyan-200" : "border-slate-200",
+      ].join(" ")}
+    >
+      {content}
+    </button>
+  );
 }
 
 export function AssessmentLinkingReview({
@@ -227,10 +267,10 @@ export function AssessmentLinkingReview({
 
   const linkedRowsCount = rows.filter((row) => row.studentId).length;
   const reviewRowsCount = rows.filter(
-    (row) => !row.studentId && row.linkStatus === "AMBIGUOUS"
+    (row) => !row.studentId && row.linkStatus === "AMBIGUOUS",
   ).length;
   const unlinkedRowsCount = rows.filter(
-    (row) => !row.studentId && row.linkStatus !== "AMBIGUOUS"
+    (row) => !row.studentId && row.linkStatus !== "AMBIGUOUS",
   ).length;
 
   const currentGroups =
@@ -247,7 +287,7 @@ export function AssessmentLinkingReview({
     const searchable = normalizeText(
       `${group.studentName} ${group.nationalId || ""} ${group.grade || ""} ${
         group.classroom || ""
-      } ${group.subjects.join(" ")}`
+      } ${group.subjects.join(" ")}`,
     );
 
     return searchable.includes(query);
@@ -266,7 +306,7 @@ export function AssessmentLinkingReview({
           const searchable = normalizeText(
             `${student.fullName} ${student.nationalId || ""} ${
               student.grade || ""
-            } ${student.classroom || ""}`
+            } ${student.classroom || ""}`,
           );
 
           return searchable.includes(query);
@@ -284,16 +324,15 @@ export function AssessmentLinkingReview({
 
   function handleAutoLink() {
     confirmAction({
-      title: "إعادة محاولة الربط التلقائي؟",
-      description:
-        "سيحاول النظام ربط النتائج غير المربوطة أو التي تحتاج مراجعة مع طلاب مركز البيانات.",
+      title: "إعادة المحاولة",
+      description: "سيتم فحص النتائج التي تحتاج ربط فقط.",
       variant: "info",
-      confirmLabel: "إعادة الربط",
-      errorTitle: "تعذر إعادة الربط",
+      confirmLabel: "إعادة المحاولة",
+      errorTitle: "تعذر تنفيذ الربط",
       run: async () => {
         const response = await fetch(
           `/api/dashboard/assessment-center/${analysis.id}/student-linking/auto`,
-          { method: "PATCH" }
+          { method: "PATCH" },
         );
 
         const data = await readApiResponse(response);
@@ -303,8 +342,8 @@ export function AssessmentLinkingReview({
         }
 
         return {
-          title: "اكتملت محاولة الربط",
-          description: `تم ربط ${data.linkedCount || 0} نتيجة إضافية تلقائيًا.`,
+          title: "تم تحديث الربط",
+          description: `تم ربط ${data.linkedCount || 0} نتيجة إضافية.`,
           variant: "success" as const,
         };
       },
@@ -321,8 +360,8 @@ export function AssessmentLinkingReview({
     if (!student) return;
 
     confirmAction({
-      title: "تأكيد ربط الطالب",
-      description: `سيتم ربط ${group.rowsCount} نتيجة للطالب "${group.studentName}" بالطالب "${student.fullName}".`,
+      title: "تأكيد الربط",
+      description: `سيتم ربط ${group.rowsCount} نتيجة بالطالب "${student.fullName}".`,
       variant: "info",
       confirmLabel: "تأكيد الربط",
       errorTitle: "تعذر ربط الطالب",
@@ -339,7 +378,7 @@ export function AssessmentLinkingReview({
               rowIds: group.rowIds,
               studentId,
             }),
-          }
+          },
         );
 
         const data = await readApiResponse(response);
@@ -362,8 +401,8 @@ export function AssessmentLinkingReview({
 
   function handleUnlink(group: LinkingGroup) {
     confirmAction({
-      title: "إلغاء ربط الطالب؟",
-      description: `سيتم إلغاء ربط ${group.rowsCount} نتيجة للطالب "${group.studentName}".`,
+      title: "إلغاء الربط",
+      description: `سيتم إلغاء ربط ${group.rowsCount} نتيجة.`,
       variant: "warning",
       confirmLabel: "إلغاء الربط",
       errorTitle: "تعذر إلغاء الربط",
@@ -379,7 +418,7 @@ export function AssessmentLinkingReview({
               action: "UNLINK",
               rowIds: group.rowIds,
             }),
-          }
+          },
         );
 
         const data = await readApiResponse(response);
@@ -390,7 +429,7 @@ export function AssessmentLinkingReview({
 
         return {
           title: "تم إلغاء الربط",
-          description: `تم إلغاء ربط ${data.updatedCount || group.rowsCount} نتيجة.`,
+          description: `تم تحديث ${data.updatedCount || group.rowsCount} نتيجة.`,
           variant: "success" as const,
         };
       },
@@ -400,26 +439,10 @@ export function AssessmentLinkingReview({
     });
   }
 
-  const tabs = [
-    {
-      key: "linked" as const,
-      label: "نتائج مربوطة",
-      value: linkedRowsCount,
-      className: "border-emerald-100 bg-emerald-50 text-emerald-700",
-    },
-    {
-      key: "review" as const,
-      label: "تحتاج مراجعة",
-      value: reviewRowsCount,
-      className: "border-amber-100 bg-amber-50 text-amber-700",
-    },
-    {
-      key: "unlinked" as const,
-      label: "غير مربوطة",
-      value: unlinkedRowsCount,
-      className: "border-slate-200 bg-white text-slate-700",
-    },
-  ];
+  function resetGroupSelection(groupKey: string) {
+    setQueries((current) => ({ ...current, [groupKey]: "" }));
+    setSelectedStudents((current) => ({ ...current, [groupKey]: "" }));
+  }
 
   return (
     <>
@@ -437,11 +460,11 @@ export function AssessmentLinkingReview({
             className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-black text-cyan-50"
           >
             <ArrowRight className="h-4 w-4" />
-            العودة لتفاصيل التحليل
+            العودة
           </Link>
 
           <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
-            مراجعة ربط الطلاب
+            ربط الطلاب
           </h1>
 
           <p className="mt-4 text-base font-bold text-cyan-50/90">
@@ -453,10 +476,10 @@ export function AssessmentLinkingReview({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-xl font-black text-cyan-950">
-                إعادة محاولة الربط التلقائي
+                نتائج تحتاج ربط
               </h2>
               <p className="mt-2 text-sm font-bold leading-7 text-cyan-900">
-                يحاول النظام ربط النتائج غير المربوطة أو التي تحتاج مراجعة فقط.
+                راجع النتائج ثم أكد الربط.
               </p>
             </div>
 
@@ -467,32 +490,31 @@ export function AssessmentLinkingReview({
               className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-5 text-sm font-black text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               <RefreshCw className="h-4 w-4" />
-              إعادة الربط
+              إعادة المحاولة
             </button>
           </div>
         </section>
 
         <section className="grid gap-4 md:grid-cols-4">
-          <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-black text-slate-400">إجمالي النتائج</p>
-            <p className="mt-3 text-4xl font-black text-slate-950">{rows.length}</p>
-          </article>
-
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={[
-                "rounded-[1.7rem] border p-5 text-right shadow-sm transition hover:shadow-md",
-                tab.className,
-                activeTab === tab.key ? "ring-2 ring-cyan-400" : "",
-              ].join(" ")}
-            >
-              <p className="text-sm font-black">{tab.label}</p>
-              <p className="mt-3 text-4xl font-black">{tab.value}</p>
-            </button>
-          ))}
+          <SummaryCard label="الإجمالي" value={rows.length} />
+          <SummaryCard
+            label="مربوط"
+            value={linkedRowsCount}
+            active={activeTab === "linked"}
+            onClick={() => setActiveTab("linked")}
+          />
+          <SummaryCard
+            label="يحتاج ربط"
+            value={unlinkedRowsCount}
+            active={activeTab === "unlinked"}
+            onClick={() => setActiveTab("unlinked")}
+          />
+          <SummaryCard
+            label="يحتاج مراجعة"
+            value={reviewRowsCount}
+            active={activeTab === "review"}
+            onClick={() => setActiveTab("review")}
+          />
         </section>
 
         <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
@@ -501,7 +523,7 @@ export function AssessmentLinkingReview({
             <input
               value={globalSearch}
               onChange={(event) => setGlobalSearch(event.target.value)}
-              placeholder="ابحث بالاسم أو الهوية أو الصف أو الفصل أو المادة..."
+              placeholder="ابحث باسم الطالب أو الهوية أو الصف..."
               className="h-12 flex-1 bg-transparent text-sm font-bold text-slate-700 outline-none"
             />
           </div>
@@ -512,7 +534,7 @@ export function AssessmentLinkingReview({
             <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-sm">
               <UsersRound className="mx-auto h-10 w-10 text-slate-300" />
               <h2 className="mt-4 text-xl font-black text-slate-950">
-                لا توجد نتائج في هذا التصنيف
+                لا توجد نتائج
               </h2>
             </div>
           ) : null}
@@ -538,7 +560,7 @@ export function AssessmentLinkingReview({
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
                         <Link2 className="h-3.5 w-3.5" />
-                        غير مربوط
+                        يحتاج ربط
                       </span>
                     )}
 
@@ -581,7 +603,7 @@ export function AssessmentLinkingReview({
                 ) : (
                   <div className="w-full rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4 xl:w-[430px]">
                     <label className="text-xs font-black text-slate-500">
-                      ابحث في طلاب مركز البيانات
+                      ابحث عن الطالب
                     </label>
 
                     <div className="mt-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3">
@@ -609,7 +631,7 @@ export function AssessmentLinkingReview({
                       }
                       className="mt-3 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none"
                     >
-                      <option value="">اختر الطالب الصحيح</option>
+                      <option value="">اختر الطالب</option>
                       {getCandidates(group).map((student) => (
                         <option key={student.id} value={student.id}>
                           {getCandidateLabel(student)}
@@ -617,15 +639,25 @@ export function AssessmentLinkingReview({
                       ))}
                     </select>
 
-                    <button
-                      type="button"
-                      disabled={!selectedStudents[group.key] || processing}
-                      onClick={() => handleLink(group)}
-                      className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-4 text-sm font-black text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                    >
-                      <UserCheck className="h-4 w-4" />
-                      ربط بالطالب المحدد
-                    </button>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        disabled={!selectedStudents[group.key] || processing}
+                        onClick={() => handleLink(group)}
+                        className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-4 text-sm font-black text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        تأكيد الربط
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => resetGroupSelection(group.key)}
+                        className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+                      >
+                        تخطي
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

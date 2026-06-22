@@ -1,11 +1,15 @@
 import Link from "next/link";
 import {
   ArrowUpLeft,
-  Download,
   FileSpreadsheet,
   FileText,
+  GitCompareArrows,
   SearchX,
 } from "lucide-react";
+import {
+  getGradeBand,
+  getGradeBandLabel,
+} from "@/lib/assessment-center/assessment-analysis-summary";
 import { DeleteAssessmentAnalysisButton } from "./delete-assessment-analysis-button";
 
 type AssessmentAnalysisItem = {
@@ -20,13 +24,29 @@ type AssessmentAnalysisItem = {
   summaryJson?: unknown;
 };
 
-function getRiskCount(summaryJson: unknown) {
+function getWeakCount(summaryJson: unknown) {
   if (!summaryJson || typeof summaryJson !== "object") return 0;
 
-  const value = (summaryJson as { riskStudentsCount?: unknown })
-    .riskStudentsCount;
+  const summary = summaryJson as {
+    riskStudentsCount?: unknown;
+    weakStudents?: unknown;
+  };
 
-  return typeof value === "number" ? value : 0;
+  if (Array.isArray(summary.weakStudents)) {
+    return summary.weakStudents.length;
+  }
+
+  return typeof summary.riskStudentsCount === "number"
+    ? summary.riskStudentsCount
+    : 0;
+}
+
+function formatDate(value: Date) {
+  return new Intl.DateTimeFormat("ar-SA", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(value);
 }
 
 export function AssessmentAnalysesList({
@@ -42,19 +62,14 @@ export function AssessmentAnalysesList({
         </div>
 
         <h2 className="mt-5 text-2xl font-black text-slate-950">
-          لا توجد تحليلات حتى الآن
+          لا توجد تحليلات
         </h2>
-
-        <p className="mx-auto mt-3 max-w-xl text-sm font-bold leading-8 text-slate-500">
-          ابدأ برفع ملف نتائج من صفحة تحليل جديد، وبعدها ستظهر التحليلات هنا
-          مع خيارات التصدير والحذف.
-        </p>
 
         <Link
           href="/dashboard/assessment-center/new"
           className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-3 text-sm font-black text-white transition hover:bg-cyan-700"
         >
-          تحليل جديد
+          رفع تحليل جديد
           <ArrowUpLeft className="h-4 w-4" />
         </Link>
       </section>
@@ -63,102 +78,112 @@ export function AssessmentAnalysesList({
 
   return (
     <section className="space-y-4">
-      {analyses.map((analysis) => (
-        <article
-          key={analysis.id}
-          className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-100 hover:shadow-md"
-        >
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">
-                  Assessment
-                </span>
-                <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">
-                  {analysis.createdAt.toLocaleDateString("ar-SA")}
-                </span>
+      {analyses.map((analysis) => {
+        const weakCount = getWeakCount(analysis.summaryJson);
+        const generalBand = getGradeBandLabel(getGradeBand(analysis.averagePercentage));
+
+        return (
+          <article
+            key={analysis.id}
+            className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-100 hover:shadow-md"
+          >
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-black text-slate-950">
+                    {analysis.title}
+                  </h2>
+
+                  <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">
+                    {generalBand}
+                  </span>
+                </div>
+
+                <p className="mt-2 text-sm font-bold text-slate-500">
+                  {formatDate(analysis.createdAt)}
+                </p>
               </div>
 
-              <h2 className="mt-3 text-xl font-black text-slate-950">
-                {analysis.title}
-              </h2>
+              <div className="grid gap-2 sm:grid-cols-4 xl:min-w-[520px]">
+                <div className="rounded-2xl bg-slate-50 p-3 text-center">
+                  <p className="text-[11px] font-black text-slate-400">
+                    الطلاب
+                  </p>
+                  <p className="mt-1 text-lg font-black text-slate-950">
+                    {analysis.totalStudents}
+                  </p>
+                </div>
 
-              <p className="mt-2 text-sm font-bold text-slate-500">
-                {analysis.sourceFile || "ملف غير محدد"}
-              </p>
+                <div className="rounded-2xl bg-slate-50 p-3 text-center">
+                  <p className="text-[11px] font-black text-slate-400">
+                    المواد
+                  </p>
+                  <p className="mt-1 text-lg font-black text-slate-950">
+                    {analysis.totalSubjects}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-3 text-center">
+                  <p className="text-[11px] font-black text-slate-400">
+                    المتوسط
+                  </p>
+                  <p className="mt-1 text-lg font-black text-cyan-700">
+                    {Math.round(Number(analysis.averagePercentage || 0))}%
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-rose-50 p-3 text-center">
+                  <p className="text-[11px] font-black text-rose-400">
+                    الطلاب الضعاف
+                  </p>
+                  <p className="mt-1 text-lg font-black text-rose-700">
+                    {weakCount}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-4 xl:min-w-[520px]">
-              <div className="rounded-2xl bg-slate-50 p-3 text-center">
-                <p className="text-[11px] font-black text-slate-400">
-                  الطلاب
-                </p>
-                <p className="mt-1 text-lg font-black text-slate-950">
-                  {analysis.totalStudents}
-                </p>
-              </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link
+                href={`/dashboard/assessment-center/${analysis.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-4 py-2.5 text-xs font-black text-white transition hover:bg-cyan-700"
+              >
+                فتح
+                <ArrowUpLeft className="h-4 w-4" />
+              </Link>
 
-              <div className="rounded-2xl bg-slate-50 p-3 text-center">
-                <p className="text-[11px] font-black text-slate-400">
-                  المواد
-                </p>
-                <p className="mt-1 text-lg font-black text-slate-950">
-                  {analysis.totalSubjects}
-                </p>
-              </div>
+              <Link
+                href={`/dashboard/assessment-center/compare?first=${analysis.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                <GitCompareArrows className="h-4 w-4" />
+                مقارنة
+              </Link>
 
-              <div className="rounded-2xl bg-slate-50 p-3 text-center">
-                <p className="text-[11px] font-black text-slate-400">
-                  المتوسط
-                </p>
-                <p className="mt-1 text-lg font-black text-cyan-700">
-                  {Math.round(Number(analysis.averagePercentage || 0))}%
-                </p>
-              </div>
+              <a
+                href={`/api/dashboard/assessment-center/${analysis.id}/export?format=excel`}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Excel
+              </a>
 
-              <div className="rounded-2xl bg-rose-50 p-3 text-center">
-                <p className="text-[11px] font-black text-rose-400">
-                  يحتاجون متابعة
-                </p>
-                <p className="mt-1 text-lg font-black text-rose-700">
-                  {getRiskCount(analysis.summaryJson)}
-                </p>
-              </div>
+              <a
+                href={`/api/dashboard/assessment-center/${analysis.id}/export?format=pdf`}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-xs font-black text-sky-700 transition hover:bg-sky-100"
+              >
+                <FileText className="h-4 w-4" />
+                PDF
+              </a>
+
+              <DeleteAssessmentAnalysisButton
+                analysisId={analysis.id}
+                title={analysis.title}
+              />
             </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link
-              href={`/dashboard/assessment-center/${analysis.id}`}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-4 py-2.5 text-xs font-black text-white transition hover:bg-cyan-700"
-            >
-              فتح التفاصيل
-              <ArrowUpLeft className="h-4 w-4" />
-            </Link>
-
-            <a
-              href={`/api/dashboard/assessment-center/${analysis.id}/export?format=excel`}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              Excel
-            </a>
-
-            <a
-              href={`/api/dashboard/assessment-center/${analysis.id}/export?format=pdf`}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-xs font-black text-sky-700 transition hover:bg-sky-100"
-            >
-              <FileText className="h-4 w-4" />
-              PDF
-            </a>
-
-            <DeleteAssessmentAnalysisButton
-              analysisId={analysis.id}
-              title={analysis.title}
-            />
-          </div>
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </section>
   );
 }

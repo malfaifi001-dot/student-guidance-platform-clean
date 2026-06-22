@@ -48,7 +48,7 @@ export default async function AssessmentCenterLinkingPage() {
   const cards = analyses.map((analysis) => {
     const rows = getRows(analysis.rowsJson);
     const linkedCount = rows.filter((row) => row.studentId).length;
-    const ambiguousCount = rows.filter(
+    const reviewCount = rows.filter(
       (row) => row.linkStatus === "AMBIGUOUS",
     ).length;
     const actionNeededCount = rows.filter(
@@ -58,7 +58,7 @@ export default async function AssessmentCenterLinkingPage() {
     return {
       analysis,
       linkedCount,
-      ambiguousCount,
+      reviewCount,
       actionNeededCount,
     };
   });
@@ -73,7 +73,7 @@ export default async function AssessmentCenterLinkingPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/15 px-4 py-2 text-sm font-black text-cyan-50 backdrop-blur">
               <GitBranch className="h-4 w-4" />
-              Student Linking
+              ربط الطلاب
             </div>
 
             <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
@@ -81,8 +81,7 @@ export default async function AssessmentCenterLinkingPage() {
             </h1>
 
             <p className="mt-4 max-w-4xl text-base font-bold leading-8 text-cyan-50/90">
-              اختر تحليلًا لمراجعة ربط نتائج الاختبارات مع الطلاب في مركز
-              البيانات، ومعالجة الحالات غير المربوطة أو التي تحتاج مراجعة.
+              اختر تحليلًا ثم راجع الطلاب غير المرتبطين.
             </p>
           </div>
 
@@ -99,9 +98,9 @@ export default async function AssessmentCenterLinkingPage() {
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-black text-cyan-600">التحليلات</p>
+            <p className="text-sm font-black text-cyan-600">اختر التحليل</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">
-              اختر تحليلًا لبدء الربط
+              نتائج تحتاج ربط
             </h2>
           </div>
 
@@ -112,20 +111,15 @@ export default async function AssessmentCenterLinkingPage() {
           {cards.length === 0 ? (
             <div className="rounded-[1.5rem] border border-dashed border-cyan-200 bg-cyan-50/60 p-8 text-center">
               <h3 className="text-xl font-black text-slate-950">
-                لا توجد تحليلات بعد
+                لا توجد تحليلات
               </h3>
               <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-                ارفع ملف نتائج أولًا، وبعد التحليل ستظهر هنا خيارات ربط الطلاب.
+                ارفع ملف نتائج أولًا.
               </p>
             </div>
           ) : (
             cards.map(
-              ({
-                analysis,
-                linkedCount,
-                ambiguousCount,
-                actionNeededCount,
-              }) => (
+              ({ analysis, linkedCount, reviewCount, actionNeededCount }) => (
                 <Link
                   key={analysis.id}
                   href={`/dashboard/assessment-center/${analysis.id}/linking`}
@@ -140,35 +134,31 @@ export default async function AssessmentCenterLinkingPage() {
 
                         {actionNeededCount > 0 ? (
                           <span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black text-amber-700">
-                            يحتاج مراجعة
+                            يحتاج ربط
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
                             <CheckCircle2 className="h-3 w-3" />
-                            مكتمل
+                            مربوط
                           </span>
                         )}
                       </div>
 
-                      <p className="mt-2 truncate text-sm font-bold text-slate-500">
-                        {analysis.sourceFile || "ملف غير محدد"}
-                      </p>
-
-                      <p className="mt-1 text-xs font-bold text-slate-400">
+                      <p className="mt-2 text-sm font-bold text-slate-500">
                         {formatDate(analysis.createdAt)}
                       </p>
                     </div>
 
                     <div className="grid gap-2 sm:grid-cols-4 lg:min-w-[520px]">
-                      <MiniMetric label="الطلاب" value={String(analysis.totalStudents)} />
+                      <MiniMetric label="الإجمالي" value={String(analysis.totalStudents)} />
                       <MiniMetric label="مربوط" value={String(linkedCount)} />
-                      <MiniMetric label="مراجعة" value={String(ambiguousCount)} />
-                      <MiniMetric label="إجراء" value={String(actionNeededCount)} strong />
+                      <MiniMetric label="يحتاج مراجعة" value={String(reviewCount)} />
+                      <MiniMetric label="يحتاج ربط" value={String(actionNeededCount)} strong />
                     </div>
                   </div>
 
                   <div className="mt-4 inline-flex items-center gap-2 text-sm font-black text-cyan-700">
-                    فتح شاشة الربط
+                    فتح الربط
                     <ArrowUpLeft className="h-4 w-4" />
                   </div>
                 </Link>

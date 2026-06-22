@@ -145,7 +145,7 @@ function buildCommitFeedbackTitle(result: any) {
     return "تم تحديث بيانات الطلاب بنجاح";
   }
 
-  return "تم اعتماد تحديث بيانات الطلاب";
+  return "تم اعتماد بيانات الطلاب";
 }
 
 function buildCommitFeedbackDescription(result: any) {
@@ -204,10 +204,10 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
   const planCards = useMemo(
     () => [
       { key: "NEW", label: "جديد", value: summary.NEW ?? 0 },
-      { key: "UPDATE", label: "سيتم تحديثه", value: summary.UPDATE ?? 0 },
+      { key: "UPDATE", label: "تحديث", value: summary.UPDATE ?? 0 },
       { key: "UNCHANGED", label: "بدون تغيير", value: summary.UNCHANGED ?? 0 },
       { key: "DUPLICATE_IN_FILE", label: "مكرر", value: summary.DUPLICATE_IN_FILE ?? 0 },
-      { key: "NEEDS_REVIEW", label: "مراجعة", value: summary.NEEDS_REVIEW ?? 0 },
+      { key: "NEEDS_REVIEW", label: "يحتاج مراجعة", value: summary.NEEDS_REVIEW ?? 0 },
     ],
     [summary],
   );
@@ -280,12 +280,11 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
     const targetSession = session;
 
     confirmAction({
-      title: "اعتماد تحديث بيانات الطلاب؟",
-      description:
-        "سيتم تطبيق التغييرات على سجل الطلاب. سيتم ربط الطلاب الجدد، وتحديث بيانات الطلاب الموجودين، ثم حفظ سجل تغييرات لهذا التحديث.",
+      title: "اعتماد البيانات؟",
+      description: "سيتم حفظ البيانات في سجل الطلاب.",
       variant: "warning",
-      confirmLabel: "اعتماد التحديث",
-      errorTitle: "تعذر اعتماد التحديث",
+      confirmLabel: "اعتماد البيانات",
+      errorTitle: "تعذر اعتماد البيانات",
       run: async () => {
         setIsLoading(true);
 
@@ -306,7 +305,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
           const result = await readApiResponse(response);
 
           if (!response.ok) {
-            throw new Error(result.details || result.error || "تعذر اعتماد التحديث.");
+            throw new Error(result.details || result.error || "تعذر اعتماد البيانات.");
           }
 
           setMessage(null);
@@ -333,12 +332,12 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
     const targetSession = session;
 
     confirmAction({
-      title: "حذف التحديث غير المعتمد؟",
+      title: "حذف الملف غير المعتمد؟",
       description:
         "سيتم حذف جلسة التحديث الحالية قبل اعتمادها. هذا الإجراء لا يحذف الطلاب من سجل المدرسة، لكنه يزيل هذه المراجعة غير المعتمدة.",
       variant: "danger",
-      confirmLabel: "حذف التحديث",
-      errorTitle: "تعذر حذف التحديث",
+      confirmLabel: "حذف الملف",
+      errorTitle: "تعذر حذف الملف",
       run: async () => {
         setIsLoading(true);
 
@@ -353,7 +352,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
           const result = await readApiResponse(response);
 
           if (!response.ok) {
-            throw new Error(result.details || result.error || "تعذر حذف التحديث.");
+            throw new Error(result.details || result.error || "تعذر حذف الملف.");
           }
 
           window.location.href = targetSession.cycleId
@@ -414,10 +413,10 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
 
           <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-black text-sky-700">تحديث بيانات الطلاب</p>
-              <h1 className="mt-2 text-2xl font-black md:text-4xl">مراجعة التحديث</h1>
+              <p className="text-sm font-black text-sky-700">مراجعة الملف</p>
+              <h1 className="mt-2 text-2xl font-black md:text-4xl">راجع بيانات الطلاب</h1>
               <p className="mt-2 text-sm font-bold text-slate-500">
-                راجع التغييرات ثم اعتمد التحديث.
+                تأكد من النتائج ثم اعتمد البيانات.
               </p>
             </div>
 
@@ -438,13 +437,23 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
         {session ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-              <div>
-                <p className="text-sm font-black text-slate-800">
-                  إجمالي الملف: {session.totalRows} طالب/طالبة
-                </p>
-                <p className="mt-1 text-xs font-bold text-slate-500">
-                  آخر تحديث: {formatDate(session.createdAt)}
-                </p>
+              <div className="grid gap-3 md:grid-cols-4">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">إجمالي الطلاب</p>
+                  <p className="mt-1 text-2xl font-black">{session.totalRows}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">جديد</p>
+                  <p className="mt-1 text-2xl font-black">{summary.NEW ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">سيتم تحديثه</p>
+                  <p className="mt-1 text-2xl font-black">{summary.UPDATE ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">يحتاج مراجعة</p>
+                  <p className="mt-1 text-2xl font-black">{summary.NEEDS_REVIEW ?? 0}</p>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -456,7 +465,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
                       disabled={isLoading}
                       className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
                     >
-                      اعتماد التحديث
+                      اعتماد البيانات
                     </button>
 
                     <button
@@ -465,12 +474,12 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
                       disabled={isLoading}
                       className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
                     >
-                      حذف التحديث
+                      حذف الملف
                     </button>
                   </>
                 ) : (
                   <span className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700">
-                    تم اعتماد هذا التحديث
+                    تم اعتماد البيانات
                   </span>
                 )}
               </div>
@@ -490,7 +499,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
                   <p className="text-xs font-black text-slate-500">{card.label}</p>
                   <p className="mt-1 text-3xl font-black text-slate-950">{card.value}</p>
                   {planAction === card.key ? (
-                    <p className="mt-2 text-xs font-black text-sky-700">يعرض الآن</p>
+                    <p className="mt-2 text-xs font-black text-sky-700">محدد</p>
                   ) : null}
                 </button>
               ))}
@@ -503,7 +512,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
             <input
               value={q}
               onChange={(event) => setQ(event.target.value)}
-              placeholder="اكتب اسم الطالب، الهوية، ولي الأمر، الصف أو الفصل..."
+              placeholder="ابحث باسم الطالب أو الهوية أو الصف..."
               className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
             />
 
@@ -535,25 +544,27 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
             </select>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-bold text-slate-500">
-              {isLoading ? "جاري التحديث..." : ""}
-            </p>
+          {isLoading || q || planAction || status ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-bold text-slate-500">
+                {isLoading ? "جاري التحديث..." : ""}
+              </p>
 
-            {(q || planAction || status) ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setQ("");
-                  setStatus("");
-                  setPlanAction("");
-                }}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700"
-              >
-                مسح الفلاتر
-              </button>
-            ) : null}
-          </div>
+              {(q || planAction || status) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQ("");
+                    setStatus("");
+                    setPlanAction("");
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700"
+                >
+                  مسح الفلاتر
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-200">
             <div className="max-h-[560px] overflow-auto">

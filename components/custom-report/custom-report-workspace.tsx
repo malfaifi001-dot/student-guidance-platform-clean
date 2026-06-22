@@ -477,10 +477,6 @@ export function CustomReportWorkspace({
                   جاري تجهيز حقول التقرير
                 </h2>
 
-                <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-7 text-slate-500">
-                  يتم الآن تحليل الوصف وتحويله إلى حقول مختصرة وخيارات تعليمية مناسبة دون تشتيت المستخدم.
-                </p>
-
                 <div className="mx-auto mt-6 h-2 max-w-sm overflow-hidden rounded-full bg-slate-100">
                   <div className="h-full w-1/2 animate-pulse rounded-full bg-sky-600" />
                 </div>
@@ -527,20 +523,7 @@ export function CustomReportWorkspace({
       <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-bold text-sky-100">Workflow Runtime</p>
             <h1 className="mt-3 text-4xl font-black">{schema?.title || "تقرير خاص"}</h1>
-            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
-              نموذج تقرير خاص مبني بالذكاء، مختصر وواضح، ويستخدم خيارات تعليمية جاهزة لتقليل التشتت.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-black">
-              {isEditingFields ? "محرر الحقول" : "تعبئة التقرير"}
-            </span>
-            <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-black">
-              {visibleFields.length} حقل
-            </span>
           </div>
         </div>
       </section>
@@ -720,11 +703,7 @@ export function CustomReportWorkspace({
             </section>
           ) : (
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-black text-sky-700">الخطوة 1</p>
                 <h2 className="text-2xl font-black">تعبئة التقرير</h2>
-                <p className="mt-2 text-sm font-bold text-slate-500">
-                  اختر القيم المناسبة، واستخدم أخرى عند الحاجة لإضافة نص يدوي.
-                </p>
 
                 <div className="mt-6 flex flex-col gap-5">
                   {schema.sections.map((section) => (

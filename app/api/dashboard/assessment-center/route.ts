@@ -4,6 +4,7 @@ import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { parseAssessmentExcel } from "@/lib/assessment-center/assessment-center-parser";
 import { analyzeAssessmentRows } from "@/engine/assessment-center/assessment-center-engine";
+import { buildAssessmentAnalysisSummary } from "@/lib/assessment-center/assessment-analysis-summary";
 import { linkAssessmentRowsToStudents } from "@/lib/assessment-center/assessment-center-student-linking";
 
 export const runtime = "nodejs";
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
     });
 
     const analysisOutput = analyzeAssessmentRows(linkedRows);
-    const summary = analysisOutput.summary;
+    const summary = buildAssessmentAnalysisSummary(analysisOutput.rows);
 
     const analysis = await prisma.assessmentAnalysis.create({
       data: {

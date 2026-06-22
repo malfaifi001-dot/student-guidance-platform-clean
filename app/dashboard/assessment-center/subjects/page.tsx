@@ -6,26 +6,26 @@ import {
 export default function AssessmentSubjectsPage() {
   return (
     <AssessmentCenterSectionPage
-      badge="Subject Analytics"
+      badge=""
       title="تحليل المواد"
-      description="تحليل أداء الطلاب حسب المواد الدراسية واكتشاف المواد التي تحتاج تدخلًا علاجيًا."
+      description="راجع المواد بعد فتح تحليل."
       icon={assessmentSectionIcons.subjects}
       items={[
         {
           title: "متوسط كل مادة",
-          description: "عرض متوسط المدرسة والفصول لكل مادة بعد توفر بيانات التحليل.",
+          description: "عرض متوسط المادة.",
         },
         {
           title: "أضعف المواد",
-          description: "ترتيب المواد من الأضعف إلى الأقوى حسب نسبة التعثر أو المتوسط.",
+          description: "تحديد المواد الأكثر حاجة للمتابعة.",
         },
         {
-          title: "الطلاب المتعثرون في المادة",
-          description: "عرض الطلاب الذين يحتاجون متابعة في مادة محددة.",
+          title: "الطلاب المحتاجون متابعة",
+          description: "عرض الطلاب بحسب المادة.",
         },
         {
-          title: "توصية علاجية للمادة",
-          description: "اقتراح تدخلات إرشادية أو علاجية مرتبطة بالمادة.",
+          title: "خطة مادة",
+          description: "اقتراح متابعة للمادة.",
         },
       ]}
     />

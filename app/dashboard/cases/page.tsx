@@ -500,6 +500,10 @@ export default async function CasesPage() {
 
   return (
     <main className="space-y-5" dir="rtl">
+      <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
+        <h1 className="text-4xl font-black">الحالات</h1>
+      </section>
+
       <CasesSearchTable
         cases={rows}
         viewerName={viewerName}

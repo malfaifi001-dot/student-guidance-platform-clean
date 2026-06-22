@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   ArrowUpLeft,
   BarChart3,
-  BrainCircuit,
   Sparkles,
   UploadCloud,
   UsersRound,
@@ -21,7 +20,6 @@ function getNumberFromSummary(summaryJson: unknown, key: string) {
 
 function formatAverage(value?: number | null) {
   if (value === null || value === undefined) return "0%";
-
   return `${Math.round(Number(value || 0))}%`;
 }
 
@@ -31,6 +29,57 @@ function formatDate(value: Date) {
     month: "short",
     day: "numeric",
   }).format(value);
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: typeof BarChart3;
+}) {
+  return (
+    <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-black text-slate-500">{label}</p>
+          <p className="mt-3 text-3xl font-black text-slate-950 md:text-4xl">
+            {value}
+          </p>
+        </div>
+
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-50 text-cyan-700">
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function MiniMetric({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="rounded-2xl bg-white px-3 py-2 text-center">
+      <p className="text-[11px] font-black text-slate-400">{label}</p>
+      <p
+        className={[
+          "mt-1 text-sm font-black",
+          strong ? "text-cyan-700" : "text-slate-800",
+        ].join(" ")}
+      >
+        {value}
+      </p>
+    </div>
+  );
 }
 
 export default async function AssessmentCenterSmartCounselorPage() {
@@ -76,7 +125,7 @@ export default async function AssessmentCenterSmartCounselorPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/15 px-4 py-2 text-sm font-black text-cyan-50 backdrop-blur">
               <Sparkles className="h-4 w-4" />
-              Smart Counselor
+              الموجه الذكي
             </div>
 
             <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
@@ -84,8 +133,7 @@ export default async function AssessmentCenterSmartCounselorPage() {
             </h1>
 
             <p className="mt-4 max-w-4xl text-base font-bold leading-8 text-cyan-50/90">
-              اختر تحليلًا لتحويل النتائج إلى تدخلات ذكية، سواء تدخل فردي،
-              خطة جماعية، خطة فصل، أو تدخل علاجي حسب المادة.
+              اختر تحليلًا ثم افتح الموجه الذكي.
             </p>
           </div>
 
@@ -103,25 +151,22 @@ export default async function AssessmentCenterSmartCounselorPage() {
         <StatCard
           label="التحليلات المتاحة"
           value={String(analyses.length)}
-          note="يمكن فتحها بالموجه الذكي"
           icon={BarChart3}
         />
 
         <StatCard
-          label="طلاب معرضون للخطر"
+          label="يحتاجون متابعة"
           value={String(
             cards.reduce((sum, item) => sum + item.riskStudentsCount, 0),
           )}
-          note="حسب التحليلات المعروضة"
           icon={AlertTriangle}
         />
 
         <StatCard
-          label="طلاب يحتاجون دعم"
+          label="يحتاجون دعم"
           value={String(
             cards.reduce((sum, item) => sum + item.needsSupportStudentsCount, 0),
           )}
-          note="مرشحون للتدخلات"
           icon={UsersRound}
         />
       </section>
@@ -129,35 +174,26 @@ export default async function AssessmentCenterSmartCounselorPage() {
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-black text-cyan-600">
-              اختر التحليل
-            </p>
+            <p className="text-sm font-black text-cyan-600">اختر تحليلًا</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">
-              تشغيل الموجه الذكي
+              افتح الموجه الذكي
             </h2>
           </div>
-
-          <BrainCircuit className="h-7 w-7 text-cyan-600" />
         </div>
 
         <div className="mt-5 space-y-3">
           {cards.length === 0 ? (
             <div className="rounded-[1.5rem] border border-dashed border-cyan-200 bg-cyan-50/60 p-8 text-center">
               <h3 className="text-xl font-black text-slate-950">
-                لا توجد تحليلات بعد
+                لا توجد تحليلات
               </h3>
               <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-                ارفع ملف نتائج أولًا، وبعد التحليل سيقترح الموجه الذكي
-                التدخلات المناسبة.
+                ارفع ملف نتائج أولًا.
               </p>
             </div>
           ) : (
             cards.map(
-              ({
-                analysis,
-                riskStudentsCount,
-                needsSupportStudentsCount,
-              }) => (
+              ({ analysis, riskStudentsCount, needsSupportStudentsCount }) => (
                 <Link
                   key={analysis.id}
                   href={`/dashboard/assessment-center/${analysis.id}/interventions`}
@@ -170,31 +206,32 @@ export default async function AssessmentCenterSmartCounselorPage() {
                           {analysis.title}
                         </h3>
 
-                        {riskStudentsCount > 0 ? (
-                          <span className="rounded-full bg-rose-50 px-3 py-1 text-[11px] font-black text-rose-700">
-                            يحتاج تدخل
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
-                            مستقر
-                          </span>
-                        )}
+                        <span
+                          className={[
+                            "rounded-full px-3 py-1 text-[11px] font-black",
+                            riskStudentsCount > 0
+                              ? "bg-rose-50 text-rose-700"
+                              : "bg-emerald-50 text-emerald-700",
+                          ].join(" ")}
+                        >
+                          {riskStudentsCount > 0 ? "توجد خطط مقترحة" : "جاهز"}
+                        </span>
                       </div>
 
-                      <p className="mt-2 truncate text-sm font-bold text-slate-500">
-                        {analysis.sourceFile || "ملف غير محدد"}
-                      </p>
-
-                      <p className="mt-1 text-xs font-bold text-slate-400">
+                      <p className="mt-2 text-sm font-bold text-slate-500">
                         {formatDate(analysis.createdAt)}
                       </p>
                     </div>
 
                     <div className="grid gap-2 sm:grid-cols-4 lg:min-w-[520px]">
                       <MiniMetric label="الطلاب" value={String(analysis.totalStudents)} />
-                      <MiniMetric label="خطر" value={String(riskStudentsCount)} />
+                      <MiniMetric label="متابعة" value={String(riskStudentsCount)} />
                       <MiniMetric label="دعم" value={String(needsSupportStudentsCount)} />
-                      <MiniMetric label="المتوسط" value={formatAverage(analysis.averagePercentage)} strong />
+                      <MiniMetric
+                        label="المتوسط"
+                        value={formatAverage(analysis.averagePercentage)}
+                        strong
+                      />
                     </div>
                   </div>
 
@@ -209,62 +246,5 @@ export default async function AssessmentCenterSmartCounselorPage() {
         </div>
       </section>
     </main>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  note,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  note: string;
-  icon: typeof BarChart3;
-}) {
-  return (
-    <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-black text-slate-500">{label}</p>
-          <p className="mt-3 text-3xl font-black text-slate-950 md:text-4xl">
-            {value}
-          </p>
-        </div>
-
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-50 text-cyan-700">
-          <Icon className="h-6 w-6" />
-        </div>
-      </div>
-
-      <p className="mt-4 text-sm font-bold leading-7 text-slate-500">
-        {note}
-      </p>
-    </article>
-  );
-}
-
-function MiniMetric({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl bg-white px-3 py-2 text-center">
-      <p className="text-[11px] font-black text-slate-400">{label}</p>
-      <p
-        className={[
-          "mt-1 text-sm font-black",
-          strong ? "text-cyan-700" : "text-slate-800",
-        ].join(" ")}
-      >
-        {value}
-      </p>
-    </div>
   );
 }

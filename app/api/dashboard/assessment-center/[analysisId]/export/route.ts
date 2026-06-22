@@ -9,6 +9,7 @@ import type {
   AssessmentResultRow,
 } from "@/lib/assessment-center/assessment-center-types";
 import { buildAssessmentSmartNarrative } from "@/lib/assessment-center/assessment-center-insights";
+import { buildAssessmentPdfHtml } from "@/lib/assessment-center/assessment-pdf-report";
 
 export const runtime = "nodejs";
 
@@ -576,6 +577,14 @@ export async function GET(request: Request, context: RouteContext) {
   const fileBaseName = safeFileName(analysis.title || "assessment-analysis");
 
   if (format === "pdf") {
+    const schoolProfile = await prisma.schoolProfile
+      .findFirst({
+        where: {
+          schoolAccountId: auth.schoolAccountId,
+        },
+      })
+      .catch(() => null);
+
     const browser = await puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -585,23 +594,22 @@ export async function GET(request: Request, context: RouteContext) {
       const page = await browser.newPage();
 
       await page.setContent(
-        buildPdfHtml({
-          analysis,
-          summary,
-          rows,
-        }),
+        buildAssessmentPdfHtml({ analysis, summary, rows, schoolProfile }),
         { waitUntil: "load" }
       );
+
+      await page.emulateMediaType("screen");
 
       const pdf = await page.pdf({
         format: "A4",
         printBackground: true,
         margin: {
-          top: "10mm",
-          right: "8mm",
-          bottom: "10mm",
-          left: "8mm",
+          top: "0",
+          right: "0",
+          bottom: "0",
+          left: "0",
         },
+        preferCSSPageSize: true,
       });
 
       const pdfBuffer = Buffer.from(pdf);

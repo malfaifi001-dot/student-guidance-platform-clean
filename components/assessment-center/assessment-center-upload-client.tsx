@@ -42,12 +42,12 @@ export function AssessmentCenterUploadClient() {
     if (!file) {
       confirmAction({
         title: "ملف Excel مطلوب",
-        description: "اختر ملف نتائج بصيغة xlsx أو xls أو csv قبل بدء التحليل.",
+        description: "اختر ملف النتائج أولًا.",
         variant: "warning",
         confirmLabel: "إغلاق",
         run: () => ({
           title: "ملف Excel مطلوب",
-          description: "اختر ملف النتائج ثم أعد المحاولة.",
+          description: "اختر الملف ثم أعد المحاولة.",
           variant: "warning",
         }),
       });
@@ -56,11 +56,10 @@ export function AssessmentCenterUploadClient() {
     }
 
     confirmAction({
-      title: "بدء تحليل ملف النتائج؟",
-      description:
-        "سيتم رفع الملف وقراءة بيانات الطلاب والمواد والدرجات، ثم إنشاء تحليل داخل مركز التحليل والاختبارات.",
+      title: "بدء تحليل النتائج",
+      description: "سيتم رفع الملف وبدء قراءة النتائج.",
       variant: "warning",
-      confirmLabel: "بدء التحليل",
+      confirmLabel: "ابدأ التحليل",
       errorTitle: "تعذر تحليل الملف",
       run: async () => {
         const formData = new FormData();
@@ -86,8 +85,8 @@ export function AssessmentCenterUploadClient() {
         }, 900);
 
         return {
-          title: "تم تحليل الملف بنجاح",
-          description: `تم قراءة ${summary.totalRows || 0} نتيجة، لعدد ${summary.totalStudents || 0} طالب/طالبة، في ${summary.totalSubjects || 0} مادة. سيتم نقلك الآن لتفاصيل التحليل.`,
+          title: "تم تحليل النتائج",
+          description: `تمت قراءة ${summary.totalRows || 0} نتيجة لعدد ${summary.totalStudents || 0} طالب/طالبة.`,
           variant: "success" as const,
         };
       },
@@ -118,8 +117,7 @@ export function AssessmentCenterUploadClient() {
             </h2>
 
             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              النسخة الحالية تقرأ ملفًا يكون فيه كل صف نتيجة طالب في مادة واحدة.
-              يمكن تعديل شكل الإدخال لاحقًا بعد اعتماد ملف المدرسة النهائي.
+              ارفع ملف Excel لبدء التحليل.
             </p>
           </div>
         </div>
@@ -132,14 +130,14 @@ export function AssessmentCenterUploadClient() {
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="مثال: تحليل اختبارات الصف الخامس"
+              placeholder="مثال: نتائج الصف الخامس"
               className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100"
             />
           </label>
 
           <label className="block">
             <span className="mb-2 block text-sm font-black text-slate-700">
-              طريقة الرفع
+              نوع الرفع
             </span>
             <select
               value={uploadMode}
@@ -176,7 +174,7 @@ export function AssessmentCenterUploadClient() {
           className="mt-6 inline-flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-black text-white shadow-lg shadow-cyan-100 transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          تحليل الملف
+          ابدأ التحليل
         </button>
       </form>
     </>

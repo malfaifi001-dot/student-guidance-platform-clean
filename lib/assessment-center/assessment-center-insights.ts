@@ -12,37 +12,37 @@ type InterventionSuggestion = {
 };
 
 function getWeakestSubject(
-  subjects: AssessmentSubjectSummary[] | undefined
+  subjects: AssessmentSubjectSummary[] | undefined,
 ): AssessmentSubjectSummary | null {
   if (!subjects?.length) return null;
 
   return [...subjects].sort(
-    (a, b) => a.averagePercentage - b.averagePercentage
+    (a, b) => a.averagePercentage - b.averagePercentage,
   )[0];
 }
 
 function getStrongestSubject(
-  subjects: AssessmentSubjectSummary[] | undefined
+  subjects: AssessmentSubjectSummary[] | undefined,
 ): AssessmentSubjectSummary | null {
   if (!subjects?.length) return null;
 
   return [...subjects].sort(
-    (a, b) => b.averagePercentage - a.averagePercentage
+    (a, b) => b.averagePercentage - a.averagePercentage,
   )[0];
 }
 
 function getWeakestGroup(
-  groups: AssessmentGroupSummary[] | undefined
+  groups: AssessmentGroupSummary[] | undefined,
 ): AssessmentGroupSummary | null {
   if (!groups?.length) return null;
 
   return [...groups].sort(
-    (a, b) => a.averagePercentage - b.averagePercentage
+    (a, b) => a.averagePercentage - b.averagePercentage,
   )[0];
 }
 
 export function buildAssessmentSmartNarrative(
-  summary: AssessmentAnalysisSummary | null
+  summary: AssessmentAnalysisSummary | null,
 ): {
   insights: string[];
   recommendations: string[];
@@ -50,18 +50,16 @@ export function buildAssessmentSmartNarrative(
 } {
   if (!summary) {
     return {
-      insights: [
-        "لا توجد بيانات تحليل كافية لتوليد ملخص ذكي حتى الآن.",
-      ],
-      recommendations: [
-        "ارفع ملف نتائج يحتوي على الطالب، المادة، الدرجة، والدرجة الكلية للحصول على توصيات أدق.",
-      ],
+      insights: ["لا توجد بيانات كافية لعرض قراءة تحليلية."],
+      recommendations: ["ارفع ملف النتائج أولًا لعرض القراءة التحليلية."],
       interventions: [],
     };
   }
 
-  const weakestSubject = getWeakestSubject(summary.subjectAverages);
-  const strongestSubject = getStrongestSubject(summary.subjectAverages);
+  const weakestSubject =
+    summary.weakestSubjects?.[0] || getWeakestSubject(summary.subjectAverages);
+  const strongestSubject =
+    summary.strongestSubjects?.[0] || getStrongestSubject(summary.subjectAverages);
   const weakestClassroom = getWeakestGroup(summary.classroomAverages);
   const weakestGrade = getWeakestGroup(summary.gradeAverages);
 
@@ -70,87 +68,78 @@ export function buildAssessmentSmartNarrative(
   const interventions: InterventionSuggestion[] = [];
 
   insights.push(
-    `تم تحليل ${summary.totalRows} نتيجة لـ ${summary.totalStudents} طالب/طالبة في ${summary.totalSubjects} مادة، بمتوسط عام ${summary.averagePercentage}%.`
+    `تم تحليل ${summary.totalRows} نتيجة لعدد ${summary.totalStudents} طالب/طالبة في ${summary.totalSubjects} مادة، بمتوسط عام ${summary.averagePercentage}%.`,
   );
 
   if (strongestSubject) {
     insights.push(
-      `أعلى مادة في المتوسط هي ${strongestSubject.subject} بنسبة ${strongestSubject.averagePercentage}%.`
+      `أقوى مادة حاليًا هي ${strongestSubject.subject} بمتوسط ${strongestSubject.averagePercentage}%.`,
     );
   }
 
   if (weakestSubject) {
     insights.push(
-      `أضعف مادة في التحليل هي ${weakestSubject.subject} بنسبة ${weakestSubject.averagePercentage}%.`
+      `أضعف مادة حاليًا هي ${weakestSubject.subject} بمتوسط ${weakestSubject.averagePercentage}%.`,
     );
   }
 
   if (weakestClassroom) {
     insights.push(
-      `أكثر فصل يحتاج متابعة هو ${weakestClassroom.label} بمتوسط ${weakestClassroom.averagePercentage}%.`
+      `أكثر فصل يحتاج متابعة هو ${weakestClassroom.label} بمتوسط ${weakestClassroom.averagePercentage}%.`,
     );
   }
 
   if (weakestGrade) {
     insights.push(
-      `أكثر صف يحتاج متابعة هو ${weakestGrade.label} بمتوسط ${weakestGrade.averagePercentage}%.`
+      `أكثر صف يحتاج متابعة هو ${weakestGrade.label} بمتوسط ${weakestGrade.averagePercentage}%.`,
     );
   }
 
   if (summary.averagePercentage < 60) {
-    recommendations.push(
-      "يوصى بإعداد خطة علاجية عامة لأن المتوسط العام منخفض ويحتاج تدخلًا منظمًا."
-    );
+    recommendations.push("ينصح بخطة متابعة عامة لأن المتوسط العام منخفض.");
   } else if (summary.averagePercentage < 75) {
-    recommendations.push(
-      "يوصى بمتابعة المواد والفصول الأقل أداءً قبل تحولها إلى تعثر واضح."
-    );
+    recommendations.push("ينصح بالتركيز على المواد والفصول الأقل أداءً.");
   } else {
-    recommendations.push(
-      "المؤشر العام جيد، ويفضل التركيز على الطلاب والمواد التي ظهرت في قائمة الاحتياج للمتابعة."
-    );
+    recommendations.push("المؤشر العام جيد، والتركيز الأفضل على الحالات الفردية.");
   }
 
   if (weakestSubject && weakestSubject.averagePercentage < 70) {
     recommendations.push(
-      `يوصى بتنفيذ تدخل علاجي في مادة ${weakestSubject.subject} ومراجعة الطلاب المتعثرين فيها.`
+      `يستحسن البدء بمراجعة مادة ${weakestSubject.subject}.`,
     );
 
     interventions.push({
-      title: `تدخل علاجي في مادة ${weakestSubject.subject}`,
-      description: `يمكن لاحقًا ربط هذا التدخل ببرنامج إرشادي جماعي لمادة ${weakestSubject.subject}.`,
+      title: `خطة مادة - ${weakestSubject.subject}`,
+      description: `هذه المادة هي الأضعف حاليًا وتحتاج إجراءً واضحًا.`,
       target: "subject",
-      futureAction: "إنشاء برنامج علاجي جماعي عبر Workflow يحدده الأدمن.",
+      futureAction: "إعداد خطة مادة مختصرة ومتابعة الطلاب الضعاف فيها.",
     });
   }
 
   if (summary.riskStudentsCount > 0) {
     recommendations.push(
-      `يوجد ${summary.riskStudentsCount} طالب/طالبة يحتاجون متابعة فردية حسب نتائج التحليل.`
+      `يوجد ${summary.riskStudentsCount} طالب/طالبة يحتاجون متابعة مباشرة.`,
     );
 
     interventions.push({
-      title: "متابعة الطلاب منخفضي الأداء",
-      description:
-        "يمكن لاحقًا إنشاء حالات متابعة فردية للطلاب الأكثر احتياجًا بعد مراجعة الموجه.",
+      title: "متابعة الطلاب الضعاف",
+      description: "ابدأ بالطلاب الأقل متوسطًا أو الأضعف في أكثر من مادة.",
       target: "student",
-      futureAction: "إنشاء حالة متابعة عبر Workflow متابعة الطلاب.",
+      futureAction: "تجهيز خطة متابعة فردية للطلاب الأشد حاجة.",
     });
   }
 
   if (weakestClassroom && weakestClassroom.averagePercentage < 70) {
     interventions.push({
-      title: `تدخل جماعي للفصل ${weakestClassroom.label}`,
-      description: `الفصل ${weakestClassroom.label} ظهر كأقل فصل في المتوسط ويحتاج مراجعة جماعية.`,
+      title: `خطة فصل - ${weakestClassroom.label}`,
+      description: "هذا الفصل يحتاج متابعة جماعية.",
       target: "classroom",
-      futureAction: "إنشاء برنامج جماعي أو خطة متابعة للفصل.",
+      futureAction: "إعداد خطة فصل أو نشاط جماعي داعم.",
     });
   }
 
   if (recommendations.length === 0) {
-    recommendations.push(
-      "لا توجد مؤشرات حرجة واضحة، لكن ينصح بمراجعة الطلاب ذوي النسب الأقل من 70%."
-    );
+    recommendations.push("لا توجد مؤشرات حرجة، ويكفي متابعة الطلاب الأقل من 70%.");
   }
 
   return {

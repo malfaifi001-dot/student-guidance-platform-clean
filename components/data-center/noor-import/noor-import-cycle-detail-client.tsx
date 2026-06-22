@@ -194,8 +194,6 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
     }
   }
 
-  const summary = cycle?.planSummary ?? {};
-
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-5">
@@ -209,12 +207,12 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
 
           <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-black text-sky-700">بطاقة بيانات الطلاب</p>
+              <p className="text-sm font-black text-sky-700">رفع بيانات الطلاب</p>
               <h1 className="mt-2 text-2xl font-black md:text-4xl">
                 {cycle ? `بيانات الطلاب ${cycle.academicYear} - ${cycle.term}` : "بيانات الطلاب"}
               </h1>
               <p className="mt-2 text-sm font-bold text-slate-500">
-                ارفع تحديثًا أو راجع بيانات الطلاب.
+                ارفع ملف Excel ثم راجعه قبل الاعتماد.
               </p>
             </div>
 
@@ -241,16 +239,44 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
           </section>
         ) : null}
 
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-black text-slate-700">
+              ١. البطاقة
+            </div>
+            <div
+              className={[
+                "rounded-2xl border px-4 py-4 text-sm font-black",
+                hasPendingUpdate
+                  ? "border-amber-200 bg-amber-50 text-amber-800"
+                  : "border-sky-200 bg-sky-50 text-sky-800",
+              ].join(" ")}
+            >
+              ٢. رفع الملف
+            </div>
+            <div
+              className={[
+                "rounded-2xl border px-4 py-4 text-sm font-black",
+                hasPendingUpdate
+                  ? "border-sky-200 bg-sky-50 text-sky-800"
+                  : "border-slate-200 bg-slate-50 text-slate-700",
+              ].join(" ")}
+            >
+              ٣. المراجعة والاعتماد
+            </div>
+          </div>
+        </section>
+
         {hasPendingUpdate ? (
           <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-5 shadow-sm">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
-                <p className="text-sm font-black text-amber-700">يوجد تحديث ينتظر المراجعة</p>
+                <p className="text-sm font-black text-amber-700">ملف ينتظر الاعتماد</p>
                 <h2 className="mt-1 text-xl font-black text-amber-950">
                   {getFileName(latestPendingSession)}
                 </h2>
                 <p className="mt-2 text-sm font-bold text-amber-800">
-                  تم رفع هذا الملف ولم يتم اعتماده بعد. راجعه أولًا، ثم اعتمد التحديث أو احذفه.
+                  راجع الملف ثم اعتمده.
                 </p>
               </div>
 
@@ -258,7 +284,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
                 href={`/dashboard/data-center/student-data-import/sessions/${latestPendingSession.id}`}
                 className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-amber-700"
               >
-                مراجعة واعتماد التحديث
+                مراجعة الملف
               </Link>
             </div>
           </section>
@@ -266,59 +292,10 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
 
         {cycle ? (
           <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-black">ملخص البطاقة</h2>
-              <p className="mt-1 text-sm font-bold text-slate-500">
-                أرقام الطلاب والتحديثات.
-              </p>
-
-              <div className="mt-5 grid gap-3 md:grid-cols-4">
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-xs font-black text-slate-500">الطلاب</p>
-                  <p className="mt-1 text-2xl font-black">{cycle.totalStudents || cycle.latestSession?.totalRows || 0}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-xs font-black text-slate-500">التحديثات</p>
-                  <p className="mt-1 text-2xl font-black">{sessions.length}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-xs font-black text-slate-500">بانتظار مراجعة</p>
-                  <p className="mt-1 text-2xl font-black">{pendingSessions.length}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-xs font-black text-slate-500">معتمدة</p>
-                  <p className="mt-1 text-2xl font-black">{committedSessions.length}</p>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3 md:grid-cols-5">
-                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-black text-slate-400">جدد</p>
-                  <p className="mt-1 text-2xl font-black">{summary.NEW ?? 0}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-black text-slate-400">تحديث</p>
-                  <p className="mt-1 text-2xl font-black">{summary.UPDATE ?? 0}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-black text-slate-400">بدون تغيير</p>
-                  <p className="mt-1 text-2xl font-black">{summary.UNCHANGED ?? 0}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-black text-slate-400">مكرر</p>
-                  <p className="mt-1 text-2xl font-black">{summary.DUPLICATE_IN_FILE ?? 0}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                  <p className="text-xs font-black text-slate-400">مراجعة</p>
-                  <p className="mt-1 text-2xl font-black">{summary.NEEDS_REVIEW ?? 0}</p>
-                </div>
-              </div>
-            </div>
-
             <form onSubmit={handleUpload} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-black">رفع تحديث جديد</h2>
+              <h2 className="text-lg font-black">رفع ملف الطلاب</h2>
               <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
-                ارفع ملف Excel للتحديث.
+                اختر ملف Excel من جهازك.
               </p>
 
               {hasPendingUpdate ? (
@@ -345,18 +322,44 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
                     disabled={isLoading || !file}
                     className="mt-5 w-full rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isLoading ? "جاري إنشاء التحديث..." : "إنشاء تحديث للمراجعة"}
+                    {isLoading ? "جاري إنشاء التحديث..." : "إنشاء مراجعة"}
                   </button>
                 </>
               )}
             </form>
+
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-black">ملخص البطاقة</h2>
+              <p className="mt-1 text-sm font-bold text-slate-500">
+                أرقام الطلاب والتحديثات.
+              </p>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">الطلاب</p>
+                  <p className="mt-1 text-2xl font-black">{cycle.totalStudents || cycle.latestSession?.totalRows || 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">التحديثات</p>
+                  <p className="mt-1 text-2xl font-black">{sessions.length}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">بانتظار مراجعة</p>
+                  <p className="mt-1 text-2xl font-black">{pendingSessions.length}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">معتمدة</p>
+                  <p className="mt-1 text-2xl font-black">{committedSessions.length}</p>
+                </div>
+              </div>
+            </div>
           </section>
         ) : null}
 
         <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black">سجل تحديثات البطاقة</h2>
+          <h2 className="text-lg font-black">آخر الملفات</h2>
           <p className="mt-1 text-sm font-bold text-slate-500">
-            آخر ملفات الطلاب المرفوعة.
+            الملفات التي تم رفعها لهذه البطاقة.
           </p>
 
           <div className="mt-5 grid gap-3">
@@ -372,10 +375,6 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
                         <span className={["rounded-full border px-3 py-1 text-xs font-black", statusClass(session.status)].join(" ")}>
                           {statusLabel[session.status] || session.status}
                         </span>
-
-                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
-                          تحديث رقم {sessions.length - index}
-                        </span>
                       </div>
 
                       <h3 className="mt-3 text-base font-black text-slate-950">
@@ -388,21 +387,11 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
-                        صالح: {session.validRows}
-                      </span>
-                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
-                        مراجعة: {session.invalidRows}
-                      </span>
-                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
-                        محدث: {session.updatedCount}
-                      </span>
-
                       <Link
                         href={`/dashboard/data-center/student-data-import/sessions/${session.id}`}
                         className="rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-black text-sky-700 hover:bg-sky-50"
                       >
-                        {session.status === "COMMITTED" ? "عرض التحديث" : "مراجعة واعتماد"}
+                        {session.status === "COMMITTED" ? "عرض" : "مراجعة"}
                       </Link>
                     </div>
                   </div>

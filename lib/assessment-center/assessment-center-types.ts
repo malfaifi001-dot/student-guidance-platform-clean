@@ -10,6 +10,14 @@ export type AssessmentStudentLinkStatus =
   | "UNMATCHED"
   | "AMBIGUOUS";
 
+export type AssessmentGradeBand =
+  | "EXCELLENT"
+  | "VERY_GOOD"
+  | "GOOD"
+  | "ACCEPTABLE"
+  | "WEAK"
+  | "UNKNOWN";
+
 export type AssessmentResultRow = {
   id: string;
   studentId?: string | null;
@@ -55,6 +63,38 @@ export type AssessmentRiskStudent = {
   weakSubjects: string[];
 };
 
+export type AssessmentGradeBandSummary = {
+  band: AssessmentGradeBand;
+  label: string;
+  count: number;
+  percentage: number;
+};
+
+export type AssessmentStudentPerformanceSummary = {
+  studentName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  averagePercentage: number;
+  subjectsCount: number;
+  weakSubjects: string[];
+  strongestSubjects: string[];
+};
+
+export type AssessmentSubjectGradeDistribution = {
+  subject: string;
+  averagePercentage: number;
+  totalRows: number;
+  bands: {
+    EXCELLENT: number;
+    VERY_GOOD: number;
+    GOOD: number;
+    ACCEPTABLE: number;
+    WEAK: number;
+    UNKNOWN: number;
+  };
+};
+
 export type AssessmentAnalysisSummary = {
   totalRows: number;
   totalStudents: number;
@@ -72,4 +112,17 @@ export type AssessmentAnalysisSummary = {
   classroomAverages: AssessmentGroupSummary[];
   gradeAverages: AssessmentGroupSummary[];
   riskStudents: AssessmentRiskStudent[];
+
+  topFiveStudents?: AssessmentStudentPerformanceSummary[];
+  topTenStudents?: AssessmentStudentPerformanceSummary[];
+  excellentStudentsList?: AssessmentStudentPerformanceSummary[];
+  veryGoodStudents?: AssessmentStudentPerformanceSummary[];
+  goodStudents?: AssessmentStudentPerformanceSummary[];
+  acceptableStudents?: AssessmentStudentPerformanceSummary[];
+  weakStudents?: AssessmentStudentPerformanceSummary[];
+  multiSubjectWeakStudents?: AssessmentStudentPerformanceSummary[];
+  gradeBandSummary?: AssessmentGradeBandSummary[];
+  subjectGradeDistribution?: AssessmentSubjectGradeDistribution[];
+  strongestSubjects?: AssessmentSubjectSummary[];
+  weakestSubjects?: AssessmentSubjectSummary[];
 };

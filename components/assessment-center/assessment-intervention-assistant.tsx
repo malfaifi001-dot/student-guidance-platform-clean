@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BrainCircuit,
-  CheckCircle2,
   FileSymlink,
   Loader2,
   Search,
@@ -87,16 +86,6 @@ function getTabForTarget(targetType: AssessmentInterventionTargetType): TabKey {
   return "subject";
 }
 
-function serviceSlugForTargetType(targetType: AssessmentInterventionTargetType) {
-  if (targetType === "STUDENT_SUPPORT") return "smart-student-support";
-  if (targetType === "STUDENT_EXCELLENCE") return "smart-student-excellence";
-  if (targetType === "STUDENT_GROUP_CUSTOM") return "smart-student-group-custom";
-  if (targetType === "STUDENT_GROUP_SUBJECT") return "smart-student-group-subject";
-  if (targetType === "CLASSROOM_SUPPORT") return "smart-classroom-support";
-  if (targetType === "GRADE_SUPPORT") return "smart-grade-support";
-  return "smart-subject-support";
-}
-
 function serviceSlugForTab(tab: TabKey, hasMultiSelection: boolean) {
   if (hasMultiSelection) return "smart-student-group-custom";
   if (tab === "student") return "smart-student-support";
@@ -120,13 +109,13 @@ function targetTypesForTab(tab: TabKey, hasMultiSelection: boolean): AssessmentI
 }
 
 function targetLabel(targetType: AssessmentInterventionTargetType) {
-  if (targetType === "STUDENT_SUPPORT") return "فردي";
-  if (targetType === "STUDENT_EXCELLENCE") return "تعزيز";
-  if (targetType === "STUDENT_GROUP_SUBJECT") return "مجموعة مادة";
-  if (targetType === "STUDENT_GROUP_CUSTOM") return "مجموعة مخصصة";
-  if (targetType === "CLASSROOM_SUPPORT") return "فصل";
-  if (targetType === "GRADE_SUPPORT") return "صف";
-  return "مادة";
+  if (targetType === "STUDENT_SUPPORT") return "متابعة طالب";
+  if (targetType === "STUDENT_EXCELLENCE") return "متابعة طالب";
+  if (targetType === "STUDENT_GROUP_SUBJECT") return "خطة جماعية";
+  if (targetType === "STUDENT_GROUP_CUSTOM") return "خطة جماعية";
+  if (targetType === "CLASSROOM_SUPPORT") return "خطة فصل";
+  if (targetType === "GRADE_SUPPORT") return "خطة فصل";
+  return "خطة مادة";
 }
 
 function isSelectableIndividual(item: AssessmentInterventionPackage) {
@@ -137,7 +126,7 @@ function isSelectableIndividual(item: AssessmentInterventionPackage) {
 }
 
 function buildCustomGroupPackage(
-  selected: AssessmentInterventionPackage[]
+  selected: AssessmentInterventionPackage[],
 ): AssessmentInterventionPackage | null {
   if (selected.length < 2) return null;
 
@@ -158,11 +147,9 @@ function buildCustomGroupPackage(
   return {
     id: `student-group-custom:${students.map((student) => student.id).join("-")}`,
     targetType: "STUDENT_GROUP_CUSTOM",
-    title: `خطة جماعية مخصصة - ${students.length} طلاب`,
-    description:
-      "تم إنشاء هذه الحزمة يدويًا من مجموعة طلاب اختارهم المستخدم من نتائج التحليل.",
-    recommendedAction:
-      "فتح Workflow جماعي مناسب لتنفيذ خطة مشتركة للطلاب المحددين.",
+    title: `خطة جماعية - ${students.length} طلاب`,
+    description: "تم تجميع الطلاب المحددين في خطة واحدة.",
+    recommendedAction: "أنشئ خطة جماعية لهؤلاء الطلاب.",
     riskLevel: averagePercentage < 50 ? "HIGH" : "MEDIUM",
     primaryStudentId: null,
     students,
@@ -172,6 +159,15 @@ function buildCustomGroupPackage(
     averagePercentage,
     rowsCount: selected.reduce((sum, item) => sum + item.rowsCount, 0),
   };
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm font-black text-slate-400">{label}</p>
+      <p className="mt-3 text-4xl font-black text-slate-950">{value}</p>
+    </article>
+  );
 }
 
 export function AssessmentInterventionAssistant({
@@ -206,7 +202,7 @@ export function AssessmentInterventionAssistant({
 
   const selectedService = useMemo(
     () => services.find((service) => service.id === selectedServiceId),
-    [services, selectedServiceId]
+    [services, selectedServiceId],
   );
 
   const visibleWorkflows = useMemo(() => {
@@ -219,7 +215,7 @@ export function AssessmentInterventionAssistant({
       if (!workflow.interventionTargetTypes?.length) return true;
 
       return workflow.interventionTargetTypes.some((targetType) =>
-        allowedTypes.includes(targetType)
+        allowedTypes.includes(targetType),
       );
     });
   }, [selectedService, activeTab, selectedPackageIds.length]);
@@ -228,14 +224,14 @@ export function AssessmentInterventionAssistant({
     () =>
       packages.filter(
         (item) =>
-          selectedPackageIds.includes(item.id) && isSelectableIndividual(item)
+          selectedPackageIds.includes(item.id) && isSelectableIndividual(item),
       ),
-    [packages, selectedPackageIds]
+    [packages, selectedPackageIds],
   );
 
   const customGroupPackage = useMemo(
     () => buildCustomGroupPackage(selectedIndividualPackages),
-    [selectedIndividualPackages]
+    [selectedIndividualPackages],
   );
 
   const filteredPackages = packages.filter((item) => {
@@ -300,7 +296,7 @@ export function AssessmentInterventionAssistant({
     setSelectedPackageIds((current) =>
       current.includes(item.id)
         ? current.filter((id) => id !== item.id)
-        : [...current, item.id]
+        : [...current, item.id],
     );
   }
 
@@ -310,11 +306,11 @@ export function AssessmentInterventionAssistant({
     let nextUrl = "";
 
     confirmAction({
-      title: "إنشاء تدخل عبر Workflow؟",
-      description: `سيتم إنشاء تدخل "${item.title}" وفتح الـ Workflow لإكماله.`,
+      title: "إنشاء خطة",
+      description: `سيتم إنشاء الخطة "${item.title}".`,
       variant: "info",
-      confirmLabel: "إنشاء وفتح Workflow",
-      errorTitle: "تعذر إنشاء التدخل",
+      confirmLabel: "إنشاء خطة",
+      errorTitle: "تعذر إنشاء الخطة",
       run: async () => {
         const response = await fetch(
           "/api/dashboard/assessment-center/interventions/create-case",
@@ -329,20 +325,20 @@ export function AssessmentInterventionAssistant({
               targetWorkflowId: selectedWorkflowId,
               saveAsDefault,
             }),
-          }
+          },
         );
 
         const data = await readApiResponse(response);
 
         if (!response.ok || !data.success) {
-          throw new Error(data.error || "تعذر إنشاء التدخل.");
+          throw new Error(data.error || "تعذر إنشاء الخطة.");
         }
 
         nextUrl = data.caseUrl;
 
         return {
-          title: "تم إنشاء التدخل",
-          description: "سيتم نقلك إلى صفحة الـ Workflow لإكمال البيانات.",
+          title: "تم إنشاء الخطة",
+          description: "سيتم نقلك إلى صفحة الخطة.",
           variant: "success" as const,
         };
       },
@@ -356,7 +352,7 @@ export function AssessmentInterventionAssistant({
     { key: "all" as const, label: "الكل", count: packages.length },
     {
       key: "student" as const,
-      label: "دعم فردي",
+      label: "متابعة طالب",
       count: packages.filter((p) => p.targetType === "STUDENT_SUPPORT").length,
     },
     {
@@ -366,22 +362,22 @@ export function AssessmentInterventionAssistant({
     },
     {
       key: "student_group" as const,
-      label: "مجموعات طلاب",
+      label: "خطة جماعية",
       count: packages.filter((p) => p.targetType === "STUDENT_GROUP_SUBJECT").length,
     },
     {
       key: "classroom" as const,
-      label: "فصول",
+      label: "الفصول",
       count: packages.filter((p) => p.targetType === "CLASSROOM_SUPPORT").length,
     },
     {
       key: "grade" as const,
-      label: "صفوف",
+      label: "الصفوف",
       count: packages.filter((p) => p.targetType === "GRADE_SUPPORT").length,
     },
     {
       key: "subject" as const,
-      label: "مواد",
+      label: "المواد",
       count: packages.filter((p) => p.targetType === "SUBJECT_SUPPORT").length,
     },
   ];
@@ -396,18 +392,18 @@ export function AssessmentInterventionAssistant({
       />
 
       <main className="space-y-8">
-        <section className="rounded-[2rem] border border-violet-100 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-cyan-600 p-8 text-white shadow-2xl">
+        <section className="rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-700 p-8 text-white shadow-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/15 px-4 py-2 text-sm font-black">
             <BrainCircuit className="h-4 w-4" />
-            Smart Intervention Assistant
+            الموجه الذكي
           </div>
 
           <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
-            موجه التدخل الذكي
+            {analysisTitle}
           </h1>
 
-          <p className="mt-4 max-w-3xl text-base font-bold leading-8 text-violet-50">
-            كل تدخل يتم إنشاؤه كـ CaseEntry عبر الخدمة والـ Workflow المختار.
+          <p className="mt-4 max-w-3xl text-base font-bold leading-8 text-cyan-50">
+            اختر الخطة المناسبة ثم افتحها.
           </p>
         </section>
 
@@ -419,12 +415,12 @@ export function AssessmentInterventionAssistant({
           <>
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-black text-slate-950">
-                إعداد التنفيذ عبر Workflow
+                اختيار الخطة
               </h2>
 
               <div className="mt-5 grid gap-4 lg:grid-cols-3">
                 <div>
-                  <label className="text-xs font-black text-slate-500">خدمة التدخل الذكي</label>
+                  <label className="text-xs font-black text-slate-500">الخدمة</label>
                   <select
                     value={selectedServiceId}
                     onChange={(event) => {
@@ -443,14 +439,14 @@ export function AssessmentInterventionAssistant({
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-500">Workflow</label>
+                  <label className="text-xs font-black text-slate-500">الخطة</label>
                   <select
                     value={selectedWorkflowId}
                     onChange={(event) => setSelectedWorkflowId(event.target.value)}
                     disabled={!selectedService}
                     className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none disabled:bg-slate-100"
                   >
-                    <option value="">اختر Workflow</option>
+                    <option value="">اختر الخطة</option>
                     {visibleWorkflows.map((workflow) => (
                       <option key={workflow.id} value={workflow.id}>
                         {workflow.name} - v{workflow.version}
@@ -465,7 +461,7 @@ export function AssessmentInterventionAssistant({
                     checked={saveAsDefault}
                     onChange={(event) => setSaveAsDefault(event.target.checked)}
                   />
-                  حفظ كقاعدة للحالات القادمة
+                  حفظ هذا الاختيار للاستخدام لاحقًا
                 </label>
               </div>
             </section>
@@ -478,7 +474,7 @@ export function AssessmentInterventionAssistant({
                       خطة جماعية للمحددين
                     </h2>
                     <p className="mt-2 text-sm font-bold text-amber-800">
-                      تم تحديد {selectedIndividualPackages.length} طالب/طلاب. اختر طالبين فأكثر لإنشاء خطة واحدة.
+                      تم تحديد {selectedIndividualPackages.length} طالب/طلاب.
                     </p>
                   </div>
 
@@ -503,7 +499,7 @@ export function AssessmentInterventionAssistant({
                       className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-amber-600 px-5 text-xs font-black text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                       <FileSymlink className="h-4 w-4" />
-                      إنشاء خطة جماعية للمحددين
+                      إنشاء خطة جماعية
                     </button>
                   </div>
                 </div>
@@ -511,26 +507,9 @@ export function AssessmentInterventionAssistant({
             ) : null}
 
             <section className="grid gap-4 md:grid-cols-3">
-              <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-sm font-black text-slate-400">حزم التدخل</p>
-                <p className="mt-3 text-4xl font-black text-slate-950">
-                  {packages.length}
-                </p>
-              </article>
-
-              <article className="rounded-[1.7rem] border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
-                <p className="text-sm font-black text-emerald-500">قواعد محفوظة</p>
-                <p className="mt-3 text-4xl font-black text-emerald-700">
-                  {rules.length}
-                </p>
-              </article>
-
-              <article className="rounded-[1.7rem] border border-violet-100 bg-violet-50 p-5 shadow-sm">
-                <p className="text-sm font-black text-violet-500">الخدمات</p>
-                <p className="mt-3 text-4xl font-black text-violet-700">
-                  {services.length}
-                </p>
-              </article>
+              <StatCard label="الخطط المقترحة" value={packages.length} />
+              <StatCard label="القواعد" value={rules.length} />
+              <StatCard label="الخدمات" value={services.length} />
             </section>
 
             <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
@@ -546,7 +525,7 @@ export function AssessmentInterventionAssistant({
                     className={[
                       "rounded-2xl px-4 py-2 text-xs font-black transition",
                       activeTab === tab.key
-                        ? "bg-violet-600 text-white"
+                        ? "bg-cyan-600 text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200",
                     ].join(" ")}
                   >
@@ -560,7 +539,7 @@ export function AssessmentInterventionAssistant({
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="بحث في الحزم..."
+                  placeholder="ابحث في الخطط..."
                   className="h-12 flex-1 bg-transparent text-sm font-bold outline-none"
                 />
               </div>
@@ -571,7 +550,7 @@ export function AssessmentInterventionAssistant({
                 <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-sm">
                   <UsersRound className="mx-auto h-10 w-10 text-slate-300" />
                   <h2 className="mt-4 text-xl font-black text-slate-950">
-                    لا توجد حزم تدخل في هذا التصنيف
+                    لا توجد خطط في هذا التصنيف
                   </h2>
                 </div>
               ) : null}
@@ -602,15 +581,15 @@ export function AssessmentInterventionAssistant({
                             </label>
                           ) : null}
 
-                          <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700">
+                          <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">
                             {targetLabel(item.targetType)}
                           </span>
 
-                          <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
                             {item.students.length} طالب
                           </span>
 
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
                             متوسط {item.averagePercentage}%
                           </span>
                         </div>
@@ -629,7 +608,7 @@ export function AssessmentInterventionAssistant({
                           <p>الفصول: {item.classrooms.join("، ") || "غير محدد"}</p>
                         </div>
 
-                        <p className="mt-4 rounded-2xl bg-violet-50 p-4 text-sm font-bold leading-7 text-violet-900">
+                        <p className="mt-4 rounded-2xl bg-cyan-50 p-4 text-sm font-bold leading-7 text-cyan-900">
                           {item.recommendedAction}
                         </p>
                       </div>
@@ -638,10 +617,10 @@ export function AssessmentInterventionAssistant({
                         type="button"
                         disabled={!selectedServiceId || !selectedWorkflowId || processing}
                         onClick={() => handleCreateCase(item)}
-                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 text-sm font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300 lg:w-[240px]"
+                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-5 text-sm font-black text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300 lg:w-[220px]"
                       >
                         <FileSymlink className="h-4 w-4" />
-                        إنشاء وفتح Workflow
+                        إنشاء خطة
                       </button>
                     </div>
                   </article>

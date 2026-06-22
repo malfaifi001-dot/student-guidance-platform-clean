@@ -6,26 +6,26 @@ import {
 export default function AssessmentReportsPage() {
   return (
     <AssessmentCenterSectionPage
-      badge="Exports & Reports"
-      title="التقارير والتصدير"
-      description="تجهيز تقارير عملية وجميلة بصيغ Excel وPDF بعد توفر التحليل الحقيقي."
+      badge=""
+      title="التقارير"
+      description="صدّر التقارير بعد فتح تحليل."
       icon={assessmentSectionIcons.reports}
       items={[
         {
           title: "تصدير Excel",
-          description: "تصدير كامل للطلاب، المواد، الفصول، المؤشرات، والطلاب المحتاجين متابعة.",
+          description: "تحميل بيانات التحليل.",
         },
         {
           title: "تقرير PDF",
-          description: "قالب PDF احترافي للإدارة أو الموجه يتضمن KPI ورسوم وتوصيات.",
+          description: "تقرير مختصر جاهز للطباعة.",
         },
         {
           title: "تقرير ولي الأمر",
-          description: "تقرير فردي مبسط للطالب يمكن استخدامه في التواصل الأسري.",
+          description: "عرض مختصر لنتيجة الطالب.",
         },
         {
-          title: "تقرير علاجي",
-          description: "تقرير يركز على خطة علاجية للفصل أو المادة أو الطالب.",
+          title: "تقرير المتابعة",
+          description: "تقرير لخطة العلاج أو الدعم.",
         },
       ]}
     />

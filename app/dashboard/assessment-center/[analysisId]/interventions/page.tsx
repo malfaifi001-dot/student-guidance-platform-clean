@@ -75,9 +75,9 @@ function buildPackages(rows: AssessmentResultRow[]) {
       packages.push({
         id: `student-support:${studentId}`,
         targetType: "STUDENT_SUPPORT",
-        title: `تدخل فردي - ${first.matchedStudentName || first.studentName}`,
-        description: `الطالب يحتاج دعمًا دراسيًا بناءً على متوسط ${avg}%.`,
-        recommendedAction: "فتح Workflow فردي لمتابعة الضعف الدراسي.",
+        title: `متابعة طالب - ${first.matchedStudentName || first.studentName}`,
+        description: `الطالب يحتاج خطة متابعة بمتوسط ${avg}%.`,
+        recommendedAction: "أنشئ خطة متابعة لهذا الطالب.",
         riskLevel: avg < 50 ? "HIGH" : "MEDIUM",
         primaryStudentId: studentId,
         students: [studentFromRow(first)],
@@ -93,13 +93,15 @@ function buildPackages(rows: AssessmentResultRow[]) {
       packages.push({
         id: `student-excellence:${studentId}`,
         targetType: "STUDENT_EXCELLENCE",
-        title: `تعزيز تميز - ${first.matchedStudentName || first.studentName}`,
-        description: `الطالب حقق مؤشر تميز بمتوسط ${avg}%.`,
-        recommendedAction: "فتح Workflow تعزيز أو تكريم أو رعاية موهبة.",
+        title: `متابعة طالب - ${first.matchedStudentName || first.studentName}`,
+        description: `الطالب حقق متوسط ${avg}% ويحتاج خطة دعم أو تعزيز مناسبة.`,
+        recommendedAction: "أنشئ خطة متابعة أو تعزيز لهذا الطالب.",
         riskLevel: "EXCELLENCE",
         primaryStudentId: studentId,
         students: [studentFromRow(first)],
-        subjects: excellentSubjects.length ? excellentSubjects : unique(studentRows.map((row) => row.subject)),
+        subjects: excellentSubjects.length
+          ? excellentSubjects
+          : unique(studentRows.map((row) => row.subject)),
         grades: unique(studentRows.map((row) => row.grade || "")),
         classrooms: unique(studentRows.map((row) => row.classroom || "")),
         averagePercentage: avg,
@@ -122,9 +124,9 @@ function buildPackages(rows: AssessmentResultRow[]) {
     packages.push({
       id: `student-group-subject:${subject}`,
       targetType: "STUDENT_GROUP_SUBJECT",
-      title: `خطة جماعية - ضعف ${subject}`,
-      description: `${studentIds.length} طلاب لديهم ضعف مشترك في ${subject}.`,
-      recommendedAction: "فتح Workflow جماعي لخطة علاجية مشتركة.",
+      title: `خطة جماعية - ${subject}`,
+      description: `${studentIds.length} طلاب يحتاجون خطة مشتركة في ${subject}.`,
+      recommendedAction: "أنشئ خطة جماعية لهذه المجموعة.",
       riskLevel: average(subjectRows.map((row) => row.percentage || 0)) < 50 ? "HIGH" : "MEDIUM",
       primaryStudentId: null,
       students: unique(subjectRows.map((row) => row.studentId || "")).map((id) => {
@@ -135,7 +137,7 @@ function buildPackages(rows: AssessmentResultRow[]) {
       grades: unique(subjectRows.map((row) => row.grade || "")),
       classrooms: unique(subjectRows.map((row) => row.classroom || "")),
       averagePercentage: average(
-        subjectRows.map((row) => row.percentage).filter((value): value is number => typeof value === "number")
+        subjectRows.map((row) => row.percentage).filter((value): value is number => typeof value === "number"),
       ),
       rowsCount: subjectRows.length,
     });
@@ -152,7 +154,7 @@ function buildPackages(rows: AssessmentResultRow[]) {
   };
 
   for (const [classroomKey, classroomRows] of groupBy((row) =>
-    row.grade || row.classroom ? `${row.grade || "غير محدد"} - ${row.classroom || "غير محدد"}` : null
+    row.grade || row.classroom ? `${row.grade || "غير محدد"} - ${row.classroom || "غير محدد"}` : null,
   ).entries()) {
     const percentages = classroomRows
       .map((row) => row.percentage)
@@ -164,9 +166,9 @@ function buildPackages(rows: AssessmentResultRow[]) {
       packages.push({
         id: `classroom-support:${classroomKey}`,
         targetType: "CLASSROOM_SUPPORT",
-        title: `خطة صفية - ${classroomKey}`,
-        description: `الفصل يحتاج خطة علاجية بمتوسط ${avg}%.`,
-        recommendedAction: "فتح Workflow خطة صفية أو برنامج علاجي للفصل.",
+        title: `خطة فصل - ${classroomKey}`,
+        description: `الفصل يحتاج خطة متابعة بمتوسط ${avg}%.`,
+        recommendedAction: "أنشئ خطة فصل لهذا الفصل.",
         riskLevel: avg < 50 ? "HIGH" : "MEDIUM",
         primaryStudentId: null,
         students: students.map((id) => studentFromRow(classroomRows.find((row) => row.studentId === id)!)),
@@ -190,9 +192,9 @@ function buildPackages(rows: AssessmentResultRow[]) {
       packages.push({
         id: `grade-support:${grade}`,
         targetType: "GRADE_SUPPORT",
-        title: `خطة صف دراسي - ${grade}`,
-        description: `الصف ${grade} يحتاج خطة علاجية بمتوسط ${avg}%.`,
-        recommendedAction: "فتح Workflow جماعي لخطة علاجية على مستوى الصف.",
+        title: `خطة فصل - ${grade}`,
+        description: `الصف ${grade} يحتاج خطة متابعة بمتوسط ${avg}%.`,
+        recommendedAction: "أنشئ خطة فصل لهذا الصف.",
         riskLevel: avg < 50 ? "HIGH" : "MEDIUM",
         primaryStudentId: null,
         students: students.map((id) => studentFromRow(gradeRows.find((row) => row.studentId === id)!)),
@@ -216,9 +218,9 @@ function buildPackages(rows: AssessmentResultRow[]) {
       packages.push({
         id: `subject-support:${subject}`,
         targetType: "SUBJECT_SUPPORT",
-        title: `تدخل علاجي للمادة - ${subject}`,
-        description: `مادة ${subject} تحتاج تدخلًا علاجيًا بمتوسط ${avg}%.`,
-        recommendedAction: "فتح Workflow تدخل علاجي للمادة.",
+        title: `خطة مادة - ${subject}`,
+        description: `مادة ${subject} تحتاج خطة متابعة بمتوسط ${avg}%.`,
+        recommendedAction: "أنشئ خطة مادة لهذه المادة.",
         riskLevel: avg < 50 ? "HIGH" : "MEDIUM",
         primaryStudentId: null,
         students: students.map((id) => studentFromRow(subjectRows.find((row) => row.studentId === id)!)),

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpLeft, BarChart3 } from "lucide-react";
+import { ArrowRight, ArrowUpLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
 import { AssessmentAnalysesList } from "@/components/assessment-center/assessment-analyses-list";
@@ -34,18 +34,12 @@ export default async function AssessmentAnalysesPage() {
               العودة للمركز
             </Link>
 
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/15 px-4 py-2 text-sm font-black text-cyan-50 backdrop-blur">
-              <BarChart3 className="h-4 w-4" />
-              Assessment Analyses
-            </div>
-
             <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
               التحليلات السابقة
             </h1>
 
             <p className="mt-4 max-w-3xl text-base font-bold leading-8 text-cyan-50/90">
-              إدارة التحليلات المحفوظة، فتح التفاصيل، تصدير Excel وPDF، أو حذف
-              التحليلات التجريبية غير المطلوبة.
+              افتح تحليلًا أو حمّل تقريره.
             </p>
           </div>
 
@@ -53,7 +47,7 @@ export default async function AssessmentAnalysesPage() {
             href="/dashboard/assessment-center/new"
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-cyan-700 transition hover:bg-cyan-50"
           >
-            تحليل جديد
+            رفع تحليل جديد
             <ArrowUpLeft className="h-4 w-4" />
           </Link>
         </div>

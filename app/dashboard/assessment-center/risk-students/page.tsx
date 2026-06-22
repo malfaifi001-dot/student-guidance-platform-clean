@@ -6,26 +6,26 @@ import {
 export default function AssessmentRiskStudentsPage() {
   return (
     <AssessmentCenterSectionPage
-      badge="Risk Students Engine"
-      title="الطلاب المعرضون للخطر"
-      description="قسم مخصص لاكتشاف الطلاب المحتاجين متابعة أكاديمية أو إرشادية بعد تحليل النتائج."
+      badge=""
+      title="الطلاب المحتاجون متابعة"
+      description="راجع الطلاب بعد فتح تحليل."
       icon={assessmentSectionIcons.riskStudents}
       items={[
         {
           title: "انخفاض النسبة",
-          description: "تحديد الطلاب ذوي النتائج المنخفضة أو القريبة من التعثر.",
+          description: "عرض الطلاب منخفضي النتائج.",
         },
         {
-          title: "تعثر في عدة مواد",
-          description: "تمييز الطلاب الذين يظهر لديهم ضعف في أكثر من مادة.",
+          title: "أكثر من مادة",
+          description: "تمييز الطلاب المتعثرين في عدة مواد.",
         },
         {
           title: "أولوية المتابعة",
-          description: "تصنيف الطلاب حسب درجة الخطر: مرتفع، متوسط، منخفض.",
+          description: "تحديد من يبدأ أولًا.",
         },
         {
-          title: "إنشاء حالة متابعة",
-          description: "زر مستقبلي لإنشاء حالة مرتبطة بالطالب والتحليل والتوصيات.",
+          title: "إنشاء خطة",
+          description: "الانتقال إلى خطة متابعة مناسبة.",
         },
       ]}
     />

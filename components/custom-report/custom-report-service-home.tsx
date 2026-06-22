@@ -62,20 +62,7 @@ export function CustomReportServiceHome({
       <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-black text-sky-100">Workflow Runtime</p>
             <h1 className="mt-3 text-4xl font-black">تقرير خاص</h1>
-            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
-              أنشئ تقريرًا خاصًا بوصف بسيط، ثم حوّله إلى حقول منظمة وقالب محفوظ، ويُحفظ كسجل رسمي داخل الحالات.
-            </p>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black">
-                {userName}
-              </span>
-              <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black">
-                {userRole}
-              </span>
-            </div>
           </div>
 
           <Link
@@ -107,7 +94,6 @@ export function CustomReportServiceHome({
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-black text-sky-700">السجلات السابقة</p>
             <h2 className="mt-1 text-2xl font-black">
               {tab === "entries" ? "آخر التقارير" : "القوالب المحفوظة"}
             </h2>

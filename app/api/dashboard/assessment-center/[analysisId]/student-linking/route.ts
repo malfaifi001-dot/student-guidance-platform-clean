@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { analyzeAssessmentRows } from "@/engine/assessment-center/assessment-center-engine";
+import { buildAssessmentAnalysisSummary } from "@/lib/assessment-center/assessment-analysis-summary";
 import type { AssessmentResultRow } from "@/lib/assessment-center/assessment-center-types";
 
 export const runtime = "nodejs";
@@ -165,7 +166,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const analysisOutput = analyzeAssessmentRows(updatedRows);
-  const summary = analysisOutput.summary;
+  const summary = buildAssessmentAnalysisSummary(analysisOutput.rows);
 
   await prisma.assessmentAnalysis.update({
     where: {
