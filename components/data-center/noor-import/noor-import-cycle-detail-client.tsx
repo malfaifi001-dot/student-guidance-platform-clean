@@ -147,7 +147,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
     if (!file) {
       setMessage({
         type: "error",
-        text: "اختر ملف Excel صادر من نور أولًا.",
+        text: "اختر ملف Excel لبيانات الطلاب أولًا.",
       });
       return;
     }
@@ -173,7 +173,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
       const result = await readApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(result.error || "تعذر إنشاء تحديث نور.");
+        throw new Error(result.error || "تعذر إنشاء تحديث بيانات الطلاب.");
       }
 
       setFile(null);
@@ -214,7 +214,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
                 {cycle ? `بيانات الطلاب ${cycle.academicYear} - ${cycle.term}` : "بيانات الطلاب"}
               </h1>
               <p className="mt-2 text-sm font-bold text-slate-500">
-                كل تحديثات هذه السنة والفصل الدراسي محفوظة هنا. ارفع ملف بيانات الطلاب، راجع التحديث، ثم اعتمده.
+                ارفع تحديثًا أو راجع بيانات الطلاب.
               </p>
             </div>
 
@@ -269,7 +269,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
             <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black">ملخص البطاقة</h2>
               <p className="mt-1 text-sm font-bold text-slate-500">
-                أرقام مختصرة عن بيانات الطلاب لهذه السنة والفصل.
+                أرقام الطلاب والتحديثات.
               </p>
 
               <div className="mt-5 grid gap-3 md:grid-cols-4">
@@ -318,7 +318,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
             <form onSubmit={handleUpload} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black">رفع تحديث جديد</h2>
               <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
-                ارفع ملف بيانات الطلاب جديد لنفس السنة والفصل. سيظهر كتحديث ينتظر المراجعة داخل هذه البطاقة.
+                ارفع ملف Excel للتحديث.
               </p>
 
               {hasPendingUpdate ? (
@@ -356,7 +356,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
         <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black">سجل تحديثات البطاقة</h2>
           <p className="mt-1 text-sm font-bold text-slate-500">
-            كل ملف بيانات الطلاب مرفوع لهذه السنة والفصل يظهر هنا، سواء كان بانتظار المراجعة أو معتمدًا.
+            آخر ملفات الطلاب المرفوعة.
           </p>
 
           <div className="mt-5 grid gap-3">
@@ -410,7 +410,7 @@ export function NoorImportCycleDetailClient({ cycleId }: Props) {
               ))
             ) : (
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-8 text-center text-sm font-bold text-slate-500">
-                لم يتم رفع أي ملف داخل هذه البطاقة بعد. ارفع أول ملف بيانات الطلاب من بطاقة "رفع تحديث جديد".
+                لم يتم رفع أي ملف داخل هذه البطاقة بعد.
               </div>
             )}
           </div>

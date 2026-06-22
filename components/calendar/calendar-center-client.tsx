@@ -3,8 +3,6 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Bell,
-  CalendarDays,
   CheckCircle2,
   Clock3,
   Link2,
@@ -186,7 +184,6 @@ export function CalendarCenterClient({
   const [isPending, startTransition] = useTransition();
 
   const [title, setTitle] = useState("");
-  const [note, setNote] = useState("");
   const [date, setDate] = useState(toDateInputValue());
   const [time, setTime] = useState(toTimeInputValue());
   const [priority, setPriority] = useState<ReminderPriority>("NORMAL");
@@ -194,7 +191,7 @@ export function CalendarCenterClient({
   const [serviceId, setServiceId] = useState("");
   const [caseEntryId, setCaseEntryId] = useState("");
   const [studentId, setStudentId] = useState("");
-  const [remindBeforeMinutes, setRemindBeforeMinutes] = useState("0");
+  const [remindBeforeMinutes] = useState("0");
   const [activeTab, setActiveTab] = useState<TabKey>("now");
   const [feedback, setFeedback] = useState("");
 
@@ -217,36 +214,11 @@ export function CalendarCenterClient({
   }, [reminders]);
 
   const tabs = [
-    {
-      id: "now" as const,
-      label: "اقتراحات الآن",
-      helper: "قريبة وتحتاج انتباه.",
-      count: grouped.now.length,
-    },
-    {
-      id: "today" as const,
-      label: "اليوم",
-      helper: "مهام اليوم.",
-      count: grouped.today.length,
-    },
-    {
-      id: "late" as const,
-      label: "متأخر",
-      helper: "تجاوز موعده.",
-      count: grouped.late.length,
-    },
-    {
-      id: "upcoming" as const,
-      label: "قريبًا",
-      helper: "قادمة لاحقًا.",
-      count: grouped.upcoming.length,
-    },
-    {
-      id: "done" as const,
-      label: "مكتمل",
-      helper: "تم إنجازه.",
-      count: grouped.done.length,
-    },
+    { id: "now" as const, label: "اقتراحات الآن", count: grouped.now.length },
+    { id: "today" as const, label: "اليوم", count: grouped.today.length },
+    { id: "late" as const, label: "متأخر", count: grouped.late.length },
+    { id: "upcoming" as const, label: "قريبًا", count: grouped.upcoming.length },
+    { id: "done" as const, label: "مكتمل", count: grouped.done.length },
   ];
 
   async function createReminder() {
@@ -266,7 +238,7 @@ export function CalendarCenterClient({
 
     const payload = {
       title,
-      note,
+      note: "",
       priority,
       linkType,
       scheduledAt: scheduledAt.toISOString(),
@@ -292,13 +264,11 @@ export function CalendarCenterClient({
     }
 
     setTitle("");
-    setNote("");
     setPriority("NORMAL");
     setLinkType("GENERAL");
     setServiceId("");
     setCaseEntryId("");
     setStudentId("");
-    setRemindBeforeMinutes("0");
     setFeedback("تم إنشاء التنبيه.");
 
     startTransition(() => router.refresh());
@@ -342,54 +312,16 @@ export function CalendarCenterClient({
   const activeReminders = grouped[activeTab];
 
   return (
-    <div className="space-y-7" dir="rtl">
-      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-8 text-white shadow-xl">
-        <div className="grid gap-6 xl:grid-cols-[1fr_340px] xl:items-center">
-          <div>
-            <p className="text-sm font-black text-sky-100">
-              مركز العمل اليومي
-            </p>
-
-            <h1 className="mt-3 text-4xl font-black">
-              التقويم والتنبيهات
-            </h1>
-
-            <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
-              سجّل ما تريد تذكّره، واربطه بخدمة أو حالة أو طالب. الصفحة تعرض لك
-              ما يحتاج انتباهك بدون ازدحام.
-            </p>
-          </div>
-
-          <div className="rounded-[2rem] border border-white/10 bg-white/10 p-5">
-            <p className="text-xs font-black text-sky-100">اليوم لديك</p>
-            <div className="mt-4 grid gap-3">
-              <HeroMetric label="اقتراحات الآن" value={grouped.now.length} />
-              <HeroMetric label="مهام اليوم" value={grouped.today.length} />
-              <HeroMetric label="متأخر" value={grouped.late.length} />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
-        <aside className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <p className="text-xs font-black text-sky-700">تنبيه سريع</p>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">
-              أضف ما تريد تذكّره
-            </h2>
-            <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              خله بسيط: العنوان، الوقت، وربطه إن احتجت.
-            </p>
-          </div>
-
-          <div className="mt-5 space-y-4">
+    <div className="space-y-4" dir="rtl">
+      <section className="grid gap-4 xl:grid-cols-[360px_1fr]">
+        <aside className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="space-y-3">
             <Field label="عنوان التنبيه">
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="مثال: متابعة محضر لجنة الانضباط"
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                placeholder="مثال: متابعة لجنة"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
               />
             </Field>
 
@@ -399,7 +331,7 @@ export function CalendarCenterClient({
                   type="date"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
                 />
               </Field>
 
@@ -408,7 +340,7 @@ export function CalendarCenterClient({
                   type="time"
                   value={time}
                   onChange={(event) => setTime(event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
                 />
               </Field>
             </div>
@@ -419,7 +351,7 @@ export function CalendarCenterClient({
                 onChange={(event) =>
                   setPriority(event.target.value as ReminderPriority)
                 }
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
               >
                 <option value="NORMAL">عادي</option>
                 <option value="IMPORTANT">مهم</option>
@@ -427,26 +359,13 @@ export function CalendarCenterClient({
               </select>
             </Field>
 
-            <Field label="ذكرني قبل">
-              <select
-                value={remindBeforeMinutes}
-                onChange={(event) => setRemindBeforeMinutes(event.target.value)}
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
-              >
-                <option value="0">في نفس الوقت</option>
-                <option value="60">قبل ساعة</option>
-                <option value="1440">قبل يوم</option>
-                <option value="10080">قبل أسبوع</option>
-              </select>
-            </Field>
-
-            <Field label="يرتبط بـ">
+            <Field label="الربط">
               <select
                 value={linkType}
                 onChange={(event) =>
                   setLinkType(event.target.value as ReminderLinkType)
                 }
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
               >
                 <option value="GENERAL">تنبيه عام</option>
                 <option value="SERVICE">خدمة</option>
@@ -456,11 +375,11 @@ export function CalendarCenterClient({
             </Field>
 
             {linkType === "SERVICE" ? (
-              <Field label="اختر الخدمة">
+              <Field label="الخدمة">
                 <select
                   value={serviceId}
                   onChange={(event) => setServiceId(event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
                 >
                   <option value="">اختر خدمة...</option>
                   {services.map((service) => (
@@ -473,11 +392,11 @@ export function CalendarCenterClient({
             ) : null}
 
             {linkType === "CASE" ? (
-              <Field label="اختر الحالة">
+              <Field label="الحالة">
                 <select
                   value={caseEntryId}
                   onChange={(event) => setCaseEntryId(event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
                 >
                   <option value="">اختر حالة...</option>
                   {cases.map((caseItem) => (
@@ -491,11 +410,11 @@ export function CalendarCenterClient({
             ) : null}
 
             {linkType === "STUDENT" ? (
-              <Field label="اختر الطالب">
+              <Field label="الطالب">
                 <select
                   value={studentId}
                   onChange={(event) => setStudentId(event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
                 >
                   <option value="">اختر طالب...</option>
                   {students.map((student) => (
@@ -506,15 +425,6 @@ export function CalendarCenterClient({
                 </select>
               </Field>
             ) : null}
-
-            <Field label="ملاحظة مختصرة">
-              <textarea
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder="اختياري..."
-                className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-sky-400 focus:bg-white"
-              />
-            </Field>
 
             {feedback ? (
               <div className="rounded-2xl bg-sky-50 px-4 py-3 text-sm font-black text-sky-700">
@@ -529,13 +439,13 @@ export function CalendarCenterClient({
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
-              إنشاء التنبيه
+              حفظ
             </button>
           </div>
         </aside>
 
-        <section className="space-y-5">
-          <div className="rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="space-y-4">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex gap-2 overflow-x-auto pb-1">
               {tabs.map((tab) => {
                 const active = activeTab === tab.id;
@@ -546,7 +456,7 @@ export function CalendarCenterClient({
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     className={[
-                      "min-w-[150px] rounded-2xl border px-4 py-3 text-right transition",
+                      "min-w-[132px] rounded-2xl border px-4 py-3 text-right transition",
                       active
                         ? "border-sky-300 bg-sky-50"
                         : "border-slate-200 bg-slate-50 hover:bg-white",
@@ -566,29 +476,30 @@ export function CalendarCenterClient({
                         {statNumber(tab.count)}
                       </span>
                     </div>
-
-                    <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
-                      {tab.helper}
-                    </p>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {activeReminders.map((reminder) => {
               const href = getLinkHref(reminder);
 
               return (
                 <article
                   key={reminder.id}
-                  className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sky-200 hover:shadow-md"
+                  className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={["rounded-full px-3 py-1 text-xs font-black", getPriorityClass(reminder.priority)].join(" ")}>
+                        <span
+                          className={[
+                            "rounded-full px-3 py-1 text-xs font-black",
+                            getPriorityClass(reminder.priority),
+                          ].join(" ")}
+                        >
                           {getPriorityLabel(reminder.priority)}
                         </span>
 
@@ -603,7 +514,7 @@ export function CalendarCenterClient({
                         </span>
                       </div>
 
-                      <h3 className="mt-3 text-xl font-black leading-8 text-slate-950">
+                      <h3 className="mt-3 text-lg font-black leading-8 text-slate-950">
                         {reminder.title}
                       </h3>
 
@@ -663,19 +574,8 @@ export function CalendarCenterClient({
             })}
 
             {activeReminders.length === 0 ? (
-              <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-12 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
-                  <Bell className="h-7 w-7" />
-                </div>
-
-                <h3 className="mt-4 text-xl font-black text-slate-800">
-                  لا يوجد شيء هنا
-                </h3>
-
-                <p className="mx-auto mt-2 max-w-xl text-sm font-bold leading-7 text-slate-500">
-                  أضف تنبيهًا جديدًا من النموذج الجانبي، وسيظهر في المكان
-                  المناسب تلقائيًا.
-                </p>
+              <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-8 text-center font-black text-slate-500">
+                لا توجد تنبيهات
               </div>
             ) : null}
           </div>
@@ -699,16 +599,5 @@ function Field({
       </span>
       {children}
     </label>
-  );
-}
-
-function HeroMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
-      <span className="text-xs font-black text-slate-300">{label}</span>
-      <strong className="text-2xl font-black text-white">
-        {statNumber(value)}
-      </strong>
-    </div>
   );
 }

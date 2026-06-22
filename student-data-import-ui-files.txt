@@ -1,0 +1,1515 @@
+Student Data Import UI Files
+Generated: 06/22/2026 19:08:43
+
+Git status:
+ M components/calendar/calendar-center-client.tsx
+ M components/cases/cases-search-table.tsx
+ M components/certificates/bulk-certificates-page.tsx
+ M components/certificates/certificates-archive-page.tsx
+ M components/data-center/noor-import/noor-import-cycle-detail-client.tsx
+ M components/data-center/noor-import/noor-import-cycles-client.tsx
+ M components/data-center/noor-import/noor-import-session-detail-client.tsx
+ M components/layout/dashboard-header.tsx
+ M components/report-2/report-two-archive-client.tsx
+ M components/report-2/report-two-home.tsx
+ M components/surveys/survey-center-shell.tsx
+ M components/workspace/counselor-workspace-page.tsx
+
+
+===== app\dashboard\data-center\student-data-import\page.tsx =====
+import { redirect } from "next/navigation";
+import { resolveCurrentSchoolContext } from "@/lib/data-center/data-center-auth";
+import { NoorImportCyclesClient } from "@/components/data-center/noor-import/noor-import-cycles-client";
+
+export const dynamic = "force-dynamic";
+
+export default async function NoorImportCenterPage() {
+  const context = await resolveCurrentSchoolContext().catch(() => null);
+
+  if (!context) {
+    redirect("/login");
+  }
+
+  return <NoorImportCyclesClient schoolName={context.schoolName} />;
+}
+
+
+
+===== components\data-center\noor-import\noor-import-cycles-client.tsx =====
+"use client";
+
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
+import { readApiResponse } from "@/lib/http/read-api-response";
+
+type NoorCycle = {
+  id: string;
+  academicYear: string;
+  term: string;
+  title: string;
+  status: string;
+  totalStudents: number;
+  totalSessions: number;
+  pendingSessions: number;
+  committedSessions: number;
+  isArchived?: boolean;
+  createdAt: string;
+  latestSession?: {
+    id: string;
+    status: string;
+    totalRows: number;
+    validRows: number;
+    invalidRows: number;
+    createdCount: number;
+    updatedCount: number;
+    skippedCount: number;
+    conflictCount?: number;
+    createdAt: string;
+    committedAt?: string | null;
+    files?: Array<{
+      fileName: string;
+    }>;
+  } | null;
+};
+
+type Props = {
+  schoolName: string;
+};
+
+const termOptions = [
+  "الفصل الدراسي الأول",
+  "الفصل الدراسي الثاني",
+  "الفصل الدراسي الثالث",
+];
+
+const statusLabel: Record<string, string> = {
+  DRAFT: "لم يبدأ",
+  REVIEW_PENDING: "بانتظار المراجعة",
+  COMMITTED: "معتمدة",
+  ARCHIVED: "مؤرشفة",
+};
+
+function defaultAcademicYear() {
+  return "1447";
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function statusClass(status: string) {
+  if (status === "COMMITTED") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "REVIEW_PENDING") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (status === "ARCHIVED") {
+    return "border-slate-200 bg-slate-100 text-slate-600";
+  }
+
+  return "border-sky-200 bg-sky-50 text-sky-700";
+}
+
+export function NoorImportCyclesClient({ schoolName }: Props) {
+  const [cycles, setCycles] = useState<NoorCycle[]>([]);
+  const [academicYear, setAcademicYear] = useState(defaultAcademicYear());
+  const [term, setTerm] = useState(termOptions[0]);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function loadCycles() {
+    const response = await fetch("/api/dashboard/data-center/student-data-import/cycles", {
+      cache: "no-store",
+    });
+
+    const result = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(result.error || "تعذر جلب بطاقات بيانات الطلاب.");
+    }
+
+    setCycles(result.cycles ?? []);
+  }
+
+  useEffect(() => {
+    loadCycles().catch((error) => {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر جلب بطاقات بيانات الطلاب.",
+      });
+    });
+  }, []);
+
+  async function handleCreateCycle(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!academicYear.trim() || !term.trim()) {
+      setMessage({
+        type: "error",
+        text: "حدد السنة الدراسية والفصل الدراسي أولًا.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage({
+      type: "info",
+      text: "جاري إنشاء بطاقة بيانات الطلاب...",
+    });
+
+    try {
+      const response = await fetch("/api/dashboard/data-center/student-data-import/cycles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          academicYear: academicYear.trim(),
+          term: term.trim(),
+        }),
+      });
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر إنشاء بطاقة بيانات الطلاب.");
+      }
+
+      setMessage({
+        type: "success",
+        text: result.message || "تم إنشاء بطاقة بيانات الطلاب.",
+      });
+
+      setIsCreateOpen(false);
+      await loadCycles();
+
+      if (result.cycle?.id) {
+        window.location.href = `/dashboard/data-center/student-data-import/cycles/${result.cycle.id}`;
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر إنشاء بطاقة بيانات الطلاب.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+          <div className="bg-gradient-to-l from-sky-50 via-white to-emerald-50 p-6 md:p-8">
+            <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
+              <div>
+                <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
+                <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز بيانات الطلاب</h1>
+                <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
+                  إدارة بيانات الطلاب وتحديثاتها.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen(true)}
+                className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+              >
+                إضافة بيانات طالب
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {message ? (
+          <section
+            className={[
+              "rounded-3xl border px-5 py-4 text-sm font-bold leading-7 shadow-sm",
+              message.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : message.type === "error"
+                  ? "border-rose-200 bg-rose-50 text-rose-800"
+                  : "border-sky-200 bg-sky-50 text-sky-800",
+            ].join(" ")}
+          >
+            {message.text}
+          </section>
+        ) : null}
+
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+            <div>
+              <h2 className="text-lg font-black">بطاقات بيانات الطلاب</h2>
+              <p className="mt-1 text-sm font-bold text-slate-500">
+                بطاقات البيانات حسب السنة والفصل.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700 transition hover:bg-sky-100"
+            >
+              إضافة بيانات طالب
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-4">
+            {cycles.length ? (
+              cycles.map((cycle) => (
+                <article
+                  key={cycle.id}
+                  className="rounded-[1.75rem] border border-slate-100 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-sky-50"
+                >
+                  <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={["rounded-full border px-3 py-1 text-xs font-black", statusClass(cycle.status)].join(" ")}>
+                          {statusLabel[cycle.status] || cycle.status}
+                        </span>
+
+                        {cycle.pendingSessions > 0 ? (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                            بانتظار مراجعة
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <h3 className="mt-3 text-xl font-black text-slate-950">
+                        بيانات الطلاب {cycle.academicYear} - {cycle.term}
+                      </h3>
+
+                      <p className="mt-2 text-xs font-bold text-slate-500">
+                        آخر ملف: {cycle.latestSession?.files?.[0]?.fileName || "لم يتم رفع ملف بعد"} · آخر تحديث: {formatDate(cycle.latestSession?.createdAt || cycle.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/dashboard/data-center/student-data-import/cycles/${cycle.id}`}
+                        className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-700"
+                      >
+                        فتح البطاقة
+                      </Link>
+
+                      {cycle.latestSession ? (
+                        <Link
+                          href={`/dashboard/data-center/student-data-import/sessions/${cycle.latestSession.id}`}
+                          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                        >
+                          آخر تحديث
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-5">
+                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                      <p className="text-xs font-black text-slate-400">الطلاب</p>
+                      <p className="mt-1 text-2xl font-black">{cycle.totalStudents || cycle.latestSession?.totalRows || 0}</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                      <p className="text-xs font-black text-slate-400">التحديثات</p>
+                      <p className="mt-1 text-2xl font-black">{cycle.totalSessions}</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                      <p className="text-xs font-black text-slate-400">المعتمدة</p>
+                      <p className="mt-1 text-2xl font-black">{cycle.committedSessions}</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                      <p className="text-xs font-black text-slate-400">بانتظار مراجعة</p>
+                      <p className="mt-1 text-2xl font-black">{cycle.pendingSessions}</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                      <p className="text-xs font-black text-slate-400">آخر تحديث</p>
+                      <p className="mt-1 text-sm font-black">{formatDate(cycle.latestSession?.createdAt || cycle.createdAt)}</p>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
+                <h3 className="text-lg font-black text-slate-900">لا توجد بطاقات بعد</h3>
+                <p className="mt-2 text-sm font-bold text-slate-500">
+                  أضف بطاقة للسنة والفصل، ثم ارفع الملف من داخلها.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(true)}
+                  className="mt-5 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-700"
+                >
+                  إضافة بيانات طالب
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {isCreateOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
+            <form
+              onSubmit={handleCreateCycle}
+              className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-6 text-right shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-black">إضافة بيانات طالب</h2>
+                  <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+                    اختر السنة والفصل، ثم افتح البطاقة لرفع الملف.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-black text-slate-500"
+                >
+                  إغلاق
+                </button>
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">السنة الدراسية</span>
+                  <input
+                    value={academicYear}
+                    onChange={(event) => setAcademicYear(event.target.value)}
+                    placeholder="مثال: 1447"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-black text-slate-500">الفصل الدراسي</span>
+                  <select
+                    value={term}
+                    onChange={(event) => setTerm(event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+                  >
+                    {termOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-2 md:flex-row">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-50"
+                >
+                  {isLoading ? "جاري الإنشاء..." : "إنشاء بطاقة"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : null}
+      </div>
+    </main>
+  );
+}
+
+
+
+===== components\data-center\noor-import\noor-import-cycle-detail-client.tsx =====
+"use client";
+
+import Link from "next/link";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { readApiResponse } from "@/lib/http/read-api-response";
+
+type SessionItem = {
+  id: string;
+  title: string;
+  status: string;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  conflictCount?: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  createdAt: string;
+  committedAt?: string | null;
+  files?: Array<{
+    fileName: string;
+  }>;
+};
+
+type CycleDetail = {
+  id: string;
+  academicYear: string;
+  term: string;
+  title: string;
+  status: string;
+  totalStudents: number;
+  totalSessions: number;
+  pendingSessions: number;
+  committedSessions: number;
+  latestSession?: SessionItem | null;
+  latestCommitted?: SessionItem | null;
+  planSummary?: Record<string, number>;
+};
+
+type Props = {
+  cycleId: string;
+};
+
+const statusLabel: Record<string, string> = {
+  DRAFT: "لم يبدأ",
+  REVIEW_PENDING: "بانتظار المراجعة",
+  COMMITTED: "معتمدة",
+  ARCHIVED: "مؤرشفة",
+  PARSED: "جاهزة للمراجعة",
+  FAILED: "فشلت",
+};
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function statusClass(status: string) {
+  if (status === "COMMITTED") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "REVIEW_PENDING" || status === "PARSED") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (status === "FAILED") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  return "border-sky-200 bg-sky-50 text-sky-700";
+}
+
+function getFileName(session?: SessionItem | null) {
+  return session?.files?.[0]?.fileName || "ملف بيانات الطلاب";
+}
+
+export function NoorImportCycleDetailClient({ cycleId }: Props) {
+  const [cycle, setCycle] = useState<CycleDetail | null>(null);
+  const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const pendingSessions = useMemo(
+    () => sessions.filter((session) => session.status !== "COMMITTED"),
+    [sessions],
+  );
+
+  const committedSessions = useMemo(
+    () => sessions.filter((session) => session.status === "COMMITTED"),
+    [sessions],
+  );
+
+  const latestPendingSession = pendingSessions[0] ?? null;
+  const hasPendingUpdate = Boolean(latestPendingSession);
+
+  async function loadCycle() {
+    const response = await fetch(`/api/dashboard/data-center/student-data-import/cycles/${cycleId}`, {
+      cache: "no-store",
+    });
+
+    const result = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(result.error || "تعذر جلب بطاقة بيانات الطلاب.");
+    }
+
+    setCycle(result.cycle);
+    setSessions(result.sessions ?? []);
+  }
+
+  useEffect(() => {
+    loadCycle().catch((error) => {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر فتح بطاقة بيانات الطلاب.",
+      });
+    });
+  }, [cycleId]);
+
+  async function handleUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!cycle) {
+      return;
+    }
+
+    if (hasPendingUpdate) {
+      setMessage({
+        type: "error",
+        text: "يوجد تحديث بانتظار المراجعة. راجع التحديث الحالي أو احذفه قبل رفع ملف جديد.",
+      });
+      return;
+    }
+
+    if (!file) {
+      setMessage({
+        type: "error",
+        text: "اختر ملف Excel لبيانات الطلاب أولًا.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage({
+      type: "info",
+      text: "جاري إنشاء تحديث جديد داخل بطاقة بيانات الطلاب...",
+    });
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("cycleId", cycle.id);
+      formData.append("academicYear", cycle.academicYear);
+      formData.append("term", cycle.term);
+
+      const response = await fetch("/api/dashboard/data-center/student-data-import/preview", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر إنشاء تحديث بيانات الطلاب.");
+      }
+
+      setFile(null);
+
+      await loadCycle();
+
+      setMessage({
+        type: "success",
+        text: "تم إنشاء تحديث جديد. راجع التحديث من نفس البطاقة قبل الاعتماد.",
+      });
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "تعذر رفع ملف بيانات الطلاب.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const summary = cycle?.planSummary ?? {};
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <Link
+            href="/dashboard/data-center/student-data-import"
+            className="text-sm font-black text-sky-700 hover:text-sky-900"
+          >
+            ← العودة إلى مركز بيانات الطلاب
+          </Link>
+
+          <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-sm font-black text-sky-700">بطاقة بيانات الطلاب</p>
+              <h1 className="mt-2 text-2xl font-black md:text-4xl">
+                {cycle ? `بيانات الطلاب ${cycle.academicYear} - ${cycle.term}` : "بيانات الطلاب"}
+              </h1>
+              <p className="mt-2 text-sm font-bold text-slate-500">
+                ارفع تحديثًا أو راجع بيانات الطلاب.
+              </p>
+            </div>
+
+            {cycle ? (
+              <span className={["rounded-full border px-4 py-2 text-sm font-black", statusClass(cycle.status)].join(" ")}>
+                {statusLabel[cycle.status] || cycle.status}
+              </span>
+            ) : null}
+          </div>
+        </section>
+
+        {message ? (
+          <section
+            className={[
+              "rounded-3xl border px-5 py-4 text-sm font-bold leading-7 shadow-sm",
+              message.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : message.type === "error"
+                  ? "border-rose-200 bg-rose-50 text-rose-800"
+                  : "border-sky-200 bg-sky-50 text-sky-800",
+            ].join(" ")}
+          >
+            {message.text}
+          </section>
+        ) : null}
+
+        {hasPendingUpdate ? (
+          <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-5 shadow-sm">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+              <div>
+                <p className="text-sm font-black text-amber-700">يوجد تحديث ينتظر المراجعة</p>
+                <h2 className="mt-1 text-xl font-black text-amber-950">
+                  {getFileName(latestPendingSession)}
+                </h2>
+                <p className="mt-2 text-sm font-bold text-amber-800">
+                  تم رفع هذا الملف ولم يتم اعتماده بعد. راجعه أولًا، ثم اعتمد التحديث أو احذفه.
+                </p>
+              </div>
+
+              <Link
+                href={`/dashboard/data-center/student-data-import/sessions/${latestPendingSession.id}`}
+                className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-amber-700"
+              >
+                مراجعة واعتماد التحديث
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
+        {cycle ? (
+          <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-black">ملخص البطاقة</h2>
+              <p className="mt-1 text-sm font-bold text-slate-500">
+                أرقام الطلاب والتحديثات.
+              </p>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-4">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">الطلاب</p>
+                  <p className="mt-1 text-2xl font-black">{cycle.totalStudents || cycle.latestSession?.totalRows || 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">التحديثات</p>
+                  <p className="mt-1 text-2xl font-black">{sessions.length}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">بانتظار مراجعة</p>
+                  <p className="mt-1 text-2xl font-black">{pendingSessions.length}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-black text-slate-500">معتمدة</p>
+                  <p className="mt-1 text-2xl font-black">{committedSessions.length}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-5">
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">جدد</p>
+                  <p className="mt-1 text-2xl font-black">{summary.NEW ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">تحديث</p>
+                  <p className="mt-1 text-2xl font-black">{summary.UPDATE ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">بدون تغيير</p>
+                  <p className="mt-1 text-2xl font-black">{summary.UNCHANGED ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">مكرر</p>
+                  <p className="mt-1 text-2xl font-black">{summary.DUPLICATE_IN_FILE ?? 0}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black text-slate-400">مراجعة</p>
+                  <p className="mt-1 text-2xl font-black">{summary.NEEDS_REVIEW ?? 0}</p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleUpload} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-black">رفع تحديث جديد</h2>
+              <p className="mt-1 text-sm font-bold leading-7 text-slate-500">
+                ارفع ملف Excel للتحديث.
+              </p>
+
+              {hasPendingUpdate ? (
+                <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold leading-7 text-amber-800">
+                  لا يمكن رفع ملف جديد الآن لأن هناك تحديثًا بانتظار المراجعة.
+                </div>
+              ) : (
+                <>
+                  <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-[1.5rem] border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center transition hover:border-sky-300 hover:bg-sky-50">
+                    <span className="text-base font-black text-slate-800">
+                      {file ? file.name : "اختر ملف Excel"}
+                    </span>
+                    <span className="mt-2 text-xs font-bold text-slate-500">xlsx / xls</span>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      className="hidden"
+                      onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || !file}
+                    className="mt-5 w-full rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isLoading ? "جاري إنشاء التحديث..." : "إنشاء تحديث للمراجعة"}
+                  </button>
+                </>
+              )}
+            </form>
+          </section>
+        ) : null}
+
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-black">سجل تحديثات البطاقة</h2>
+          <p className="mt-1 text-sm font-bold text-slate-500">
+            آخر ملفات الطلاب المرفوعة.
+          </p>
+
+          <div className="mt-5 grid gap-3">
+            {sessions.length ? (
+              sessions.map((session, index) => (
+                <article
+                  key={session.id}
+                  className="rounded-3xl border border-slate-100 bg-slate-50 p-4 transition hover:border-sky-200 hover:bg-sky-50"
+                >
+                  <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={["rounded-full border px-3 py-1 text-xs font-black", statusClass(session.status)].join(" ")}>
+                          {statusLabel[session.status] || session.status}
+                        </span>
+
+                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                          تحديث رقم {sessions.length - index}
+                        </span>
+                      </div>
+
+                      <h3 className="mt-3 text-base font-black text-slate-950">
+                        {getFileName(session)}
+                      </h3>
+
+                      <p className="mt-1 text-xs font-bold text-slate-500">
+                        {session.totalRows} طالب/طالبة · {formatDate(session.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        صالح: {session.validRows}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        مراجعة: {session.invalidRows}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        محدث: {session.updatedCount}
+                      </span>
+
+                      <Link
+                        href={`/dashboard/data-center/student-data-import/sessions/${session.id}`}
+                        className="rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-black text-sky-700 hover:bg-sky-50"
+                      >
+                        {session.status === "COMMITTED" ? "عرض التحديث" : "مراجعة واعتماد"}
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-8 text-center text-sm font-bold text-slate-500">
+                لم يتم رفع أي ملف داخل هذه البطاقة بعد.
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+
+
+===== components\data-center\noor-import\noor-import-session-detail-client.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { readApiResponse } from "@/lib/http/read-api-response";
+import {
+  SmartActionFeedbackModal,
+  useSmartActionFeedback,
+} from "@/components/ui/smart-action-feedback";
+
+type ImportSession = {
+  id: string;
+  cycleId?: string | null;
+  status: string;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  conflictCount?: number;
+  createdAt: string;
+  committedAt?: string | null;
+  rowCount?: number;
+  planSummary?: Record<string, number>;
+  files?: Array<{
+    fileName: string;
+  }>;
+};
+
+type ImportRow = {
+  id: string;
+  rowIndex: number;
+  status: string;
+  planAction?: string | null;
+  fullName: string;
+  nationalId?: string | null;
+  grade?: string | null;
+  classroom?: string | null;
+  guardianName?: string | null;
+  errorMessage?: string | null;
+};
+
+type Pagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+type Props = {
+  sessionId: string;
+};
+
+const statusLabel: Record<string, string> = {
+  PARSED: "بانتظار الاعتماد",
+  COMMITTED: "معتمد",
+  VALID: "صالح",
+  INVALID: "يحتاج مراجعة",
+  CONFLICT: "تعارض",
+  CREATED: "تم الإنشاء",
+  UPDATED: "تم التحديث",
+  SKIPPED: "بدون تغيير",
+};
+
+const planLabel: Record<string, string> = {
+  NEW: "جديد",
+  UPDATE: "سيتم تحديثه",
+  UNCHANGED: "بدون تغيير",
+  DUPLICATE_IN_FILE: "مكرر",
+  NEEDS_REVIEW: "يحتاج مراجعة",
+};
+
+function badgeClass(value: string) {
+  if (["VALID", "COMMITTED", "CREATED", "UPDATED", "NEW"].includes(value)) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (["INVALID", "CONFLICT", "DUPLICATE_IN_FILE", "NEEDS_REVIEW"].includes(value)) {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  if (["UNCHANGED", "SKIPPED"].includes(value)) {
+    return "border-slate-200 bg-slate-50 text-slate-600";
+  }
+
+  return "border-amber-200 bg-amber-50 text-amber-700";
+}
+
+function planCardClass(value: string, selected: boolean) {
+  if (selected) {
+    return "border-sky-300 bg-sky-50 ring-2 ring-sky-100";
+  }
+
+  if (value === "UPDATE") {
+    return "border-blue-100 bg-blue-50/60 hover:border-blue-200";
+  }
+
+  if (value === "NEW") {
+    return "border-emerald-100 bg-emerald-50/60 hover:border-emerald-200";
+  }
+
+  if (value === "UNCHANGED") {
+    return "border-slate-100 bg-slate-50 hover:border-slate-200";
+  }
+
+  return "border-rose-100 bg-rose-50/60 hover:border-rose-200";
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+
+function toSafeNumber(value: unknown) {
+  const numeric = Number(value || 0);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function buildCommitFeedbackTitle(result: any) {
+  const session = result?.session || {};
+  const createdCount = toSafeNumber(result?.createdCount ?? session.createdCount);
+  const updatedCount = toSafeNumber(result?.updatedCount ?? session.updatedCount);
+
+  if (createdCount > 0 && updatedCount > 0) {
+    return "تم الربط والتحديث بنجاح";
+  }
+
+  if (createdCount > 0) {
+    return "تم ربط بيانات الطلاب بنجاح";
+  }
+
+  if (updatedCount > 0) {
+    return "تم تحديث بيانات الطلاب بنجاح";
+  }
+
+  return "تم اعتماد تحديث بيانات الطلاب";
+}
+
+function buildCommitFeedbackDescription(result: any) {
+  const session = result?.session || {};
+  const createdCount = toSafeNumber(result?.createdCount ?? session.createdCount);
+  const updatedCount = toSafeNumber(result?.updatedCount ?? session.updatedCount);
+  const skippedCount = toSafeNumber(result?.skippedCount ?? session.skippedCount);
+  const deactivatedCount = toSafeNumber(result?.deactivatedCount ?? session.deactivatedCount);
+  const rowCount = toSafeNumber(session.rowCount || session.totalRows);
+
+  const lines = [
+    createdCount > 0
+      ? `تم ربط ${createdCount} طالب/طالبة جديد بسجل المدرسة.`
+      : "لا يوجد طلاب جدد للربط.",
+    updatedCount > 0
+      ? `تم تحديث بيانات ${updatedCount} طالب/طالبة موجودين مسبقًا.`
+      : "لا توجد بيانات طلاب قائمة تحتاج تحديثًا.",
+    skippedCount > 0
+      ? `تم تجاوز ${skippedCount} صف بدون تغيير.`
+      : "",
+    deactivatedCount > 0
+      ? `تم تعطيل ${deactivatedCount} طالب/طالبة غير موجودين في الملف الجديد.`
+      : "",
+    rowCount > 0 ? `إجمالي الصفوف التي تمت مراجعتها: ${rowCount}.` : "",
+  ].filter(Boolean);
+
+  return lines.join(" ");
+}
+export function NoorImportSessionDetailClient({ sessionId }: Props) {
+  const [session, setSession] = useState<ImportSession | null>(null);
+  const [rows, setRows] = useState<ImportRow[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    totalPages: 1,
+  });
+
+  const [q, setQ] = useState("");
+  const [planAction, setPlanAction] = useState("");
+  const [status, setStatus] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    actionState,
+    processing: actionProcessing,
+    confirmAction,
+    closeActionFeedback,
+    runConfirmedAction,
+  } = useSmartActionFeedback();
+
+  const isCommitted = session?.status === "COMMITTED";
+  const summary = session?.planSummary || {};
+
+  const planCards = useMemo(
+    () => [
+      { key: "NEW", label: "جديد", value: summary.NEW ?? 0 },
+      { key: "UPDATE", label: "سيتم تحديثه", value: summary.UPDATE ?? 0 },
+      { key: "UNCHANGED", label: "بدون تغيير", value: summary.UNCHANGED ?? 0 },
+      { key: "DUPLICATE_IN_FILE", label: "مكرر", value: summary.DUPLICATE_IN_FILE ?? 0 },
+      { key: "NEEDS_REVIEW", label: "مراجعة", value: summary.NEEDS_REVIEW ?? 0 },
+    ],
+    [summary],
+  );
+
+  async function loadSession() {
+    const response = await fetch(`/api/dashboard/data-center/student-data-import/${sessionId}`, {
+      cache: "no-store",
+    });
+
+    const result = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(result.error || "تعذر جلب تحديث بيانات الطلاب.");
+    }
+
+    setSession(result.session);
+  }
+
+  async function loadRows(page = 1) {
+    setIsLoading(true);
+
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pagination.pageSize),
+      });
+
+      if (q.trim()) {
+        params.set("q", q.trim());
+      }
+
+      if (status) {
+        params.set("status", status);
+      }
+
+      if (planAction) {
+        params.set("planAction", planAction);
+      }
+
+      const response = await fetch(
+        `/api/dashboard/data-center/student-data-import/${sessionId}/rows?${params.toString()}`,
+        { cache: "no-store" },
+      );
+
+      const result = await readApiResponse(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر جلب صفوف التحديث.");
+      }
+
+      setRows(result.rows || []);
+      setPagination(result.pagination || {
+        page,
+        pageSize: 50,
+        total: 0,
+        totalPages: 1,
+      });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر تحميل الصفوف.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleCommit() {
+    if (!session) {
+      return;
+    }
+
+    const targetSession = session;
+
+    confirmAction({
+      title: "اعتماد تحديث بيانات الطلاب؟",
+      description:
+        "سيتم تطبيق التغييرات على سجل الطلاب. سيتم ربط الطلاب الجدد، وتحديث بيانات الطلاب الموجودين، ثم حفظ سجل تغييرات لهذا التحديث.",
+      variant: "warning",
+      confirmLabel: "اعتماد التحديث",
+      errorTitle: "تعذر اعتماد التحديث",
+      run: async () => {
+        setIsLoading(true);
+
+        try {
+          const response = await fetch(
+            `/api/dashboard/data-center/student-data-import/${targetSession.id}/commit`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                deactivateMissing: false,
+              }),
+            }
+          );
+
+          const result = await readApiResponse(response);
+
+          if (!response.ok) {
+            throw new Error(result.details || result.error || "تعذر اعتماد التحديث.");
+          }
+
+          setMessage(null);
+          await loadSession();
+          await loadRows(pagination.page);
+
+          return {
+            title: buildCommitFeedbackTitle(result),
+            description: buildCommitFeedbackDescription(result),
+            variant: "success" as const,
+          };
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
+  }
+
+  function handleDelete() {
+    if (!session) {
+      return;
+    }
+
+    const targetSession = session;
+
+    confirmAction({
+      title: "حذف التحديث غير المعتمد؟",
+      description:
+        "سيتم حذف جلسة التحديث الحالية قبل اعتمادها. هذا الإجراء لا يحذف الطلاب من سجل المدرسة، لكنه يزيل هذه المراجعة غير المعتمدة.",
+      variant: "danger",
+      confirmLabel: "حذف التحديث",
+      errorTitle: "تعذر حذف التحديث",
+      run: async () => {
+        setIsLoading(true);
+
+        try {
+          const response = await fetch(
+            `/api/dashboard/data-center/student-data-import/${targetSession.id}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          const result = await readApiResponse(response);
+
+          if (!response.ok) {
+            throw new Error(result.details || result.error || "تعذر حذف التحديث.");
+          }
+
+          window.location.href = targetSession.cycleId
+            ? `/dashboard/data-center/student-data-import/cycles/${targetSession.cycleId}`
+            : "/dashboard/data-center/student-data-import";
+
+          return {
+            title: "تم حذف التحديث",
+            description: "تم حذف جلسة التحديث غير المعتمدة بنجاح.",
+            variant: "success" as const,
+          };
+        } catch (error) {
+          setIsLoading(false);
+          throw error;
+        }
+      },
+    });
+  }
+
+  useEffect(() => {
+    loadSession().catch((error) => {
+      setMessage(error instanceof Error ? error.message : "تعذر فتح تحديث بيانات الطلاب.");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      loadRows(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id, q, status, planAction]);
+
+  return (
+    <>
+      <SmartActionFeedbackModal
+        state={actionState}
+        processing={actionProcessing}
+        onClose={closeActionFeedback}
+        onConfirm={runConfirmedAction}
+      />
+
+      <main className="min-h-screen bg-slate-50 px-4 py-6 text-right text-slate-950 md:px-8" dir="rtl">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <Link
+            href={session?.cycleId ? `/dashboard/data-center/student-data-import/cycles/${session.cycleId}` : "/dashboard/data-center/student-data-import"}
+            className="text-sm font-black text-sky-700 hover:text-sky-900"
+          >
+            ← العودة إلى بطاقة بيانات الطلاب
+          </Link>
+
+          <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-sm font-black text-sky-700">تحديث بيانات الطلاب</p>
+              <h1 className="mt-2 text-2xl font-black md:text-4xl">مراجعة التحديث</h1>
+              <p className="mt-2 text-sm font-bold text-slate-500">
+                راجع التغييرات ثم اعتمد التحديث.
+              </p>
+            </div>
+
+            {session ? (
+              <span className={["rounded-full border px-4 py-2 text-sm font-black", badgeClass(session.status)].join(" ")}>
+                {statusLabel[session.status] || session.status}
+              </span>
+            ) : null}
+          </div>
+        </section>
+
+        {message ? (
+          <section className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-bold text-sky-800">
+            {message}
+          </section>
+        ) : null}
+
+        {session ? (
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+              <div>
+                <p className="text-sm font-black text-slate-800">
+                  إجمالي الملف: {session.totalRows} طالب/طالبة
+                </p>
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  آخر تحديث: {formatDate(session.createdAt)}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {!isCommitted ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCommit}
+                      disabled={isLoading}
+                      className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      اعتماد التحديث
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={isLoading}
+                      className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
+                    >
+                      حذف التحديث
+                    </button>
+                  </>
+                ) : (
+                  <span className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700">
+                    تم اعتماد هذا التحديث
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-5">
+              {planCards.map((card) => (
+                <button
+                  key={card.key}
+                  type="button"
+                  onClick={() => setPlanAction(planAction === card.key ? "" : card.key)}
+                  className={[
+                    "rounded-2xl border p-4 text-right shadow-sm transition",
+                    planCardClass(card.key, planAction === card.key),
+                  ].join(" ")}
+                >
+                  <p className="text-xs font-black text-slate-500">{card.label}</p>
+                  <p className="mt-1 text-3xl font-black text-slate-950">{card.value}</p>
+                  {planAction === card.key ? (
+                    <p className="mt-2 text-xs font-black text-sky-700">يعرض الآن</p>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-3 md:grid-cols-[1fr_180px_180px]">
+            <input
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder="اكتب اسم الطالب، الهوية، ولي الأمر، الصف أو الفصل..."
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            />
+
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            >
+              <option value="">كل الحالات</option>
+              <option value="VALID">صالح</option>
+              <option value="INVALID">يحتاج مراجعة</option>
+              <option value="CONFLICT">تعارض</option>
+              <option value="CREATED">تم الإنشاء</option>
+              <option value="UPDATED">تم التحديث</option>
+              <option value="SKIPPED">بدون تغيير</option>
+            </select>
+
+            <select
+              value={planAction}
+              onChange={(event) => setPlanAction(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            >
+              <option value="">كل الخطط</option>
+              <option value="NEW">جديد</option>
+              <option value="UPDATE">سيتم تحديثه</option>
+              <option value="UNCHANGED">بدون تغيير</option>
+              <option value="DUPLICATE_IN_FILE">مكرر</option>
+              <option value="NEEDS_REVIEW">يحتاج مراجعة</option>
+            </select>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-bold text-slate-500">
+              {isLoading ? "جاري التحديث..." : ""}
+            </p>
+
+            {(q || planAction || status) ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setQ("");
+                  setStatus("");
+                  setPlanAction("");
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700"
+              >
+                مسح الفلاتر
+              </button>
+            ) : null}
+          </div>
+
+          <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-200">
+            <div className="max-h-[560px] overflow-auto">
+              <table className="w-full min-w-[1050px] border-collapse text-sm">
+                <thead className="sticky top-0 bg-slate-100 text-xs font-black text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3 text-right">#</th>
+                    <th className="px-4 py-3 text-right">اسم الطالب/الطالبة</th>
+                    <th className="px-4 py-3 text-right">الهوية</th>
+                    <th className="px-4 py-3 text-right">الصف</th>
+                    <th className="px-4 py-3 text-right">الفصل</th>
+                    <th className="px-4 py-3 text-right">ولي الأمر</th>
+                    <th className="px-4 py-3 text-right">الخطة</th>
+                    <th className="px-4 py-3 text-right">الحالة</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-100">
+                  {rows.map((row) => (
+                    <tr key={row.id} className="bg-white hover:bg-slate-50">
+                      <td className="px-4 py-3 font-bold text-slate-400">{row.rowIndex}</td>
+                      <td className="px-4 py-3 font-black">{row.fullName}</td>
+                      <td className="px-4 py-3 font-bold text-slate-600">{row.nationalId || "—"}</td>
+                      <td className="px-4 py-3 font-bold text-slate-600">{row.grade || "—"}</td>
+                      <td className="px-4 py-3 font-bold text-slate-600">{row.classroom || "—"}</td>
+                      <td className="px-4 py-3 font-bold text-slate-600">{row.guardianName || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className={["inline-flex rounded-full border px-3 py-1 text-xs font-black", badgeClass(row.planAction || "")].join(" ")}>
+                          {planLabel[row.planAction || ""] || row.planAction || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={["inline-flex rounded-full border px-3 py-1 text-xs font-black", badgeClass(row.status)].join(" ")}>
+                          {statusLabel[row.status] || row.status}
+                        </span>
+                        {row.errorMessage ? (
+                          <p className="mt-1 max-w-xs text-xs font-bold leading-5 text-slate-500">
+                            {row.errorMessage}
+                          </p>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {!rows.length ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm font-bold text-slate-500">
+                        لا توجد نتائج مطابقة.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+            <p className="text-sm font-bold text-slate-500">
+              صفحة {pagination.page} من {pagination.totalPages} · إجمالي النتائج {pagination.total}
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => loadRows(Math.max(pagination.page - 1, 1))}
+                disabled={pagination.page <= 1 || isLoading}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-50"
+              >
+                السابق
+              </button>
+
+              <button
+                type="button"
+                onClick={() => loadRows(Math.min(pagination.page + 1, pagination.totalPages))}
+                disabled={pagination.page >= pagination.totalPages || isLoading}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-50"
+              >
+                التالي
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+      </main>
+    </>
+  );
+}
+
+

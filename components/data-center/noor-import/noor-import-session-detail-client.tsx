@@ -417,7 +417,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
               <p className="text-sm font-black text-sky-700">تحديث بيانات الطلاب</p>
               <h1 className="mt-2 text-2xl font-black md:text-4xl">مراجعة التحديث</h1>
               <p className="mt-2 text-sm font-bold text-slate-500">
-                راجع التغييرات فقط، ثم اعتمد التحديث.
+                راجع التغييرات ثم اعتمد التحديث.
               </p>
             </div>
 
@@ -537,8 +537,7 @@ export function NoorImportSessionDetailClient({ sessionId }: Props) {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
             <p className="text-xs font-bold text-slate-500">
-              البحث يعمل تلقائيًا أثناء الكتابة.
-              {isLoading ? " جاري التحديث..." : ""}
+              {isLoading ? "جاري التحديث..." : ""}
             </p>
 
             {(q || planAction || status) ? (

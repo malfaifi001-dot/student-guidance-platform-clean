@@ -183,7 +183,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                 <p className="text-sm font-black text-sky-700">مركز بيانات المدرسة</p>
                 <h1 className="mt-2 text-2xl font-black md:text-4xl">مركز بيانات الطلاب</h1>
                 <p className="mt-3 max-w-4xl text-sm font-bold leading-7 text-slate-600">
-                  نظّم بيانات الطلاب في بطاقات واضحة لكل سنة وفصل دراسي. افتح بطاقة بيانات الطلاب لرفع ملف بيانات الطلاب ومراجعة التحديثات قبل اعتمادها في سجل {schoolName}.
+                  إدارة بيانات الطلاب وتحديثاتها.
                 </p>
               </div>
 
@@ -192,7 +192,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                 onClick={() => setIsCreateOpen(true)}
                 className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
               >
-                إضافة بيانات طلاب
+                إضافة بيانات طالب
               </button>
             </div>
           </div>
@@ -218,7 +218,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
             <div>
               <h2 className="text-lg font-black">بطاقات بيانات الطلاب</h2>
               <p className="mt-1 text-sm font-bold text-slate-500">
-                كل بطاقة تحتوي بيانات الطلاب والتحديثات الخاصة بنفس السنة والفصل.
+                بطاقات البيانات حسب السنة والفصل.
               </p>
             </div>
 
@@ -227,7 +227,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
               onClick={() => setIsCreateOpen(true)}
               className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700 transition hover:bg-sky-100"
             >
-              إضافة بيانات طلاب
+              إضافة بيانات طالب
             </button>
           </div>
 
@@ -246,8 +246,8 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                         </span>
 
                         {cycle.pendingSessions > 0 ? (
-                          <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
-                            تحديث ينتظر المراجعة
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                            بانتظار مراجعة
                           </span>
                         ) : null}
                       </div>
@@ -266,7 +266,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                         href={`/dashboard/data-center/student-data-import/cycles/${cycle.id}`}
                         className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-700"
                       >
-                        بيانات الطلاب
+                        فتح البطاقة
                       </Link>
 
                       {cycle.latestSession ? (
@@ -310,9 +310,9 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
               ))
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
-                <h3 className="text-lg font-black text-slate-900">لا توجد بيانات طلاب بعد</h3>
+                <h3 className="text-lg font-black text-slate-900">لا توجد بطاقات بعد</h3>
                 <p className="mt-2 text-sm font-bold text-slate-500">
-                  أضف بيانات الطلاب للسنة والفصل الدراسي، ثم ارفع ملف بيانات الطلاب من داخل البطاقة.
+                  أضف بطاقة للسنة والفصل، ثم ارفع الملف من داخلها.
                 </p>
 
                 <button
@@ -320,7 +320,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                   onClick={() => setIsCreateOpen(true)}
                   className="mt-5 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-700"
                 >
-                  إضافة بيانات طلاب
+                  إضافة بيانات طالب
                 </button>
               </div>
             )}
@@ -335,9 +335,9 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-black">إضافة بيانات طلاب</h2>
+                  <h2 className="text-xl font-black">إضافة بيانات طالب</h2>
                   <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-                    اختر السنة والفصل، ثم سيتم فتح بطاقة بيانات الطلاب لرفع ملف بيانات الطلاب من داخلها.
+                    اختر السنة والفصل، ثم افتح البطاقة لرفع الملف.
                   </p>
                 </div>
 
@@ -383,7 +383,7 @@ export function NoorImportCyclesClient({ schoolName }: Props) {
                   disabled={isLoading}
                   className="flex-1 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-50"
                 >
-                  {isLoading ? "جاري الإنشاء..." : "إنشاء بيانات الطلاب"}
+                  {isLoading ? "جاري الإنشاء..." : "إنشاء بطاقة"}
                 </button>
 
                 <button

@@ -65,9 +65,9 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           ? user?.gender === "FEMALE"
             ? "معلمة"
             : "معلم"
-        : user?.gender === "FEMALE"
-          ? "موجهة طلابية"
-          : "موجه طلابي");
+          : user?.gender === "FEMALE"
+            ? "موجهة طلابية"
+            : "موجه طلابي");
 
   const searchPlaceholder = isAdmin
     ? "ابحث عن حساب، باقة، طلب تفعيل، Workflow..."
@@ -75,15 +75,15 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       ? "ابحث عن برنامج، فعالية، مشاركة أو تقرير نشاط..."
       : isTeacher
         ? "ابحث في مساحة المعلم..."
-      : "ابحث عن طالب، خدمة، حالة أو تقرير...";
+        : "ابحث عن طالب، خدمة، حالة أو تقرير...";
 
   const headerBadgeText = isAdmin
     ? "Admin Center"
     : isActivityLeader
-      ? "ريادة النشاط"
+      ? "رياضة النشاط"
       : isTeacher
         ? "مساحة المعلم"
-      : "منصة التوجيه الطلابي";
+        : "";
 
   async function logout() {
     await fetch("/api/auth/logout", {
@@ -109,21 +109,23 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         </div>
 
         <div className="flex flex-1 items-center gap-2 lg:flex-none">
-          <div
-            className={[
-              "hidden items-center gap-2 rounded-2xl border bg-white px-4 py-2 text-[13px] font-black shadow-sm md:flex dark:border-slate-800 dark:bg-slate-950",
-              isAdmin
-                ? "border-slate-200 text-slate-700 dark:text-slate-200"
-                : "border-slate-200 text-slate-500 dark:text-slate-300",
-            ].join(" ")}
-          >
-            {isAdmin ? (
-              <ShieldCheck className="h-4 w-4 text-slate-900 dark:text-white" />
-            ) : (
-              <Sparkles className="h-4 w-4 text-sky-500" />
-            )}
-            {headerBadgeText}
-          </div>
+          {headerBadgeText ? (
+            <div
+              className={[
+                "hidden items-center gap-2 rounded-2xl border bg-white px-4 py-2 text-[13px] font-black shadow-sm md:flex dark:border-slate-800 dark:bg-slate-950",
+                isAdmin
+                  ? "border-slate-200 text-slate-700 dark:text-slate-200"
+                  : "border-slate-200 text-slate-500 dark:text-slate-300",
+              ].join(" ")}
+            >
+              {isAdmin ? (
+                <ShieldCheck className="h-4 w-4 text-slate-900 dark:text-white" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-sky-500" />
+              )}
+              {headerBadgeText}
+            </div>
+          ) : null}
 
           <ThemeToggleButton />
 

@@ -263,10 +263,10 @@ export function BulkCertificatesPage() {
       <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
-            <p className="text-sm font-black text-sky-100">Certificates Runtime</p>
+            <p className="text-sm font-black text-sky-100">الشهادات</p>
             <h1 className="mt-3 text-4xl font-black">إصدار جماعي للشهادات</h1>
             <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
-              اختر الطلاب من بيانات المدرسة، أو ارفع نموذج Excel عربي ثم راجع الأسماء قبل الإصدار.
+              اختر الطلاب ثم أصدر الشهادات.
             </p>
           </div>
 
@@ -292,7 +292,7 @@ export function BulkCertificatesPage() {
             <p className="text-xs font-black text-sky-700">طريقة الإدخال</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">اختر مصدر الأسماء</h2>
             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              كلا الطريقتين تصلان لنفس المعاينة قبل الإصدار.
+              اختر طريقة الإدخال.
             </p>
           </div>
 

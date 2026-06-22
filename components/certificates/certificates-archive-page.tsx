@@ -411,14 +411,12 @@ export function CertificatesArchivePage() {
       <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
         <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
           <div>
-            <p className="text-sm font-black text-sky-100">
-              Certificates Runtime
-            </p>
+            <p className="text-sm font-black text-sky-100">الشهادات</p>
 
             <h1 className="mt-3 text-4xl font-black">الشهادات والتكريم</h1>
 
             <p className="mt-4 max-w-3xl text-sm font-bold leading-8 text-sky-50">
-              الأرشيف يعرض الدفعات مرة واحدة فقط، ويمكن فتح كل دفعة لمشاهدة جميع الشهادات.
+              إدارة الشهادات والدفعات.
             </p>
           </div>
 
@@ -484,7 +482,7 @@ export function CertificatesArchivePage() {
             </h2>
 
             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              الشهادات التابعة لدفعة تظهر كدفعة واحدة، والتفاصيل داخل صفحة الدفعة.
+              ابحث وفلتر الشهادات.
             </p>
           </div>
 
@@ -546,7 +544,7 @@ export function CertificatesArchivePage() {
             </h2>
 
             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              افتح الدفعة لمشاهدة كل شهاداتها بدون تكرار في الأرشيف.
+              عرض الدفعات والشهادات.
             </p>
           </div>
         </div>
