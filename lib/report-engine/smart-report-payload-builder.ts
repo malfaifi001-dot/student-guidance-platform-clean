@@ -198,11 +198,57 @@ function classifyField(key: string, label: string): SmartReportFieldImportance {
   return "DETAIL";
 }
 
+function collectWorkflowSnapshotFieldLabels(snapshot: unknown) {
+  const labels = new Map<string, string>();
+
+  let record: Record<string, unknown> | null = null;
+
+  if (typeof snapshot === "string") {
+    try {
+      record = JSON.parse(snapshot) as Record<string, unknown>;
+    } catch {
+      record = null;
+    }
+  } else if (snapshot && typeof snapshot === "object") {
+    record = snapshot as Record<string, unknown>;
+  }
+
+  const steps = Array.isArray(record?.steps) ? record.steps : [];
+
+  for (const step of steps) {
+    if (!step || typeof step !== "object") continue;
+
+    const fields = Array.isArray((step as Record<string, unknown>).fields)
+      ? ((step as Record<string, unknown>).fields as unknown[])
+      : [];
+
+    for (const field of fields) {
+      if (!field || typeof field !== "object") continue;
+
+      const fieldRecord = field as Record<string, unknown>;
+      const key = cleanText(fieldRecord.key);
+      const label = cleanText(fieldRecord.label);
+
+      if (key && label) {
+        labels.set(key, label);
+      }
+    }
+  }
+
+  return labels;
+}
+
 function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
+  const snapshotLabels = collectWorkflowSnapshotFieldLabels(caseEntry.workflowSnapshot);
+
   return (caseEntry.values || [])
     .map((item: any) => {
       const key = item.field?.key || item.fieldKey || "";
-      const label = item.field?.label || item.fieldKey || "حقل بدون اسم";
+      const label =
+        cleanText(item.field?.label) ||
+        snapshotLabels.get(key) ||
+        item.fieldKey ||
+        "حقل بدون اسم";
       const value = stringifyValue(item.value ?? item.jsonValue);
 
       return {
@@ -252,6 +298,8 @@ function findTitle(caseEntry: any, values: CaseValueItem[]) {
 }
 
 function buildReportType(serviceSlug: string): SmartReportType {
+  if (serviceSlug === "custom-report") return "SUMMARY_REPORT";
+
   if (serviceSlug.startsWith("activity-programs")) return "ACTIVITY_REPORT";
 
   if (serviceSlug.includes("committees") || serviceSlug.includes("meetings")) {
@@ -543,6 +591,7 @@ export async function buildSmartReportPayloadForCase({
   const values = filterPrivateReportValues(normalizeCaseValues(caseEntry));
   const title = findTitle(caseEntry, values);
   const serviceSlug = caseEntry.service?.slug || "general";
+  const isCustomReport = serviceSlug === "custom-report";
   const serviceName = caseEntry.service?.name || "خدمة";
   const reportType = buildReportType(serviceSlug);
   const profile =
@@ -632,30 +681,33 @@ export async function buildSmartReportPayloadForCase({
   const weekText = weekField?.value || "غير محدد";
 
   const evidence = normalizeEvidence(caseEntry);
-  const consumedKeys = new Set(
-    [
-      executionDateField?.key,
-      semesterField?.key,
-      executorField?.key,
-      targetGroupField?.key,
-      executionMethodField?.key,
-      weekField?.key,
-    ].filter(Boolean) as string[],
-  );
+  const consumedKeys = isCustomReport
+    ? new Set<string>()
+    : new Set(
+        [
+          executionDateField?.key,
+          semesterField?.key,
+          executorField?.key,
+          targetGroupField?.key,
+          executionMethodField?.key,
+          weekField?.key,
+        ].filter(Boolean) as string[],
+      );
 
   const detailFields: SmartReportField[] = values
-    .filter((item) => !consumedKeys.has(item.key))
-    .slice(0, 24)
+    .filter((item) => (isCustomReport ? true : !consumedKeys.has(item.key)))
     .map((item) => makeDetailField(item, languageMode));
 
   const missingItems: string[] = [];
 
-  if (!evidence.length) {
-    missingItems.push("لا توجد شواهد مرفقة.");
-  }
+  if (!isCustomReport) {
+    if (!evidence.length) {
+      missingItems.push("لا توجد شواهد مرفقة.");
+    }
 
-  if (!executorText || executorText === "غير محدد") {
-    missingItems.push("اسم المنفذ غير محدد.");
+    if (!executorText || executorText === "غير محدد") {
+      missingItems.push("اسم المنفذ غير محدد.");
+    }
   }
 
   const percentage = Math.max(40, 100 - missingItems.length * 15);
@@ -701,60 +753,76 @@ export async function buildSmartReportPayloadForCase({
           guardianPhone: caseEntry.student.guardian?.phone || undefined,
         }
       : null,
-    primaryFields: [
-      makePrimaryField({
-        key: "execution_date",
-        label: "تاريخ التنفيذ / اليوم",
-        value: executionDateText,
-        languageMode,
-      }),
-      makePrimaryField({
-        key: "semester",
-        label: "الفصل الدراسي",
-        value: semesterText,
-        languageMode,
-      }),
-      makePrimaryField({
-        key: "executor",
-        label: "المعلم المنفذ",
-        value: executorText,
-        languageMode,
-        transformValue: false,
-      }),
-      makePrimaryField({
-        key: "target_group",
-        label: "الفئة المستهدفة",
-        value: targetGroupText,
-        languageMode,
-      }),
-      makePrimaryField({
-        key: "execution_method",
-        label: "طريقة التنفيذ",
-        value: executionMethodText,
-        languageMode,
-      }),
-      makePrimaryField({
-        key: "week",
-        label: "الأسبوع",
-        value: weekText,
-        languageMode,
-      }),
-    ],
+    primaryFields: isCustomReport
+      ? detailFields.map((field) => ({
+          ...field,
+          importance: "PRIMARY" as const,
+          group: "حقول التقرير الخاص",
+        }))
+      : [
+          makePrimaryField({
+            key: "execution_date",
+            label: "تاريخ التنفيذ / اليوم",
+            value: executionDateText,
+            languageMode,
+          }),
+          makePrimaryField({
+            key: "semester",
+            label: "الفصل الدراسي",
+            value: semesterText,
+            languageMode,
+          }),
+          makePrimaryField({
+            key: "executor",
+            label: "المعلم المنفذ",
+            value: executorText,
+            languageMode,
+            transformValue: false,
+          }),
+          makePrimaryField({
+            key: "target_group",
+            label: "الفئة المستهدفة",
+            value: targetGroupText,
+            languageMode,
+          }),
+          makePrimaryField({
+            key: "execution_method",
+            label: "طريقة التنفيذ",
+            value: executionMethodText,
+            languageMode,
+          }),
+          makePrimaryField({
+            key: "week",
+            label: "الأسبوع",
+            value: weekText,
+            languageMode,
+          }),
+        ],
     detailFields,
-    narrative: {
-      title: "وصف التنفيذ",
-      body: buildNarrative({
-        title,
-        serviceName,
-        semester: semesterText,
-        executor: executorText,
-        executionDate: executionDateText,
-        targetGroup: targetGroupText,
-        executionMethod: executionMethodText,
-        evidenceCount: evidence.length,
-        languageMode,
-      }),
-    },
+    narrative: isCustomReport
+      ? {
+          title: "ملخص التقرير",
+          body:
+            detailFields.length > 0
+              ? detailFields
+                  .map((field) => `${field.label}: ${field.value || "غير محدد"}`)
+                  .join("، ")
+              : "تم إنشاء تقرير خاص من بيانات الحالة.",
+        }
+      : {
+          title: "وصف التنفيذ",
+          body: buildNarrative({
+            title,
+            serviceName,
+            semester: semesterText,
+            executor: executorText,
+            executionDate: executionDateText,
+            targetGroup: targetGroupText,
+            executionMethod: executionMethodText,
+            evidenceCount: evidence.length,
+            languageMode,
+          }),
+        },
     evidence: {
       layout: "GRID_2X2",
       items: evidence,

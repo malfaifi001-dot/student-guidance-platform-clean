@@ -52,6 +52,12 @@ function cleanText(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function isLikelyEnglishOnlyLabel(value: unknown) {
+  const text = cleanText(value);
+
+  return Boolean(text) && /^[a-z0-9_\-.]+$/i.test(text) && !/[\u0600-\u06FF]/.test(text);
+}
+
 function countWords(value: string) {
   return cleanText(value).split(/\s+/).filter(Boolean).length;
 }
@@ -125,7 +131,11 @@ export function ReportPrepareFlow({
 
     const saved = loadReportFlowPreparation(payload.caseInfo.id, selectedVariantId);
 
-    if (saved?.fields?.length) {
+    const shouldIgnoreSavedPreparation =
+      payload.service?.slug === "custom-report" &&
+      saved?.fields?.some((field) => isLikelyEnglishOnlyLabel(field.label));
+
+    if (saved?.fields?.length && !shouldIgnoreSavedPreparation) {
       const savedMode = normalizeReportLanguageMode(saved.languageMode);
       setLanguageMode(savedMode);
       setFields(applyReportFlowLanguageModeToFields(saved.fields, savedMode));

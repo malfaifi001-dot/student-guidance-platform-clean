@@ -201,10 +201,55 @@ function makePrepareField(
   };
 }
 
+
+function buildCustomReportPrepareFields(
+  payload: SmartReportPayload,
+  languageMode: ReportLanguageMode,
+): ReportFlowPrepareField[] {
+  const seen = new Set<string>();
+  const sourceFields = [...payload.detailFields, ...payload.primaryFields];
+  const result: ReportFlowPrepareField[] = [];
+
+  sourceFields.forEach((field, index) => {
+    const key = cleanText(field.key) || `custom_report_field_${index + 1}`;
+    const label = cleanText(field.label) || key;
+    const rawValue =
+      field.value === null || field.value === undefined
+        ? ""
+        : Array.isArray(field.value)
+          ? field.value.map((item) => String(item || "").trim()).filter(Boolean).join("، ")
+          : String(field.value).trim();
+
+    if (!label || !rawValue) return;
+
+    const uniqueKey = `${key}::${label}::${rawValue}`;
+
+    if (seen.has(uniqueKey)) return;
+    seen.add(uniqueKey);
+
+    result.push({
+      id: `custom-report:${key}:${index}`,
+      source: "detail",
+      key,
+      label: applyReportLanguageModeToText(label, languageMode),
+      value: rawValue,
+      originalLabel: label,
+      originalValue: rawValue,
+      selected: true,
+      technical: false,
+    });
+  });
+
+  return result;
+}
 export function buildReportFlowPrepareFields(
   payload: SmartReportPayload,
 ): ReportFlowPrepareField[] {
   const languageMode = normalizeReportLanguageMode(payload.languageMode);
+
+  if (payload.service?.slug === "custom-report") {
+    return buildCustomReportPrepareFields(payload, languageMode);
+  }
 
   const fields = [
     ...payload.primaryFields.map((field, index) =>
