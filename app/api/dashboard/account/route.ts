@@ -5,14 +5,28 @@ import { logAdminActivity } from "@/lib/admin/activity-log";
 
 function normalizeOptionalString(value: unknown, maxLength: number) {
   const text = String(value || "").trim();
-
   if (!text) return null;
-
   return text.slice(0, maxLength);
 }
 
 function normalizeGender(value: unknown) {
   return value === "FEMALE" ? "FEMALE" : value === "MALE" ? "MALE" : undefined;
+}
+
+function normalizeStringList(value: unknown, maxItems = 30) {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set<string>();
+
+  return value
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .filter((item) => {
+      if (seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    })
+    .slice(0, maxItems);
 }
 
 async function requireCurrentUser() {
@@ -27,7 +41,7 @@ async function requireCurrentUser() {
           error: "يجب تسجيل الدخول أولًا.",
           code: "UNAUTHENTICATED",
         },
-        { status: 401 }
+        { status: 401 },
       ),
     };
   }
@@ -47,6 +61,9 @@ function toSafeUser(user: {
   role: string;
   gender: string | null;
   jobTitle: string | null;
+  teachingStages: unknown;
+  teachingSpecialties: unknown;
+  teachingSubjects: unknown;
   schoolAccountId: string | null;
   isActive: boolean;
   onboardingCompleted: boolean;
@@ -63,6 +80,9 @@ function toSafeUser(user: {
     role: user.role,
     gender: user.gender,
     jobTitle: user.jobTitle,
+    teachingStages: normalizeStringList(user.teachingStages),
+    teachingSpecialties: normalizeStringList(user.teachingSpecialties),
+    teachingSubjects: normalizeStringList(user.teachingSubjects),
     schoolAccountId: user.schoolAccountId,
     isActive: user.isActive,
     onboardingCompleted: user.onboardingCompleted,
@@ -71,6 +91,26 @@ function toSafeUser(user: {
     updatedAt: user.updatedAt,
   };
 }
+
+const accountSelect = {
+  id: true,
+  name: true,
+  officialName: true,
+  email: true,
+  phone: true,
+  role: true,
+  gender: true,
+  jobTitle: true,
+  teachingStages: true,
+  teachingSpecialties: true,
+  teachingSubjects: true,
+  schoolAccountId: true,
+  isActive: true,
+  onboardingCompleted: true,
+  onboardingSkippedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 export async function GET() {
   const { current, response } = await requireCurrentUser();
@@ -81,22 +121,7 @@ export async function GET() {
     where: {
       id: current.user.id,
     },
-    select: {
-      id: true,
-      name: true,
-      officialName: true,
-      email: true,
-      phone: true,
-      role: true,
-      gender: true,
-      jobTitle: true,
-      schoolAccountId: true,
-      isActive: true,
-      onboardingCompleted: true,
-      onboardingSkippedAt: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select: accountSelect,
   });
 
   if (!user || !user.isActive) {
@@ -105,7 +130,7 @@ export async function GET() {
         success: false,
         error: "الحساب غير موجود أو غير مفعل.",
       },
-      { status: 404 }
+      { status: 404 },
     );
   }
 
@@ -136,15 +161,21 @@ async function updateAccount(request: Request) {
         success: false,
         error: "بيانات الحساب غير صحيحة.",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  const name = normalizeOptionalString((payload as any).name, 120);
-  const officialName = normalizeOptionalString((payload as any).officialName, 160);
-  const phone = normalizeOptionalString((payload as any).phone, 30);
-  const jobTitle = normalizeOptionalString((payload as any).jobTitle, 120);
-  const gender = normalizeGender((payload as any).gender);
+  const record = payload as Record<string, unknown>;
+
+  const name = normalizeOptionalString(record.name, 120);
+  const officialName = normalizeOptionalString(record.officialName, 160);
+  const phone = normalizeOptionalString(record.phone, 30);
+  const jobTitle = normalizeOptionalString(record.jobTitle, 120);
+  const gender = normalizeGender(record.gender);
+
+  const teachingStages = normalizeStringList(record.teachingStages, 20);
+  const teachingSpecialties = normalizeStringList(record.teachingSpecialties, 20);
+  const teachingSubjects = normalizeStringList(record.teachingSubjects, 60);
 
   if (!name || name.length < 3) {
     return NextResponse.json(
@@ -152,7 +183,7 @@ async function updateAccount(request: Request) {
         success: false,
         error: "الاسم يجب ألا يقل عن 3 أحرف.",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -165,24 +196,12 @@ async function updateAccount(request: Request) {
       officialName: officialName || name,
       phone,
       jobTitle,
+      teachingStages,
+      teachingSpecialties,
+      teachingSubjects,
       ...(gender ? { gender } : {}),
     },
-    select: {
-      id: true,
-      name: true,
-      officialName: true,
-      email: true,
-      phone: true,
-      role: true,
-      gender: true,
-      jobTitle: true,
-      schoolAccountId: true,
-      isActive: true,
-      onboardingCompleted: true,
-      onboardingSkippedAt: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select: accountSelect,
   });
 
   await logAdminActivity({
@@ -194,7 +213,16 @@ async function updateAccount(request: Request) {
     severity: "INFO",
     title: "تم تحديث بيانات الحساب الشخصي",
     details: {
-      changedFields: ["name", "officialName", "phone", "jobTitle", "gender"],
+      changedFields: [
+        "name",
+        "officialName",
+        "phone",
+        "jobTitle",
+        "gender",
+        "teachingStages",
+        "teachingSpecialties",
+        "teachingSubjects",
+      ],
     },
   });
 

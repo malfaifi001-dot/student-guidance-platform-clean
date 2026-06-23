@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-
-
+import {
+  TEACHING_STAGE_OPTIONS,
+  TEACHING_SPECIALTY_OPTIONS,
+  TEACHING_SUBJECT_OPTIONS,
+} from "@/lib/account/teaching-profile-options";
 
 type AccountUser = {
   id: string;
@@ -14,6 +17,9 @@ type AccountUser = {
   role: string;
   gender: string | null;
   jobTitle: string | null;
+  teachingStages: string[];
+  teachingSpecialties: string[];
+  teachingSubjects: string[];
   schoolAccountId: string | null;
   isActive: boolean;
   onboardingCompleted: boolean;
@@ -36,6 +42,7 @@ type SubscriptionInfo = {
 function roleLabel(role: string) {
   if (role === "ADMIN") return "مدير النظام";
   if (role === "COUNSELOR") return "موجه طلابي";
+  if (role === "ACTIVITY_LEADER") return "رائد نشاط";
   if (role === "TEACHER") return "معلم";
   if (role === "SCHOOL_OWNER") return "مالك مدرسة";
   if (role === "STAFF") return "موظف";
@@ -80,6 +87,21 @@ async function readJson(response: Response) {
   }
 }
 
+function uniqueList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set<string>();
+
+  return value
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .filter((item) => {
+      if (seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+}
+
 export default function DashboardAccountPage() {
   const [user, setUser] = useState<AccountUser | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
@@ -95,6 +117,9 @@ export default function DashboardAccountPage() {
     phone: "",
     jobTitle: "",
     gender: "UNKNOWN",
+    teachingStages: [] as string[],
+    teachingSpecialties: [] as string[],
+    teachingSubjects: [] as string[],
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -129,6 +154,9 @@ export default function DashboardAccountPage() {
         phone: nextUser.phone || "",
         jobTitle: nextUser.jobTitle || "",
         gender: nextUser.gender || "UNKNOWN",
+        teachingStages: uniqueList(nextUser.teachingStages),
+        teachingSpecialties: uniqueList(nextUser.teachingSpecialties),
+        teachingSubjects: uniqueList(nextUser.teachingSubjects),
       });
 
       if (subscriptionResponse.ok) {
@@ -192,6 +220,7 @@ export default function DashboardAccountPage() {
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
+          confirmPassword: passwordForm.confirmPassword,
         }),
       });
 
@@ -265,11 +294,9 @@ export default function DashboardAccountPage() {
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-black text-sky-700">الحساب الشخصي</p>
-            <h1 className="mt-2 text-3xl font-black text-slate-950">
-              إعدادات الحساب
-            </h1>
+            <h1 className="mt-2 text-3xl font-black text-slate-950">إعدادات الحساب</h1>
             <p className="mt-2 text-sm font-bold text-slate-500">
-              إدارة بياناتك الشخصية، كلمة المرور، وحالة الاشتراك.
+              إدارة بياناتك الشخصية، بيانات التدريس، كلمة المرور، وحالة الاشتراك.
             </p>
           </div>
 
@@ -290,41 +317,29 @@ export default function DashboardAccountPage() {
           <h2 className="text-xl font-black text-slate-950">الملف الشخصي</h2>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <label className="space-y-2">
-              <span className="text-xs font-black text-slate-500">الاسم</span>
-              <input
-                value={profileForm.name}
-                onChange={(event) => setProfileForm((prev) => ({ ...prev, name: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
-              />
-            </label>
+            <InputField
+              label="الاسم"
+              value={profileForm.name}
+              onChange={(value) => setProfileForm((prev) => ({ ...prev, name: value }))}
+            />
 
-            <label className="space-y-2">
-              <span className="text-xs font-black text-slate-500">الاسم الرسمي</span>
-              <input
-                value={profileForm.officialName}
-                onChange={(event) => setProfileForm((prev) => ({ ...prev, officialName: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
-              />
-            </label>
+            <InputField
+              label="الاسم الرسمي"
+              value={profileForm.officialName}
+              onChange={(value) => setProfileForm((prev) => ({ ...prev, officialName: value }))}
+            />
 
-            <label className="space-y-2">
-              <span className="text-xs font-black text-slate-500">رقم الجوال</span>
-              <input
-                value={profileForm.phone}
-                onChange={(event) => setProfileForm((prev) => ({ ...prev, phone: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
-              />
-            </label>
+            <InputField
+              label="رقم الجوال"
+              value={profileForm.phone}
+              onChange={(value) => setProfileForm((prev) => ({ ...prev, phone: value }))}
+            />
 
-            <label className="space-y-2">
-              <span className="text-xs font-black text-slate-500">المسمى الوظيفي</span>
-              <input
-                value={profileForm.jobTitle}
-                onChange={(event) => setProfileForm((prev) => ({ ...prev, jobTitle: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
-              />
-            </label>
+            <InputField
+              label="المسمى الوظيفي"
+              value={profileForm.jobTitle}
+              onChange={(value) => setProfileForm((prev) => ({ ...prev, jobTitle: value }))}
+            />
 
             <label className="space-y-2">
               <span className="text-xs font-black text-slate-500">الجنس</span>
@@ -347,6 +362,41 @@ export default function DashboardAccountPage() {
             </div>
           </div>
 
+          <div className="mt-7 rounded-[1.75rem] border border-slate-100 bg-slate-50/60 p-4">
+            <div>
+              <p className="text-sm font-black text-slate-900">بيانات التدريس</p>
+              <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                تستخدم هذه البيانات لاحقًا لتحسين نتائج الذكاء الاصطناعي تلقائيًا دون تقييد وصفك.
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-4">
+              <SearchableMultiSelect
+                label="المرحلة"
+                placeholder="ابحث عن مرحلة..."
+                options={TEACHING_STAGE_OPTIONS}
+                value={profileForm.teachingStages}
+                onChange={(value) => setProfileForm((prev) => ({ ...prev, teachingStages: value }))}
+              />
+
+              <SearchableMultiSelect
+                label="التخصص"
+                placeholder="ابحث عن تخصص..."
+                options={TEACHING_SPECIALTY_OPTIONS}
+                value={profileForm.teachingSpecialties}
+                onChange={(value) => setProfileForm((prev) => ({ ...prev, teachingSpecialties: value }))}
+              />
+
+              <SearchableMultiSelect
+                label="مواد أدرسها"
+                placeholder="ابحث عن مادة..."
+                options={TEACHING_SUBJECT_OPTIONS}
+                value={profileForm.teachingSubjects}
+                onChange={(value) => setProfileForm((prev) => ({ ...prev, teachingSubjects: value }))}
+              />
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={saveProfile}
@@ -362,20 +412,11 @@ export default function DashboardAccountPage() {
             <h2 className="text-xl font-black text-slate-950">ملخص الحساب</h2>
 
             <div className="mt-5 space-y-3 text-sm font-bold">
-              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-slate-500">الدور</span>
-                <span>{roleLabel(user?.role || "")}</span>
-              </div>
-
-              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-slate-500">الجنس</span>
-                <span>{genderLabel(user?.gender || null)}</span>
-              </div>
-
-              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-slate-500">آخر تحديث</span>
-                <span>{formatDate(user?.updatedAt)}</span>
-              </div>
+              <SummaryRow label="الدور" value={roleLabel(user?.role || "")} />
+              <SummaryRow label="الجنس" value={genderLabel(user?.gender || null)} />
+              <SummaryRow label="المراحل" value={user?.teachingStages?.length ? user.teachingStages.join("، ") : "—"} />
+              <SummaryRow label="التخصص" value={user?.teachingSpecialties?.length ? user.teachingSpecialties.join("، ") : "—"} />
+              <SummaryRow label="آخر تحديث" value={formatDate(user?.updatedAt)} />
             </div>
           </div>
 
@@ -383,20 +424,9 @@ export default function DashboardAccountPage() {
             <h2 className="text-xl font-black text-slate-950">الاشتراك</h2>
 
             <div className="mt-5 space-y-3 text-sm font-bold">
-              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-slate-500">الخطة</span>
-                <span>{subscription?.subscription?.planName || "—"}</span>
-              </div>
-
-              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-slate-500">الحالة</span>
-                <span>{subscriptionStatusLabel(subscription?.subscription?.status)}</span>
-              </div>
-
-              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-slate-500">الأيام المتبقية</span>
-                <span>{subscription?.remainingDays ?? "—"}</span>
-              </div>
+              <SummaryRow label="الخطة" value={subscription?.subscription?.planName || "—"} />
+              <SummaryRow label="الحالة" value={subscriptionStatusLabel(subscription?.subscription?.status)} />
+              <SummaryRow label="الأيام المتبقية" value={String(subscription?.remainingDays ?? "—")} />
             </div>
 
             <Link
@@ -414,28 +444,22 @@ export default function DashboardAccountPage() {
           <h2 className="text-xl font-black text-slate-950">تغيير كلمة المرور</h2>
 
           <div className="mt-5 space-y-4">
-            <input
-              type="password"
+            <PasswordInput
               value={passwordForm.currentPassword}
-              onChange={(event) => setPasswordForm((prev) => ({ ...prev, currentPassword: event.target.value }))}
+              onChange={(value) => setPasswordForm((prev) => ({ ...prev, currentPassword: value }))}
               placeholder="كلمة المرور الحالية"
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
             />
 
-            <input
-              type="password"
+            <PasswordInput
               value={passwordForm.newPassword}
-              onChange={(event) => setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }))}
+              onChange={(value) => setPasswordForm((prev) => ({ ...prev, newPassword: value }))}
               placeholder="كلمة المرور الجديدة"
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
             />
 
-            <input
-              type="password"
+            <PasswordInput
               value={passwordForm.confirmPassword}
-              onChange={(event) => setPasswordForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
+              onChange={(value) => setPasswordForm((prev) => ({ ...prev, confirmPassword: value }))}
               placeholder="تأكيد كلمة المرور الجديدة"
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
             />
           </div>
 
@@ -467,5 +491,200 @@ export default function DashboardAccountPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function InputField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="space-y-2">
+      <span className="text-xs font-black text-slate-500">{label}</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+      />
+    </label>
+  );
+}
+
+function PasswordInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <input
+      type="password"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+    />
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+      <span className="shrink-0 text-slate-500">{label}</span>
+      <span className="text-left leading-6">{value}</span>
+    </div>
+  );
+}
+
+function SearchableMultiSelect({
+  label,
+  placeholder,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  options: string[];
+  value: string[];
+  onChange: (value: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const selected = useMemo(() => uniqueList(value), [value]);
+
+  const filteredOptions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) return options;
+
+    return options.filter((option) => option.toLowerCase().includes(normalizedQuery));
+  }, [options, query]);
+
+  function toggle(option: string) {
+    if (selected.includes(option)) {
+      onChange(selected.filter((item) => item !== option));
+      return;
+    }
+
+    onChange([...selected, option]);
+  }
+
+  function clearAll() {
+    onChange([]);
+    setQuery("");
+  }
+
+  return (
+    <div className="relative">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-xs font-black text-slate-500">{label}</span>
+
+        {selected.length ? (
+          <button
+            type="button"
+            onClick={clearAll}
+            className="text-xs font-black text-rose-600 hover:text-rose-700"
+          >
+            مسح الكل
+          </button>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="min-h-[52px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right text-sm font-bold outline-none transition hover:border-sky-200 focus:border-sky-300"
+      >
+        {selected.length ? (
+          <span className="flex flex-wrap gap-2">
+            {selected.slice(0, 5).map((item) => (
+              <span
+                key={item}
+                className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-black text-sky-700"
+              >
+                {item}
+              </span>
+            ))}
+
+            {selected.length > 5 ? (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
+                +{selected.length - 5}
+              </span>
+            ) : null}
+          </span>
+        ) : (
+          <span className="text-slate-400">اختر...</span>
+        )}
+      </button>
+
+      {open ? (
+        <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200">
+          <div className="border-b border-slate-100 p-3">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={placeholder}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            />
+          </div>
+
+          <div className="max-h-72 overflow-y-auto p-2">
+            {filteredOptions.length ? (
+              filteredOptions.map((option) => {
+                const active = selected.includes(option);
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => toggle(option)}
+                    className={[
+                      "flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-right text-sm font-bold transition",
+                      active ? "bg-sky-50 text-sky-700" : "text-slate-700 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    <span>{option}</span>
+                    <span
+                      className={[
+                        "flex h-5 w-5 items-center justify-center rounded-md border text-[10px]",
+                        active
+                          ? "border-sky-500 bg-sky-600 text-white"
+                          : "border-slate-300 bg-white text-white",
+                      ].join(" ")}
+                    >
+                      ✓
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-4 py-5 text-center text-sm font-bold text-slate-400">
+                لا توجد نتائج مطابقة.
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end border-t border-slate-100 p-3">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-2xl bg-slate-950 px-5 py-2 text-xs font-black text-white"
+            >
+              تم
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

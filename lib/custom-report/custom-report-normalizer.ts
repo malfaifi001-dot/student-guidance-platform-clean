@@ -197,9 +197,15 @@ function normalizeField(field: unknown, sectionIndex: number, fieldIndex: number
   const label = asText(record.label, `حقل ${fieldIndex + 1}`);
   const key = normalizeKey(record.key ?? label, fallbackKey);
   const preset = getEducationalPreset(label, key);
-  const type = preset?.type ?? normalizeType(record.type);
+  const requestedType = normalizeType(record.type);
+  const hasExplicitType = typeof record.type === "string" && record.type.trim().length > 0;
+  const type = hasExplicitType ? requestedType : (preset?.type ?? requestedType);
   const rawOptions = normalizeOptions(record.options);
-  const options = preset?.options ?? (["select", "multi_select", "radio"].includes(type) ? rawOptions : []);
+  const options = ["select", "multi_select", "radio"].includes(type)
+    ? rawOptions.length > 0
+      ? rawOptions
+      : preset?.options ?? []
+    : [];
 
   return {
     key,

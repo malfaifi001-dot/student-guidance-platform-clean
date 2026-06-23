@@ -199,7 +199,10 @@ model User {
   role         UserRole @default(COUNSELOR)
   gender       Gender   @default(UNKNOWN)
   officialName String?
-  jobTitle     String?
+  jobTitle     String?
+  teachingStages Json?
+  teachingSpecialties Json?
+  teachingSubjects Json?
   isActive     Boolean  @default(true)
 
   onboardingCompleted   Boolean   @default(false)
