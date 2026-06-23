@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { updateCustomReportTemplateSchema } from "@/lib/custom-report/custom-report-api-schemas";
 import { requireCustomReportContext } from "@/lib/custom-report/custom-report-auth";
 import { normalizeCustomReportSchema } from "@/lib/custom-report/custom-report-normalizer";
 
@@ -42,7 +43,20 @@ export async function PATCH(request: Request, contextParams: RouteContext) {
 
   const { templateId } = await contextParams.params;
   const body = await request.json().catch(() => null);
-  const schema = normalizeCustomReportSchema(body?.schema);
+  const payloadResult = updateCustomReportTemplateSchema.safeParse(body);
+
+  if (!payloadResult.success) {
+    return NextResponse.json(
+      {
+        error:
+          payloadResult.error.issues[0]?.message ||
+          "بيانات تحديث القالب غير صالحة.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const schema = normalizeCustomReportSchema(payloadResult.data.schema);
 
   const existing = await prisma.customReportTemplate.findFirst({
     where: {

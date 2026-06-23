@@ -1,7 +1,9 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import { principalSignatureRequestSchema } from "@/lib/settings/school-settings-api-schema";
 
 function normalizeSaudiPhone(value: string) {
   const digits = value.replace(/\D/g, "");
@@ -75,6 +77,12 @@ function getPublicBaseUrl(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
+
+  if (subscriptionGuard instanceof Response) {
+    return subscriptionGuard;
+  }
+
   const current = await getCurrentSessionUser();
 
   if (!current?.user.schoolAccountId) {
@@ -85,16 +93,21 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const principalName = String(body?.principalName || "").trim();
-  const principalPhone = String(body?.principalPhone || "").trim();
+  const payloadResult = principalSignatureRequestSchema.safeParse(body);
 
-  if (!principalName || !principalPhone) {
+  if (!payloadResult.success) {
     return NextResponse.json(
-      { success: false, error: "اسم المدير ورقم الواتساب مطلوبان." },
+      {
+        success: false,
+        error:
+          payloadResult.error.issues[0]?.message ||
+          "بيانات المدير غير صالحة.",
+      },
       { status: 400 },
     );
   }
 
+  const { principalName, principalPhone } = payloadResult.data;
   const token = crypto.randomBytes(32).toString("hex");
   const requestedAt = new Date();
 
@@ -127,7 +140,7 @@ export async function POST(request: Request) {
   const signatureUrl = `${publicBaseUrl}/school-signature/${token}`;
   const phone = normalizeSaudiPhone(principalPhone);
   const text = encodeURIComponent(
-    `السلام عليكم\nفضلاً اعتماد توقيع مدير المدرسة في منصة التوجيه الطلابي عبر الرابط:\n${signatureUrl}`,
+    `السلام عليكم\nفضلًا اعتماد توقيع مدير المدرسة في منصة التوجيه الطلابي عبر الرابط:\n${signatureUrl}`,
   );
 
   return NextResponse.json({

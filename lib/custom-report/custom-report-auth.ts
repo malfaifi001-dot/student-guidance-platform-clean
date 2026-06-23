@@ -1,17 +1,24 @@
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { requireServiceAccessForCurrentUser } from "@/bin/require-auth";
+
+const CUSTOM_REPORT_SERVICE_SLUG = "custom-report";
 
 export async function requireCustomReportContext() {
-  const current = await getCurrentSessionUser();
+  const context = await requireServiceAccessForCurrentUser(
+    CUSTOM_REPORT_SERVICE_SLUG,
+  );
 
-  if (!current) {
+  if (context instanceof Response) {
+    const payload = await context.json().catch(() => null);
+
     return {
       ok: false as const,
-      status: 401,
-      message: "غير مصرح.",
+      status: context.status,
+      message:
+        typeof payload?.error === "string" ? payload.error : "غير مصرح.",
     };
   }
 
-  if (current.user.role === "ADMIN") {
+  if (context.user.role === "ADMIN") {
     return {
       ok: false as const,
       status: 403,
@@ -21,7 +28,7 @@ export async function requireCustomReportContext() {
 
   return {
     ok: true as const,
-    user: current.user,
-    schoolAccountId: current.user.schoolAccountId ?? null,
+    user: context.user,
+    schoolAccountId: context.user.schoolAccountId ?? null,
   };
 }

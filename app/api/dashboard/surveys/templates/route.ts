@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
-import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+import { requireSurveyServiceContext } from "@/lib/surveys/survey-api-access";
+import { surveyTemplateCreatePayloadSchema } from "@/lib/surveys/survey-api-schemas";
 import { SURVEY_SERVICE_SLUG } from "@/lib/surveys/survey-config";
 import { createSurveyToken } from "@/lib/surveys/survey-service";
-import { getSurveyTemplateByKey, surveyTemplates } from "@/lib/surveys/survey-templates";
+import {
+  getSurveyTemplateByKey,
+  surveyTemplates,
+} from "@/lib/surveys/survey-templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const allowedOwnerRoles = new Set(["ADMIN", "COUNSELOR", "ACTIVITY_LEADER", "TEACHER"]);
 
 async function createUniqueToken() {
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -39,80 +40,53 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const current = await getCurrentSessionUser();
+  const { context, error } = await requireSurveyServiceContext();
 
-  if (!current?.user) {
-    return NextResponse.json(
-      {
-        error: "يجب تسجيل الدخول أولًا.",
-      },
-      {
-        status: 401,
-      },
-    );
+  if (error || !context) {
+    return error ?? NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   }
 
-  if (!current.user.schoolAccountId) {
+  if (!context.schoolAccountId) {
     return NextResponse.json(
       {
         error: "حسابك غير مرتبط بمدرسة.",
       },
-      {
-        status: 403,
-      },
+      { status: 403 },
     );
   }
 
-  if (current.user.role !== "ADMIN") {
-    const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId);
+  const rawPayload = await request.json().catch(() => null);
+  const payloadResult = surveyTemplateCreatePayloadSchema.safeParse(rawPayload);
 
-    if (!overview.usable) {
-      return NextResponse.json(
-        {
-          error: "حسابك يحتاج تفعيلًا للاستمرار.",
-        },
-        {
-          status: 402,
-        },
-      );
-    }
-  }
-
-  const payload = await request.json().catch(() => null);
-  const templateKey = String(payload?.templateKey || "").trim();
-  const requestedOwnerRole = String(payload?.ownerRole || current.user.role).trim();
-  const requestedBoardPath = String(payload?.boardPath || "").trim();
-
-  if (!allowedOwnerRoles.has(requestedOwnerRole)) {
+  if (!payloadResult.success) {
     return NextResponse.json(
       {
-        error: "نوع لوحة الاستبيان غير صحيح.",
+        error:
+          payloadResult.error.issues[0]?.message ||
+          "بيانات قالب الاستبيان غير صالحة.",
       },
-      {
-        status: 400,
-      },
+      { status: 400 },
     );
   }
 
+  const payload = payloadResult.data;
   const ownerRole =
-    current.user.role === "ADMIN"
-      ? requestedOwnerRole
-      : current.user.role === "ACTIVITY_LEADER"
+    context.user.role === "ADMIN"
+      ? payload.ownerRole ?? context.user.role
+      : context.user.role === "ACTIVITY_LEADER"
         ? "ACTIVITY_LEADER"
-        : current.user.role === "TEACHER"
+        : context.user.role === "TEACHER"
           ? "TEACHER"
           : "COUNSELOR";
 
-  const template = getSurveyTemplateByKey(templateKey);
+  const template = getSurveyTemplateByKey(payload.templateKey);
 
   if (!template) {
     return NextResponse.json(
       {
         error: "قالب الاستبيان غير موجود.",
       },
-      {
-        status: 404,
-      },
+      { status: 404 },
     );
   }
 
@@ -129,11 +103,11 @@ export async function POST(request: NextRequest) {
 
   const survey = await prisma.survey.create({
     data: {
-      schoolAccountId: current.user.schoolAccountId,
+      schoolAccountId: context.schoolAccountId,
       ...(service?.id ? { serviceId: service.id } : {}),
-      createdById: current.user.id,
+      createdById: context.user.id,
       ownerRole,
-      boardPath: requestedBoardPath || null,
+      boardPath: payload.boardPath,
       title: template.title,
       description: template.description,
       audienceType: template.audienceType,

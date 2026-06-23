@@ -1,16 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import { schoolSignaturePostSchema } from "@/lib/settings/school-settings-api-schema";
 
 export const runtime = "nodejs";
 
 type SignatureKind = "activityLeader" | "counselor";
-
-function isSignatureKind(value: string): value is SignatureKind {
-  return value === "activityLeader" || value === "counselor";
-}
 
 async function saveSignatureImage(input: {
   schoolAccountId: string;
@@ -50,6 +48,12 @@ async function saveSignatureImage(input: {
 }
 
 export async function POST(request: Request) {
+  const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
+
+  if (subscriptionGuard instanceof Response) {
+    return subscriptionGuard;
+  }
+
   const current = await getCurrentSessionUser();
 
   if (!current?.user.schoolAccountId) {
@@ -60,15 +64,20 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const kind = String(body?.kind || "");
-  const dataUrl = String(body?.dataUrl || "");
+  const payloadResult = schoolSignaturePostSchema.safeParse(body);
 
-  if (!isSignatureKind(kind)) {
+  if (!payloadResult.success) {
     return NextResponse.json(
-      { success: false, error: "نوع التوقيع غير صحيح." },
+      {
+        success: false,
+        error:
+          payloadResult.error.issues[0]?.message || "بيانات التوقيع غير صالحة.",
+      },
       { status: 400 },
     );
   }
+
+  const { kind, dataUrl } = payloadResult.data;
 
   const signatureUrl = await saveSignatureImage({
     schoolAccountId: current.user.schoolAccountId,
@@ -78,7 +87,10 @@ export async function POST(request: Request) {
 
   if (!signatureUrl) {
     return NextResponse.json(
-      { success: false, error: "تعذر حفظ التوقيع. أعد التوقيع ثم حاول مرة أخرى." },
+      {
+        success: false,
+        error: "تعذر حفظ التوقيع. أعد التوقيع ثم حاول مرة أخرى.",
+      },
       { status: 400 },
     );
   }

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { requireActiveSubscriptionForCurrentUser } from "@/bin/require-auth";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import { schoolSettingsPatchSchema } from "@/lib/settings/school-settings-api-schema";
 
 export async function GET() {
   const current = await getCurrentSessionUser();
@@ -20,7 +22,6 @@ export async function GET() {
       officialName: current.user.officialName || current.user.name || "",
       jobTitle: current.user.jobTitle || "",
       phone: current.user.phone || "",
-
       schoolName: profile?.schoolName || "",
       principalName: profile?.principalName || "",
       principalPhone: profile?.principalPhone || "",
@@ -29,15 +30,12 @@ export async function GET() {
         profile?.principalSignatureRequestedAt?.toISOString() || "",
       principalSignatureSignedAt:
         profile?.principalSignatureSignedAt?.toISOString() || "",
-
       activityLeaderName: profile?.activityLeaderName || "",
       activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || "",
       activityLeaderSignedAt:
         profile?.activityLeaderSignedAt?.toISOString() || "",
-
       counselorSignatureUrl: profile?.counselorSignatureUrl || "",
       counselorSignedAt: profile?.counselorSignedAt?.toISOString() || "",
-
       educationDepartment: profile?.educationDepartment || "",
       educationOffice: profile?.educationOffice || "",
       city: profile?.city || "",
@@ -53,6 +51,12 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
+    const subscriptionGuard = await requireActiveSubscriptionForCurrentUser();
+
+    if (subscriptionGuard instanceof Response) {
+      return subscriptionGuard;
+    }
+
     const current = await getCurrentSessionUser();
 
     if (!current || !current.user.schoolAccountId) {
@@ -62,35 +66,38 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    const payloadResult = schoolSettingsPatchSchema.safeParse(body);
 
-    const officialName = String(body?.officialName || "").trim();
-    const jobTitle = String(body?.jobTitle || "").trim();
-    const phone = String(body?.phone || "").trim();
-
-    const schoolName = String(body?.schoolName || "").trim();
-    const principalName = String(body?.principalName || "").trim();
-    const principalPhone = String(body?.principalPhone || "").trim();
-    const activityLeaderName = String(body?.activityLeaderName || "").trim();
-
-    const educationDepartment = String(body?.educationDepartment || "").trim();
-    const educationOffice = String(body?.educationOffice || "").trim();
-    const city = String(body?.city || "").trim();
-    const district = String(body?.district || "").trim();
-    const stage = String(body?.stage || "").trim();
-    const academicYear = String(body?.academicYear || "").trim();
-    const currentSemester = String(body?.currentSemester || "").trim();
-    const logoUrl = String(body?.logoUrl || "").trim();
-
-    if (!officialName || !jobTitle || !schoolName) {
+    if (!payloadResult.success) {
       return NextResponse.json(
         {
           success: false,
-          error: "الاسم الرسمي، المسمى الوظيفي، واسم المدرسة مطلوبة.",
+          error:
+            payloadResult.error.issues[0]?.message ||
+            "بيانات المدرسة غير صالحة.",
         },
         { status: 400 },
       );
     }
+
+    const {
+      officialName,
+      jobTitle,
+      phone,
+      schoolName,
+      principalName,
+      principalPhone,
+      activityLeaderName,
+      educationDepartment,
+      educationOffice,
+      city,
+      district,
+      stage,
+      academicYear,
+      currentSemester,
+      logoUrl,
+    } = payloadResult.data;
 
     await prisma.$transaction([
       prisma.user.update({
@@ -105,7 +112,6 @@ export async function PATCH(request: Request) {
           onboardingCompletedAt: new Date(),
         },
       }),
-
       prisma.schoolAccount.update({
         where: {
           id: current.user.schoolAccountId,
@@ -114,7 +120,6 @@ export async function PATCH(request: Request) {
           name: officialName || schoolName,
         },
       }),
-
       prisma.schoolProfile.upsert({
         where: {
           schoolAccountId: current.user.schoolAccountId,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createCustomReportTemplateSchema } from "@/lib/custom-report/custom-report-api-schemas";
 import { requireCustomReportContext } from "@/lib/custom-report/custom-report-auth";
 import { normalizeCustomReportSchema } from "@/lib/custom-report/custom-report-normalizer";
 
@@ -41,8 +42,21 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const schema = normalizeCustomReportSchema(body?.schema);
-  const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : null;
+  const payloadResult = createCustomReportTemplateSchema.safeParse(body);
+
+  if (!payloadResult.success) {
+    return NextResponse.json(
+      {
+        error:
+          payloadResult.error.issues[0]?.message ||
+          "بيانات قالب التقرير غير صالحة.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const payload = payloadResult.data;
+  const schema = normalizeCustomReportSchema(payload.schema);
 
   const template = await prisma.customReportTemplate.create({
     data: {
@@ -50,9 +64,9 @@ export async function POST(request: Request) {
       createdById: context.user.id,
       title: schema.title,
       description: schema.description || null,
-      prompt,
+      prompt: payload.prompt,
       schemaJson: schema,
-      source: body?.source === "FALLBACK" ? "FALLBACK" : "AI",
+      source: payload.source === "FALLBACK" ? "FALLBACK" : "AI",
     },
   });
 

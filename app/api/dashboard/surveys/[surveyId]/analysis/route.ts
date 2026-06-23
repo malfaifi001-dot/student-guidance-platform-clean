@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
-import { prisma } from "@/lib/prisma";
-import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+import { requireSurveyAccess } from "@/lib/surveys/survey-api-access";
 import { buildSurveyRecommendations } from "@/lib/surveys/survey-recommendations";
 
 export const runtime = "nodejs";
@@ -48,93 +46,40 @@ function isNumericQuestion(type: string) {
   return type === "RATING" || type === "SCALE" || type === "NUMBER";
 }
 
-async function requireAnalysisAccess(surveyId: string) {
-  const current = await getCurrentSessionUser();
-
-  if (!current?.user) {
-    return {
-      survey: null,
-      error: NextResponse.json({ error: "يجب تسجيل الدخول أولًا." }, { status: 401 }),
-    };
-  }
-
-  if (current.user.role !== "ADMIN") {
-    if (!current.user.schoolAccountId) {
-      return {
-        survey: null,
-        error: NextResponse.json({ error: "حسابك غير مرتبط بمدرسة." }, { status: 403 }),
-      };
-    }
-
-    const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId);
-
-    if (!overview.usable) {
-      return {
-        survey: null,
-        error: NextResponse.json({ error: "حسابك يحتاج تفعيلًا للاستمرار." }, { status: 402 }),
-      };
-    }
-  }
-
-  const survey = await prisma.survey.findUnique({
-    where: {
-      id: surveyId,
-    },
-    include: {
-      questions: {
-        orderBy: {
-          order: "asc",
-        },
-        include: {
-          options: {
-            orderBy: {
-              order: "asc",
-            },
+export async function GET(_request: Request, context: RouteContext) {
+  const { surveyId } = await context.params;
+  const { survey, error } = await requireSurveyAccess(surveyId, {
+    questions: {
+      orderBy: {
+        order: "asc",
+      },
+      include: {
+        options: {
+          orderBy: {
+            order: "asc",
           },
         },
       },
-      responses: {
-        orderBy: {
-          submittedAt: "desc",
-        },
-        include: {
-          answers: true,
-        },
+    },
+    responses: {
+      orderBy: {
+        submittedAt: "desc",
+      },
+      include: {
+        answers: true,
       },
     },
   });
 
-  if (!survey) {
-    return {
-      survey: null,
-      error: NextResponse.json({ error: "الاستبيان غير موجود." }, { status: 404 }),
-    };
+  if (error || !survey) {
+    return error ?? NextResponse.json({ error: "الاستبيان غير موجود." }, { status: 404 });
   }
 
-  if (current.user.role !== "ADMIN" && survey.schoolAccountId !== current.user.schoolAccountId) {
-    return {
-      survey: null,
-      error: NextResponse.json({ error: "لا تملك صلاحية الوصول لهذا الاستبيان." }, { status: 403 }),
-    };
-  }
+  const totalResponses = survey.responses.length;
+  const totalQuestions = survey.questions.length;
 
-  return {
-    survey,
-    error: null,
-  };
-}
-
-export async function GET(_request: Request, context: RouteContext) {
-  const { surveyId } = await context.params;
-  const { survey, error } = await requireAnalysisAccess(surveyId);
-
-  if (error) return error;
-
-  const totalResponses = survey!.responses.length;
-  const totalQuestions = survey!.questions.length;
-
-  const requiredQuestions = survey!.questions.filter((question) => question.isRequired);
-  const completedRequiredResponses = survey!.responses.filter((response) => {
+  const requiredQuestions = survey.questions.filter((question) => question.isRequired);
+  const completedRequiredResponses = survey.responses.filter((response) => {
     if (!requiredQuestions.length) return true;
 
     return requiredQuestions.every((question) => {
@@ -147,8 +92,8 @@ export async function GET(_request: Request, context: RouteContext) {
     ? Math.round((completedRequiredResponses / totalResponses) * 100)
     : 0;
 
-  const questions = survey!.questions.map((question) => {
-    const responseAnswers = survey!.responses.map((response) => {
+  const questions = survey.questions.map((question) => {
+    const responseAnswers = survey.responses.map((response) => {
       return response.answers.find((answer) => answer.questionId === question.id);
     });
 
@@ -218,16 +163,16 @@ export async function GET(_request: Request, context: RouteContext) {
 
   return NextResponse.json({
     survey: {
-      id: survey!.id,
-      title: survey!.title,
-      description: survey!.description,
-      status: survey!.status,
-      audienceType: survey!.audienceType,
-      isAnonymous: survey!.isAnonymous,
-      opensAt: survey!.opensAt,
-      endsAt: survey!.endsAt,
-      createdAt: survey!.createdAt,
-      updatedAt: survey!.updatedAt,
+      id: survey.id,
+      title: survey.title,
+      description: survey.description,
+      status: survey.status,
+      audienceType: survey.audienceType,
+      isAnonymous: survey.isAnonymous,
+      opensAt: survey.opensAt,
+      endsAt: survey.endsAt,
+      createdAt: survey.createdAt,
+      updatedAt: survey.updatedAt,
     },
     totals: {
       responses: totalResponses,

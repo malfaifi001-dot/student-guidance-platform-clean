@@ -739,8 +739,8 @@ function ActivityExecutionCardReportStyles() {
 
       .activity-meta-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 7px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
       }
 
       .activity-info-cell {

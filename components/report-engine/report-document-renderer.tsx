@@ -845,9 +845,9 @@ function ReportStyles() {
       .meta-grid,
       .executive-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-bottom: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 16px;
       }
 
       .info-row {

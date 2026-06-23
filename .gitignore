@@ -14,6 +14,9 @@ node_modules/
 *.sqlite
 *.sqlite3
 *.db
+dev.db
+prisma/dev.db
+.env*
 server-issues-diagnostics.txt
 noor-workflow-banktransfer-debug.txt
 remaining-mojibake-check.txt

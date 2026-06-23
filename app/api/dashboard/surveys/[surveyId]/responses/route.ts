@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentSessionUser } from "@/lib/auth/current-user";
-import { prisma } from "@/lib/prisma";
-import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+import { requireSurveyAccess } from "@/lib/surveys/survey-api-access";
 
 type RouteContext = {
   params: Promise<{
@@ -26,108 +24,34 @@ function answerToText(answer: { value: string | null; jsonValue: unknown } | und
   return answer.value || "";
 }
 
-async function requireResponsesAccess(surveyId: string) {
-  const current = await getCurrentSessionUser();
-
-  if (!current?.user) {
-    return {
-      current: null,
-      survey: null,
-      error: NextResponse.json(
-        { error: "يجب تسجيل الدخول أولًا." },
-        { status: 401 },
-      ),
-    };
-  }
-
-  if (current.user.role !== "ADMIN") {
-    if (!current.user.schoolAccountId) {
-      return {
-        current: null,
-        survey: null,
-        error: NextResponse.json(
-          { error: "حسابك غير مرتبط بمدرسة." },
-          { status: 403 },
-        ),
-      };
-    }
-
-    const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId);
-
-    if (!overview.usable) {
-      return {
-        current: null,
-        survey: null,
-        error: NextResponse.json(
-          { error: "حسابك يحتاج تفعيلًا للاستمرار." },
-          { status: 402 },
-        ),
-      };
-    }
-  }
-
-  const survey = await prisma.survey.findUnique({
-    where: {
-      id: surveyId,
-    },
-    include: {
-      questions: {
-        orderBy: {
-          order: "asc",
-        },
+export async function GET(request: NextRequest, context: RouteContext) {
+  const { surveyId } = await context.params;
+  const { survey, error } = await requireSurveyAccess(surveyId, {
+    questions: {
+      orderBy: {
+        order: "asc",
       },
-      responses: {
-        orderBy: {
-          submittedAt: "desc",
-        },
-        include: {
-          answers: true,
-        },
+    },
+    responses: {
+      orderBy: {
+        submittedAt: "desc",
+      },
+      include: {
+        answers: true,
       },
     },
   });
 
-  if (!survey) {
-    return {
-      current: null,
-      survey: null,
-      error: NextResponse.json(
-        { error: "الاستبيان غير موجود." },
-        { status: 404 },
-      ),
-    };
+  if (error || !survey) {
+    return error ?? NextResponse.json({ error: "الاستبيان غير موجود." }, { status: 404 });
   }
-
-  if (current.user.role !== "ADMIN" && survey.schoolAccountId !== current.user.schoolAccountId) {
-    return {
-      current: null,
-      survey: null,
-      error: NextResponse.json(
-        { error: "لا تملك صلاحية الوصول لهذا الاستبيان." },
-        { status: 403 },
-      ),
-    };
-  }
-
-  return {
-    current,
-    survey,
-    error: null,
-  };
-}
-
-export async function GET(request: NextRequest, context: RouteContext) {
-  const { surveyId } = await context.params;
-  const { survey, error } = await requireResponsesAccess(surveyId);
-
-  if (error) return error;
 
   const searchParams = request.nextUrl.searchParams;
   const query = String(searchParams.get("q") || "").trim().toLowerCase();
   const respondentType = String(searchParams.get("respondentType") || "").trim();
 
-  let rows = survey!.responses.map((response, index) => {
-    const answers = survey!.questions.map((question) => {
+  let rows = survey.responses.map((response, index) => {
+    const answers = survey.questions.map((question) => {
       const answer = response.answers.find((item) => item.questionId === question.id);
 
       return {
@@ -168,13 +92,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   return NextResponse.json({
     survey: {
-      id: survey!.id,
-      title: survey!.title,
-      description: survey!.description,
-      status: survey!.status,
-      audienceType: survey!.audienceType,
-      isAnonymous: survey!.isAnonymous,
-      questions: survey!.questions.map((question) => ({
+      id: survey.id,
+      title: survey.title,
+      description: survey.description,
+      status: survey.status,
+      audienceType: survey.audienceType,
+      isAnonymous: survey.isAnonymous,
+      questions: survey.questions.map((question) => ({
         id: question.id,
         label: question.label,
         type: question.type,
@@ -182,10 +106,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
       })),
     },
     totals: {
-      allResponses: survey!.responses.length,
+      allResponses: survey.responses.length,
       filteredResponses: rows.length,
-      questions: survey!.questions.length,
+      questions: survey.questions.length,
     },
-    responses: rows.map(({ searchableText, ...row }) => row),
+    responses: rows.map((row) => ({
+      index: row.index,
+      id: row.id,
+      submittedAt: row.submittedAt,
+      respondentType: row.respondentType,
+      respondentName: row.respondentName,
+      respondentPhone: row.respondentPhone,
+      answers: row.answers,
+    })),
   });
 }

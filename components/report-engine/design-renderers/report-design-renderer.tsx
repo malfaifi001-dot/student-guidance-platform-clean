@@ -2265,7 +2265,7 @@ function DesignBlock({
         {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
 
         {dynamicFieldItems.length ? (
-          <div className="grid gap-2 md:grid-cols-2 print:grid-cols-2">
+          <div className={getOfficialDetailsGridClass(designId)}>
             {dynamicFieldItems.map(({ id, label, value }: any, index: number) => (
               <MetaCard
                 key={`${id}-${index}`}
@@ -2293,7 +2293,7 @@ function DesignBlock({
         {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
 
         {values.length ? (
-          <div className="grid gap-2 md:grid-cols-2 print:grid-cols-2">
+          <div className={getOfficialDetailsGridClass(designId)}>
             {values.map((item) => (
               <MetaCard
                 key={item.key || item.label}
@@ -2437,6 +2437,18 @@ function DesignFieldValueBlock({
       )}
     </section>
   );
+}
+
+function getOfficialDetailsGridClass(designId: ReportDesignId) {
+  if (
+    designId === "ministry-form" ||
+    designId === "modern-official" ||
+    designId === "report-official-archive"
+  ) {
+    return "grid grid-cols-3 gap-2 print:grid-cols-3";
+  }
+
+  return "grid gap-2 md:grid-cols-2 print:grid-cols-2";
 }
 
 function DesignValueGrid({
