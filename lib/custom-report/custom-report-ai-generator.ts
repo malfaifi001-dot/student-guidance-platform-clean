@@ -10,6 +10,10 @@ export type CustomReportGenerationContext = {
   stages?: string[];
   specialties?: string[];
   subjects?: string[];
+  mode?: "create" | "regenerate";
+  previousPrompt?: string;
+  regenerationInstruction?: string;
+  previousSchema?: CustomReportSchema | null;
 };
 
 function cleanText(value: unknown) {
@@ -59,6 +63,29 @@ function buildContextBlock(context?: CustomReportGenerationContext) {
   return rows.map(([label, value]) => `- ${label}: ${value}`).join("\n");
 }
 
+function buildPreviousSchemaBlock(schema?: CustomReportSchema | null) {
+  if (!schema) return "لا يوجد هيكل سابق.";
+
+  const compact = {
+    title: schema.title,
+    description: schema.description || "",
+    sections: schema.sections.map((section) => ({
+      title: section.title,
+      fields: section.fields.map((field) => ({
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        required: field.required,
+        options: Array.isArray(field.options)
+          ? field.options.slice(0, 8).map((option) => option.label)
+          : [],
+      })),
+    })),
+  };
+
+  return JSON.stringify(compact, null, 2).slice(0, 7000);
+}
+
 function fallbackSchema(prompt: string): CustomReportSchema {
   return normalizeCustomReportSchema({
     title: "تقرير خاص",
@@ -88,30 +115,47 @@ export async function generateCustomReportSchema(
   prompt: string,
   context?: CustomReportGenerationContext,
 ) {
+  const mode = context?.mode === "regenerate" ? "regenerate" : "create";
+  const regenerationInstruction = cleanText(context?.regenerationInstruction);
+  const previousPrompt = cleanText(context?.previousPrompt);
+
   try {
     const content = await callDeepSeekChat({
-      temperature: 0.1,
-      maxTokens: 2600,
+      temperature: mode === "regenerate" ? 0.12 : 0.1,
+      maxTokens: 2800,
       messages: [
         {
           role: "system",
           content:
-            "أنت محرك تصميم نماذج تقارير مدرسية ديناميكية. وظيفتك تحويل وصف المستخدم إلى JSON فقط. لا تكتب Markdown ولا HTML. لا تخترع حقولًا غير مذكورة أو غير لازمة. لا تستخدم قوالب ثابتة. استخدم بيانات البروفايل لتخصيص المصطلحات والخيارات فقط، وليس لإضافة حقول غير مطلوبة. لا تضف تواصل ولي الأمر أو الغياب أو التوصيات أو خطة المتابعة إلا إذا طلبها المستخدم صراحة أو كان وجودها لازمًا بوضوح من وصفه.",
+            "أنت محرك تصميم نماذج تقارير مدرسية ديناميكية. وظيفتك تحويل وصف المستخدم إلى JSON فقط. لا تكتب Markdown ولا HTML. لا تخترع حقولًا غير مذكورة أو غير لازمة. لا تستخدم قوالب ثابتة. استخدم بيانات البروفايل لتخصيص المصطلحات والخيارات فقط، وليس لإضافة حقول غير مطلوبة. إذا كان الطلب إعادة توليد، افهم أن المستخدم غير راضٍ عن النسخة السابقة ويريد تعديل الحقول أو استبدالها أو تحسينها. لا تكرر نفس الهيكل السابق إلا إذا كان مناسبًا بوضوح.",
         },
         {
           role: "user",
           content: `
 حوّل وصف المستخدم إلى هيكل تقرير مدرسي ديناميكي.
 
+وضع الطلب:
+${mode === "regenerate" ? "إعادة توليد الحقول بناءً على نسخة سابقة وتعليمات تعديل من المستخدم." : "إنشاء أولي."}
+
 سياق المستخدم من البروفايل أو الطلب:
 ${buildContextBlock(context)}
 
-وصف المستخدم:
-${prompt}
+الوصف الأصلي:
+${previousPrompt || prompt}
+
+تعليمات المستخدم الحالية:
+${mode === "regenerate" ? regenerationInstruction || prompt : prompt}
+
+الهيكل السابق عند إعادة التوليد:
+${mode === "regenerate" ? buildPreviousSchemaBlock(context?.previousSchema) : "لا يوجد."}
 
 قواعد صارمة:
 - أعد JSON فقط.
 - التزم بما طلبه المستخدم ولا تضف حقولًا من عندك.
+- إذا كان الطلب إعادة توليد: لا تكرر نفس الحقول السابقة بنفس الترتيب إلا إذا طلب المستخدم الإبقاء عليها.
+- إذا طلب المستخدم إضافة شيء، أضفه مع الحفاظ على الحقول المناسبة فقط.
+- إذا طلب حذف شيء، احذفه ولا تعوضه بحقل مشابه.
+- إذا طلب "حقول أخرى"، قدم بدائل مختلفة فعلًا عن النسخة السابقة.
 - لا تستخدم قالب غياب أو سلوك أو ولي أمر إلا إذا كان الوصف يطلب ذلك.
 - لا تتجاوز 3 أقسام.
 - لا تتجاوز 12 حقلًا إجمالًا.

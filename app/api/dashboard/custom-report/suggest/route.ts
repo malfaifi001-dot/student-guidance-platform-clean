@@ -5,6 +5,7 @@ import {
   type CustomReportGenerationContext,
 } from "@/lib/custom-report/custom-report-ai-generator";
 import { requireCustomReportContext } from "@/lib/custom-report/custom-report-auth";
+import type { CustomReportSchema } from "@/lib/custom-report/custom-report-types";
 
 function normalizeList(value: unknown) {
   if (!Array.isArray(value)) return [];
@@ -46,17 +47,49 @@ function getUserIdFromContext(context: unknown) {
   );
 }
 
+function readPreviousSchema(value: unknown): CustomReportSchema | null {
+  if (!value || typeof value !== "object") return null;
+  return value as CustomReportSchema;
+}
+
 export async function POST(request: Request) {
   const authContext = await requireCustomReportContext();
 
   const body = await request.json().catch(() => null);
-  const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
 
-  if (prompt.length < 15) {
+  const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
+  const mode = body?.mode === "regenerate" ? "regenerate" : "create";
+  const regenerationInstruction =
+    typeof body?.regenerationInstruction === "string"
+      ? body.regenerationInstruction.trim()
+      : "";
+  const previousPrompt =
+    typeof body?.previousPrompt === "string" ? body.previousPrompt.trim() : "";
+  const previousSchema = readPreviousSchema(body?.previousSchema);
+
+  const effectivePrompt =
+    prompt ||
+    previousPrompt ||
+    regenerationInstruction ||
+    previousSchema?.description ||
+    previousSchema?.title ||
+    "";
+
+  if (effectivePrompt.trim().length < 15) {
     return NextResponse.json(
       {
         success: false,
         error: "اكتب وصفًا أوضح للتقرير لا يقل عن 15 حرفًا.",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (mode === "regenerate" && !previousSchema) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لا يمكن إعادة التوليد بدون الحقول السابقة.",
       },
       { status: 400 },
     );
@@ -81,12 +114,16 @@ export async function POST(request: Request) {
 
   const generationContext: CustomReportGenerationContext = {
     ...bodyContext,
+    mode,
+    previousPrompt: previousPrompt || prompt,
+    regenerationInstruction,
+    previousSchema,
     stages: normalizeList(profile?.teachingStages),
     specialties: normalizeList(profile?.teachingSpecialties),
     subjects: normalizeList(profile?.teachingSubjects),
   };
 
-  const result = await generateCustomReportSchema(prompt, generationContext);
+  const result = await generateCustomReportSchema(effectivePrompt, generationContext);
 
   return NextResponse.json({
     success: true,

@@ -79,6 +79,10 @@ export function CustomReportWorkspace({
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [schema, setSchema] = useState<CustomReportSchema | null>(null);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
+  const [regeneratePrompt, setRegeneratePrompt] = useState("");
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenerateSeconds, setRegenerateSeconds] = useState(0);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(initialTemplateId || null);
   const [values, setValues] = useState<CustomReportValues>({});
   const [isPromptOpen, setIsPromptOpen] = useState(!initialTemplateId);
@@ -88,6 +92,20 @@ export function CustomReportWorkspace({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  useEffect(() => {
+    if (!regenerating) {
+      setRegenerateSeconds(1);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setRegenerateSeconds((current) => current + 1);
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [regenerating]);
   const visibleFields = useMemo(
     () => schema?.sections.flatMap((section) => section.fields.filter((field) => field.showInReport !== false)) || [],
     [schema],
@@ -249,6 +267,52 @@ export function CustomReportWorkspace({
     );
   }
 
+  async function regenerateFieldsWithAi() {
+    if (!schema || regenerating) return;
+
+    const instruction = regeneratePrompt.trim();
+
+    if (instruction.length < 3) {
+      setMessage("اكتب المطلوب تعديله في الحقول أولًا.");
+      return;
+    }
+
+    setRegenerateSeconds(1);
+    setRegenerating(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/dashboard/custom-report/suggest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mode: "regenerate",
+          prompt,
+          previousPrompt: prompt,
+          regenerationInstruction: instruction,
+          previousSchema: schema,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر إعادة توليد الحقول.");
+      }
+
+      setSchema(data.schema);
+      setValues({});
+      setRegenerateOpen(false);
+      setRegeneratePrompt("");
+      setMessage("تمت إعادة توليد الحقول بناءً على طلبك.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر إعادة توليد الحقول.");
+    } finally {
+      setRegenerating(false);
+    }
+  }
   function updateField(sectionIndex: number, fieldIndex: number, patch: Partial<CustomReportField>) {
     setSchema((current) =>
       current
@@ -571,6 +635,17 @@ export function CustomReportWorkspace({
                   {isSaving ? "جاري الحفظ..." : "حفظ القالب للاستخدام لاحقًا"}
                 </button>
 
+                <button
+                  data-custom-report-regenerate-button
+                  type="button"
+                  onClick={() => {
+                    setRegeneratePrompt("");
+                    setRegenerateOpen(true);
+                  }}
+                  className="rounded-full border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100"
+                >
+                  إعادة توليد الحقول
+                </button>
                 {!isEditingFields ? (
                   <button
                     type="button"
@@ -748,6 +823,81 @@ export function CustomReportWorkspace({
           )}
         </>
       )}
-    </main>
+    
+      {regenerateOpen && schema ? (
+        <div
+          data-custom-report-regenerate-modal
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <div className="w-full max-w-3xl rounded-[2rem] border border-slate-200 bg-white p-6 text-right shadow-2xl">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-black text-sky-700">إعادة توليد الحقول</p>
+                <h2 className="mt-2 text-2xl font-black text-slate-950">
+                  اكتب ما تريد تعديله
+                </h2>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!regenerating) {
+                    setRegenerateOpen(false);
+                    setRegeneratePrompt("");
+                  }
+                }}
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+              >
+                إغلاق
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-4">
+              <p className="text-xs font-black text-slate-500">النص المدخل سابقًا</p>
+              <p className="mt-2 max-h-32 overflow-y-auto whitespace-pre-wrap text-sm font-bold leading-7 text-slate-800">
+                {prompt || schema.description || schema.title || "لا يوجد نص سابق."}
+              </p>
+            </div>
+
+            <textarea
+              value={regeneratePrompt}
+              onChange={(event) => setRegeneratePrompt(event.target.value)}
+              placeholder="اكتب التعديل المطلوب فقط، مثال: احذف طرق التعلم وأضف تقييم أداء الطالبات."
+              className="mt-5 min-h-52 w-full resize-y rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 text-base font-bold leading-8 text-slate-900 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+            />
+
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!regenerating) {
+                    setRegenerateOpen(false);
+                    setRegeneratePrompt("");
+                  }
+                }}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+              >
+                إلغاء
+              </button>
+
+              <button
+                type="button"
+                onClick={regenerateFieldsWithAi}
+                disabled={regenerating || regeneratePrompt.trim().length < 3}
+                className={[
+                  "rounded-2xl px-6 py-3 text-sm font-black text-white transition disabled:cursor-not-allowed disabled:opacity-80",
+                  regenerating
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-slate-950 hover:bg-slate-800",
+                ].join(" ")}
+              >
+                {regenerating ? `جاري إعادة التوليد... ${Math.max(1, regenerateSeconds)}` : "إعادة توليد الحقول"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}</main>
   );
 }

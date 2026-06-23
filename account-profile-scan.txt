@@ -1,0 +1,4253 @@
+Account Profile Scan
+Generated: 06/23/2026 13:11:12
+
+Git status:
+ M app/api/dashboard/custom-report/suggest/route.ts
+ M lib/custom-report/custom-report-ai-generator.ts
+ M lib/custom-report/custom-report-normalizer.ts
+
+
+
+===== .\app\api\dashboard\account\password\route.ts =====
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+type AppTransactionClient = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+
+type CurrentSessionWithToken = Awaited<ReturnType<typeof getCurrentSessionUser>> & {
+  tokenId?: string | null;
+};
+
+function isStrongEnoughPassword(password: string) {
+  return password.length >= 8;
+}
+
+function passwordsMatch(newPassword: string, confirmPassword: string) {
+  return newPassword === confirmPassword;
+}
+
+export async function POST(request: Request) {
+  const current = (await getCurrentSessionUser()) as CurrentSessionWithToken;
+
+  if (!current?.user?.id) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "يجب تسجيل الدخول أولًا.",
+        code: "UNAUTHENTICATED",
+      },
+      { status: 401 }
+    );
+  }
+
+  const payload = await request.json().catch(() => null);
+
+  const currentPassword = String((payload as any)?.currentPassword || "");
+  const newPassword = String((payload as any)?.newPassword || "");
+  const confirmPassword = String((payload as any)?.confirmPassword || "");
+
+  if (!currentPassword) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "كلمة المرور الحالية مطلوبة.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (!isStrongEnoughPassword(newPassword)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (!passwordsMatch(newPassword, confirmPassword)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "تأكيد كلمة المرور غير مطابق.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (currentPassword === newPassword) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "كلمة المرور الجديدة يجب أن تختلف عن الحالية.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: current.user.id,
+    },
+    select: {
+      id: true,
+      email: true,
+      passwordHash: true,
+      schoolAccountId: true,
+      isActive: true,
+    },
+  });
+
+  if (!user || !user.isActive) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "الحساب غير موجود أو غير مفعل.",
+      },
+      { status: 404 }
+    );
+  }
+
+  if (!verifyPassword(currentPassword, user.passwordHash)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "كلمة المرور الحالية غير صحيحة.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const currentTokenId = current.tokenId || null;
+
+  const result = await prisma.$transaction(async (tx: AppTransactionClient) => {
+    await tx.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        passwordHash: hashPassword(newPassword),
+      },
+    });
+
+    const revokeWhere = currentTokenId
+      ? {
+          userId: user.id,
+          isActive: true,
+          tokenId: {
+            not: currentTokenId,
+          },
+        }
+      : {
+          userId: user.id,
+          isActive: true,
+        };
+
+    const revoked = await tx.userSession.updateMany({
+      where: revokeWhere,
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+      },
+    });
+
+    return {
+      revokedSessionsCount: revoked.count,
+    };
+  });
+
+  await logAdminActivity({
+    actorUserId: user.id,
+    targetUserId: user.id,
+    schoolAccountId: user.schoolAccountId || null,
+    category: "SECURITY",
+    action: "account-password-changed",
+    severity: "WARNING",
+    title: "تم تغيير كلمة مرور الحساب",
+    details: {
+      revokedOtherSessions: true,
+      revokedSessionsCount: result.revokedSessionsCount,
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: "تم تغيير كلمة المرور وإلغاء الجلسات الأخرى.",
+    revokedSessionsCount: result.revokedSessionsCount,
+  });
+}
+
+
+
+===== .\app\api\dashboard\account\sessions\logout-others\route.ts =====
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+
+type CurrentSessionWithToken = Awaited<ReturnType<typeof getCurrentSessionUser>> & {
+  tokenId?: string | null;
+};
+
+export async function POST() {
+  const current = (await getCurrentSessionUser()) as CurrentSessionWithToken;
+
+  if (!current?.user?.id) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "يجب تسجيل الدخول أولًا.",
+        code: "UNAUTHENTICATED",
+      },
+      { status: 401 }
+    );
+  }
+
+  const currentTokenId = current.tokenId || null;
+
+  if (!currentTokenId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "تعذر تحديد الجلسة الحالية.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const result = await prisma.userSession.updateMany({
+    where: {
+      userId: current.user.id,
+      isActive: true,
+      tokenId: {
+        not: currentTokenId,
+      },
+    },
+    data: {
+      isActive: false,
+      revokedAt: new Date(),
+    },
+  });
+
+  await logAdminActivity({
+    actorUserId: current.user.id,
+    targetUserId: current.user.id,
+    schoolAccountId: current.user.schoolAccountId || null,
+    category: "SECURITY",
+    action: "account-other-sessions-revoked",
+    severity: "INFO",
+    title: "تم تسجيل الخروج من الجلسات الأخرى",
+    details: {
+      revokedSessionsCount: result.count,
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: "تم تسجيل الخروج من الجلسات الأخرى.",
+    revokedSessionsCount: result.count,
+  });
+}
+
+
+===== .\app\api\dashboard\account\route.ts =====
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { logAdminActivity } from "@/lib/admin/activity-log";
+
+function normalizeOptionalString(value: unknown, maxLength: number) {
+  const text = String(value || "").trim();
+
+  if (!text) return null;
+
+  return text.slice(0, maxLength);
+}
+
+function normalizeGender(value: unknown) {
+  return value === "FEMALE" ? "FEMALE" : value === "MALE" ? "MALE" : undefined;
+}
+
+async function requireCurrentUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.id) {
+    return {
+      current: null,
+      response: NextResponse.json(
+        {
+          success: false,
+          error: "يجب تسجيل الدخول أولًا.",
+          code: "UNAUTHENTICATED",
+        },
+        { status: 401 }
+      ),
+    };
+  }
+
+  return {
+    current,
+    response: null,
+  };
+}
+
+function toSafeUser(user: {
+  id: string;
+  name: string;
+  officialName: string | null;
+  email: string;
+  phone: string | null;
+  role: string;
+  gender: string | null;
+  jobTitle: string | null;
+  schoolAccountId: string | null;
+  isActive: boolean;
+  onboardingCompleted: boolean;
+  onboardingSkippedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: user.id,
+    name: user.name,
+    officialName: user.officialName,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    gender: user.gender,
+    jobTitle: user.jobTitle,
+    schoolAccountId: user.schoolAccountId,
+    isActive: user.isActive,
+    onboardingCompleted: user.onboardingCompleted,
+    onboardingSkippedAt: user.onboardingSkippedAt,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+export async function GET() {
+  const { current, response } = await requireCurrentUser();
+
+  if (response) return response;
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: current.user.id,
+    },
+    select: {
+      id: true,
+      name: true,
+      officialName: true,
+      email: true,
+      phone: true,
+      role: true,
+      gender: true,
+      jobTitle: true,
+      schoolAccountId: true,
+      isActive: true,
+      onboardingCompleted: true,
+      onboardingSkippedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!user || !user.isActive) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "الحساب غير موجود أو غير مفعل.",
+      },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    user: toSafeUser(user),
+  });
+}
+
+export async function PATCH(request: Request) {
+  return updateAccount(request);
+}
+
+export async function PUT(request: Request) {
+  return updateAccount(request);
+}
+
+async function updateAccount(request: Request) {
+  const { current, response } = await requireCurrentUser();
+
+  if (response) return response;
+
+  const payload = await request.json().catch(() => null);
+
+  if (!payload || typeof payload !== "object") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "بيانات الحساب غير صحيحة.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const name = normalizeOptionalString((payload as any).name, 120);
+  const officialName = normalizeOptionalString((payload as any).officialName, 160);
+  const phone = normalizeOptionalString((payload as any).phone, 30);
+  const jobTitle = normalizeOptionalString((payload as any).jobTitle, 120);
+  const gender = normalizeGender((payload as any).gender);
+
+  if (!name || name.length < 3) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "الاسم يجب ألا يقل عن 3 أحرف.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const updated = await prisma.user.update({
+    where: {
+      id: current.user.id,
+    },
+    data: {
+      name,
+      officialName: officialName || name,
+      phone,
+      jobTitle,
+      ...(gender ? { gender } : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      officialName: true,
+      email: true,
+      phone: true,
+      role: true,
+      gender: true,
+      jobTitle: true,
+      schoolAccountId: true,
+      isActive: true,
+      onboardingCompleted: true,
+      onboardingSkippedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  await logAdminActivity({
+    actorUserId: updated.id,
+    targetUserId: updated.id,
+    schoolAccountId: updated.schoolAccountId || null,
+    category: "USER",
+    action: "account-profile-updated",
+    severity: "INFO",
+    title: "تم تحديث بيانات الحساب الشخصي",
+    details: {
+      changedFields: ["name", "officialName", "phone", "jobTitle", "gender"],
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    user: toSafeUser(updated),
+    message: "تم حفظ بيانات الحساب بنجاح.",
+  });
+}
+
+
+===== .\app\dashboard\account\page.tsx =====
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+
+
+type AccountUser = {
+  id: string;
+  name: string;
+  officialName: string | null;
+  email: string;
+  phone: string | null;
+  role: string;
+  gender: string | null;
+  jobTitle: string | null;
+  schoolAccountId: string | null;
+  isActive: boolean;
+  onboardingCompleted: boolean;
+  onboardingSkippedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type SubscriptionInfo = {
+  subscription?: {
+    status: string;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    planName?: string | null;
+  };
+  remainingDays?: number | null;
+  usable?: boolean;
+};
+
+function roleLabel(role: string) {
+  if (role === "ADMIN") return "مدير النظام";
+  if (role === "COUNSELOR") return "موجه طلابي";
+  if (role === "TEACHER") return "معلم";
+  if (role === "SCHOOL_OWNER") return "مالك مدرسة";
+  if (role === "STAFF") return "موظف";
+  return role;
+}
+
+function genderLabel(gender: string | null) {
+  if (gender === "MALE") return "ذكر";
+  if (gender === "FEMALE") return "أنثى";
+  return "غير محدد";
+}
+
+function subscriptionStatusLabel(status?: string) {
+  if (status === "TRIAL") return "تجريبي";
+  if (status === "ACTIVE") return "نشط";
+  if (status === "PAST_DUE") return "متعثر";
+  if (status === "CANCELED") return "ملغي";
+  if (status === "EXPIRED") return "منتهي";
+  return status || "غير محدد";
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+async function readJson(response: Response) {
+  const text = await response.text();
+
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
+
+export default function DashboardAccountPage() {
+  const [user, setUser] = useState<AccountUser | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [loggingOutOthers, setLoggingOutOthers] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    officialName: "",
+    phone: "",
+    jobTitle: "",
+    gender: "UNKNOWN",
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  async function loadPage() {
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const [accountResponse, subscriptionResponse] = await Promise.all([
+        fetch("/api/dashboard/account", { cache: "no-store" }),
+        fetch("/api/dashboard/subscription", { cache: "no-store" }),
+      ]);
+
+      const accountResult = await readJson(accountResponse);
+      const subscriptionResult = await readJson(subscriptionResponse);
+
+      if (!accountResponse.ok) {
+        throw new Error(accountResult.error || "تعذر تحميل بيانات الحساب.");
+      }
+
+      const nextUser = accountResult.user as AccountUser;
+
+      setUser(nextUser);
+      setProfileForm({
+        name: nextUser.name || "",
+        officialName: nextUser.officialName || nextUser.name || "",
+        phone: nextUser.phone || "",
+        jobTitle: nextUser.jobTitle || "",
+        gender: nextUser.gender || "UNKNOWN",
+      });
+
+      if (subscriptionResponse.ok) {
+        setSubscription(subscriptionResult);
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر تحميل صفحة الحساب.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveProfile() {
+    setSavingProfile(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/dashboard/account", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(profileForm),
+      });
+
+      const result = await readJson(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر حفظ بيانات الحساب.");
+      }
+
+      setUser(result.user);
+      setMessage(result.message || "تم حفظ بيانات الحساب بنجاح.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر حفظ بيانات الحساب.");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function changePassword() {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setMessage("كلمة المرور الجديدة وتأكيدها غير متطابقين.");
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      setMessage("كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.");
+      return;
+    }
+
+    setSavingPassword(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/dashboard/account/password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      });
+
+      const result = await readJson(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر تغيير كلمة المرور.");
+      }
+
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+
+      setMessage(result.message || "تم تغيير كلمة المرور بنجاح.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر تغيير كلمة المرور.");
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  async function logoutOtherSessions() {
+    setLoggingOutOthers(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/dashboard/account/sessions/logout-others", {
+        method: "POST",
+      });
+
+      const result = await readJson(response);
+
+      if (!response.ok) {
+        throw new Error(result.error || "تعذر تسجيل الخروج من الأجهزة الأخرى.");
+      }
+
+      setMessage(result.message || "تم تسجيل الخروج من الأجهزة الأخرى بنجاح.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر تنفيذ العملية.");
+    } finally {
+      setLoggingOutOthers(false);
+    }
+  }
+
+  useEffect(() => {
+    loadPage();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="flex min-h-[60vh] items-center justify-center text-right" dir="rtl">
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-sky-600 to-emerald-500 shadow-lg shadow-sky-100">
+            <span className="text-2xl font-black text-white">ت</span>
+          </div>
+          <div className="mt-5 flex items-center justify-center gap-2">
+            <span className="h-3 w-3 animate-bounce rounded-full bg-sky-600 [animation-delay:-0.25s]" />
+            <span className="h-3 w-3 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.12s]" />
+            <span className="h-3 w-3 animate-bounce rounded-full bg-slate-400" />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="space-y-6 text-right" dir="rtl">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm font-black text-sky-700">الحساب الشخصي</p>
+            <h1 className="mt-2 text-3xl font-black text-slate-950">
+              إعدادات الحساب
+            </h1>
+            <p className="mt-2 text-sm font-bold text-slate-500">
+              إدارة بياناتك الشخصية، كلمة المرور، وحالة الاشتراك.
+            </p>
+          </div>
+
+          <span className="w-fit rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700">
+            {user?.isActive ? "حساب مفعل" : "حساب غير مفعل"}
+          </span>
+        </div>
+      </section>
+
+      {message ? (
+        <section className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-bold text-sky-800">
+          {message}
+        </section>
+      ) : null}
+
+      <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">الملف الشخصي</h2>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-xs font-black text-slate-500">الاسم</span>
+              <input
+                value={profileForm.name}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, name: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-black text-slate-500">الاسم الرسمي</span>
+              <input
+                value={profileForm.officialName}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, officialName: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-black text-slate-500">رقم الجوال</span>
+              <input
+                value={profileForm.phone}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, phone: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-black text-slate-500">المسمى الوظيفي</span>
+              <input
+                value={profileForm.jobTitle}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, jobTitle: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-black text-slate-500">الجنس</span>
+              <select
+                value={profileForm.gender}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, gender: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+              >
+                <option value="UNKNOWN">غير محدد</option>
+                <option value="MALE">ذكر</option>
+                <option value="FEMALE">أنثى</option>
+              </select>
+            </label>
+
+            <div className="space-y-2">
+              <span className="text-xs font-black text-slate-500">البريد الإلكتروني</span>
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+                {user?.email || "—"}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={saveProfile}
+            disabled={savingProfile}
+            className="mt-6 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-50"
+          >
+            {savingProfile ? "جاري الحفظ..." : "حفظ بيانات الحساب"}
+          </button>
+        </div>
+
+        <div className="space-y-5">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">ملخص الحساب</h2>
+
+            <div className="mt-5 space-y-3 text-sm font-bold">
+              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+                <span className="text-slate-500">الدور</span>
+                <span>{roleLabel(user?.role || "")}</span>
+              </div>
+
+              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+                <span className="text-slate-500">الجنس</span>
+                <span>{genderLabel(user?.gender || null)}</span>
+              </div>
+
+              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+                <span className="text-slate-500">آخر تحديث</span>
+                <span>{formatDate(user?.updatedAt)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">الاشتراك</h2>
+
+            <div className="mt-5 space-y-3 text-sm font-bold">
+              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+                <span className="text-slate-500">الخطة</span>
+                <span>{subscription?.subscription?.planName || "—"}</span>
+              </div>
+
+              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+                <span className="text-slate-500">الحالة</span>
+                <span>{subscriptionStatusLabel(subscription?.subscription?.status)}</span>
+              </div>
+
+              <div className="flex justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+                <span className="text-slate-500">الأيام المتبقية</span>
+                <span>{subscription?.remainingDays ?? "—"}</span>
+              </div>
+            </div>
+
+            <Link
+              href="/dashboard/subscription"
+              className="mt-5 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100"
+            >
+              إدارة الاشتراك
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-2">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">تغيير كلمة المرور</h2>
+
+          <div className="mt-5 space-y-4">
+            <input
+              type="password"
+              value={passwordForm.currentPassword}
+              onChange={(event) => setPasswordForm((prev) => ({ ...prev, currentPassword: event.target.value }))}
+              placeholder="كلمة المرور الحالية"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            />
+
+            <input
+              type="password"
+              value={passwordForm.newPassword}
+              onChange={(event) => setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }))}
+              placeholder="كلمة المرور الجديدة"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            />
+
+            <input
+              type="password"
+              value={passwordForm.confirmPassword}
+              onChange={(event) => setPasswordForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
+              placeholder="تأكيد كلمة المرور الجديدة"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none focus:border-sky-300"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={changePassword}
+            disabled={savingPassword}
+            className="mt-6 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50"
+          >
+            {savingPassword ? "جاري التغيير..." : "تغيير كلمة المرور"}
+          </button>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">الأمان والجلسات</h2>
+
+          <p className="mt-3 text-sm font-bold leading-6 text-slate-500">
+            عند استخدام جهاز عام أو عند الشك بوجود دخول غير مصرح، يمكنك تسجيل الخروج من كل الأجهزة الأخرى مع إبقاء الجلسة الحالية.
+          </p>
+
+          <button
+            type="button"
+            onClick={logoutOtherSessions}
+            disabled={loggingOutOthers}
+            className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
+          >
+            {loggingOutOthers ? "جاري التنفيذ..." : "تسجيل الخروج من الأجهزة الأخرى"}
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+===== .\components\account\account-profile-client.tsx =====
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  CheckCircle2,
+  Laptop,
+  Lock,
+  LogOut,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
+
+type AccountUser = {
+  id: string;
+  name: string;
+  officialName: string;
+  email: string;
+  phone: string;
+  gender: "MALE" | "FEMALE" | "UNKNOWN";
+  role: string;
+  jobTitle: string;
+  onboardingCompleted: boolean;
+  schoolName: string;
+};
+
+type AccountSession = {
+  id: string;
+  tokenId: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  isActive: boolean;
+  expiresAt: string;
+  lastSeenAt: string;
+  revokedAt: string | null;
+  createdAt: string;
+};
+
+type AccountPayload = {
+  user: AccountUser;
+  currentSessionId: string;
+  sessions: AccountSession[];
+  singleActiveSessionEnabled: boolean;
+};
+
+const EMPTY_USER: AccountUser = {
+  id: "",
+  name: "",
+  officialName: "",
+  email: "",
+  phone: "",
+  gender: "MALE",
+  role: "COUNSELOR",
+  jobTitle: "",
+  onboardingCompleted: false,
+  schoolName: "",
+};
+
+export function AccountProfileClient() {
+  const [data, setData] = useState<AccountPayload | null>(null);
+  const [form, setForm] = useState<AccountUser>(EMPTY_USER);
+  const [initialForm, setInitialForm] = useState<AccountUser>(EMPTY_USER);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [endingSessions, setEndingSessions] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+
+  const hasProfileChanges = useMemo(() => {
+    return JSON.stringify(form) !== JSON.stringify(initialForm);
+  }, [form, initialForm]);
+
+  const activeSessions = useMemo(() => {
+    return data?.sessions.filter((session) => session.isActive && !session.revokedAt) || [];
+  }, [data]);
+
+  useEffect(() => {
+    loadAccount();
+  }, []);
+
+  async function loadAccount() {
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/dashboard/account", {
+        cache: "no-store",
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || "تعذر تحميل بيانات الحساب.");
+      }
+
+      setData(json.data);
+      setForm(json.data.user);
+      setInitialForm(json.data.user);
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تحميل الحساب.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function update<K extends keyof AccountUser>(key: K, value: AccountUser[K]) {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  async function saveProfile() {
+    try {
+      setFeedback(null);
+      setSavingProfile(true);
+
+      const response = await fetch("/api/dashboard/account", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || "تعذر حفظ الحساب.");
+      }
+
+      setInitialForm(form);
+      setFeedback({
+        type: "success",
+        message: "تم حفظ بيانات الحساب بنجاح.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error ? error.message : "حدث خطأ أثناء حفظ الحساب.",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function changePassword() {
+    try {
+      setFeedback(null);
+      setSavingPassword(true);
+
+      const response = await fetch("/api/dashboard/account/password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(passwordForm),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || "تعذر تغيير كلمة المرور.");
+      }
+
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+
+      setFeedback({
+        type: "success",
+        message: json.message || "تم تغيير كلمة المرور.",
+      });
+
+      await loadAccount();
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تغيير كلمة المرور.",
+      });
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  async function logoutOtherSessions() {
+    try {
+      setFeedback(null);
+      setEndingSessions(true);
+
+      const response = await fetch(
+        "/api/dashboard/account/sessions/logout-others",
+        {
+          method: "POST",
+        }
+      );
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || "تعذر إنهاء الجلسات.");
+      }
+
+      setFeedback({
+        type: "success",
+        message: json.message || "تم إنهاء الجلسات الأخرى.",
+      });
+
+      await loadAccount();
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء إنهاء الجلسات.",
+      });
+    } finally {
+      setEndingSessions(false);
+    }
+  }
+
+  async function logout() {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    window.location.href = "/login";
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-sm font-bold text-slate-500 shadow-sm">
+        جاري تحميل حسابك...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <HeroCard
+        user={form}
+        activeSessionsCount={activeSessions.length}
+        singleActiveSessionEnabled={Boolean(data?.singleActiveSessionEnabled)}
+      />
+
+      {feedback ? (
+        <div
+          className={[
+            "rounded-2xl border px-4 py-3 text-sm font-bold leading-7",
+            feedback.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : feedback.type === "info"
+                ? "border-blue-200 bg-blue-50 text-blue-700"
+                : "border-red-200 bg-red-50 text-red-700",
+          ].join(" ")}
+        >
+          {feedback.message}
+        </div>
+      ) : null}
+
+      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <SectionTitle
+            icon={<UserRound className="h-5 w-5" />}
+            eyebrow="الملف الشخصي"
+            title="بيانات الحساب"
+            description="هذه البيانات تحدد اسمك وظهورك داخل التقارير والواجهة."
+          />
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <Input
+              label="الاسم"
+              value={form.name}
+              onChange={(value) => update("name", value)}
+            />
+
+            <Input
+              label="الاسم الرسمي في التقارير"
+              value={form.officialName}
+              onChange={(value) => update("officialName", value)}
+            />
+
+            <Input
+              label="البريد الإلكتروني"
+              value={form.email}
+              disabled
+              onChange={() => null}
+            />
+
+            <Input
+              label="رقم الجوال"
+              value={form.phone}
+              onChange={(value) => update("phone", value)}
+            />
+
+            <Input
+              label="المسمى الوظيفي"
+              value={form.jobTitle}
+              onChange={(value) => update("jobTitle", value)}
+            />
+
+            <div>
+              <p className="text-sm font-black text-slate-700">الصفة</p>
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <ChoiceButton
+                  active={form.gender === "MALE"}
+                  label="موجه طلابي"
+                  onClick={() => update("gender", "MALE")}
+                />
+
+                <ChoiceButton
+                  active={form.gender === "FEMALE"}
+                  label="موجهة طلابية"
+                  onClick={() => update("gender", "FEMALE")}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              disabled={!hasProfileChanges || savingProfile}
+              onClick={saveProfile}
+              className="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {savingProfile ? "جاري الحفظ..." : "حفظ بيانات الحساب"}
+            </button>
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <SectionTitle
+            icon={<Lock className="h-5 w-5" />}
+            eyebrow="الأمان"
+            title="تغيير كلمة المرور"
+            description="عند تغيير كلمة المرور سيتم إنهاء الجلسات الأخرى تلقائيًا."
+          />
+
+          <div className="mt-6 space-y-4">
+            <Input
+              type="password"
+              label="كلمة المرور الحالية"
+              value={passwordForm.currentPassword}
+              onChange={(value) =>
+                setPasswordForm((current) => ({
+                  ...current,
+                  currentPassword: value,
+                }))
+              }
+            />
+
+            <Input
+              type="password"
+              label="كلمة المرور الجديدة"
+              value={passwordForm.newPassword}
+              onChange={(value) =>
+                setPasswordForm((current) => ({
+                  ...current,
+                  newPassword: value,
+                }))
+              }
+            />
+
+            <Input
+              type="password"
+              label="تأكيد كلمة المرور الجديدة"
+              value={passwordForm.confirmPassword}
+              onChange={(value) =>
+                setPasswordForm((current) => ({
+                  ...current,
+                  confirmPassword: value,
+                }))
+              }
+            />
+
+            <button
+              type="button"
+              onClick={changePassword}
+              disabled={savingPassword}
+              className="w-full rounded-2xl bg-blue-600 px-6 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:opacity-50"
+            >
+              {savingPassword ? "جاري التغيير..." : "تغيير كلمة المرور"}
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <SectionTitle
+            icon={<ShieldCheck className="h-5 w-5" />}
+            eyebrow="الجلسات والأجهزة"
+            title="الأجهزة التي دخلت إلى حسابك"
+            description="راقب الجلسات النشطة وأنهِ الأجهزة الأخرى عند الحاجة."
+          />
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={logoutOtherSessions}
+              disabled={endingSessions}
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              {endingSessions ? "جاري الإنهاء..." : "تسجيل الخروج من الأجهزة الأخرى"}
+            </button>
+
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white transition hover:bg-red-700"
+            >
+              تسجيل الخروج
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-3">
+          {data?.sessions.map((session) => (
+            <SessionCard
+              key={session.id}
+              session={session}
+              current={session.id === data.currentSessionId}
+            />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function HeroCard({
+  user,
+  activeSessionsCount,
+  singleActiveSessionEnabled,
+}: {
+  user: AccountUser;
+  activeSessionsCount: number;
+  singleActiveSessionEnabled: boolean;
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-[2rem] bg-slate-950 p-7 text-white shadow-xl">
+      <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-blue-500/30 blur-3xl" />
+      <div className="absolute -bottom-24 right-20 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl" />
+
+      <div className="relative z-10 grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black text-sky-100">
+            <Sparkles className="h-4 w-4" />
+            مساحة الحساب الشخصي
+          </div>
+
+          <h1 className="mt-5 text-3xl font-black leading-[1.6]">
+            {user.officialName || user.name || "حسابي"}
+          </h1>
+
+          <p className="mt-2 max-w-2xl text-sm leading-8 text-slate-300">
+            هذا الحساب يمثل هوية الموجه/الموجهة داخل التقارير والسجلات؛ حافظ على بياناته دقيقة ومحدثة.
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
+          <p className="text-sm font-black text-sky-100">ملخص سريع</p>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <MiniStat label="المدرسة" value={user.schoolName || "غير مكتملة"} />
+            <MiniStat label="الجلسات" value={`${activeSessionsCount}`} />
+            <MiniStat label="الصفة" value={user.gender === "FEMALE" ? "موجهة" : "موجه"} />
+            <MiniStat
+              label="سياسة الأجهزة"
+              value={singleActiveSessionEnabled ? "جهاز واحد" : "مرنة"}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/10 px-4 py-3">
+      <p className="text-[11px] font-bold text-slate-300">{label}</p>
+      <p className="mt-1 truncate text-sm font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function SectionTitle({
+  icon,
+  eyebrow,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+        {icon}
+      </div>
+
+      <div>
+        <p className="text-xs font-black text-blue-700">{eyebrow}</p>
+        <h2 className="mt-1 text-2xl font-black text-slate-950">{title}</h2>
+        <p className="mt-1 max-w-2xl text-sm leading-7 text-slate-500">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Input({
+  label,
+  value,
+  onChange,
+  type = "text",
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-black text-slate-700">{label}</span>
+      <input
+        type={type}
+        value={value || ""}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-400"
+      />
+    </label>
+  );
+}
+
+function ChoiceButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-2xl border px-4 py-3 text-sm font-black transition",
+        active
+          ? "border-slate-950 bg-slate-950 text-white"
+          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+      ].join(" ")}
+    >
+      {label}
+    </button>
+  );
+}
+
+function SessionCard({
+  session,
+  current,
+}: {
+  session: AccountSession;
+  current: boolean;
+}) {
+  const device = getDeviceLabel(session.userAgent);
+  const active = session.isActive && !session.revokedAt;
+
+  return (
+    <article
+      className={[
+        "rounded-3xl border p-4",
+        current
+          ? "border-blue-200 bg-blue-50"
+          : active
+            ? "border-slate-200 bg-white"
+            : "border-slate-200 bg-slate-50 opacity-70",
+      ].join(" ")}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex gap-3">
+          <div
+            className={[
+              "flex h-11 w-11 items-center justify-center rounded-2xl",
+              current ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600",
+            ].join(" ")}
+          >
+            {device.includes("جوال") ? (
+              <Smartphone className="h-5 w-5" />
+            ) : (
+              <Laptop className="h-5 w-5" />
+            )}
+          </div>
+
+          <div>
+            <p className="text-sm font-black text-slate-950">
+              {device}
+              {current ? " · الجهاز الحالي" : ""}
+            </p>
+            <p className="mt-1 max-w-2xl text-xs font-bold leading-6 text-slate-500">
+              {session.userAgent || "متصفح غير معروف"}
+            </p>
+
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
+              <span>IP: {session.ipAddress || "غير متاح"}</span>
+              <span>آخر نشاط: {formatDate(session.lastSeenAt)}</span>
+              <span>بداية الجلسة: {formatDate(session.createdAt)}</span>
+            </div>
+          </div>
+        </div>
+
+        <span
+          className={[
+            "rounded-full px-3 py-1 text-[11px] font-black",
+            active
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-slate-200 text-slate-500",
+          ].join(" ")}
+        >
+          {active ? "نشطة" : "منتهية"}
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function getDeviceLabel(userAgent: string | null) {
+  const value = userAgent || "";
+
+  if (/iPhone|Android|Mobile/i.test(value)) return "جوال أو جهاز لوحي";
+  if (/Windows/i.test(value)) return "جهاز Windows";
+  if (/Macintosh|Mac OS/i.test(value)) return "جهاز Mac";
+  if (/Linux/i.test(value)) return "جهاز Linux";
+
+  return "جهاز غير معروف";
+}
+
+function formatDate(value: string) {
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return "غير متاح";
+  }
+}
+
+
+===== .\components\settings\principal-signature-public-form.tsx =====
+"use client";
+
+import type { PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+type SignaturePageData = {
+  schoolName: string;
+  principalName: string;
+  signed: boolean;
+  signedAt: string;
+};
+
+type LoadState = "loading" | "ready" | "error" | "saved";
+
+function formatDate(value: string) {
+  if (!value) return "";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+export function PrincipalSignaturePublicForm({ token }: { token: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawingRef = useRef(false);
+  const hasSignatureRef = useRef(false);
+
+  const [state, setState] = useState<LoadState>("loading");
+  const [data, setData] = useState<SignaturePageData | null>(null);
+  const [error, setError] = useState("");
+  const [draftSignature, setDraftSignature] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const apiUrl = useMemo(() => {
+    return `/api/school-signature/${encodeURIComponent(token)}`;
+  }, [token]);
+
+  async function loadSignatureRequest() {
+    try {
+      setState("loading");
+      setError("");
+
+      const response = await fetch(apiUrl, {
+        cache: "no-store",
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "رابط التوقيع غير صالح.");
+      }
+
+      setData(payload.data);
+      setState("ready");
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "تعذر فتح رابط التوقيع.",
+      );
+      setState("error");
+    }
+  }
+
+  function prepareCanvas() {
+    const canvas = canvasRef.current;
+
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.width = Math.max(320, Math.floor(rect.width * ratio));
+    canvas.height = Math.floor(230 * ratio);
+
+    const context = canvas.getContext("2d");
+
+    if (!context) return;
+
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.clearRect(0, 0, rect.width, 230);
+    context.lineWidth = 3;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.strokeStyle = "#0f172a";
+  }
+
+  function getPoint(event: PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  }
+
+  function startDrawing(event: PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context || saving) return;
+
+    drawingRef.current = true;
+
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {
+      // تجاهل
+    }
+
+    const point = getPoint(event);
+
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+  }
+
+  function draw(event: PointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current || saving) return;
+
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    const point = getPoint(event);
+
+    context.lineTo(point.x, point.y);
+    context.stroke();
+
+    hasSignatureRef.current = true;
+  }
+
+  function stopDrawing(event: PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+
+    if (!canvas || !drawingRef.current) return;
+
+    drawingRef.current = false;
+
+    try {
+      canvas.releasePointerCapture(event.pointerId);
+    } catch {
+      // تجاهل
+    }
+
+    if (hasSignatureRef.current) {
+      setDraftSignature(canvas.toDataURL("image/png"));
+    }
+  }
+
+  function clearSignature() {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context || saving) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    context.clearRect(0, 0, rect.width, 230);
+
+    hasSignatureRef.current = false;
+    setDraftSignature("");
+  }
+
+  async function saveSignature() {
+    if (!draftSignature || saving) return;
+
+    try {
+      setSaving(true);
+      setError("");
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          dataUrl: draftSignature,
+        }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "تعذر حفظ التوقيع.");
+      }
+
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              signed: true,
+              signedAt: payload.signedAt || new Date().toISOString(),
+            }
+          : current,
+      );
+
+      setState("saved");
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "تعذر حفظ التوقيع.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadSignatureRequest();
+  }, [apiUrl]);
+
+  useEffect(() => {
+    if (state !== "ready") return;
+
+    prepareCanvas();
+
+    window.addEventListener("resize", prepareCanvas);
+
+    return () => {
+      window.removeEventListener("resize", prepareCanvas);
+    };
+  }, [state]);
+
+  return (
+    <main
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50 px-4 py-6 text-slate-950"
+      dir="rtl"
+    >
+      <section className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-3xl items-center justify-center">
+        <div className="w-full rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-2xl shadow-blue-100/60 sm:p-8">
+          <div className="text-center">
+            <p className="text-sm font-black text-blue-700">
+              منصة التوجيه الطلابي
+            </p>
+            <h1 className="mt-3 text-3xl font-black text-slate-950">
+              توقيع مدير المدرسة
+            </h1>
+            <p className="mt-3 text-sm leading-7 text-slate-500">
+              هذه الصفحة مخصصة لاعتماد توقيع مدير المدرسة للاستخدام في التقارير الرسمية.
+            </p>
+          </div>
+
+          {state === "loading" ? (
+            <div className="mt-8 rounded-[2rem] border border-slate-200 bg-slate-50 p-8 text-center">
+              <p className="text-sm font-black text-slate-600">
+                جاري فتح رابط التوقيع...
+              </p>
+            </div>
+          ) : null}
+
+          {state === "error" ? (
+            <div className="mt-8 rounded-[2rem] border border-red-100 bg-red-50 p-6 text-center">
+              <p className="text-lg font-black text-red-700">
+                تعذر فتح الرابط
+              </p>
+              <p className="mt-2 text-sm font-bold leading-7 text-red-600">
+                {error || "رابط التوقيع غير صالح أو منتهي."}
+              </p>
+            </div>
+          ) : null}
+
+          {state === "saved" ? (
+            <div className="mt-8 rounded-[2rem] border border-emerald-100 bg-emerald-50 p-6 text-center">
+              <p className="text-2xl font-black text-emerald-700">
+                تم حفظ توقيع المدير بنجاح
+              </p>
+              <p className="mt-2 text-sm font-bold leading-7 text-emerald-700">
+                يمكن الآن إغلاق هذه الصفحة. سيظهر التوقيع تلقائيًا في التقارير بعد تحديث الحالة.
+              </p>
+
+              {data?.signedAt ? (
+                <p className="mt-4 text-xs font-black text-emerald-600">
+                  وقت الحفظ: {formatDate(data.signedAt)}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {state === "ready" && data ? (
+            <div className="mt-8 space-y-5">
+              <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-black text-slate-500">
+                      المدرسة
+                    </p>
+                    <p className="mt-1 text-base font-black text-slate-950">
+                      {data.schoolName || "اسم المدرسة"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-black text-slate-500">
+                      مدير المدرسة
+                    </p>
+                    <p className="mt-1 text-base font-black text-slate-950">
+                      {data.principalName || "مدير المدرسة"}
+                    </p>
+                  </div>
+                </div>
+
+                {data.signed ? (
+                  <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm font-bold leading-7 text-amber-700">
+                    يوجد توقيع محفوظ سابقًا. عند الحفظ الآن سيتم تحديث توقيع المدير.
+                    {data.signedAt ? ` آخر توقيع: ${formatDate(data.signedAt)}` : ""}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-4">
+                <p className="text-sm font-black text-slate-700">
+                  وقّع داخل المساحة البيضاء
+                </p>
+
+                <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-slate-300 bg-white shadow-inner">
+                  <canvas
+                    ref={canvasRef}
+                    className="block h-[230px] w-full touch-none bg-white"
+                    onPointerDown={startDrawing}
+                    onPointerMove={draw}
+                    onPointerUp={stopDrawing}
+                    onPointerCancel={stopDrawing}
+                  />
+                </div>
+
+                {error ? (
+                  <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                    {error}
+                  </p>
+                ) : null}
+
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={clearSignature}
+                    disabled={saving}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    مسح التوقيع
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={saveSignature}
+                    disabled={!draftSignature || saving}
+                    className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {saving ? "جاري حفظ التوقيع..." : "حفظ توقيع المدير"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+===== .\components\settings\school-settings-form.tsx =====
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { calculateSchoolIdentityReadiness } from "@/lib/school-identity-readiness";
+
+type SchoolSettingsFormState = {
+  officialName: string;
+  jobTitle: string;
+  phone: string;
+  schoolName: string;
+  principalName: string;
+  principalPhone: string;
+  principalSignatureUrl: string;
+  principalSignatureRequestedAt: string;
+  principalSignatureSignedAt: string;
+  activityLeaderName: string;
+  activityLeaderSignatureUrl: string;
+  activityLeaderSignedAt: string;
+  counselorSignatureUrl: string;
+  counselorSignedAt: string;
+  educationDepartment: string;
+  educationOffice: string;
+  city: string;
+  district: string;
+  stage: string;
+  academicYear: string;
+  currentSemester: string;
+  logoUrl: string;
+  onboardingCompleted?: boolean;
+};
+
+function normalizeSchoolSettingsData(data: Partial<SchoolSettingsFormState> | null | undefined): SchoolSettingsFormState {
+  return {
+    officialName: data?.officialName || "",
+    jobTitle: data?.jobTitle || "",
+    phone: data?.phone || "",
+    schoolName: data?.schoolName || "",
+    principalName: data?.principalName || "",
+    principalPhone: data?.principalPhone || "",
+    principalSignatureUrl: data?.principalSignatureUrl || "",
+    principalSignatureRequestedAt: data?.principalSignatureRequestedAt || "",
+    principalSignatureSignedAt: data?.principalSignatureSignedAt || "",
+    activityLeaderName: data?.activityLeaderName || "",
+    activityLeaderSignatureUrl: data?.activityLeaderSignatureUrl || "",
+    activityLeaderSignedAt: data?.activityLeaderSignedAt || "",
+    counselorSignatureUrl: data?.counselorSignatureUrl || "",
+    counselorSignedAt: data?.counselorSignedAt || "",
+    educationDepartment: data?.educationDepartment || "",
+    educationOffice: data?.educationOffice || "",
+    city: data?.city || "",
+    district: data?.district || "",
+    stage: data?.stage || "",
+    academicYear: data?.academicYear || "",
+    currentSemester: data?.currentSemester || "",
+    logoUrl: data?.logoUrl || "",
+    onboardingCompleted: Boolean(data?.onboardingCompleted),
+  };
+}
+
+const EMPTY_FORM: SchoolSettingsFormState = {
+  officialName: "",
+  jobTitle: "",
+  phone: "",
+  schoolName: "",
+  principalName: "",
+  principalPhone: "",
+  principalSignatureUrl: "",
+  principalSignatureRequestedAt: "",
+  principalSignatureSignedAt: "",
+  activityLeaderName: "",
+  activityLeaderSignatureUrl: "",
+  activityLeaderSignedAt: "",
+  counselorSignatureUrl: "",
+  counselorSignedAt: "",
+  educationDepartment: "",
+  educationOffice: "",
+  city: "",
+  district: "",
+  stage: "",
+  academicYear: "",
+  currentSemester: "",
+  logoUrl: "",
+  onboardingCompleted: false,
+};
+
+export function SchoolSettingsForm() {
+  const [form, setForm] = useState<SchoolSettingsFormState>(EMPTY_FORM);
+  const [initialForm, setInitialForm] =
+    useState<SchoolSettingsFormState>(EMPTY_FORM);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error" | "warning";
+    message: string;
+  } | null>(null);
+  const [schoolSignaturePadOpen, setSchoolSignaturePadOpen] =
+    useState<"activityLeader" | null>(null);
+  const [signatureSavingKind, setSignatureSavingKind] = useState<
+    "activityLeader" | ""
+  >("");
+  const [sendingPrincipalRequest, setSendingPrincipalRequest] = useState(false);
+  const [principalSignatureLink, setPrincipalSignatureLink] = useState("");
+  const [principalPhoneModalOpen, setPrincipalPhoneModalOpen] = useState(false);
+  const [principalPhoneDraft, setPrincipalPhoneDraft] = useState("");
+  const [principalSignatureRequestModal, setPrincipalSignatureRequestModal] =
+    useState<null | {
+      signatureUrl: string;
+      whatsappUrl: string;
+      messageText: string;
+    }>(null);
+  const [principalWhatsAppLink, setPrincipalWhatsAppLink] = useState("");
+
+  const requiredCompleted = useMemo(() => {
+    return Boolean(
+      form.officialName.trim() &&
+        form.jobTitle.trim() &&
+        form.schoolName.trim()
+    );
+  }, [form]);
+
+  const hasChanges = useMemo(() => {
+    return JSON.stringify(form) !== JSON.stringify(initialForm);
+  }, [form, initialForm]);
+
+  const readiness = useMemo(() => {
+    return calculateSchoolIdentityReadiness(form);
+  }, [form]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSettings() {
+      try {
+        setLoading(true);
+
+        const response = await fetch("/api/dashboard/settings/school", {
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "تعذر تحميل إعدادات المدرسة.");
+        }
+
+        if (active) {
+          const normalizedData = normalizeSchoolSettingsData(data.data);
+          setForm(normalizedData);
+          setInitialForm(normalizedData);
+        }
+      } catch (error) {
+        setFeedback({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "حدث خطأ أثناء تحميل الإعدادات.",
+        });
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadSettings();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function update(key: keyof SchoolSettingsFormState, value: string) {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  async function uploadLogo(file: File | null) {
+    setFeedback(null);
+
+    if (!file) return;
+
+    try {
+      setUploadingLogo(true);
+
+      const formData = new FormData();
+      formData.append("logo", file);
+
+      const response = await fetch("/api/dashboard/settings/school/logo", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر رفع الشعار.");
+      }
+
+      setForm((current) => ({
+        ...current,
+        logoUrl: data.logoUrl,
+      }));
+
+      setFeedback({
+        type: "success",
+        message: "تم رفع شعار المدرسة بنجاح. اضغط حفظ البيانات لتثبيت بقية التعديلات إن وجدت.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error ? error.message : "حدث خطأ أثناء رفع الشعار.",
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  async function save() {
+    setFeedback(null);
+
+    if (!requiredCompleted) {
+      setFeedback({
+        type: "warning",
+        message: "أكمل الاسم الرسمي، المسمى الوظيفي، واسم المدرسة أولًا.",
+      });
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const response = await fetch("/api/dashboard/settings/school", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر حفظ الإعدادات.");
+      }
+
+      const nextForm = {
+        ...form,
+        onboardingCompleted: true,
+      };
+
+      setForm(nextForm);
+      setInitialForm(nextForm);
+
+      setFeedback({
+        type: "success",
+        message: "تم حفظ بيانات المدرسة والحساب بنجاح.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error ? error.message : "حدث خطأ أثناء حفظ البيانات.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function reloadSchoolSettingsFromApi() {
+    try {
+      const response = await fetch("/api/dashboard/settings/school", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر تحديث بيانات المدرسة.");
+      }
+
+      const normalizedData = normalizeSchoolSettingsData(data.data);
+
+      setForm(normalizedData);
+      setInitialForm(normalizedData);
+
+      setFeedback({
+        type: "success",
+        message: "تم تحديث حالة التواقيع.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "تعذر تحديث حالة التواقيع.",
+      });
+    }
+  }
+
+  async function saveActivityLeaderSignature(dataUrl: string) {
+    setFeedback(null);
+
+    try {
+      setSignatureSavingKind("activityLeader");
+
+      const response = await fetch("/api/dashboard/settings/school/signature", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "activityLeader",
+          dataUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر حفظ توقيع رائد النشاط.");
+      }
+
+      const patch = {
+        activityLeaderSignatureUrl: data.signatureUrl || "",
+        activityLeaderSignedAt: data.signedAt || "",
+      };
+
+      setForm((current) => ({
+        ...current,
+        ...patch,
+      }));
+
+      setInitialForm((current) => ({
+        ...current,
+        ...patch,
+      }));
+
+      setSchoolSignaturePadOpen(null);
+
+      setFeedback({
+        type: "success",
+        message: "تم حفظ توقيع رائد النشاط وسيظهر تلقائيًا في التقارير.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "تعذر حفظ توقيع رائد النشاط.",
+      });
+    } finally {
+      setSignatureSavingKind("");
+    }
+  }
+
+  async function sendPrincipalSignatureRequest(phoneOverride?: string) {
+    setFeedback(null);
+    const principalPhone = String(phoneOverride ?? form.principalPhone).trim();
+
+    if (!principalPhone) {
+      setPrincipalPhoneDraft(form.principalPhone || "");
+      setPrincipalPhoneModalOpen(true);
+      return;
+    }
+if (!form.principalName.trim()) {
+      setFeedback({
+        type: "warning",
+        message: "اكتب اسم مدير المدرسة أولًا.",
+      });
+      return;
+    }
+
+    try {
+      setSendingPrincipalRequest(true);
+
+      const response = await fetch(
+        "/api/dashboard/settings/school/principal-signature-request",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            principalName: form.principalName,
+            principalPhone,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر إنشاء رابط توقيع المدير.");
+      }
+
+      const signatureUrl = String(data.signatureUrl || "");
+      const whatsappUrl = String(data.whatsappUrl || "");
+      const messageText = `السلام عليكم
+فضلاً اعتماد توقيع مدير المدرسة في منصة التوجيه الطلابي عبر الرابط:
+${signatureUrl}`;
+
+      setPrincipalSignatureLink(signatureUrl);
+      setPrincipalWhatsAppLink(whatsappUrl);
+      setPrincipalSignatureRequestModal({
+        signatureUrl,
+        whatsappUrl,
+        messageText,
+      });const patch = {
+        principalSignatureRequestedAt: data.requestedAt || "",
+      };
+
+      setForm((current) => ({
+        ...current,
+        ...patch,
+      }));
+
+      setInitialForm((current) => ({
+        ...current,
+        ...patch,
+      }));
+
+      setFeedback({
+        type: "success",
+        message: "تم إنشاء رابط توقيع المدير. افتح رابط الواتساب لإرساله.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "تعذر إرسال رابط توقيع المدير.",
+      });
+    } finally {
+      setSendingPrincipalRequest(false);
+    }
+  }
+  if (loading) {
+    return (
+      <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-sm font-bold text-slate-500">
+        جاري تحميل إعدادات المدرسة...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {feedback ? (
+        <div
+          className={[
+            "rounded-2xl border px-4 py-3 text-sm font-bold leading-7",
+            feedback.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : feedback.type === "warning"
+                ? "border-amber-200 bg-amber-50 text-amber-700"
+                : "border-red-200 bg-red-50 text-red-700",
+          ].join(" ")}
+        >
+          {feedback.message}
+        </div>
+      ) : null}
+
+      <IdentityReadinessCard readiness={readiness} />
+
+      <ReportIdentityPreviewCard form={form} />
+
+      <SchoolSignaturesCard
+        form={form}
+        sendingPrincipalRequest={sendingPrincipalRequest}
+        signatureSavingKind={signatureSavingKind}
+        principalSignatureLink={principalSignatureLink}
+        principalWhatsAppLink={principalWhatsAppLink}
+        onSendPrincipalSignatureRequest={sendPrincipalSignatureRequest}
+        onOpenActivityLeaderSignature={() => setSchoolSignaturePadOpen("activityLeader")}
+        onRefresh={reloadSchoolSettingsFromApi}
+      />
+
+      {principalPhoneModalOpen ? (
+        <PrincipalPhoneModal
+          defaultValue={principalPhoneDraft || form.principalPhone}
+          loading={sendingPrincipalRequest}
+          onClose={() => setPrincipalPhoneModalOpen(false)}
+          onSubmit={(phone) => {
+            const cleanedPhone = phone.trim();
+
+            setPrincipalPhoneDraft(cleanedPhone);
+            setPrincipalPhoneModalOpen(false);
+            setForm((current) => ({
+              ...current,
+              principalPhone: cleanedPhone,
+            }));
+
+            void sendPrincipalSignatureRequest(cleanedPhone);
+          }}
+        />
+      ) : null}
+      {principalSignatureRequestModal ? (
+        <PrincipalSignatureRequestModal
+          signatureUrl={principalSignatureRequestModal.signatureUrl}
+          whatsappUrl={principalSignatureRequestModal.whatsappUrl}
+          messageText={principalSignatureRequestModal.messageText}
+          onClose={() => setPrincipalSignatureRequestModal(null)}
+        />
+      ) : null}
+
+
+      {schoolSignaturePadOpen === "activityLeader" ? (
+        <SchoolSignaturePadModal
+          title="توقيع رائد النشاط"
+          signerName={form.activityLeaderName || form.officialName || "رائد النشاط"}
+          saving={signatureSavingKind === "activityLeader"}
+          onClose={() => setSchoolSignaturePadOpen(null)}
+          onSave={saveActivityLeaderSignature}
+        />
+      ) : null}
+<section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-black text-blue-700">هوية الحساب</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">
+              بيانات الموجه/الموجهة
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              هذه البيانات تظهر في التقارير الرسمية والتوقيعات.
+            </p>
+          </div>
+
+          <StatusBadge completed={Boolean(form.onboardingCompleted)} />
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Input
+            label="الاسم الرسمي في التقارير"
+            value={form.officialName}
+            onChange={(value) => update("officialName", value)}
+            required
+          />
+
+          <Input
+            label="المسمى الوظيفي"
+            value={form.jobTitle}
+            onChange={(value) => update("jobTitle", value)}
+            required
+          />
+
+          <Input
+            label="رقم الجوال"
+            value={form.phone}
+            onChange={(value) => update("phone", value)}
+          />
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div>
+          <p className="text-sm font-black text-blue-700">هوية المدرسة</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">
+            بيانات المدرسة الرسمية
+          </h2>
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            تستخدم هذه البيانات في ترويسة التقارير وملفات PDF والوثائق.
+          </p>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Input
+            label="اسم المدرسة"
+            value={form.schoolName}
+            onChange={(value) => update("schoolName", value)}
+            required
+          />
+
+          <Input
+            label="اسم المدير/ة"
+            value={form.principalName}
+            onChange={(value) => update("principalName", value)}
+          />
+
+          <Input
+            label="إدارة التعليم"
+            value={form.educationDepartment}
+            onChange={(value) => update("educationDepartment", value)}
+          />
+<Input
+            label="المدينة"
+            value={form.city}
+            onChange={(value) => update("city", value)}
+          />
+<Input
+            label="المرحلة"
+            value={form.stage}
+            onChange={(value) => update("stage", value)}
+          />
+
+          <Input
+            label="العام الدراسي"
+            value={form.academicYear}
+            onChange={(value) => update("academicYear", value)}
+          />
+
+          <Input
+            label="الفصل الدراسي"
+            value={form.currentSemester}
+            onChange={(value) => update("currentSemester", value)}
+          />
+</div>
+      </section>
+
+      <div className="sticky bottom-4 z-20 rounded-[2rem] border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-slate-950">
+              {hasChanges ? "يوجد تغييرات غير محفوظة" : "كل التغييرات محفوظة"}
+            </p>
+            <p className="mt-1 text-xs font-bold text-slate-500">
+              بعد حفظ هذه البيانات تختفي رسالة إكمال بيانات المدرسة.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving || !hasChanges}
+            className="rounded-2xl bg-slate-950 px-7 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? "جاري الحفظ..." : "حفظ البيانات"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatSignatureDate(value: string) {
+  if (!value) return "";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function SignatureStatusBadge({
+  signed,
+}: {
+  signed: boolean;
+}) {
+  return (
+    <span
+      className={[
+        "rounded-full px-3 py-1 text-xs font-black",
+        signed
+          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+          : "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+      ].join(" ")}
+    >
+      {signed ? "محفوظ" : "غير محفوظ"}
+    </span>
+  );
+}
+
+function SchoolSignaturesCard({
+  form,
+  sendingPrincipalRequest,
+  signatureSavingKind,
+  principalSignatureLink,
+  principalWhatsAppLink,
+  onSendPrincipalSignatureRequest,
+  onOpenActivityLeaderSignature,
+  onRefresh,
+}: {
+  form: SchoolSettingsFormState;
+  sendingPrincipalRequest: boolean;
+  signatureSavingKind: "activityLeader" | "";
+  principalSignatureLink: string;
+  principalWhatsAppLink: string;
+  onSendPrincipalSignatureRequest: () => void;
+  onOpenActivityLeaderSignature: () => void;
+  onRefresh: () => void;
+}) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-black text-blue-700">تواقيع المدرسة</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">
+            اعتماد التواقيع المستخدمة في التقارير
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+            توقيع رائد النشاط يحفظ مباشرة من هذه الصفحة، وتوقيع المدير يتم إرساله برابط واتساب خاص ثم ينعكس تلقائيًا في التقارير.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+        >
+          تحديث الحالة
+        </button>
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-black text-slate-950">
+                توقيع رائد النشاط
+              </h3>
+              <p className="mt-1 text-xs font-bold text-slate-500">
+                {form.activityLeaderName || form.officialName || "رائد النشاط"}
+              </p>
+            </div>
+
+            <SignatureStatusBadge signed={Boolean(form.activityLeaderSignatureUrl)} />
+          </div>
+
+          <div className="mt-4 flex h-28 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white">
+            {form.activityLeaderSignatureUrl ? (
+              <img
+                src={form.activityLeaderSignatureUrl}
+                alt="توقيع رائد النشاط"
+                className="max-h-20 max-w-full object-contain"
+              />
+            ) : (
+              <span className="text-xs font-black text-slate-400">
+                لا يوجد توقيع محفوظ
+              </span>
+            )}
+          </div>
+
+          {form.activityLeaderSignedAt ? (
+            <p className="mt-3 text-xs font-bold text-slate-500">
+              آخر توقيع: {formatSignatureDate(form.activityLeaderSignedAt)}
+            </p>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={onOpenActivityLeaderSignature}
+            disabled={signatureSavingKind === "activityLeader"}
+            className="mt-4 w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {signatureSavingKind === "activityLeader"
+              ? "جاري الحفظ..."
+              : form.activityLeaderSignatureUrl
+                ? "تحديث توقيع رائد النشاط"
+                : "إضافة توقيع رائد النشاط"}
+          </button>
+        </article>
+
+        <article className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-black text-slate-950">
+                توقيع مدير المدرسة
+              </h3>
+              <p className="mt-1 text-xs font-bold text-slate-500">
+                {form.principalName || "مدير المدرسة"}
+              </p>
+            </div>
+
+            <SignatureStatusBadge signed={Boolean(form.principalSignatureUrl)} />
+          </div>
+
+          <div className="mt-4 flex h-28 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white">
+            {form.principalSignatureUrl ? (
+              <img
+                src={form.principalSignatureUrl}
+                alt="توقيع مدير المدرسة"
+                className="max-h-20 max-w-full object-contain"
+              />
+            ) : (
+              <span className="text-xs font-black text-slate-400">
+                يوقع المدير من رابط واتساب خاص
+              </span>
+            )}
+          </div>
+
+          {form.principalSignatureSignedAt ? (
+            <p className="mt-3 text-xs font-bold text-slate-500">
+              آخر توقيع: {formatSignatureDate(form.principalSignatureSignedAt)}
+            </p>
+          ) : form.principalSignatureRequestedAt ? (
+            <p className="mt-3 text-xs font-bold text-amber-600">
+              تم إرسال طلب توقيع: {formatSignatureDate(form.principalSignatureRequestedAt)}
+            </p>
+          ) : null}
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onSendPrincipalSignatureRequest}
+              disabled={sendingPrincipalRequest}
+              className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {sendingPrincipalRequest ? "جاري إنشاء الرابط..." : "إنشاء رابط المدير"}
+            </button>
+
+            {principalWhatsAppLink ? (
+              <a
+                href={principalWhatsAppLink}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-2xl bg-emerald-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-emerald-700"
+              >
+                فتح واتساب
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={onRefresh}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                تحديث بعد توقيع المدير
+              </button>
+            )}
+
+            {principalSignatureLink ? (
+              <a
+                href={principalSignatureLink}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-2xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-black text-blue-700 transition hover:bg-blue-50 sm:col-span-2"
+              >
+                فتح صفحة توقيع المدير مباشرة
+              </a>
+            ) : null}
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function PrincipalPhoneModal({
+  defaultValue,
+  loading,
+  onClose,
+  onSubmit,
+}: {
+  defaultValue: string;
+  loading: boolean;
+  onClose: () => void;
+  onSubmit: (phone: string) => void;
+}) {
+  const [phone, setPhone] = useState(defaultValue || "");
+
+  const normalizedPhone = phone.trim();
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 backdrop-blur-sm sm:items-center"
+      dir="rtl"
+    >
+      <section className="w-full max-w-xl rounded-[2rem] bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-blue-700">
+              توقيع مدير المدرسة
+            </p>
+            <h3 className="mt-1 text-2xl font-black text-slate-950">
+              رقم واتساب المدير
+            </h3>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              أدخل رقم واتساب المدير حتى يتم إنشاء رابط التوقيع وإرسال الرسالة الجاهزة.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            إغلاق
+          </button>
+        </div>
+
+        <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <label className="text-xs font-black text-slate-500">
+            رقم واتساب المدير
+          </label>
+
+          <input
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            placeholder="مثال: 9665xxxxxxxx"
+            inputMode="tel"
+            dir="ltr"
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-base font-black text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+          />
+
+          <p className="mt-3 text-xs font-bold leading-6 text-slate-500">
+            اكتب الرقم بصيغة دولية إن أمكن، وسيتم توليد رابط التوقيع في الخطوة التالية.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            إلغاء
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSubmit(normalizedPhone)}
+            disabled={!normalizedPhone || loading}
+            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "جاري إنشاء الرابط..." : "إنشاء رابط التوقيع"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+function PrincipalSignatureRequestModal({
+  signatureUrl,
+  whatsappUrl,
+  messageText,
+  onClose,
+}: {
+  signatureUrl: string;
+  whatsappUrl: string;
+  messageText: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyMessage() {
+    try {
+      await navigator.clipboard.writeText(messageText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 backdrop-blur-sm sm:items-center"
+      dir="rtl"
+    >
+      <section className="w-full max-w-2xl rounded-[2rem] bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-blue-700">رابط توقيع المدير</p>
+            <h3 className="mt-1 text-2xl font-black text-slate-950">
+              تم إنشاء رابط التوقيع
+            </h3>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              انسخ الرسالة أو افتح واتساب لإرسالها للمدير. بعد توقيع المدير اضغط تحديث الحالة.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            إغلاق
+          </button>
+        </div>
+
+        <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <label className="text-xs font-black text-slate-500">
+            نص الرسالة
+          </label>
+
+          <textarea
+            readOnly
+            value={messageText}
+            className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold leading-7 text-slate-800 outline-none"
+          />
+
+          <label className="mt-4 block text-xs font-black text-slate-500">
+            رابط التوقيع المباشر
+          </label>
+
+          <input
+            readOnly
+            value={signatureUrl}
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-xs font-bold text-slate-700 outline-none"
+            dir="ltr"
+          />
+        </div>
+
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">
+          <button
+            type="button"
+            onClick={copyMessage}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50"
+          >
+            {copied ? "تم النسخ" : "نسخ الرسالة"}
+          </button>
+
+          <a
+            href={whatsappUrl || "#"}
+            target="_blank"
+            rel="noreferrer"
+            className={[
+              "rounded-2xl px-4 py-3 text-center text-sm font-black text-white transition",
+              whatsappUrl
+                ? "bg-emerald-600 hover:bg-emerald-700"
+                : "pointer-events-none bg-slate-300",
+            ].join(" ")}
+          >
+            فتح واتساب
+          </a>
+
+          <a
+            href={signatureUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-2xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
+          >
+            فتح صفحة التوقيع
+          </a>
+        </div>
+      </section>
+    </div>
+  );
+}
+function SchoolSignaturePadModal({
+  title,
+  signerName,
+  saving,
+  onClose,
+  onSave,
+}: {
+  title: string;
+  signerName: string;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (dataUrl: string) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawingRef = useRef(false);
+  const hasSignatureRef = useRef(false);
+  const [draftSignature, setDraftSignature] = useState("");
+
+  function resizeCanvas() {
+    const canvas = canvasRef.current;
+
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.width = Math.max(320, Math.floor(rect.width * ratio));
+    canvas.height = Math.floor(190 * ratio);
+
+    const context = canvas.getContext("2d");
+
+    if (!context) return;
+
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.clearRect(0, 0, rect.width, 190);
+    context.lineWidth = 3;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.strokeStyle = "#0f172a";
+  }
+
+  function getPoint(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  }
+
+  function startDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    drawingRef.current = true;
+    canvas.setPointerCapture(event.pointerId);
+
+    const point = getPoint(event);
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+  }
+
+  function draw(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current) return;
+
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    const point = getPoint(event);
+
+    context.lineTo(point.x, point.y);
+    context.stroke();
+
+    hasSignatureRef.current = true;
+  }
+
+  function stopDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+
+    if (!canvas || !drawingRef.current) return;
+
+    drawingRef.current = false;
+
+    try {
+      canvas.releasePointerCapture(event.pointerId);
+    } catch {
+      // ignore
+    }
+
+    if (hasSignatureRef.current) {
+      setDraftSignature(canvas.toDataURL("image/png"));
+    }
+  }
+
+  function clearSignature() {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    context.clearRect(0, 0, rect.width, 190);
+
+    hasSignatureRef.current = false;
+    setDraftSignature("");
+  }
+
+  useEffect(() => {
+    resizeCanvas();
+
+    window.addEventListener("resize", resizeCanvas);
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 backdrop-blur-sm sm:items-center" dir="rtl">
+      <section className="w-full max-w-2xl rounded-[2rem] bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-2xl font-black text-slate-950">{title}</h3>
+            <p className="mt-2 text-sm font-bold text-slate-500">
+              وقّع داخل المستطيل الأبيض ثم اضغط حفظ التوقيع.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            إغلاق
+          </button>
+        </div>
+
+        <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-300 bg-white shadow-inner">
+          <canvas
+            ref={canvasRef}
+            className="block h-[220px] w-full touch-none bg-white"
+            onPointerDown={startDrawing}
+            onPointerMove={draw}
+            onPointerUp={stopDrawing}
+            onPointerCancel={stopDrawing}
+          />
+        </div>
+
+        <p className="mt-3 text-xs font-black text-slate-500">
+          الاسم المعتمد للتوقيع: {signerName}
+        </p>
+
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-between">
+          <button
+            type="button"
+            onClick={clearSignature}
+            disabled={saving}
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            مسح التوقيع
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSave(draftSignature)}
+            disabled={!draftSignature || saving}
+            className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? "جاري الحفظ..." : "حفظ التوقيع"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+function SchoolLogoUploadCard({
+  logoUrl,
+  uploading,
+  onUpload,
+  onClear,
+}: {
+  logoUrl: string;
+  uploading: boolean;
+  onUpload: (file: File | null) => void;
+  onClear: () => void;
+}) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
+          <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="شعار المدرسة"
+                className="h-full w-full object-contain p-2"
+              />
+            ) : (
+              <span className="px-4 text-xs font-black leading-6 text-slate-400">
+                شعار المدرسة
+              </span>
+            )}
+          </div>
+
+          {logoUrl ? (
+            <button
+              type="button"
+              onClick={onClear}
+              className="mt-3 text-xs font-black text-red-600 hover:text-red-700"
+            >
+              إزالة الشعار
+            </button>
+          ) : null}
+        </div>
+
+        <div>
+          <p className="text-sm font-black text-blue-700">شعار المدرسة</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">
+            رفع شعار يظهر في التقارير الرسمية
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-500">
+            يفضّل رفع شعار بصيغة PNG بخلفية شفافة أو SVG بجودة عالية. سيظهر الشعار في معاينة الهوية وملفات PDF الرسمية.
+          </p>
+
+          <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <label className="block cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-4 text-center transition hover:bg-slate-50">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+                  onUpload(file);
+                  event.currentTarget.value = "";
+                }}
+                disabled={uploading}
+              />
+
+              <span className="block text-sm font-black text-slate-900">
+                {uploading ? "جاري رفع الشعار..." : "اختر شعار المدرسة"}
+              </span>
+
+              <span className="mt-1 block text-xs font-bold text-slate-500">
+                PNG / JPG / WEBP / SVG — الحد الأقصى 2MB
+              </span>
+            </label>
+
+            <div className="mt-3 rounded-2xl bg-blue-50 px-4 py-3 text-xs font-bold leading-6 text-blue-700">
+              نصيحة: استخدم صورة مربعة أو شعار شفاف حتى يظهر بشكل أجمل في الغلاف والترويسة.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IdentityReadinessCard({
+  readiness,
+}: {
+  readiness: ReturnType<typeof calculateSchoolIdentityReadiness>;
+}) {
+  const tone =
+    readiness.level === "excellent"
+      ? "emerald"
+      : readiness.level === "good"
+        ? "blue"
+        : readiness.level === "needs-work"
+          ? "amber"
+          : "red";
+
+  const title =
+    readiness.level === "excellent"
+      ? "هوية رسمية ممتازة"
+      : readiness.level === "good"
+        ? "هوية جيدة وقريبة من الاكتمال"
+        : readiness.level === "needs-work"
+          ? "الهوية تحتاج بعض التحسين"
+          : "الهوية غير مكتملة";
+
+  return (
+    <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+      <div className="grid gap-0 lg:grid-cols-[280px_1fr]">
+        <div
+          className={[
+            "flex flex-col items-center justify-center p-7 text-center",
+            tone === "emerald"
+              ? "bg-emerald-50"
+              : tone === "blue"
+                ? "bg-blue-50"
+                : tone === "amber"
+                  ? "bg-amber-50"
+                  : "bg-red-50",
+          ].join(" ")}
+        >
+          <div
+            className={[
+              "flex h-32 w-32 items-center justify-center rounded-full border-[10px] bg-white text-3xl font-black",
+              tone === "emerald"
+                ? "border-emerald-200 text-emerald-700"
+                : tone === "blue"
+                  ? "border-blue-200 text-blue-700"
+                  : tone === "amber"
+                    ? "border-amber-200 text-amber-700"
+                    : "border-red-200 text-red-700",
+            ].join(" ")}
+          >
+            {readiness.score}%
+          </div>
+
+          <p className="mt-4 text-sm font-black text-slate-950">
+            جاهزية الهوية الرسمية
+          </p>
+
+          <p className="mt-2 text-xs font-bold leading-6 text-slate-500">
+            {readiness.readyForOfficialReports
+              ? "جاهزة لاستخدام التقارير الرسمية."
+              : "أكمل الحقول الأساسية قبل إصدار التقارير الرسمية."}
+          </p>
+        </div>
+
+        <div className="p-6">
+          <p className="text-sm font-black text-blue-700">فحص ذكي</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">{title}</h2>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <ReadinessList
+              title="حقول أساسية مطلوبة"
+              emptyText="كل الحقول الأساسية مكتملة."
+              items={readiness.missingRequired.map((item) => item.label)}
+              type="required"
+            />
+
+            <ReadinessList
+              title="تحسينات اختيارية"
+              emptyText="الهوية شبه مكتملة."
+              items={readiness.missingOptional.slice(0, 5).map((item) => item.label)}
+              type="optional"
+            />
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold leading-6 text-slate-600">
+            كلما اكتملت الهوية، ظهرت التقارير الرسمية بشكل أقرب للوثائق المدرسية الجاهزة للطباعة والاعتماد.
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReadinessList({
+  title,
+  emptyText,
+  items,
+  type,
+}: {
+  title: string;
+  emptyText: string;
+  items: string[];
+  type: "required" | "optional";
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-black text-slate-900">{title}</p>
+
+      {items.length ? (
+        <ul className="mt-3 space-y-2">
+          {items.map((item) => (
+            <li
+              key={item}
+              className={[
+                "rounded-2xl px-3 py-2 text-xs font-bold",
+                type === "required"
+                  ? "bg-red-50 text-red-700"
+                  : "bg-amber-50 text-amber-700",
+              ].join(" ")}
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
+          {emptyText}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ReportIdentityPreviewCard({
+  form,
+}: {
+  form: SchoolSettingsFormState;
+}) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-black text-blue-700">معاينة فورية</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">
+            شكل الهوية في التقارير
+          </h2>
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            هذه معاينة تقريبية للترويسة والبيانات التي ستظهر في PDF.
+          </p>
+        </div>
+</div>
+
+      <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+        <div className="grid gap-3 text-center text-sm font-black text-slate-800 md:grid-cols-3">
+          <p>وزارة التعليم</p>
+          <p>{form.educationDepartment || "إدارة التعليم"}</p>
+</div>
+
+        <div className="mt-5 rounded-2xl bg-white p-5 text-center">
+          <p className="text-2xl font-black text-slate-950">
+            {form.schoolName || "اسم المدرسة"}
+          </p>
+
+          <p className="mt-2 text-sm font-bold text-slate-500">
+            {form.academicYear || "العام الدراسي"} ·{" "}
+            {form.currentSemester || "الفصل الدراسي"}
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-3 text-sm md:grid-cols-2">
+          <PreviewLine label="الموجه/الموجهة" value={form.officialName || "الاسم الرسمي"} />
+          <PreviewLine label="المسمى" value={form.jobTitle || "المسمى الوظيفي"} />
+          <PreviewLine label="مدير/ة المدرسة" value={form.principalName || "غير محدد"} />
+          <PreviewLine label="المدينة" value={form.city || "غير محدد"} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PreviewLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-bold text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-black text-slate-800">{value}</p>
+    </div>
+  );
+}
+
+function StatusBadge({ completed }: { completed: boolean }) {
+  return (
+    <span
+      className={[
+        "rounded-full px-4 py-2 text-xs font-black",
+        completed
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-amber-50 text-amber-700",
+      ].join(" ")}
+    >
+      {completed ? "مكتملة" : "غير مكتملة"}
+    </span>
+  );
+}
+
+function Input({
+  label,
+  value,
+  onChange,
+  required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-black text-slate-700">
+        {label}
+        {required ? <span className="text-red-500"> *</span> : null}
+      </span>
+
+      <input
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+      />
+    </label>
+  );
+}
+
+
+===== .\lib\auth\auth-rate-limit.ts =====
+import "server-only";
+
+import { NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+
+type RateLimitOptions = {
+  namespace: string;
+  identity?: string | null;
+  limit: number;
+  windowMs: number;
+};
+
+function getClientIp(request: Request) {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown-ip"
+  );
+}
+
+function normalizeIdentity(value?: string | null) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9@._+\-\u0600-\u06FF]/gi, "")
+    .slice(0, 120);
+}
+
+export function getRateLimitKey(request: Request, options: RateLimitOptions) {
+  const ip = getClientIp(request);
+  const identity = normalizeIdentity(options.identity);
+
+  return [
+    options.namespace,
+    `ip:${ip}`,
+    identity ? `id:${identity}` : "id:anonymous",
+  ].join(":");
+}
+
+export function enforceRateLimit(request: Request, options: RateLimitOptions) {
+  const key = getRateLimitKey(request, options);
+  const allowed = checkRateLimit(key, options.limit, options.windowMs);
+
+  if (allowed) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "تم تجاوز عدد المحاولات المسموح. حاول مرة أخرى بعد قليل.",
+      code: "RATE_LIMITED",
+    },
+    { status: 429 }
+  );
+}
+
+
+===== .\lib\auth\current-user.ts =====
+import { cookies, headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "@/lib/auth/session";
+
+export async function getCurrentSessionUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const sessionPayload = verifySessionToken(token);
+
+  if (!sessionPayload) {
+    return null;
+  }
+
+  const session = await prisma.userSession.findUnique({
+    where: {
+      tokenId: sessionPayload.tokenId,
+    },
+    include: {
+      user: {
+        include: {
+          schoolAccount: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!session || !session.isActive || session.revokedAt) {
+    return null;
+  }
+
+  if (session.expiresAt.getTime() < Date.now()) {
+    await prisma.userSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+      },
+    });
+
+    return null;
+  }
+
+  await prisma.userSession.update({
+    where: {
+      id: session.id,
+    },
+    data: {
+      lastSeenAt: new Date(),
+    },
+  });
+
+  return {
+    session,
+    user: session.user,
+  };
+}
+
+export async function getRequestDeviceInfo() {
+  const headerStore = await headers();
+
+  return {
+    userAgent: headerStore.get("user-agent") || null,
+    ipAddress:
+      headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headerStore.get("x-real-ip") ||
+      null,
+  };
+}
+
+
+===== .\lib\auth\dashboard-context.ts =====
+import "server-only";
+
+import { notFound, redirect } from "next/navigation";
+import { NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export type DashboardRole =
+  | "ADMIN"
+  | "COUNSELOR"
+  | "ACTIVITY_LEADER"
+  | "TEACHER"
+  | "SCHOOL_OWNER"
+  | "STAFF";
+
+export type DashboardAuthUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: DashboardRole | string;
+  schoolAccountId: string | null;
+  isActive?: boolean | null;
+};
+
+export type DashboardContext = {
+  user: DashboardAuthUser;
+  schoolAccountId: string | null;
+  isAdmin: boolean;
+};
+
+export type SchoolDashboardContext = DashboardContext & {
+  schoolAccountId: string;
+};
+
+type RawSessionUser = {
+  id?: unknown;
+  name?: unknown;
+  email?: unknown;
+  role?: unknown;
+  schoolAccountId?: unknown;
+  isActive?: unknown;
+};
+
+function toNullableString(value: unknown) {
+  if (typeof value !== "string") return null;
+
+  const clean = value.trim();
+  return clean ? clean : null;
+}
+
+function normalizeDashboardUser(value: unknown): DashboardAuthUser | null {
+  const user = value as RawSessionUser | null | undefined;
+
+  const id = toNullableString(user?.id);
+  const email = toNullableString(user?.email);
+  const role = toNullableString(user?.role) || "COUNSELOR";
+
+  if (!id || !email) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    role,
+    name: toNullableString(user?.name),
+    schoolAccountId: toNullableString(user?.schoolAccountId),
+    isActive:
+      typeof user?.isActive === "boolean" ? user.isActive : null,
+  };
+}
+
+function toDashboardContext(user: DashboardAuthUser): DashboardContext {
+  return {
+    user,
+    schoolAccountId: user.schoolAccountId,
+    isAdmin: user.role === "ADMIN",
+  };
+}
+
+export async function getDashboardContext(): Promise<DashboardContext | null> {
+  const current = await getCurrentSessionUser();
+  const user = normalizeDashboardUser(current?.user);
+
+  if (!user) {
+    return null;
+  }
+
+  if (user.isActive === false) {
+    return null;
+  }
+
+  return toDashboardContext(user);
+}
+
+export async function requireDashboardApiContext() {
+  const context = await getDashboardContext();
+
+  if (!context) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "يجب تسجيل الدخول.",
+        code: "UNAUTHENTICATED",
+      },
+      { status: 401 }
+    );
+  }
+
+  return context;
+}
+
+export async function requireSchoolDashboardApiContext() {
+  const contextOrResponse = await requireDashboardApiContext();
+
+  if (contextOrResponse instanceof NextResponse) {
+    return contextOrResponse;
+  }
+
+  if (!contextOrResponse.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
+  return contextOrResponse as SchoolDashboardContext;
+}
+
+export async function requireDashboardPageContext() {
+  const context = await getDashboardContext();
+
+  if (!context) {
+    redirect("/login");
+  }
+
+  return context;
+}
+
+export async function requireSchoolDashboardPageContext() {
+  const context = await requireDashboardPageContext();
+
+  if (!context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return context as SchoolDashboardContext;
+}
+
+export function canAccessSchool(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (context.isAdmin) return true;
+
+  return Boolean(
+    schoolAccountId &&
+      context.schoolAccountId &&
+      schoolAccountId === context.schoolAccountId
+  );
+}
+
+export function requireSameSchoolApi(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (canAccessSchool(context, schoolAccountId)) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "المورد غير موجود أو لا تملك صلاحية الوصول إليه.",
+      code: "NOT_FOUND",
+    },
+    { status: 404 }
+  );
+}
+
+export function requireSameSchoolPage(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (!canAccessSchool(context, schoolAccountId)) {
+    notFound();
+  }
+}
+
+export function caseOwnershipWhere(
+  context: DashboardContext,
+  caseId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: caseId,
+    };
+  }
+
+  return {
+    id: caseId,
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+export function studentOwnershipWhere(
+  context: DashboardContext,
+  studentId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: studentId,
+    };
+  }
+
+  return {
+    id: studentId,
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+export function reportOwnershipWhere(
+  context: DashboardContext,
+  reportId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: reportId,
+    };
+  }
+
+  return {
+    id: reportId,
+    caseEntry: {
+      schoolAccountId: context.schoolAccountId,
+    },
+  };
+}
+
+export function reportEvidenceOwnershipWhere(
+  context: DashboardContext,
+  reportEvidenceId: string,
+  reportId?: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: reportEvidenceId,
+      ...(reportId ? { reportId } : {}),
+    };
+  }
+
+  return {
+    id: reportEvidenceId,
+    ...(reportId ? { reportId } : {}),
+    report: {
+      caseEntry: {
+        schoolAccountId: context.schoolAccountId,
+      },
+    },
+  };
+}
+
+export function schoolScopedWhere(context: DashboardContext) {
+  if (context.isAdmin) {
+    return {};
+  }
+
+  return {
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+
+===== .\lib\auth\dashboard-redirects.ts =====
+export const COUNSELOR_DASHBOARD_PATH = "/dashboard";
+export const ADMIN_DASHBOARD_PATH = "/dashboard/admin";
+export const ACTIVITY_LEADER_DASHBOARD_PATH = "/dashboard/activity-leader";
+export const TEACHER_DASHBOARD_PATH = "/dashboard/teacher";
+
+export function getDashboardHomePath(role?: string | null) {
+  if (role === "ADMIN") return ADMIN_DASHBOARD_PATH;
+  if (role === "ACTIVITY_LEADER") return ACTIVITY_LEADER_DASHBOARD_PATH;
+  if (role === "TEACHER") return TEACHER_DASHBOARD_PATH;
+
+  return COUNSELOR_DASHBOARD_PATH;
+}
+
+export function getOnboardingPathForRole(role?: string | null) {
+  if (role === "ACTIVITY_LEADER") {
+    return "/dashboard/onboarding?role=activity-leader";
+  }
+
+  return "/dashboard/onboarding";
+}
+
+export function getPostLoginRedirectPath(input: {
+  role?: string | null;
+  onboardingCompleted?: boolean | null;
+  onboardingSkippedAt?: Date | string | null;
+}) {
+  if (input.role === "ADMIN") return ADMIN_DASHBOARD_PATH;
+  if (input.role === "TEACHER") return TEACHER_DASHBOARD_PATH;
+
+  if (!input.onboardingCompleted && !input.onboardingSkippedAt) {
+    return getOnboardingPathForRole(input.role);
+  }
+
+  return getDashboardHomePath(input.role);
+}
+
+
+===== .\lib\auth\official-feature-guard.ts =====
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+type OfficialFeatureUser = {
+  onboardingCompleted?: boolean | null;
+  officialName?: string | null;
+  jobTitle?: string | null;
+  schoolAccount?: {
+    profile?: {
+      schoolName?: string | null;
+      educationDepartment?: string | null;
+      educationOffice?: string | null;
+      academicYear?: string | null;
+      currentSemester?: string | null;
+      principalName?: string | null;
+      logoUrl?: string | null;
+    } | null;
+  } | null;
+};
+
+export function getMissingOfficialIdentityItems(user: OfficialFeatureUser | null) {
+  const profile = user?.schoolAccount?.profile;
+
+  const missing: string[] = [];
+
+  if (!user?.officialName?.trim()) {
+    missing.push("الاسم الرسمي للموجه/الموجهة");
+  }
+
+  if (!user?.jobTitle?.trim()) {
+    missing.push("المسمى الوظيفي");
+  }
+
+  if (!profile?.schoolName?.trim()) {
+    missing.push("اسم المدرسة");
+  }
+
+  if (!profile?.educationDepartment?.trim()) {
+    missing.push("إدارة التعليم");
+  }
+
+  if (!profile?.academicYear?.trim()) {
+    missing.push("العام الدراسي");
+  }
+
+  if (!profile?.currentSemester?.trim()) {
+    missing.push("الفصل الدراسي");
+  }
+
+  return missing;
+}
+
+export function canUseOfficialFeatures(user: OfficialFeatureUser | null) {
+  return Boolean(
+    user?.onboardingCompleted &&
+      getMissingOfficialIdentityItems(user).length === 0
+  );
+}
+
+export async function requireOfficialFeatureAccess() {
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    redirect("/login");
+  }
+
+  if (!canUseOfficialFeatures(current.user)) {
+    redirect("/dashboard/onboarding?required=official-feature");
+  }
+
+  return current;
+}
+
+
+===== .\lib\auth\password.ts =====
+import crypto from "crypto";
+
+const ITERATIONS = 120000;
+const KEY_LENGTH = 64;
+const DIGEST = "sha512";
+
+export function hashPassword(password: string) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto
+    .pbkdf2Sync(password, salt, ITERATIONS, KEY_LENGTH, DIGEST)
+    .toString("hex");
+
+  return `pbkdf2:${ITERATIONS}:${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash?: string | null) {
+  if (!storedHash) return false;
+
+  const parts = storedHash.split(":");
+
+  if (parts.length !== 4 || parts[0] !== "pbkdf2") {
+    return false;
+  }
+
+  const iterations = Number(parts[1]);
+  const salt = parts[2];
+  const originalHash = parts[3];
+
+  const hash = crypto
+    .pbkdf2Sync(password, salt, iterations, KEY_LENGTH, DIGEST)
+    .toString("hex");
+
+  return crypto.timingSafeEqual(
+    Buffer.from(hash, "hex"),
+    Buffer.from(originalHash, "hex")
+  );
+}
+
+
+===== .\lib\auth\require-auth.ts =====
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export async function requireDashboardUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    redirect("/login");
+  }
+
+  return current;
+}
+
+export async function requireCompletedOnboarding() {
+  const current = await requireDashboardUser();
+
+  if (!current.user.onboardingCompleted) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return current;
+}
+
+
+===== .\lib\auth\session-policy.ts =====
+export function shouldLimitActiveSessions() {
+  return process.env.AUTH_SINGLE_ACTIVE_SESSION === "true";
+}
+
+
+===== .\lib\auth\session.ts =====
+import crypto from "crypto";
+
+export const SESSION_COOKIE_NAME = "student_guidance_session";
+
+type SessionPayload = {
+  userId: string;
+  email: string;
+  role: string;
+  schoolAccountId: string | null;
+  sessionId: string;
+  tokenId: string;
+  exp: number;
+};
+
+function getSecret() {
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+
+  if (secret && secret.trim().length >= 32) {
+    return secret;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "AUTH_SECRET is required in production and must be at least 32 characters."
+    );
+  }
+
+  return "dev-only-change-this-secret";
+}
+
+function base64UrlEncode(value: string) {
+  return Buffer.from(value)
+    .toString("base64")
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
+function base64UrlDecode(value: string) {
+  const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
+  return Buffer.from(normalized, "base64").toString("utf8");
+}
+
+function sign(value: string) {
+  return crypto.createHmac("sha256", getSecret()).update(value).digest("hex");
+}
+
+function safeSignatureEquals(signature: string, expectedSignature: string) {
+  const signatureBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expectedSignature, "hex");
+
+  if (signatureBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+}
+
+export function createTokenId() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+export function getSessionExpiryDate() {
+  return new Date(Date.now() + 1000 * 60 * 60 * 24 * 14);
+}
+
+export function createSessionToken(payload: Omit<SessionPayload, "exp">) {
+  const fullPayload: SessionPayload = {
+    ...payload,
+    exp: Date.now() + 1000 * 60 * 60 * 24 * 14,
+  };
+
+  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
+  const signature = sign(encodedPayload);
+
+  return `${encodedPayload}.${signature}`;
+}
+
+export function verifySessionToken(token?: string | null) {
+  if (!token) return null;
+
+  const [encodedPayload, signature] = token.split(".");
+
+  if (!encodedPayload || !signature) return null;
+
+  const expectedSignature = sign(encodedPayload);
+
+  if (!safeSignatureEquals(signature, expectedSignature)) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(base64UrlDecode(encodedPayload)) as SessionPayload;
+
+    if (!payload.exp || payload.exp < Date.now()) {
+      return null;
+    }
+
+    if (!payload.sessionId || !payload.tokenId) {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export function getSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 14,
+  };
+}
