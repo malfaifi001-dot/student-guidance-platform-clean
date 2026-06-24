@@ -85,8 +85,11 @@ function getServiceDisplayName(slug?: string | null) {
     "student-follow-up": "متابعة الطلاب",
     "student-guidance-services": "الخدمات الإرشادية المقدمة للطلاب",
     "family-school-communication": "التواصل بين الأسرة والمدرسة",
+    surveys: "الاستبيانات",
     "results-analysis": "تحليل النتائج",
+    "assessment-center": "مركز التحليل والاختبارات",
     "comprehensive-reference": "المرجع الشامل للموجه الطلابي",
+    "custom-report": "التقرير المخصص",
     reports: "التقارير",
   };
 

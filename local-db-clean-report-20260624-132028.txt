@@ -1,0 +1,74 @@
+﻿=== Local DB Clean Preparation Report ===
+Date: 06/24/2026 13:20:29
+
+=== Admin Check ===
+
+=== Tables Count ===
+table_name	table_rows
+ActivationCode	0
+ActivityAssignment	5
+ApiCredential	0
+AssessmentAnalysis	2
+AssessmentInterventionRule	2
+AssessmentInterventionWorkflowTarget	0
+BankTransferRequest	6
+CalendarReminder	2
+CaseEntry	33
+CaseEvidence	0
+CaseValue	554
+CertificateBatch	2
+CertificateTemplate	0
+CreditNote	0
+CustomReportEntry	6
+CustomReportTemplate	4
+DynamicField	487
+DynamicFieldOption	2282
+Evidence	38
+ExportTemplate	0
+ExternalSyncLog	0
+FeatureFlag	0
+Guardian	1120
+GuidanceReport	18
+IntegrationProvider	0
+Invoice	6
+InvoiceNumberSequence	1
+InvoiceSettings	0
+IssuedCertificate	23
+ManualActivation	20
+NoorImportCycle	6
+PaymentProvider	0
+PaymentTransaction	9
+Plan	8
+PlanFeature	226
+PlatformActivityLog	430
+ReportEvidence	25
+ReportSnapshot	5
+ReportTemplate	9
+ResultsAnalysis	0
+SchoolAccount	6
+SchoolProfile	4
+Service	32
+ServiceAccess	120
+SmartReportImport	8
+StaffMember	0
+Student	1458
+StudentImportChange	1446
+StudentImportFile	5
+StudentImportRow	1801
+StudentImportSession	5
+Subscription	5
+Survey	14
+SurveyAnswer	6
+SurveyOption	92
+SurveyQuestion	66
+SurveyResponse	0
+UsageLimit	0
+UsageRecord	0
+User	7
+UserSession	118
+WebhookEvent	1
+Workflow	23
+WorkflowStep	85
+_prisma_migrations	23
+_prisma_migrations_backup_20260607214100	2
+_prisma_migrations_backup_20260607214544	0

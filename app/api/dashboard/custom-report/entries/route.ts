@@ -6,6 +6,7 @@ import {
   WorkflowStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 import { requireCustomReportContext } from "@/lib/custom-report/custom-report-auth";
 import { normalizeCustomReportSchema } from "@/lib/custom-report/custom-report-normalizer";
 import type {
@@ -119,20 +120,16 @@ function flattenCaseValues(
     .filter((item) => item.value !== null || item.jsonValue !== undefined);
 }
 
-async function ensureCustomReportService() {
-  return prisma.service.upsert({
+async function getCustomReportService() {
+  await ensureDefaultPlatformServices();
+
+  return prisma.service.findUnique({
     where: {
       slug: CUSTOM_REPORT_SERVICE_SLUG,
     },
-    update: {
-      name: "تقرير خاص",
-      status: "ACTIVE",
-    },
-    create: {
-      slug: CUSTOM_REPORT_SERVICE_SLUG,
-      name: "تقرير خاص",
-      description: "خدمة التقارير الخاصة المبنية بالذكاء والحقول الديناميكية.",
-      status: "ACTIVE",
+    select: {
+      id: true,
+      slug: true,
     },
   });
 }
@@ -262,14 +259,7 @@ export async function GET() {
     return NextResponse.json({ error: context.message }, { status: context.status });
   }
 
-  const service = await prisma.service.findUnique({
-    where: {
-      slug: CUSTOM_REPORT_SERVICE_SLUG,
-    },
-    select: {
-      id: true,
-    },
-  });
+  const service = await getCustomReportService();
 
   if (!service) {
     return NextResponse.json({ entries: [] });
@@ -319,7 +309,14 @@ export async function POST(request: Request) {
   const values = body?.values && typeof body.values === "object" ? body.values : {};
   const schema = normalizeCustomReportSchema(body?.schema);
   const status = body?.status === "SUBMITTED" ? "SUBMITTED" : "DRAFT";
-  const service = await ensureCustomReportService();
+  const service = await getCustomReportService();
+
+  if (!service) {
+    return NextResponse.json(
+      { error: "تعذر تجهيز خدمة التقرير المخصص." },
+      { status: 500 },
+    );
+  }
 
   const caseEntry = await prisma.$transaction(async (tx) => {
     const workflow = await createRuntimeWorkflow(tx, service.id, schema);

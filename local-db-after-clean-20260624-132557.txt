@@ -1,0 +1,76 @@
+﻿=== Local DB After Clean Report ===
+Date: 06/24/2026 13:25:59
+
+=== Admin Check ===
+id	email	role	name	schoolAccountId
+cmq39e4qo0000p0nob1amk97o	admin@local.test	ADMIN	Local Admin	NULL
+
+=== Tables Count After Clean ===
+table_name	table_rows
+ActivationCode	0
+ActivityAssignment	0
+ApiCredential	0
+AssessmentAnalysis	0
+AssessmentInterventionRule	0
+AssessmentInterventionWorkflowTarget	0
+BankTransferRequest	0
+CalendarReminder	0
+CaseEntry	0
+CaseEvidence	0
+CaseValue	0
+CertificateBatch	0
+CertificateTemplate	0
+CreditNote	0
+CustomReportEntry	0
+CustomReportTemplate	0
+DynamicField	0
+DynamicFieldOption	0
+Evidence	0
+ExportTemplate	0
+ExternalSyncLog	0
+FeatureFlag	0
+Guardian	0
+GuidanceReport	0
+IntegrationProvider	0
+Invoice	0
+InvoiceNumberSequence	0
+InvoiceSettings	0
+IssuedCertificate	0
+ManualActivation	0
+NoorImportCycle	0
+PaymentProvider	0
+PaymentTransaction	0
+Plan	0
+PlanFeature	0
+PlatformActivityLog	0
+ReportEvidence	0
+ReportSnapshot	0
+ReportTemplate	0
+ResultsAnalysis	0
+SchoolAccount	0
+SchoolProfile	0
+Service	0
+ServiceAccess	0
+SmartReportImport	0
+StaffMember	0
+Student	0
+StudentImportChange	0
+StudentImportFile	0
+StudentImportRow	0
+StudentImportSession	0
+Subscription	0
+Survey	0
+SurveyAnswer	0
+SurveyOption	0
+SurveyQuestion	0
+SurveyResponse	0
+UsageLimit	0
+UsageRecord	0
+User	1
+UserSession	0
+WebhookEvent	0
+Workflow	0
+WorkflowStep	0
+_prisma_migrations	23
+_prisma_migrations_backup_20260607214100	2
+_prisma_migrations_backup_20260607214544	0

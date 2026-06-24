@@ -6,6 +6,21 @@ export const DEFAULT_PLATFORM_SERVICES = [
     name: "المرجع الشامل للطالب",
     description: "مكتبة مرجعية مخصصة للطالب/الطالبة يمكن ربطها لاحقًا بواجهة الطالب.",
   },
+  {
+    slug: "custom-report",
+    name: "التقرير المخصص",
+    description: "إنشاء تقارير مخصصة ومرنة حسب احتياج المدرسة.",
+  },
+  {
+    slug: "assessment-center",
+    name: "مركز التحليل والاختبارات",
+    description: "تحليل نتائج الطلاب والاختبارات، وربطها بالتدخلات والخطط الذكية.",
+  },
+  {
+    slug: "surveys",
+    name: "الاستبيانات",
+    description: "إنشاء الاستبيانات ونشرها وتحليل ردود المستفيدين.",
+  },
 ] as const;
 
 export async function ensureDefaultPlatformServices() {

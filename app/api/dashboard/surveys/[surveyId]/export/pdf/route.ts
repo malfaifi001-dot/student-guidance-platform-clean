@@ -1,5 +1,5 @@
-import { readFile } from "fs/promises";
-import { extname, join } from "path";
+import { readFile } from "node:fs/promises";
+import { extname, join } from "node:path";
 import { NextResponse } from "next/server";
 import puppeteer from "puppeteer";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
@@ -16,7 +16,31 @@ type RouteContext = {
   }>;
 };
 
-const chartPalette = ["#0f4c81", "#157347", "#b45309", "#334155", "#7f1d1d"];
+type AnswerLike = {
+  value: string | null;
+  jsonValue: unknown;
+};
+
+type QuestionAnalysis = {
+  id: string;
+  label: string;
+  type: string;
+  isRequired: boolean;
+  answeredCount: number;
+  emptyCount: number;
+  answerRate: number;
+  average: number | null;
+  min: number | null;
+  max: number | null;
+  optionCounts: Array<{
+    label: string;
+    count: number;
+    percentage: number;
+  }>;
+  textSamples: string[];
+};
+
+const chartPalette = ["#07a869", "#3d7eb9", "#0da9a6", "#ef5548", "#c1b489"];
 
 function escapeHtml(value: unknown) {
   return String(value ?? "")
@@ -48,7 +72,7 @@ function questionTypeLabel(type: string) {
   return type;
 }
 
-function answerToText(answer: { value: string | null; jsonValue: unknown } | undefined) {
+function answerToText(answer: AnswerLike | undefined) {
   if (!answer) return "";
 
   if (Array.isArray(answer.jsonValue)) {
@@ -59,28 +83,19 @@ function answerToText(answer: { value: string | null; jsonValue: unknown } | und
   }
 
   if (answer.jsonValue !== null && answer.jsonValue !== undefined) {
-    return JSON.stringify(answer.jsonValue);
+    return String(answer.jsonValue);
   }
 
   return answer.value || "";
 }
 
-function answerToNumber(answer: { value: string | null; jsonValue: unknown } | undefined) {
+function answerToNumber(answer: AnswerLike | undefined) {
   const numberValue = Number(answerToText(answer));
-
-  if (!Number.isFinite(numberValue)) {
-    return null;
-  }
-
-  return numberValue;
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 function isChoiceQuestion(type: string) {
   return type === "YES_NO" || type === "SINGLE_CHOICE" || type === "MULTIPLE_CHOICE";
-}
-
-function isDonutQuestion(type: string) {
-  return type === "YES_NO" || type === "SINGLE_CHOICE";
 }
 
 function isNumericQuestion(type: string) {
@@ -88,19 +103,35 @@ function isNumericQuestion(type: string) {
 }
 
 function formatGregorianDate(value: Date | string | null | undefined) {
-  if (!value) return "";
-
-  const date = value instanceof Date ? value : new Date(value);
+  const date = value ? new Date(value) : new Date();
 
   if (Number.isNaN(date.getTime())) {
-    return "";
+    return new Intl.DateTimeFormat("ar-EG-u-ca-gregory", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
   }
 
-  return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
+  return new Intl.DateTimeFormat("ar-EG-u-ca-gregory", {
     year: "numeric",
-    month: "numeric",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   }).format(date);
+}
+
+function formatNumber(value: number | null | undefined, digits = 1, fallback = "غير متوفر") {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+
+  return value.toLocaleString("en-US", {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: 0,
+  });
+}
+
+function formatPercent(value: number | null | undefined, digits = 0, fallback = "غير متوفر") {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return `${formatNumber(value, digits)}%`;
 }
 
 async function readPublicImageDataUri(publicPath: string) {
@@ -120,7 +151,7 @@ async function readPublicImageDataUri(publicPath: string) {
 
     return `data:${mime};base64,${buffer.toString("base64")}`;
   } catch {
-    return null;
+    return "";
   }
 }
 
@@ -161,13 +192,13 @@ async function getSurveyForPdf(surveyId: string) {
 
 type SurveyForPdf = NonNullable<Awaited<ReturnType<typeof getSurveyForPdf>>>;
 
-function buildQuestionAnalysis(survey: SurveyForPdf) {
+function buildQuestionAnalysis(survey: SurveyForPdf): QuestionAnalysis[] {
   const totalResponses = survey.responses.length;
 
   return survey.questions.map((question) => {
-    const responseAnswers = survey.responses.map((response) => {
-      return response.answers.find((answer) => answer.questionId === question.id);
-    });
+    const responseAnswers = survey.responses.map((response) =>
+      response.answers.find((answer) => answer.questionId === question.id),
+    );
 
     const answeredAnswers = responseAnswers.filter((answer) => answerToText(answer).trim());
     const numericValues = responseAnswers
@@ -203,15 +234,7 @@ function buildQuestionAnalysis(survey: SurveyForPdf) {
         ? responseAnswers
             .map((answer) => answerToText(answer).trim())
             .filter(Boolean)
-            .slice(0, 1)
-        : [];
-
-    const dateSamples =
-      question.type === "DATE"
-        ? responseAnswers
-            .map((answer) => answerToText(answer).trim())
-            .filter(Boolean)
-            .slice(0, 1)
+            .slice(0, 2)
         : [];
 
     return {
@@ -222,19 +245,17 @@ function buildQuestionAnalysis(survey: SurveyForPdf) {
       answeredCount: answeredAnswers.length,
       emptyCount: Math.max(totalResponses - answeredAnswers.length, 0),
       answerRate: totalResponses ? Math.round((answeredAnswers.length / totalResponses) * 100) : 0,
-      average: isNumericQuestion(question.type) && numericValues.length
-        ? Number((numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length).toFixed(2))
-        : null,
+      average:
+        isNumericQuestion(question.type) && numericValues.length
+          ? Number((numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length).toFixed(2))
+          : null,
       min: numericValues.length ? Math.min(...numericValues) : null,
       max: numericValues.length ? Math.max(...numericValues) : null,
       optionCounts,
       textSamples,
-      dateSamples,
     };
   });
 }
-
-type QuestionAnalysis = ReturnType<typeof buildQuestionAnalysis>[number];
 
 async function requirePdfAccess(surveyId: string) {
   const current = await getCurrentSessionUser();
@@ -298,56 +319,27 @@ function getRequestedQuestionIds(request: Request) {
 
 function getVisibleQuestions(allQuestions: QuestionAnalysis[], requestedQuestionIds: string[]) {
   if (!requestedQuestionIds.length) {
-    return allQuestions.slice(0, Math.min(allQuestions.length, 6));
+    return allQuestions.slice(0, Math.min(allQuestions.length, 10));
   }
 
   const requestedSet = new Set(requestedQuestionIds);
   const selected = allQuestions.filter((question) => requestedSet.has(question.id));
 
   if (!selected.length) {
-    return allQuestions.slice(0, Math.min(allQuestions.length, 6));
+    return allQuestions.slice(0, Math.min(allQuestions.length, 10));
   }
 
   return selected.slice(0, 10);
 }
 
-function buildInsightLines({
-  totalResponses,
-  totalQuestions,
-  completionRate,
-  questions,
-  hiddenQuestionsCount,
-}: {
-  totalResponses: number;
-  totalQuestions: number;
-  completionRate: number;
-  questions: QuestionAnalysis[];
-  hiddenQuestionsCount: number;
-}) {
-  const lines: string[] = [];
+function average(values: number[]) {
+  const clean = values.filter((value) => Number.isFinite(value));
+  if (!clean.length) return null;
+  return clean.reduce((sum, value) => sum + value, 0) / clean.length;
+}
 
-  if (!totalResponses) {
-    return ["لم تُسجّل ردود حتى الآن، وسيتم تحديث التقرير بعد استقبال المشاركات."];
-  }
-
-  lines.push(`تم تحليل ${questions.length} محورًا مختارًا من أصل ${totalQuestions} سؤالًا، بناءً على ${totalResponses} ردًا.`);
-
-  const numericQuestions = questions.filter((question) => question.average !== null);
-
-  if (numericQuestions.length) {
-    const bestNumeric = [...numericQuestions].sort((first, second) => Number(second.average) - Number(first.average))[0];
-    const lowestNumeric = [...numericQuestions].sort((first, second) => Number(first.average) - Number(second.average))[0];
-
-    if (bestNumeric) {
-      lines.push(`أعلى مؤشر رقمي: ${bestNumeric.label} بمتوسط ${bestNumeric.average}.`);
-    }
-
-    if (lowestNumeric && lowestNumeric.id !== bestNumeric?.id) {
-      lines.push(`أبرز فرصة تحسين: ${lowestNumeric.label} بمتوسط ${lowestNumeric.average}.`);
-    }
-  }
-
-  const strongestChoice = questions
+function pickTopChoice(questions: QuestionAnalysis[]) {
+  return questions
     .flatMap((question) =>
       question.optionCounts.map((option) => ({
         question: question.label,
@@ -358,201 +350,161 @@ function buildInsightLines({
     )
     .filter((item) => item.count > 0)
     .sort((first, second) => second.percentage - first.percentage)[0];
-
-  if (strongestChoice) {
-    lines.push(`أقوى اتجاه في الاختيارات: ${strongestChoice.label} بنسبة ${strongestChoice.percentage}%.`);
-  }
-
-  if (hiddenQuestionsCount > 0) {
-    lines.push(`لم يتم عرض ${hiddenQuestionsCount} سؤالًا في هذه الصفحة للحفاظ على رسمية التقرير واختصاره.`);
-  }
-
-  return lines.slice(0, 4);
 }
 
-function buildCompletionGauge(completionRate: number) {
-  const safeRate = Math.max(0, Math.min(completionRate, 100));
+function getStrongestQuestion(questions: QuestionAnalysis[]) {
+  const numeric = questions
+    .filter((question) => question.average !== null)
+    .sort((first, second) => Number(second.average) - Number(first.average))[0];
 
+  if (numeric) return numeric;
+
+  return questions.slice().sort((first, second) => second.answerRate - first.answerRate)[0] || null;
+}
+
+function getImprovementQuestion(questions: QuestionAnalysis[]) {
+  const numeric = questions
+    .filter((question) => question.average !== null)
+    .sort((first, second) => Number(first.average) - Number(second.average))[0];
+
+  if (numeric) return numeric;
+
+  return questions.slice().sort((first, second) => first.answerRate - second.answerRate)[0] || null;
+}
+
+function metricIcon(type: string) {
+  const icons: Record<string, string> = {
+    responses:
+      '<svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>',
+    questions:
+      '<svg viewBox="0 0 24 24"><path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',
+    completion:
+      '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/><circle cx="12" cy="12" r="10"/></svg>',
+    average:
+      '<svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><path d="M19 9h-4"/><path d="M19 9v4"/></svg>',
+    target:
+      '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><path d="M22 2 12 12"/></svg>',
+    alert:
+      '<svg viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+  };
+
+  return icons[type] || icons.questions;
+}
+
+function infoIcon(type: string) {
+  const icons: Record<string, string> = {
+    school:
+      '<svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M4 10 12 4l8 6"/><path d="M6 10v11"/><path d="M18 10v11"/><path d="M10 21v-6h4v6"/></svg>',
+    report:
+      '<svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>',
+    audience:
+      '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>',
+    status:
+      '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/><circle cx="12" cy="12" r="10"/></svg>',
+    date:
+      '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>',
+    privacy:
+      '<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    response:
+      '<svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>',
+    questions:
+      '<svg viewBox="0 0 24 24"><path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',
+  };
+
+  return icons[type] || icons.report;
+}
+
+function metricCard(type: string, tone: "green" | "blue" | "turq" | "red", value: string, label: string) {
   return `
-    <div class="completion-gauge" style="background: conic-gradient(#0f4c81 0 ${safeRate}%, #e5e7eb ${safeRate}% 100%);">
+    <div class="metric-card ${tone}">
+      <div class="metric-icon">${metricIcon(type)}</div>
+      <div class="metric-number">${escapeHtml(value)}</div>
+      <div class="metric-label">${escapeHtml(label)}</div>
+    </div>`;
+}
+
+function infoItem(type: string, label: string, value: string) {
+  return `
+    <div class="info-item">
+      <div class="info-icon">${infoIcon(type)}</div>
       <div>
-        <strong>${escapeHtml(safeRate)}%</strong>
-        <span>اكتمال</span>
+        <div class="info-label">${escapeHtml(label)}:</div>
+        <div class="info-value">${escapeHtml(value)}</div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
-function buildNumericVisual(question: QuestionAnalysis) {
-  const items = [
-    { label: "الأدنى", value: Number(question.min || 0) },
-    { label: "المتوسط", value: Number(question.average || 0) },
-    { label: "الأعلى", value: Number(question.max || 0) },
-  ];
+function summaryLine(icon: string, text: string) {
+  return `
+    <div class="summary-line">
+      <div class="summary-icon">${icon}</div>
+      <div class="summary-text">${text}</div>
+    </div>`;
+}
 
-  const maxValue = Math.max(...items.map((item) => item.value), 1);
+function questionRow(question: QuestionAnalysis, index: number) {
+  const value =
+    question.average !== null
+      ? `${formatNumber(question.average, 2)} متوسط`
+      : question.optionCounts.length
+        ? `${formatPercent(question.optionCounts.slice().sort((a, b) => b.percentage - a.percentage)[0]?.percentage || 0)} أعلى اختيار`
+        : `${formatPercent(question.answerRate)} معدل`;
 
   return `
-    <div class="numeric-visual">
-      ${items
-        .map((item, index) => {
-          const height = Math.max((item.value / maxValue) * 100, 10);
-
-          return `
-            <div class="numeric-column">
-              <b>${escapeHtml(item.value)}</b>
-              <div class="numeric-track">
-                <i style="height:${height}%; background:${chartPalette[index % chartPalette.length]}"></i>
-              </div>
-              <span>${escapeHtml(item.label)}</span>
-            </div>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
+    <tr>
+      <td>س${index + 1}</td>
+      <td class="question-text">${escapeHtml(question.label)}</td>
+      <td>${escapeHtml(questionTypeLabel(question.type))}</td>
+      <td>${escapeHtml(String(question.answeredCount))}</td>
+      <td>${escapeHtml(value)}</td>
+    </tr>`;
 }
 
-function buildDonutVisual(question: QuestionAnalysis) {
-  const activeOptions = question.optionCounts.filter((option) => option.count > 0);
-  const options = (activeOptions.length ? activeOptions : question.optionCounts).slice(0, 4);
-  const total = Math.max(options.reduce((sum, option) => sum + option.count, 0), 1);
-
-  let cursor = 25;
-
-  const circles = options
-    .map((option, index) => {
-      const percentage = (option.count / total) * 100;
-      const circle = `
-        <circle
-          cx="21"
-          cy="21"
-          r="15.9155"
-          fill="transparent"
-          stroke="${chartPalette[index % chartPalette.length]}"
-          stroke-width="5"
-          stroke-dasharray="${percentage} ${100 - percentage}"
-          stroke-dashoffset="${cursor}"
-        />
-      `;
-
-      cursor -= percentage;
-
-      return circle;
-    })
-    .join("");
-
-  return `
-    <div class="donut-visual">
-      <svg viewBox="0 0 42 42" class="donut-svg" aria-hidden="true">
-        <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="#e5e7eb" stroke-width="5" />
-        ${circles}
-        <text x="21" y="20" text-anchor="middle" class="donut-number">${escapeHtml(question.answerRate)}%</text>
-        <text x="21" y="25" text-anchor="middle" class="donut-label">معدل</text>
-      </svg>
-
-      <div class="legend-list">
-        ${options
-          .map((option, index) => `
-            <div>
-              <i style="background:${chartPalette[index % chartPalette.length]}"></i>
-              <span>${escapeHtml(option.label)}</span>
-              <b>${escapeHtml(option.percentage)}%</b>
-            </div>
-          `)
-          .join("")}
-      </div>
-    </div>
-  `;
-}
-
-function buildMultipleChoiceVisual(question: QuestionAnalysis) {
-  const options = question.optionCounts
-    .filter((option) => option.count > 0)
-    .sort((first, second) => second.count - first.count)
-    .slice(0, 3);
-
-  if (!options.length) {
-    return `<div class="plain-note">لا توجد اختيارات مسجلة لهذا السؤال.</div>`;
+function buildInsightLines({
+  totalResponses,
+  totalQuestions,
+  completionRate,
+  selectedQuestions,
+}: {
+  totalResponses: number;
+  totalQuestions: number;
+  completionRate: number;
+  selectedQuestions: QuestionAnalysis[];
+}) {
+  if (!totalResponses) {
+    return [
+      "لم تُسجّل ردود حتى الآن، وسيتم تحديث التقرير بعد استقبال المشاركات.",
+      "يمكن نشر رابط الاستبيان ومتابعة المؤشرات بعد وصول الردود الأولى.",
+      "لا توجد توصيات تحليلية كافية قبل توفر بيانات الاستجابة.",
+    ];
   }
 
-  return `
-    <div class="ranked-visual">
-      ${options
-        .map((option, index) => `
-          <div class="rank-row">
-            <span>${escapeHtml(option.label)}</span>
-            <div class="bar-track">
-              <i style="width:${Math.max(option.percentage, 5)}%; background:${chartPalette[index % chartPalette.length]}"></i>
-            </div>
-            <b>${escapeHtml(option.percentage)}%</b>
-          </div>
-        `)
-        .join("")}
-    </div>
-  `;
-}
+  const averageAnswerRate = average(selectedQuestions.map((question) => question.answerRate)) ?? 0;
+  const strongest = getStrongestQuestion(selectedQuestions);
+  const improvement = getImprovementQuestion(selectedQuestions);
+  const topChoice = pickTopChoice(selectedQuestions);
 
-function buildTextVisual(question: QuestionAnalysis) {
-  const sample = question.textSamples[0];
-
-  if (!sample) {
-    return `<div class="plain-note">لا توجد إجابات نصية مختصرة.</div>`;
-  }
-
-  return `
-    <div class="quote-visual">
-      <span>عينة مختصرة</span>
-      <p>${escapeHtml(sample)}</p>
-    </div>
-  `;
-}
-
-function buildDateVisual(question: QuestionAnalysis) {
-  const sample = question.dateSamples[0];
-
-  if (!sample) {
-    return `<div class="plain-note">لا توجد تواريخ مسجلة.</div>`;
-  }
-
-  return `
-    <div class="date-visual">
-      <span>تاريخ وارد</span>
-      <strong>${escapeHtml(formatGregorianDate(sample) || sample)}</strong>
-      <small>من إجابات المشاركين</small>
-    </div>
-  `;
-}
-
-function buildQuestionVisual(question: QuestionAnalysis) {
-  if (isNumericQuestion(question.type) && question.average !== null) {
-    return buildNumericVisual(question);
-  }
-
-  if (isDonutQuestion(question.type)) {
-    return buildDonutVisual(question);
-  }
-
-  if (question.type === "MULTIPLE_CHOICE") {
-    return buildMultipleChoiceVisual(question);
-  }
-
-  if (question.type === "TEXT" || question.type === "TEXTAREA") {
-    return buildTextVisual(question);
-  }
-
-  if (question.type === "DATE") {
-    return buildDateVisual(question);
-  }
-
-  return `<div class="plain-note">لا توجد بيانات رسومية لهذا المحور.</div>`;
+  return [
+    `تم تحليل ${selectedQuestions.length} محورًا مختارًا من أصل ${totalQuestions} سؤالًا، بناءً على ${totalResponses} ردًا.`,
+    `بلغت نسبة اكتمال الأسئلة المطلوبة ${formatPercent(completionRate)}، وبلغ متوسط معدل الإجابة للأسئلة المختارة ${formatPercent(averageAnswerRate)}.`,
+    strongest
+      ? `أقوى مؤشر ظاهر: ${strongest.label} ${strongest.average !== null ? `بمتوسط ${strongest.average}` : `بمعدل إجابة ${strongest.answerRate}%`}.`
+      : "لا يظهر مؤشر قوي كافٍ في البيانات الحالية.",
+    improvement
+      ? `أبرز فرصة تحسين: ${improvement.label} ${improvement.average !== null ? `بمتوسط ${improvement.average}` : `بمعدل إجابة ${improvement.answerRate}%`}.`
+      : "لا تظهر فرصة تحسين محددة في البيانات الحالية.",
+    topChoice
+      ? `أقوى اتجاه في الاختيارات: ${topChoice.label} بنسبة ${topChoice.percentage}%.`
+      : "الأسئلة النصية أو الرقمية تحتاج قراءة نوعية داعمة بجانب المؤشرات.",
+  ].slice(0, 3);
 }
 
 async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]) {
-  const ministryLogoDataUri = await readPublicImageDataUri("/uploads/school-logos/MOE.png");
+  const moeLogoDataUri = await readPublicImageDataUri("/uploads/school-logos/MOE.png");
+  const visionLogoDataUri = await readPublicImageDataUri("/uploads/school-logos/VISION2030.png");
+
   const allQuestions = buildQuestionAnalysis(survey);
   const questions = getVisibleQuestions(allQuestions, requestedQuestionIds);
-  const hiddenQuestionsCount = Math.max(allQuestions.length - questions.length, 0);
 
   const totalResponses = survey.responses.length;
   const totalQuestions = survey.questions.length;
@@ -567,745 +519,583 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     });
   }).length;
 
-  const completionRate = totalResponses
-    ? Math.round((completedRequiredResponses / totalResponses) * 100)
-    : 0;
+  const completionRate = totalResponses ? Math.round((completedRequiredResponses / totalResponses) * 100) : 0;
+  const averageAnswerRate = average(questions.map((question) => question.answerRate)) ?? 0;
+  const numericAverage = average(questions.map((question) => question.average ?? NaN).filter(Number.isFinite));
+
+  const strongest = getStrongestQuestion(questions);
+  const improvement = getImprovementQuestion(questions);
+  const topChoice = pickTopChoice(questions);
 
   const profile = survey.schoolAccount.profile;
-  const schoolName = profile?.schoolName || survey.schoolAccount.name || "منصة التوجيه الطلابي";
-  const educationDepartment = profile?.educationDepartment || "إدارة التعليم";
-  const educationOffice = profile?.educationOffice || "مكتب التعليم";
+  const schoolName = profile?.schoolName || survey.schoolAccount.name || "غير متوفر";
   const reportDate = formatGregorianDate(new Date());
-
-  const densityClass =
-    questions.length <= 4
-      ? "density-large"
-      : questions.length <= 7
-        ? "density-medium"
-        : "density-compact";
 
   const insightLines = buildInsightLines({
     totalResponses,
     totalQuestions,
     completionRate,
-    questions,
-    hiddenQuestionsCount,
+    selectedQuestions: questions,
   });
 
-  const questionBlocks = questions
-    .map((question, index) => `
-      <section class="question-module">
-        <div class="question-head">
-          <div class="question-index">س${index + 1}</div>
-          <div class="question-title">
-            <span>${escapeHtml(questionTypeLabel(question.type))}${question.isRequired ? " · مطلوب" : ""}</span>
-            <h3>${escapeHtml(question.label)}</h3>
-          </div>
-        </div>
+  const donutRate = Math.max(0, Math.min(completionRate, 100));
+  const positiveRate = topChoice?.percentage ?? averageAnswerRate;
 
-        <div class="question-stats">
-          <div><strong>${escapeHtml(question.answeredCount)}</strong><span>إجابة</span></div>
-          <div><strong>${escapeHtml(question.answerRate)}%</strong><span>معدل</span></div>
-          <div><strong>${escapeHtml(question.emptyCount)}</strong><span>فارغ</span></div>
-        </div>
-
-        ${buildQuestionVisual(question)}
-      </section>
-    `)
-    .join("");
-
-  return `
-<!doctype html>
+  return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <title>${escapeHtml(survey.title)}</title>
-  <style>
-    @page {
-      size: A4;
-      margin: 0;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      width: 210mm;
-      height: 297mm;
-      margin: 0;
-      padding: 0;
-      direction: rtl;
-      font-family: Arial, "Tahoma", sans-serif;
-      background: #ffffff;
-      color: #111827;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      overflow: hidden;
-    }
-
-    .sheet {
-      width: 210mm;
-      height: 297mm;
-      padding: 9mm 10mm;
-      background: #ffffff;
-      overflow: hidden;
-    }
-
-    .letterhead {
-      display: grid;
-      grid-template-columns: 58mm 1fr 48mm;
-      gap: 5mm;
-      align-items: center;
-      min-height: 30mm;
-      padding: 4mm 4.5mm 5mm;
-      border: 1px solid #d1d5db;
-      border-bottom: 2px solid #0f2a44;
-      border-radius: 6mm;
-      background: #ffffff;
-    }
-
-    .official-side {
-      display: flex;
-      align-items: center;
-      gap: 3mm;
-    }
-
-    .logo {
-      width: 18mm;
-      height: 18mm;
-      object-fit: contain;
-    }
-
-    .logo-fallback {
-      width: 18mm;
-      height: 18mm;
-      display: grid;
-      place-items: center;
-      border: 1px solid #0f2a44;
-      color: #0f2a44;
-      font-size: 7px;
-      font-weight: 900;
-      line-height: 1.4;
-      text-align: center;
-    }
-
-    .official-lines strong,
-    .school-lines strong {
-      display: block;
-      color: #0f2a44;
-      font-size: 9.5px;
-      line-height: 1.8;
-      font-weight: 900;
-    }
-
-    .official-lines span,
-    .school-lines span {
-      display: block;
-      color: #475569;
-      font-size: 8px;
-      line-height: 1.8;
-      font-weight: 800;
-    }
-
-    .report-title {
-      text-align: center;
-      border-right: 1px solid #d1d5db;
-      border-left: 1px solid #d1d5db;
-      padding: 0 4mm;
-    }
-
-    .report-title small {
-      display: inline-block;
-      color: #0f4c81;
-      font-size: 8px;
-      font-weight: 900;
-      border: 1px solid #d1d5db;
-      padding: 1.4mm 4mm;
-      border-radius: 999px;
-      background: #f8fbff;
-    }
-
-    .report-title h1 {
-      margin: 2.5mm 0 0;
-      color: #111827;
-      font-size: 15px;
-      line-height: 1.55;
-      font-weight: 900;
-    }
-
-    .school-lines {
-      text-align: left;
-    }
-
-    .executive-band {
-      display: grid;
-      grid-template-columns: 38mm 1fr;
-      gap: 5mm;
-      margin-top: 5mm;
-      padding: 4.5mm;
-      border: 1px solid #d1d5db;
-      border-radius: 5mm;
-      background: #ffffff;
-    }
-
-    .completion-box {
-      display: grid;
-      place-items: center;
-      border-left: 1px solid #e5e7eb;
-      border-radius: 4mm;
-    }
-
-    .completion-gauge {
-      width: 27mm;
-      height: 27mm;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-    }
-
-    .completion-gauge > div {
-      width: 20mm;
-      height: 20mm;
-      border-radius: 50%;
-      background: #ffffff;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      border: 1px solid #e5e7eb;
-    }
-
-    .completion-gauge strong {
-      display: block;
-      color: #0f2a44;
-      font-size: 13px;
-      font-weight: 900;
-      line-height: 1;
-    }
-
-    .completion-gauge span {
-      display: block;
-      margin-top: 1mm;
-      color: #64748b;
-      font-size: 6.5px;
-      font-weight: 900;
-    }
-
-    .summary-area {
-      display: grid;
-      gap: 3mm;
-    }
-
-    .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 2mm;
-    }
-
-    .kpi {
-      border: 1px solid #e5e7eb;
-      padding: 2.7mm;
-      min-height: 17mm;
-      background: #fbfdff;
-      border-radius: 3.5mm;
-    }
-
-    .kpi span {
-      display: block;
-      color: #64748b;
-      font-size: 7px;
-      font-weight: 900;
-    }
-
-    .kpi strong {
-      display: block;
-      margin-top: 1mm;
-      color: #111827;
-      font-size: 14px;
-      font-weight: 900;
-      line-height: 1.1;
-    }
-
-    .kpi small {
-      display: block;
-      margin-top: 1mm;
-      color: #0f4c81;
-      font-size: 6.6px;
-      font-weight: 800;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .executive-text {
-      color: #374151;
-      font-size: 8.1px;
-      line-height: 1.95;
-      font-weight: 800;
-    }
-
-    .section-label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 4mm;
-      margin-top: 5mm;
-      padding: 2.2mm 2.8mm;
-      border: 1px solid #e5e7eb;
-      border-radius: 3.5mm;
-      background: #fcfdff;
-    }
-
-    .section-label h2 {
-      margin: 0;
-      color: #0f2a44;
-      font-size: 12px;
-      font-weight: 900;
-    }
-
-    .section-label span {
-      color: #64748b;
-      font-size: 7.5px;
-      font-weight: 900;
-    }
-
-    .questions-board {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 2.4mm;
-      margin-top: 3mm;
-      overflow: hidden;
-    }
-
-    .density-large .question-module {
-      min-height: 42mm;
-    }
-
-    .density-medium .question-module {
-      min-height: 33mm;
-    }
-
-    .density-compact .question-module {
-      min-height: 25mm;
-    }
-
-    .question-module {
-      border: 1px solid #d1d5db;
-      background: #ffffff;
-      padding: 2.6mm;
-      overflow: hidden;
-      break-inside: avoid;
-      page-break-inside: avoid;
-      border-radius: 4.5mm;
-      box-shadow: 0 1mm 2.2mm rgba(15, 42, 68, 0.05);
-    }
-
-    .question-head {
-      display: grid;
-      grid-template-columns: 10mm 1fr;
-      gap: 2mm;
-      align-items: start;
-    }
-
-    .question-index {
-      display: grid;
-      place-items: center;
-      min-height: 8mm;
-      background: #0f2a44;
-      color: #ffffff;
-      font-size: 8px;
-      font-weight: 900;
-      border-radius: 2.8mm;
-    }
-
-    .question-title span {
-      display: block;
-      color: #0f4c81;
-      font-size: 6.6px;
-      line-height: 1.4;
-      font-weight: 900;
-    }
-
-    .question-title h3 {
-      height: 9mm;
-      margin: .8mm 0 0;
-      color: #111827;
-      font-size: 8.2px;
-      line-height: 1.45;
-      font-weight: 900;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-
-    .density-compact .question-title h3 {
-      height: 7.2mm;
-      font-size: 7.1px;
-      line-height: 1.35;
-    }
-
-    .question-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1mm;
-      margin-top: 1.5mm;
-    }
-
-    .question-stats div {
-      background: #f8fafc;
-      border: 1px solid #edf2f7;
-      padding: 1.2mm .8mm;
-      text-align: center;
-      border-radius: 2.6mm;
-    }
-
-    .question-stats strong {
-      display: block;
-      color: #111827;
-      font-size: 8px;
-      font-weight: 900;
-      line-height: 1;
-    }
-
-    .question-stats span {
-      display: block;
-      margin-top: .6mm;
-      color: #64748b;
-      font-size: 5.5px;
-      font-weight: 800;
-    }
-
-    .numeric-visual {
-      height: 15mm;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2mm;
-      align-items: end;
-      margin-top: 1.7mm;
-    }
-
-    .density-compact .numeric-visual {
-      height: 10.5mm;
-    }
-
-    .numeric-column {
-      height: 100%;
-      display: grid;
-      grid-template-rows: 3mm 1fr 3mm;
-      gap: .5mm;
-      text-align: center;
-      align-items: end;
-    }
-
-    .numeric-column b {
-      color: #111827;
-      font-size: 6.5px;
-      font-weight: 900;
-    }
-
-    .numeric-track {
-      height: 100%;
-      display: flex;
-      align-items: end;
-      justify-content: center;
-      background: #edf2f7;
-      border: 1px solid #e5e7eb;
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-    .numeric-track i {
-      width: 70%;
-      display: block;
-      border-radius: 999px 999px 0 0;
-    }
-
-    .numeric-column span {
-      color: #64748b;
-      font-size: 5.5px;
-      font-weight: 900;
-    }
-
-    .donut-visual {
-      display: grid;
-      grid-template-columns: 18mm 1fr;
-      gap: 2mm;
-      align-items: center;
-      margin-top: 1.5mm;
-      min-height: 17mm;
-    }
-
-    .density-compact .donut-visual {
-      grid-template-columns: 14mm 1fr;
-      min-height: 12mm;
-    }
-
-    .donut-svg {
-      width: 18mm;
-      height: 18mm;
-      filter: drop-shadow(0 1px 1px rgba(15, 42, 68, 0.08));
-    }
-
-    .density-compact .donut-svg {
-      width: 14mm;
-      height: 14mm;
-    }
-
-    .donut-number {
-      font-size: 5px;
-      fill: #111827;
-      font-weight: 900;
-    }
-
-    .donut-label {
-      font-size: 2.5px;
-      fill: #64748b;
-      font-weight: 900;
-    }
-
-    .legend-list {
-      display: grid;
-      gap: .8mm;
-      min-width: 0;
-    }
-
-    .legend-list div {
-      display: grid;
-      grid-template-columns: 2mm 1fr auto;
-      gap: 1mm;
-      align-items: center;
-      color: #374151;
-      font-size: 5.8px;
-      font-weight: 900;
-      min-width: 0;
-    }
-
-    .legend-list i {
-      width: 2mm;
-      height: 2mm;
-    }
-
-    .legend-list span {
-      min-width: 0;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-
-    .ranked-visual {
-      display: grid;
-      gap: 1.1mm;
-      margin-top: 2mm;
-    }
-
-    .rank-row {
-      display: grid;
-      grid-template-columns: 20mm 1fr 9mm;
-      gap: 1.2mm;
-      align-items: center;
-      color: #374151;
-      font-size: 6px;
-      font-weight: 900;
-    }
-
-    .density-compact .rank-row {
-      grid-template-columns: 15mm 1fr 7mm;
-      font-size: 5.4px;
-    }
-
-    .bar-track {
-      height: 2.2mm;
-      background: #edf2f7;
-      border: 1px solid #e5e7eb;
-      overflow: hidden;
-      border-radius: 999px;
-    }
-
-    .bar-track i {
-      display: block;
-      height: 100%;
-      border-radius: 999px;
-    }
-
-    .quote-visual,
-    .date-visual,
-    .plain-note {
-      margin-top: 2mm;
-      min-height: 12mm;
-      padding: 2mm;
-      border-right: 3px solid #0f4c81;
-      background: #f8fafc;
-      color: #374151;
-      font-size: 6.3px;
-      line-height: 1.6;
-      font-weight: 800;
-      overflow: hidden;
-      border-radius: 3.2mm;
-    }
-
-    .quote-visual span,
-    .date-visual span {
-      display: block;
-      color: #0f4c81;
-      font-size: 5.8px;
-      font-weight: 900;
-      margin-bottom: .8mm;
-    }
-
-    .quote-visual p {
-      margin: 0;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .date-visual {
-      text-align: center;
-      border-right-color: #157347;
-    }
-
-    .date-visual strong {
-      display: block;
-      color: #111827;
-      font-size: 9px;
-      font-weight: 900;
-      margin-bottom: .7mm;
-    }
-
-    .date-visual small {
-      color: #64748b;
-      font-size: 5.6px;
-      font-weight: 800;
-    }
-
-    .insights-box {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2mm;
-      margin-top: 4mm;
-    }
-
-    .insight {
-      border-right: 3px solid #0f4c81;
-      background: #fbfdff;
-      border: 1px solid #e5e7eb;
-      padding: 2.2mm;
-      color: #374151;
-      font-size: 7px;
-      line-height: 1.65;
-      font-weight: 850;
-      min-height: 13mm;
-      overflow: hidden;
-      border-radius: 3.4mm;
-    }
-
-    .footer {
-      margin-top: 3mm;
-      padding: 2.4mm 3mm;
-      border: 1px solid #d1d5db;
-      border-radius: 3.8mm;
-      text-align: center;
-      color: #64748b;
-      font-size: 6.5px;
-      font-weight: 800;
-      background: #fcfdff;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>${escapeHtml(survey.title)}</title>
+<style>
+  @font-face { font-family:'Cairo'; src:local('Cairo'); }
+
+  :root{
+    --green:#07a869;
+    --blue:#3d7eb9;
+    --turq:#0da9a6;
+    --navy:#15445a;
+    --gold:#c1b489;
+    --gray:#c2c1c1;
+    --line:#d9e2e8;
+    --red:#ef5548;
+    --soft-red:#fb6a5c;
+  }
+
+  *{box-sizing:border-box}
+
+  html,body{
+    margin:0;
+    width:1600px;
+    height:900px;
+    overflow:hidden;
+    background:#e9eef1;
+    font-family:'Cairo',Tahoma,Arial,sans-serif;
+    color:#09254b;
+  }
+
+  .sheet{
+    width:1600px;
+    height:900px;
+    margin:0 auto;
+    background:#fff;
+    position:relative;
+    overflow:hidden;
+    padding:34px 78px 36px;
+    isolation:isolate;
+  }
+
+  @page{size:16.6667in 9.375in;margin:0}
+
+  @media print{
+    html,body{background:white;width:1600px;height:900px;overflow:hidden}
+    .sheet{margin:0;box-shadow:none;width:1600px;height:900px;page-break-after:avoid}
+  }
+
+  .bottom-dots{
+    position:absolute;
+    bottom:2px;
+    left:0;
+    width:320px;
+    height:78px;
+    opacity:.75;
+    z-index:0;
+  }
+
+  .brand{
+    position:absolute;
+    top:38px;
+    right:72px;
+    width:330px;
+    height:130px;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+
+  .brand img{
+    width:310px;
+    max-height:122px;
+    object-fit:contain;
+    display:block;
+  }
+
+  .vision-brand{
+    position:absolute;
+    top:36px;
+    left:74px;
+    width:310px;
+    height:135px;
+    z-index:55;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+
+  .vision-brand img{
+    width:300px;
+    max-height:125px;
+    object-fit:contain;
+    display:block;
+  }
+
+  .header{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    padding-top:1px;
+  }
+
+  .title{
+    margin:0;
+    font-size:52px;
+    line-height:1.16;
+    font-weight:900;
+    letter-spacing:-1px;
+    color:#081f47;
+  }
+
+  .subtitle{
+    margin:8px 0 0;
+    color:#078b80;
+    font-size:28px;
+    font-weight:800;
+  }
+
+  .info-panel{
+    position:relative;
+    z-index:2;
+    margin-top:38px;
+    border:2px solid #d3dce4;
+    border-radius:12px;
+    min-height:139px;
+    padding:10px 22px;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    grid-auto-rows:58px;
+    align-items:center;
+    background:rgba(255,255,255,.96);
+    box-shadow:0 1px 3px rgba(13,38,76,.04) inset;
+  }
+
+  .info-item{
+    height:48px;
+    display:grid;
+    grid-template-columns:58px 1fr;
+    gap:12px;
+    align-items:center;
+    padding:0 14px;
+    border-left:1px solid #e2e7ec;
+    overflow:hidden;
+  }
+
+  .info-item:nth-child(4n){border-left:0}
+  .info-item:nth-child(-n+4){border-bottom:1px solid #dde6ec;padding-bottom:8px}
+
+  .info-icon{
+    width:40px;
+    height:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--turq);
+    flex-shrink:0;
+  }
+
+  .info-icon svg{
+    width:38px;
+    height:38px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:2.25;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+
+  .info-label{
+    color:#081f47;
+    font-size:17px;
+    font-weight:900;
+    line-height:1.2;
+    margin-bottom:4px;
+    white-space:nowrap;
+  }
+
+  .info-value{
+    color:#0b3d73;
+    font-size:16px;
+    font-weight:700;
+    line-height:1.22;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-height:2.45em;
+  }
+
+  .metrics{
+    position:relative;
+    z-index:2;
+    margin-top:14px;
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:12px;
+  }
+
+  .metric-card{
+    height:150px;
+    border:2px solid #d8e1e8;
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 4px 11px rgba(4,31,67,.055);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding:13px 4px 9px;
+    position:relative;
+  }
+
+  .metric-card:after{
+    content:"";
+    position:absolute;
+    bottom:-2px;
+    left:50%;
+    transform:translateX(-50%);
+    width:22px;
+    height:4px;
+    border-radius:20px;
+    background:var(--blue);
+  }
+
+  .metric-card.green:after{background:var(--green)}
+  .metric-card.turq:after{background:var(--turq)}
+  .metric-card.red:after{background:var(--red)}
+
+  .metric-icon{height:47px;color:var(--blue);margin-bottom:3px}
+  .metric-card.green .metric-icon{color:var(--green)}
+  .metric-card.turq .metric-icon{color:var(--turq)}
+  .metric-card.red .metric-icon{color:var(--red)}
+
+  .metric-icon svg{
+    width:46px;
+    height:46px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+
+  .metric-number{
+    font-size:30px;
+    font-weight:900;
+    line-height:1.2;
+    color:#116eae;
+    letter-spacing:-.6px;
+    min-height:38px;
+    display:flex;
+    align-items:center;
+  }
+
+  .metric-card.green .metric-number{color:#07885c}
+  .metric-card.turq .metric-number{color:#079a97}
+  .metric-card.red .metric-number{color:#e84a3d}
+
+  .metric-label{
+    color:#0c2854;
+    font-weight:800;
+    font-size:15px;
+    text-align:center;
+    line-height:1.25;
+    margin-top:4px;
+    white-space:nowrap;
+  }
+
+  .content-grid{
+    position:relative;
+    z-index:2;
+    margin-top:30px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    direction:rtl;
+  }
+
+  .panel{
+    position:relative;
+    border:2px solid #0d8293;
+    border-radius:10px;
+    min-height:262px;
+    background:#fff;
+    padding:42px 22px 18px;
+    direction:rtl;
+  }
+
+  .panel .tab{
+    position:absolute;
+    top:-17px;
+    right:142px;
+    left:142px;
+    height:36px;
+    border-radius:999px;
+    background:linear-gradient(90deg,#064f89,#088e84);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    font-weight:800;
+    font-size:17px;
+    box-shadow:0 5px 12px rgba(0,94,122,.24);
+  }
+
+  .panel .tab svg{
+    width:24px;
+    height:24px;
+    stroke:#fff;
+    fill:none;
+    stroke-width:2;
+  }
+
+  .summary-lines{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+  }
+
+  .summary-line{
+    min-height:68px;
+    display:grid;
+    grid-template-columns:46px 1fr;
+    gap:16px;
+    align-items:center;
+    border-bottom:1px solid #dce7ee;
+    padding:8px 0;
+  }
+
+  .summary-line:last-child{border-bottom:0}
+
+  .summary-icon{
+    color:var(--turq);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .summary-icon svg{
+    width:34px;
+    height:34px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+
+  .summary-text{
+    font-size:19px;
+    line-height:1.85;
+    color:#0d2b59;
+    font-weight:700;
+  }
+
+  .summary-text b{color:var(--turq);font-weight:900}
+  .summary-text .green{color:#07885c;font-weight:900}
+  .summary-text .blue{color:#0c6bab;font-weight:900}
+  .summary-text .red{color:#df4e43;font-weight:900}
+
+  .survey-grid{
+    display:grid;
+    grid-template-columns:245px 1fr;
+    gap:22px;
+    align-items:center;
+    direction:ltr;
+  }
+
+  .donut-wrap{
+    width:240px;
+    height:205px;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .donut{
+    width:186px;
+    height:186px;
+    border-radius:50%;
+    position:relative;
+    background:conic-gradient(var(--green) 0 ${donutRate}%, #e8eef2 ${donutRate}% 100%);
+    box-shadow:0 2px 6px rgba(0,0,0,.12);
+  }
+
+  .donut:before{
+    content:"";
+    position:absolute;
+    inset:45px;
+    border-radius:50%;
+    background:#fff;
+    box-shadow:inset 0 0 9px rgba(18,57,88,.14);
+  }
+
+  .donut-center{
+    position:absolute;
+    width:94px;
+    height:94px;
+    border-radius:50%;
+    background:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    color:#092c5a;
+    font-weight:900;
+    text-align:center;
+  }
+
+  .donut-center strong{
+    font-size:31px;
+    line-height:1;
+  }
+
+  .donut-center span{
+    margin-top:4px;
+    font-size:13px;
+    color:#52677d;
+  }
+
+  .question-table{
+    direction:rtl;
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+  }
+
+  .question-table th{
+    color:#0d2857;
+    font-weight:900;
+    text-align:right;
+    padding:6px 8px;
+    border-bottom:1px solid #dce5eb;
+  }
+
+  .question-table td{
+    padding:6px 8px;
+    border-bottom:1px solid #e7edf2;
+    font-weight:800;
+    color:#0e2b58;
+    vertical-align:middle;
+  }
+
+  .question-table td:not(.question-text){
+    text-align:center;
+    white-space:nowrap;
+  }
+
+  .question-text{
+    max-width:260px;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+</style>
 </head>
 <body>
   <main class="sheet">
-    <header class="letterhead">
-      <section class="official-side">
-        ${
-          ministryLogoDataUri
-            ? `<img class="logo" src="${ministryLogoDataUri}" alt="شعار وزارة التعليم" />`
-            : `<div class="logo-fallback">وزارة<br />التعليم</div>`
-        }
-        <div class="official-lines">
-          <strong>وزارة التعليم</strong>
-          <span>${escapeHtml(educationDepartment)}</span>
-          <span>${escapeHtml(educationOffice)}</span>
-        </div>
-      </section>
+    ${
+      visionLogoDataUri
+        ? `<section class="vision-brand" aria-label="شعار رؤية السعودية 2030"><img src="${visionLogoDataUri}" alt="" /></section>`
+        : ""
+    }
 
-      <section class="report-title">
-        <small>تقرير إنفوجرافيك رسمي لتحليل استبيان</small>
-        <h1>${escapeHtml(survey.title)}</h1>
-      </section>
+    ${
+      moeLogoDataUri
+        ? `<section class="brand" aria-label="شعار وزارة التعليم"><img src="${moeLogoDataUri}" alt="" /></section>`
+        : ""
+    }
 
-      <section class="school-lines">
-        <span>اسم المدرسة</span>
-        <strong>${escapeHtml(schoolName)}</strong>
-        <span>تاريخ التقرير: ${escapeHtml(reportDate)}</span>
-      </section>
+    <svg class="bottom-dots" viewBox="0 0 320 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs><linearGradient id="gb" x1="0" x2="1"><stop stop-color="#3d7eb9"/><stop offset="1" stop-color="#07a869"/></linearGradient></defs>
+      <g fill="url(#gb)">
+        <circle cx="8" cy="8" r="6"/><circle cx="30" cy="13" r="5" opacity=".8"/><circle cx="52" cy="18" r="5" opacity=".75"/><circle cx="76" cy="22" r="4" opacity=".7"/><circle cx="102" cy="27" r="4" opacity=".6"/><circle cx="130" cy="32" r="3" opacity=".55"/>
+        <circle cx="8" cy="37" r="5" opacity=".8"/><circle cx="32" cy="42" r="5" opacity=".75"/><circle cx="58" cy="48" r="4" opacity=".7"/><circle cx="88" cy="52" r="4" opacity=".65"/><circle cx="120" cy="56" r="3" opacity=".6"/><circle cx="152" cy="60" r="3" opacity=".55"/>
+        <circle cx="5" cy="66" r="4" opacity=".7"/><circle cx="34" cy="68" r="4" opacity=".65"/><circle cx="65" cy="70" r="3" opacity=".6"/><circle cx="98" cy="72" r="3" opacity=".55"/><circle cx="133" cy="73" r="2.8" opacity=".5"/>
+      </g>
+    </svg>
+
+    <header class="header">
+      <h1 class="title">تقرير تحليل الاستبيان</h1>
+      <div class="subtitle">قراءة إحصائية تربوية لآراء المستفيدين ومؤشرات التحسين</div>
     </header>
 
-    <section class="executive-band">
-      <div class="completion-box">
-        ${buildCompletionGauge(completionRate)}
-      </div>
+    <section class="info-panel">
+      ${infoItem("school", "المدرسة", schoolName)}
+      ${infoItem("report", "اسم الاستبيان", survey.title)}
+      ${infoItem("audience", "الفئة المستهدفة", surveyAudienceLabels[survey.audienceType] || survey.audienceType)}
+      ${infoItem("status", "حالة الاستبيان", statusLabel(survey.status))}
+      ${infoItem("privacy", "نوع الاستجابة", survey.isAnonymous ? "مجهول الهوية" : "بيانات المستجيب اختيارية")}
+      ${infoItem("response", "عدد الردود", `${totalResponses} رد`)}
+      ${infoItem("questions", "الأسئلة المختارة", `${questions.length} من ${totalQuestions}`)}
+      ${infoItem("date", "تاريخ التقرير", reportDate)}
+    </section>
 
-      <div class="summary-area">
-        <div class="kpi-row">
-          <div class="kpi">
-            <span>عدد الردود</span>
-            <strong>${escapeHtml(totalResponses)}</strong>
-            <small>إجمالي المشاركات</small>
+    <section class="metrics">
+      ${metricCard("responses", "green", String(totalResponses), "عدد الردود")}
+      ${metricCard("questions", "blue", String(questions.length), "محاور مختارة")}
+      ${metricCard("completion", "green", formatPercent(completionRate), "اكتمال المطلوب")}
+      ${metricCard("average", "turq", formatPercent(averageAnswerRate), "معدل الإجابة")}
+      ${metricCard("target", "turq", numericAverage !== null ? formatNumber(numericAverage, 2) : formatPercent(positiveRate), "أقوى مؤشر")}
+      ${metricCard("alert", improvement ? "red" : "blue", improvement ? "1" : "0", "فرصة تحسين")}
+    </section>
+
+    <section class="content-grid">
+      <article class="panel">
+        <div class="tab">لوحة المحاور المختارة</div>
+
+        <div class="survey-grid">
+          <div class="donut-wrap">
+            <div class="donut"></div>
+            <div class="donut-center">
+              <strong>${escapeHtml(formatPercent(completionRate))}</strong>
+              <span>اكتمال</span>
+            </div>
           </div>
 
-          <div class="kpi">
-            <span>الأسئلة المختارة</span>
-            <strong>${escapeHtml(questions.length)}</strong>
-            <small>من أصل ${escapeHtml(totalQuestions)}</small>
-          </div>
-
-          <div class="kpi">
-            <span>الحالة</span>
-            <strong style="font-size:11px">${escapeHtml(statusLabel(survey.status))}</strong>
-            <small>${escapeHtml(surveyAudienceLabels[survey.audienceType] || survey.audienceType)}</small>
-          </div>
-
-          <div class="kpi">
-            <span>الهوية</span>
-            <strong style="font-size:10px">${survey.isAnonymous ? "مجهول" : "اختياري"}</strong>
-            <small>بيانات المستجيب</small>
-          </div>
+          <table class="question-table">
+            <thead>
+              <tr>
+                <th>م</th>
+                <th>المحور</th>
+                <th>النوع</th>
+                <th>إجابة</th>
+                <th>المؤشر</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${questions.map((question, index) => questionRow(question, index)).join("")}
+            </tbody>
+          </table>
         </div>
+      </article>
 
-        <div class="executive-text">
-          يعرض هذا التقرير صفحة تنفيذية مختصرة للأسئلة المختارة فقط، بهدف تقديم قراءة بصرية رسمية تساعد قائد المدرسة أو رائد النشاط على فهم المؤشرات بسرعة دون تحويل التقرير إلى تفريغ كامل لكل تفاصيل الاستبيان.
+      <article class="panel">
+        <div class="tab">${metricIcon("report")} خلاصة تنفيذية</div>
+
+        <div class="summary-lines">
+          ${summaryLine(metricIcon("responses"), `<span class="blue">${escapeHtml(insightLines[0] || "")}</span>`)}
+          ${summaryLine(metricIcon("completion"), `<span class="green">${escapeHtml(insightLines[1] || "")}</span>`)}
+          ${summaryLine(metricIcon("target"), `${escapeHtml(insightLines[2] || "")}`)}
         </div>
-      </div>
+      </article>
     </section>
-
-    <section class="section-label">
-      <h2>لوحة المؤشرات المختارة</h2>
-      <span>التقرير يعرض أهم المحاور بصيغة إنفوجرافيك قابلة للطباعة الرسمية</span>
-    </section>
-
-    <section class="questions-board ${densityClass}">
-      ${questionBlocks}
-    </section>
-
-    <section class="section-label">
-      <h2>أبرز القراءة التحليلية</h2>
-      <span>مستخرجة من الأسئلة المختارة</span>
-    </section>
-
-    <section class="insights-box">
-      ${insightLines.map((line) => `<div class="insight">${escapeHtml(line)}</div>`).join("")}
-    </section>
-
-    <footer class="footer">
-      تم إنشاء هذا التقرير من مركز الاستبيانات في منصة التوجيه الطلابي · صفحة واحدة رسمية قابلة للأرشفة والطباعة
-    </footer>
   </main>
 </body>
-</html>
-`;
+</html>`;
 }
 
 export async function GET(request: Request, context: RouteContext) {
@@ -1328,8 +1118,8 @@ export async function GET(request: Request, context: RouteContext) {
     const page = await browser.newPage();
 
     await page.setViewport({
-      width: 794,
-      height: 1123,
+      width: 1600,
+      height: 900,
       deviceScaleFactor: 1,
     });
 
@@ -1338,7 +1128,6 @@ export async function GET(request: Request, context: RouteContext) {
     });
 
     const pdfBuffer = await page.pdf({
-      format: "A4",
       printBackground: true,
       preferCSSPageSize: true,
       margin: {

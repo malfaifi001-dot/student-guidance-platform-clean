@@ -153,10 +153,24 @@ export const standaloneServices: AppService[] = [
     kind: "standalone",
   },
   {
+    slug: "assessment-center",
+    title: "مركز التحليل والاختبارات",
+    description: "تحليل نتائج الطلاب والاختبارات، وربطها بالتدخلات والخطط الذكية.",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    kind: "standalone",
+  },
+  {
     slug: "reports",
     title: "التقارير",
     description: "إنشاء ومعاينة واعتماد التقارير.",
     href: OFFICIAL_WORKSPACE_ROUTES.reports,
+    kind: "standalone",
+  },
+  {
+    slug: "custom-report",
+    title: "التقرير المخصص",
+    description: "إنشاء تقارير مخصصة ومرنة حسب احتياج المدرسة.",
+    href: "/dashboard/custom-report",
     kind: "standalone",
   },
 ];
