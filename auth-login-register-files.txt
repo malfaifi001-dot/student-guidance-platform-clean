@@ -1,0 +1,1728 @@
+ملف تجميع ملفات الدخول وتسجيل الدخول وتسجيل حساب جديد
+Project: D:\student-guidance-platform-clean
+Generated: 06/25/2026 13:51:16
+
+عدد الملفات: 22
+
+============================================================
+FILE: .\app\login\page.tsx
+============================================================
+
+"use client";
+
+import { useState } from "react";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر تسجيل الدخول.");
+      }
+
+      window.location.href = data.redirectTo || "/dashboard";
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "حدث خطأ غير متوقع.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main dir="rtl" className="min-h-screen bg-slate-50 px-4 py-10">
+      <form
+        onSubmit={submit}
+        className="mx-auto max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <p className="text-sm font-black text-blue-700">منصة التوجيه الطلابي</p>
+        <h1 className="mt-3 text-3xl font-black text-slate-950">تسجيل الدخول</h1>
+        <p className="mt-2 text-sm leading-7 text-slate-500">
+          ادخل إلى حسابك لإكمال بيانات المدرسة أو متابعة التقارير.
+        </p>
+
+        {error ? (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="mt-5 space-y-4">
+          <label className="block">
+            <span className="text-sm font-black text-slate-700">البريد الإلكتروني</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-black text-slate-700">كلمة المرور</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              required
+            />
+          </label>
+
+          <button
+            disabled={loading}
+            className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50"
+          >
+            {loading ? "جاري الدخول..." : "دخول"}
+          </button>
+
+          <a
+            href="/register"
+            className="block text-center text-sm font-bold text-slate-500 hover:text-slate-900"
+          >
+            إنشاء حساب جديد
+          </a>
+        </div>
+      </form>
+    </main>
+  );
+}
+
+
+
+============================================================
+FILE: .\app\register\page.tsx
+============================================================
+
+"use client";
+
+import { useState } from "react";
+
+type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
+
+export default function RegisterPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState<"MALE" | "FEMALE">("MALE");
+  const [accountType, setAccountType] = useState<AccountType>("COUNSELOR");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const selectedJobTitle =
+    accountType === "ACTIVITY_LEADER"
+      ? gender === "FEMALE"
+        ? "رائدة النشاط"
+        : "رائد النشاط"
+      : accountType === "TEACHER"
+        ? gender === "FEMALE"
+          ? "معلمة"
+          : "معلم"
+      : gender === "FEMALE"
+        ? "موجهة طلابية"
+        : "موجه طلابي";
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    if (password !== confirmPassword) {
+      setError("كلمة المرور وتأكيدها غير متطابقين.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          gender,
+          accountType,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر إنشاء الحساب.");
+      }
+
+      window.location.href = data.redirectTo || "/dashboard/onboarding";
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "حدث خطأ غير متوقع.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main dir="rtl" className="min-h-screen bg-slate-50 px-4 py-10">
+      <section className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_460px]">
+        <div className="flex flex-col justify-center rounded-[2rem] bg-slate-950 p-8 text-white shadow-xl">
+          <p className="text-sm font-black text-sky-200">منصة التوجيه الطلابي</p>
+          <h1 className="mt-4 text-4xl font-black leading-[1.7]">
+            أنشئ حسابك واختر لوحة التحكم المناسبة لعملك
+          </h1>
+          <p className="mt-4 max-w-2xl text-sm leading-8 text-slate-300">
+            اختر المسمى الوظيفي المناسب. سيتم توجيهك تلقائيًا للوحة تحكم تناسب مهامك اليومية داخل المدرسة.
+          </p>
+        </div>
+
+        <form
+          onSubmit={submit}
+          className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <h2 className="text-2xl font-black text-slate-950">إنشاء حساب جديد</h2>
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            الحساب مستقل ومرتبط باشتراكه وبيانات مدرسته.
+          </p>
+
+          {error ? (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="mt-5 space-y-4">
+            <AuthInput label="الاسم الكامل" value={name} onChange={setName} />
+            <AuthInput label="البريد الإلكتروني" type="email" value={email} onChange={setEmail} />
+            <AuthInput label="رقم الجوال" value={phone} onChange={setPhone} />
+            <AuthInput label="كلمة المرور" type="password" value={password} onChange={setPassword} />
+            <AuthInput label="تأكيد كلمة المرور" type="password" value={confirmPassword} onChange={setConfirmPassword} />
+
+            <div>
+              <p className="text-sm font-black text-slate-700">المسمى الوظيفي</p>
+              <div className="mt-2 grid gap-2">
+                <RoleButton
+                  active={accountType === "COUNSELOR"}
+                  title="التوجيه الطلابي"
+                  description="لوحة الموجه الطلابي والخدمات الإرشادية والتقارير."
+                  onClick={() => setAccountType("COUNSELOR")}
+                />
+                <RoleButton
+                  active={accountType === "ACTIVITY_LEADER"}
+                  title="ريادة النشاط"
+                  description="لوحة رائد النشاط للبرامج والفعاليات والمشاركات."
+                  onClick={() => setAccountType("ACTIVITY_LEADER")}
+                />
+                <RoleButton
+                  active={accountType === "TEACHER"}
+                  title="مساحة المعلم"
+                  description="لوحة المعلم المستقلة لمتابعة مساحة العمل المخصصة له."
+                  onClick={() => setAccountType("TEACHER")}
+                />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-black text-slate-700">الصياغة</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setGender("MALE")}
+                  className={[
+                    "rounded-2xl border px-4 py-3 text-sm font-black transition",
+                    gender === "MALE"
+                      ? "border-slate-950 bg-slate-950 text-white"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  مذكر
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setGender("FEMALE")}
+                  className={[
+                    "rounded-2xl border px-4 py-3 text-sm font-black transition",
+                    gender === "FEMALE"
+                      ? "border-slate-950 bg-slate-950 text-white"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  مؤنث
+                </button>
+              </div>
+
+              <p className="mt-2 rounded-2xl bg-sky-50 px-4 py-3 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                سيظهر مسماك في المنصة: {selectedJobTitle}
+              </p>
+            </div>
+
+            <button
+              disabled={loading}
+              className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50"
+            >
+              {loading ? "جاري إنشاء الحساب..." : "إنشاء الحساب"}
+            </button>
+
+            <a
+              href="/login"
+              className="block text-center text-sm font-bold text-slate-500 hover:text-slate-900"
+            >
+              لدي حساب بالفعل
+            </a>
+          </div>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function RoleButton({
+  active,
+  title,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-2xl border px-4 py-3 text-right transition",
+        active
+          ? "border-slate-950 bg-slate-950 text-white"
+          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+      ].join(" ")}
+    >
+      <span className="block text-sm font-black">{title}</span>
+      <span className={["mt-1 block text-xs font-bold leading-6", active ? "text-slate-300" : "text-slate-500"].join(" ")}>
+        {description}
+      </span>
+    </button>
+  );
+}
+
+function AuthInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-black text-slate-700">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+        required
+      />
+    </label>
+  );
+}
+
+
+
+============================================================
+FILE: .\components\auth\auth-card.tsx
+============================================================
+
+import type { ReactNode } from "react";
+
+type AuthCardProps = {
+  title: string;
+  description: string;
+  children: ReactNode;
+};
+
+export function AuthCard({
+  title,
+  description,
+  children,
+}: AuthCardProps) {
+  return (
+    <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 card-shadow">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-black text-slate-900">
+          {title}
+        </h1>
+
+        <p className="mt-3 text-sm leading-7 text-slate-500">
+          {description}
+        </p>
+      </div>
+
+      {children}
+    </div>
+  );
+}
+
+
+============================================================
+FILE: .\components\auth\dashboard-onboarding-reminder.tsx
+============================================================
+
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { AlertCircle, ArrowLeft } from "lucide-react";
+
+export function DashboardOnboardingReminder({
+  onboardingCompleted,
+}: {
+  onboardingCompleted: boolean;
+}) {
+  const pathname = usePathname();
+
+  if (onboardingCompleted || pathname === "/dashboard/onboarding") {
+    return null;
+  }
+
+  return (
+    <div className="border-b border-amber-100 bg-[#fff9ed]/85 px-5 py-3 backdrop-blur">
+      <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+            <AlertCircle className="h-5 w-5" />
+          </div>
+
+          <div>
+            <p className="text-sm font-black text-amber-950">
+              بيانات المدرسة لم تكتمل بعد
+            </p>
+            <p className="mt-1 text-xs font-bold leading-6 text-amber-700">
+              أكمل الهوية الرسمية والشعار حتى تظهر التقارير بصيغة احترافية.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/dashboard/settings/school"
+          className="inline-flex items-center gap-2 rounded-2xl bg-amber-900 px-4 py-2 text-xs font-black text-white shadow-sm transition hover:bg-amber-800"
+        >
+          إكمال البيانات
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+
+
+============================================================
+FILE: .\components\auth\official-feature-required-page.tsx
+============================================================
+
+import Link from "next/link";
+
+type MissingItem = {
+  label: string;
+  required?: boolean;
+};
+
+export function OfficialFeatureRequiredPage({
+  title = "إكمال الهوية الرسمية مطلوب",
+  description = "هذه الميزة تعتمد على بيانات المدرسة والموجه/الموجهة حتى يظهر الناتج بشكل رسمي وجاهز للطباعة.",
+  missingItems = [],
+}: {
+  title?: string;
+  description?: string;
+  missingItems?: MissingItem[];
+}) {
+  return (
+    <main dir="rtl" className="min-h-[70vh] bg-slate-50 px-4 py-10">
+      <section className="mx-auto max-w-4xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <div className="bg-slate-950 px-8 py-8 text-white">
+          <p className="text-sm font-black text-amber-200">حماية جودة التقارير الرسمية</p>
+
+          <h1 className="mt-3 text-3xl font-black leading-[1.6]">
+            {title}
+          </h1>
+
+          <p className="mt-3 max-w-3xl text-sm leading-8 text-slate-300">
+            {description}
+          </p>
+        </div>
+
+        <div className="grid gap-6 p-8 lg:grid-cols-[1fr_300px]">
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+              <p className="text-sm font-black text-amber-900">
+                لماذا نطلب هذه البيانات؟
+              </p>
+
+              <p className="mt-2 text-sm font-bold leading-8 text-amber-800">
+                لأن التقارير الرسمي سيظهر فيه اسم المدرسة، إدارة التعليم، العام الدراسي،
+                واسم الموجه/الموجهة. إكمالها الآن يمنع خروج تقارير ناقصة أو غير مهنية.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-sm font-black text-slate-950">
+                البيانات المطلوبة قبل المتابعة
+              </p>
+
+              {missingItems.length ? (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {missingItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className={[
+                        "rounded-2xl px-4 py-3 text-sm font-bold",
+                        item.required
+                          ? "bg-red-50 text-red-700"
+                          : "bg-amber-50 text-amber-700",
+                      ].join(" ")}
+                    >
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                  يبدو أن البيانات الأساسية مكتملة. حدّث الصفحة أو ارجع وحاول مرة أخرى.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-950 text-2xl text-white">
+              ✓
+            </div>
+
+            <h2 className="mt-5 text-xl font-black leading-8 text-slate-950">
+              خطوة واحدة وتصبح التقارير جاهزة رسميًا
+            </h2>
+
+            <p className="mt-3 text-sm font-bold leading-7 text-slate-500">
+              بعد إكمال الهوية، لن تحتاج لإدخال هذه البيانات في كل تقرير.
+            </p>
+
+            <Link
+              href="/dashboard/settings/school"
+              className="mt-6 block rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              إكمال هوية المدرسة
+            </Link>
+
+            <Link
+              href="/dashboard"
+              className="mt-3 block rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              العودة للرئيسية
+            </Link>
+          </aside>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+
+============================================================
+FILE: .\lib\auth\auth-rate-limit.ts
+============================================================
+
+import "server-only";
+
+import { NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+
+type RateLimitOptions = {
+  namespace: string;
+  identity?: string | null;
+  limit: number;
+  windowMs: number;
+};
+
+function getClientIp(request: Request) {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown-ip"
+  );
+}
+
+function normalizeIdentity(value?: string | null) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9@._+\-\u0600-\u06FF]/gi, "")
+    .slice(0, 120);
+}
+
+export function getRateLimitKey(request: Request, options: RateLimitOptions) {
+  const ip = getClientIp(request);
+  const identity = normalizeIdentity(options.identity);
+
+  return [
+    options.namespace,
+    `ip:${ip}`,
+    identity ? `id:${identity}` : "id:anonymous",
+  ].join(":");
+}
+
+export function enforceRateLimit(request: Request, options: RateLimitOptions) {
+  const key = getRateLimitKey(request, options);
+  const allowed = checkRateLimit(key, options.limit, options.windowMs);
+
+  if (allowed) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "تم تجاوز عدد المحاولات المسموح. حاول مرة أخرى بعد قليل.",
+      code: "RATE_LIMITED",
+    },
+    { status: 429 }
+  );
+}
+
+
+
+============================================================
+FILE: .\lib\auth\current-user.ts
+============================================================
+
+import { cookies, headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "@/lib/auth/session";
+
+export async function getCurrentSessionUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const sessionPayload = verifySessionToken(token);
+
+  if (!sessionPayload) {
+    return null;
+  }
+
+  const session = await prisma.userSession.findUnique({
+    where: {
+      tokenId: sessionPayload.tokenId,
+    },
+    include: {
+      user: {
+        include: {
+          schoolAccount: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!session || !session.isActive || session.revokedAt) {
+    return null;
+  }
+
+  if (session.expiresAt.getTime() < Date.now()) {
+    await prisma.userSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+      },
+    });
+
+    return null;
+  }
+
+  await prisma.userSession.update({
+    where: {
+      id: session.id,
+    },
+    data: {
+      lastSeenAt: new Date(),
+    },
+  });
+
+  return {
+    session,
+    user: session.user,
+  };
+}
+
+export async function getRequestDeviceInfo() {
+  const headerStore = await headers();
+
+  return {
+    userAgent: headerStore.get("user-agent") || null,
+    ipAddress:
+      headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headerStore.get("x-real-ip") ||
+      null,
+  };
+}
+
+
+
+============================================================
+FILE: .\lib\auth\dashboard-context.ts
+============================================================
+
+import "server-only";
+
+import { notFound, redirect } from "next/navigation";
+import { NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export type DashboardRole =
+  | "ADMIN"
+  | "COUNSELOR"
+  | "ACTIVITY_LEADER"
+  | "TEACHER"
+  | "SCHOOL_OWNER"
+  | "STAFF";
+
+export type DashboardAuthUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: DashboardRole | string;
+  schoolAccountId: string | null;
+  isActive?: boolean | null;
+};
+
+export type DashboardContext = {
+  user: DashboardAuthUser;
+  schoolAccountId: string | null;
+  isAdmin: boolean;
+};
+
+export type SchoolDashboardContext = DashboardContext & {
+  schoolAccountId: string;
+};
+
+type RawSessionUser = {
+  id?: unknown;
+  name?: unknown;
+  email?: unknown;
+  role?: unknown;
+  schoolAccountId?: unknown;
+  isActive?: unknown;
+};
+
+function toNullableString(value: unknown) {
+  if (typeof value !== "string") return null;
+
+  const clean = value.trim();
+  return clean ? clean : null;
+}
+
+function normalizeDashboardUser(value: unknown): DashboardAuthUser | null {
+  const user = value as RawSessionUser | null | undefined;
+
+  const id = toNullableString(user?.id);
+  const email = toNullableString(user?.email);
+  const role = toNullableString(user?.role) || "COUNSELOR";
+
+  if (!id || !email) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    role,
+    name: toNullableString(user?.name),
+    schoolAccountId: toNullableString(user?.schoolAccountId),
+    isActive:
+      typeof user?.isActive === "boolean" ? user.isActive : null,
+  };
+}
+
+function toDashboardContext(user: DashboardAuthUser): DashboardContext {
+  return {
+    user,
+    schoolAccountId: user.schoolAccountId,
+    isAdmin: user.role === "ADMIN",
+  };
+}
+
+export async function getDashboardContext(): Promise<DashboardContext | null> {
+  const current = await getCurrentSessionUser();
+  const user = normalizeDashboardUser(current?.user);
+
+  if (!user) {
+    return null;
+  }
+
+  if (user.isActive === false) {
+    return null;
+  }
+
+  return toDashboardContext(user);
+}
+
+export async function requireDashboardApiContext() {
+  const context = await getDashboardContext();
+
+  if (!context) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "يجب تسجيل الدخول.",
+        code: "UNAUTHENTICATED",
+      },
+      { status: 401 }
+    );
+  }
+
+  return context;
+}
+
+export async function requireSchoolDashboardApiContext() {
+  const contextOrResponse = await requireDashboardApiContext();
+
+  if (contextOrResponse instanceof NextResponse) {
+    return contextOrResponse;
+  }
+
+  if (!contextOrResponse.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      { status: 403 }
+    );
+  }
+
+  return contextOrResponse as SchoolDashboardContext;
+}
+
+export async function requireDashboardPageContext() {
+  const context = await getDashboardContext();
+
+  if (!context) {
+    redirect("/login");
+  }
+
+  return context;
+}
+
+export async function requireSchoolDashboardPageContext() {
+  const context = await requireDashboardPageContext();
+
+  if (!context.schoolAccountId) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return context as SchoolDashboardContext;
+}
+
+export function canAccessSchool(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (context.isAdmin) return true;
+
+  return Boolean(
+    schoolAccountId &&
+      context.schoolAccountId &&
+      schoolAccountId === context.schoolAccountId
+  );
+}
+
+export function requireSameSchoolApi(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (canAccessSchool(context, schoolAccountId)) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "المورد غير موجود أو لا تملك صلاحية الوصول إليه.",
+      code: "NOT_FOUND",
+    },
+    { status: 404 }
+  );
+}
+
+export function requireSameSchoolPage(
+  context: DashboardContext,
+  schoolAccountId?: string | null
+) {
+  if (!canAccessSchool(context, schoolAccountId)) {
+    notFound();
+  }
+}
+
+export function caseOwnershipWhere(
+  context: DashboardContext,
+  caseId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: caseId,
+    };
+  }
+
+  return {
+    id: caseId,
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+export function studentOwnershipWhere(
+  context: DashboardContext,
+  studentId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: studentId,
+    };
+  }
+
+  return {
+    id: studentId,
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+export function reportOwnershipWhere(
+  context: DashboardContext,
+  reportId: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: reportId,
+    };
+  }
+
+  return {
+    id: reportId,
+    caseEntry: {
+      schoolAccountId: context.schoolAccountId,
+    },
+  };
+}
+
+export function reportEvidenceOwnershipWhere(
+  context: DashboardContext,
+  reportEvidenceId: string,
+  reportId?: string
+) {
+  if (context.isAdmin) {
+    return {
+      id: reportEvidenceId,
+      ...(reportId ? { reportId } : {}),
+    };
+  }
+
+  return {
+    id: reportEvidenceId,
+    ...(reportId ? { reportId } : {}),
+    report: {
+      caseEntry: {
+        schoolAccountId: context.schoolAccountId,
+      },
+    },
+  };
+}
+
+export function schoolScopedWhere(context: DashboardContext) {
+  if (context.isAdmin) {
+    return {};
+  }
+
+  return {
+    schoolAccountId: context.schoolAccountId,
+  };
+}
+
+
+
+============================================================
+FILE: .\lib\auth\dashboard-redirects.ts
+============================================================
+
+export const COUNSELOR_DASHBOARD_PATH = "/dashboard";
+export const ADMIN_DASHBOARD_PATH = "/dashboard/admin";
+export const ACTIVITY_LEADER_DASHBOARD_PATH = "/dashboard/activity-leader";
+export const TEACHER_DASHBOARD_PATH = "/dashboard/teacher";
+
+export function getDashboardHomePath(role?: string | null) {
+  if (role === "ADMIN") return ADMIN_DASHBOARD_PATH;
+  if (role === "ACTIVITY_LEADER") return ACTIVITY_LEADER_DASHBOARD_PATH;
+  if (role === "TEACHER") return TEACHER_DASHBOARD_PATH;
+
+  return COUNSELOR_DASHBOARD_PATH;
+}
+
+export function getOnboardingPathForRole(role?: string | null) {
+  if (role === "ACTIVITY_LEADER") {
+    return "/dashboard/onboarding?role=activity-leader";
+  }
+
+  return "/dashboard/onboarding";
+}
+
+export function getPostLoginRedirectPath(input: {
+  role?: string | null;
+  onboardingCompleted?: boolean | null;
+  onboardingSkippedAt?: Date | string | null;
+}) {
+  if (input.role === "ADMIN") return ADMIN_DASHBOARD_PATH;
+  if (input.role === "TEACHER") return TEACHER_DASHBOARD_PATH;
+
+  if (!input.onboardingCompleted && !input.onboardingSkippedAt) {
+    return getOnboardingPathForRole(input.role);
+  }
+
+  return getDashboardHomePath(input.role);
+}
+
+
+
+============================================================
+FILE: .\lib\auth\official-feature-guard.ts
+============================================================
+
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+type OfficialFeatureUser = {
+  onboardingCompleted?: boolean | null;
+  officialName?: string | null;
+  jobTitle?: string | null;
+  schoolAccount?: {
+    profile?: {
+      schoolName?: string | null;
+      educationDepartment?: string | null;
+      educationOffice?: string | null;
+      academicYear?: string | null;
+      currentSemester?: string | null;
+      principalName?: string | null;
+      logoUrl?: string | null;
+    } | null;
+  } | null;
+};
+
+export function getMissingOfficialIdentityItems(user: OfficialFeatureUser | null) {
+  const profile = user?.schoolAccount?.profile;
+
+  const missing: string[] = [];
+
+  if (!user?.officialName?.trim()) {
+    missing.push("الاسم الرسمي للموجه/الموجهة");
+  }
+
+  if (!user?.jobTitle?.trim()) {
+    missing.push("المسمى الوظيفي");
+  }
+
+  if (!profile?.schoolName?.trim()) {
+    missing.push("اسم المدرسة");
+  }
+
+  if (!profile?.educationDepartment?.trim()) {
+    missing.push("إدارة التعليم");
+  }
+
+  if (!profile?.academicYear?.trim()) {
+    missing.push("العام الدراسي");
+  }
+
+  if (!profile?.currentSemester?.trim()) {
+    missing.push("الفصل الدراسي");
+  }
+
+  return missing;
+}
+
+export function canUseOfficialFeatures(user: OfficialFeatureUser | null) {
+  return Boolean(
+    user?.onboardingCompleted &&
+      getMissingOfficialIdentityItems(user).length === 0
+  );
+}
+
+export async function requireOfficialFeatureAccess() {
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    redirect("/login");
+  }
+
+  if (!canUseOfficialFeatures(current.user)) {
+    redirect("/dashboard/onboarding?required=official-feature");
+  }
+
+  return current;
+}
+
+
+
+============================================================
+FILE: .\lib\auth\password.ts
+============================================================
+
+import crypto from "crypto";
+
+const ITERATIONS = 120000;
+const KEY_LENGTH = 64;
+const DIGEST = "sha512";
+
+export function hashPassword(password: string) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto
+    .pbkdf2Sync(password, salt, ITERATIONS, KEY_LENGTH, DIGEST)
+    .toString("hex");
+
+  return `pbkdf2:${ITERATIONS}:${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash?: string | null) {
+  if (!storedHash) return false;
+
+  const parts = storedHash.split(":");
+
+  if (parts.length !== 4 || parts[0] !== "pbkdf2") {
+    return false;
+  }
+
+  const iterations = Number(parts[1]);
+  const salt = parts[2];
+  const originalHash = parts[3];
+
+  const hash = crypto
+    .pbkdf2Sync(password, salt, iterations, KEY_LENGTH, DIGEST)
+    .toString("hex");
+
+  return crypto.timingSafeEqual(
+    Buffer.from(hash, "hex"),
+    Buffer.from(originalHash, "hex")
+  );
+}
+
+
+
+============================================================
+FILE: .\lib\auth\require-auth.ts
+============================================================
+
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export async function requireDashboardUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    redirect("/login");
+  }
+
+  return current;
+}
+
+export async function requireCompletedOnboarding() {
+  const current = await requireDashboardUser();
+
+  if (!current.user.onboardingCompleted) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return current;
+}
+
+
+
+============================================================
+FILE: .\lib\auth\session-policy.ts
+============================================================
+
+export function shouldLimitActiveSessions() {
+  return process.env.AUTH_SINGLE_ACTIVE_SESSION === "true";
+}
+
+
+
+============================================================
+FILE: .\lib\auth\session.ts
+============================================================
+
+import crypto from "crypto";
+
+export const SESSION_COOKIE_NAME = "student_guidance_session";
+
+type SessionPayload = {
+  userId: string;
+  email: string;
+  role: string;
+  schoolAccountId: string | null;
+  sessionId: string;
+  tokenId: string;
+  exp: number;
+};
+
+function getSecret() {
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+
+  if (secret && secret.trim().length >= 32) {
+    return secret;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "AUTH_SECRET is required in production and must be at least 32 characters."
+    );
+  }
+
+  return "dev-only-change-this-secret";
+}
+
+function base64UrlEncode(value: string) {
+  return Buffer.from(value)
+    .toString("base64")
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
+function base64UrlDecode(value: string) {
+  const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
+  return Buffer.from(normalized, "base64").toString("utf8");
+}
+
+function sign(value: string) {
+  return crypto.createHmac("sha256", getSecret()).update(value).digest("hex");
+}
+
+function safeSignatureEquals(signature: string, expectedSignature: string) {
+  const signatureBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expectedSignature, "hex");
+
+  if (signatureBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+}
+
+export function createTokenId() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+export function getSessionExpiryDate() {
+  return new Date(Date.now() + 1000 * 60 * 60 * 24 * 14);
+}
+
+export function createSessionToken(payload: Omit<SessionPayload, "exp">) {
+  const fullPayload: SessionPayload = {
+    ...payload,
+    exp: Date.now() + 1000 * 60 * 60 * 24 * 14,
+  };
+
+  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
+  const signature = sign(encodedPayload);
+
+  return `${encodedPayload}.${signature}`;
+}
+
+export function verifySessionToken(token?: string | null) {
+  if (!token) return null;
+
+  const [encodedPayload, signature] = token.split(".");
+
+  if (!encodedPayload || !signature) return null;
+
+  const expectedSignature = sign(encodedPayload);
+
+  if (!safeSignatureEquals(signature, expectedSignature)) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(base64UrlDecode(encodedPayload)) as SessionPayload;
+
+    if (!payload.exp || payload.exp < Date.now()) {
+      return null;
+    }
+
+    if (!payload.sessionId || !payload.tokenId) {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export function getSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 14,
+  };
+}
+
+
+
+============================================================
+FILE: .\lib\security\audit.ts
+============================================================
+
+import "server-only";
+
+export type AuditAction =
+  | "LOGIN"
+  | "LOGOUT"
+  | "VIEW_CASE"
+  | "CREATE_CASE"
+  | "UPDATE_CASE"
+  | "CLOSE_CASE"
+  | "UPLOAD_EVIDENCE"
+  | "EXPORT_REPORT"
+  | "UPLOAD_WORKFLOW";
+
+type AuditInput = {
+  userId?: string | null;
+  action: AuditAction;
+  entityType: string;
+  entityId?: string | null;
+  metadata?: Record<string, unknown>;
+};
+
+export async function auditLog(input: AuditInput) {
+  // مؤقتًا للتطوير.
+  // لاحقًا يربط بجدول AuditLog في Prisma.
+  console.info("[AUDIT]", {
+    ...input,
+    at: new Date().toISOString(),
+  });
+}
+
+
+============================================================
+FILE: .\lib\security\auth.ts
+============================================================
+
+import "server-only";
+
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { toUserRole, type UserRole } from "./roles";
+
+export type CurrentUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+
+  /**
+   * Legacy compatibility:
+   * tenantId/schoolId are kept so old helpers do not break.
+   * New code should use schoolAccountId.
+   */
+  tenantId: string | null;
+  schoolId: string | null;
+  schoolAccountId: string | null;
+};
+
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const current = await getCurrentSessionUser();
+  const user = current?.user;
+
+  if (!user) {
+    return null;
+  }
+
+  const role = toUserRole(user.role);
+
+  if (!role) {
+    return null;
+  }
+
+  const schoolAccountId = user.schoolAccountId || null;
+
+  return {
+    id: user.id,
+    name: user.name || user.officialName || user.email,
+    email: user.email,
+    role,
+    tenantId: schoolAccountId,
+    schoolId: schoolAccountId,
+    schoolAccountId,
+  };
+}
+
+
+
+============================================================
+FILE: .\lib\security\guards.ts
+============================================================
+
+import "server-only";
+
+import { notFound, redirect } from "next/navigation";
+import { getCurrentUser } from "./auth";
+import { hasPermission, type Permission } from "./permissions";
+import type { UserRole } from "./roles";
+
+export async function requireUser() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  return user;
+}
+
+export async function requirePermission(permission: Permission) {
+  const user = await requireUser();
+
+  if (!hasPermission(user.role, permission)) {
+    notFound();
+  }
+
+  return user;
+}
+
+export async function requireRole(roles: UserRole | UserRole[]) {
+  const user = await requireUser();
+  const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+  if (!allowedRoles.includes(user.role)) {
+    notFound();
+  }
+
+  return user;
+}
+
+export async function requireAdmin() {
+  return requireRole("ADMIN");
+}
+
+export function denyIfMissing(value: unknown) {
+  if (!value) notFound();
+}
+
+
+
+============================================================
+FILE: .\lib\security\permissions.ts
+============================================================
+
+import type { UserRole } from "./roles";
+
+export const PERMISSIONS = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "workflows:read",
+  "workflows:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "cases:close",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+  "subscription:manage",
+  "admin:manage",
+] as const;
+
+export type Permission = (typeof PERMISSIONS)[number];
+
+const COUNSELOR_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+];
+
+const ACTIVITY_LEADER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "subscription:read",
+];
+
+const TEACHER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "subscription:read",
+];
+
+const STAFF_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "cases:read",
+  "evidence:read",
+  "reports:read",
+  "results-analysis:read",
+  "subscription:read",
+];
+
+const SCHOOL_OWNER_PERMISSIONS: Permission[] = [
+  ...COUNSELOR_PERMISSIONS,
+  "workflows:read",
+  "subscription:manage",
+];
+
+const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  ADMIN: [...PERMISSIONS],
+  COUNSELOR: COUNSELOR_PERMISSIONS,
+  ACTIVITY_LEADER: ACTIVITY_LEADER_PERMISSIONS,
+  TEACHER: TEACHER_PERMISSIONS,
+  SCHOOL_OWNER: SCHOOL_OWNER_PERMISSIONS,
+  STAFF: STAFF_PERMISSIONS,
+};
+
+export function hasPermission(role: UserRole, permission: Permission) {
+  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+export function getRolePermissions(role: UserRole) {
+  return ROLE_PERMISSIONS[role] ?? [];
+}
+
+
+
+============================================================
+FILE: .\lib\security\rate-limit.ts
+============================================================
+
+import "server-only";
+
+type Bucket = {
+  count: number;
+  resetAt: number;
+};
+
+const buckets = new Map<string, Bucket>();
+
+export function checkRateLimit(key: string, limit = 20, windowMs = 60_000) {
+  const now = Date.now();
+  const current = buckets.get(key);
+
+  if (!current || current.resetAt < now) {
+    buckets.set(key, {
+      count: 1,
+      resetAt: now + windowMs,
+    });
+
+    return true;
+  }
+
+  if (current.count >= limit) {
+    return false;
+  }
+
+  current.count += 1;
+  return true;
+}
+
+
+============================================================
+FILE: .\lib\security\roles.ts
+============================================================
+
+export const USER_ROLES = [
+  "ADMIN",
+  "COUNSELOR",
+  "ACTIVITY_LEADER",
+  "TEACHER",
+  "SCHOOL_OWNER",
+  "STAFF",
+] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
+export function isUserRole(value: unknown): value is UserRole {
+  return typeof value === "string" && USER_ROLES.includes(value as UserRole);
+}
+
+export function toUserRole(value: unknown): UserRole | null {
+  return isUserRole(value) ? value : null;
+}
+
+export function isAdminRole(role?: string | null) {
+  return role === "ADMIN";
+}
+
+export function isSchoolScopedRole(role?: string | null) {
+  return (
+    role === "COUNSELOR" ||
+    role === "ACTIVITY_LEADER" ||
+    role === "TEACHER" ||
+    role === "SCHOOL_OWNER" ||
+    role === "STAFF"
+  );
+}
+
+
+
+============================================================
+FILE: .\lib\security\tenant.ts
+============================================================
+
+import "server-only";
+
+import { notFound } from "next/navigation";
+import type { CurrentUser } from "./auth";
+
+export type TenantScopedEntity = {
+  tenantId?: string | null;
+  schoolId?: string | null;
+  schoolAccountId?: string | null;
+};
+
+function getEntitySchoolAccountId(entity: TenantScopedEntity) {
+  return entity.schoolAccountId || entity.schoolId || entity.tenantId || null;
+}
+
+export function assertTenantAccess(user: CurrentUser, entity: TenantScopedEntity) {
+  if (user.role === "ADMIN") {
+    return;
+  }
+
+  const userSchoolAccountId = user.schoolAccountId || user.schoolId || user.tenantId;
+  const entitySchoolAccountId = getEntitySchoolAccountId(entity);
+
+  if (!userSchoolAccountId || !entitySchoolAccountId) {
+    notFound();
+  }
+
+  if (entitySchoolAccountId !== userSchoolAccountId) {
+    notFound();
+  }
+}
+
+export function tenantWhere(user: CurrentUser) {
+  if (user.role === "ADMIN") {
+    return {};
+  }
+
+  if (!user.schoolAccountId) {
+    return {
+      schoolAccountId: "__missing_school_account__",
+    };
+  }
+
+  return {
+    schoolAccountId: user.schoolAccountId,
+  };
+}
+
+export function legacyTenantWhere(user: CurrentUser) {
+  if (user.role === "ADMIN") {
+    return {};
+  }
+
+  return {
+    tenantId: user.schoolAccountId,
+    schoolId: user.schoolAccountId,
+  };
+}
+
+
+
+============================================================
+FILE: .\lib\security\validation.ts
+============================================================
+
+import "server-only";
+
+export type AuditAction =
+  | "LOGIN"
+  | "LOGOUT"
+  | "VIEW_CASE"
+  | "CREATE_CASE"
+  | "UPDATE_CASE"
+  | "CLOSE_CASE"
+  | "UPLOAD_EVIDENCE"
+  | "EXPORT_REPORT"
+  | "UPLOAD_WORKFLOW";
+
+type AuditInput = {
+  userId?: string | null;
+  action: AuditAction;
+  entityType: string;
+  entityId?: string | null;
+  metadata?: Record<string, unknown>;
+};
+
+export async function auditLog(input: AuditInput) {
+  // مؤقتًا للتطوير.
+  // لاحقًا يربط بجدول AuditLog في Prisma.
+  console.info("[AUDIT]", {
+    ...input,
+    at: new Date().toISOString(),
+  });
+}
+

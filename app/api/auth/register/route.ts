@@ -9,7 +9,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { getRequestDeviceInfo } from "@/lib/auth/current-user";
 import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
 import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";
-import { getOnboardingPathForRole } from "@/lib/auth/dashboard-redirects";
+import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
 import {
   createSessionToken,
   createTokenId,
@@ -18,8 +18,31 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/auth/session";
 
+const KNOWN_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "msn.com",
+  "yahoo.com",
+  "icloud.com",
+  "me.com",
+  "proton.me",
+  "protonmail.com",
+]);
+
 function normalizeEmail(value: unknown) {
   return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmailFormat(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function hasKnownEmailDomain(value: string) {
+  const domain = value.split("@")[1]?.toLowerCase() || "";
+  return KNOWN_EMAIL_DOMAINS.has(domain);
 }
 
 function createSlugFromName(name: string) {
@@ -56,7 +79,7 @@ export async function POST(request: Request) {
 
     const name = String(body?.name || "").trim();
     const email = normalizeEmail(body?.email);
-    const phone = String(body?.phone || "").trim();
+    const phone = body?.phone ? String(body.phone).trim() || null : null;
     const password = String(body?.password || "");
     const gender = body?.gender === "FEMALE" ? "FEMALE" : "MALE";
     const role = normalizeAccountRole(body?.accountType);
@@ -64,7 +87,7 @@ export async function POST(request: Request) {
 
     const rateLimitResponse = enforceRateLimit(request, {
       namespace: "auth-register",
-      identity: email || phone,
+      identity: email || phone || "register",
       limit: 5,
       windowMs: 30 * 60 * 1000,
     });
@@ -75,29 +98,29 @@ export async function POST(request: Request) {
 
     if (!name || name.length < 3) {
       return NextResponse.json(
-        { success: false, error: "الاسم الكامل مطلوب." },
-        { status: 400 }
+        { success: false, error: "الاسم يجب ألا يقل عن 3 أحرف." },
+        { status: 400 },
       );
     }
 
-    if (!email || !email.includes("@")) {
+    if (!isValidEmailFormat(email)) {
       return NextResponse.json(
         { success: false, error: "البريد الإلكتروني غير صحيح." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (!phone || phone.length < 8) {
+    if (!hasKnownEmailDomain(email)) {
       return NextResponse.json(
-        { success: false, error: "رقم الجوال مطلوب." },
-        { status: 400 }
+        { success: false, error: "استخدم بريدًا من مزود معروف مثل Gmail أو Outlook أو iCloud." },
+        { status: 400 },
       );
     }
 
     if (password.length < 8) {
       return NextResponse.json(
         { success: false, error: "كلمة المرور يجب أن تكون 8 أحرف على الأقل." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -109,7 +132,7 @@ export async function POST(request: Request) {
     if (existingUser) {
       return NextResponse.json(
         { success: false, error: "هذا البريد مسجل مسبقًا." },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -137,6 +160,7 @@ export async function POST(request: Request) {
           gender,
           jobTitle,
           onboardingCompleted: false,
+          onboardingSkippedAt: new Date(),
         },
       });
 
@@ -168,10 +192,7 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       success: true,
-      redirectTo:
-        result.user.role === "TEACHER"
-          ? "/dashboard/teacher"
-          : getOnboardingPathForRole(result.user.role),
+      redirectTo: getDashboardHomePath(result.user.role),
     });
 
     response.cookies.set(
@@ -184,7 +205,7 @@ export async function POST(request: Request) {
         sessionId: result.session.id,
         tokenId,
       }),
-      getSessionCookieOptions()
+      getSessionCookieOptions(),
     );
 
     return response;
@@ -193,7 +214,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { success: false, error: "حدث خطأ أثناء إنشاء الحساب." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

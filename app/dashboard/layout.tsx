@@ -31,6 +31,7 @@ export default async function DashboardLayout({
 
           <DashboardOnboardingReminder
             onboardingCompleted={current.user.onboardingCompleted}
+            onboardingSkippedAt={current.user.onboardingSkippedAt}
           />
 
           <CalendarLoginPopup />

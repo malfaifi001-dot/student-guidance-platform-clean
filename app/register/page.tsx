@@ -1,44 +1,125 @@
 "use client";
 
-import { useState } from "react";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  FileCheck2,
+  Images,
+  Mail,
+  ShieldCheck,
+  Timer,
+} from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
+import { useMemo, useState } from "react";
+import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
 
 type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
+type Gender = "MALE" | "FEMALE";
+
+const KNOWN_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "msn.com",
+  "yahoo.com",
+  "icloud.com",
+  "me.com",
+  "proton.me",
+  "protonmail.com",
+]);
+
+function isValidEmailFormat(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function hasKnownEmailDomain(value: string) {
+  const domain = value.split("@")[1]?.toLowerCase() || "";
+  return KNOWN_EMAIL_DOMAINS.has(domain);
+}
+
+async function readJson(response: Response) {
+  return response.json().catch(() => ({}));
+}
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [gender, setGender] = useState<"MALE" | "FEMALE">("MALE");
-  const [accountType, setAccountType] = useState<AccountType>("COUNSELOR");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [gender, setGender] = useState<Gender | null>(null);
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const selectedJobTitle =
-    accountType === "ACTIVITY_LEADER"
-      ? gender === "FEMALE"
-        ? "رائدة النشاط"
-        : "رائد النشاط"
-      : accountType === "TEACHER"
-        ? gender === "FEMALE"
-          ? "معلمة"
-          : "معلم"
-      : gender === "FEMALE"
-        ? "موجهة طلابية"
-        : "موجه طلابي";
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
+  function validateForm() {
+    const trimmedName = name.trim();
+
+    if (trimmedName.length < 3) {
+      return "الاسم يجب ألا يقل عن 3 أحرف.";
+    }
+
+    if (!isValidEmailFormat(normalizedEmail)) {
+      return "أدخل بريدًا إلكترونيًا صحيحًا.";
+    }
+
+    if (!hasKnownEmailDomain(normalizedEmail)) {
+      return "استخدم بريدًا من مزود معروف مثل Gmail أو Outlook أو iCloud.";
+    }
+
+    if (password.length < 8) {
+      return "كلمة المرور يجب أن تكون 8 أحرف على الأقل.";
+    }
 
     if (password !== confirmPassword) {
-      setError("كلمة المرور وتأكيدها غير متطابقين.");
+      return "كلمة المرور وتأكيدها غير متطابقين.";
+    }
+
+    return "";
+  }
+
+  function openPreferences(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const validationError = validateForm();
+    setError(validationError);
+
+    if (validationError) {
+      return;
+    }
+
+    setPreferencesOpen(true);
+  }
+
+  async function submitRegistration() {
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      setPreferencesOpen(false);
+      return;
+    }
+
+    if (!gender) {
+      setError("اختر الصياغة المناسبة أولًا.");
+      return;
+    }
+
+    if (!accountType) {
+      setError("اختر دورك قبل إنشاء الحساب.");
       return;
     }
 
     try {
       setLoading(true);
+      setError("");
 
       const response = await fetch("/api/auth/register", {
         method: "POST",
@@ -46,170 +127,247 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
-          email,
-          phone,
+          name: name.trim(),
+          email: normalizedEmail,
+          password,
           gender,
           accountType,
-          password,
         }),
       });
 
-      const data = await response.json();
+      const data = await readJson(response);
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || "تعذر إنشاء الحساب.");
       }
 
-      window.location.href = data.redirectTo || "/dashboard/onboarding";
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "حدث خطأ غير متوقع.");
+      window.location.href = data.redirectTo || "/dashboard";
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "حدث خطأ غير متوقع.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main dir="rtl" className="min-h-screen bg-slate-50 px-4 py-10">
-      <section className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_460px]">
-        <div className="flex flex-col justify-center rounded-[2rem] bg-slate-950 p-8 text-white shadow-xl">
-          <p className="text-sm font-black text-sky-200">منصة التوجيه الطلابي</p>
-          <h1 className="mt-4 text-4xl font-black leading-[1.7]">
-            أنشئ حسابك واختر لوحة التحكم المناسبة لعملك
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-8 text-slate-300">
-            اختر المسمى الوظيفي المناسب. سيتم توجيهك تلقائيًا للوحة تحكم تناسب مهامك اليومية داخل المدرسة.
-          </p>
-        </div>
-
-        <form
-          onSubmit={submit}
-          className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"
-        >
-          <h2 className="text-2xl font-black text-slate-950">إنشاء حساب جديد</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-500">
-            الحساب مستقل ومرتبط باشتراكه وبيانات مدرسته.
-          </p>
-
-          {error ? (
-            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="mt-5 space-y-4">
-            <AuthInput label="الاسم الكامل" value={name} onChange={setName} />
-            <AuthInput label="البريد الإلكتروني" type="email" value={email} onChange={setEmail} />
-            <AuthInput label="رقم الجوال" value={phone} onChange={setPhone} />
-            <AuthInput label="كلمة المرور" type="password" value={password} onChange={setPassword} />
-            <AuthInput label="تأكيد كلمة المرور" type="password" value={confirmPassword} onChange={setConfirmPassword} />
-
-            <div>
-              <p className="text-sm font-black text-slate-700">المسمى الوظيفي</p>
-              <div className="mt-2 grid gap-2">
-                <RoleButton
-                  active={accountType === "COUNSELOR"}
-                  title="التوجيه الطلابي"
-                  description="لوحة الموجه الطلابي والخدمات الإرشادية والتقارير."
-                  onClick={() => setAccountType("COUNSELOR")}
-                />
-                <RoleButton
-                  active={accountType === "ACTIVITY_LEADER"}
-                  title="ريادة النشاط"
-                  description="لوحة رائد النشاط للبرامج والفعاليات والمشاركات."
-                  onClick={() => setAccountType("ACTIVITY_LEADER")}
-                />
-                <RoleButton
-                  active={accountType === "TEACHER"}
-                  title="مساحة المعلم"
-                  description="لوحة المعلم المستقلة لمتابعة مساحة العمل المخصصة له."
-                  onClick={() => setAccountType("TEACHER")}
-                />
-              </div>
-            </div>
-
-            <div>
-              <p className="text-sm font-black text-slate-700">الصياغة</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setGender("MALE")}
-                  className={[
-                    "rounded-2xl border px-4 py-3 text-sm font-black transition",
-                    gender === "MALE"
-                      ? "border-slate-950 bg-slate-950 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                  ].join(" ")}
-                >
-                  مذكر
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setGender("FEMALE")}
-                  className={[
-                    "rounded-2xl border px-4 py-3 text-sm font-black transition",
-                    gender === "FEMALE"
-                      ? "border-slate-950 bg-slate-950 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                  ].join(" ")}
-                >
-                  مؤنث
-                </button>
-              </div>
-
-              <p className="mt-2 rounded-2xl bg-sky-50 px-4 py-3 text-xs font-black text-sky-700 ring-1 ring-sky-100">
-                سيظهر مسماك في المنصة: {selectedJobTitle}
-              </p>
-            </div>
-
-            <button
-              disabled={loading}
-              className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50"
+    <>
+      <main
+        dir="rtl"
+        style={{ background: "#eef7fb" }}
+        className="min-h-screen px-4 py-8 sm:px-6 lg:px-10"
+      >
+        <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1180px] items-center justify-center">
+          <div
+            dir="ltr"
+            className="flex w-full overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_34px_100px_-70px_rgba(15,23,42,0.75)] lg:min-h-[560px] lg:flex-row"
+          >
+            <aside
+              dir="rtl"
+              className="relative flex min-h-[520px] flex-1 overflow-hidden bg-[linear-gradient(135deg,#0284c7_0%,#2563eb_52%,#1e3a8a_100%)] p-8 text-white"
             >
-              {loading ? "جاري إنشاء الحساب..." : "إنشاء الحساب"}
-            </button>
+              <div className="absolute -right-24 -top-28 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
+              <div className="absolute -bottom-32 left-6 h-80 w-80 rounded-full bg-cyan-200/18 blur-3xl" />
 
-            <a
-              href="/login"
-              className="block text-center text-sm font-bold text-slate-500 hover:text-slate-900"
+              <div className="relative flex w-full flex-col justify-between">
+                <div className="text-right">
+                  <p className="inline-flex items-center gap-2 rounded-full bg-white/14 px-4 py-2 text-xs font-black text-sky-50 ring-1 ring-white/15">
+                    <Timer className="h-4 w-4" />
+                    جاهز للعمل اليومي
+                  </p>
+
+                  <h2 className="mt-7 text-[2.8rem] font-black leading-[1.18] tracking-tight text-white xl:text-[3.45rem]">
+                    تقريرك والشواهد
+                    <br />
+                    في 60 ثانية!
+                  </h2>
+                </div>
+
+                <div className="mt-9 grid gap-3 opacity-90 lg:grid-cols-[1fr_0.74fr]">
+                  <div className="rounded-[1.35rem] bg-white p-3 text-slate-950 shadow-[0_20px_60px_-44px_rgba(15,23,42,0.45)]">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-black text-sky-700">معاينة تقرير</p>
+                        <p className="mt-1 text-base font-black text-slate-950">بطاقة تنفيذ جاهزة</p>
+                      </div>
+
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+                        <FileCheck2 className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2.5">
+                      <PreviewLine width="w-11/12" />
+                      <PreviewLine width="w-8/12" />
+                      <PreviewLine width="w-10/12" />
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <PreviewBox />
+                      <PreviewBox />
+                      <PreviewBox />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <MetricCard
+                      icon={<Images className="h-4 w-4" />}
+                      title="الشواهد"
+                      value="4 صور"
+                    />
+                    <MetricCard
+                      icon={<ShieldCheck className="h-4 w-4" />}
+                      title="التوثيق"
+                      value="جاهز"
+                    />
+                    <MetricCard
+                      icon={<Mail className="h-4 w-4" />}
+                      title="المشاركة"
+                      value="فورية"
+                    />
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            <form
+              dir="rtl"
+              onSubmit={openPreferences}
+              className="flex min-h-[520px] flex-1 items-center justify-center bg-white px-7 py-10"
             >
-              لدي حساب بالفعل
-            </a>
+              <div className="w-full max-w-[330px]">
+                <h1 className="text-right text-[1.9rem] font-black leading-[1.25] tracking-tight text-slate-950 sm:text-[2.15rem]">
+                  أنشئ حسابك الآن
+                </h1>
+
+                {error ? (
+                  <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                    {error}
+                  </div>
+                ) : null}
+
+                <div className="mt-7 space-y-3.5">
+                  <AuthInput label="اسم المستخدم" value={name} onChange={setName} />
+
+                  <AuthInput
+                    label="البريد الإلكتروني"
+                    type="email"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="name@gmail.com"
+                  />
+
+                  <AuthInput
+                    label="كلمة المرور"
+                    type={passwordVisible ? "text" : "password"}
+                    value={password}
+                    onChange={setPassword}
+                    trailingAction={{
+                      label: passwordVisible ? "إخفاء كلمة المرور" : "إظهار كلمة المرور",
+                      icon: passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />,
+                      onClick: () => setPasswordVisible((current) => !current),
+                    }}
+                  />
+
+                  <p className="-mt-2 px-1 text-[0.68rem] font-bold text-slate-300">
+                    8 أحرف على الأقل
+                  </p>
+
+                  <AuthInput
+                    label="تأكيد كلمة المرور"
+                    type={confirmPasswordVisible ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    trailingAction={{
+                      label: confirmPasswordVisible
+                        ? "إخفاء تأكيد كلمة المرور"
+                        : "إظهار تأكيد كلمة المرور",
+                      icon: confirmPasswordVisible ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      ),
+                      onClick: () => setConfirmPasswordVisible((current) => !current),
+                    }}
+                  />
+
+                  <button className="group mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_38px_-28px_rgba(2,132,199,0.8)] transition hover:bg-sky-700">
+                    إنشاء الحساب
+                    <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-1" />
+                  </button>
+
+                  <a
+                    href="/login"
+                    className="block text-center text-sm font-bold text-slate-500 transition hover:text-sky-700"
+                  >
+                    لدي حساب بالفعل
+                  </a>
+                </div>
+              </div>
+            </form>
           </div>
-        </form>
-      </section>
-    </main>
+        </section>
+      </main>
+
+      <RegisterPreferencesPopCard
+        open={preferencesOpen}
+        selectedGender={gender}
+        selectedRole={accountType}
+        loading={loading}
+        errorMessage={error}
+        onClose={() => {
+          if (loading) {
+            return;
+          }
+
+          setPreferencesOpen(false);
+        }}
+        onSelectGender={(value) => {
+          setGender(value);
+          setAccountType(null);
+          setError("");
+        }}
+        onSelectRole={(value) => {
+          setAccountType(value);
+          setError("");
+        }}
+        onConfirm={submitRegistration}
+      />
+    </>
   );
 }
 
-function RoleButton({
-  active,
+function MetricCard({
+  icon,
   title,
-  description,
-  onClick,
+  value,
 }: {
-  active: boolean;
+  icon: ReactNode;
   title: string;
-  description: string;
-  onClick: () => void;
+  value: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "rounded-2xl border px-4 py-3 text-right transition",
-        active
-          ? "border-slate-950 bg-slate-950 text-white"
-          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-      ].join(" ")}
-    >
-      <span className="block text-sm font-black">{title}</span>
-      <span className={["mt-1 block text-xs font-bold leading-6", active ? "text-slate-300" : "text-slate-500"].join(" ")}>
-        {description}
-      </span>
-    </button>
+    <div className="rounded-[1.15rem] bg-white/12 p-2.5 ring-1 ring-white/15 backdrop-blur">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 text-white">
+          {icon}
+        </div>
+
+        <div className="text-right">
+          <p className="text-[0.68rem] font-bold text-sky-50/65">{title}</p>
+          <p className="mt-0.5 text-sm font-black text-white">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewLine({ width }: { width: string }) {
+  return <div className={["h-2 rounded-full bg-slate-100", width].join(" ")} />;
+}
+
+function PreviewBox() {
+  return (
+    <div className="aspect-square rounded-2xl bg-[linear-gradient(135deg,#e0f2fe_0%,#bfdbfe_100%)] ring-1 ring-sky-100" />
   );
 }
 
@@ -218,22 +376,49 @@ function AuthInput({
   value,
   onChange,
   type = "text",
+  placeholder,
+  trailingAction,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
+  placeholder?: string;
+  trailingAction?: {
+    label: string;
+    icon: ReactNode;
+    onClick: () => void;
+  };
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-black text-slate-700">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-        required
-      />
+      <span className="text-xs font-black text-slate-700">{label}</span>
+
+      <div className="relative mt-2">
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className={[
+            "w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 outline-none transition placeholder:text-sm placeholder:font-bold placeholder:text-slate-300 focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
+            trailingAction ? "pl-12" : "",
+          ].join(" ")}
+          required
+        />
+
+        {trailingAction ? (
+          <button
+            type="button"
+            onClick={trailingAction.onClick}
+            aria-label={trailingAction.label}
+            aria-pressed={type === "text"}
+            className="absolute inset-y-0 left-3 inline-flex items-center justify-center text-slate-400 transition hover:text-sky-700"
+          >
+            {trailingAction.icon}
+          </button>
+        ) : null}
+      </div>
     </label>
   );
 }

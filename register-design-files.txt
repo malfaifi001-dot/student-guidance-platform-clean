@@ -1,0 +1,784 @@
+============================================================
+FILE: app\register\page.tsx
+============================================================
+
+"use client";
+
+import { Eye, EyeOff, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
+import { useMemo, useState } from "react";
+import { RegisterPreferencesPopCard } from "@/components/auth/register-preferences-pop-card";
+
+type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
+type Gender = "MALE" | "FEMALE";
+
+const KNOWN_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "msn.com",
+  "yahoo.com",
+  "icloud.com",
+  "me.com",
+  "proton.me",
+  "protonmail.com",
+]);
+
+function isValidEmailFormat(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function hasKnownEmailDomain(value: string) {
+  const domain = value.split("@")[1]?.toLowerCase() || "";
+  return KNOWN_EMAIL_DOMAINS.has(domain);
+}
+
+async function readJson(response: Response) {
+  return response.json().catch(() => ({}));
+}
+
+export default function RegisterPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [gender, setGender] = useState<Gender | null>(null);
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+
+  function validateForm() {
+    const trimmedName = name.trim();
+
+    if (trimmedName.length < 3) {
+      return "الاسم يجب ألا يقل عن 3 أحرف.";
+    }
+
+    if (!isValidEmailFormat(normalizedEmail)) {
+      return "أدخل بريدًا إلكترونيًا صحيحًا.";
+    }
+
+    if (!hasKnownEmailDomain(normalizedEmail)) {
+      return "استخدم بريدًا من مزود معروف مثل Gmail أو Outlook أو iCloud.";
+    }
+
+    if (password.length < 8) {
+      return "كلمة المرور يجب أن تكون 8 أحرف على الأقل.";
+    }
+
+    if (password !== confirmPassword) {
+      return "كلمة المرور وتأكيدها غير متطابقين.";
+    }
+
+    return "";
+  }
+
+  function openPreferences(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const validationError = validateForm();
+
+    setError(validationError);
+
+    if (validationError) {
+      return;
+    }
+
+    setPreferencesOpen(true);
+  }
+
+  async function submitRegistration() {
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      setPreferencesOpen(false);
+      return;
+    }
+
+    if (!gender) {
+      setError("اختر الصياغة المناسبة أولًا.");
+      return;
+    }
+
+    if (!accountType) {
+      setError("اختر دورك قبل إنشاء الحساب.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: normalizedEmail,
+          password,
+          gender,
+          accountType,
+        }),
+      });
+
+      const data = await readJson(response);
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر إنشاء الحساب.");
+      }
+
+      window.location.href = data.redirectTo || "/dashboard";
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "حدث خطأ غير متوقع.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <main
+        dir="rtl"
+        className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.12),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef4ff_100%)] px-4 py-10"
+      >
+        <section className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.08fr_460px]">
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/70 bg-[linear-gradient(180deg,_#082f49_0%,_#0f3d63_48%,_#0b2940_100%)] p-8 text-white shadow-[0_40px_120px_-60px_rgba(15,23,42,0.95)]">
+            <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.24),_transparent_60%)]" />
+
+            <div className="relative">
+              <p className="text-sm font-black tracking-wide text-sky-200">
+                منصة التوجيه الطلابي
+              </p>
+
+              <h1 className="mt-5 text-4xl font-black leading-[1.7] text-white xl:text-[2.8rem]">
+                ابدأ حسابك خلال دقيقة
+                <br />
+                ثم ادخل مباشرة إلى لوحتك.
+              </h1>
+
+              <p className="mt-5 max-w-2xl text-sm leading-8 text-slate-300">
+                تجربة تسجيل مبسطة، ثم خطوة أنيقة واحدة لاختيار الصياغة والدور المناسبين
+                قبل الدخول إلى مساحة العمل.
+              </p>
+
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                <FeaturePill
+                  icon={<Mail className="h-4 w-4" />}
+                  title="بريد معروف"
+                  description="يدعم مزودي البريد الشائعين مثل Gmail وOutlook وiCloud."
+                />
+                <FeaturePill
+                  icon={<ShieldCheck className="h-4 w-4" />}
+                  title="دخول مباشر"
+                  description="بعد التسجيل يتم توجيهك مباشرة إلى اللوحة المناسبة لدورك."
+                />
+              </div>
+            </div>
+          </div>
+
+          <form
+            onSubmit={openPreferences}
+            className="rounded-[2.25rem] border border-slate-200/80 bg-white/95 p-6 shadow-[0_30px_90px_-55px_rgba(15,23,42,0.45)] backdrop-blur xl:p-8"
+          >
+            <div className="flex items-center gap-2 text-sm font-black text-sky-700">
+              <Sparkles className="h-4 w-4" />
+              تسجيل جديد
+            </div>
+
+            <h2 className="mt-4 text-3xl font-black text-slate-950">أنشئ حسابك</h2>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              اكتب بياناتك الأساسية فقط، وسنطلب منك اختيار الصياغة والدور في خطوة
+              أخيرة بسيطة.
+            </p>
+
+            {error ? (
+              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="mt-6 space-y-4">
+              <AuthInput label="اسم المستخدم" value={name} onChange={setName} />
+              <AuthInput
+                label="البريد الإلكتروني"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                placeholder="name@gmail.com"
+              />
+              <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold leading-6 text-slate-500 ring-1 ring-slate-200/70">
+                استخدم بريدًا من مزود معروف مثل Gmail أو Outlook أو iCloud.
+              </p>
+              <AuthInput
+                label="كلمة المرور"
+                type={passwordVisible ? "text" : "password"}
+                value={password}
+                onChange={setPassword}
+                trailingAction={{
+                  label: passwordVisible ? "إخفاء كلمة المرور" : "إظهار كلمة المرور",
+                  icon: passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />,
+                  onClick: () => setPasswordVisible((current) => !current),
+                }}
+              />
+              <p className="mt-[-0.35rem] px-1 text-xs font-bold text-slate-400">
+                8 أحرف على الأقل
+              </p>
+              <AuthInput
+                label="تأكيد كلمة المرور"
+                type={confirmPasswordVisible ? "text" : "password"}
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                trailingAction={{
+                  label: confirmPasswordVisible
+                    ? "إخفاء تأكيد كلمة المرور"
+                    : "إظهار تأكيد كلمة المرور",
+                  icon: confirmPasswordVisible ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  ),
+                  onClick: () => setConfirmPasswordVisible((current) => !current),
+                }}
+              />
+
+              <button className="w-full rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_40px_-24px_rgba(2,132,199,0.7)] transition hover:bg-sky-700">
+                إنشاء الحساب
+              </button>
+
+              <a
+                href="/login"
+                className="block text-center text-sm font-bold text-slate-500 hover:text-slate-900"
+              >
+                لدي حساب بالفعل
+              </a>
+            </div>
+          </form>
+        </section>
+      </main>
+
+      <RegisterPreferencesPopCard
+        open={preferencesOpen}
+        selectedGender={gender}
+        selectedRole={accountType}
+        loading={loading}
+        errorMessage={error}
+        onClose={() => {
+          if (loading) {
+            return;
+          }
+
+          setPreferencesOpen(false);
+        }}
+        onSelectGender={(value) => {
+          setGender(value);
+          setAccountType(null);
+          setError("");
+        }}
+        onSelectRole={(value) => {
+          setAccountType(value);
+          setError("");
+        }}
+        onConfirm={submitRegistration}
+      />
+    </>
+  );
+}
+
+function FeaturePill({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-[1.75rem] border border-white/10 bg-white/5 px-4 py-4 backdrop-blur-sm">
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-sky-200">
+        {icon}
+      </div>
+      <p className="mt-3 text-sm font-black text-white">{title}</p>
+      <p className="mt-2 text-xs font-bold leading-6 text-slate-300">{description}</p>
+    </div>
+  );
+}
+
+function AuthInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+  trailingAction,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+  trailingAction?: {
+    label: string;
+    icon: ReactNode;
+    onClick: () => void;
+  };
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-black text-slate-700">{label}</span>
+      <div className="relative mt-2">
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className={[
+            "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
+            trailingAction ? "pl-12" : "",
+          ].join(" ")}
+          required
+        />
+
+        {trailingAction ? (
+          <button
+            type="button"
+            onClick={trailingAction.onClick}
+            aria-label={trailingAction.label}
+            aria-pressed={type === "text"}
+            className="absolute inset-y-0 left-3 inline-flex items-center justify-center text-slate-400 transition hover:text-sky-700"
+          >
+            {trailingAction.icon}
+          </button>
+        ) : null}
+      </div>
+    </label>
+  );
+}
+
+
+
+============================================================
+FILE: components\auth\register-preferences-pop-card.tsx
+============================================================
+
+"use client";
+
+import type { LucideIcon } from "lucide-react";
+import {
+  GraduationCap,
+  HeartHandshake,
+  Mars,
+  Sparkles,
+  Trophy,
+  Venus,
+  X,
+} from "lucide-react";
+
+type Gender = "MALE" | "FEMALE";
+type AccountType = "COUNSELOR" | "ACTIVITY_LEADER" | "TEACHER";
+
+type RegisterPreferencesPopCardProps = {
+  open: boolean;
+  selectedGender: Gender | null;
+  selectedRole: AccountType | null;
+  loading: boolean;
+  errorMessage: string;
+  onClose: () => void;
+  onSelectGender: (gender: Gender) => void;
+  onSelectRole: (role: AccountType) => void;
+  onConfirm: () => void;
+};
+
+type RoleOption = {
+  value: AccountType;
+  title: string;
+  icon: LucideIcon;
+};
+
+const roleOptionsByGender: Record<Gender, RoleOption[]> = {
+  MALE: [
+    {
+      value: "TEACHER",
+      title: "معلم",
+      icon: GraduationCap,
+    },
+    {
+      value: "COUNSELOR",
+      title: "موجه طلابي",
+      icon: HeartHandshake,
+    },
+    {
+      value: "ACTIVITY_LEADER",
+      title: "رائد نشاط",
+      icon: Trophy,
+    },
+  ],
+  FEMALE: [
+    {
+      value: "TEACHER",
+      title: "معلمة",
+      icon: GraduationCap,
+    },
+    {
+      value: "COUNSELOR",
+      title: "موجهة طلابية",
+      icon: HeartHandshake,
+    },
+    {
+      value: "ACTIVITY_LEADER",
+      title: "رائدة نشاط",
+      icon: Sparkles,
+    },
+  ],
+};
+
+export function RegisterPreferencesPopCard({
+  open,
+  selectedGender,
+  selectedRole,
+  loading,
+  errorMessage,
+  onClose,
+  onSelectGender,
+  onSelectRole,
+  onConfirm,
+}: RegisterPreferencesPopCardProps) {
+  if (!open) {
+    return null;
+  }
+
+  const roleOptions = selectedGender ? roleOptionsByGender[selectedGender] : [];
+  const canConfirm = Boolean(selectedGender && selectedRole && !loading);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <button
+        type="button"
+        aria-label="إغلاق"
+        onClick={loading ? undefined : onClose}
+        className="absolute inset-0 bg-slate-950/30 backdrop-blur-sm"
+      />
+
+      <div className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border border-white/70 bg-white/95 p-5 shadow-[0_34px_100px_-52px_rgba(15,23,42,0.38)] backdrop-blur sm:p-6">
+        <div className="relative text-center">
+          <div className="px-8">
+            <span className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+              <Sparkles className="h-3.5 w-3.5" />
+              خطوة أخيرة قبل الدخول
+            </span>
+
+            <h2 className="mt-3 text-[1.55rem] font-black text-slate-950">
+              اختر الصياغة المناسبة
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              اختر الصياغة أولًا، ثم سيظهر لك قسم الدور المناسب داخل البطاقة نفسها.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={loading ? undefined : onClose}
+            className="absolute left-0 top-0 inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="إغلاق"
+            disabled={loading}
+          >
+            <X className="h-4.5 w-4.5" />
+          </button>
+        </div>
+
+        {errorMessage ? (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <PreferenceCard
+            active={selectedGender === "MALE"}
+            title="ذكر"
+            icon={Mars}
+            onClick={() => onSelectGender("MALE")}
+          />
+
+          <PreferenceCard
+            active={selectedGender === "FEMALE"}
+            title="أنثى"
+            icon={Venus}
+            onClick={() => onSelectGender("FEMALE")}
+          />
+        </div>
+
+        <div
+          className={[
+            "overflow-hidden transition-all duration-300 ease-out",
+            selectedGender ? "mt-4 max-h-[360px] opacity-100" : "max-h-0 opacity-0",
+          ].join(" ")}
+        >
+          <div className="rounded-[1.5rem] border border-sky-100 bg-[linear-gradient(180deg,_#f8fcff_0%,_#eff8ff_100%)] px-4 py-4 shadow-[0_18px_60px_-48px_rgba(14,165,233,0.55)]">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-black text-slate-900">اختر دورك داخل المنصة</p>
+
+              <div className="rounded-2xl bg-white/80 px-3 py-2 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                {selectedGender === "FEMALE" ? "أنثى" : "ذكر"}
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              {roleOptions.map((option) => (
+                <PreferenceCard
+                  key={option.value}
+                  active={selectedRole === option.value}
+                  compact
+                  title={option.title}
+                  icon={option.icon}
+                  onClick={() => onSelectRole(option.value)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs font-bold leading-6 text-slate-400">
+            لن يتم إنشاء الحساب حتى تحدد الصياغة والدور المناسبين.
+          </p>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!canConfirm}
+            className={[
+              "inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-black transition sm:w-auto sm:min-w-[180px]",
+              canConfirm
+                ? "bg-sky-600 text-white shadow-[0_18px_40px_-24px_rgba(2,132,199,0.75)] hover:bg-sky-700"
+                : "cursor-not-allowed bg-slate-200 text-slate-500",
+            ].join(" ")}
+          >
+            {loading ? "جاري إنشاء الحساب..." : "تأكيد وإنشاء الحساب"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreferenceCard({
+  active,
+  title,
+  icon: Icon,
+  onClick,
+  compact = false,
+}: {
+  active: boolean;
+  title: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-3xl border text-center transition",
+        compact ? "min-h-[88px] px-4 py-4" : "min-h-[92px] px-4 py-4",
+        active
+          ? "border-sky-400 bg-sky-50 text-sky-900 ring-4 ring-sky-100 shadow-[0_20px_60px_-48px_rgba(14,165,233,0.75)]"
+          : "border-slate-200 bg-white text-slate-800 hover:border-sky-200 hover:bg-sky-50/60",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "mx-auto flex items-center justify-center rounded-2xl",
+          compact ? "h-10 w-10" : "h-10 w-10",
+          active ? "bg-sky-600 text-white" : "bg-sky-50 text-sky-700",
+        ].join(" ")}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+
+      <span className={["block font-black", compact ? "mt-2.5 text-sm" : "mt-2.5 text-base"].join(" ")}>
+        {title}
+      </span>
+    </button>
+  );
+}
+
+
+
+============================================================
+FILE: app\globals.css
+============================================================
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+--font-sans: var(--font-cairo);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-border: var(--border);
+
+  --radius-sm: calc(var(--radius) * 0.7);
+  --radius-md: calc(var(--radius) * 0.9);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.3);
+  --radius-2xl: calc(var(--radius) * 1.7);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  --primary: #0284c7;
+  --primary-foreground: #ffffff;
+
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+
+  --border: #e2e8f0;
+
+  --radius: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .container-app {
+    @apply mx-auto w-full max-w-7xl px-4 md:px-6;
+  }
+
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl;
+  }
+
+  .card-shadow {
+    box-shadow:
+      0 10px 30px rgba(15, 23, 42, 0.06),
+      0 2px 10px rgba(15, 23, 42, 0.04);
+  }
+}
+/* Student Guidance Platform: Dark mode surface compatibility */
+.dark .bg-white {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .bg-\[\#f5f8fc\],
+.dark .bg-\[\#f7faff\] {
+  background-color: rgb(2 6 23) !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-200\/70 {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800 {
+  color: rgb(248 250 252) !important;
+}
+
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .text-slate-400 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(248 250 252) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(100 116 139) !important;
+}
+
+.dark table thead {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark tr,
+.dark tbody {
+  border-color: rgb(51 65 85) !important;
+}
+
+/* Mobile app behavior: reduce browser zoom gestures inside the app shell */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Prevent iOS input-focus zoom by keeping form controls at 16px minimum */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+

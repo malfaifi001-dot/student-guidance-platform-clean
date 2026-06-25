@@ -6,12 +6,14 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 
 export function DashboardOnboardingReminder({
   onboardingCompleted,
+  onboardingSkippedAt,
 }: {
   onboardingCompleted: boolean;
+  onboardingSkippedAt?: Date | string | null;
 }) {
   const pathname = usePathname();
 
-  if (onboardingCompleted || pathname === "/dashboard/onboarding") {
+  if (onboardingCompleted || onboardingSkippedAt || pathname === "/dashboard/onboarding") {
     return null;
   }
 
