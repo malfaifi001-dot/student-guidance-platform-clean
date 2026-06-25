@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 import { logPlanOrderCreatedEvent } from "@/lib/admin/activity-events";
+import { DEFAULT_FREE_PLAN_SLUG } from "@/lib/subscription/default-free-plan";
 import { getPlanAudience, isPlanSelfServiceVisible } from "@/lib/subscription/plan-audience";
 import {
   assignPlanToSchool,
@@ -34,6 +35,9 @@ export async function GET() {
         isActive: true,
         isPublic: true,
         isArchived: false,
+        slug: {
+          not: DEFAULT_FREE_PLAN_SLUG,
+        },
       },
       orderBy: {
         priceMonthly: "asc",
@@ -60,7 +64,10 @@ export async function GET() {
   ]);
 
   const role = current.user.role;
-  const visiblePlans = plans.filter((plan: any) => isPlanSelfServiceVisible(plan, role));
+  const visiblePlans = plans.filter(
+    (plan: any) =>
+      plan.slug !== DEFAULT_FREE_PLAN_SLUG && isPlanSelfServiceVisible(plan, role),
+  );
 
   const mappedPlans = visiblePlans.map((plan: any) => {
     const serviceSlugs = getPlanServiceSlugs(plan.features);
@@ -91,12 +98,13 @@ export async function GET() {
   return NextResponse.json({
     plans: mappedPlans,
     subscription: subscription
-      ? {
-          status: subscription.status,
-          planName: subscription.plan.name,
-          endsAt: subscription.endsAt,
-          remainingDays: getRemainingDays(subscription.endsAt),
-          usable: isSubscriptionUsable(subscription.status, subscription.endsAt),
+        ? {
+            status: subscription.status,
+            planName: subscription.plan.name,
+            planSlug: subscription.plan.slug,
+            endsAt: subscription.endsAt,
+            remainingDays: getRemainingDays(subscription.endsAt),
+            usable: isSubscriptionUsable(subscription.status, subscription.endsAt),
         }
       : null,
   });
@@ -145,7 +153,29 @@ export async function POST(request: Request) {
     },
   });
 
-  if (!plan || !isPlanSelfServiceVisible(plan as any, current.user.role)) {
+  if (!plan) {
+    return NextResponse.json(
+      {
+        error: "الباقة غير متاحة حاليًا.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (plan.slug === DEFAULT_FREE_PLAN_SLUG) {
+    return NextResponse.json(
+      {
+        error: "هذه الباقة تُدار تلقائيًا من النظام.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (!isPlanSelfServiceVisible(plan as any, current.user.role)) {
     return NextResponse.json(
       {
         error: "الباقة غير متاحة حاليًا.",

@@ -7,6 +7,7 @@ import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
 import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";
 import { logAuthLoginEvent } from "@/lib/admin/activity-events";
 import { getPostLoginRedirectPath } from "@/lib/auth/dashboard-redirects";
+import { assignDefaultFreePlanIfEligible } from "@/lib/subscription/default-free-plan";
 import {
   createSessionToken,
   createTokenId,
@@ -72,6 +73,18 @@ export async function POST(request: Request) {
     const deviceInfo = await getRequestDeviceInfo();
     const tokenId = createTokenId();
     const expiresAt = getSessionExpiryDate();
+
+    if (user.role !== "ADMIN" && user.schoolAccountId) {
+      try {
+        await assignDefaultFreePlanIfEligible({
+          schoolAccountId: user.schoolAccountId,
+          userId: user.id,
+          source: "login",
+        });
+      } catch (error) {
+        console.error("LOGIN_DEFAULT_FREE_PLAN_ERROR", error);
+      }
+    }
 
     const session = await prisma.$transaction(async (tx: LoginTransactionClient) => {
       if (shouldLimitActiveSessions()) {

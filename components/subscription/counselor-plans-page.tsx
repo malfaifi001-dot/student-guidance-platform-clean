@@ -15,6 +15,8 @@ import {
   X,
 } from "lucide-react";
 
+const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+
 type CounselorPlan = {
   id: string;
   name: string;
@@ -38,6 +40,7 @@ type PlansPayload = {
   subscription: {
     status: string;
     planName: string;
+    planSlug?: string;
     endsAt: string | null;
     remainingDays: number | null;
     usable: boolean;
@@ -226,14 +229,24 @@ export function CounselorPlansPage() {
     return getPlanPrice(selectedPlan, billingCycle);
   }, [billingCycle, selectedPlan]);
 
+  const visiblePlans = useMemo(
+    () => (data?.plans || []).filter((plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG),
+    [data?.plans],
+  );
+
   const isSelectedPlanFree = selectedPlan ? selectedPrice <= 0 : false;
 
   const currentSubscriptionPlan = data?.subscription
-    ? data.plans.find((plan) => plan.name === data.subscription?.planName) ?? null
+    ? visiblePlans.find(
+        (plan) =>
+          plan.slug === data.subscription?.planSlug || plan.name === data.subscription?.planName,
+      ) ?? null
     : null;
 
   const currentSubscriptionServicesCount =
     currentSubscriptionPlan?.services.length ?? 0;
+
+  const currentSubscriptionPlanName = data?.subscription?.planName || "بدون اشتراك";
 
   async function submitOrder() {
     if (!selectedPlan) {
@@ -492,7 +505,7 @@ export function CounselorPlansPage() {
                 </p>
 
                 <h2 className="mt-1 text-2xl font-black text-slate-950">
-                  {data.subscription.planName}
+                  {currentSubscriptionPlanName}
                 </h2>
 
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
@@ -570,7 +583,7 @@ export function CounselorPlansPage() {
       </section>
 
       <section id="plans-list" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {data?.plans.map((plan, index) => {
+        {visiblePlans.map((plan, index) => {
           const active = selectedPlan?.id === plan.id;
           const price = getPlanPrice(plan, billingCycle);
           const period = getBillingLabel(billingCycle);
@@ -666,7 +679,7 @@ export function CounselorPlansPage() {
           );
         })}
 
-        {data?.plans.length === 0 ? (
+        {visiblePlans.length === 0 ? (
           <div className="rounded-[2rem] border border-amber-100 bg-amber-50 p-6 text-sm font-bold leading-7 text-amber-800 md:col-span-2 xl:col-span-3">
             لا توجد باقات مفعلة حاليًا.
           </div>

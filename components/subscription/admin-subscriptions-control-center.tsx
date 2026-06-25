@@ -1,39 +1,33 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { PlanAudience } from "@/lib/subscription/plan-audience";
 import {
-  getPlanAudience,
-  getPlanAudienceLabel,
   filterServicesByPlanAudience,
   getDefaultVisibleRolesForAudience,
+  getPlanAudience,
+  getPlanAudienceLabel,
   getPlanRoleLabel,
   getPlanVisibilityRoles,
   OPERATIONAL_PLAN_ROLES,
   type PlanVisibleRole,
 } from "@/lib/subscription/plan-audience";
-
 import {
-  AlertTriangle,
+  ArrowUpRight,
   CheckCircle2,
-  ClipboardList,
   Crown,
   Eye,
-  KeyRound,
   Layers3,
   Loader2,
   PackagePlus,
-  PauseCircle,
-  Rocket,
-  Save,
-  Search,
-  Settings2,
   ShieldCheck,
-  Sparkles,
   ToggleLeft,
   ToggleRight,
   Users,
 } from "lucide-react";
+
+const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
 
 type ServiceItem = {
   id: string;
@@ -63,50 +57,12 @@ type PlanItem = {
   features: PlanFeature[];
 };
 
-type SchoolItem = {
-  id: string;
-  name: string;
-  slug: string;
-  isActive: boolean;
-  profile: {
-    schoolName: string | null;
-    educationDepartment: string | null;
-  } | null;
-};
-
-type SubscriptionItem = {
-  id: string;
-  status: string;
-  startsAt: string;
-  endsAt: string | null;
-  schoolAccount: SchoolItem;
-  plan: {
-    id: string;
-    name: string;
-    slug: string;
-  };
-};
-
-type ServiceAccessItem = {
-  id: string;
-  isEnabled: boolean;
-  isPaid: boolean;
-  service: ServiceItem;
-  schoolAccount: {
-    id: string;
-    name: string;
-  };
-};
-
-type AdminSubscriptionData = {
+type AdminPlansData = {
   plans: PlanItem[];
   services: ServiceItem[];
-  schools: SchoolItem[];
-  subscriptions: SubscriptionItem[];
-  serviceAccess: ServiceAccessItem[];
 };
 
-function featureValue(plan: PlanItem, key: string, fallback = "0") {
+function getPlanFeatureValue(plan: PlanItem, key: string, fallback = "0") {
   return plan.features.find((feature) => feature.key === key)?.value || fallback;
 }
 
@@ -114,15 +70,6 @@ function getPlanServices(plan: PlanItem) {
   return plan.features
     .filter((feature) => feature.key.startsWith("service:") && feature.value === "enabled")
     .map((feature) => feature.key.replace("service:", ""));
-}
-
-function getStatusLabel(status: string) {
-  if (status === "TRIAL") return "تجربة";
-  if (status === "ACTIVE") return "نشط";
-  if (status === "CANCELED") return "متوقف";
-  if (status === "EXPIRED") return "منتهي";
-  if (status === "PAST_DUE") return "بانتظار الدفع";
-  return status;
 }
 
 function getRoleVisibilityLabel(role: PlanVisibleRole) {
@@ -150,7 +97,7 @@ async function readApiResponse(response: Response) {
 }
 
 export function AdminSubscriptionsControlCenter() {
-  const [data, setData] = useState<AdminSubscriptionData | null>(null);
+  const [data, setData] = useState<AdminPlansData | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{
     type: "success" | "error" | "info";
@@ -172,32 +119,32 @@ export function AdminSubscriptionsControlCenter() {
     getDefaultVisibleRolesForAudience("ALL"),
   );
 
-  const [selectedSchoolId, setSelectedSchoolId] = useState("");
-  const [selectedPlanId, setSelectedPlanId] = useState("");
-  const [assignDays, setAssignDays] = useState("");
-  const [assignStatus, setAssignStatus] = useState("ACTIVE");
-
-  const [search, setSearch] = useState("");
-  const [serviceSchoolId, setServiceSchoolId] = useState("");
-  const [serviceId, setServiceId] = useState("");
-  const [serviceEnabled, setServiceEnabled] = useState(true);
-  const [servicePaid, setServicePaid] = useState(true);
-
   async function load() {
     setLoading(true);
 
-    const response = await fetch("/api/dashboard/admin/subscriptions");
-    const result = await response.json();
+    const response = await fetch("/api/dashboard/admin/subscriptions", {
+      cache: "no-store",
+    });
+    const result = await readApiResponse(response);
 
     if (response.ok) {
-      setData(result);
-      if (result.services?.length && enabledServiceSlugs.length === 0) {
-        setEnabledServiceSlugs(result.services.map((service: ServiceItem) => service.slug));
+      const nextData = {
+        plans: Array.isArray(result.plans) ? (result.plans as PlanItem[]) : [],
+        services: Array.isArray(result.services) ? (result.services as ServiceItem[]) : [],
+      };
+
+      setData(nextData);
+
+      if (nextData.services.length && enabledServiceSlugs.length === 0) {
+        setEnabledServiceSlugs(nextData.services.map((service) => service.slug));
       }
     } else {
       setMessage({
         type: "error",
-        text: result.error || "تعذر تحميل إدارة الاشتراكات.",
+        text:
+          typeof result.error === "string"
+            ? result.error
+            : "تعذر تحميل إدارة الباقات.",
       });
     }
 
@@ -205,35 +152,29 @@ export function AdminSubscriptionsControlCenter() {
   }
 
   useEffect(() => {
-    load();
+    void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredSubscriptions = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    if (!query) return data?.subscriptions || [];
-
-    return (data?.subscriptions || []).filter((item) => {
-      const text = [
-        item.schoolAccount.name,
-        item.schoolAccount.slug,
-        item.schoolAccount.profile?.schoolName,
-        item.plan.name,
-        item.status,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return text.includes(query);
-    });
-  }, [data?.subscriptions, search]);
+  const regularPlans = useMemo(
+    () => (data?.plans || []).filter((plan) => plan.slug !== DEFAULT_FREE_PLAN_SLUG),
+    [data?.plans],
+  );
 
   const visibleServices = useMemo(() => {
     if (!data?.services) return [];
     return filterServicesByPlanAudience(data.services, planAudience);
   }, [data?.services, planAudience]);
+
+  const activePlansCount = useMemo(
+    () => regularPlans.filter((plan) => plan.isActive).length,
+    [regularPlans],
+  );
+
+  const publicPlansCount = useMemo(
+    () => regularPlans.filter((plan) => plan.isPublic && !plan.isArchived).length,
+    [regularPlans],
+  );
 
   async function runAction(payload: Record<string, unknown>) {
     setMessage(null);
@@ -252,18 +193,14 @@ export function AdminSubscriptionsControlCenter() {
       setMessage({
         type: "success",
         text:
-          typeof result.message === "string"
-            ? result.message
-            : "تم تنفيذ العملية.",
+          typeof result.message === "string" ? result.message : "تم تنفيذ العملية.",
       });
       await load();
     } else {
       setMessage({
         type: "error",
         text:
-          typeof result.error === "string"
-            ? result.error
-            : "تعذر تنفيذ العملية.",
+          typeof result.error === "string" ? result.error : "تعذر تنفيذ العملية.",
       });
     }
   }
@@ -272,16 +209,17 @@ export function AdminSubscriptionsControlCenter() {
     setEnabledServiceSlugs((current) =>
       current.includes(slug)
         ? current.filter((item) => item !== slug)
-        : [...current, slug]
+        : [...current, slug],
     );
   }
 
   function handleAudienceChange(audience: PlanAudience) {
     setPlanAudience(audience);
     setPlanVisibleRoles(getDefaultVisibleRolesForAudience(audience));
+
     if (data?.services) {
       const filtered = filterServicesByPlanAudience(data.services, audience);
-      setEnabledServiceSlugs(filtered.map((s) => s.slug));
+      setEnabledServiceSlugs(filtered.map((service) => service.slug));
     }
   }
 
@@ -320,16 +258,6 @@ export function AdminSubscriptionsControlCenter() {
     });
   }
 
-  async function assignPlan() {
-    await runAction({
-      action: "assign-plan",
-      schoolAccountId: selectedSchoolId,
-      planId: selectedPlanId,
-      days: assignDays,
-      status: assignStatus,
-    });
-  }
-
   async function togglePlan(plan: PlanItem) {
     await runAction({
       action: "toggle-plan",
@@ -355,37 +283,12 @@ export function AdminSubscriptionsControlCenter() {
     });
   }
 
-  async function extendSubscription(subscriptionId: string, days: number) {
-    await runAction({
-      action: "extend-subscription",
-      subscriptionId,
-      days,
-    });
-  }
-
-  async function cancelSubscription(subscriptionId: string) {
-    await runAction({
-      action: "reset-subscription",
-      subscriptionId,
-    });
-  }
-
-  async function updateServiceAccess() {
-    await runAction({
-      action: "toggle-service-access",
-      schoolAccountId: serviceSchoolId,
-      serviceId,
-      isEnabled: serviceEnabled,
-      isPaid: servicePaid,
-    });
-  }
-
   if (loading) {
     return (
       <main className="grid min-h-[50vh] place-items-center">
         <div className="flex items-center gap-3 rounded-3xl border border-slate-100 bg-white px-5 py-4 text-sm font-black text-slate-500 shadow-sm">
           <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
-          جار تحميل مركز الاشتراكات...
+          جار تحميل إدارة الباقات...
         </div>
       </main>
     );
@@ -400,23 +303,33 @@ export function AdminSubscriptionsControlCenter() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[12px] font-black text-sky-700 shadow-sm">
               <Crown className="h-4 w-4" />
-              Admin Subscription Control
+              إدارة الباقات
             </div>
 
-            <h1 className="mt-3 text-3xl font-black text-slate-950">
-              التحكم الكامل في الباقات والاشتراكات
-            </h1>
+            <h1 className="mt-3 text-3xl font-black text-slate-950">إدارة الباقات</h1>
 
             <p className="mt-2 max-w-3xl text-[14px] font-bold leading-7 text-slate-600">
-              أنشئ فكرة الباقة، حدّد مدتها وسعرها وخدماتها، ثم فعّلها لأي حساب.
-              الموجه يرى الأمر ببساطة: حساب مفعل أو يحتاج تفعيل.
+              أنشئ الباقات وعدّل ظهورها وخدماتها. إسناد الباقات وإدارة خدمات الحسابات تتم من
+              صفحة المشتركين.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <SmallStat label="الباقات" value={data?.plans.length || 0} />
-            <SmallStat label="الحسابات" value={data?.schools.length || 0} />
-            <SmallStat label="الاشتراكات" value={data?.subscriptions.length || 0} />
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/dashboard/admin/subscriptions/default-free"
+              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+            >
+              إدارة الباقة التلقائية
+              <ShieldCheck className="h-4 w-4" />
+            </Link>
+
+            <Link
+              href="/dashboard/admin/subscribers"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              الانتقال إلى المشتركين
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </section>
@@ -436,619 +349,312 @@ export function AdminSubscriptionsControlCenter() {
         </div>
       ) : null}
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <div className="space-y-5">
-          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <SectionHeader
-              icon={<PackagePlus className="h-6 w-6" />}
-              title="إنشاء باقة اشتراك"
-              subtitle="عرّف الباقة مرة واحدة ثم اربطها بأي حساب من الأدمن."
-            />
+      <section className="grid gap-3 md:grid-cols-3">
+        <StatCard label="إجمالي الباقات" value={regularPlans.length} icon={<Layers3 className="h-5 w-5" />} />
+        <StatCard label="الباقات المفعلة" value={activePlansCount} icon={<CheckCircle2 className="h-5 w-5" />} />
+        <StatCard label="الباقات الظاهرة" value={publicPlansCount} icon={<Users className="h-5 w-5" />} />
+      </section>
 
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <Field label="اسم الباقة">
-                <input
-                  value={planName}
-                  onChange={(event) => setPlanName(event.target.value)}
-                  className="input"
-                />
-              </Field>
+      <section className="space-y-5">
+        <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
+          <SectionHeader
+            icon={<PackagePlus className="h-6 w-6" />}
+            title="إنشاء باقة اشتراك"
+            subtitle="عرّف الباقة مرة واحدة ثم اضبط جمهورها وخدماتها وظهورها."
+          />
 
-              <Field label="معرف الباقة">
-                <input
-                  value={planSlug}
-                  onChange={(event) => setPlanSlug(event.target.value)}
-                  className="input"
-                />
-              </Field>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <Field label="اسم الباقة">
+              <input value={planName} onChange={(event) => setPlanName(event.target.value)} className="input" />
+            </Field>
 
-              <Field label="السعر الشهري">
-                <input
-                  value={priceMonthly}
-                  onChange={(event) => setPriceMonthly(event.target.value)}
-                  className="input"
-                />
-              </Field>
+            <Field label="معرف الباقة">
+              <input value={planSlug} onChange={(event) => setPlanSlug(event.target.value)} className="input" />
+            </Field>
 
-              <Field label="السعر السنوي">
-                <input
-                  value={priceYearly}
-                  onChange={(event) => setPriceYearly(event.target.value)}
-                  className="input"
-                />
-              </Field>
+            <Field label="السعر الشهري">
+              <input value={priceMonthly} onChange={(event) => setPriceMonthly(event.target.value)} className="input" />
+            </Field>
 
-              <Field label="مدة الباقة بالأيام">
-                <input
-                  value={durationDays}
-                  onChange={(event) => setDurationDays(event.target.value)}
-                  className="input"
-                />
-              </Field>
+            <Field label="السعر السنوي">
+              <input value={priceYearly} onChange={(event) => setPriceYearly(event.target.value)} className="input" />
+            </Field>
 
-              <Field label="حد الطلاب">
-                <input
-                  value={maxStudents}
-                  onChange={(event) => setMaxStudents(event.target.value)}
-                  className="input"
-                />
-              </Field>
+            <Field label="مدة الباقة بالأيام">
+              <input value={durationDays} onChange={(event) => setDurationDays(event.target.value)} className="input" />
+            </Field>
 
-              <Field label="حد المستخدمين">
-                <input
-                  value={maxUsers}
-                  onChange={(event) => setMaxUsers(event.target.value)}
-                  className="input"
-                />
-              </Field>
+            <Field label="حد الطلاب">
+              <input value={maxStudents} onChange={(event) => setMaxStudents(event.target.value)} className="input" />
+            </Field>
 
-              <Field label="حد التقارير">
-                <input
-                  value={maxReports}
-                  onChange={(event) => setMaxReports(event.target.value)}
-                  className="input"
-                />
-              </Field>
-            </div>
+            <Field label="حد المستخدمين">
+              <input value={maxUsers} onChange={(event) => setMaxUsers(event.target.value)} className="input" />
+            </Field>
 
-            <div className="mt-5">
-              <p className="text-[13px] font-black text-slate-700">
-                الجمهور المستهدف
-              </p>
+            <Field label="حد التقارير">
+              <input value={maxReports} onChange={(event) => setMaxReports(event.target.value)} className="input" />
+            </Field>
+          </div>
 
-              <div className="mt-2 flex gap-2">
-                {(["GUIDANCE", "ACTIVITY", "ALL"] as PlanAudience[]).map(
-                  (value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => handleAudienceChange(value)}
-                      className={[
-                        "flex-1 rounded-2xl border p-3 text-center text-sm font-black transition",
-                        planAudience === value
-                          ? "border-sky-100 bg-sky-50 text-sky-700 shadow-sm"
-                          : "border-slate-100 bg-slate-50 text-slate-500 hover:bg-white",
-                      ].join(" ")}
-                    >
-                      {getPlanAudienceLabel(value)}
-                    </button>
-                  ),
-                )}
-              </div>
-            </div>
+          <div className="mt-5">
+            <p className="text-[13px] font-black text-slate-700">الجمهور المستهدف</p>
 
-            <div className="mt-5 rounded-[1.25rem] border border-slate-100 bg-slate-50 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-[13px] font-black text-slate-700">
-                  ظهور الباقة للمستخدمين
-                </p>
-
+            <div className="mt-2 flex gap-2">
+              {(["GUIDANCE", "ACTIVITY", "ALL"] as PlanAudience[]).map((value) => (
                 <button
+                  key={value}
                   type="button"
-                  onClick={() => setPlanIsPublic((value) => !value)}
+                  onClick={() => handleAudienceChange(value)}
                   className={[
-                    "rounded-full px-3 py-1.5 text-[12px] font-black",
-                    planIsPublic
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-slate-200 text-slate-600",
+                    "flex-1 rounded-2xl border p-3 text-center text-sm font-black transition",
+                    planAudience === value
+                      ? "border-sky-100 bg-sky-50 text-sky-700 shadow-sm"
+                      : "border-slate-100 bg-slate-50 text-slate-500 hover:bg-white",
                   ].join(" ")}
                 >
-                  {planIsPublic ? "ظاهر للمستخدمين" : "مخفي من المستخدمين"}
+                  {getPlanAudienceLabel(value)}
                 </button>
-              </div>
+              ))}
+            </div>
+          </div>
 
-              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {OPERATIONAL_PLAN_ROLES.map((role) => {
-                  const active = planVisibleRoles.includes(role);
-
-                  return (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => toggleCreateVisibleRole(role)}
-                      className={[
-                        "rounded-2xl border px-3 py-2 text-right text-[12px] font-black transition",
-                        active
-                          ? "border-sky-100 bg-white text-sky-700 shadow-sm"
-                          : "border-slate-200 bg-slate-100 text-slate-500",
-                      ].join(" ")}
-                    >
-                      {getRoleVisibilityLabel(role)}
-                    </button>
-                  );
-                })}
-              </div>
+          <div className="mt-5 rounded-[1.25rem] border border-slate-100 bg-slate-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[13px] font-black text-slate-700">ظهور الباقة للمستخدمين</p>
 
               <button
                 type="button"
-                onClick={() => setPlanVisibleRoles([...OPERATIONAL_PLAN_ROLES])}
-                className="mt-3 rounded-full bg-white px-3 py-1.5 text-[12px] font-black text-slate-600 ring-1 ring-slate-100"
+                onClick={() => setPlanIsPublic((value) => !value)}
+                className={[
+                  "rounded-full px-3 py-1.5 text-[12px] font-black",
+                  planIsPublic
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-slate-200 text-slate-600",
+                ].join(" ")}
               >
-                ظاهر لكل الأدوار التشغيلية
+                {planIsPublic ? "ظاهرة للمستخدمين" : "مخفية من المستخدمين"}
               </button>
             </div>
 
-            <div className="mt-5">
-              <p className="text-[13px] font-black text-slate-700">
-                الخدمات المشمولة في الباقة
-              </p>
+            <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {OPERATIONAL_PLAN_ROLES.map((role) => {
+                const active = planVisibleRoles.includes(role);
 
-              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {visibleServices.map((service) => {
-                  const active = enabledServiceSlugs.includes(service.slug);
-
-                  return (
-                    <button
-                      key={service.id}
-                      type="button"
-                      onClick={() => toggleServiceSlug(service.slug)}
-                      className={[
-                        "flex items-center justify-between gap-3 rounded-2xl border p-3 text-right transition",
-                        active
-                          ? "border-sky-100 bg-sky-50 text-sky-700"
-                          : "border-slate-100 bg-slate-50 text-slate-500 hover:bg-white",
-                      ].join(" ")}
-                    >
-                      <span>
-                        <span className="block text-[14px] font-black">
-                          {service.name}
-                        </span>
-                        <span className="mt-1 block text-[11px] font-bold opacity-70">
-                          {service.slug}
-                        </span>
-                      </span>
-
-                      {active ? (
-                        <CheckCircle2 className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => toggleCreateVisibleRole(role)}
+                    className={[
+                      "rounded-2xl border px-3 py-2 text-right text-[12px] font-black transition",
+                      active
+                        ? "border-sky-100 bg-white text-sky-700 shadow-sm"
+                        : "border-slate-200 bg-slate-100 text-slate-500",
+                    ].join(" ")}
+                  >
+                    {getRoleVisibilityLabel(role)}
+                  </button>
+                );
+              })}
             </div>
 
             <button
               type="button"
-              onClick={createPlan}
-              className="mt-5 h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+              onClick={() => setPlanVisibleRoles([...OPERATIONAL_PLAN_ROLES])}
+              className="mt-3 rounded-full bg-white px-3 py-1.5 text-[12px] font-black text-slate-600 ring-1 ring-slate-100"
             >
-              إنشاء الباقة
+              ظاهر لكل الأدوار التشغيلية
             </button>
-          </section>
+          </div>
 
-          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <SectionHeader
-              icon={<Layers3 className="h-6 w-6" />}
-              title="الباقات الحالية"
-              subtitle="إيقاف أو مراجعة الباقات الموجودة."
-            />
+          <div className="mt-5">
+            <p className="text-[13px] font-black text-slate-700">الخدمات المشمولة في الباقة</p>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {data?.plans.map((plan) => {
-                const services = getPlanServices(plan);
-                const audience = getPlanAudience(plan.features);
-                const audienceLabel = getPlanAudienceLabel(audience);
-                const visibilityRoles = getPlanVisibilityRoles(plan);
+            <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {visibleServices.map((service) => {
+                const active = enabledServiceSlugs.includes(service.slug);
 
-                  return (
-                    <article
-                      key={plan.id}
-                      className="rounded-[1.35rem] border border-slate-100 bg-slate-50 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-[16px] font-black text-slate-950">
-                            {plan.name}
-                          </h3>
-                          <p className="mt-1 text-[12px] font-bold text-slate-400">
-                            {plan.slug}
-                          </p>
+                return (
+                  <button
+                    key={service.id}
+                    type="button"
+                    onClick={() => toggleServiceSlug(service.slug)}
+                    className={[
+                      "flex items-center justify-between gap-3 rounded-2xl border p-3 text-right transition",
+                      active
+                        ? "border-sky-100 bg-sky-50 text-sky-700"
+                        : "border-slate-100 bg-slate-50 text-slate-500 hover:bg-white",
+                    ].join(" ")}
+                  >
+                    <span>
+                      <span className="block text-[14px] font-black">{service.name}</span>
+                      <span className="mt-1 block text-[11px] font-bold opacity-70">
+                        {service.slug}
+                      </span>
+                    </span>
 
-                          {audience !== "ALL" ? (
-                            <span className="mt-2 inline-block rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-black text-sky-700">
-                              {audienceLabel}
-                            </span>
-                          ) : null}
-
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            <span
-                              className={[
-                                "rounded-full px-2 py-0.5 text-[10px] font-black",
-                                plan.isPublic
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : "bg-slate-200 text-slate-600",
-                              ].join(" ")}
-                            >
-                              {plan.isPublic ? "ظاهر للمستخدمين" : "مخفي من المستخدمين"}
-                            </span>
-
-                            {plan.isArchived ? (
-                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
-                                مؤرشف
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-
-                      <button
-                        type="button"
-                        onClick={() => togglePlan(plan)}
-                        className={[
-                          "grid h-10 w-10 place-items-center rounded-2xl",
-                          plan.isActive
-                            ? "bg-emerald-50 text-emerald-600"
-                            : "bg-slate-200 text-slate-500",
-                        ].join(" ")}
-                      >
-                        {plan.isActive ? (
-                          <ToggleRight className="h-6 w-6" />
-                        ) : (
-                          <ToggleLeft className="h-6 w-6" />
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-[12px] font-bold text-slate-600">
-                      <PlanMini label="شهري" value={`${plan.priceMonthly} ريال`} />
-                      <PlanMini label="سنوي" value={`${plan.priceYearly} ريال`} />
-                      <PlanMini label="المدة" value={`${featureValue(plan, "durationDays")} يوم`} />
-                      <PlanMini label="الطلاب" value={featureValue(plan, "maxStudents", "مفتوح")} />
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {visibilityRoles.map((role) => (
-                        <span
-                          key={role}
-                          className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600"
-                        >
-                          {getPlanRoleLabel(role)}
-                        </span>
-                      ))}
-
-                      {services.slice(0, 4).map((slug) => (
-                        <span
-                          key={slug}
-                          className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-sky-700"
-                        >
-                          {slug}
-                        </span>
-                      ))}
-                      {services.length > 4 ? (
-                        <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-500">
-                          +{services.length - 4}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="mt-4 grid gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updatePlanVisibility(plan, { isPublic: !plan.isPublic })
-                        }
-                        className="rounded-2xl bg-white px-3 py-2 text-[12px] font-black text-slate-700 ring-1 ring-slate-100"
-                      >
-                        {plan.isPublic ? "إخفاء من المستخدمين" : "إظهار للمستخدمين"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updatePlanVisibility(plan, { isArchived: !plan.isArchived })
-                        }
-                        className={[
-                          "rounded-2xl px-3 py-2 text-[12px] font-black",
-                          plan.isArchived
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-amber-50 text-amber-700",
-                        ].join(" ")}
-                      >
-                        {plan.isArchived ? "إلغاء الأرشفة" : "أرشفة الباقة"}
-                      </button>
-
-                      <div className="grid gap-1.5 sm:grid-cols-2">
-                        {OPERATIONAL_PLAN_ROLES.map((role) => {
-                          const active = visibilityRoles.includes(role);
-
-                          return (
-                            <button
-                              key={role}
-                              type="button"
-                              onClick={() => togglePlanVisibleRole(plan, role)}
-                              className={[
-                                "rounded-xl border px-2 py-1.5 text-[11px] font-black",
-                                active
-                                  ? "border-sky-100 bg-sky-50 text-sky-700"
-                                  : "border-slate-200 bg-white text-slate-400",
-                              ].join(" ")}
-                            >
-                              {getRoleVisibilityLabel(role)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </article>
+                    {active ? <CheckCircle2 className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 );
               })}
             </div>
-          </section>
+          </div>
 
-          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <SectionHeader
-              icon={<ClipboardList className="h-6 w-6" />}
-              title="الاشتراكات الحالية"
-              subtitle="بحث، تمديد، أو إيقاف أي اشتراك."
-            />
+          <button
+            type="button"
+            onClick={createPlan}
+            className="mt-5 h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
+          >
+            إنشاء الباقة
+          </button>
+        </section>
 
-            <div className="relative mt-4">
-              <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="ابحث باسم الحساب أو الباقة أو الحالة..."
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 text-sm font-bold outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
-              />
-            </div>
+        <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
+          <SectionHeader
+            icon={<Layers3 className="h-6 w-6" />}
+            title="الباقات الحالية"
+            subtitle="راجع الباقات الحالية وعدّل ظهورها وأرشفتها وخدماتها."
+          />
 
-            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-100">
-              <table className="w-full text-right text-sm">
-                <thead className="bg-slate-50 text-xs font-black text-slate-500">
-                  <tr>
-                    <th className="p-3">الحساب</th>
-                    <th className="p-3">الباقة</th>
-                    <th className="p-3">الحالة</th>
-                    <th className="p-3">ينتهي</th>
-                    <th className="p-3">إجراءات</th>
-                  </tr>
-                </thead>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {regularPlans.map((plan) => {
+              const services = getPlanServices(plan);
+              const audience = getPlanAudience(plan.features);
+              const visibilityRoles = getPlanVisibilityRoles(plan);
 
-                <tbody className="divide-y divide-slate-100">
-                  {filteredSubscriptions.map((subscription) => (
-                    <tr key={subscription.id}>
-                      <td className="p-3">
-                        <p className="font-black text-slate-900">
-                          {subscription.schoolAccount.name}
-                        </p>
-                        <p className="mt-1 text-xs font-bold text-slate-400">
-                          {subscription.schoolAccount.slug}
-                        </p>
-                      </td>
+              return (
+                <article
+                  key={plan.id}
+                  className="rounded-[1.35rem] border border-slate-100 bg-slate-50 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-[16px] font-black text-slate-950">{plan.name}</h3>
+                      <p className="mt-1 text-[12px] font-bold text-slate-400">{plan.slug}</p>
 
-                      <td className="p-3 font-bold text-slate-600">
-                        {subscription.plan.name}
-                      </td>
+                      {audience !== "ALL" ? (
+                        <span className="mt-2 inline-block rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-black text-sky-700">
+                          {getPlanAudienceLabel(audience)}
+                        </span>
+                      ) : null}
 
-                      <td className="p-3">
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                         <span
                           className={[
-                            "rounded-full px-3 py-1 text-xs font-black",
-                            subscription.status === "ACTIVE"
+                            "rounded-full px-2 py-0.5 text-[10px] font-black",
+                            plan.isPublic
                               ? "bg-emerald-50 text-emerald-700"
-                              : subscription.status === "TRIAL"
-                                ? "bg-sky-50 text-sky-700"
-                                : "bg-amber-50 text-amber-700",
+                              : "bg-slate-200 text-slate-600",
                           ].join(" ")}
                         >
-                          {getStatusLabel(subscription.status)}
+                          {plan.isPublic ? "ظاهرة للمستخدمين" : "مخفية من المستخدمين"}
                         </span>
-                      </td>
 
-                      <td className="p-3 text-xs font-bold text-slate-500">
-                        {subscription.endsAt
-                          ? new Date(subscription.endsAt).toLocaleDateString("ar-SA")
-                          : "غير محدد"}
-                      </td>
+                        {plan.isArchived ? (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
+                            مؤرشفة
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
 
-                      <td className="p-3">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => extendSubscription(subscription.id, 30)}
-                            className="rounded-xl bg-sky-600 px-3 py-2 text-xs font-black text-white"
-                          >
-                            +30 يوم
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => extendSubscription(subscription.id, 365)}
-                            className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white"
-                          >
-                            سنة
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => cancelSubscription(subscription.id)}
-                            className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-black text-white"
-                          >{"\uD83D\uDDD1\uFE0F \u062D\u0630\u0641 \u0627\u0644\u0627\u0634\u062A\u0631\u0627\u0643"}</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => togglePlan(plan)}
+                      className={[
+                        "grid h-10 w-10 place-items-center rounded-2xl",
+                        plan.isActive
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-slate-200 text-slate-500",
+                      ].join(" ")}
+                    >
+                      {plan.isActive ? <ToggleRight className="h-6 w-6" /> : <ToggleLeft className="h-6 w-6" />}
+                    </button>
+                  </div>
 
-                  {filteredSubscriptions.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="p-8 text-center text-sm font-bold text-slate-400"
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-[12px] font-bold text-slate-600">
+                    <PlanMini label="شهري" value={`${plan.priceMonthly} ريال`} />
+                    <PlanMini label="سنوي" value={`${plan.priceYearly} ريال`} />
+                    <PlanMini label="المدة" value={`${getPlanFeatureValue(plan, "durationDays")} يوم`} />
+                    <PlanMini label="الطلاب" value={getPlanFeatureValue(plan, "maxStudents", "مفتوح")} />
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {visibilityRoles.map((role) => (
+                      <span
+                        key={role}
+                        className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600"
                       >
-                        لا توجد اشتراكات مطابقة.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+                        {getPlanRoleLabel(role)}
+                      </span>
+                    ))}
 
-        <aside className="space-y-5">
-          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <SectionHeader
-              icon={<Rocket className="h-6 w-6" />}
-              title="إسناد باقة لحساب"
-              subtitle="اختر الحساب، الباقة، والمدة."
-            />
+                    {services.slice(0, 4).map((slug) => (
+                      <span
+                        key={slug}
+                        className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-sky-700"
+                      >
+                        {slug}
+                      </span>
+                    ))}
 
-            <div className="mt-5 space-y-3">
-              <select
-                value={selectedSchoolId}
-                onChange={(event) => setSelectedSchoolId(event.target.value)}
-                className="input"
-              >
-                <option value="">اختر الحساب</option>
-                {data?.schools.map((school) => (
-                  <option key={school.id} value={school.id}>
-                    {school.name}
-                  </option>
-                ))}
-              </select>
+                    {services.length > 4 ? (
+                      <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-500">
+                        +{services.length - 4}
+                      </span>
+                    ) : null}
+                  </div>
 
-              <select
-                value={selectedPlanId}
-                onChange={(event) => setSelectedPlanId(event.target.value)}
-                className="input"
-              >
-                <option value="">اختر الباقة</option>
-                {data?.plans
-                  .map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name}
-                      {plan.isArchived ? " - مؤرشف" : ""}
-                      {!plan.isPublic ? " - مخفي" : ""}
-                    </option>
-                  ))}
-              </select>
+                  <div className="mt-4 grid gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updatePlanVisibility(plan, { isPublic: !plan.isPublic })}
+                      className="rounded-2xl bg-white px-3 py-2 text-[12px] font-black text-slate-700 ring-1 ring-slate-100"
+                    >
+                      {plan.isPublic ? "إخفاء من المستخدمين" : "إظهار للمستخدمين"}
+                    </button>
 
-              <select
-                value={assignStatus}
-                onChange={(event) => setAssignStatus(event.target.value)}
-                className="input"
-              >
-                <option value="ACTIVE">نشط</option>
-                <option value="TRIAL">تجربة</option>
-                <option value="PAST_DUE">بانتظار الدفع</option>
-              </select>
+                    <button
+                      type="button"
+                      onClick={() => updatePlanVisibility(plan, { isArchived: !plan.isArchived })}
+                      className={[
+                        "rounded-2xl px-3 py-2 text-[12px] font-black",
+                        plan.isArchived
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-700",
+                      ].join(" ")}
+                    >
+                      {plan.isArchived ? "إلغاء الأرشفة" : "أرشفة الباقة"}
+                    </button>
 
-              <input
-                value={assignDays}
-                onChange={(event) => setAssignDays(event.target.value)}
-                placeholder="مدة مخصصة بالأيام، اتركها فارغة لاستخدام مدة الباقة"
-                className="input"
-              />
+                    <div className="grid gap-1.5 sm:grid-cols-2">
+                      {OPERATIONAL_PLAN_ROLES.map((role) => {
+                        const active = visibilityRoles.includes(role);
 
-              <button
-                type="button"
-                onClick={assignPlan}
-                className="h-12 w-full rounded-2xl bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-100 transition hover:bg-sky-700"
-              >
-                إسناد وتفعيل
-              </button>
-            </div>
-          </section>
-
-          <section className="rounded-[1.45rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <SectionHeader
-              icon={<Settings2 className="h-6 w-6" />}
-              title="تحكم خدمة لحساب"
-              subtitle="فتح أو إغلاق خدمة معينة لحساب معين."
-            />
-
-            <div className="mt-5 space-y-3">
-              <select
-                value={serviceSchoolId}
-                onChange={(event) => setServiceSchoolId(event.target.value)}
-                className="input"
-              >
-                <option value="">اختر الحساب</option>
-                {data?.schools.map((school) => (
-                  <option key={school.id} value={school.id}>
-                    {school.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={serviceId}
-                onChange={(event) => setServiceId(event.target.value)}
-                className="input"
-              >
-                <option value="">اختر الخدمة</option>
-                {data?.services.map((service) => (
-                  <option key={service.id} value={service.id}>
-                    {service.name}
-                  </option>
-                ))}
-              </select>
-
-              <label className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 text-sm font-black text-slate-700">
-                الخدمة مفعلة
-                <input
-                  type="checkbox"
-                  checked={serviceEnabled}
-                  onChange={(event) => setServiceEnabled(event.target.checked)}
-                />
-              </label>
-
-              <label className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 text-sm font-black text-slate-700">
-                خدمة مدفوعة
-                <input
-                  type="checkbox"
-                  checked={servicePaid}
-                  onChange={(event) => setServicePaid(event.target.checked)}
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={updateServiceAccess}
-                className="h-12 w-full rounded-2xl bg-slate-950 text-sm font-black text-white transition hover:bg-slate-800"
-              >
-                حفظ صلاحية الخدمة
-              </button>
-            </div>
-          </section>
-
-          <section className="rounded-[1.45rem] border border-amber-100 bg-amber-50 p-5 shadow-sm">
-            <div className="flex gap-3">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-amber-700 shadow-sm">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-
-              <div>
-                <h3 className="text-[15px] font-black text-amber-950">
-                  قاعدة مهمة
-                </h3>
-                <p className="mt-2 text-[13px] font-bold leading-6 text-amber-800">
-                  الباقة تحدد الخدمات تلقائيًا، لكن يمكنك من هنا فتح أو إغلاق
-                  خدمة لحساب معيّن عند الحاجة.
-                </p>
-              </div>
-            </div>
-          </section>
-        </aside>
+                        return (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => togglePlanVisibleRole(plan, role)}
+                            className={[
+                              "rounded-xl border px-2 py-1.5 text-[11px] font-black",
+                              active
+                                ? "border-sky-100 bg-sky-50 text-sky-700"
+                                : "border-slate-200 bg-white text-slate-400",
+                            ].join(" ")}
+                          >
+                            {getRoleVisibilityLabel(role)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
       </section>
 
       <style jsx>{`
@@ -1073,11 +679,27 @@ export function AdminSubscriptionsControlCenter() {
   );
 }
 
-function SmallStat({ label, value }: { label: string; value: number }) {
+function StatCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+}) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-center shadow-sm">
-      <p className="text-2xl font-black text-slate-950">{value}</p>
-      <p className="mt-1 text-[11px] font-black text-slate-400">{label}</p>
+    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-2xl font-black text-slate-950">{value}</p>
+          <p className="mt-1 text-[11px] font-black text-slate-400">{label}</p>
+        </div>
+
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+          {icon}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1099,9 +721,7 @@ function SectionHeader({
 
       <div>
         <h2 className="text-xl font-black text-slate-950">{title}</h2>
-        <p className="mt-1 text-[13px] font-bold leading-6 text-slate-500">
-          {subtitle}
-        </p>
+        <p className="mt-1 text-[13px] font-bold leading-6 text-slate-500">{subtitle}</p>
       </div>
     </div>
   );
@@ -1116,9 +736,7 @@ function Field({
 }) {
   return (
     <label>
-      <span className="mb-2 block text-[12px] font-black text-slate-500">
-        {label}
-      </span>
+      <span className="mb-2 block text-[12px] font-black text-slate-500">{label}</span>
       {children}
     </label>
   );
@@ -1132,6 +750,3 @@ function PlanMini({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
-
-

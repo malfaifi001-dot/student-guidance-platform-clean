@@ -10,6 +10,7 @@ import { getRequestDeviceInfo } from "@/lib/auth/current-user";
 import { shouldLimitActiveSessions } from "@/lib/auth/session-policy";
 import { enforceRateLimit } from "@/lib/auth/auth-rate-limit";
 import { getDashboardHomePath } from "@/lib/auth/dashboard-redirects";
+import { assignDefaultFreePlanIfEligible } from "@/lib/subscription/default-free-plan";
 import {
   createSessionToken,
   createTokenId,
@@ -189,6 +190,18 @@ export async function POST(request: Request) {
 
       return { user, schoolAccount, session };
     });
+
+    if (result.user.role !== "ADMIN" && result.schoolAccount.id) {
+      try {
+        await assignDefaultFreePlanIfEligible({
+          schoolAccountId: result.schoolAccount.id,
+          userId: result.user.id,
+          source: "register",
+        });
+      } catch (error) {
+        console.error("REGISTER_DEFAULT_FREE_PLAN_ERROR", error);
+      }
+    }
 
     const response = NextResponse.json({
       success: true,

@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import type { SubscriptionStatus } from "@prisma/client";
 import type { PlanAudience } from "./plan-audience";
 
+const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+
 type PlanFeatureLike = {
   key: string;
   value: string | null;
@@ -179,6 +181,20 @@ export async function assignPlanToSchool(input: {
     throw new Error("الباقة غير موجودة.");
   }
 
+  const currentSubscription = await prisma.subscription.findUnique({
+    where: {
+      schoolAccountId: input.schoolAccountId,
+    },
+    include: {
+      plan: {
+        select: {
+          slug: true,
+          name: true,
+        },
+      },
+    },
+  });
+
   const durationDays =
     input.days && input.days > 0
       ? input.days
@@ -210,6 +226,43 @@ export async function assignPlanToSchool(input: {
     schoolAccountId: input.schoolAccountId,
     planId: plan.id,
   });
+
+  if (
+    currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+    plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  ) {
+    try {
+      const convertedAt = new Date();
+      const daysOnDefaultFree = Math.max(
+        Math.ceil(
+          (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
+        0,
+      );
+
+      await prisma.platformActivityLog.create({
+        data: {
+          actorUserId: input.activatedById || null,
+          schoolAccountId: input.schoolAccountId,
+          category: "SUBSCRIPTION",
+          action: "default-free-plan-converted",
+          severity: "SUCCESS",
+          title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+          details: {
+            fromPlanSlug: currentSubscription.plan.slug,
+            toPlanId: plan.id,
+            toPlanName: plan.name,
+            startedAt: currentSubscription.startsAt.toISOString(),
+            convertedAt: convertedAt.toISOString(),
+            daysOnDefaultFree,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("default free plan conversion audit failed", error);
+    }
+  }
 
   try {
     await prisma.manualActivation.create({

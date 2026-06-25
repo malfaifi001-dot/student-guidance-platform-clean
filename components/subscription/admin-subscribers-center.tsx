@@ -1,23 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
   CheckCircle2,
-  Crown,
   Loader2,
+  PackagePlus,
   PauseCircle,
   RefreshCw,
+  Save,
   Search,
+  Settings2,
   ShieldCheck,
   Sparkles,
   TimerReset,
   UserCheck,
   Users,
   WalletCards,
-  XCircle,
 } from "lucide-react";
 
 type SubscriberStatus =
@@ -62,6 +63,21 @@ type Plan = {
   slug: string;
 };
 
+type Service = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  status: string;
+};
+
+type ServiceAccess = {
+  schoolAccountId: string;
+  serviceId: string;
+  isEnabled: boolean;
+  isPaid: boolean;
+};
+
 type SubscribersPayload = {
   stats: {
     total: number;
@@ -76,6 +92,8 @@ type SubscribersPayload = {
     totalStudents: number;
   };
   plans: Plan[];
+  services: Service[];
+  serviceAccess: ServiceAccess[];
   subscribers: Subscriber[];
 };
 
@@ -135,11 +153,19 @@ export function AdminSubscribersCenter() {
   const [message, setMessage] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("ACTIVE");
+  const [selectedDays, setSelectedDays] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [serviceEnabled, setServiceEnabled] = useState(true);
+  const [servicePaid, setServicePaid] = useState(true);
 
   async function load() {
     setLoading(true);
 
-    const response = await fetch("/api/dashboard/admin/subscribers");
+    const response = await fetch("/api/dashboard/admin/subscribers", {
+      cache: "no-store",
+    });
     const result = await response.json();
 
     if (response.ok) {
@@ -153,8 +179,11 @@ export function AdminSubscribersCenter() {
   }
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
+
+  const availablePlans = useMemo(() => data?.plans || [], [data?.plans]);
+  const availableServices = useMemo(() => data?.services || [], [data?.services]);
 
   const filteredSubscribers = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -183,8 +212,7 @@ export function AdminSubscribersCenter() {
             ? item.needsAttention
             : item.computedStatus === status;
 
-      const matchesPlan =
-        planId === "ALL" ? true : item.subscription?.planId === planId;
+      const matchesPlan = planId === "ALL" ? true : item.subscription?.planId === planId;
 
       return matchesSearch && matchesStatus && matchesPlan;
     });
@@ -216,6 +244,18 @@ export function AdminSubscribersCenter() {
     filteredSubscribers[0] ||
     null;
 
+  const selectedServiceAccess = useMemo(() => {
+    if (!selectedSubscriber?.schoolAccountId || !selectedServiceId) return null;
+
+    return (
+      data?.serviceAccess.find(
+        (item) =>
+          item.schoolAccountId === selectedSubscriber.schoolAccountId &&
+          item.serviceId === selectedServiceId,
+      ) || null
+    );
+  }, [data?.serviceAccess, selectedServiceId, selectedSubscriber?.schoolAccountId]);
+
   const priorityItems = useMemo(() => {
     return [...(data?.subscribers || [])]
       .filter((item) => item.needsAttention)
@@ -232,12 +272,60 @@ export function AdminSubscribersCenter() {
       .slice(0, 3);
   }, [data?.subscribers]);
 
-  async function runAction(input: {
+  useEffect(() => {
+    if (!selectedSubscriber) return;
+
+    setSelectedPlanId(selectedSubscriber.subscription?.planId || availablePlans[0]?.id || "");
+    setSelectedStatus(
+      selectedSubscriber.subscription?.status === "TRIAL" ||
+        selectedSubscriber.subscription?.status === "PAST_DUE"
+        ? selectedSubscriber.subscription.status
+        : "ACTIVE",
+    );
+    setSelectedDays("");
+  }, [
+    availablePlans,
+    selectedSubscriber?.schoolAccountId,
+    selectedSubscriber?.subscription?.planId,
+    selectedSubscriber?.subscription?.status,
+  ]);
+
+  useEffect(() => {
+    if (availableServices.length === 0) {
+      setSelectedServiceId("");
+      return;
+    }
+
+    setSelectedServiceId((current) =>
+      current && availableServices.some((service) => service.id === current)
+        ? current
+        : availableServices[0]?.id || "",
+    );
+  }, [availableServices]);
+
+  useEffect(() => {
+    if (!selectedSubscriber?.schoolAccountId || !selectedServiceId) {
+      setServiceEnabled(true);
+      setServicePaid(true);
+      return;
+    }
+
+    if (selectedServiceAccess) {
+      setServiceEnabled(selectedServiceAccess.isEnabled);
+      setServicePaid(selectedServiceAccess.isPaid);
+      return;
+    }
+
+    setServiceEnabled(true);
+    setServicePaid(false);
+  }, [selectedServiceAccess, selectedServiceId, selectedSubscriber?.schoolAccountId]);
+
+  async function runSubscriptionAction(input: {
     type: "extend" | "year" | "cancel";
     subscriber: Subscriber;
   }) {
     if (!input.subscriber.subscription?.id) {
-      setMessage("هذا الحساب لا يملك اشتراكًا بعد. فعّله من صفحة إدارة الاشتراكات.");
+      setMessage("هذا الحساب لا يملك اشتراكًا بعد. فعّله من القسم المخصص أسفل البطاقة.");
       return;
     }
 
@@ -275,6 +363,76 @@ export function AdminSubscribersCenter() {
     await load();
   }
 
+  async function assignPlanToSubscriber() {
+    if (!selectedSubscriber) {
+      setMessage("اختر الحساب من القائمة ثم نفّذ الإجراء المناسب.");
+      return;
+    }
+
+    if (!selectedPlanId) {
+      setMessage("اختر باقة للحساب أولًا.");
+      return;
+    }
+
+    setProcessingId(selectedSubscriber.schoolAccountId);
+    setMessage(null);
+
+    const response = await fetch("/api/dashboard/admin/subscriptions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "assign-plan",
+        schoolAccountId: selectedSubscriber.schoolAccountId,
+        planId: selectedPlanId,
+        status: selectedStatus,
+        days: selectedDays,
+      }),
+    });
+
+    const result = await response.json();
+    setMessage(result.message || result.error || "تم تنفيذ العملية.");
+    setProcessingId(null);
+
+    await load();
+  }
+
+  async function saveServiceAccessForSubscriber() {
+    if (!selectedSubscriber) {
+      setMessage("اختر الحساب من القائمة ثم نفّذ الإجراء المناسب.");
+      return;
+    }
+
+    if (!selectedServiceId) {
+      setMessage("اختر خدمة أولًا.");
+      return;
+    }
+
+    setProcessingId(selectedSubscriber.schoolAccountId);
+    setMessage(null);
+
+    const response = await fetch("/api/dashboard/admin/subscriptions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "toggle-service-access",
+        schoolAccountId: selectedSubscriber.schoolAccountId,
+        serviceId: selectedServiceId,
+        isEnabled: serviceEnabled,
+        isPaid: servicePaid,
+      }),
+    });
+
+    const result = await response.json();
+    setMessage(result.message || result.error || "تم تنفيذ العملية.");
+    setProcessingId(null);
+
+    await load();
+  }
+
   if (loading) {
     return (
       <main className="grid min-h-[50vh] place-items-center">
@@ -301,20 +459,18 @@ export function AdminSubscribersCenter() {
               Admin Subscribers Decision Center
             </div>
 
-            <h1 className="mt-4 text-4xl font-black tracking-tight">
-              مركز قرارات المشتركين
-            </h1>
+            <h1 className="mt-4 text-4xl font-black tracking-tight">مركز قرارات المشتركين</h1>
 
             <p className="mt-3 max-w-3xl text-[14px] font-bold leading-7 text-slate-300">
-              هذه الصفحة تساعدك تعرف من يحتاج متابعة الآن، من يستحق التمديد،
-              ومن عنده طلب تحويل أو اشتراك منتهي أو بدون باقة.
+              هذه الصفحة تساعدك تعرف من يحتاج متابعة الآن، ومن عنده اشتراك منتهي أو بدون
+              باقة، وتمنحك نقطة واحدة لإدارة الاشتراك والخدمات للحساب المحدد.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={load}
+              onClick={() => void load()}
               className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 text-sm font-black text-white ring-1 ring-white/10 transition hover:bg-white/15"
             >
               <RefreshCw className="h-4 w-4" />
@@ -344,11 +500,21 @@ export function AdminSubscribersCenter() {
         <StatCard title="تجربة" value={stats?.trial || 0} icon={<Sparkles />} tone="sky" />
         <StatCard title="منتهية" value={stats?.expired || 0} icon={<TimerReset />} tone="rose" />
         <StatCard title="ملغية" value={stats?.canceled || 0} icon={<PauseCircle />} tone="slate" />
-        <StatCard title="تحتاج متابعة" value={stats?.needsAttention || 0} icon={<AlertTriangle />} tone="amber" />
-        <StatCard title="طلبات معلقة" value={stats?.pendingRequests || 0} icon={<WalletCards />} tone="violet" />
+        <StatCard
+          title="تحتاج متابعة"
+          value={stats?.needsAttention || 0}
+          icon={<AlertTriangle />}
+          tone="amber"
+        />
+        <StatCard
+          title="طلبات معلقة"
+          value={stats?.pendingRequests || 0}
+          icon={<WalletCards />}
+          tone="violet"
+        />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
         <div className="space-y-6">
           <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_180px_180px]">
@@ -357,7 +523,7 @@ export function AdminSubscribersCenter() {
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="ابحث باسم الحساب، المدرسة، الإيميل، الباقة..."
+                  placeholder="ابحث باسم الحساب، المدرسة، البريد، أو الباقة..."
                   className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-12 text-sm font-bold outline-none transition focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
                 />
               </div>
@@ -382,7 +548,7 @@ export function AdminSubscribersCenter() {
                 className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black outline-none focus:border-sky-200 focus:ring-4 focus:ring-sky-50"
               >
                 <option value="ALL">كل الباقات</option>
-                {data?.plans.map((plan) => (
+                {availablePlans.map((plan) => (
                   <option key={plan.id} value={plan.id}>
                     {plan.name}
                   </option>
@@ -407,9 +573,7 @@ export function AdminSubscribersCenter() {
           <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div>
-                <h2 className="text-xl font-black text-slate-950">
-                  الحسابات حسب الأولوية
-                </h2>
+                <h2 className="text-xl font-black text-slate-950">الحسابات حسب الأولوية</h2>
                 <p className="mt-1 text-[12px] font-bold text-slate-400">
                   النتائج: {filteredSubscribers.length}
                 </p>
@@ -456,7 +620,8 @@ export function AdminSubscribersCenter() {
                       </div>
 
                       <p className="mt-2 text-xs font-bold text-slate-400">
-                        {item.ownerEmail || "بدون بريد"} · الحساب: {item.accountName || item.slug} · المدرسة: {item.schoolName} · {item.educationDepartment || "بدون إدارة تعليم"}
+                        {item.ownerEmail || "بدون بريد"} · الحساب: {item.accountName || item.slug} ·
+                        المدرسة: {item.schoolName} · {item.educationDepartment || "بدون إدارة تعليم"}
                       </p>
                     </div>
 
@@ -502,10 +667,10 @@ export function AdminSubscribersCenter() {
                     onClick={() => setSelectedId(item.schoolAccountId)}
                     className="w-full rounded-3xl bg-amber-50 p-4 text-right transition hover:bg-amber-100"
                   >
-                    <p className="font-black text-amber-900">{item.ownerName || item.accountName || item.schoolName}</p>
-                    <p className="mt-1 text-xs font-bold text-amber-700">
-                      {decisionLabel(item)}
+                    <p className="font-black text-amber-900">
+                      {item.ownerName || item.accountName || item.schoolName}
                     </p>
+                    <p className="mt-1 text-xs font-bold text-amber-700">{decisionLabel(item)}</p>
                   </button>
                 ))
               ) : (
@@ -522,10 +687,14 @@ export function AdminSubscribersCenter() {
                 <div>
                   <p className="text-xs font-black text-sky-600">الحساب المحدد</p>
                   <h2 className="mt-1 text-2xl font-black text-slate-950">
-                    {selectedSubscriber.ownerName || selectedSubscriber.accountName || selectedSubscriber.schoolName}
+                    {selectedSubscriber.ownerName ||
+                      selectedSubscriber.accountName ||
+                      selectedSubscriber.schoolName}
                   </h2>
                   <p className="mt-1 text-xs font-bold text-slate-400">
-                    {selectedSubscriber.ownerEmail || "بدون بريد"} · الحساب: {selectedSubscriber.accountName || selectedSubscriber.slug} · المدرسة: {selectedSubscriber.schoolName}
+                    {selectedSubscriber.ownerEmail || "بدون بريد"} · الحساب:{" "}
+                    {selectedSubscriber.accountName || selectedSubscriber.slug} · المدرسة:{" "}
+                    {selectedSubscriber.schoolName}
                   </p>
                 </div>
 
@@ -540,7 +709,10 @@ export function AdminSubscribersCenter() {
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <InfoBox label="الباقة" value={selectedSubscriber.subscription?.planName || "بدون باقة"} />
+                <InfoBox
+                  label="الباقة"
+                  value={selectedSubscriber.subscription?.planName || "بدون باقة"}
+                />
                 <InfoBox
                   label="المتبقي"
                   value={
@@ -554,11 +726,138 @@ export function AdminSubscribersCenter() {
                 <InfoBox label="الطلاب" value={String(selectedSubscriber.studentsCount)} />
               </div>
 
+              <section className="mt-5 rounded-[1.6rem] border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-sky-600 shadow-sm">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-black text-slate-950">إدارة الاشتراك والخدمات</h3>
+                    <p className="mt-1 text-[13px] font-bold leading-6 text-slate-500">
+                      اختر الحساب من القائمة ثم نفّذ الإجراء المناسب.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                  <div className="rounded-[1.35rem] border border-slate-200 bg-white p-4">
+                    <div className="flex items-center gap-2">
+                      <PackagePlus className="h-5 w-5 text-sky-600" />
+                      <h4 className="text-sm font-black text-slate-950">إسناد باقة</h4>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      <select
+                        value={selectedPlanId}
+                        onChange={(event) => setSelectedPlanId(event.target.value)}
+                        className="input"
+                      >
+                        <option value="">اختر الباقة</option>
+                        {availablePlans.map((plan) => (
+                          <option key={plan.id} value={plan.id}>
+                            {plan.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={selectedStatus}
+                        onChange={(event) => setSelectedStatus(event.target.value)}
+                        className="input"
+                      >
+                        <option value="ACTIVE">نشط</option>
+                        <option value="TRIAL">تجربة</option>
+                        <option value="PAST_DUE">بانتظار الدفع</option>
+                      </select>
+
+                      <input
+                        value={selectedDays}
+                        onChange={(event) => setSelectedDays(event.target.value)}
+                        placeholder="مدة مخصصة بالأيام"
+                        className="input"
+                      />
+
+                      <button
+                        type="button"
+                        disabled={processingId === selectedSubscriber.schoolAccountId}
+                        onClick={assignPlanToSubscriber}
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-60"
+                      >
+                        <Save className="h-4 w-4" />
+                        إسناد وتفعيل
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.35rem] border border-slate-200 bg-white p-4">
+                    <div className="flex items-center gap-2">
+                      <Settings2 className="h-5 w-5 text-sky-600" />
+                      <h4 className="text-sm font-black text-slate-950">صلاحيات الخدمات</h4>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      <select
+                        value={selectedServiceId}
+                        onChange={(event) => setSelectedServiceId(event.target.value)}
+                        className="input"
+                      >
+                        <option value="">اختر الخدمة</option>
+                        {availableServices.map((service) => (
+                          <option key={service.id} value={service.id}>
+                            {service.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <label className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 text-sm font-black text-slate-700">
+                        الخدمة مفعلة
+                        <input
+                          type="checkbox"
+                          checked={serviceEnabled}
+                          onChange={(event) => setServiceEnabled(event.target.checked)}
+                        />
+                      </label>
+
+                      <label className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 text-sm font-black text-slate-700">
+                        خدمة مدفوعة
+                        <input
+                          type="checkbox"
+                          checked={servicePaid}
+                          onChange={(event) => setServicePaid(event.target.checked)}
+                        />
+                      </label>
+
+                      <p className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">
+                        {selectedServiceAccess
+                          ? "تم تحميل الصلاحية الحالية لهذه الخدمة لهذا الحساب."
+                          : "لا توجد صلاحية محفوظة سابقًا لهذه الخدمة على هذا الحساب."}
+                      </p>
+
+                      <button
+                        type="button"
+                        disabled={processingId === selectedSubscriber.schoolAccountId}
+                        onClick={saveServiceAccessForSubscriber}
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                      >
+                        <Save className="h-4 w-4" />
+                        حفظ صلاحية الخدمة
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               <div className="mt-5 grid gap-2">
                 <button
                   type="button"
                   disabled={processingId === selectedSubscriber.schoolAccountId}
-                  onClick={() => runAction({ type: "extend", subscriber: selectedSubscriber })}
+                  onClick={() =>
+                    void runSubscriptionAction({
+                      type: "extend",
+                      subscriber: selectedSubscriber,
+                    })
+                  }
                   className="rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-60"
                 >
                   تمديد 30 يوم
@@ -567,7 +866,12 @@ export function AdminSubscribersCenter() {
                 <button
                   type="button"
                   disabled={processingId === selectedSubscriber.schoolAccountId}
-                  onClick={() => runAction({ type: "year", subscriber: selectedSubscriber })}
+                  onClick={() =>
+                    void runSubscriptionAction({
+                      type: "year",
+                      subscriber: selectedSubscriber,
+                    })
+                  }
                   className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60"
                 >
                   تمديد سنة
@@ -576,18 +880,16 @@ export function AdminSubscribersCenter() {
                 <button
                   type="button"
                   disabled={processingId === selectedSubscriber.schoolAccountId}
-                  onClick={() => runAction({ type: "cancel", subscriber: selectedSubscriber })}
+                  onClick={() =>
+                    void runSubscriptionAction({
+                      type: "cancel",
+                      subscriber: selectedSubscriber,
+                    })
+                  }
                   className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-black text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
                 >
                   إلغاء الاشتراك
                 </button>
-
-                <Link
-                  href="/dashboard/admin/subscriptions"
-                  className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800"
-                >
-                  إدارة الاشتراك والخدمات
-                </Link>
 
                 {selectedSubscriber.pendingRequestsCount > 0 ? (
                   <Link
@@ -602,6 +904,25 @@ export function AdminSubscribersCenter() {
           ) : null}
         </aside>
       </section>
+
+      <style jsx>{`
+        .input {
+          height: 3rem;
+          width: 100%;
+          border-radius: 1rem;
+          border: 1px solid rgb(226 232 240);
+          background: rgb(248 250 252);
+          padding: 0 1rem;
+          font-size: 0.875rem;
+          font-weight: 700;
+          outline: none;
+        }
+
+        .input:focus {
+          border-color: rgb(186 230 253);
+          box-shadow: 0 0 0 4px rgb(240 249 255);
+        }
+      `}</style>
     </main>
   );
 }
@@ -649,11 +970,7 @@ function MiniMetric({
   label: string;
   value: string | number;
 }) {
-  return (
-    <span className="rounded-2xl bg-slate-50 px-3 py-2 text-slate-600">
-      {label}: {value}
-    </span>
-  );
+  return <span className="rounded-2xl bg-slate-50 px-3 py-2 text-slate-600">{label}: {value}</span>;
 }
 
 function InfoBox({ label, value }: { label: string; value: string }) {
@@ -664,7 +981,3 @@ function InfoBox({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
-
-
-

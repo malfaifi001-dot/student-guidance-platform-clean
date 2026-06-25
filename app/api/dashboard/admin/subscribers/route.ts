@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { DEFAULT_FREE_PLAN_SLUG } from "@/lib/subscription/default-free-plan";
 import {
   getRemainingDays,
   isSubscriptionUsable,
@@ -78,7 +79,7 @@ export async function GET() {
     return adminError;
   }
 
-  const [schoolAccounts, plans, pendingRequests] = await Promise.all([
+  const [schoolAccounts, plans, services, serviceAccess, pendingRequests] = await Promise.all([
     prisma.schoolAccount.findMany({
       orderBy: {
         createdAt: "desc",
@@ -116,9 +117,27 @@ export async function GET() {
     prisma.plan.findMany({
       where: {
         isActive: true,
+        slug: {
+          not: DEFAULT_FREE_PLAN_SLUG,
+        },
       },
       orderBy: {
         name: "asc",
+      },
+    }),
+
+    prisma.service.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    }),
+
+    prisma.serviceAccess.findMany({
+      select: {
+        schoolAccountId: true,
+        serviceId: true,
+        isEnabled: true,
+        isPaid: true,
       },
     }),
 
@@ -239,6 +258,14 @@ export async function GET() {
       name: plan.name,
       slug: plan.slug,
     })),
+    services: services.map((service: any) => ({
+      id: service.id,
+      slug: service.slug,
+      name: service.name,
+      description: service.description,
+      status: service.status,
+    })),
+    serviceAccess,
     subscribers,
   });
 }

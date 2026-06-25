@@ -4,19 +4,18 @@ import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
 import {
+  getDefaultFreePlanConfig,
+  saveDefaultFreePlanConfig,
+} from "@/lib/subscription/default-free-plan";
+import {
+  assignPlanToSchool,
+  getPlanFeatureValue,
+} from "@/lib/subscription/subscription-service";
+import {
   getDefaultVisibleRolesForAudience,
   normalizePlanVisibleRoles,
   type PlanAudience,
 } from "@/lib/subscription/plan-audience";
-
-function getSchoolDisplayName(account: {
-  profile?: {
-    schoolName?: string | null;
-  } | null;
-}) {
-  const schoolName = String(account.profile?.schoolName || "").trim();
-  return schoolName || "هوية المدرسة غير مكتملة";
-}
 
 function slugify(input: string) {
   return input
@@ -31,71 +30,6 @@ function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
-}
-
-async function syncSchoolServicesFromPlan(input: {
-  schoolAccountId: string;
-  planId: string;
-}) {
-  const planFeatures = await prisma.planFeature.findMany({
-    where: {
-      planId: input.planId,
-      key: {
-        startsWith: "service:",
-      },
-    },
-  });
-
-  const enabledServiceSlugs = planFeatures
-    .filter((feature: any) => feature.value === "enabled")
-    .map((feature: any) => feature.key.replace("service:", ""));
-
-  const enabledServices = enabledServiceSlugs.length
-    ? await prisma.service.findMany({
-        where: {
-          slug: {
-            in: enabledServiceSlugs,
-          },
-        },
-        select: {
-          id: true,
-          slug: true,
-        },
-      })
-    : [];
-
-  await prisma.$transaction(async (tx) => {
-    await tx.serviceAccess.updateMany({
-      where: {
-        schoolAccountId: input.schoolAccountId,
-      },
-      data: {
-        isEnabled: false,
-        isPaid: false,
-      },
-    });
-
-    for (const service of enabledServices) {
-      await tx.serviceAccess.upsert({
-        where: {
-          schoolAccountId_serviceId: {
-            schoolAccountId: input.schoolAccountId,
-            serviceId: service.id,
-          },
-        },
-        update: {
-          isEnabled: true,
-          isPaid: true,
-        },
-        create: {
-          schoolAccountId: input.schoolAccountId,
-          serviceId: service.id,
-          isEnabled: true,
-          isPaid: true,
-        },
-      });
-    }
-  });
 }
 
 export async function GET() {
@@ -113,8 +47,10 @@ export async function GET() {
 
   await ensureDefaultPlatformServices();
 
-  const [plans, services, schools, subscriptions, serviceAccess] =
+  const [defaultFreePlan, plans, services, schools, subscriptions, serviceAccess] =
     await Promise.all([
+      getDefaultFreePlanConfig(),
+
       prisma.plan.findMany({
         orderBy: {
           createdAt: "desc",
@@ -160,11 +96,11 @@ export async function GET() {
               slug: true,
               isActive: true,
               profile: {
-            select: {
-              schoolName: true,
-              educationDepartment: true,
-            },
-          },
+                select: {
+                  schoolName: true,
+                  educationDepartment: true,
+                },
+              },
             },
           },
           plan: true,
@@ -188,6 +124,7 @@ export async function GET() {
     ]);
 
   return NextResponse.json({
+    defaultFreePlan,
     plans,
     services,
     schools,
@@ -211,6 +148,39 @@ export async function POST(request: Request) {
 
   const payload = await request.json().catch(() => null);
   const action = String(payload?.action || "").trim();
+
+  if (action === "save-default-free-plan") {
+    const planName = String(payload?.planName || "").trim();
+    const enabled = Boolean(payload?.enabled);
+    const durationDays = Number(payload?.durationDays || 0);
+    const accessMode =
+      String(payload?.accessMode || "ALL_SERVICES").trim() === "CUSTOM_SERVICES"
+        ? "CUSTOM_SERVICES"
+        : "ALL_SERVICES";
+    const enabledServiceSlugs = Array.isArray(payload?.enabledServiceSlugs)
+      ? payload.enabledServiceSlugs.map(String)
+      : [];
+
+    if (durationDays <= 0) {
+      return NextResponse.json(
+        { error: "اكتب مدة صحيحة للباقة بالأيام." },
+        { status: 400 },
+      );
+    }
+
+    const config = await saveDefaultFreePlanConfig({
+      planName,
+      enabled,
+      durationDays,
+      accessMode,
+      enabledServiceSlugs,
+    });
+
+    return NextResponse.json({
+      message: "تم حفظ إعدادات الباقة التلقائية.",
+      defaultFreePlan: config,
+    });
+  }
 
   if (action === "create-plan") {
     const name = String(payload?.name || "").trim();
@@ -239,16 +209,13 @@ export async function POST(request: Request) {
     const isArchived = Boolean(payload?.isArchived);
 
     if (!name) {
-      return NextResponse.json(
-        { error: "اكتب اسم الباقة." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "اكتب اسم الباقة." }, { status: 400 });
     }
 
     if (!slug) {
       return NextResponse.json(
         { error: "تعذر إنشاء معرف الباقة." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -261,7 +228,7 @@ export async function POST(request: Request) {
     if (existing) {
       return NextResponse.json(
         { error: "يوجد باقة بنفس المعرف." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -325,6 +292,10 @@ export async function POST(request: Request) {
     const planId = String(payload?.planId || "").trim();
     const isActive = Boolean(payload?.isActive);
 
+    if (!planId) {
+      return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
+    }
+
     await prisma.plan.update({
       where: {
         id: planId,
@@ -348,10 +319,7 @@ export async function POST(request: Request) {
     const visibleRoles = normalizePlanVisibleRoles(payload?.visibleRoles) ?? [];
 
     if (!planId) {
-      return NextResponse.json(
-        { error: "رقم الباقة مطلوب." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
     }
 
     const plan = await prisma.plan.findUnique({
@@ -366,7 +334,7 @@ export async function POST(request: Request) {
     if (!plan) {
       return NextResponse.json(
         { error: "الباقة غير موجودة." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -400,7 +368,7 @@ export async function POST(request: Request) {
     if (!schoolAccountId || !planId) {
       return NextResponse.json(
         { error: "اختر الحساب والباقة." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -416,56 +384,24 @@ export async function POST(request: Request) {
     if (!plan) {
       return NextResponse.json(
         { error: "الباقة غير موجودة." },
-        { status: 404 }
+        { status: 404 },
       );
     }
-
-    const durationFeature = plan.features.find(
-      (feature: any) => feature.key === "durationDays"
-    );
 
     const durationDays =
       days > 0
         ? days
-        : Number(durationFeature?.value || 30) > 0
-          ? Number(durationFeature?.value || 30)
+        : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) > 0
+          ? Number(getPlanFeatureValue(plan.features, "durationDays", "30"))
           : 30;
 
-    const now = new Date();
-    const endsAt = addDays(now, durationDays);
-
-    const subscription = await prisma.subscription.upsert({
-      where: {
-        schoolAccountId,
-      },
-      update: {
-        planId,
-        status,
-        startsAt: now,
-        endsAt,
-      },
-      create: {
-        schoolAccountId,
-        planId,
-        status,
-        startsAt: now,
-        endsAt,
-      },
-    });
-
-    await syncSchoolServicesFromPlan({
+    const subscription = await assignPlanToSchool({
       schoolAccountId,
       planId,
-    });
-
-    await prisma.manualActivation.create({
-      data: {
-        schoolAccountId,
-        activatedById: current.user.id,
-        reason: `إسناد باقة ${plan.name} لمدة ${durationDays} يوم`,
-        startsAt: now,
-        endsAt,
-      },
+      days: durationDays,
+      status,
+      activatedById: current.user.id,
+      reason: `إسناد باقة ${plan.name} لمدة ${durationDays} يوم`,
     });
 
     return NextResponse.json({
@@ -487,7 +423,7 @@ export async function POST(request: Request) {
     if (!subscription) {
       return NextResponse.json(
         { error: "الاشتراك غير موجود." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -530,7 +466,7 @@ export async function POST(request: Request) {
     if (!subscriptionId) {
       return NextResponse.json(
         { error: "رقم الاشتراك مطلوب." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -547,7 +483,7 @@ export async function POST(request: Request) {
     if (!subscription) {
       return NextResponse.json(
         { error: "الاشتراك غير موجود أو تم حذفه مسبقًا." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -581,7 +517,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      message: "تم حذف الاشتراك وإرجاع الحساب بدون باقة وبدون أيام.",
+      message: "تم حذف الاشتراك وإرجاع الحساب بدون باقة وبدون أي أيام.",
     });
   }
 
@@ -594,7 +530,7 @@ export async function POST(request: Request) {
     if (!schoolAccountId || !serviceId) {
       return NextResponse.json(
         { error: "اختر الحساب والخدمة." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -622,11 +558,5 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json(
-    { error: "إجراء غير معروف." },
-    { status: 400 }
-  );
+  return NextResponse.json({ error: "إجراء غير معروف." }, { status: 400 });
 }
-
-
-

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { getActivationOverview } from "@/lib/activation/activation-service";
+import { prisma } from "@/lib/prisma";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  assignDefaultFreePlanIfEligible,
+  DEFAULT_FREE_PLAN_SLUG,
+} from "@/lib/subscription/default-free-plan";
+import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
 
 export async function GET() {
   const current = await getCurrentSessionUser();
@@ -12,20 +17,46 @@ export async function GET() {
       },
       {
         status: 401,
-      }
+      },
     );
   }
 
-  const overview = await getActivationOverview(current.user.schoolAccountId);
+  if (current.user.role !== "ADMIN") {
+    try {
+      await assignDefaultFreePlanIfEligible({
+        schoolAccountId: current.user.schoolAccountId,
+        userId: current.user.id,
+        source: "subscription-overview",
+      });
+    } catch (error) {
+      console.error("SUBSCRIPTION_OVERVIEW_DEFAULT_FREE_PLAN_ERROR", error);
+    }
+  }
+
+  const [overview, pendingBankRequests] = await Promise.all([
+    getSchoolSubscriptionOverview(current.user.schoolAccountId),
+    prisma.bankTransferRequest.count({
+      where: {
+        schoolAccountId: current.user.schoolAccountId,
+        status: "PENDING",
+      },
+    }),
+  ]);
 
   return NextResponse.json({
-    subscription: {
-      status: overview.subscription.status,
-      startsAt: overview.subscription.startsAt,
-      endsAt: overview.subscription.endsAt,
-      planName: overview.subscription.plan?.name || "تفعيل الموجه",
-    },
-    pendingBankRequests: overview.pendingBankRequests,
+    subscription: overview.subscription
+      ? {
+          status: overview.subscription.status,
+          startsAt: overview.subscription.startsAt,
+          endsAt: overview.subscription.endsAt,
+          planSlug: overview.subscription.plan?.slug || null,
+          planName:
+            overview.subscription.plan?.slug === DEFAULT_FREE_PLAN_SLUG
+              ? "الباقة التلقائية"
+              : overview.subscription.plan?.name || "تفعيل تلقائي",
+        }
+      : null,
+    pendingBankRequests,
     remainingDays: overview.remainingDays,
     usable: overview.usable,
   });
