@@ -159,11 +159,11 @@ export default function RegisterPage() {
         <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1180px] items-center justify-center">
           <div
             dir="ltr"
-            className="flex w-full overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_34px_100px_-70px_rgba(15,23,42,0.75)] lg:min-h-[560px] lg:flex-row"
+            className="flex w-full overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_34px_100px_-70px_rgba(15,23,42,0.75)] lg:min-h-[610px] lg:flex-row"
           >
             <aside
               dir="rtl"
-              className="relative flex min-h-[520px] flex-1 overflow-hidden bg-[linear-gradient(135deg,#0284c7_0%,#2563eb_52%,#1e3a8a_100%)] p-8 text-white"
+              className="relative flex min-h-[610px] flex-1 overflow-hidden bg-[linear-gradient(135deg,#0284c7_0%,#2563eb_52%,#1e3a8a_100%)] p-9 text-white"
             >
               <div className="absolute -right-24 -top-28 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
               <div className="absolute -bottom-32 left-6 h-80 w-80 rounded-full bg-cyan-200/18 blur-3xl" />
@@ -175,14 +175,14 @@ export default function RegisterPage() {
                     جاهز للعمل اليومي
                   </p>
 
-                  <h2 className="mt-7 text-[2.8rem] font-black leading-[1.18] tracking-tight text-white xl:text-[3.45rem]">
+                  <h2 className="mt-8 text-[2.7rem] font-black leading-[1.18] tracking-tight text-white xl:text-[3.35rem]">
                     تقريرك والشواهد
                     <br />
                     في 60 ثانية!
                   </h2>
                 </div>
 
-                <div className="mt-9 grid gap-3 opacity-90 lg:grid-cols-[1fr_0.74fr]">
+                <div className="mt-12 grid gap-3 opacity-90 lg:grid-cols-[1fr_0.74fr]">
                   <div className="rounded-[1.35rem] bg-white p-3 text-slate-950 shadow-[0_20px_60px_-44px_rgba(15,23,42,0.45)]">
                     <div className="flex items-center justify-between gap-4">
                       <div>
@@ -232,10 +232,10 @@ export default function RegisterPage() {
             <form
               dir="rtl"
               onSubmit={openPreferences}
-              className="flex min-h-[520px] flex-1 items-center justify-center bg-white px-7 py-10"
+              className="flex min-h-[610px] flex-1 items-center justify-center bg-white px-7 py-10"
             >
               <div className="w-full max-w-[330px]">
-                <h1 className="text-right text-[1.9rem] font-black leading-[1.25] tracking-tight text-slate-950 sm:text-[2.15rem]">
+                <h1 className="text-right text-[1.7rem] font-black leading-[1.25] tracking-tight text-slate-950 sm:text-[1.95rem]">
                   أنشئ حسابك الآن
                 </h1>
 
