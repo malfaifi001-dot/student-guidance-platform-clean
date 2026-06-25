@@ -216,6 +216,8 @@ export async function POST(request: Request) {
     name: workflow.name,
     version: workflow.version,
     workflowType: workflow.workflowType,
+    studentPickerMode: workflow.studentPickerMode,
+    evidenceMode: workflow.evidenceMode,
     steps: workflow.steps,
   };
 

@@ -95,7 +95,16 @@ function shouldHideCaseValue(fieldKey: string) {
   }
 
   return (
-    ["student", "guardian", "metadata", "selectedStudent"].includes(key) ||
+    [
+      "student",
+      "guardian",
+      "metadata",
+      "selectedStudent",
+      "studentSnapshot",
+      "guardianSnapshot",
+      "primary_student_id",
+    ].includes(key) ||
+    key.startsWith("selected_students_") ||
     key.endsWith("__other") ||
     key.startsWith("assessment_") ||
     key.startsWith("intervention_")

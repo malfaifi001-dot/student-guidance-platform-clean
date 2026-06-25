@@ -235,7 +235,7 @@ export default function RegisterPage() {
               className="flex min-h-[610px] flex-1 items-center justify-center bg-white px-7 py-10"
             >
               <div className="w-full max-w-[330px]">
-                <h1 className="text-right text-[1.7rem] font-black leading-[1.25] tracking-tight text-slate-950 sm:text-[1.95rem]">
+                <h1 className="text-right text-[1.55rem] font-black leading-[1.25] tracking-tight text-slate-950 sm:text-[1.8rem]">
                   أنشئ حسابك الآن
                 </h1>
 

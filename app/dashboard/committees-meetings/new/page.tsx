@@ -13,6 +13,7 @@ const SERVICE_SLUG = "committees-meetings";
 
 type RuntimeWorkflowWithStudentPickerMode = RuntimeWorkflow & {
   studentPickerMode?: string | null;
+  evidenceMode?: string | null;
 };
 
 function buildRuntimeWorkflow(
@@ -55,6 +56,7 @@ function buildRuntimeWorkflow(
   return {
     ...runtimeWorkflow,
     studentPickerMode: workflow.studentPickerMode || "DISABLED",
+    evidenceMode: workflow.evidenceMode || "SERVICE_DEFAULT",
   };
 }
 

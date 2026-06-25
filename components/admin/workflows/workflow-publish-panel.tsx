@@ -5,14 +5,19 @@ import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   Eye,
+  FileStack,
   Loader2,
   PencilLine,
   Rocket,
   UserRoundSearch,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-
-type StudentPickerMode = "SERVICE_DEFAULT" | "REQUIRED" | "DISABLED";
+import {
+  normalizeWorkflowEvidenceMode,
+  normalizeWorkflowStudentPickerMode,
+  type WorkflowEvidenceMode,
+  type WorkflowStudentPickerMode,
+} from "@/lib/workflows/workflow-runtime-settings";
 
 type WorkflowPublishPanelProps = {
   serviceSlug: string;
@@ -25,7 +30,7 @@ type WorkflowPublishPanelProps = {
 };
 
 const studentPickerModeOptions: Array<{
-  value: StudentPickerMode;
+  value: WorkflowStudentPickerMode;
   label: string;
   description: string;
 }> = [
@@ -46,6 +51,28 @@ const studentPickerModeOptions: Array<{
   },
 ];
 
+const evidenceModeOptions: Array<{
+  value: WorkflowEvidenceMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "SERVICE_DEFAULT",
+    label: "حسب إعداد الخدمة",
+    description: "يستخدم سلوك الخدمة الافتراضي أو خطوة الشواهد داخل النموذج.",
+  },
+  {
+    value: "ENABLED",
+    label: "تفعيل الشواهد",
+    description: "يعرض رفع الشواهد لهذا الـ Workflow حتى بدون خطوة شواهد صريحة.",
+  },
+  {
+    value: "DISABLED",
+    label: "تعطيل الشواهد",
+    description: "يخفي الشواهد لهذا الـ Workflow حتى لو كانت الخدمة تدعمها.",
+  },
+];
+
 export function WorkflowPublishPanel({
   serviceSlug,
   previewHref,
@@ -59,9 +86,12 @@ export function WorkflowPublishPanel({
   const [loading, setLoading] = useState(false);
   const [savingName, setSavingName] = useState(false);
   const [savingStudentPickerMode, setSavingStudentPickerMode] = useState(false);
+  const [savingEvidenceMode, setSavingEvidenceMode] = useState(false);
   const [draftName, setDraftName] = useState(draftWorkflowName || "");
   const [studentPickerMode, setStudentPickerMode] =
-    useState<StudentPickerMode>("SERVICE_DEFAULT");
+    useState<WorkflowStudentPickerMode>("SERVICE_DEFAULT");
+  const [evidenceMode, setEvidenceMode] =
+    useState<WorkflowEvidenceMode>("SERVICE_DEFAULT");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,41 +102,56 @@ export function WorkflowPublishPanel({
   useEffect(() => {
     if (!draftWorkflowId || !hasDraft) {
       setStudentPickerMode("SERVICE_DEFAULT");
+      setEvidenceMode("SERVICE_DEFAULT");
       return;
     }
 
     let cancelled = false;
     const workflowId = draftWorkflowId;
 
-    async function loadStudentPickerMode() {
+    async function loadWorkflowRuntimeSettings() {
       try {
-        const response = await fetch(
-          `/api/dashboard/admin/workflows/${serviceSlug}/student-picker-mode?workflowId=${encodeURIComponent(workflowId)}`,
-          { cache: "no-store" },
-        );
+        const [studentPickerResponse, evidenceResponse] = await Promise.all([
+          fetch(
+            `/api/dashboard/admin/workflows/${serviceSlug}/student-picker-mode?workflowId=${encodeURIComponent(workflowId)}`,
+            { cache: "no-store" },
+          ),
+          fetch(
+            `/api/dashboard/admin/workflows/${serviceSlug}/evidence-mode?workflowId=${encodeURIComponent(workflowId)}`,
+            { cache: "no-store" },
+          ),
+        ]);
 
-        const data = await response.json();
-
-        if (!response.ok) {
+        if (!studentPickerResponse.ok && !evidenceResponse.ok) {
           return;
         }
 
-        const mode = data?.workflow?.studentPickerMode;
+        const studentPickerData = studentPickerResponse.ok
+          ? await studentPickerResponse.json()
+          : null;
+        const evidenceData = evidenceResponse.ok
+          ? await evidenceResponse.json()
+          : null;
 
-        if (
-          !cancelled &&
-          ["SERVICE_DEFAULT", "REQUIRED", "DISABLED"].includes(mode)
-        ) {
-          setStudentPickerMode(mode);
+        if (!cancelled) {
+          setStudentPickerMode(
+            normalizeWorkflowStudentPickerMode(
+              studentPickerData?.workflow?.studentPickerMode,
+            ),
+          );
+          setEvidenceMode(
+            normalizeWorkflowEvidenceMode(evidenceData?.workflow?.evidenceMode),
+          );
         }
       } catch {
         if (!cancelled) {
           setStudentPickerMode("SERVICE_DEFAULT");
+          setEvidenceMode("SERVICE_DEFAULT");
         }
       }
     }
 
-    loadStudentPickerMode();
+    loadWorkflowRuntimeSettings();
 
     return () => {
       cancelled = true;
@@ -184,6 +229,43 @@ export function WorkflowPublishPanel({
       setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع.");
     } finally {
       setSavingStudentPickerMode(false);
+    }
+  }
+
+  async function saveEvidenceMode() {
+    if (!draftWorkflowId) return;
+
+    try {
+      setSavingEvidenceMode(true);
+      setMessage(null);
+      setError(null);
+
+      const response = await fetch(
+        `/api/dashboard/admin/workflows/${serviceSlug}/evidence-mode`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            workflowId: draftWorkflowId,
+            evidenceMode,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "تعذر حفظ إعداد الشواهد.");
+      }
+
+      setMessage("تم حفظ إعداد الشواهد للمسودة.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع.");
+    } finally {
+      setSavingEvidenceMode(false);
     }
   }
 
@@ -351,6 +433,60 @@ export function WorkflowPublishPanel({
                     <UserRoundSearch className="h-4 w-4" />
                   )}
                   حفظ إعداد اختيار الطالب
+                </button>
+              </div>
+
+              <div className="rounded-3xl bg-slate-50 p-3">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                    <FileStack className="h-5 w-5" />
+                  </span>
+
+                  <div>
+                    <p className="text-xs font-black text-slate-500">
+                      الشواهد
+                    </p>
+                    <p className="mt-1 text-sm font-bold leading-6 text-slate-600">
+                      تحكم بظهور الشواهد لهذا الـ Workflow.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2">
+                  {evidenceModeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setEvidenceMode(option.value)}
+                      className={[
+                        "rounded-2xl border p-3 text-right transition",
+                        evidenceMode === option.value
+                          ? "border-sky-300 bg-sky-50 ring-2 ring-sky-100"
+                          : "border-slate-200 bg-white hover:bg-slate-50",
+                      ].join(" ")}
+                    >
+                      <p className="text-sm font-black text-slate-900">
+                        {option.label}
+                      </p>
+                      <p className="mt-1 text-xs font-bold leading-5 text-slate-500">
+                        {option.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={saveEvidenceMode}
+                  disabled={savingEvidenceMode || !draftWorkflowId}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-3 text-xs font-black text-sky-700 transition hover:bg-sky-50 disabled:opacity-50"
+                >
+                  {savingEvidenceMode ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileStack className="h-4 w-4" />
+                  )}
+                  حفظ إعداد الشواهد
                 </button>
               </div>
             </>

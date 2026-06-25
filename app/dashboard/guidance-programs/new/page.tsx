@@ -59,6 +59,7 @@ const runtimeWorkflow = {
   id: workflow.id,
   name: workflow.name,
   serviceSlug: workflow.service.slug,
+  workflowType: workflow.workflowType,
   steps: workflow.steps.map((step) => ({
     id: step.id,
     title: step.title,
@@ -88,6 +89,7 @@ const runtimeWorkflow = {
   })),
   }),
   studentPickerMode: workflow.studentPickerMode || "SERVICE_DEFAULT",
+  evidenceMode: workflow.evidenceMode || "SERVICE_DEFAULT",
 };
 
   return (

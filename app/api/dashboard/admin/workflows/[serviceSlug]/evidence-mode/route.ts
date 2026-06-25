@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { prisma } from "@/lib/prisma";
-import { normalizeWorkflowStudentPickerMode } from "@/lib/workflows/workflow-runtime-settings";
+import { normalizeWorkflowEvidenceMode } from "@/lib/workflows/workflow-runtime-settings";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,7 @@ async function findWorkflow(args: {
         version: true,
         status: true,
         isActive: true,
-        studentPickerMode: true,
+        evidenceMode: true,
         service: {
           select: {
             slug: true,
@@ -56,7 +57,7 @@ async function findWorkflow(args: {
       version: true,
       status: true,
       isActive: true,
-      studentPickerMode: true,
+      evidenceMode: true,
       service: {
         select: {
           slug: true,
@@ -101,7 +102,7 @@ export async function GET(request: Request, context: RouteContext) {
       version: workflow.version,
       status: workflow.status,
       isActive: workflow.isActive,
-      studentPickerMode: workflow.studentPickerMode,
+      evidenceMode: workflow.evidenceMode,
     },
   });
 }
@@ -118,9 +119,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const body = await request.json().catch(() => ({}));
 
     const workflowId = String(body?.workflowId ?? "").trim();
-    const studentPickerMode = normalizeWorkflowStudentPickerMode(
-      body?.studentPickerMode,
-    );
+    const evidenceMode = normalizeWorkflowEvidenceMode(body?.evidenceMode);
 
     if (!workflowId) {
       return NextResponse.json(
@@ -162,7 +161,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         id: workflow.id,
       },
       data: {
-        studentPickerMode: studentPickerMode as any,
+        evidenceMode: evidenceMode as any,
       },
       select: {
         id: true,
@@ -170,7 +169,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         version: true,
         status: true,
         isActive: true,
-        studentPickerMode: true,
+        evidenceMode: true,
       },
     });
 
@@ -178,9 +177,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       .create({
         data: {
           category: "WORKFLOW",
-          action: "STUDENT_PICKER_MODE_UPDATED",
+          action: "WORKFLOW_EVIDENCE_MODE_UPDATED",
           severity: "INFO",
-          title: "تم تحديث إعداد اختيار الطالب في Workflow",
+          title: "تم تحديث إعداد الشواهد في Workflow",
           details: {
             serviceSlug,
             workflowId: updated.id,
@@ -188,8 +187,8 @@ export async function PATCH(request: Request, context: RouteContext) {
             version: updated.version,
             status: updated.status,
             isActive: updated.isActive,
-            previousStudentPickerMode: workflow.studentPickerMode,
-            studentPickerMode: updated.studentPickerMode,
+            previousEvidenceMode: workflow.evidenceMode,
+            evidenceMode: updated.evidenceMode,
           },
         },
       })
@@ -197,7 +196,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     return NextResponse.json({
       success: true,
-      message: "تم حفظ إعداد اختيار الطالب.",
+      message: "تم حفظ إعداد الشواهد.",
       workflow: updated,
     });
   } catch (error) {
@@ -205,9 +204,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       {
         success: false,
         error:
-          error instanceof Error
-            ? error.message
-            : "تعذر حفظ إعداد اختيار الطالب.",
+          error instanceof Error ? error.message : "تعذر حفظ إعداد الشواهد.",
       },
       { status: 400 },
     );

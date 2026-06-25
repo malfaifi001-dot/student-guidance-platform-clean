@@ -1,0 +1,221 @@
+Workflow student/evidence scan
+Generated: 06/25/2026 17:17:18
+
+Git status:
+ M components/theme/theme-provider.tsx
+?? admin-workflows-files-scan.txt
+?? theme-default-check.txt
+
+
+===== app\dashboard\admin\workflows\page.tsx =====
+No direct matches.
+
+===== app\api\dashboard\admin\workflows\upload\route.ts =====
+Line 22:   "REQUIRED",
+Line 24:   "MULTIPLE",
+Line 28: function normalizeStudentPickerMode(value: unknown): string {
+Line 84:     const studentPickerMode = normalizeStudentPickerMode(
+Line 85:       formData.get("studentPickerMode"),
+Line 165:         studentPickerMode: studentPickerMode as any,
+
+===== components\admin\workflow-upload-card.tsx =====
+Line 116:           required
+
+===== components\admin\workflows\workflow-inline-import-workbench.tsx =====
+Line 37:   isRequired: boolean;
+Line 102:   return ["1", "true", "yes", "y", "required", "مطلوب", "نعم", "صح"].includes(
+Line 157:         isRequired: field.isRequired,
+Line 250:         isRequired: parseBoolean(
+Line 251:           readCell(row, ["fieldRequired", "required", "مطلوب"]),
+
+===== components\admin\workflows\workflow-publish-panel.tsx =====
+Line 15: type StudentPickerMode = "SERVICE_DEFAULT" | "REQUIRED" | "DISABLED";
+Line 27: const studentPickerModeOptions: Array<{
+Line 28:   value: StudentPickerMode;
+Line 38:     value: "REQUIRED",
+Line 40:     description: "يظهر Smart Picker ويمنع المتابعة بدون طالب.",
+Line 61:   const [savingStudentPickerMode, setSavingStudentPickerMode] = useState(false);
+Line 63:   const [studentPickerMode, setStudentPickerMode] =
+Line 64:     useState<StudentPickerMode>("SERVICE_DEFAULT");
+Line 74:       setStudentPickerMode("SERVICE_DEFAULT");
+Line 81:     async function loadStudentPickerMode() {
+Line 94:         const mode = data?.workflow?.studentPickerMode;
+Line 98:           ["SERVICE_DEFAULT", "REQUIRED", "DISABLED"].includes(mode)
+Line 100:           setStudentPickerMode(mode);
+Line 104:           setStudentPickerMode("SERVICE_DEFAULT");
+Line 109:     loadStudentPickerMode();
+Line 153:   async function saveStudentPickerMode() {
+Line 157:       setSavingStudentPickerMode(true);
+Line 170:             studentPickerMode,
+Line 186:       setSavingStudentPickerMode(false);
+Line 314:                       حدد هل هذا الـ Workflow يحتاج Smart Picker أم لا.
+Line 320:                   {studentPickerModeOptions.map((option) => (
+Line 324:                       onClick={() => setStudentPickerMode(option.value)}
+Line 327:                         studentPickerMode === option.value
+Line 344:                   onClick={saveStudentPickerMode}
+Line 345:                   disabled={savingStudentPickerMode || !draftWorkflowId}
+Line 348:                   {savingStudentPickerMode ? (
+
+===== components\admin\workflows\workflow-student-picker-mode-control.tsx =====
+Line 6: type StudentPickerMode = "SERVICE_DEFAULT" | "REQUIRED" | "DISABLED";
+Line 8: type WorkflowStudentPickerModeControlProps = {
+Line 12:   initialMode?: StudentPickerMode | string | null;
+Line 17: const studentPickerModeOptions: Array<{
+Line 18:   value: StudentPickerMode;
+Line 28:     value: "REQUIRED",
+Line 30:     description: "يظهر Smart Picker ويمنع المتابعة بدون طالب.",
+Line 39: function normalizeMode(value: unknown): StudentPickerMode {
+Line 40:   return value === "REQUIRED" || value === "DISABLED"
+Line 45: export function WorkflowStudentPickerModeControl({
+Line 52: }: WorkflowStudentPickerModeControlProps) {
+Line 58:   const [mode, setMode] = useState<StudentPickerMode>(normalizedInitialMode);
+Line 60:     useState<StudentPickerMode>(normalizedInitialMode);
+Line 84:             studentPickerMode: mode,
+Line 118:               تحكم بظهور Smart Picker لهذا الـ Workflow.
+Line 154:         {studentPickerModeOptions.map((option) => (
+
+===== components\admin\workflow-preview-panel.tsx =====
+No direct matches.
+
+===== components\workflow\dynamic-form-renderer.tsx =====
+Line 7: import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
+Line 8: import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+Line 24: type EvidenceItem = {
+Line 39: type SmartStudent = {
+Line 53:   requiresStudent?: boolean;
+Line 57:   initialEvidenceItems?: EvidenceItem[];
+Line 63:  * خدمات تسمح بالشواهد على مستوى النظام.
+Line 66: const SERVICES_WITH_EVIDENCE = new Set([
+Line 77:  * يمكن تجاوزها من الصفحة عبر requiresStudent={false}.
+Line 115: function isEvidenceField(field: RuntimeField) {
+Line 129:     text.includes("evidence") ||
+Line 130:     text.includes("attachment") ||
+Line 131:     text.includes("attachments") ||
+Line 135:     text.includes("الشواهد") ||
+Line 144: function isEvidenceStep(step?: RuntimeStep | null) {
+Line 150:     step.fields.some(isEvidenceField) ||
+Line 151:     text.includes("evidence") ||
+Line 152:     text.includes("attachment") ||
+Line 153:     text.includes("attachments") ||
+Line 155:     text.includes("الشواهد") ||
+Line 161: function isStudentPickerField(field: RuntimeField) {
+Line 179: function isStudentPickerStep(step?: RuntimeStep | null) {
+Line 185:     step.fields.some(isStudentPickerField) ||
+Line 390: function hasEvidenceStep(workflow: RuntimeWorkflow) {
+Line 391:   return workflow.steps.some(isEvidenceStep);
+Line 394: function hasStudentPickerStep(workflow: RuntimeWorkflow) {
+Line 395:   return workflow.steps.some(isStudentPickerStep);
+Line 410:   requiresStudent,
+Line 414:   initialEvidenceItems,
+Line 442:   const workflowHasEvidenceStep = useMemo(
+Line 443:     () => hasEvidenceStep(normalizedWorkflow),
+Line 447:   const workflowHasStudentPickerStep = useMemo(
+Line 448:     () => hasStudentPickerStep(normalizedWorkflow),
+Line 452:   const supportsEvidence =
+Line 453:     SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || workflowHasEvidenceStep;
+Line 455:   const workflowStudentPickerMode =
+Line 456:     typeof (workflow as any).studentPickerMode === "string"
+Line 457:       ? (workflow as any).studentPickerMode
+Line 460:   const workflowStudentPickerDecision =
+Line 461:     workflowStudentPickerMode === "REQUIRED"
+Line 463:       : workflowStudentPickerMode === "DISABLED"
+Line 468:     workflowStudentPickerDecision ??
+Line 469:     requiresStudent ??
+Line 476:   const [selectedStudent, setSelectedStudent] = useState<SmartStudent | null>(
+Line 480:   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>(
+Line 481:     initialEvidenceItems ?? []
+Line 496:   const showEvidenceCard = supportsEvidence && isEvidenceStep(currentStep);
+Line 498:   const showStudentPickerCard =
+Line 500:     (isStudentPickerStep(currentStep) ||
+Line 501:       (!workflowHasStudentPickerStep && isFirstStep));
+Line 504:     needsStudent && !showStudentPickerCard && Boolean(selectedStudent);
+Line 660:   function handleStudentSelected(student: SmartStudent | null) {
+Line 741:       if (!field.isRequired) continue;
+Line 809:           studentId: selectedStudent?.id ?? null,
+Line 828:           evidenceItems: supportsEvidence ? evidenceItems : [],
+Line 869:   function handleEvidenceUploaded(items: EvidenceItem[]) {
+Line 870:     setEvidenceItems((current) => [...current, ...items]);
+Line 874:       "تم رفع الشواهد",
+Line 875:       "تمت إضافة الشواهد إلى الحالة بنجاح."
+Line 879:   function handleDeleteEvidence(id: string) {
+Line 880:     setEvidenceItems((current) => current.filter((item) => item.id !== id));
+Line 882:     showFeedback("info", "تم حذف الشاهد", "تم حذف الشاهد من قائمة الشواهد.");
+Line 931:           {supportsEvidence ? (
+Line 933:               يدعم الشواهد
+Line 939:       {showStudentPickerCard ? (
+Line 940:         <SmartStudentPickerCard
+Line 950:             const pickerIndex = steps.findIndex(isStudentPickerStep);
+Line 965:       {showEvidenceCard ? (
+Line 971:               الشواهد والمرفقات
+Line 976:               خطوة الشواهد، ولا تظهر في باقي الخطوات.
+Line 980:           <EvidenceUploadCard onUploaded={handleEvidenceUploaded} />
+Line 983:             <EvidencePreviewGrid
+Line 984:               items={evidenceItems}
+Line 985:               onDelete={handleDeleteEvidence}
+Line 1040: ): SmartStudent | null {
+Line 1118: function SmartStudentPickerCard({
+Line 1122:   selectedStudent: SmartStudent | null;
+Line 1123:   onStudentSelected: (student: SmartStudent | null) => void;
+Line 1126:   const [students, setStudents] = useState<SmartStudent[]>([]);
+Line 1276:   student: SmartStudent;
+Line 1317:   student: SmartStudent;
+Line 1366: function normalizeStudentsResponse(data: unknown): SmartStudent[] {
+Line 1383:     .filter((student): student is SmartStudent => Boolean(student));
+Line 1386: function normalizeStudent(item: unknown): SmartStudent | null {
+
+===== components\workflow\dynamic-field-renderer.tsx =====
+Line 20:       {field.isRequired ? <span className="mr-1 text-rose-500">*</span> : null}
+
+===== components\services\workflow-service-home-page.tsx =====
+Line 14: import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+Line 151:   const context = await requireDashboardPageContext();
+Line 154:     redirect("/dashboard/onboarding?required=true");
+Line 229:           evidences: true,
+Line 386:                       {caseItem._count.evidences > 0 ? (
+Line 389:                           {formatCount(caseItem._count.evidences)} شواهد
+
+===== lib\workflow-upload\workflow-excel-parser.ts =====
+Line 11:   fieldRequired: boolean;
+Line 50:     "required",
+Line 120:   fieldRequired: [
+Line 121:     "fieldrequired",
+Line 122:     "required",
+Line 123:     "isrequired",
+Line 124:     "is_required",
+Line 345:         fieldRequired: bool(get("fieldRequired")),
+
+===== lib\workflows\workflow-types.ts =====
+No direct matches.
+
+===== lib\admin\workflows\workflow-board-helpers.ts =====
+No direct matches.
+
+===== prisma\schema.prisma =====
+Line 48: enum StudentPickerMode {
+Line 50:   REQUIRED
+Line 94: enum EvidenceType {
+Line 157:   MULTIPLE_CHOICE
+Line 221:   caseEvidences          CaseEvidence[]
+Line 375:   studentPickerMode StudentPickerMode @default(SERVICE_DEFAULT)
+Line 415:   isRequired  Boolean   @default(false)
+Line 468:   studentId        String?
+Line 469:   student          Student?         @relation(fields: [studentId], references: [id])
+Line 479:   evidences         Evidence[]
+Line 485:   caseEvidences          CaseEvidence[]
+Line 491:   @@index([studentId])
+Line 515: model Evidence {
+Line 521:   type     EvidenceType
+Line 568:   submittedEvidenceItems Json?
+Line 620:   studentId String?
+Line 621:   student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+Line 636:   @@index([studentId])
+Line 969:   evidenceEnabled Boolean @default(true)
+Line 983:   evidenceItems ReportEvidence[]
+Line 1023: model ReportEvidence {
+Line 1146:   matchedStudentId String?
+Line 1159: model CaseEvidence {
+Line 1242:   studentId String?
+Line 1253:   @@index([studentId])
+Line 1483:   isRequired Boolean @default(false)
+Line 1638:   recipientStudentId String?
+Line 1661:   @@index([recipientStudentId])

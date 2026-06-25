@@ -20,6 +20,10 @@ import type {
   RuntimeWorkflow,
 } from "@/engine/runtime/runtime-resolver";
 import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+import {
+  normalizeWorkflowEvidenceMode,
+  normalizeWorkflowStudentPickerMode,
+} from "@/lib/workflows/workflow-runtime-settings";
 
 type EvidenceItem = {
   id: string;
@@ -449,13 +453,21 @@ export function DynamicFormRenderer({
     [normalizedWorkflow]
   );
 
-  const supportsEvidence =
+  const workflowStudentPickerMode = normalizeWorkflowStudentPickerMode(
+    (workflow as RuntimeWorkflow & { studentPickerMode?: unknown })
+      .studentPickerMode,
+  );
+  const workflowEvidenceMode = normalizeWorkflowEvidenceMode(
+    (workflow as RuntimeWorkflow & { evidenceMode?: unknown }).evidenceMode,
+  );
+  const serviceDefaultSupportsEvidence =
     SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || workflowHasEvidenceStep;
-
-  const workflowStudentPickerMode =
-    typeof (workflow as any).studentPickerMode === "string"
-      ? (workflow as any).studentPickerMode
-      : "SERVICE_DEFAULT";
+  const supportsEvidence =
+    workflowEvidenceMode === "ENABLED"
+      ? true
+      : workflowEvidenceMode === "DISABLED"
+        ? false
+        : serviceDefaultSupportsEvidence;
 
   const workflowStudentPickerDecision =
     workflowStudentPickerMode === "REQUIRED"
@@ -473,8 +485,8 @@ export function DynamicFormRenderer({
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});
-  const [selectedStudent, setSelectedStudent] = useState<SmartStudent | null>(
-    () => extractInitialStudent(initialValues)
+  const [selectedStudents, setSelectedStudents] = useState<SmartStudent[]>(
+    () => extractInitialStudents(initialValues)
   );
 
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>(
@@ -492,8 +504,14 @@ export function DynamicFormRenderer({
   const currentStep = steps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === steps.length - 1;
+  const primarySelectedStudent = selectedStudents[0] ?? null;
 
-  const showEvidenceCard = supportsEvidence && isEvidenceStep(currentStep);
+  const showEvidenceCard =
+    supportsEvidence &&
+    (isEvidenceStep(currentStep) ||
+      (workflowEvidenceMode === "ENABLED" &&
+        !workflowHasEvidenceStep &&
+        isLastStep));
 
   const showStudentPickerCard =
     needsStudent &&
@@ -501,7 +519,7 @@ export function DynamicFormRenderer({
       (!workflowHasStudentPickerStep && isFirstStep));
 
   const showStudentSummaryCard =
-    needsStudent && !showStudentPickerCard && Boolean(selectedStudent);
+    needsStudent && !showStudentPickerCard && selectedStudents.length > 0;
 
   function showFeedback(
     type: FeedbackState["type"],
@@ -657,30 +675,20 @@ export function DynamicFormRenderer({
     });
   }
 
-  function handleStudentSelected(student: SmartStudent | null) {
-    setSelectedStudent(student);
+  function handleStudentsChanged(nextStudents: SmartStudent[]) {
+    const normalizedStudents = dedupeSelectedStudents(nextStudents);
+    setSelectedStudents(normalizedStudents);
 
     setValues((current) => ({
       ...current,
-      selectedStudent: student
-        ? {
-            id: student.id,
-            fullName: student.fullName,
-            nationalId: student.nationalId,
-            grade: student.grade,
-            classroom: student.classroom,
-            stage: student.stage,
-            guardianName: student.guardianName,
-            guardianPhone: student.guardianPhone,
-          }
-        : null,
+      ...buildSelectedStudentsValues(normalizedStudents),
     }));
   }
 
   function validateStudentSelection() {
     if (!needsStudent) return true;
 
-    if (selectedStudent?.id) return true;
+    if (selectedStudents.length > 0) return true;
 
     showFeedback(
       "warning",
@@ -806,22 +814,11 @@ export function DynamicFormRenderer({
             values,
             fallbackTitle: title || workflow.name,
           }),
-          studentId: selectedStudent?.id ?? null,
+          studentId: primarySelectedStudent?.id ?? null,
 
           values: {
             ...values,
-            selectedStudent: selectedStudent
-              ? {
-                  id: selectedStudent.id,
-                  fullName: selectedStudent.fullName,
-                  nationalId: selectedStudent.nationalId,
-                  grade: selectedStudent.grade,
-                  classroom: selectedStudent.classroom,
-                  stage: selectedStudent.stage,
-                  guardianName: selectedStudent.guardianName,
-                  guardianPhone: selectedStudent.guardianPhone,
-                }
-              : null,
+            ...buildSelectedStudentsValues(selectedStudents),
           },
 
           status: type === "submit" ? "SUBMITTED" : "DRAFT",
@@ -938,14 +935,14 @@ export function DynamicFormRenderer({
 
       {showStudentPickerCard ? (
         <SmartStudentPickerCard
-          selectedStudent={selectedStudent}
-          onStudentSelected={handleStudentSelected}
+          selectedStudents={selectedStudents}
+          onStudentsChange={handleStudentsChanged}
         />
       ) : null}
 
-      {showStudentSummaryCard && selectedStudent ? (
+      {showStudentSummaryCard ? (
         <StudentContextSummary
-          student={selectedStudent}
+          students={selectedStudents}
           onEdit={() => {
             const pickerIndex = steps.findIndex(isStudentPickerStep);
             setCurrentStepIndex(pickerIndex >= 0 ? pickerIndex : 0);
@@ -1079,6 +1076,87 @@ function extractInitialStudent(
   };
 }
 
+function serializeSelectedStudent(student: SmartStudent) {
+  return {
+    id: student.id,
+    fullName: student.fullName,
+    nationalId: student.nationalId,
+    grade: student.grade,
+    classroom: student.classroom,
+    stage: student.stage,
+    guardianName: student.guardianName,
+    guardianPhone: student.guardianPhone,
+  };
+}
+
+function dedupeSelectedStudents(students: SmartStudent[]) {
+  const uniqueStudents = new Map<string, SmartStudent>();
+
+  for (const student of students) {
+    if (student.id && !uniqueStudents.has(student.id)) {
+      uniqueStudents.set(student.id, student);
+    }
+  }
+
+  return Array.from(uniqueStudents.values());
+}
+
+function buildSelectedStudentsValues(students: SmartStudent[]) {
+  const normalizedStudents = dedupeSelectedStudents(students);
+  const serializedStudents = normalizedStudents.map(serializeSelectedStudent);
+  const primaryStudent = serializedStudents[0] ?? null;
+
+  return {
+    selectedStudent: primaryStudent,
+    selected_students_count: serializedStudents.length,
+    selected_students_names_text: serializedStudents.length
+      ? serializedStudents.map((student) => student.fullName).join("، ")
+      : null,
+    selected_students_json: serializedStudents,
+    primary_student_id: primaryStudent?.id ?? null,
+  };
+}
+
+function extractInitialStudents(
+  initialValues: RuntimeValues | undefined,
+): SmartStudent[] {
+  const selectedStudentsJson = initialValues?.selected_students_json;
+
+  if (Array.isArray(selectedStudentsJson)) {
+    return dedupeSelectedStudents(
+      selectedStudentsJson
+        .map((item) => normalizeStudent(item))
+        .filter((student): student is SmartStudent => Boolean(student)),
+    );
+  }
+
+  const selectedStudent = extractInitialStudent(initialValues);
+
+  return selectedStudent ? [selectedStudent] : [];
+}
+
+function getStudentSummaryLine(student: SmartStudent) {
+  return (
+    [
+      student.stage,
+      student.grade,
+      student.classroom ? `فصل ${student.classroom}` : null,
+    ]
+      .filter(Boolean)
+      .join(" - ") || "لا توجد بيانات صفية"
+  );
+}
+
+function getSelectedStudentsPreview(students: SmartStudent[], maxPreview = 3) {
+  const names = students.map((student) => student.fullName).filter(Boolean);
+
+  if (names.length <= maxPreview) {
+    return names.join("، ");
+  }
+
+  return `${names.slice(0, maxPreview).join("، ")} +${names.length - maxPreview}`;
+}
+
 function StepProgress({
   currentStepIndex,
   steps,
@@ -1116,15 +1194,34 @@ function StepProgress({
 }
 
 function SmartStudentPickerCard({
-  selectedStudent,
-  onStudentSelected,
+  selectedStudents,
+  onStudentsChange,
 }: {
-  selectedStudent: SmartStudent | null;
-  onStudentSelected: (student: SmartStudent | null) => void;
+  selectedStudents: SmartStudent[];
+  onStudentsChange: (students: SmartStudent[]) => void;
 }) {
   const [query, setQuery] = useState("");
   const [students, setStudents] = useState<SmartStudent[]>([]);
   const [loading, setLoading] = useState(false);
+  const selectedStudentIds = useMemo(
+    () => new Set(selectedStudents.map((student) => student.id)),
+    [selectedStudents],
+  );
+
+  function toggleStudentSelection(student: SmartStudent) {
+    const alreadySelected = selectedStudentIds.has(student.id);
+
+    const nextStudents = alreadySelected
+      ? selectedStudents.filter((item) => item.id !== student.id)
+      : [...selectedStudents, student];
+
+    onStudentsChange(nextStudents);
+
+    if (!alreadySelected) {
+      setQuery("");
+      setStudents([]);
+    }
+  }
 
   useEffect(() => {
     const trimmedQuery = query.trim();
@@ -1206,17 +1303,26 @@ function SmartStudentPickerCard({
                     <button
                       key={student.id}
                       type="button"
-                      onClick={() => {
-                        onStudentSelected(student);
-                        setQuery("");
-                        setStudents([]);
-                      }}
-                      className="w-full rounded-xl p-3 text-right transition hover:bg-sky-50"
+                      onClick={() => toggleStudentSelection(student)}
+                      className={[
+                        "w-full rounded-xl border p-3 text-right transition",
+                        selectedStudentIds.has(student.id)
+                          ? "border-sky-200 bg-sky-50"
+                          : "border-transparent hover:bg-sky-50",
+                      ].join(" ")}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <strong className="text-sm text-slate-900">
-                          {student.fullName}
-                        </strong>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-sm text-slate-900">
+                            {student.fullName}
+                          </strong>
+
+                          {selectedStudentIds.has(student.id) ? (
+                            <span className="rounded-full bg-sky-100 px-2 py-1 text-[11px] font-black text-sky-700">
+                              محدد
+                            </span>
+                          ) : null}
+                        </div>
 
                         <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500">
                           {student.nationalId || "بدون هوية"}
@@ -1247,10 +1353,15 @@ function SmartStudentPickerCard({
         </div>
 
         <div className="rounded-3xl border border-sky-100 bg-white p-5">
-          {selectedStudent ? (
-            <StudentSelectedCard
-              student={selectedStudent}
-              onClear={() => onStudentSelected(null)}
+          {selectedStudents.length ? (
+            <SelectedStudentsCard
+              students={selectedStudents}
+              onRemove={(studentId) =>
+                onStudentsChange(
+                  selectedStudents.filter((student) => student.id !== studentId),
+                )
+              }
+              onClearAll={() => onStudentsChange([])}
             />
           ) : (
             <div className="flex h-full min-h-44 flex-col justify-center rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-5 text-center">
@@ -1270,12 +1381,20 @@ function SmartStudentPickerCard({
 }
 
 function StudentContextSummary({
-  student,
+  students,
   onEdit,
 }: {
-  student: SmartStudent;
+  students: SmartStudent[];
   onEdit: () => void;
 }) {
+  const primaryStudent = students[0] ?? null;
+
+  if (!primaryStudent) {
+    return null;
+  }
+
+  const student = primaryStudent;
+
   return (
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
       <div>
@@ -1284,13 +1403,22 @@ function StudentContextSummary({
         </p>
 
         <h3 className="mt-1 text-lg font-black text-slate-900">
-          {student.fullName}
+          {students.length === 1
+            ? primaryStudent.fullName
+            : `تم اختيار ${students.length} طلاب/طالبات`}
         </h3>
+
+        {students.length > 1 ? (
+          <p className="mt-1 text-xs text-slate-500">
+            {getSelectedStudentsPreview(students)}
+          </p>
+        ) : null}
 
         <p className="mt-1 text-xs text-slate-500">
           {[
-            student.stage,
-            student.grade,
+            students.length > 1 ? getSelectedStudentsPreview(students) : null,
+            primaryStudent.stage,
+            primaryStudent.grade,
             student.classroom ? `فصل ${student.classroom}` : null,
             student.guardianName ? `ولي الأمر: ${student.guardianName}` : null,
           ]
@@ -1349,6 +1477,112 @@ function StudentSelectedCard({
           label="جوال ولي الأمر"
           value={student.guardianPhone || "غير متاح"}
         />
+      </div>
+    </div>
+  );
+}
+
+function SelectedStudentsCard({
+  students,
+  onRemove,
+  onClearAll,
+}: {
+  students: SmartStudent[];
+  onRemove: (studentId: string) => void;
+  onClearAll: () => void;
+}) {
+  const primaryStudent = students[0] ?? null;
+
+  if (students.length === 1 && primaryStudent) {
+    return (
+      <StudentSelectedCard
+        student={primaryStudent}
+        onClear={onClearAll}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-emerald-700">
+            تم اختيار {students.length} طالب/طالبة
+          </p>
+
+          <h3 className="mt-1 text-lg font-black text-slate-900">
+            {students.length === 1
+              ? primaryStudent?.fullName
+              : getSelectedStudentsPreview(students)}
+          </h3>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClearAll}
+          className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-100"
+        >
+          مسح الكل
+        </button>
+      </div>
+
+      <p className="mt-3 text-[11px] font-bold leading-5 text-slate-500">
+        سيتم حفظ أول طالب كطالب أساسي للحالة، مع الاحتفاظ بباقي الطلاب داخل
+        بيانات الحالة والتقارير.
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {students.map((student, index) => (
+          <div key={student.id} className="rounded-2xl bg-slate-50 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-sm font-black text-slate-900">
+                    {student.fullName}
+                  </h4>
+
+                  {index === 0 ? (
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">
+                      الأساسي
+                    </span>
+                  ) : null}
+                </div>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  {getStudentSummaryLine(student)}
+                </p>
+
+                {student.guardianName ? (
+                  <p className="mt-1 text-[11px] font-bold text-slate-400">
+                    ولي الأمر: {student.guardianName}
+                  </p>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onRemove(student.id)}
+                className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-[11px] font-black text-red-600 transition hover:bg-red-100"
+              >
+                إزالة
+              </button>
+            </div>
+
+            {students.length === 1 ? (
+              <div className="mt-3 grid gap-2 text-xs">
+                <InfoRow label="رقم الهوية" value={student.nationalId || "غير متاح"} />
+                <InfoRow label="المرحلة" value={student.stage || "غير متاح"} />
+                <InfoRow label="الصف" value={student.grade || "غير متاح"} />
+                <InfoRow label="الفصل" value={student.classroom || "غير متاح"} />
+                <InfoRow label="ولي الأمر" value={student.guardianName || "غير متاح"} />
+                <InfoRow
+                  label="جوال ولي الأمر"
+                  value={student.guardianPhone || "غير متاح"}
+                />
+              </div>
+            ) : null}
+          </div>
+        ))}
       </div>
     </div>
   );

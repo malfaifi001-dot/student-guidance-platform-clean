@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowUpLeft } from "lucide-react";
 
 import { WorkflowHealthReport } from "@/components/admin/workflow-health/workflow-health-report";
+import { WorkflowEvidenceModeControl } from "@/components/admin/workflows/workflow-evidence-mode-control";
 import { WorkflowHistoryActions } from "@/components/admin/workflows/workflow-history-actions";
 import { WorkflowInlineImportWorkbench } from "@/components/admin/workflows/workflow-inline-import-workbench";
 import { WorkflowPublishPanel } from "@/components/admin/workflows/workflow-publish-panel";
@@ -467,6 +468,15 @@ function WorkflowUploadHistorySection({ serviceSlug, workflows }: { serviceSlug:
                   workflowId={workflow.id}
                   workflowName={workflow.name}
                   initialMode={workflow.studentPickerMode || "SERVICE_DEFAULT"}
+                  disabled={workflow.status === "ARCHIVED"}
+                  isActive={workflow.isActive}
+                />
+
+                <WorkflowEvidenceModeControl
+                  serviceSlug={serviceSlug}
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  initialMode={workflow.evidenceMode || "SERVICE_DEFAULT"}
                   disabled={workflow.status === "ARCHIVED"}
                   isActive={workflow.isActive}
                 />

@@ -3,6 +3,7 @@ import {
   FieldType,
   Prisma,
   StudentPickerMode,
+  WorkflowEvidenceMode,
   WorkflowStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -148,6 +149,7 @@ async function createRuntimeWorkflow(
       isActive: false,
       workflowType: "custom-report",
       studentPickerMode: StudentPickerMode.DISABLED,
+      evidenceMode: WorkflowEvidenceMode.DISABLED,
       steps: {
         create: schema.sections.map((section, sectionIndex) => ({
           title: section.title,
@@ -210,6 +212,7 @@ function buildWorkflowSnapshot(workflow: Awaited<ReturnType<typeof createRuntime
     name: workflow.name,
     serviceSlug: workflow.service.slug,
     studentPickerMode: workflow.studentPickerMode || "DISABLED",
+    evidenceMode: workflow.evidenceMode || "DISABLED",
     steps: workflow.steps.map((step) => ({
       id: step.id,
       title: step.title,

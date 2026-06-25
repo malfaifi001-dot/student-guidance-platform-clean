@@ -1,0 +1,227 @@
+Admin Workflows files scan
+Route: /dashboard/admin/workflows
+Generated: 06/25/2026 17:11:17
+
+Git status:
+ M components/theme/theme-provider.tsx
+?? theme-default-check.txt
+
+
+===== app\dashboard\admin\workflows =====
+
+
+
+.\app\dashboard\admin\workflows\page.tsx
+
+===== app\api\dashboard\admin\workflows =====
+
+
+
+
+
+
+.\app\api\dashboard\admin\workflows\upload\route.ts
+
+===== components\admin =====
+.\components\admin\admin-activity-center.tsx
+.\components\admin\admin-activity-metrics-panel.tsx
+.\components\admin\admin-impersonation-return-button.tsx
+.\components\admin\admin-operational-alerts-panel.tsx
+.\components\admin\admin-system-health-page.tsx
+.\components\admin\admin-user-profile-manager.tsx
+.\components\admin\admin-users-command-center.tsx
+.\components\admin\admin-workflows-filter-bar.tsx
+.\components\admin\payments\admin-invoice-detail-page.tsx
+.\components\admin\payments\admin-invoices-dashboard.tsx
+.\components\admin\payments\admin-invoice-settings-page.tsx
+.\components\admin\payments\admin-payment-detail-page.tsx
+.\components\admin\payments\admin-payment-invoice-page.tsx
+.\components\admin\payments\admin-payment-providers-page.tsx
+.\components\admin\payments\admin-payment-reconciliation-page.tsx
+.\components\admin\payments\admin-payments-dashboard.tsx
+.\components\admin\report-text-library-admin.tsx
+.\components\admin\report-text-template-studio.tsx
+.\components\admin\workflow-builder-sidebar.tsx
+.\components\admin\workflow-field-editor.tsx
+.\components\admin\workflow-health\workflow-health-report.tsx
+.\components\admin\workflow-preview-panel.tsx
+.\components\admin\workflow-publish-button.tsx
+.\components\admin\workflows\guardian-summons-workflow-admin-card.tsx
+.\components\admin\workflows\workflow-history-actions.tsx
+.\components\admin\workflows\workflow-inline-import-workbench.tsx
+.\components\admin\workflows\workflow-publish-panel.tsx
+.\components\admin\workflows\workflow-student-picker-mode-control.tsx
+.\components\admin\workflow-step-editor.tsx
+.\components\admin\workflow-upload-card.tsx
+
+===== components\workflows =====
+NOT FOUND
+
+===== components\workflow =====
+.\components\workflow\dynamic-field-renderer.tsx
+.\components\workflow\dynamic-form-renderer.tsx
+.\components\workflow\dynamic-form-resume.tsx
+.\components\workflow\workflow-step-card.tsx
+
+===== lib\admin\workflows =====
+.\lib\admin\workflows\ensure-dashboard-workflow-services.ts
+.\lib\admin\workflows\workflow-board-helpers.ts
+
+===== lib\workflows =====
+.\lib\workflows\guardian-summons-workflow-template.ts
+.\lib\workflows\workflow-types.backup-before-subworkflow.ts
+.\lib\workflows\workflow-types.ts
+
+===== lib\workflow =====
+NOT FOUND
+
+===== lib\constants\services.ts =====
+.\lib\constants\services.ts
+
+===== prisma\schema.prisma =====
+.\prisma\schema.prisma
+
+===== keyword matches =====
+.\app\page.tsx => Workflow
+.\app\about\page.tsx => Workflow
+.\app\api\admin\report-templates\preview-case\route.ts => Workflow
+.\app\api\admin\report-templates\workflow-fields\route.ts => Workflow
+.\app\api\admin\workflows\guardian-summons\route.ts => Workflow
+.\app\api\dashboard\activity-leader\teacher-assignments\route.ts => Workflow
+ => Workflow
+.\app\api\dashboard\admin\workflows\upload\route.ts => admin/workflows
+ => Workflow
+ => Workflow
+ => Workflow
+ => Workflow
+ => Workflow
+ => Workflow
+.\app\api\dashboard\assessment-center\interventions\create-case\route.ts => Workflow
+.\app\api\dashboard\assessment-center\interventions\options\route.ts => admin/workflows
+.\app\api\dashboard\assessment-center\interventions\rules\route.ts => Workflow
+.\app\api\dashboard\cases\save-draft\route.ts => Workflow
+.\app\api\dashboard\cases\submit\route.ts => Workflow
+ => Workflow
+.\app\api\dashboard\custom-report\entries\route.ts => Workflow
+.\app\api\dashboard\reports\prepare\route.ts => Workflow
+.\app\api\dashboard\workflow-builder\create-field\route.ts => DynamicField
+.\app\api\dashboard\workflow-builder\create-step\route.ts => Workflow
+.\app\api\dev\seed-one-page-mosaic-report-template\route.ts => Workflow
+.\app\api\dev\seed-three-report-design-templates\route.ts => Workflow
+ => Workflow
+.\app\dashboard\activity-leader\programs\page.tsx => Workflow
+.\app\dashboard\activity-leader\programs\new\page.tsx => Workflow
+ => Workflow
+ => Workflow
+.\app\dashboard\activity-leader\teacher-assignments\page.tsx => Workflow
+.\app\dashboard\admin\document-designs\appreciation-certificate\page.tsx => DynamicField
+.\app\dashboard\admin\workflow-builder\page.tsx => Workflow
+ => admin/workflows
+.\app\dashboard\admin\workflows\page.tsx => admin/workflows
+ => admin/workflows
+ => Workflow
+ => admin/workflows
+.\app\dashboard\cases\page.tsx => Workflow
+ => Workflow
+.\app\dashboard\committees-meetings\page.tsx => Workflow
+.\app\dashboard\committees-meetings\new\page.tsx => admin/workflows
+.\app\dashboard\family-school-communication\page.tsx => Workflow
+.\app\dashboard\family-school-communication\guardian-summons\new\page.tsx => admin/workflows
+.\app\dashboard\family-school-communication\new\page.tsx => Workflow
+.\app\dashboard\guidance-programs\page.tsx => Workflow
+.\app\dashboard\guidance-programs\new\page.tsx => Workflow
+ => Workflow
+.\app\dashboard\runtime-lab\page.tsx => Workflow
+.\app\dashboard\student-follow-up\page.tsx => Workflow
+.\app\dashboard\student-follow-up\new\page.tsx => Workflow
+.\app\dashboard\student-guidance-services\page.tsx => Workflow
+.\app\dashboard\student-guidance-services\new\page.tsx => Workflow
+.\app\dashboard\teacher\family-community\page.tsx => Workflow
+.\app\dashboard\teacher\report-issuance\layout.tsx => admin/workflows
+.\app\dashboard\teacher\report-issuance\page.tsx => Workflow
+.\app\dashboard\teacher\report-issuance\new\page.tsx => Workflow
+.\app\dashboard\teacher\report-workflow\page.tsx => Workflow
+.\app\features\page.tsx => Workflow
+.\app\mobile\counselor\cases\page.tsx => Workflow
+.\app\mobile\counselor\committees-meetings\new\page.tsx => Workflow
+.\app\mobile\counselor\family-school-communication\new\page.tsx => Workflow
+.\app\mobile\counselor\guidance-programs\new\page.tsx => Workflow
+.\app\mobile\counselor\student-follow-up\new\page.tsx => Workflow
+.\app\mobile\counselor\student-guidance-services\new\page.tsx => Workflow
+.\app\services\page.tsx => Workflow
+ => Workflow
+.\components\activity-programs\public-teacher-assignment-form.tsx => Workflow
+.\components\activity-programs\teacher-assignments-client.tsx => Workflow
+.\components\admin\admin-activity-center.tsx => Workflow
+.\components\admin\admin-workflows-filter-bar.tsx => admin/workflows
+.\components\admin\workflow-builder-sidebar.tsx => Workflow
+.\components\admin\workflow-field-editor.tsx => Workflow
+.\components\admin\workflow-preview-panel.tsx => Workflow
+.\components\admin\workflow-publish-button.tsx => admin/workflows
+.\components\admin\workflow-step-editor.tsx => Workflow
+.\components\admin\workflow-upload-card.tsx => admin/workflows
+.\components\admin\workflow-health\workflow-health-report.tsx => Workflow
+.\components\admin\workflows\guardian-summons-workflow-admin-card.tsx => admin/workflows
+.\components\admin\workflows\workflow-history-actions.tsx => admin/workflows
+.\components\admin\workflows\workflow-inline-import-workbench.tsx => admin/workflows
+.\components\admin\workflows\workflow-publish-panel.tsx => admin/workflows
+.\components\admin\workflows\workflow-student-picker-mode-control.tsx => admin/workflows
+.\components\assessment-center\assessment-intervention-assistant.tsx => Workflow
+.\components\cases\case-details-view.tsx => Workflow
+.\components\cases\cases-search-table.tsx => Workflow
+.\components\dashboard\creative-dashboard.tsx => Workflow
+.\components\family-school-communication\guardian-summons-new-client.tsx => Workflow
+.\components\layout\dashboard-header.tsx => Workflow
+.\components\layout\dashboard-sidebar.tsx => admin/workflows
+.\components\mobile\mobile-case-details.tsx => Workflow
+.\components\mobile\mobile-cases-list.tsx => Workflow
+.\components\mobile\mobile-dynamic-field.tsx => DynamicField
+.\components\mobile\mobile-dynamic-form-renderer.tsx => Workflow
+.\components\mobile\mobile-new-case-workflow-page.tsx => Workflow
+.\components\report-1\report-one-case-workspace.tsx => Workflow
+.\components\report-1\report-one-home.tsx => Workflow
+.\components\report-1\editor\report-one-template-preview.tsx => DynamicField
+.\components\report-2\report-two-studio-runtime.tsx => Workflow
+.\components\report-engine\appreciation-certificate-preview.tsx => Workflow
+.\components\report-engine\guardian-summons-letter-preview.tsx => Workflow
+.\components\report-engine\report-field-selection-gate.tsx => Workflow
+.\components\report-engine\report-template-command-center.tsx => Workflow
+.\components\report-engine\report-template-library.tsx => Workflow
+.\components\report-engine\report-template-live-preview.tsx => DynamicField
+.\components\report-engine\report-template-studio.tsx => Workflow
+.\components\report-engine\admin\admin-reports-center.tsx => Workflow
+.\components\report-engine\design-renderers\report-design-renderer.tsx => Workflow
+.\components\report-flow\report-prepare-flow.tsx => Workflow
+.\components\reports\report-studio-editor.tsx => Workflow
+.\components\runtime\runtime-progress-sidebar.tsx => Workflow
+.\components\services\workflow-service-home-page.tsx => admin/workflows
+.\components\student-follow-up\appreciation-certificates-client.tsx => DynamicField
+.\components\workflow\dynamic-field-renderer.tsx => DynamicField
+.\components\workflow\dynamic-form-renderer.tsx => Workflow
+.\components\workflow\dynamic-form-resume.tsx => Workflow
+.\components\workflow\workflow-step-card.tsx => Workflow
+.\components\workspace\workspace-home.tsx => Workflow
+.\lib\activity-programs\activity-card-report-runtime.ts => Workflow
+.\lib\activity-programs\activity-program-catalog.ts => Workflow
+.\lib\admin\activity-events.ts => Workflow
+.\lib\admin\activity-log.ts => Workflow
+.\lib\admin\system-health-service.ts => admin/workflows
+.\lib\admin\workflows\ensure-dashboard-workflow-services.ts => Workflow
+.\lib\ai\execution-summary-generator.ts => Workflow
+.\lib\constants\services.ts => Workflow
+.\lib\report-engine\extra-official-template-presets.ts => Workflow
+.\lib\report-engine\report-private-fields.ts => DynamicField
+.\lib\report-engine\report-template-builder-types.ts => Workflow
+.\lib\report-engine\report-template-runtime-types.ts => Workflow
+.\lib\report-engine\report-template-validation.ts => Workflow
+.\lib\report-engine\smart-report-payload-builder.ts => Workflow
+.\lib\security\audit.ts => Workflow
+.\lib\security\permissions.ts => Workflow
+.\lib\security\validation.ts => Workflow
+.\lib\workflow-builder\workflow-builder-types.ts => Workflow
+.\lib\workflow-upload\workflow-excel-parser.ts => Workflow
+.\lib\workflow-values\workflow-display-value.ts => Workflow
+.\lib\workflows\guardian-summons-workflow-template.ts => Workflow
+.\lib\workflows\workflow-types.backup-before-subworkflow.ts => Workflow
+.\lib\workflows\workflow-types.ts => Workflow
+.\lib\workspace\workspace-modules.ts => Workflow

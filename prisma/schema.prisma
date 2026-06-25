@@ -51,6 +51,12 @@ enum StudentPickerMode {
   DISABLED
 }
 
+enum WorkflowEvidenceMode {
+  SERVICE_DEFAULT
+  ENABLED
+  DISABLED
+}
+
 enum WorkflowStatus {
   DRAFT
   ACTIVE
@@ -372,6 +378,7 @@ model Workflow {
   workflowType String         @default("default")
 
   studentPickerMode StudentPickerMode @default(SERVICE_DEFAULT)
+  evidenceMode      WorkflowEvidenceMode @default(SERVICE_DEFAULT)
   steps             WorkflowStep[]
   cases             CaseEntry[]
   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")

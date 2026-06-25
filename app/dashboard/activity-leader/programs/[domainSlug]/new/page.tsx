@@ -81,6 +81,7 @@ export default async function NewActivityProgramDomainCasePage({
       id: workflow.id,
       name: workflow.name,
       serviceSlug: workflow.service.slug,
+      workflowType: workflow.workflowType,
       steps: workflow.steps.map((step) => ({
         id: step.id,
         title: step.title,
@@ -110,6 +111,7 @@ export default async function NewActivityProgramDomainCasePage({
       })),
     }),
     studentPickerMode: workflow.studentPickerMode || "DISABLED",
+    evidenceMode: workflow.evidenceMode || "SERVICE_DEFAULT",
   };
 
   return (

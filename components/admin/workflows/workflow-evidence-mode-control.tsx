@@ -1,60 +1,60 @@
 "use client";
 
-import { CheckCircle2, Loader2, UserRoundSearch } from "lucide-react";
+import { CheckCircle2, FileStack, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
+
 import {
-  normalizeWorkflowStudentPickerMode,
-  type WorkflowStudentPickerMode,
+  normalizeWorkflowEvidenceMode,
+  type WorkflowEvidenceMode,
 } from "@/lib/workflows/workflow-runtime-settings";
 
-type WorkflowStudentPickerModeControlProps = {
+type WorkflowEvidenceModeControlProps = {
   serviceSlug: string;
   workflowId: string;
   workflowName: string;
-  initialMode?: WorkflowStudentPickerMode | string | null;
+  initialMode?: WorkflowEvidenceMode | string | null;
   disabled?: boolean;
   isActive?: boolean;
 };
 
-const studentPickerModeOptions: Array<{
-  value: WorkflowStudentPickerMode;
+const evidenceModeOptions: Array<{
+  value: WorkflowEvidenceMode;
   label: string;
   description: string;
 }> = [
   {
     value: "SERVICE_DEFAULT",
     label: "حسب إعداد الخدمة",
-    description: "يستخدم الإعداد الافتراضي للخدمة.",
+    description: "يستخدم السلوك الافتراضي للخدمة أو خطوة الشواهد داخل النموذج.",
   },
   {
-    value: "REQUIRED",
-    label: "يتطلب اختيار طالب",
-    description: "يظهر Smart Picker ويمنع المتابعة بدون طالب.",
+    value: "ENABLED",
+    label: "تفعيل الشواهد",
+    description: "يفرض ظهور رفع الشواهد لهذا الـ Workflow حتى بدون خطوة صريحة.",
   },
   {
     value: "DISABLED",
-    label: "لا يتطلب اختيار طالب",
-    description: "يخفي اختيار الطالب لهذا الـ Workflow.",
+    label: "تعطيل الشواهد",
+    description: "يخفي الشواهد لهذا الـ Workflow حتى لو كانت الخدمة تدعمها.",
   },
 ];
 
-export function WorkflowStudentPickerModeControl({
+export function WorkflowEvidenceModeControl({
   serviceSlug,
   workflowId,
   workflowName,
   initialMode,
   disabled = false,
   isActive = false,
-}: WorkflowStudentPickerModeControlProps) {
+}: WorkflowEvidenceModeControlProps) {
   const normalizedInitialMode = useMemo(
-    () => normalizeWorkflowStudentPickerMode(initialMode),
+    () => normalizeWorkflowEvidenceMode(initialMode),
     [initialMode],
   );
 
-  const [mode, setMode] =
-    useState<WorkflowStudentPickerMode>(normalizedInitialMode);
+  const [mode, setMode] = useState<WorkflowEvidenceMode>(normalizedInitialMode);
   const [savedMode, setSavedMode] =
-    useState<WorkflowStudentPickerMode>(normalizedInitialMode);
+    useState<WorkflowEvidenceMode>(normalizedInitialMode);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export function WorkflowStudentPickerModeControl({
       setError(null);
 
       const response = await fetch(
-        `/api/dashboard/admin/workflows/${serviceSlug}/student-picker-mode`,
+        `/api/dashboard/admin/workflows/${serviceSlug}/evidence-mode`,
         {
           method: "PATCH",
           headers: {
@@ -78,7 +78,7 @@ export function WorkflowStudentPickerModeControl({
           },
           body: JSON.stringify({
             workflowId,
-            studentPickerMode: mode,
+            evidenceMode: mode,
           }),
         },
       );
@@ -86,11 +86,11 @@ export function WorkflowStudentPickerModeControl({
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data?.error || "تعذر حفظ إعداد اختيار الطالب.");
+        throw new Error(data?.error || "تعذر حفظ إعداد الشواهد.");
       }
 
       setSavedMode(mode);
-      setMessage("تم حفظ إعداد اختيار الطالب.");
+      setMessage("تم حفظ إعداد الشواهد.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع.");
     } finally {
@@ -103,21 +103,19 @@ export function WorkflowStudentPickerModeControl({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-sky-100">
-            <UserRoundSearch className="h-5 w-5" />
+            <FileStack className="h-5 w-5" />
           </span>
 
           <div>
-            <p className="text-xs font-black text-sky-700">
-              اختيار الطالب الذكي
-            </p>
+            <p className="text-xs font-black text-sky-700">الشواهد</p>
 
             <p className="mt-1 text-xs font-bold leading-5 text-slate-500">
-              تحكم بظهور Smart Picker لهذا الـ Workflow.
+              تحكم بظهور الشواهد لهذا الـ Workflow.
             </p>
 
             {isActive ? (
               <p className="mt-1 text-[11px] font-black text-emerald-700">
-                هذا Workflow مفعل حاليًا؛ أي تعديل هنا يؤثر على تجربة الموجهين.
+                هذا Workflow مفعل حاليًا؛ أي تعديل هنا يؤثر على تجربة المستخدمين.
               </p>
             ) : null}
 
@@ -134,12 +132,12 @@ export function WorkflowStudentPickerModeControl({
           onClick={saveMode}
           disabled={disabled || saving || !isDirty}
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-700 px-4 py-2 text-xs font-black text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-          title={`حفظ إعداد اختيار الطالب لـ ${workflowName}`}
+          title={`حفظ إعداد الشواهد لـ ${workflowName}`}
         >
           {saving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : isDirty ? (
-            <UserRoundSearch className="h-4 w-4" />
+            <FileStack className="h-4 w-4" />
           ) : (
             <CheckCircle2 className="h-4 w-4" />
           )}
@@ -148,7 +146,7 @@ export function WorkflowStudentPickerModeControl({
       </div>
 
       <div className="mt-3 grid gap-2 md:grid-cols-3">
-        {studentPickerModeOptions.map((option) => (
+        {evidenceModeOptions.map((option) => (
           <button
             key={option.value}
             type="button"

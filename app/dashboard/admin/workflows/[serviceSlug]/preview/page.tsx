@@ -120,6 +120,7 @@ export default async function WorkflowPreviewPage({
     serviceSlug: workflow.service.slug,
     workflowType: workflow.workflowType,
     studentPickerMode: workflow.studentPickerMode || "SERVICE_DEFAULT",
+    evidenceMode: workflow.evidenceMode || "SERVICE_DEFAULT",
     steps: workflow.steps.map((step) => ({
       id: step.id,
       title: step.title,

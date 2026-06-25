@@ -188,6 +188,8 @@ async function buildWorkflowSnapshotForCase(workflowId?: string | null) {
     status: workflow.status,
     isActive: workflow.isActive,
     workflowType: workflow.workflowType,
+    studentPickerMode: workflow.studentPickerMode,
+    evidenceMode: workflow.evidenceMode,
     service: workflow.service,
     steps: workflow.steps.map((step) => ({
       id: step.id,

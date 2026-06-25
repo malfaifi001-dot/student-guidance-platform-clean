@@ -85,6 +85,14 @@ function buildWorkflowFromSnapshot(caseEntry: any): RuntimeWorkflow | null {
       safeString(snapshotSource.workflowType) ||
       safeString(caseEntry.workflow?.workflowType) ||
       "service-main",
+    studentPickerMode:
+      safeString(snapshotSource.studentPickerMode) ||
+      safeString(caseEntry.workflow?.studentPickerMode) ||
+      "SERVICE_DEFAULT",
+    evidenceMode:
+      safeString(snapshotSource.evidenceMode) ||
+      safeString(caseEntry.workflow?.evidenceMode) ||
+      "SERVICE_DEFAULT",
     steps: Array.isArray(snapshotSource.steps)
       ? snapshotSource.steps.map((step: any, stepIndex: number) => ({
           id: safeString(step.id, `snapshot-step-${stepIndex + 1}`),
@@ -145,6 +153,8 @@ function buildWorkflowFromDatabase(caseEntry: any): RuntimeWorkflow | null {
     name: caseEntry.workflow.name,
     serviceSlug: caseEntry.service.slug,
     workflowType: caseEntry.workflow.workflowType,
+    studentPickerMode: caseEntry.workflow.studentPickerMode || "SERVICE_DEFAULT",
+    evidenceMode: caseEntry.workflow.evidenceMode || "SERVICE_DEFAULT",
     steps: caseEntry.workflow.steps.map((step: any) => ({
       id: step.id,
       title: step.title,

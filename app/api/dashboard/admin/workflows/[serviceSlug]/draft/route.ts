@@ -17,6 +17,10 @@ type FieldType = (typeof FieldType)[keyof typeof FieldType];
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { prisma } from "@/lib/prisma";
 import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
+import {
+  normalizeWorkflowEvidenceMode,
+  normalizeWorkflowStudentPickerMode,
+} from "@/lib/workflows/workflow-runtime-settings";
 
 type RouteContext = {
   params: Promise<{
@@ -25,16 +29,6 @@ type RouteContext = {
 };
 
 const FIELD_TYPES = new Set(["TEXT", "TEXTAREA", "NUMBER", "DATE", "SELECT", "MULTI_SELECT", "CHECKBOX", "RADIO", "FILE", "STUDENT_PICKER"]);
-
-const STUDENT_PICKER_MODES = new Set(["NONE", "DISABLED", "OPTIONAL", "REQUIRED", "SINGLE", "MULTIPLE", "SMART"]);
-
-function normalizeStudentPickerMode(value: unknown): string {
-  const text = clean(value).toUpperCase();
-
-  return STUDENT_PICKER_MODES.has(text as string)
-    ? (text as string)
-    : "SERVICE_DEFAULT";
-}
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
@@ -96,7 +90,10 @@ export async function POST(request: Request, context: RouteContext) {
 
     const name = clean(body?.name) || `${service.name} Workflow`;
     const workflowType = normalizeWorkflowType(body?.workflowType);
-    const studentPickerMode = normalizeStudentPickerMode(body?.studentPickerMode);
+    const studentPickerMode = normalizeWorkflowStudentPickerMode(
+      body?.studentPickerMode,
+    );
+    const evidenceMode = normalizeWorkflowEvidenceMode(body?.evidenceMode);
     const steps = Array.isArray(body?.steps) ? body.steps : [];
 
     if (!steps.length) {
@@ -140,6 +137,7 @@ export async function POST(request: Request, context: RouteContext) {
         version: nextVersion,
         workflowType,
         studentPickerMode: studentPickerMode as any,
+        evidenceMode: evidenceMode as any,
         status: "DRAFT",
         isActive: false,
         steps: {

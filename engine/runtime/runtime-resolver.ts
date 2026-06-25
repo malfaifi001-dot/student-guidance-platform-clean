@@ -39,6 +39,8 @@ export type RuntimeWorkflow = {
   name: string;
   serviceSlug: string;
   workflowType?: string;
+  studentPickerMode?: string | null;
+  evidenceMode?: string | null;
   steps: RuntimeStep[];
 };
 
@@ -106,6 +108,8 @@ export async function getRuntimeWorkflowByServiceSlug(
       name: workflow.name,
       serviceSlug: service.slug,
       workflowType: workflow.workflowType,
+      studentPickerMode: workflow.studentPickerMode,
+      evidenceMode: workflow.evidenceMode,
       steps: workflow.steps.map((step) => ({
         id: step.id,
         title: step.title,

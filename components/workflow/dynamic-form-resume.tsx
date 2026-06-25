@@ -11,6 +11,9 @@ function buildRuntimeWorkflow(caseEntry: any) {
     id: caseEntry.workflow.id,
     name: caseEntry.workflow.name,
     serviceSlug: caseEntry.service.slug,
+    workflowType: caseEntry.workflow.workflowType,
+    studentPickerMode: caseEntry.workflow.studentPickerMode || "SERVICE_DEFAULT",
+    evidenceMode: caseEntry.workflow.evidenceMode || "SERVICE_DEFAULT",
     steps: caseEntry.workflow.steps
       .sort((a: any, b: any) => a.order - b.order)
       .map((step: any) => ({

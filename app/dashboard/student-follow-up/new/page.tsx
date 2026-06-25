@@ -160,6 +160,9 @@ export default async function NewStudentFollowUpPage() {
     id: workflow.id,
     name: workflow.name,
     serviceSlug: service.slug,
+    workflowType: workflow.workflowType,
+    studentPickerMode: workflow.studentPickerMode || "SERVICE_DEFAULT",
+    evidenceMode: workflow.evidenceMode || "SERVICE_DEFAULT",
     steps: workflow.steps
       .sort((a, b) => a.order - b.order)
       .map((step) => ({

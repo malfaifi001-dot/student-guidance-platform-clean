@@ -11,25 +11,12 @@ import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
 import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
+import {
+  normalizeWorkflowEvidenceMode,
+  normalizeWorkflowStudentPickerMode,
+} from "@/lib/workflows/workflow-runtime-settings";
 
 export const runtime = "nodejs";
-
-const STUDENT_PICKER_MODES = new Set([
-  "SERVICE_DEFAULT",
-  "NONE",
-  "DISABLED",
-  "OPTIONAL",
-  "REQUIRED",
-  "SINGLE",
-  "MULTIPLE",
-  "SMART",
-]);
-
-function normalizeStudentPickerMode(value: unknown): string {
-  const text = String(value ?? "").trim().toUpperCase();
-
-  return STUDENT_PICKER_MODES.has(text) ? text : "SERVICE_DEFAULT";
-}
 
 const MAX_WORKFLOW_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -81,8 +68,11 @@ export async function POST(request: Request) {
     const workflowType = normalizeWorkflowType(
       String(formData.get("workflowType") ?? ""),
     );
-    const studentPickerMode = normalizeStudentPickerMode(
+    const studentPickerMode = normalizeWorkflowStudentPickerMode(
       formData.get("studentPickerMode"),
+    );
+    const evidenceMode = normalizeWorkflowEvidenceMode(
+      formData.get("evidenceMode"),
     );
 
     const file = formData.get("file");
@@ -163,6 +153,7 @@ export async function POST(request: Request) {
         status: "DRAFT",
         isActive: false,
         studentPickerMode: studentPickerMode as any,
+        evidenceMode: evidenceMode as any,
       },
     });
 

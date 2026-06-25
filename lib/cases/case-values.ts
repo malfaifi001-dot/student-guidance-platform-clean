@@ -5,8 +5,10 @@ export type SerializableCaseValue =
   | number
   | boolean
   | null
-  | string[]
-  | Record<string, unknown>;
+  | SerializableCaseValue[]
+  | {
+      [key: string]: SerializableCaseValue;
+    };
 
 export type RuntimeCaseValues = Record<string, SerializableCaseValue>;
 
