@@ -1,0 +1,2094 @@
+EVIDENCE RENDERER AFTER CODEX
+Generated: 06/26/2026 00:06:07
+
+===== git status --short =====
+ M components/evidence/evidence-item-card.tsx
+ M components/evidence/evidence-preview-grid.tsx
+ M components/report-engine/design-renderers/report-design-renderer.tsx
+ M components/reports/report-evidence-gallery.tsx
+ M components/reports/report-studio-editor.tsx
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-1cc2b151-bf10-42fb-bf7f-71fcf464f28d.jpg
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-f6a2c11f-3eb9-4fce-9bd7-cd14b4c6bb05.jpg
+
+
+===== git diff focused =====
+diff --git a/components/report-engine/design-renderers/report-design-renderer.tsx b/components/report-engine/design-renderers/report-design-renderer.tsx
+index 374ee4d..30e786a 100644
+--- a/components/report-engine/design-renderers/report-design-renderer.tsx
++++ b/components/report-engine/design-renderers/report-design-renderer.tsx
+@@ -2575,14 +2575,14 @@ function EvidenceBlock({
+       {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+ 
+       <div className={getEvidenceGridClass(block)} style={getEvidenceGridStyle(block)}>
+-        {visibleEvidences.map((evidence, index) => {
++{visibleEvidences.map((evidence, index) => {
+           const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+ 
+           return (
+             <figure
+               key={evidence.id || imageUrl || String(index)}
+               style={getEvidenceFigureStyle(block)}
+-              className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white"
++              className="break-inside-avoid overflow-hidden rounded-[1.35rem] border border-slate-200 bg-slate-50"
+             >
+               {imageUrl && !isPlaceholderMode ? (
+                 <img
+@@ -2592,17 +2592,20 @@ function EvidenceBlock({
+                   className={`${getEvidenceImageClass(block)} bg-slate-50`}
+                 />
+               ) : (
+-                <div className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center justify-center bg-slate-50 text-center`}>
+-                  <div className={["flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", accent.iconClass].join(" ")}>≡ƒôÄ</div>
++                <div
++                  className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center justify-center bg-slate-50 text-center`}
++                >
++                  <div
++                    className={[
++                      "flex h-12 w-12 items-center justify-center rounded-2xl text-xl",
++                      accent.iconClass,
++                    ].join(" ")}
++                  >
++                    ≡ƒôÄ
++                  </div>
+                   <p className="mt-3 text-xs font-black text-slate-500">┘à╪│╪º╪¡╪⌐ ╪┤╪º┘ç╪» ┘ä┘ä┘à╪╣╪º┘è┘å╪⌐</p>
+                 </div>
+               )}
+-
+-              {block.evidenceShowCaptions !== false ? (
+-                <figcaption className="max-h-12 overflow-hidden border-t border-slate-100 px-3 py-2 text-xs font-bold leading-6 text-slate-600">
+-                  {evidence.caption || evidence.title || `╪┤╪º┘ç╪» ${startIndex + index + 1}`}
+-                </figcaption>
+-              ) : null}
+             </figure>
+           );
+         })}
+diff --git a/components/reports/report-studio-editor.tsx b/components/reports/report-studio-editor.tsx
+index 0df1115..5ee9aba 100644
+--- a/components/reports/report-studio-editor.tsx
++++ b/components/reports/report-studio-editor.tsx
+@@ -3,6 +3,7 @@
+ import Link from "next/link";
+ import { useMemo, useState, useTransition } from "react";
+ import { useRouter } from "next/navigation";
++import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+ import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
+ 
+ type StudioReportStatus =
+@@ -1105,7 +1106,7 @@ function EvidenceEditor({
+             ╪º┘ä╪┤┘ê╪º┘ç╪» ┘ü┘è ┘ç╪░┘ç ╪º┘ä╪╡┘ü╪¡╪⌐
+           </h2>
+           <p className="mt-1 text-xs font-bold text-slate-500">
+-            ╪Ñ╪╕┘ç╪º╪▒/╪Ñ╪«┘ü╪º╪í ╪º┘ä╪┤┘ê╪º┘ç╪» ╪ú┘ê ╪¬╪╣╪»┘è┘ä ╪º┘ä╪¬╪╣┘ä┘è┘é ╪»╪º╪«┘ä ╪º┘ä╪¬┘é╪º╪▒┘è╪▒ ┘ü┘é╪╖.
++            ╪Ñ╪»╪º╪▒╪⌐ ╪╕┘ç┘ê╪▒ ╪º┘ä╪┤┘ê╪º┘ç╪» ╪»╪º╪«┘ä ╪º┘ä╪¬┘é╪▒┘è╪▒ ┘ü┘é╪╖. ╪¡╪░┘ü ╪º┘ä╪┤╪º┘ç╪» ╪º┘ä╪ú╪╡┘ä┘è ┘è╪¬┘à ┘à┘å ╪╡┘ü╪¡╪⌐ ╪º┘ä╪¡╪º┘ä╪⌐.
+           </p>
+         </div>
+ 
+@@ -1114,29 +1115,32 @@ function EvidenceEditor({
+         </span>
+       </div>
+ 
+-      <div className="mt-4 space-y-3">
++      <div className="mt-4">
+         {items.length ? (
+-          items.map((item, index) => (
+-            <article
+-              key={item.id}
+-              className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+-            >
+-              <div className="flex flex-wrap items-center justify-between gap-3">
+-                <div>
+-                  <p className="text-sm font-black text-slate-900">
+-                    {item.fileName}
+-                  </p>
+-                  <p className="mt-1 text-[11px] font-bold text-slate-500">
+-                    ╪┤╪º┘ç╪» ╪▒┘é┘à {index + 1}
+-                  </p>
+-                </div>
++          <EvidencePreviewGrid
++            items={items}
++            compact
++            actionsForItem={(item) => {
++              const index = items.findIndex((entry) => entry.id === item.id);
++
++              return (
++                <>
++                  <button
++                    type="button"
++                    disabled={locked}
++                    onClick={() =>
++                      onUpdate(item.id, { visible: !Boolean(item.visible) })
++                    }
++                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
++                  >
++                    {item.visible ? "╪Ñ╪«┘ü╪º╪í" : "╪Ñ╪╕┘ç╪º╪▒"}
++                  </button>
+ 
+-                <div className="flex flex-wrap gap-2">
+                   <button
+                     type="button"
+-                    disabled={locked || index === 0}
++                    disabled={locked || index <= 0}
+                     onClick={() => onMove(item.id, "up")}
+-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
++                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                   >
+                     ╪ú╪╣┘ä┘ë
+                   </button>
+@@ -1145,39 +1149,39 @@ function EvidenceEditor({
+                     type="button"
+                     disabled={locked || index === items.length - 1}
+                     onClick={() => onMove(item.id, "down")}
+-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
++                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                   >
+                     ╪ú╪│┘ü┘ä
+                   </button>
++                </>
++              );
++            }}
++            footerForItem={(item) => {
++              const index = items.findIndex((entry) => entry.id === item.id);
++
++              return (
++                <div className="space-y-2">
++                  <div className="flex items-center justify-between gap-3 text-[11px] font-black text-slate-500">
++                    <span>╪┤╪º┘ç╪» ╪▒┘é┘à {index + 1}</span>
++                    <span>{item.visible ? "╪╕╪º┘ç╪▒ ┘ü┘è ╪º┘ä╪¬┘é╪▒┘è╪▒" : "┘à╪«┘ü┘è ┘à┘å ╪º┘ä╪¬┘é╪▒┘è╪▒"}</span>
++                  </div>
+ 
+-                  <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-600">
+-                    <input
+-                      type="checkbox"
+-                      checked={item.visible}
+-                      disabled={locked}
+-                      onChange={(event) =>
+-                        onUpdate(item.id, { visible: event.target.checked })
+-                      }
+-                    />
+-                    ╪╕╪º┘ç╪▒
+-                  </label>
++                  <input
++                    value={item.caption || ""}
++                    disabled={locked}
++                    onChange={(event) =>
++                      onUpdate(item.id, { caption: event.target.value })
++                    }
++                    placeholder="╪¬╪╣┘ä┘è┘é ╪º┘ä╪┤╪º┘ç╪» ╪»╪º╪«┘ä ╪º┘ä╪¬┘é╪▒┘è╪▒..."
++                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-100"
++                  />
+                 </div>
+-              </div>
+-
+-              <input
+-                value={item.caption || ""}
+-                disabled={locked}
+-                onChange={(event) =>
+-                  onUpdate(item.id, { caption: event.target.value })
+-                }
+-                placeholder="╪¬╪╣┘ä┘è┘é ╪º┘ä╪┤╪º┘ç╪» ╪»╪º╪«┘ä ╪º┘ä╪¬┘é╪º╪▒┘è╪▒..."
+-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
+-              />
+-            </article>
+-          ))
++              );
++            }}
++          />
+         ) : (
+           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
+-            ┘ä╪º ╪¬┘ê╪¼╪» ╪┤┘ê╪º┘ç╪» ┘à╪▒╪¬╪¿╪╖╪⌐ ╪¿┘ç╪░╪º ╪º┘ä╪¬┘é╪º╪▒┘è╪▒.
++            ┘ä╪º ╪¬┘ê╪¼╪» ╪┤┘ê╪º┘ç╪» ┘à╪▒╪¬╪¿╪╖╪⌐ ╪¿┘ç╪░╪º ╪º┘ä╪¬┘é╪▒┘è╪▒.
+           </div>
+         )}
+       </div>
+
+
+
+############################################################
+FILE: components\report-engine\design-renderers\report-design-renderer.tsx
+############################################################
+
+----- PATTERN: function AutoEvidencePages -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:2605:               
+   </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2606:               
+   <p className="mt-3 text-xs font-black text-slate-500">مساحة شاهد للمعاينة</p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2607:               
+ </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2608:              
+)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2609:            
+</figure>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2610:          );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2611:        })}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2612:      </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2613:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2614:      
+{isPlaceholderMode ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2615:        <p 
+className={["mt-3 rounded-2xl px-3 py-2 text-xs font-bold", accent.noticeClass].join(" ")}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2616:          هذه 
+مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
+  components\report-engine\design-renderers\report-design-renderer.tsx:2617:        </p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2618:      ) : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2619:    </section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2620:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2621:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2622:
+> components\report-engine\design-renderers\report-design-renderer.tsx:2623:function 
+AutoEvidencePages({
+  components\report-engine\design-renderers\report-design-renderer.tsx:2624:  designId,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2625:  activePage,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2626:  context,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2627:  previewCase,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2628:}: {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2629:  designId: 
+ReportDesignId;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2630:  activePage?: 
+any;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2631:  context: 
+Record<string, string>;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2632:  previewCase: 
+PreviewCaseData | null;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2633:}) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2634:  const 
+evidenceBlock = activePage?.blocks?.find((block: any) => block.kind === 
+"evidence-gallery");
+  components\report-engine\design-renderers\report-design-renderer.tsx:2635:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2636:  if 
+(!activePage || !evidenceBlock || evidenceBlock.evidenceAutoCreatePages === false) return 
+null;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2637:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2638:  const 
+evidences = previewCase?.evidences || [];
+  components\report-engine\design-renderers\report-design-renderer.tsx:2639:  const 
+perPage = getEvidencePerPage(evidenceBlock);
+  components\report-engine\design-renderers\report-design-renderer.tsx:2640:  const 
+pagesCount = Math.ceil(evidences.length / perPage);
+  components\report-engine\design-renderers\report-design-renderer.tsx:2641:
+
+
+
+
+----- PATTERN: function PageBlocks -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:1954:            
+<div className="text-center">
+  components\report-engine\design-renderers\report-design-renderer.tsx:1955:              
+<img src={getDesignLogoSrc(context)} alt="شعار وزارة التعليم" className="mx-auto h-16 
+w-auto object-contain brightness-0 invert" />
+  components\report-engine\design-renderers\report-design-renderer.tsx:1956:              
+<p className="report-design-header-title mt-3 text-base font-black text-white" style={{ 
+textAlign: getDesignHeaderAlign(context, "report.platformName", "center") 
+}}>{getDesignHeaderText(context, "report.platformName", "منصة التوجيه الطلابي")}</p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:1957:            
+</div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:1958:            
+<div className="text-left text-sm font-bold leading-7 text-slate-100">
+  components\report-engine\design-renderers\report-design-renderer.tsx:1959:              
+<p style={{ textAlign: getDesignHeaderAlign(context, "case.createdAt", "center") 
+}}>{getDesignHeaderText(context, "case.createdAt", context["case.createdAt"] || "")}</p><p 
+style={{ textAlign: getDesignHeaderAlign(context, "service.name", "center") 
+}}>{getDesignHeaderText(context, "service.name", context["service.name"] || "")}</p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:1960:            
+</div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:1961:          
+</div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:1962:        
+</header>
+  components\report-engine\design-renderers\report-design-renderer.tsx:1963:
+  components\report-engine\design-renderers\report-design-renderer.tsx:1964:        <div 
+className="pointer-events-none absolute inset-[8mm] border border-slate-100" />
+  components\report-engine\design-renderers\report-design-renderer.tsx:1965:        
+<PageBlocks page={page} context={context} previewCase={previewCase} designId={designId} 
+className="relative z-10 min-h-[205mm]" />
+  components\report-engine\design-renderers\report-design-renderer.tsx:1966:        
+<DesignFooter text="نموذج الوزارة الرسمي" barClass="from-slate-900 to-emerald-300" />
+  components\report-engine\design-renderers\report-design-renderer.tsx:1967:      </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:1968:    </article>
+  components\report-engine\design-renderers\report-design-renderer.tsx:1969:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:1970:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:1971:
+> components\report-engine\design-renderers\report-design-renderer.tsx:1972:function 
+PageBlocks({
+  components\report-engine\design-renderers\report-design-renderer.tsx:1973:  page,
+  components\report-engine\design-renderers\report-design-renderer.tsx:1974:  context,
+  components\report-engine\design-renderers\report-design-renderer.tsx:1975:  previewCase,
+  components\report-engine\design-renderers\report-design-renderer.tsx:1976:  designId,
+  components\report-engine\design-renderers\report-design-renderer.tsx:1977:  className,
+  components\report-engine\design-renderers\report-design-renderer.tsx:1978:}: {
+  components\report-engine\design-renderers\report-design-renderer.tsx:1979:  page?: any;
+  components\report-engine\design-renderers\report-design-renderer.tsx:1980:  context: 
+Record<string, string>;
+  components\report-engine\design-renderers\report-design-renderer.tsx:1981:  previewCase: 
+PreviewCaseData | null;
+  components\report-engine\design-renderers\report-design-renderer.tsx:1982:  designId: 
+ReportDesignId;
+  components\report-engine\design-renderers\report-design-renderer.tsx:1983:  className: 
+string;
+  components\report-engine\design-renderers\report-design-renderer.tsx:1984:}) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:1985:  const blocks 
+= page?.blocks || [];
+  components\report-engine\design-renderers\report-design-renderer.tsx:1986:  const 
+flowBlocks = blocks.filter((block: any) => (block.placement || "flow") === "flow");
+  components\report-engine\design-renderers\report-design-renderer.tsx:1987:  const 
+fixedBlocks = blocks.filter((block: any) => (block.placement || "flow") !== "flow");
+  components\report-engine\design-renderers\report-design-renderer.tsx:1988:
+  components\report-engine\design-renderers\report-design-renderer.tsx:1989:  return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:1990:    <main 
+className={`relative ${className}`}>
+
+
+
+
+----- PATTERN: function render -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:2702:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2703:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2704:function 
+DesignFooter({ text, barClass }: { text: string; barClass: string }) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2705:  return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2706:    <footer 
+className="absolute bottom-[10mm] left-[12mm] right-[12mm]">
+  components\report-engine\design-renderers\report-design-renderer.tsx:2707:      <div 
+className={`h-1 rounded-full bg-gradient-to-l ${barClass}`} />
+  components\report-engine\design-renderers\report-design-renderer.tsx:2708:      <div 
+className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+  components\report-engine\design-renderers\report-design-renderer.tsx:2709:        
+<span>منصة التوجيه الطلابي</span>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2710:        
+<span>{text}</span>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2711:      </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2712:    </footer>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2713:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2714:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2715:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2716:function 
+BlockTitle({ title, fontSize }: { title: string; fontSize?: string }) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2717:  return <h3 
+className={["mb-3", getReportFontSizeClass(fontSize, "text-base"), "font-black 
+text-slate-950"].join(" ")}>{title}</h3>;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2718:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2719:
+> components\report-engine\design-renderers\report-design-renderer.tsx:2720:function 
+renderText(text: string, context: Record<string, string>) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2721:  const source 
+= String(text || "");
+  components\report-engine\design-renderers\report-design-renderer.tsx:2722:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2723:  const 
+replaceVariable = (_match: string, key: string) => {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2724:    const 
+cleanKey = String(key || "").trim();
+  components\report-engine\design-renderers\report-design-renderer.tsx:2725:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2726:    if 
+(!cleanKey) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2727:      return 
+"";
+  components\report-engine\design-renderers\report-design-renderer.tsx:2728:    }
+  components\report-engine\design-renderers\report-design-renderer.tsx:2729:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2730:    return 
+resolveContextVariable(cleanKey, context);
+  components\report-engine\design-renderers\report-design-renderer.tsx:2731:  };
+  components\report-engine\design-renderers\report-design-renderer.tsx:2732:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2733:  return source
+  components\report-engine\design-renderers\report-design-renderer.tsx:2734:    
+.replace(/\{\{\s*([^}]+?)\s*\}\}/g, replaceVariable)
+  components\report-engine\design-renderers\report-design-renderer.tsx:2735:    
+.replace(/\{([A-Za-z0-9_.\-\u0600-\u06FF ]+)\}/g, replaceVariable);
+  components\report-engine\design-renderers\report-design-renderer.tsx:2736:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2737:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2738:function 
+splitLines(text: string) {
+
+
+
+
+----- PATTERN: evidence-gallery -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:657:
+  components\report-engine\design-renderers\report-design-renderer.tsx:658:function 
+normalizeFinalReportTemplate(
+  components\report-engine\design-renderers\report-design-renderer.tsx:659:  template: any,
+  components\report-engine\design-renderers\report-design-renderer.tsx:660:  
+editorialBlocks: Record<string, string>,
+  components\report-engine\design-renderers\report-design-renderer.tsx:661:) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:662:  const pages = 
+Array.isArray(template?.pages) ? template.pages : [];
+  components\report-engine\design-renderers\report-design-renderer.tsx:663:
+  components\report-engine\design-renderers\report-design-renderer.tsx:664:  return {
+  components\report-engine\design-renderers\report-design-renderer.tsx:665:    ...template,
+  components\report-engine\design-renderers\report-design-renderer.tsx:666:    pages: 
+pages.map((page: any, pageIndex: number) => {
+  components\report-engine\design-renderers\report-design-renderer.tsx:667:      const 
+pageBlocks = Array.isArray(page?.blocks) ? page.blocks : [];
+  components\report-engine\design-renderers\report-design-renderer.tsx:668:
+  components\report-engine\design-renderers\report-design-renderer.tsx:669:      const 
+normalizedBlocks = pageBlocks.map((block: any, blockIndex: number) =>
+  components\report-engine\design-renderers\report-design-renderer.tsx:670:        
+normalizeFinalReportBlock(template, block, blockIndex, editorialBlocks),
+  components\report-engine\design-renderers\report-design-renderer.tsx:671:      );
+  components\report-engine\design-renderers\report-design-renderer.tsx:672:
+  components\report-engine\design-renderers\report-design-renderer.tsx:673:      const 
+shouldAddEvidenceBlock =
+  components\report-engine\design-renderers\report-design-renderer.tsx:674:        
+page?.kind === "evidence" &&
+> components\report-engine\design-renderers\report-design-renderer.tsx:675:        
+!normalizedBlocks.some((block: any) => block.kind === "evidence-gallery");
+  components\report-engine\design-renderers\report-design-renderer.tsx:676:
+  components\report-engine\design-renderers\report-design-renderer.tsx:677:      return {
+  components\report-engine\design-renderers\report-design-renderer.tsx:678:        ...page,
+  components\report-engine\design-renderers\report-design-renderer.tsx:679:        id: 
+page?.id || "final-page-" + (pageIndex + 1),
+  components\report-engine\design-renderers\report-design-renderer.tsx:680:        title: 
+page?.title || "صفحة " + (pageIndex + 1),
+  components\report-engine\design-renderers\report-design-renderer.tsx:681:        kind: 
+page?.kind || "content",
+  components\report-engine\design-renderers\report-design-renderer.tsx:682:        blocks: 
+shouldAddEvidenceBlock
+  components\report-engine\design-renderers\report-design-renderer.tsx:683:          ? [
+  components\report-engine\design-renderers\report-design-renderer.tsx:684:              
+...normalizedBlocks,
+  components\report-engine\design-renderers\report-design-renderer.tsx:685:              {
+> components\report-engine\design-renderers\report-design-renderer.tsx:686:                
+id: "auto-evidence-gallery-" + (pageIndex + 1),
+> components\report-engine\design-renderers\report-design-renderer.tsx:687:                
+kind: "evidence-gallery",
+  components\report-engine\design-renderers\report-design-renderer.tsx:688:                
+title: "الشواهد والمرفقات",
+  components\report-engine\design-renderers\report-design-renderer.tsx:689:                
+content: "",
+  components\report-engine\design-renderers\report-design-renderer.tsx:690:                
+variant: "card",
+  components\report-engine\design-renderers\report-design-renderer.tsx:691:                
+align: "right",
+  components\report-engine\design-renderers\report-design-renderer.tsx:692:                
+showTitle: true,
+  components\report-engine\design-renderers\report-design-renderer.tsx:693:                
+placement: "flow",
+  components\report-engine\design-renderers\report-design-renderer.tsx:694:                
+evidenceLayout: "GRID_2X2",
+  components\report-engine\design-renderers\report-design-renderer.tsx:695:                
+evidenceFit: "contain",
+  components\report-engine\design-renderers\report-design-renderer.tsx:696:                
+evidenceAspectRatio: "LANDSCAPE_4_3",
+  components\report-engine\design-renderers\report-design-renderer.tsx:697:                
+evidenceShowCaptions: true,
+  components\report-engine\design-renderers\report-design-renderer.tsx:698:                
+evidenceAutoCreatePages: true,
+  components\report-engine\design-renderers\report-design-renderer.tsx:699:                
+evidenceEmptyBehavior: "message",
+  components\report-engine\design-renderers\report-design-renderer.tsx:700:              },
+  components\report-engine\design-renderers\report-design-renderer.tsx:701:            ]
+  components\report-engine\design-renderers\report-design-renderer.tsx:702:          : 
+normalizedBlocks,
+  components\report-engine\design-renderers\report-design-renderer.tsx:703:      };
+  components\report-engine\design-renderers\report-design-renderer.tsx:704:    }),
+  components\report-engine\design-renderers\report-design-renderer.tsx:705:  };
+  components\report-engine\design-renderers\report-design-renderer.tsx:968:  if (kind === 
+"case-meta") return "field-list";
+  components\report-engine\design-renderers\report-design-renderer.tsx:969:  if (kind === 
+"student-summary") return "field-list";
+  components\report-engine\design-renderers\report-design-renderer.tsx:970:  if (kind === 
+"service-summary") return "field-list";
+  components\report-engine\design-renderers\report-design-renderer.tsx:971:  if (kind === 
+"field-list") return "field-list";
+  components\report-engine\design-renderers\report-design-renderer.tsx:972:  if (kind === 
+"approval-signature") return "closing-note";
+  components\report-engine\design-renderers\report-design-renderer.tsx:973:  if (kind === 
+"identity-header") return "section-text";
+  components\report-engine\design-renderers\report-design-renderer.tsx:974:
+  components\report-engine\design-renderers\report-design-renderer.tsx:975:  return kind;
+  components\report-engine\design-renderers\report-design-renderer.tsx:976:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:977:
+  components\report-engine\design-renderers\report-design-renderer.tsx:978:function 
+getDefaultFinalBlockTitle(kind: string) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:979:  if (kind === 
+"cover-title") return "عنوان التقارير";
+  components\report-engine\design-renderers\report-design-renderer.tsx:980:  if (kind === 
+"case-meta") return "بيانات الحالة";
+  components\report-engine\design-renderers\report-design-renderer.tsx:981:  if (kind === 
+"student-summary") return "بيانات الطالب/الطالبة";
+  components\report-engine\design-renderers\report-design-renderer.tsx:982:  if (kind === 
+"service-summary") return "بيانات الخدمة";
+  components\report-engine\design-renderers\report-design-renderer.tsx:983:  if (kind === 
+"field-list") return "حقول من الحالة";
+  components\report-engine\design-renderers\report-design-renderer.tsx:984:  if (kind === 
+"text-library") return "نص من مكتبة النصوص";
+  components\report-engine\design-renderers\report-design-renderer.tsx:985:  if (kind === 
+"custom-paragraph") return "فقرة مخصصة";
+> components\report-engine\design-renderers\report-design-renderer.tsx:986:  if (kind === 
+"evidence-gallery") return "الشواهد والمرفقات";
+  components\report-engine\design-renderers\report-design-renderer.tsx:987:  if (kind === 
+"approval-signature") return "الاعتماد";
+  components\report-engine\design-renderers\report-design-renderer.tsx:988:
+  components\report-engine\design-renderers\report-design-renderer.tsx:989:  return "بلوك 
+التقارير";
+  components\report-engine\design-renderers\report-design-renderer.tsx:990:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:991:
+  components\report-engine\design-renderers\report-design-renderer.tsx:992:
+  components\report-engine\design-renderers\report-design-renderer.tsx:993:function 
+getFinalEditedBlockContent(
+  components\report-engine\design-renderers\report-design-renderer.tsx:994:  block: any,
+  components\report-engine\design-renderers\report-design-renderer.tsx:995:  blockId: 
+string,
+  components\report-engine\design-renderers\report-design-renderer.tsx:996:  
+editorialBlocks: Record<string, string>,
+  components\report-engine\design-renderers\report-design-renderer.tsx:997:) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:998:  const 
+candidateKeys = [
+  components\report-engine\design-renderers\report-design-renderer.tsx:999:    blockId,
+  components\report-engine\design-renderers\report-design-renderer.tsx:1000:    block?.id 
+? String(block.id) : "",
+  components\report-engine\design-renderers\report-design-renderer.tsx:1001:  
+].filter(Boolean);
+  components\report-engine\design-renderers\report-design-renderer.tsx:1002:
+  components\report-engine\design-renderers\report-design-renderer.tsx:1003:  for (const 
+key of candidateKeys) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:1004:    const 
+value = editorialBlocks[key];
+  components\report-engine\design-renderers\report-design-renderer.tsx:2367:               
+ )}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2368:              
+</div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2369:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2370:              
+<div className="mt-1 text-[10px] font-black text-slate-950">
+  components\report-engine\design-renderers\report-design-renderer.tsx:2371:               
+ {signature.signerName || "—"}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2372:              
+</div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2373:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2374:              
+{signature.signerTitle ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2375:               
+ <div className="mt-0.5 text-[8px] font-bold text-slate-500">
+  components\report-engine\design-renderers\report-design-renderer.tsx:2376:               
+   {signature.signerTitle}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2377:               
+ </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2378:              
+) : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2379:            
+</div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2380:          ))}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2381:        </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2382:      
+</section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2383:    );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2384:  }
+> components\report-engine\design-renderers\report-design-renderer.tsx:2385:  if 
+(block.kind === "evidence-gallery") {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2386:    return 
+<EvidenceBlock block={block} previewCase={previewCase} designId={designId} 
+textAlign={textAlign} />;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2387:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:2388:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2389:  if 
+(block.kind === "closing-note") {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2390:    return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2391:      <section 
+className={getBlockShellClass(designId, block.variant, textAlign)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2392:        
+{block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, 
+"titleFontSize")} /> : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2393:        <p 
+className={["leading-8 text-slate-700", getReportFontSizeClass(getBlockSetting(block, 
+"contentFontSize"), "text-base")].join(" ")}>{rendered}</p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2394:      
+</section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2395:    );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2396:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:2397:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2398:  return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2399:    <section 
+className={getBlockShellClass(designId, block.variant, textAlign)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2400:      
+{block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, 
+"titleFontSize")} /> : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2401:      <p 
+className={["whitespace-pre-line leading-8 text-slate-700", 
+getReportFontSizeClass(getBlockSetting(block, "contentFontSize"), "text-lg")].join(" 
+")}>{rendered}</p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2402:    </section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2403:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2616:          هذه 
+مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
+  components\report-engine\design-renderers\report-design-renderer.tsx:2617:        </p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2618:      ) : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2619:    </section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2620:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2621:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2622:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2623:function 
+AutoEvidencePages({
+  components\report-engine\design-renderers\report-design-renderer.tsx:2624:  designId,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2625:  activePage,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2626:  context,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2627:  previewCase,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2628:}: {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2629:  designId: 
+ReportDesignId;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2630:  activePage?: 
+any;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2631:  context: 
+Record<string, string>;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2632:  previewCase: 
+PreviewCaseData | null;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2633:}) {
+> components\report-engine\design-renderers\report-design-renderer.tsx:2634:  const 
+evidenceBlock = activePage?.blocks?.find((block: any) => block.kind === 
+"evidence-gallery");
+  components\report-engine\design-renderers\report-design-renderer.tsx:2635:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2636:  if 
+(!activePage || !evidenceBlock || evidenceBlock.evidenceAutoCreatePages === false) return 
+null;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2637:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2638:  const 
+evidences = previewCase?.evidences || [];
+  components\report-engine\design-renderers\report-design-renderer.tsx:2639:  const 
+perPage = getEvidencePerPage(evidenceBlock);
+  components\report-engine\design-renderers\report-design-renderer.tsx:2640:  const 
+pagesCount = Math.ceil(evidences.length / perPage);
+  components\report-engine\design-renderers\report-design-renderer.tsx:2641:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2642:  if 
+(pagesCount <= 1) return null;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2643:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2644:  return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2645:    <div 
+className="mt-6 space-y-6">
+  components\report-engine\design-renderers\report-design-renderer.tsx:2646:      
+{Array.from({ length: pagesCount - 1 }).map((_, index) => {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2647:        const 
+pageNumber = index + 2;
+  components\report-engine\design-renderers\report-design-renderer.tsx:2648:        const 
+virtualPage = {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2649:          
+...activePage,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2650:          id: 
+`${activePage.id}-evidence-auto-${pageNumber}`,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2651:          
+title: `${activePage.title} - صفحة ${pageNumber}`,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2652:          
+blocks: [
+
+
+
+
+----- PATTERN: getEvidenceFigureStyle -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:2566:            
+</div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2567:          ))}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2568:        </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2569:      
+</section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2570:    );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2571:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:2572:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2573:  return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2574:    <section 
+className={getBlockShellClass(designId, block.variant, textAlign)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2575:      
+{block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, 
+"titleFontSize")} /> : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2576:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2577:      <div 
+className={getEvidenceGridClass(block)} style={getEvidenceGridStyle(block)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2578:{visibleEvidenc
+es.map((evidence, index) => {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2579:          
+const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+  components\report-engine\design-renderers\report-design-renderer.tsx:2580:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2581:          
+return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2582:            
+<figure
+  components\report-engine\design-renderers\report-design-renderer.tsx:2583:              
+key={evidence.id || imageUrl || String(index)}
+> components\report-engine\design-renderers\report-design-renderer.tsx:2584:              
+style={getEvidenceFigureStyle(block)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2585:              
+className="break-inside-avoid overflow-hidden rounded-[1.35rem] border border-slate-200 
+bg-slate-50"
+  components\report-engine\design-renderers\report-design-renderer.tsx:2586:            >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2587:              
+{imageUrl && !isPlaceholderMode ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2588:               
+ <img
+  components\report-engine\design-renderers\report-design-renderer.tsx:2589:               
+   src={imageUrl}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2590:               
+   alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2591:               
+   style={getEvidenceImageStyle(block)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2592:               
+   className={`${getEvidenceImageClass(block)} bg-slate-50`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2593:               
+ />
+  components\report-engine\design-renderers\report-design-renderer.tsx:2594:              
+) : (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2595:               
+ <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2596:               
+   className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center 
+justify-center bg-slate-50 text-center`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2597:               
+ >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2598:               
+   <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2599:               
+     className={[
+  components\report-engine\design-renderers\report-design-renderer.tsx:2600:               
+       "flex h-12 w-12 items-center justify-center rounded-2xl text-xl",
+  components\report-engine\design-renderers\report-design-renderer.tsx:2601:               
+       accent.iconClass,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2602:               
+     ].join(" ")}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3148:function 
+getEvidenceGridStyle(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3149:  const 
+perPage = getEvidencePerPage(block);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3150:  const gapMm 
+= Number(block.evidenceGapMm || 0);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3151:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3152:  const style: 
+Record<string, string> = {};
+  components\report-engine\design-renderers\report-design-renderer.tsx:3153:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3154:  if (gapMm > 
+0) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3155:    style.gap 
+= `${Math.min(Math.max(gapMm, 2), 12)}mm`;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3156:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3157:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3158:  if 
+(block.evidenceLayout !== "ATTACHMENT_LIST") {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3159:    
+style.gridTemplateColumns =
+  components\report-engine\design-renderers\report-design-renderer.tsx:3160:      perPage 
+<= 1 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3161:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3162:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3163:  return style;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3164:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3165:
+> components\report-engine\design-renderers\report-design-renderer.tsx:3166:function 
+getEvidenceFigureStyle(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3167:  const 
+perPage = getEvidencePerPage(block);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3168:  const 
+widthMm = Number(block.evidenceImageWidthMm || 0);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3169:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3170:  if (!widthMm 
+|| perPage > 1) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3171:    return {};
+  components\report-engine\design-renderers\report-design-renderer.tsx:3172:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3173:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3174:  return {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3175:    maxWidth: 
+`${Math.min(Math.max(widthMm, 40), 180)}mm`,
+  components\report-engine\design-renderers\report-design-renderer.tsx:3176:    
+marginInline: "auto",
+  components\report-engine\design-renderers\report-design-renderer.tsx:3177:  };
+  components\report-engine\design-renderers\report-design-renderer.tsx:3178:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3179:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3180:function 
+getEvidenceImageStyle(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3181:  const 
+heightMm = Number(block.evidenceImageHeightMm || 0);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3182:  const 
+widthMm = Number(block.evidenceImageWidthMm || 0);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3183:  const 
+perPage = getEvidencePerPage(block);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3184:
+
+
+
+
+----- PATTERN: getEvidenceImageStyle -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:2573:  return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2574:    <section 
+className={getBlockShellClass(designId, block.variant, textAlign)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2575:      
+{block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, 
+"titleFontSize")} /> : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2576:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2577:      <div 
+className={getEvidenceGridClass(block)} style={getEvidenceGridStyle(block)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2578:{visibleEvidenc
+es.map((evidence, index) => {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2579:          
+const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+  components\report-engine\design-renderers\report-design-renderer.tsx:2580:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2581:          
+return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2582:            
+<figure
+  components\report-engine\design-renderers\report-design-renderer.tsx:2583:              
+key={evidence.id || imageUrl || String(index)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2584:              
+style={getEvidenceFigureStyle(block)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2585:              
+className="break-inside-avoid overflow-hidden rounded-[1.35rem] border border-slate-200 
+bg-slate-50"
+  components\report-engine\design-renderers\report-design-renderer.tsx:2586:            >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2587:              
+{imageUrl && !isPlaceholderMode ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2588:               
+ <img
+  components\report-engine\design-renderers\report-design-renderer.tsx:2589:               
+   src={imageUrl}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2590:               
+   alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+> components\report-engine\design-renderers\report-design-renderer.tsx:2591:               
+   style={getEvidenceImageStyle(block)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2592:               
+   className={`${getEvidenceImageClass(block)} bg-slate-50`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2593:               
+ />
+  components\report-engine\design-renderers\report-design-renderer.tsx:2594:              
+) : (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2595:               
+ <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2596:               
+   className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center 
+justify-center bg-slate-50 text-center`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2597:               
+ >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2598:               
+   <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2599:               
+     className={[
+  components\report-engine\design-renderers\report-design-renderer.tsx:2600:               
+       "flex h-12 w-12 items-center justify-center rounded-2xl text-xl",
+  components\report-engine\design-renderers\report-design-renderer.tsx:2601:               
+       accent.iconClass,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2602:               
+     ].join(" ")}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2603:               
+   >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2604:               
+     📎
+  components\report-engine\design-renderers\report-design-renderer.tsx:2605:               
+   </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2606:               
+   <p className="mt-3 text-xs font-black text-slate-500">مساحة شاهد للمعاينة</p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2607:               
+ </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2608:              
+)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2609:            
+</figure>
+  components\report-engine\design-renderers\report-design-renderer.tsx:3162:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3163:  return style;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3164:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3165:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3166:function 
+getEvidenceFigureStyle(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3167:  const 
+perPage = getEvidencePerPage(block);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3168:  const 
+widthMm = Number(block.evidenceImageWidthMm || 0);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3169:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3170:  if (!widthMm 
+|| perPage > 1) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3171:    return {};
+  components\report-engine\design-renderers\report-design-renderer.tsx:3172:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3173:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3174:  return {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3175:    maxWidth: 
+`${Math.min(Math.max(widthMm, 40), 180)}mm`,
+  components\report-engine\design-renderers\report-design-renderer.tsx:3176:    
+marginInline: "auto",
+  components\report-engine\design-renderers\report-design-renderer.tsx:3177:  };
+  components\report-engine\design-renderers\report-design-renderer.tsx:3178:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3179:
+> components\report-engine\design-renderers\report-design-renderer.tsx:3180:function 
+getEvidenceImageStyle(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3181:  const 
+heightMm = Number(block.evidenceImageHeightMm || 0);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3182:  const 
+widthMm = Number(block.evidenceImageWidthMm || 0);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3183:  const 
+perPage = getEvidencePerPage(block);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3184:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3185:  const style: 
+Record<string, string> = {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3186:    objectFit: 
+block.evidenceFit === "cover" ? "cover" : "contain",
+  components\report-engine\design-renderers\report-design-renderer.tsx:3187:  };
+  components\report-engine\design-renderers\report-design-renderer.tsx:3188:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3189:  if (heightMm 
+> 0) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3190:    
+style.height = `${Math.min(Math.max(heightMm, 35), 190)}mm`;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3191:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3192:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3193:  if (widthMm 
+> 0 && perPage <= 1) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3194:    
+style.width = `${Math.min(Math.max(widthMm, 40), 180)}mm`;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3195:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3196:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3197:  return style;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3198:}
+
+
+
+
+----- PATTERN: getEvidenceImageClass -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:2574:    <section 
+className={getBlockShellClass(designId, block.variant, textAlign)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2575:      
+{block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, 
+"titleFontSize")} /> : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2576:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2577:      <div 
+className={getEvidenceGridClass(block)} style={getEvidenceGridStyle(block)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2578:{visibleEvidenc
+es.map((evidence, index) => {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2579:          
+const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+  components\report-engine\design-renderers\report-design-renderer.tsx:2580:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2581:          
+return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2582:            
+<figure
+  components\report-engine\design-renderers\report-design-renderer.tsx:2583:              
+key={evidence.id || imageUrl || String(index)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2584:              
+style={getEvidenceFigureStyle(block)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2585:              
+className="break-inside-avoid overflow-hidden rounded-[1.35rem] border border-slate-200 
+bg-slate-50"
+  components\report-engine\design-renderers\report-design-renderer.tsx:2586:            >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2587:              
+{imageUrl && !isPlaceholderMode ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2588:               
+ <img
+  components\report-engine\design-renderers\report-design-renderer.tsx:2589:               
+   src={imageUrl}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2590:               
+   alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2591:               
+   style={getEvidenceImageStyle(block)}
+> components\report-engine\design-renderers\report-design-renderer.tsx:2592:               
+   className={`${getEvidenceImageClass(block)} bg-slate-50`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2593:               
+ />
+  components\report-engine\design-renderers\report-design-renderer.tsx:2594:              
+) : (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2595:               
+ <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2596:               
+   className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center 
+justify-center bg-slate-50 text-center`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2597:               
+ >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2598:               
+   <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2599:               
+     className={[
+  components\report-engine\design-renderers\report-design-renderer.tsx:2600:               
+       "flex h-12 w-12 items-center justify-center rounded-2xl text-xl",
+  components\report-engine\design-renderers\report-design-renderer.tsx:2601:               
+       accent.iconClass,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2602:               
+     ].join(" ")}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2603:               
+   >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2604:               
+     📎
+  components\report-engine\design-renderers\report-design-renderer.tsx:2605:               
+   </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2606:               
+   <p className="mt-3 text-xs font-black text-slate-500">مساحة شاهد للمعاينة</p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2607:               
+ </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2608:              
+)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2609:            
+</figure>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2610:          );
+  components\report-engine\design-renderers\report-design-renderer.tsx:3125:      default:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3126:        return 
+"h-[66mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3127:    }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3128:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3129:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3130:  switch 
+(ratio) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3131:    case 
+"SQUARE_1_1":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3132:      return 
+"h-[56mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3133:    case 
+"LANDSCAPE_16_9":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3134:      return 
+"h-[42mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3135:    case 
+"PORTRAIT_3_4":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3136:      return 
+"h-[82mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3137:    case 
+"LANDSCAPE_4_3":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3138:    default:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3139:      return 
+"h-[48mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3140:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3141:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3142:
+> components\report-engine\design-renderers\report-design-renderer.tsx:3143:function 
+getEvidenceImageClass(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3144:  const fit = 
+block.evidenceFit === "cover" ? "object-cover" : "object-contain";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3145:  return 
+`${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3146:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3147:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3148:function 
+getEvidenceGridStyle(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3149:  const 
+perPage = getEvidencePerPage(block);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3150:  const gapMm 
+= Number(block.evidenceGapMm || 0);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3151:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3152:  const style: 
+Record<string, string> = {};
+  components\report-engine\design-renderers\report-design-renderer.tsx:3153:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3154:  if (gapMm > 
+0) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3155:    style.gap 
+= `${Math.min(Math.max(gapMm, 2), 12)}mm`;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3156:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3157:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3158:  if 
+(block.evidenceLayout !== "ATTACHMENT_LIST") {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3159:    
+style.gridTemplateColumns =
+  components\report-engine\design-renderers\report-design-renderer.tsx:3160:      perPage 
+<= 1 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3161:  }
+
+
+
+
+----- PATTERN: getEvidenceImageHeightClass -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:2578:{visibleEvidenc
+es.map((evidence, index) => {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2579:          
+const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+  components\report-engine\design-renderers\report-design-renderer.tsx:2580:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2581:          
+return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2582:            
+<figure
+  components\report-engine\design-renderers\report-design-renderer.tsx:2583:              
+key={evidence.id || imageUrl || String(index)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2584:              
+style={getEvidenceFigureStyle(block)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2585:              
+className="break-inside-avoid overflow-hidden rounded-[1.35rem] border border-slate-200 
+bg-slate-50"
+  components\report-engine\design-renderers\report-design-renderer.tsx:2586:            >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2587:              
+{imageUrl && !isPlaceholderMode ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2588:               
+ <img
+  components\report-engine\design-renderers\report-design-renderer.tsx:2589:               
+   src={imageUrl}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2590:               
+   alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2591:               
+   style={getEvidenceImageStyle(block)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2592:               
+   className={`${getEvidenceImageClass(block)} bg-slate-50`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2593:               
+ />
+  components\report-engine\design-renderers\report-design-renderer.tsx:2594:              
+) : (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2595:               
+ <div
+> components\report-engine\design-renderers\report-design-renderer.tsx:2596:               
+   className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center 
+justify-center bg-slate-50 text-center`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2597:               
+ >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2598:               
+   <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2599:               
+     className={[
+  components\report-engine\design-renderers\report-design-renderer.tsx:2600:               
+       "flex h-12 w-12 items-center justify-center rounded-2xl text-xl",
+  components\report-engine\design-renderers\report-design-renderer.tsx:2601:               
+       accent.iconClass,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2602:               
+     ].join(" ")}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2603:               
+   >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2604:               
+     📎
+  components\report-engine\design-renderers\report-design-renderer.tsx:2605:               
+   </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2606:               
+   <p className="mt-3 text-xs font-black text-slate-500">مساحة شاهد للمعاينة</p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2607:               
+ </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2608:              
+)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2609:            
+</figure>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2610:          );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2611:        })}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2612:      </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2613:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2614:      
+{isPlaceholderMode ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:3075:    imageUrl: 
+"",
+  components\report-engine\design-renderers\report-design-renderer.tsx:3076:  }));
+  components\report-engine\design-renderers\report-design-renderer.tsx:3077:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3078:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3079:function 
+getEvidenceGridClass(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3080:  const 
+perPage = getEvidencePerPage(block);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3081:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3082:  if 
+(block.evidenceLayout === "ATTACHMENT_LIST") {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3083:    return 
+"grid gap-2";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3084:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3085:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3086:  if (perPage 
+<= 1) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3087:    return 
+"grid gap-3";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3088:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3089:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3090:  return "grid 
+gap-3 md:grid-cols-2";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3091:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3092:
+> components\report-engine\design-renderers\report-design-renderer.tsx:3093:function 
+getEvidenceImageHeightClass(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3094:  const 
+perPage = getEvidencePerPage(block);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3095:  const ratio 
+= block.evidenceAspectRatio || "LANDSCAPE_4_3";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3096:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3097:  /*
+  components\report-engine\design-renderers\report-design-renderer.tsx:3098:    Fixed 
+heights are intentional:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3099:    they keep 
+evidence inside the printable A4 area.
+  components\report-engine\design-renderers\report-design-renderer.tsx:3100:    Extra 
+evidence must go to a new Evidence Page instead of stretching A4.
+  components\report-engine\design-renderers\report-design-renderer.tsx:3101:  */
+  components\report-engine\design-renderers\report-design-renderer.tsx:3102:  if (perPage 
+<= 1) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3103:    switch 
+(ratio) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3104:      case 
+"PORTRAIT_3_4":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3105:        return 
+"h-[185mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3106:      case 
+"SQUARE_1_1":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3107:        return 
+"h-[160mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3108:      case 
+"LANDSCAPE_16_9":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3109:        return 
+"h-[122mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3110:      case 
+"LANDSCAPE_4_3":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3111:      default:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3127:    }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3128:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3129:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3130:  switch 
+(ratio) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3131:    case 
+"SQUARE_1_1":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3132:      return 
+"h-[56mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3133:    case 
+"LANDSCAPE_16_9":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3134:      return 
+"h-[42mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3135:    case 
+"PORTRAIT_3_4":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3136:      return 
+"h-[82mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3137:    case 
+"LANDSCAPE_4_3":
+  components\report-engine\design-renderers\report-design-renderer.tsx:3138:    default:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3139:      return 
+"h-[48mm]";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3140:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3141:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3142:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3143:function 
+getEvidenceImageClass(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3144:  const fit = 
+block.evidenceFit === "cover" ? "object-cover" : "object-contain";
+> components\report-engine\design-renderers\report-design-renderer.tsx:3145:  return 
+`${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3146:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3147:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3148:function 
+getEvidenceGridStyle(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3149:  const 
+perPage = getEvidencePerPage(block);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3150:  const gapMm 
+= Number(block.evidenceGapMm || 0);
+  components\report-engine\design-renderers\report-design-renderer.tsx:3151:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3152:  const style: 
+Record<string, string> = {};
+  components\report-engine\design-renderers\report-design-renderer.tsx:3153:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3154:  if (gapMm > 
+0) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3155:    style.gap 
+= `${Math.min(Math.max(gapMm, 2), 12)}mm`;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3156:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3157:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3158:  if 
+(block.evidenceLayout !== "ATTACHMENT_LIST") {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3159:    
+style.gridTemplateColumns =
+  components\report-engine\design-renderers\report-design-renderer.tsx:3160:      perPage 
+<= 1 ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))";
+  components\report-engine\design-renderers\report-design-renderer.tsx:3161:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3162:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3163:  return style;
+
+
+
+
+----- PATTERN: مساحة شاهد للمعاينة -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:2588:               
+ <img
+  components\report-engine\design-renderers\report-design-renderer.tsx:2589:               
+   src={imageUrl}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2590:               
+   alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2591:               
+   style={getEvidenceImageStyle(block)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2592:               
+   className={`${getEvidenceImageClass(block)} bg-slate-50`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2593:               
+ />
+  components\report-engine\design-renderers\report-design-renderer.tsx:2594:              
+) : (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2595:               
+ <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2596:               
+   className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center 
+justify-center bg-slate-50 text-center`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2597:               
+ >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2598:               
+   <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2599:               
+     className={[
+  components\report-engine\design-renderers\report-design-renderer.tsx:2600:               
+       "flex h-12 w-12 items-center justify-center rounded-2xl text-xl",
+  components\report-engine\design-renderers\report-design-renderer.tsx:2601:               
+       accent.iconClass,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2602:               
+     ].join(" ")}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2603:               
+   >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2604:               
+     📎
+  components\report-engine\design-renderers\report-design-renderer.tsx:2605:               
+   </div>
+> components\report-engine\design-renderers\report-design-renderer.tsx:2606:               
+   <p className="mt-3 text-xs font-black text-slate-500">مساحة شاهد للمعاينة</p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2607:               
+ </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2608:              
+)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2609:            
+</figure>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2610:          );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2611:        })}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2612:      </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2613:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2614:      
+{isPlaceholderMode ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2615:        <p 
+className={["mt-3 rounded-2xl px-3 py-2 text-xs font-bold", accent.noticeClass].join(" ")}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2616:          هذه 
+مربعات معاينة فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
+  components\report-engine\design-renderers\report-design-renderer.tsx:2617:        </p>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2618:      ) : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2619:    </section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2620:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2621:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2622:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2623:function 
+AutoEvidencePages({
+  components\report-engine\design-renderers\report-design-renderer.tsx:2624:  designId,
+
+
+
+
+----- PATTERN: الشواهد والمرفقات -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:670:        
+normalizeFinalReportBlock(template, block, blockIndex, editorialBlocks),
+  components\report-engine\design-renderers\report-design-renderer.tsx:671:      );
+  components\report-engine\design-renderers\report-design-renderer.tsx:672:
+  components\report-engine\design-renderers\report-design-renderer.tsx:673:      const 
+shouldAddEvidenceBlock =
+  components\report-engine\design-renderers\report-design-renderer.tsx:674:        
+page?.kind === "evidence" &&
+  components\report-engine\design-renderers\report-design-renderer.tsx:675:        
+!normalizedBlocks.some((block: any) => block.kind === "evidence-gallery");
+  components\report-engine\design-renderers\report-design-renderer.tsx:676:
+  components\report-engine\design-renderers\report-design-renderer.tsx:677:      return {
+  components\report-engine\design-renderers\report-design-renderer.tsx:678:        ...page,
+  components\report-engine\design-renderers\report-design-renderer.tsx:679:        id: 
+page?.id || "final-page-" + (pageIndex + 1),
+  components\report-engine\design-renderers\report-design-renderer.tsx:680:        title: 
+page?.title || "صفحة " + (pageIndex + 1),
+  components\report-engine\design-renderers\report-design-renderer.tsx:681:        kind: 
+page?.kind || "content",
+  components\report-engine\design-renderers\report-design-renderer.tsx:682:        blocks: 
+shouldAddEvidenceBlock
+  components\report-engine\design-renderers\report-design-renderer.tsx:683:          ? [
+  components\report-engine\design-renderers\report-design-renderer.tsx:684:              
+...normalizedBlocks,
+  components\report-engine\design-renderers\report-design-renderer.tsx:685:              {
+  components\report-engine\design-renderers\report-design-renderer.tsx:686:                
+id: "auto-evidence-gallery-" + (pageIndex + 1),
+  components\report-engine\design-renderers\report-design-renderer.tsx:687:                
+kind: "evidence-gallery",
+> components\report-engine\design-renderers\report-design-renderer.tsx:688:                
+title: "الشواهد والمرفقات",
+  components\report-engine\design-renderers\report-design-renderer.tsx:689:                
+content: "",
+  components\report-engine\design-renderers\report-design-renderer.tsx:690:                
+variant: "card",
+  components\report-engine\design-renderers\report-design-renderer.tsx:691:                
+align: "right",
+  components\report-engine\design-renderers\report-design-renderer.tsx:692:                
+showTitle: true,
+  components\report-engine\design-renderers\report-design-renderer.tsx:693:                
+placement: "flow",
+  components\report-engine\design-renderers\report-design-renderer.tsx:694:                
+evidenceLayout: "GRID_2X2",
+  components\report-engine\design-renderers\report-design-renderer.tsx:695:                
+evidenceFit: "contain",
+  components\report-engine\design-renderers\report-design-renderer.tsx:696:                
+evidenceAspectRatio: "LANDSCAPE_4_3",
+  components\report-engine\design-renderers\report-design-renderer.tsx:697:                
+evidenceShowCaptions: true,
+  components\report-engine\design-renderers\report-design-renderer.tsx:698:                
+evidenceAutoCreatePages: true,
+  components\report-engine\design-renderers\report-design-renderer.tsx:699:                
+evidenceEmptyBehavior: "message",
+  components\report-engine\design-renderers\report-design-renderer.tsx:700:              },
+  components\report-engine\design-renderers\report-design-renderer.tsx:701:            ]
+  components\report-engine\design-renderers\report-design-renderer.tsx:702:          : 
+normalizedBlocks,
+  components\report-engine\design-renderers\report-design-renderer.tsx:703:      };
+  components\report-engine\design-renderers\report-design-renderer.tsx:704:    }),
+  components\report-engine\design-renderers\report-design-renderer.tsx:705:  };
+  components\report-engine\design-renderers\report-design-renderer.tsx:706:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:968:  if (kind === 
+"case-meta") return "field-list";
+  components\report-engine\design-renderers\report-design-renderer.tsx:969:  if (kind === 
+"student-summary") return "field-list";
+  components\report-engine\design-renderers\report-design-renderer.tsx:970:  if (kind === 
+"service-summary") return "field-list";
+  components\report-engine\design-renderers\report-design-renderer.tsx:971:  if (kind === 
+"field-list") return "field-list";
+  components\report-engine\design-renderers\report-design-renderer.tsx:972:  if (kind === 
+"approval-signature") return "closing-note";
+  components\report-engine\design-renderers\report-design-renderer.tsx:973:  if (kind === 
+"identity-header") return "section-text";
+  components\report-engine\design-renderers\report-design-renderer.tsx:974:
+  components\report-engine\design-renderers\report-design-renderer.tsx:975:  return kind;
+  components\report-engine\design-renderers\report-design-renderer.tsx:976:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:977:
+  components\report-engine\design-renderers\report-design-renderer.tsx:978:function 
+getDefaultFinalBlockTitle(kind: string) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:979:  if (kind === 
+"cover-title") return "عنوان التقارير";
+  components\report-engine\design-renderers\report-design-renderer.tsx:980:  if (kind === 
+"case-meta") return "بيانات الحالة";
+  components\report-engine\design-renderers\report-design-renderer.tsx:981:  if (kind === 
+"student-summary") return "بيانات الطالب/الطالبة";
+  components\report-engine\design-renderers\report-design-renderer.tsx:982:  if (kind === 
+"service-summary") return "بيانات الخدمة";
+  components\report-engine\design-renderers\report-design-renderer.tsx:983:  if (kind === 
+"field-list") return "حقول من الحالة";
+  components\report-engine\design-renderers\report-design-renderer.tsx:984:  if (kind === 
+"text-library") return "نص من مكتبة النصوص";
+  components\report-engine\design-renderers\report-design-renderer.tsx:985:  if (kind === 
+"custom-paragraph") return "فقرة مخصصة";
+> components\report-engine\design-renderers\report-design-renderer.tsx:986:  if (kind === 
+"evidence-gallery") return "الشواهد والمرفقات";
+  components\report-engine\design-renderers\report-design-renderer.tsx:987:  if (kind === 
+"approval-signature") return "الاعتماد";
+  components\report-engine\design-renderers\report-design-renderer.tsx:988:
+  components\report-engine\design-renderers\report-design-renderer.tsx:989:  return "بلوك 
+التقارير";
+  components\report-engine\design-renderers\report-design-renderer.tsx:990:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:991:
+  components\report-engine\design-renderers\report-design-renderer.tsx:992:
+  components\report-engine\design-renderers\report-design-renderer.tsx:993:function 
+getFinalEditedBlockContent(
+  components\report-engine\design-renderers\report-design-renderer.tsx:994:  block: any,
+  components\report-engine\design-renderers\report-design-renderer.tsx:995:  blockId: 
+string,
+  components\report-engine\design-renderers\report-design-renderer.tsx:996:  
+editorialBlocks: Record<string, string>,
+  components\report-engine\design-renderers\report-design-renderer.tsx:997:) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:998:  const 
+candidateKeys = [
+  components\report-engine\design-renderers\report-design-renderer.tsx:999:    blockId,
+  components\report-engine\design-renderers\report-design-renderer.tsx:1000:    block?.id 
+? String(block.id) : "",
+  components\report-engine\design-renderers\report-design-renderer.tsx:1001:  
+].filter(Boolean);
+  components\report-engine\design-renderers\report-design-renderer.tsx:1002:
+  components\report-engine\design-renderers\report-design-renderer.tsx:1003:  for (const 
+key of candidateKeys) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:1004:    const 
+value = editorialBlocks[key];
+
+
+
+
+----- PATTERN: rounded-[1.35rem] -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:2567:          ))}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2568:        </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2569:      
+</section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2570:    );
+  components\report-engine\design-renderers\report-design-renderer.tsx:2571:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:2572:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2573:  return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2574:    <section 
+className={getBlockShellClass(designId, block.variant, textAlign)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2575:      
+{block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, 
+"titleFontSize")} /> : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2576:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2577:      <div 
+className={getEvidenceGridClass(block)} style={getEvidenceGridStyle(block)}>
+  components\report-engine\design-renderers\report-design-renderer.tsx:2578:{visibleEvidenc
+es.map((evidence, index) => {
+  components\report-engine\design-renderers\report-design-renderer.tsx:2579:          
+const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+  components\report-engine\design-renderers\report-design-renderer.tsx:2580:
+  components\report-engine\design-renderers\report-design-renderer.tsx:2581:          
+return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2582:            
+<figure
+  components\report-engine\design-renderers\report-design-renderer.tsx:2583:              
+key={evidence.id || imageUrl || String(index)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2584:              
+style={getEvidenceFigureStyle(block)}
+> components\report-engine\design-renderers\report-design-renderer.tsx:2585:              
+className="break-inside-avoid overflow-hidden rounded-[1.35rem] border border-slate-200 
+bg-slate-50"
+  components\report-engine\design-renderers\report-design-renderer.tsx:2586:            >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2587:              
+{imageUrl && !isPlaceholderMode ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2588:               
+ <img
+  components\report-engine\design-renderers\report-design-renderer.tsx:2589:               
+   src={imageUrl}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2590:               
+   alt={evidence.title || `شاهد ${startIndex + index + 1}`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2591:               
+   style={getEvidenceImageStyle(block)}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2592:               
+   className={`${getEvidenceImageClass(block)} bg-slate-50`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2593:               
+ />
+  components\report-engine\design-renderers\report-design-renderer.tsx:2594:              
+) : (
+  components\report-engine\design-renderers\report-design-renderer.tsx:2595:               
+ <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2596:               
+   className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center 
+justify-center bg-slate-50 text-center`}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2597:               
+ >
+  components\report-engine\design-renderers\report-design-renderer.tsx:2598:               
+   <div
+  components\report-engine\design-renderers\report-design-renderer.tsx:2599:               
+     className={[
+  components\report-engine\design-renderers\report-design-renderer.tsx:2600:               
+       "flex h-12 w-12 items-center justify-center rounded-2xl text-xl",
+  components\report-engine\design-renderers\report-design-renderer.tsx:2601:               
+       accent.iconClass,
+  components\report-engine\design-renderers\report-design-renderer.tsx:2602:               
+     ].join(" ")}
+  components\report-engine\design-renderers\report-design-renderer.tsx:2603:               
+   >
+
+
+
+
+----- PATTERN: suppressAutoEvidencePages -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:213:};
+  components\report-engine\design-renderers\report-design-renderer.tsx:214:
+  components\report-engine\design-renderers\report-design-renderer.tsx:215:type 
+ReportDesignRendererProps = {
+  components\report-engine\design-renderers\report-design-renderer.tsx:216:  designId?: 
+ReportDesignId;
+  components\report-engine\design-renderers\report-design-renderer.tsx:217:  template: any;
+  components\report-engine\design-renderers\report-design-renderer.tsx:218:  activePage?: 
+any;
+  components\report-engine\design-renderers\report-design-renderer.tsx:219:  activePageId: 
+string;
+  components\report-engine\design-renderers\report-design-renderer.tsx:220:  context: 
+Record<string, string>;
+  components\report-engine\design-renderers\report-design-renderer.tsx:221:  previewCase: 
+PreviewCaseData | null;
+  components\report-engine\design-renderers\report-design-renderer.tsx:222:  
+onActivePageChange: (pageId: string) => void;
+  components\report-engine\design-renderers\report-design-renderer.tsx:223:  onAddPage: () 
+=> void;
+  components\report-engine\design-renderers\report-design-renderer.tsx:224:  onMovePage?: 
+(pageId: string, direction: "previous" | "next") => void;
+  components\report-engine\design-renderers\report-design-renderer.tsx:225:  
+onDeletePage?: (pageId: string) => void;
+  components\report-engine\design-renderers\report-design-renderer.tsx:226:  canMovePage?: 
+(pageId: string, direction: "previous" | "next") => boolean;
+  components\report-engine\design-renderers\report-design-renderer.tsx:227:  
+canDeletePage?: (pageId: string) => boolean;
+  components\report-engine\design-renderers\report-design-renderer.tsx:228:  renderMode?: 
+"single" | "stack";
+  components\report-engine\design-renderers\report-design-renderer.tsx:229:  
+chromeLayout?: "joined" | "split";
+  components\report-engine\design-renderers\report-design-renderer.tsx:230:
+> components\report-engine\design-renderers\report-design-renderer.tsx:231:  
+suppressAutoEvidencePages?: boolean;
+  components\report-engine\design-renderers\report-design-renderer.tsx:232:};
+  components\report-engine\design-renderers\report-design-renderer.tsx:233:
+  components\report-engine\design-renderers\report-design-renderer.tsx:234:export const 
+reportDesignTemplates: Array<{
+  components\report-engine\design-renderers\report-design-renderer.tsx:235:  id: 
+ReportDesignId;
+  components\report-engine\design-renderers\report-design-renderer.tsx:236:  name: string;
+  components\report-engine\design-renderers\report-design-renderer.tsx:237:  description: 
+string;
+  components\report-engine\design-renderers\report-design-renderer.tsx:238:  badge: string;
+  components\report-engine\design-renderers\report-design-renderer.tsx:239:  cardClass: 
+string;
+  components\report-engine\design-renderers\report-design-renderer.tsx:240:  
+activeCardClass: string;
+  components\report-engine\design-renderers\report-design-renderer.tsx:241:}> = [
+  components\report-engine\design-renderers\report-design-renderer.tsx:242:  {
+  components\report-engine\design-renderers\report-design-renderer.tsx:243:    id: 
+"ministry-form",
+  components\report-engine\design-renderers\report-design-renderer.tsx:244:    name: 
+"نموذج الوزارة الرسمي",
+  components\report-engine\design-renderers\report-design-renderer.tsx:245:    badge: 
+"رسمي",
+  components\report-engine\design-renderers\report-design-renderer.tsx:246:    
+description: "قريب من نماذج الوزارة: رأس داكن، شكل رسمي، وفوتر أخضر.",
+  components\report-engine\design-renderers\report-design-renderer.tsx:247:    cardClass: 
+"border-slate-200 bg-slate-50 hover:bg-white",
+  components\report-engine\design-renderers\report-design-renderer.tsx:248:    
+activeCardClass: "border-slate-800 bg-slate-100 shadow-sm",
+  components\report-engine\design-renderers\report-design-renderer.tsx:249:  },
+  components\report-engine\design-renderers\report-design-renderer.tsx:345:  },
+  components\report-engine\design-renderers\report-design-renderer.tsx:346:];
+  components\report-engine\design-renderers\report-design-renderer.tsx:347:
+  components\report-engine\design-renderers\report-design-renderer.tsx:348:export function 
+ReportDesignRenderer({
+  components\report-engine\design-renderers\report-design-renderer.tsx:349:  designId,
+  components\report-engine\design-renderers\report-design-renderer.tsx:350:  template,
+  components\report-engine\design-renderers\report-design-renderer.tsx:351:  activePage,
+  components\report-engine\design-renderers\report-design-renderer.tsx:352:  activePageId,
+  components\report-engine\design-renderers\report-design-renderer.tsx:353:  context,
+  components\report-engine\design-renderers\report-design-renderer.tsx:354:  previewCase,
+  components\report-engine\design-renderers\report-design-renderer.tsx:355:  
+onActivePageChange,
+  components\report-engine\design-renderers\report-design-renderer.tsx:356:  onAddPage,
+  components\report-engine\design-renderers\report-design-renderer.tsx:357:  onMovePage,
+  components\report-engine\design-renderers\report-design-renderer.tsx:358:  onDeletePage,
+  components\report-engine\design-renderers\report-design-renderer.tsx:359:  canMovePage,
+  components\report-engine\design-renderers\report-design-renderer.tsx:360:  canDeletePage,
+  components\report-engine\design-renderers\report-design-renderer.tsx:361:  renderMode = 
+"single",
+  components\report-engine\design-renderers\report-design-renderer.tsx:362:  chromeLayout 
+= "joined",
+> components\report-engine\design-renderers\report-design-renderer.tsx:363:  
+suppressAutoEvidencePages = false,
+  components\report-engine\design-renderers\report-design-renderer.tsx:364:}: 
+ReportDesignRendererProps) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:365:  const 
+selectedDesign = normalizeDesignId(
+  components\report-engine\design-renderers\report-design-renderer.tsx:366:    designId || 
+template?.designTemplateId || "ministry-form",
+  components\report-engine\design-renderers\report-design-renderer.tsx:367:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:368:
+  components\report-engine\design-renderers\report-design-renderer.tsx:369:  const 
+logoWidthPx = getDesignLogoNumber(
+  components\report-engine\design-renderers\report-design-renderer.tsx:370:    context,
+  components\report-engine\design-renderers\report-design-renderer.tsx:371:    
+"report.logoWidthPx",
+  components\report-engine\design-renderers\report-design-renderer.tsx:372:    96,
+  components\report-engine\design-renderers\report-design-renderer.tsx:373:    24,
+  components\report-engine\design-renderers\report-design-renderer.tsx:374:    240,
+  components\report-engine\design-renderers\report-design-renderer.tsx:375:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:376:
+  components\report-engine\design-renderers\report-design-renderer.tsx:377:  const 
+logoHeightPx = getDesignLogoNumber(
+  components\report-engine\design-renderers\report-design-renderer.tsx:378:    context,
+  components\report-engine\design-renderers\report-design-renderer.tsx:379:    
+"report.logoHeightPx",
+  components\report-engine\design-renderers\report-design-renderer.tsx:380:    56,
+  components\report-engine\design-renderers\report-design-renderer.tsx:381:    20,
+  components\report-engine\design-renderers\report-design-renderer.tsx:518:                
+page={page}
+  components\report-engine\design-renderers\report-design-renderer.tsx:519:                
+context={context}
+  components\report-engine\design-renderers\report-design-renderer.tsx:520:                
+previewCase={previewCase}
+  components\report-engine\design-renderers\report-design-renderer.tsx:521:                
+pageLabel={page?.title || "صفحة"}
+  components\report-engine\design-renderers\report-design-renderer.tsx:522:              />
+  components\report-engine\design-renderers\report-design-renderer.tsx:523:            
+</div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:524:          ))}
+  components\report-engine\design-renderers\report-design-renderer.tsx:525:        </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:526:      ) : (
+  components\report-engine\design-renderers\report-design-renderer.tsx:527:        
+<A4DesignPage
+  components\report-engine\design-renderers\report-design-renderer.tsx:528:          
+designId={selectedDesign}
+  components\report-engine\design-renderers\report-design-renderer.tsx:529:          
+page={activePage}
+  components\report-engine\design-renderers\report-design-renderer.tsx:530:          
+context={context}
+  components\report-engine\design-renderers\report-design-renderer.tsx:531:          
+previewCase={previewCase}
+  components\report-engine\design-renderers\report-design-renderer.tsx:532:          
+pageLabel={activePage?.title || "صفحة"}
+  components\report-engine\design-renderers\report-design-renderer.tsx:533:        />
+  components\report-engine\design-renderers\report-design-renderer.tsx:534:      )}
+  components\report-engine\design-renderers\report-design-renderer.tsx:535:
+> components\report-engine\design-renderers\report-design-renderer.tsx:536:      
+{!suppressAutoEvidencePages ? (
+  components\report-engine\design-renderers\report-design-renderer.tsx:537:        
+<AutoEvidencePages
+  components\report-engine\design-renderers\report-design-renderer.tsx:538:          
+designId={selectedDesign}
+  components\report-engine\design-renderers\report-design-renderer.tsx:539:          
+activePage={activePage}
+  components\report-engine\design-renderers\report-design-renderer.tsx:540:          
+context={context}
+  components\report-engine\design-renderers\report-design-renderer.tsx:541:          
+previewCase={previewCase}
+  components\report-engine\design-renderers\report-design-renderer.tsx:542:        />
+  components\report-engine\design-renderers\report-design-renderer.tsx:543:      ) : null}
+  components\report-engine\design-renderers\report-design-renderer.tsx:544:    </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:545:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:546:
+  components\report-engine\design-renderers\report-design-renderer.tsx:547:  if 
+(chromeLayout === "split") {
+  components\report-engine\design-renderers\report-design-renderer.tsx:548:    return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:549:      <div 
+className="space-y-4">
+  components\report-engine\design-renderers\report-design-renderer.tsx:550:        
+{logoStyle}
+  components\report-engine\design-renderers\report-design-renderer.tsx:551:        
+{headerStyle}
+  components\report-engine\design-renderers\report-design-renderer.tsx:552:
+  components\report-engine\design-renderers\report-design-renderer.tsx:553:        
+<section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+  components\report-engine\design-renderers\report-design-renderer.tsx:554:          
+{controls}
+
+
+
+
+----- PATTERN: FinalReportDesignRenderer -----
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:558:          
+{preview}
+  components\report-engine\design-renderers\report-design-renderer.tsx:559:        
+</section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:560:      </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:561:    );
+  components\report-engine\design-renderers\report-design-renderer.tsx:562:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:563:
+  components\report-engine\design-renderers\report-design-renderer.tsx:564:  return (
+  components\report-engine\design-renderers\report-design-renderer.tsx:565:    <section 
+className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+  components\report-engine\design-renderers\report-design-renderer.tsx:566:      
+{logoStyle}
+  components\report-engine\design-renderers\report-design-renderer.tsx:567:      
+{headerStyle}
+  components\report-engine\design-renderers\report-design-renderer.tsx:568:
+  components\report-engine\design-renderers\report-design-renderer.tsx:569:      <div 
+className="report-design-logo-control-style">
+  components\report-engine\design-renderers\report-design-renderer.tsx:570:        <div 
+className="mb-5">{controls}</div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:571:        
+{preview}
+  components\report-engine\design-renderers\report-design-renderer.tsx:572:      </div>
+  components\report-engine\design-renderers\report-design-renderer.tsx:573:    </section>
+  components\report-engine\design-renderers\report-design-renderer.tsx:574:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:575:}
+> components\report-engine\design-renderers\report-design-renderer.tsx:576:export function 
+FinalReportDesignRenderer({
+  components\report-engine\design-renderers\report-design-renderer.tsx:577:  template,
+  components\report-engine\design-renderers\report-design-renderer.tsx:578:  
+previewCaseData,
+  components\report-engine\design-renderers\report-design-renderer.tsx:579:  
+editorialBlocks = {},
+  components\report-engine\design-renderers\report-design-renderer.tsx:580:  identity = {},
+  components\report-engine\design-renderers\report-design-renderer.tsx:581:}: {
+  components\report-engine\design-renderers\report-design-renderer.tsx:582:  template: any;
+  components\report-engine\design-renderers\report-design-renderer.tsx:583:  
+previewCaseData: PreviewCaseData | null;
+  components\report-engine\design-renderers\report-design-renderer.tsx:584:  
+editorialBlocks?: Record<string, string>;
+  components\report-engine\design-renderers\report-design-renderer.tsx:585:  identity?: 
+Record<string, any>;
+  components\report-engine\design-renderers\report-design-renderer.tsx:586:}) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:587:  const 
+selectedDesign = normalizeDesignId(
+  components\report-engine\design-renderers\report-design-renderer.tsx:588:    
+template?.designTemplateId || template?.designTheme || "ministry-form",
+  components\report-engine\design-renderers\report-design-renderer.tsx:589:  );
+  components\report-engine\design-renderers\report-design-renderer.tsx:590:
+  components\report-engine\design-renderers\report-design-renderer.tsx:591:  const 
+normalizedTemplate = normalizeFinalReportTemplate(
+  components\report-engine\design-renderers\report-design-renderer.tsx:592:    template,
+  components\report-engine\design-renderers\report-design-renderer.tsx:593:    
+editorialBlocks,
+  components\report-engine\design-renderers\report-design-renderer.tsx:594:  );
+
+
+
+
+############################################################
+FILE: components\reports\report-studio-editor.tsx
+############################################################
+
+----- PATTERN: function render -----
+
+  components\reports\report-studio-editor.tsx:1722:function detectSuggestionPurpose(title: 
+string, kind: string) {
+  components\reports\report-studio-editor.tsx:1723:  const text = `${title} ${kind}`;
+  components\reports\report-studio-editor.tsx:1724:
+  components\reports\report-studio-editor.tsx:1725:  if (text.includes("هدف") || 
+text.includes("أهداف")) return "goals";
+  components\reports\report-studio-editor.tsx:1726:  if (text.includes("إجراء") || 
+text.includes("تنفيذ")) return "procedures";
+  components\reports\report-studio-editor.tsx:1727:  if (text.includes("نتيجة") || 
+text.includes("نتائج")) return "results";
+  components\reports\report-studio-editor.tsx:1728:  if (text.includes("توصية") || 
+text.includes("توصيات")) return "recommendations";
+  components\reports\report-studio-editor.tsx:1729:  if (text.includes("خاتمة") || 
+text.includes("اعتماد")) return "closing";
+  components\reports\report-studio-editor.tsx:1730:
+  components\reports\report-studio-editor.tsx:1731:  return "intro";
+  components\reports\report-studio-editor.tsx:1732:}
+  components\reports\report-studio-editor.tsx:1733:
+  components\reports\report-studio-editor.tsx:1734:function safeValue(value: string | 
+undefined, fallback: string) {
+  components\reports\report-studio-editor.tsx:1735:  const clean = String(value || 
+"").trim();
+  components\reports\report-studio-editor.tsx:1736:
+  components\reports\report-studio-editor.tsx:1737:  return clean || fallback;
+  components\reports\report-studio-editor.tsx:1738:}
+  components\reports\report-studio-editor.tsx:1739:
+> components\reports\report-studio-editor.tsx:1740:function renderText(text: string, 
+context: Record<string, string>) {
+  components\reports\report-studio-editor.tsx:1741:  return 
+repairArabicMojibake(String(text || ""))
+  components\reports\report-studio-editor.tsx:1742:    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, 
+(_match, key: string) =>
+  components\reports\report-studio-editor.tsx:1743:      resolveContextVariable(key, 
+context),
+  components\reports\report-studio-editor.tsx:1744:    )
+  components\reports\report-studio-editor.tsx:1745:    
+.replace(/\{([A-Za-z0-9_.\-\u0600-\u06FF ]+)\}/g, (_match, key: string) =>
+  components\reports\report-studio-editor.tsx:1746:      resolveContextVariable(key, 
+context),
+  components\reports\report-studio-editor.tsx:1747:    );
+  components\reports\report-studio-editor.tsx:1748:}
+  components\reports\report-studio-editor.tsx:1749:
+  components\reports\report-studio-editor.tsx:1750:function resolveContextVariable(key: 
+string, context: Record<string, string>) {
+  components\reports\report-studio-editor.tsx:1751:  const cleanKey = String(key || 
+"").trim();
+  components\reports\report-studio-editor.tsx:1752:
+  components\reports\report-studio-editor.tsx:1753:  const aliases: Record<string, 
+string[]> = {
+  components\reports\report-studio-editor.tsx:1754:    reportTitle: ["reportTitle", 
+"report.title", "case.title", "caseTitle"],
+  components\reports\report-studio-editor.tsx:1755:    caseTitle: ["case.title", 
+"caseTitle", "reportTitle"],
+  components\reports\report-studio-editor.tsx:1756:    serviceName: ["service.name", 
+"serviceName"],
+  components\reports\report-studio-editor.tsx:1757:    studentName: ["student.name", 
+"studentName"],
+  components\reports\report-studio-editor.tsx:1758:    studentGrade: ["student.grade", 
+"studentGrade"],
+
+
+
+
+----- PATTERN: evidence-gallery -----
+
+  components\reports\report-studio-editor.tsx:216:  const [evidenceItems, 
+setEvidenceItems] = useState<EvidenceItem[]>(
+  components\reports\report-studio-editor.tsx:217:    report.evidenceItems,
+  components\reports\report-studio-editor.tsx:218:  );
+  components\reports\report-studio-editor.tsx:219:  const [savingEvidence, 
+setSavingEvidence] = useState(false);
+  components\reports\report-studio-editor.tsx:220:  const [evidenceLayoutMode, 
+setEvidenceLayoutMode] =
+  components\reports\report-studio-editor.tsx:221:    
+useState<EvidenceLayoutMode>(parsed.evidenceLayoutMode || "two-per-page");
+  components\reports\report-studio-editor.tsx:222:
+  components\reports\report-studio-editor.tsx:223:  const runtimeContext = useMemo(() => 
+buildRuntimeContext(report), [report]);
+  components\reports\report-studio-editor.tsx:224:
+  components\reports\report-studio-editor.tsx:225:  const activePage =
+  components\reports\report-studio-editor.tsx:226:    pages.find((page: TemplatePage) => 
+page.id === activePageId) || pages[0];
+  components\reports\report-studio-editor.tsx:227:
+  components\reports\report-studio-editor.tsx:228:  const editableBlocks = useMemo(() => {
+  components\reports\report-studio-editor.tsx:229:    return (activePage?.blocks || 
+[]).filter(isEditableTextBlock);
+  components\reports\report-studio-editor.tsx:230:  }, [activePage]);
+  components\reports\report-studio-editor.tsx:231:
+  components\reports\report-studio-editor.tsx:232:  const activePageHasEvidence = 
+useMemo(() => {
+  components\reports\report-studio-editor.tsx:233:    const pageHasEvidenceBlock = 
+(activePage?.blocks || []).some(
+> components\reports\report-studio-editor.tsx:234:      (block) => 
+normalizeBlockKind(block) === "evidence-gallery",
+  components\reports\report-studio-editor.tsx:235:    );
+  components\reports\report-studio-editor.tsx:236:
+  components\reports\report-studio-editor.tsx:237:    return pageHasEvidenceBlock || 
+report.evidenceItems.length > 0;
+  components\reports\report-studio-editor.tsx:238:  }, [activePage, 
+report.evidenceItems.length]);
+  components\reports\report-studio-editor.tsx:239:
+  components\reports\report-studio-editor.tsx:240:  const evidenceChanged =
+  components\reports\report-studio-editor.tsx:241:    JSON.stringify(
+  components\reports\report-studio-editor.tsx:242:      evidenceItems.map((item) => ({
+  components\reports\report-studio-editor.tsx:243:        id: item.id,
+  components\reports\report-studio-editor.tsx:244:        caption: item.caption || "",
+  components\reports\report-studio-editor.tsx:245:        visible: item.visible,
+  components\reports\report-studio-editor.tsx:246:        sortOrder: item.sortOrder,
+  components\reports\report-studio-editor.tsx:247:      })),
+  components\reports\report-studio-editor.tsx:248:    ) !==
+  components\reports\report-studio-editor.tsx:249:    JSON.stringify(
+  components\reports\report-studio-editor.tsx:250:      report.evidenceItems.map((item) => 
+({
+  components\reports\report-studio-editor.tsx:251:        id: item.id,
+  components\reports\report-studio-editor.tsx:252:        caption: item.caption || "",
+  components\reports\report-studio-editor.tsx:1416:
+  components\reports\report-studio-editor.tsx:1417:  for (const [key, child] of 
+Object.entries(value)) {
+  components\reports\report-studio-editor.tsx:1418:    const nextKey = prefix ? 
+`${prefix}.${key}` : key;
+  components\reports\report-studio-editor.tsx:1419:
+  components\reports\report-studio-editor.tsx:1420:    if (child && typeof child === 
+"object" && !Array.isArray(child)) {
+  components\reports\report-studio-editor.tsx:1421:      flattenObject(child, nextKey, 
+result);
+  components\reports\report-studio-editor.tsx:1422:    } else {
+  components\reports\report-studio-editor.tsx:1423:      result[nextKey] = String(child ?? 
+"");
+  components\reports\report-studio-editor.tsx:1424:    }
+  components\reports\report-studio-editor.tsx:1425:  }
+  components\reports\report-studio-editor.tsx:1426:
+  components\reports\report-studio-editor.tsx:1427:  return result;
+  components\reports\report-studio-editor.tsx:1428:}
+  components\reports\report-studio-editor.tsx:1429:
+  components\reports\report-studio-editor.tsx:1430:function isEditableTextBlock(block: 
+TemplateBlock) {
+  components\reports\report-studio-editor.tsx:1431:  const kind = 
+normalizeBlockKind(block);
+  components\reports\report-studio-editor.tsx:1432:
+  components\reports\report-studio-editor.tsx:1433:  if (
+> components\reports\report-studio-editor.tsx:1434:    kind === "evidence-gallery" ||
+  components\reports\report-studio-editor.tsx:1435:    kind === "dynamic-fields" ||
+  components\reports\report-studio-editor.tsx:1436:    kind === "field-list" ||
+  components\reports\report-studio-editor.tsx:1437:    kind === "meta-strip" ||
+  components\reports\report-studio-editor.tsx:1438:    kind === "case-meta" ||
+  components\reports\report-studio-editor.tsx:1439:    kind === "student-summary" ||
+  components\reports\report-studio-editor.tsx:1440:    kind === "service-summary"
+  components\reports\report-studio-editor.tsx:1441:  ) {
+  components\reports\report-studio-editor.tsx:1442:    return false;
+  components\reports\report-studio-editor.tsx:1443:  }
+  components\reports\report-studio-editor.tsx:1444:
+  components\reports\report-studio-editor.tsx:1445:  return (
+  components\reports\report-studio-editor.tsx:1446:    kind === "hero-title" ||
+  components\reports\report-studio-editor.tsx:1447:    kind === "cover-title" ||
+  components\reports\report-studio-editor.tsx:1448:    kind === "section-text" ||
+  components\reports\report-studio-editor.tsx:1449:    kind === "multi-paragraph" ||
+  components\reports\report-studio-editor.tsx:1450:    kind === "paragraph" ||
+  components\reports\report-studio-editor.tsx:1451:    kind === "custom-paragraph" ||
+  components\reports\report-studio-editor.tsx:1452:    kind === "text-library" ||
+
+
+
+
+----- PATTERN: الشواهد والمرفقات -----
+
+  components\reports\report-studio-editor.tsx:772:                type="button"
+  components\reports\report-studio-editor.tsx:773:                onClick={approveReport}
+  components\reports\report-studio-editor.tsx:774:                disabled={locked || 
+approving}
+  components\reports\report-studio-editor.tsx:775:                className="rounded-2xl 
+border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-black text-emerald-800 
+transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 
+disabled:text-slate-400"
+  components\reports\report-studio-editor.tsx:776:              >
+  components\reports\report-studio-editor.tsx:777:                {approving ? "جاري 
+الاعتماد..." : "اعتماد التقارير"}
+  components\reports\report-studio-editor.tsx:778:              </button>
+  components\reports\report-studio-editor.tsx:779:            </div>
+  components\reports\report-studio-editor.tsx:780:          </aside>
+  components\reports\report-studio-editor.tsx:781:
+  components\reports\report-studio-editor.tsx:782:          <section className="flex 
+min-w-0 flex-col gap-4">
+  components\reports\report-studio-editor.tsx:783:            
+  components\reports\report-studio-editor.tsx:784:
+  components\reports\report-studio-editor.tsx:785:            {activePageHasEvidence ? (
+  components\reports\report-studio-editor.tsx:786:              <details 
+className="order-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+  components\reports\report-studio-editor.tsx:787:                <summary className="flex 
+cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-2xl 
+bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
+  components\reports\report-studio-editor.tsx:788:                  <div>
+  components\reports\report-studio-editor.tsx:789:                    <h2 
+className="text-lg font-black text-slate-950">
+> components\reports\report-studio-editor.tsx:790:                      الشواهد والمرفقات
+  components\reports\report-studio-editor.tsx:791:                    </h2>
+  components\reports\report-studio-editor.tsx:792:
+  components\reports\report-studio-editor.tsx:793:                    <p className="mt-1 
+text-xs font-bold leading-6 text-slate-500">
+  components\reports\report-studio-editor.tsx:794:                      مغلقة افتراضيًا 
+لتبسيط الصفحة. افتحها فقط إذا أردت تعديل ترتيب الشواهد أو التعليقات أو الإظهار.
+  components\reports\report-studio-editor.tsx:795:                    </p>
+  components\reports\report-studio-editor.tsx:796:                  </div>
+  components\reports\report-studio-editor.tsx:797:
+  components\reports\report-studio-editor.tsx:798:                  <div className="flex 
+flex-wrap items-center gap-2">
+  components\reports\report-studio-editor.tsx:799:                    <span 
+className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600">
+  components\reports\report-studio-editor.tsx:800:                      
+{evidenceItems.filter((item) => item.visible).length} ظاهر من {evidenceItems.length}
+  components\reports\report-studio-editor.tsx:801:                    </span>
+  components\reports\report-studio-editor.tsx:802:
+  components\reports\report-studio-editor.tsx:803:                    <span 
+className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+  components\reports\report-studio-editor.tsx:804:                      فتح / إخفاء
+  components\reports\report-studio-editor.tsx:805:                    </span>
+  components\reports\report-studio-editor.tsx:806:                  </div>
+  components\reports\report-studio-editor.tsx:807:                </summary>
+  components\reports\report-studio-editor.tsx:808:
+
+
+
+
+----- PATTERN: FinalReportDesignRenderer -----
+
+  components\reports\report-studio-editor.tsx:1:"use client";
+  components\reports\report-studio-editor.tsx:2:
+  components\reports\report-studio-editor.tsx:3:import Link from "next/link";
+  components\reports\report-studio-editor.tsx:4:import { useMemo, useState, useTransition 
+} from "react";
+  components\reports\report-studio-editor.tsx:5:import { useRouter } from 
+"next/navigation";
+  components\reports\report-studio-editor.tsx:6:import { EvidencePreviewGrid } from 
+"@/components/evidence/evidence-preview-grid";
+> components\reports\report-studio-editor.tsx:7:import { FinalReportDesignRenderer } from 
+"@/components/report-engine/design-renderers/report-design-renderer";
+  components\reports\report-studio-editor.tsx:8:
+  components\reports\report-studio-editor.tsx:9:type StudioReportStatus =
+  components\reports\report-studio-editor.tsx:10:  | "DRAFT"
+  components\reports\report-studio-editor.tsx:11:  | "GENERATED"
+  components\reports\report-studio-editor.tsx:12:  | "APPROVED"
+  components\reports\report-studio-editor.tsx:13:  | "ARCHIVED"
+  components\reports\report-studio-editor.tsx:14:  | string;
+  components\reports\report-studio-editor.tsx:15:
+  components\reports\report-studio-editor.tsx:16:type ReportValue = {
+  components\reports\report-studio-editor.tsx:17:  fieldKey: string;
+  components\reports\report-studio-editor.tsx:18:  fieldLabel: string;
+  components\reports\report-studio-editor.tsx:19:  value: string;
+  components\reports\report-studio-editor.tsx:20:};
+  components\reports\report-studio-editor.tsx:21:
+  components\reports\report-studio-editor.tsx:22:type EvidenceItem = {
+  components\reports\report-studio-editor.tsx:23:  id: string;
+  components\reports\report-studio-editor.tsx:24:  fileName: string;
+  components\reports\report-studio-editor.tsx:25:  fileUrl: string;
+  components\reports\report-studio-editor.tsx:893:                      key={page.id}
+  components\reports\report-studio-editor.tsx:894:                      type="button"
+  components\reports\report-studio-editor.tsx:895:                      onClick={() => 
+setActivePageId(page.id)}
+  components\reports\report-studio-editor.tsx:896:                      className={[
+  components\reports\report-studio-editor.tsx:897:                        "rounded-2xl 
+border px-4 py-2 text-xs font-black transition",
+  components\reports\report-studio-editor.tsx:898:                        active
+  components\reports\report-studio-editor.tsx:899:                          ? 
+"border-emerald-600 bg-emerald-700 text-white"
+  components\reports\report-studio-editor.tsx:900:                          : 
+"border-slate-200 bg-slate-50 text-slate-600 hover:bg-white",
+  components\reports\report-studio-editor.tsx:901:                      ].join(" ")}
+  components\reports\report-studio-editor.tsx:902:                    >
+  components\reports\report-studio-editor.tsx:903:                      {index + 1}. 
+{page.title}
+  components\reports\report-studio-editor.tsx:904:                    </button>
+  components\reports\report-studio-editor.tsx:905:                  );
+  components\reports\report-studio-editor.tsx:906:                })}
+  components\reports\report-studio-editor.tsx:907:              </div>
+  components\reports\report-studio-editor.tsx:908:
+  components\reports\report-studio-editor.tsx:909:              <div 
+className="overflow-hidden rounded-3xl border border-slate-100 bg-slate-50 p-4">
+  components\reports\report-studio-editor.tsx:910:                
+{livePreviewTemplate.pages.length ? (
+> components\reports\report-studio-editor.tsx:911:                  
+<FinalReportDesignRenderer
+  components\reports\report-studio-editor.tsx:912:                    
+template={livePreviewTemplate}
+  components\reports\report-studio-editor.tsx:913:                    
+previewCaseData={livePreviewCaseData as any}
+  components\reports\report-studio-editor.tsx:914:                    
+editorialBlocks={cleanBlockOverrides}
+  components\reports\report-studio-editor.tsx:915:                    identity={{}}
+  components\reports\report-studio-editor.tsx:916:                  />
+  components\reports\report-studio-editor.tsx:917:                ) : (
+  components\reports\report-studio-editor.tsx:918:                  <div 
+className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center 
+text-sm font-bold text-slate-500">
+  components\reports\report-studio-editor.tsx:919:                    لا توجد صفحة نشطة 
+للمعاينة.
+  components\reports\report-studio-editor.tsx:920:                  </div>
+  components\reports\report-studio-editor.tsx:921:                )}
+  components\reports\report-studio-editor.tsx:922:              </div>
+  components\reports\report-studio-editor.tsx:923:            </section>
+  components\reports\report-studio-editor.tsx:924:          </section>
+  components\reports\report-studio-editor.tsx:925:        </div>
+  components\reports\report-studio-editor.tsx:926:      </section>
+  components\reports\report-studio-editor.tsx:927:
+  components\reports\report-studio-editor.tsx:928:      {suggestionBlock ? (
+  components\reports\report-studio-editor.tsx:929:        <SuggestionsModal
+
+

@@ -1,0 +1,76 @@
+Signature current check
+Generated: 06/26/2026 22:43:46
+
+===== Git Status =====
+ M components/evidence/evidence-item-card.tsx
+ M components/evidence/evidence-preview-grid.tsx
+ M components/report-flow/report-prepare-flow.tsx
+ M components/reports/report-evidence-gallery.tsx
+ M components/reports/report-studio-editor.tsx
+ M lib/ai/execution-summary-generator.ts
+ M lib/report-engine/smart-report-payload-builder.ts
+ M lib/report-engine/smart-report-types.ts
+?? block-capacity-check-debug.txt
+?? current-report-prepare-flow.txt
+?? evidence-renderer-after-codex.txt
+?? evidence-root-source-debug.txt
+?? mobile-report-preview-logic-context.txt
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-1cc2b151-bf10-42fb-bf7f-71fcf464f28d.jpg
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-387c9467-b518-46de-aea4-6f80671671b9.png
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-5545be20-ad09-41ae-b13a-86e194932465.png
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-5f1a1c1a-47d7-4854-85de-b69f572fedd5.png
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-8b46e594-0fe1-45d6-8bb6-e238b28c9249.webp
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-e5046697-c71d-437c-b849-b1cdb00fa761.png
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-f6a2c11f-3eb9-4fce-9bd7-cd14b4c6bb05.jpg
+?? real-capacity-message-source.txt
+?? report-two-description-with-prepare-debug.txt
+?? report-two-pagination-exact-code.txt
+?? report-two-signature-keys-check.txt
+?? report2-admin-template-real-source-context.txt
+?? report2-auto-approve-debug-context.txt
+?? report2-desktop-preview-match-mobile-context.txt
+?? report2-header-match-context.txt
+?? report2-prepare-execution-context.txt
+?? report2-prepare-flow-missing-context.txt
+?? report2-user-studio-renderer-context.txt
+?? signature-current-check.txt
+?? signature-pagination-debug.txt
+?? signature-position-real-source.txt
+?? signature-profile-link-debug.txt
+?? signature-template-source-debug.txt
+?? smart-report-payload-builder-debug.txt
+
+
+============================================================
+FILE: components\report-2\report-two-studio-runtime.tsx
+============================================================
+
+----- Match around line 104 -----
+
+----- Match around line 150 -----
+
+----- Match around line 151 -----
+
+----- Match around line 152 -----
+
+----- Match around line 455 -----
+
+----- Match around line 458 -----
+
+----- Match around line 491 -----
+
+----- Match around line 492 -----
+
+----- Match around line 758 -----
+
+----- Match around line 759 -----
+
+----- Match around line 772 -----
+
+----- Match around line 991 -----
+
+----- Match around line 992 -----
+
+----- Match around line 994 -----
+
+----- Match around line 1001 -----

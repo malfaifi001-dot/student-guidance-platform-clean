@@ -402,14 +402,49 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
   return [...normalItems, ...caseEvidenceItems, ...assignmentEvidenceItems];
 }
 
+function resolveSchoolProfileForReport(
+  caseEntry: any,
+  current: CurrentUserLike,
+) {
+  return (
+    caseEntry?.schoolAccount?.profile ||
+    current.user.schoolAccount?.profile ||
+    null
+  );
+}
+const ACTIVITY_REPORT_SERVICE_SLUGS = new Set([
+  "activity-programs",
+  "citizenship-life",
+  "science-technology",
+  "culture-arts",
+  "sports-health",
+  "scouting",
+  "events-occasions",
+  "non-class-periods",
+]);
+
+function isActivityProgramReportService(serviceSlug: string) {
+  const slug = String(serviceSlug || "").trim();
+
+  if (!slug) {
+    return false;
+  }
+
+  return (
+    ACTIVITY_REPORT_SERVICE_SLUGS.has(slug) ||
+    slug.startsWith("activity-programs/") ||
+    slug.startsWith("activity-programs-")
+  );
+}
+
 function buildSignatures(
   caseEntry: any,
   current: CurrentUserLike,
   languageMode: ReportLanguageMode,
 ): SmartReportSignature[] {
-  const profile = current.user.schoolAccount?.profile;
+  const profile = resolveSchoolProfileForReport(caseEntry, current);
   const serviceSlug = caseEntry.service?.slug || "";
-  const isActivity = serviceSlug.startsWith("activity-programs");
+  const isActivity = isActivityProgramReportService(serviceSlug);
   const transformTitle = (value: string) =>
     applyReportLanguageModeToText(value, languageMode);
 
@@ -433,7 +468,7 @@ function buildSignatures(
         current.user.officialName ||
         current.user.name,
       signerTitle: transformTitle("رائد النشاط"),
-      imageUrl: profile?.activityLeaderSignatureUrl || null,
+      imageUrl: profile?.activityLeaderSignatureUrl || profile?.counselorSignatureUrl || null,
       required: true,
     });
   } else {
@@ -442,7 +477,7 @@ function buildSignatures(
       label: transformTitle("الموجه الطلابي"),
       signerName: current.user.officialName || current.user.name,
       signerTitle: current.user.jobTitle || transformTitle("الموجه الطلابي"),
-      imageUrl: profile?.counselorSignatureUrl || null,
+      imageUrl: profile?.counselorSignatureUrl || profile?.activityLeaderSignatureUrl || null,
       required: true,
     });
   }
@@ -594,8 +629,7 @@ export async function buildSmartReportPayloadForCase({
   const isCustomReport = serviceSlug === "custom-report";
   const serviceName = caseEntry.service?.name || "خدمة";
   const reportType = buildReportType(serviceSlug);
-  const profile =
-    caseEntry.schoolAccount?.profile || current.user.schoolAccount?.profile;
+  const profile = resolveSchoolProfileForReport(caseEntry, current);
 
   const executionDateField = findByIntent(values, [
     "execution date",
@@ -729,6 +763,16 @@ export async function buildSmartReportPayloadForCase({
       schoolLogoUrl: profile?.logoUrl || "/uploads/school-logos/MOE.png",
       academicYear: profile?.academicYear || "العام الدراسي",
       currentSemester: profile?.currentSemester || semesterText,
+      counselorName: current.user.officialName || current.user.name || "",
+      counselorSignatureUrl: profile?.counselorSignatureUrl || "",
+      principalName: profile?.principalName || "",
+      principalSignatureUrl: profile?.principalSignatureUrl || "",
+      activityLeaderName: profile?.activityLeaderName || "",
+      activityLeaderSignatureUrl: profile?.activityLeaderSignatureUrl || "",
+      schoolLeaderName: profile?.principalName || "",
+      schoolLeaderSignatureUrl: profile?.principalSignatureUrl || "",
+      userName: current.user.officialName || current.user.name || "",
+      userSignatureUrl: profile?.counselorSignatureUrl || profile?.activityLeaderSignatureUrl || "",
     },
     caseInfo: {
       id: caseEntry.id,

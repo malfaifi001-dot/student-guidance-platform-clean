@@ -1,41 +1,71 @@
-type Props = {
-  items: Array<{
-    id: string;
-    fileName: string;
-    fileUrl: string;
-    caption: string | null;
-    visible: boolean;
-  }>;
+type ReportEvidenceItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  caption?: string | null;
+  visible?: boolean;
+  mimeType?: string | null;
+  size?: number | null;
+  sortOrder?: number | null;
 };
 
+type Props = {
+  items: ReportEvidenceItem[];
+};
+
+function isImageEvidence(item: ReportEvidenceItem) {
+  const mimeType = String(item.mimeType || "").toLowerCase();
+
+  if (mimeType.startsWith("image")) {
+    return true;
+  }
+
+  return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(`${item.fileName} ${item.fileUrl}`);
+}
+
 export function ReportEvidenceGallery({ items }: Props) {
-  const visibleItems = items.filter((item) => item.visible);
+  const visibleItems = items
+    .filter((item) => item.visible !== false)
+    .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
 
   if (visibleItems.length === 0) {
     return null;
   }
 
   return (
-    <section className="mt-12 border-t border-slate-200 pt-8">
-      <h2 className="mb-6 text-2xl font-black text-slate-900">الشواهد</h2>
+    <section className="mt-8">
+      <h2 className="mb-4 text-right text-xl font-black text-slate-950">
+        الشواهد والمرفقات
+      </h2>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {visibleItems.map((item) => (
-          <figure
-            key={item.id}
-            className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-          >
-            <img
-              src={item.fileUrl}
-              alt={item.fileName}
-              className="h-56 w-full rounded-xl object-cover"
-            />
+      <div className="grid grid-cols-2 gap-4">
+        {visibleItems.slice(0, 2).map((item) => {
+          const isImage = isImageEvidence(item);
 
-            <figcaption className="mt-3 text-center text-sm font-bold text-slate-600">
-              {item.caption || item.fileName}
-            </figcaption>
-          </figure>
-        ))}
+          return (
+            <div
+              key={item.id}
+              className="overflow-hidden rounded-[1.35rem] bg-slate-100"
+            >
+              {isImage ? (
+                <img
+                  src={item.fileUrl}
+                  alt={item.fileName}
+                  className="h-48 w-full object-cover"
+                />
+              ) : (
+                <a
+                  href={item.fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex h-48 w-full items-center justify-center px-4 text-center text-sm font-black text-slate-600"
+                >
+                  {item.fileName}
+                </a>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

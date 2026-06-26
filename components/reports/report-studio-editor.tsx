@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
 import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
 
 type StudioReportStatus =
@@ -190,7 +191,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
     [report.editableContent, report.renderedContent],
   );
 
-  const template = useMemo(() => normalizeTemplateSnapshot(report), [report]);
+  const template = useMemo(() => mergeSignatureOnlyStudioPagesIntoPrevious(ensureDefaultStudioSignatureBlock(normalizeTemplateSnapshot(report))), [report]);
   const pages = template.pages as TemplatePage[];
 
   const [activePageId, setActivePageId] = useState(
@@ -1105,7 +1106,7 @@ function EvidenceEditor({
             الشواهد في هذه الصفحة
           </h2>
           <p className="mt-1 text-xs font-bold text-slate-500">
-            إظهار/إخفاء الشواهد أو تعديل التعليق داخل التقارير فقط.
+            إدارة ظهور الشواهد داخل التقرير فقط. حذف الشاهد الأصلي يتم من صفحة الحالة.
           </p>
         </div>
 
@@ -1114,29 +1115,32 @@ function EvidenceEditor({
         </span>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4">
         {items.length ? (
-          items.map((item, index) => (
-            <article
-              key={item.id}
-              className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-black text-slate-900">
-                    {item.fileName}
-                  </p>
-                  <p className="mt-1 text-[11px] font-bold text-slate-500">
-                    شاهد رقم {index + 1}
-                  </p>
-                </div>
+          <EvidencePreviewGrid
+            items={items}
+            compact
+            actionsForItem={(item) => {
+              const index = items.findIndex((entry) => entry.id === item.id);
 
-                <div className="flex flex-wrap gap-2">
+              return (
+                <>
                   <button
                     type="button"
-                    disabled={locked || index === 0}
+                    disabled={locked}
+                    onClick={() =>
+                      onUpdate(item.id, { visible: !Boolean(item.visible) })
+                    }
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {item.visible ? "إخفاء" : "إظهار"}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={locked || index <= 0}
                     onClick={() => onMove(item.id, "up")}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     أعلى
                   </button>
@@ -1145,39 +1149,39 @@ function EvidenceEditor({
                     type="button"
                     disabled={locked || index === items.length - 1}
                     onClick={() => onMove(item.id, "down")}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     أسفل
                   </button>
+                </>
+              );
+            }}
+            footerForItem={(item) => {
+              const index = items.findIndex((entry) => entry.id === item.id);
 
-                  <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={item.visible}
-                      disabled={locked}
-                      onChange={(event) =>
-                        onUpdate(item.id, { visible: event.target.checked })
-                      }
-                    />
-                    ظاهر
-                  </label>
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 text-[11px] font-black text-slate-500">
+                    <span>شاهد رقم {index + 1}</span>
+                    <span>{item.visible ? "ظاهر في التقرير" : "مخفي من التقرير"}</span>
+                  </div>
+
+                  <input
+                    value={item.caption || ""}
+                    disabled={locked}
+                    onChange={(event) =>
+                      onUpdate(item.id, { caption: event.target.value })
+                    }
+                    placeholder="تعليق الشاهد داخل التقرير..."
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  />
                 </div>
-              </div>
-
-              <input
-                value={item.caption || ""}
-                disabled={locked}
-                onChange={(event) =>
-                  onUpdate(item.id, { caption: event.target.value })
-                }
-                placeholder="تعليق الشاهد داخل التقارير..."
-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
-              />
-            </article>
-          ))
+              );
+            }}
+          />
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
-            لا توجد شواهد مرتبطة بهذا التقارير.
+            لا توجد شواهد مرتبطة بهذا التقرير.
           </div>
         )}
       </div>
@@ -1242,6 +1246,152 @@ function extractReportTemplatePages(snapshot: any): TemplatePage[] {
   }));
 }
 
+
+function isStudioSignatureBlock(block: any) {
+  const kind = String(
+    block?.settings?.smartBlockKind ||
+      block?.smartBlockKind ||
+      block?.kind ||
+      "",
+  ).trim();
+
+  const title = String(block?.title || block?.settings?.title || "").trim();
+
+  return (
+    kind === "signature-grid" ||
+    kind === "signatures" ||
+    kind === "approval-signatures" ||
+    kind === "approval-signature" ||
+    kind === "closing-note" ||
+    title.includes("توقيع") ||
+    title.includes("تواقيع") ||
+    title.includes("اعتماد") ||
+    Array.isArray(block?.signatures)
+  );
+}
+
+function createDefaultStudioSignatureBlock() {
+  return {
+    id: "auto-default-signatures",
+    kind: "signature-grid",
+    title: "تواقيع الاعتماد",
+    content: "",
+    variant: "minimal",
+    align: "center",
+    showTitle: false,
+    placement: "bottom",
+    visible: true,
+    autoDefaultSignature: true,
+    signatures: [
+      {
+        key: "counselor",
+        label: "الموجه الطلابي",
+        signerName: "{{identity.counselorName}}",
+        signerTitle: "موجه طلابي",
+        imageUrl: "{{identity.counselorSignatureUrl}}",
+        required: false,
+      },
+      {
+        key: "principal",
+        label: "مدير المدرسة",
+        signerName: "{{identity.principalName}}",
+        signerTitle: "مدير المدرسة",
+        imageUrl: "{{identity.principalSignatureUrl}}",
+        required: false,
+      },
+    ],
+  };
+}
+
+function ensureDefaultStudioSignatureBlock(template: any) {
+  const pages = Array.isArray(template?.pages) ? template.pages : [];
+
+  if (!pages.length) {
+    return template;
+  }
+
+  const hasSignature = pages.some((page: any) => {
+    const blocks = Array.isArray(page?.blocks) ? page.blocks : [];
+    return blocks.some((block: any) => isStudioSignatureBlock(block));
+  });
+
+  if (hasSignature) {
+    return template;
+  }
+
+  const lastPageIndex = pages.length - 1;
+
+  return {
+    ...template,
+    pages: pages.map((page: any, pageIndex: number) => {
+      if (pageIndex !== lastPageIndex) {
+        return page;
+      }
+
+      const blocks = Array.isArray(page?.blocks) ? page.blocks : [];
+
+      return {
+        ...page,
+        blocks: [...blocks, createDefaultStudioSignatureBlock()],
+      };
+    }),
+  };
+}
+
+function isSignatureOnlyStudioPage(page: any) {
+  const blocks = Array.isArray(page?.blocks) ? page.blocks : [];
+  const pageKind = String(page?.kind || "").trim();
+
+  if (!blocks.length) {
+    return false;
+  }
+
+  if (pageKind === "approval") {
+    return true;
+  }
+
+  return blocks.every((block: any) => isStudioSignatureBlock(block));
+}
+
+function mergeSignatureOnlyStudioPagesIntoPrevious(template: any) {
+  const pages = Array.isArray(template?.pages) ? template.pages : [];
+
+  if (pages.length <= 1) {
+    return template;
+  }
+
+  const mergedPages: any[] = [];
+
+  for (const page of pages) {
+    const blocks = Array.isArray(page?.blocks) ? page.blocks : [];
+
+    if (isSignatureOnlyStudioPage(page) && mergedPages.length > 0) {
+      const previousPage = mergedPages[mergedPages.length - 1];
+      const previousBlocks = Array.isArray(previousPage?.blocks) ? previousPage.blocks : [];
+
+      mergedPages[mergedPages.length - 1] = {
+        ...previousPage,
+        blocks: [
+          ...previousBlocks,
+          ...blocks.map((block: any, index: number) => ({
+            ...block,
+            id: block?.id || `merged-signature-${mergedPages.length}-${index + 1}`,
+            placement: block?.placement || "bottom",
+          })),
+        ],
+      };
+
+      continue;
+    }
+
+    mergedPages.push(page);
+  }
+
+  return {
+    ...template,
+    pages: mergedPages,
+  };
+}
 function normalizeTemplateSnapshot(report: StudioReport) {
   const source =
     report.templateSnapshot?.builderTemplate ||
@@ -1493,6 +1643,7 @@ function getFriendlyBlockKind(block: TemplateBlock) {
   if (kind === "multi-paragraph") return "نص متعدد الفقرات";
   if (kind === "bullet-list") return "قائمة نقاط";
   if (kind === "closing-note") return "خاتمة واعتماد";
+  if (kind === "signature-grid" || kind === "signatures" || kind === "approval-signatures") return "توقيع واعتماد";
 
   return "نص قابل للتعديل";
 }

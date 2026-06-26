@@ -4,58 +4,74 @@ import {
   getReportLanguageModeInstruction,
   getReportLanguageModeLabel,
   normalizeReportLanguageMode,
+  type ReportLanguageMode,
 } from "@/lib/report-engine/report-language-mode";
 import type {
   ReportFlowPrepareContext,
   ReportFlowSummaryField,
 } from "@/lib/report-flow/report-flow-types";
 
+const MAX_SUMMARY_WORDS = 40;
+const FALLBACK_SUMMARY =
+  "تم تنفيذ المتابعة وفق البيانات المختارة، مع توثيق الإجراء المتخذ ودعم الحالة بما يعزز جودة المتابعة المدرسية.";
+
 function cleanText(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function normalizeWhitespace(value: string) {
+  return cleanText(value).replace(/\s+/g, " ");
+}
+
 function getArabicWordCount(value: string) {
-  return cleanText(value)
-    .replace(/\s+/g, " ")
-    .split(" ")
-    .filter(Boolean).length;
+  return normalizeWhitespace(value).split(" ").filter(Boolean).length;
 }
 
-function limitArabicWords(value: string, maxWords = 80) {
-  const words = cleanText(value)
-    .replace(/\s+/g, " ")
-    .split(" ")
-    .filter(Boolean);
-
-  return words.slice(0, maxWords).join(" ");
+function buildFallbackSummary(context: ReportFlowPrepareContext) {
+  return applyReportLanguageModeToText(
+    FALLBACK_SUMMARY,
+    normalizeReportLanguageMode(context.languageMode),
+  );
 }
 
-function buildFallbackSummary({
-  context,
-  fields,
-}: {
-  context: ReportFlowPrepareContext;
-  fields: ReportFlowSummaryField[];
-}) {
-  const languageMode = normalizeReportLanguageMode(context.languageMode);
-  const title = cleanText(context.title);
-  const serviceName = cleanText(context.serviceName);
+function findSentenceBoundaryIndex(words: string[]) {
+  let boundaryIndex = -1;
 
-  const useful = fields
-    .filter((field) => cleanText(field.label) && cleanText(field.value))
-    .slice(0, 5)
-    .map((field) =>
-      applyReportLanguageModeToText(`${field.label}: ${field.value}`, languageMode),
-    );
+  for (let index = 0; index < Math.min(words.length, MAX_SUMMARY_WORDS); index += 1) {
+    if (/[.؟!؛،][)"'\]]*$/.test(words[index] || "")) {
+      boundaryIndex = index;
+    }
+  }
 
-  const details = useful.length ? `، وشملت البيانات: ${useful.join("، ")}.` : ".";
+  return boundaryIndex;
+}
 
-  return limitArabicWords(
+function normalizeModelSummary(summary: string, languageMode: ReportLanguageMode) {
+  const normalized = normalizeWhitespace(
     applyReportLanguageModeToText(
-      `تم تنفيذ ${title || serviceName || "البرنامج"} وفق البيانات المعتمدة في الحالة${details}`,
+      cleanText(summary)
+        .replace(/^["'“”«»]+|["'“”«»]+$/g, "")
+        .replace(/^(إليك الوصف|الوصف|النص المقترح)\s*[:：-]?\s*/u, ""),
       languageMode,
     ),
   );
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (getArabicWordCount(normalized) <= MAX_SUMMARY_WORDS) {
+    return normalized;
+  }
+
+  const words = normalized.split(" ").filter(Boolean);
+  const boundaryIndex = findSentenceBoundaryIndex(words);
+
+  if (boundaryIndex >= 0) {
+    return words.slice(0, boundaryIndex + 1).join(" ");
+  }
+
+  return "";
 }
 
 export async function generateExecutionSummary({
@@ -72,7 +88,7 @@ export async function generateExecutionSummary({
 
   if (!safeFields.length) {
     return {
-      summary: buildFallbackSummary({ context, fields: safeFields }),
+      summary: buildFallbackSummary(context),
       source: "FALLBACK" as const,
     };
   }
@@ -82,22 +98,27 @@ export async function generateExecutionSummary({
     .join("\n");
 
   const prompt = `
-اكتب وصف تنفيذ رسمي عربي كافيًا وواضحًا، بصياغة سياقية مترابطة وليس مجرد سرد لحقول النموذج.
-استخدم فقط البيانات المقدمة ولا تضف أي معلومة من خارجها. افهم سياق التقرير من عنوان الخدمة، اسم البرنامج، طريقة التنفيذ، التاريخ، الفصل الدراسي، المنفذ، والفئة أو المستفيدين إن وجدت.
-لا تذكر الذكاء الاصطناعي، ولا تذكر Workflow، ولا تقل "البيانات المختارة" أو "الحقول".
-اجعل الوصف بين 60 و80 كلمة. لا تكتب أقل من 60 كلمة إذا كانت البيانات كافية، ولا تتجاوز 80 كلمة.
-اجعل النص مناسبًا للتقرير الرسمي، وكأنه وصف فعلي لما تم تنفيذه في المدرسة، مع صياغة تربوية جميلة تشعر المنفذ بقيمة العمل وأثره. أضف سياقًا تربويًا مناسبًا في النهاية دون اختراع نتائج غير مذكورة.
-لا تذكر اسم المستخدم أو اسم المنفذ أو اسم المعلم داخل الوصف نهائيًا، حتى لو كان موجودًا في البيانات. استخدم صياغة محايدة مثل: تم تنفيذ البرنامج، جرى تنفيذ النشاط، تم تفعيل المبادرة.
+اكتب وصف تنفيذ رسميًا باللغة العربية من جملة أو جملتين مكتملتين، لا يتجاوز 40 كلمة، دون تعداد أو عناوين، ولا تقطع الجملة. أعد الوصف فقط.
+التزم بالتعليمات التالية بدقة:
+- النص عربي رسمي واضح.
+- الحد الأقصى 40 كلمة.
+- جملة واحدة أو جملتان مكتملتان فقط.
+- ممنوع التعداد أو العناوين أو الشرح الإضافي.
+- ممنوع مقدمات مثل: إليك الوصف.
+- ممنوع قطع الجملة.
+- لا تذكر الذكاء الاصطناعي أو Workflow أو الحقول أو البيانات المختارة.
+- استخدم فقط المعلومات الواردة أدناه دون اختراع نتائج أو معلومات جديدة.
+- لا تذكر أسماء المنفذين أو المستخدمين أو الأشخاص داخل الوصف.
+
 صيغة التقرير المطلوبة: ${getReportLanguageModeLabel(languageMode)}
 ${getReportLanguageModeInstruction(languageMode)}
 
 سياق التقرير:
-- عنوان التقرير: ${context.title}
-- اسم الخدمة: ${context.serviceName}
-- اسم الطالب إن وجد: ${context.studentName || "غير محدد"}
-- اسم المنفذ إن وجد: محجوب ولا يستخدم في صياغة الوصف
+- عنوان التقرير: ${cleanText(context.title) || "تقرير"}
+- اسم الخدمة: ${cleanText(context.serviceName) || "خدمة"}
+- نوع الخدمة: ${cleanText(context.serviceSlug) || "general"}
 
-البيانات المختارة التي يجب تحويلها إلى سياق تنفيذي طبيعي ومترابط:
+البيانات المعتمدة:
 ${fieldLines}
 `.trim();
 
@@ -107,43 +128,24 @@ ${fieldLines}
         {
           role: "system",
           content:
-            "أنت مساعد صياغة تقارير مدرسية عربية رسمية. لا تخترع أي معلومة. التزم بالبيانات المقدمة فقط.",
+            "أنت مساعد لصياغة تقارير مدرسية عربية رسمية. أعد وصف التنفيذ فقط في جملة أو جملتين مكتملتين لا تتجاوز 40 كلمة، دون تعداد أو عناوين أو مقدمات.",
         },
         {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.35,
-      maxTokens: 320,
+      temperature: 0.2,
+      maxTokens: 180,
     });
 
-    let finalSummary = applyReportLanguageModeToText(summary, languageMode);
-    finalSummary = limitArabicWords(finalSummary, 80);
+    const finalSummary = normalizeModelSummary(summary, languageMode);
 
-    if (getArabicWordCount(finalSummary) < 60) {
-      const expandedSummary = await callDeepSeekChat({
-        messages: [
-          {
-            role: "system",
-            content:
-              "أنت مساعد صياغة تقارير مدرسية عربية رسمية. وسّع النص دون اختراع أي معلومة، ولا تذكر أسماء الأشخاص أو أسماء المستخدمين.",
-          },
-          {
-            role: "user",
-            content: `وسّع وصف التنفيذ التالي ليصبح بين 60 و80 كلمة، بصياغة تربوية مدرسية جميلة ومترابطة، دون إضافة معلومات غير موجودة، ودون ذكر أسماء الأشخاص أو المستخدمين، ودون تجاوز 80 كلمة.
-صيغة التقرير المطلوبة: ${getReportLanguageModeLabel(languageMode)}
-${getReportLanguageModeInstruction(languageMode)}
-
-${finalSummary}`,
-          },
-        ],
-        temperature: 0.35,
-        maxTokens: 320,
-      });
-
-      finalSummary = applyReportLanguageModeToText(expandedSummary, languageMode);
-      finalSummary = limitArabicWords(finalSummary, 80);
+    if (!finalSummary) {
+      return {
+        summary: buildFallbackSummary(context),
+        source: "FALLBACK" as const,
+      };
     }
 
     return {
@@ -152,7 +154,7 @@ ${finalSummary}`,
     };
   } catch {
     return {
-      summary: buildFallbackSummary({ context, fields: safeFields }),
+      summary: buildFallbackSummary(context),
       source: "FALLBACK" as const,
     };
   }

@@ -1,3 +1,2317 @@
+Mobile Report Preview Logic Context
+Generated: 06/26/2026 15:23:48
+
+===== Git Status =====
+ M components/evidence/evidence-item-card.tsx
+ M components/evidence/evidence-preview-grid.tsx
+ M components/report-2/report-two-studio-runtime.tsx
+ M components/report-engine/design-renderers/report-design-renderer.tsx
+ M components/report-flow/report-prepare-flow.tsx
+ M components/reports/report-evidence-gallery.tsx
+ M components/reports/report-studio-editor.tsx
+ M lib/report-engine/smart-report-payload-builder.ts
+ M lib/report-engine/smart-report-types.ts
+?? block-capacity-check-debug.txt
+?? evidence-renderer-after-codex.txt
+?? evidence-root-source-debug.txt
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-1cc2b151-bf10-42fb-bf7f-71fcf464f28d.jpg
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-f6a2c11f-3eb9-4fce-9bd7-cd14b4c6bb05.jpg
+?? real-capacity-message-source.txt
+?? report-two-description-with-prepare-debug.txt
+?? report-two-pagination-exact-code.txt
+?? report-two-signature-keys-check.txt
+?? report2-header-match-context.txt
+?? report2-prepare-execution-context.txt
+?? report2-prepare-flow-missing-context.txt
+?? signature-pagination-debug.txt
+?? signature-position-real-source.txt
+?? signature-profile-link-debug.txt
+?? signature-template-source-debug.txt
+?? smart-report-payload-builder-debug.txt
+
+
+
+============================================================
+FILE: components\mobile\mobile-report-a4-popup-preview.tsx
+============================================================
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+import { MobileIcon } from "@/components/mobile/mobile-icons";
+import type { MobileReportTemplateOption } from "@/components/mobile/mobile-report-prepare-flow";
+import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
+import type {
+  SmartReportField,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
+import type { ReportFlowPreparation } from "@/lib/report-flow/report-flow-types";
+
+type MobileReportA4PopupPreviewProps = {
+  open: boolean;
+  caseId: string;
+  payload: SmartReportPayload;
+  selectedVariantId: string;
+  selectedTemplate: MobileReportTemplateOption | null;
+  preparation: ReportFlowPreparation;
+  onClose: () => void;
+};
+
+const A4_WIDTH_PX = 794;
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function fieldValueToText(value: SmartReportField["value"]) {
+  if (Array.isArray(value)) {
+    return value.map((item) => cleanText(item)).filter(Boolean).join("، ");
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "نعم" : "لا";
+  }
+
+  return cleanText(value);
+}
+
+function buildFallbackTemplate(
+  payload: SmartReportPayload,
+  selectedTemplate: MobileReportTemplateOption | null,
+) {
+  return {
+    name: selectedTemplate?.name || payload.title || "التقرير A4",
+    designTemplateId: "modern-official",
+    pages: [
+      {
+        id: "mobile-a4-popup-page-1",
+        title: "المعاينة",
+        kind: "content",
+        blocks: [
+          {
+            id: "mobile-a4-popup-hero",
+            kind: "hero-title",
+            title: "عنوان التقرير",
+            content: "{{case.title}}",
+            variant: "hero",
+            align: "center",
+            showTitle: false,
+            placement: "flow",
+          },
+          {
+            id: "mobile-a4-popup-fields",
+            kind: "dynamic-fields",
+            title: "التفاصيل",
+            content: "",
+            variant: "card",
+            align: "right",
+            showTitle: true,
+            placement: "flow",
+          },
+          {
+            id: "mobile-a4-popup-summary",
+            kind: "multi-paragraph",
+            title: payload.narrative.title || "وصف التنفيذ",
+            content: cleanText(payload.narrative.body),
+            variant: "soft",
+            align: "right",
+            showTitle: true,
+            placement: "flow",
+          },
+          {
+            id: "mobile-a4-popup-evidence",
+            kind: "evidence-gallery",
+            title: "الشواهد والمرفقات",
+            content: "",
+            variant: "card",
+            align: "right",
+            showTitle: true,
+            placement: "flow",
+            evidenceLayout:
+              payload.evidence.items.length > 1 ? "TWO_PER_PAGE" : "ONE_PER_PAGE",
+            evidenceFit: "contain",
+            evidenceAspectRatio: "LANDSCAPE_4_3",
+            evidenceShowCaptions: true,
+            evidenceAutoCreatePages: true,
+            evidenceEmptyBehavior: "message",
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function hydrateTemplate(
+  payload: SmartReportPayload,
+  selectedTemplate: MobileReportTemplateOption | null,
+) {
+  const templateJson = selectedTemplate?.templateJson;
+  const smartStudio = isRecord(templateJson?.smartStudio)
+    ? (templateJson.smartStudio as Record<string, unknown>)
+    : null;
+
+  if (Array.isArray(smartStudio?.pages) && smartStudio.pages.length) {
+    return {
+      ...smartStudio,
+      name:
+        cleanText(smartStudio.name) ||
+        selectedTemplate?.name ||
+        payload.title ||
+        "التقرير A4",
+      designTemplateId:
+        cleanText(smartStudio.designTemplateId) ||
+        cleanText(templateJson?.designTemplateId) ||
+        "modern-official",
+      designConfig:
+        smartStudio.designConfig ||
+        (isRecord(templateJson) ? templateJson.designConfig : undefined),
+    };
+  }
+
+  if (
+    isRecord(templateJson) &&
+    Array.isArray(templateJson.pages) &&
+    templateJson.pages.length
+  ) {
+    return {
+      ...templateJson,
+      name:
+        cleanText(templateJson.name) ||
+        selectedTemplate?.name ||
+        payload.title ||
+        "التقرير A4",
+      designTemplateId: cleanText(templateJson.designTemplateId) || "modern-official",
+    };
+  }
+
+  return buildFallbackTemplate(payload, selectedTemplate);
+}
+
+function buildPreviewCaseData({
+  caseId,
+  preparedPayload,
+  preparation,
+  selectedVariantId,
+}: {
+  caseId: string;
+  preparedPayload: SmartReportPayload;
+  preparation: ReportFlowPreparation;
+  selectedVariantId: string;
+}) {
+  const values = [...preparedPayload.primaryFields, ...preparedPayload.detailFields]
+    .map((field) => ({
+      fieldKey: cleanText(field.key),
+      fieldLabel: cleanText(field.label),
+      value: fieldValueToText(field.value),
+    }))
+    .filter((field) => field.fieldLabel && field.value);
+
+  return {
+    caseId,
+    title:
+      cleanText(preparedPayload.title) ||
+      cleanText(preparedPayload.caseInfo.title) ||
+      "تقرير",
+    status:
+      cleanText(preparedPayload.caseInfo.status) ||
+      cleanText(preparedPayload.readiness.status) ||
+      selectedVariantId,
+    createdAt: preparedPayload.caseInfo.createdAt || "",
+    updatedAt:
+      preparation.updatedAt ||
+      preparedPayload.caseInfo.issuedAt ||
+      preparedPayload.caseInfo.createdAt ||
+      "",
+    serviceName: cleanText(preparedPayload.service.name),
+    serviceSlug: cleanText(preparedPayload.service.slug),
+    student: preparedPayload.student || undefined,
+    values,
+    evidences: preparedPayload.evidence.items.map((item) => ({
+      id: item.id,
+      title: cleanText(item.title),
+      caption: cleanText(item.caption),
+      imageUrl: item.type === "IMAGE" ? item.url || "" : "",
+      fileUrl: item.url || "",
+    })),
+  };
+}
+
+export function MobileReportA4PopupPreview({
+  open,
+  caseId,
+  payload,
+  selectedVariantId,
+  selectedTemplate,
+  preparation,
+  onClose,
+}: MobileReportA4PopupPreviewProps) {
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const documentRef = useRef<HTMLDivElement | null>(null);
+  const [documentScale, setDocumentScale] = useState(1);
+  const [documentHeight, setDocumentHeight] = useState(0);
+
+  const preparedPayload = useMemo(
+    () => applyReportFlowPreparationToPayload(payload, preparation),
+    [payload, preparation],
+  );
+
+  const template = useMemo(
+    () => hydrateTemplate(preparedPayload, selectedTemplate),
+    [preparedPayload, selectedTemplate],
+  );
+
+  const previewCaseData = useMemo(
+    () =>
+      buildPreviewCaseData({
+        caseId,
+        preparedPayload,
+        preparation,
+        selectedVariantId,
+      }),
+    [caseId, preparedPayload, preparation, selectedVariantId],
+  );
+
+  const reportTitle =
+    previewCaseData.title || preparedPayload.title || payload.caseInfo.title || "التقرير";
+
+  const updateScale = useCallback(() => {
+    const shell = shellRef.current;
+    const doc = documentRef.current;
+
+    if (!shell || !doc) return;
+
+    const availableWidth = Math.max(280, shell.clientWidth - 10);
+    const nextScale = Math.min(1, availableWidth / A4_WIDTH_PX);
+
+    setDocumentScale(Number(nextScale.toFixed(4)));
+    setDocumentHeight(Math.ceil(doc.scrollHeight * nextScale));
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    updateScale();
+
+    const shell = shellRef.current;
+    const doc = documentRef.current;
+    const resizeObserver = new ResizeObserver(updateScale);
+
+    if (shell) resizeObserver.observe(shell);
+    if (doc) resizeObserver.observe(doc);
+
+    window.addEventListener("resize", updateScale);
+
+    const timer = window.setTimeout(updateScale, 500);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateScale);
+      window.clearTimeout(timer);
+    };
+  }, [open, template, previewCaseData, updateScale]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      dir="rtl"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={onClose}
+    >
+      <style>{`
+        .mobile-a4-popup-frame {
+          width: 210mm;
+          min-width: 210mm;
+          max-width: 210mm;
+        }
+
+        .mobile-a4-popup-frame > section {
+          width: 210mm !important;
+          max-width: 210mm !important;
+          margin: 0 !important;
+        }
+
+        .mobile-a4-popup-frame .pdf-report-page,
+        .mobile-a4-popup-frame [data-report-design-page],
+        .mobile-a4-popup-frame .report-design-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          margin: 0 auto 16px auto !important;
+          overflow: hidden !important;
+          border-radius: 0 !important;
+          background: #ffffff !important;
+          box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14) !important;
+        }
+
+        .mobile-a4-popup-frame .pdf-report-page:last-child,
+        .mobile-a4-popup-frame [data-report-design-page]:last-child,
+        .mobile-a4-popup-frame .report-design-page:last-child {
+          margin-bottom: 0 !important;
+        }
+
+        /*
+          Force A4 print layout inside the popup.
+          Tailwind sm:/md: classes depend on the real phone viewport,
+          so we override them here to keep A4 fields side-by-side.
+        */
+        .mobile-a4-popup-frame .sm\:grid-cols-2,
+        .mobile-a4-popup-frame .md\:grid-cols-2,
+        .mobile-a4-popup-frame .lg\:grid-cols-2 {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame .sm\:grid-cols-3,
+        .mobile-a4-popup-frame .md\:grid-cols-3,
+        .mobile-a4-popup-frame .lg\:grid-cols-3 {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame .sm\:grid-cols-4,
+        .mobile-a4-popup-frame .md\:grid-cols-4,
+        .mobile-a4-popup-frame .lg\:grid-cols-4 {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame .sm\:grid-cols-5,
+        .mobile-a4-popup-frame .md\:grid-cols-5,
+        .mobile-a4-popup-frame .lg\:grid-cols-5 {
+          grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        }
+        /*
+          Force A4 print layout inside the popup.
+          Tailwind responsive classes depend on the real phone viewport,
+          so these selectors keep A4 grids side-by-side.
+        */
+        .mobile-a4-popup-frame [class~="sm:grid-cols-2"],
+        .mobile-a4-popup-frame [class~="md:grid-cols-2"],
+        .mobile-a4-popup-frame [class~="lg:grid-cols-2"] {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame [class~="sm:grid-cols-3"],
+        .mobile-a4-popup-frame [class~="md:grid-cols-3"],
+        .mobile-a4-popup-frame [class~="lg:grid-cols-3"] {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .mobile-a4-popup-frame [class~="sm:grid-cols-4"],
+        .mobile-a4-popup-frame [class~="md:grid-cols-4"],
+        .mobile-a4-popup-frame [class~="lg:grid-cols-4"] {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        }
+      `}</style>
+
+      <div className="flex max-h-[86vh] w-full max-w-[390px] flex-col overflow-hidden rounded-[2.1rem] bg-white shadow-2xl shadow-sky-950/20 ring-1 ring-white/80" onClick={(event) => event.stopPropagation()}>
+<main className="max-h-[86vh] overflow-y-auto bg-gradient-to-b from-sky-50 via-white to-sky-50 p-3">
+          <section
+            ref={shellRef}
+            className="mx-auto w-full overflow-hidden rounded-[1.55rem] bg-white p-2 shadow-lg shadow-sky-100 ring-1 ring-sky-100"
+          >
+            <div
+              className="relative mx-auto"
+              style={{
+                height: documentHeight ? `${documentHeight}px` : undefined,
+              }}
+            >
+              <div
+                ref={documentRef}
+                className="mobile-a4-popup-frame absolute left-1/2 top-0"
+                style={{
+                  transform: `translateX(-50%) scale(${documentScale})`,
+                  transformOrigin: "top center",
+                }}
+              >
+                <FinalReportDesignRenderer
+                  template={template}
+                  previewCaseData={previewCaseData}
+                  identity={{
+                    ...(preparedPayload as any).identity,
+                    semester:
+                      cleanText((preparedPayload as any).identity?.currentSemester) ||
+                      cleanText((preparedPayload as any).identity?.academicYear),
+                  }}
+                />
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+============================================================
+FILE: components\mobile\mobile-report-a4-preview.tsx
+============================================================
+"use client";
+
+import { useMemo, useState } from "react";
+
+import type { MobileReportTemplateOption } from "@/components/mobile/mobile-report-prepare-flow";
+import { MobileIcon } from "@/components/mobile/mobile-icons";
+import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
+import type { SmartReportField, SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
+import type { ReportFlowPreparation } from "@/lib/report-flow/report-flow-types";
+
+type MobileReportA4PreviewProps = {
+  caseId: string;
+  payload: SmartReportPayload;
+  selectedVariantId: string;
+  selectedTemplate: MobileReportTemplateOption | null;
+  preparation: ReportFlowPreparation;
+};
+
+type PreviewMode = "fit" | "large";
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function fieldValueToText(value: SmartReportField["value"]) {
+  if (Array.isArray(value)) {
+    return value.map((item) => cleanText(item)).filter(Boolean).join("، ");
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "نعم" : "لا";
+  }
+
+  return cleanText(value);
+}
+
+function buildFallbackTemplate(
+  payload: SmartReportPayload,
+  selectedTemplate: MobileReportTemplateOption | null,
+) {
+  return {
+    name: selectedTemplate?.name || payload.title || "معاينة التقرير",
+    designTemplateId: "modern-official",
+    pages: [
+      {
+        id: "mobile-preview-page-1",
+        title: "المعاينة",
+        kind: "content",
+        blocks: [
+          {
+            id: "mobile-preview-hero",
+            kind: "hero-title",
+            title: "عنوان التقرير",
+            content: "{{case.title}}",
+            variant: "hero",
+            align: "center",
+            showTitle: false,
+            placement: "flow",
+          },
+          {
+            id: "mobile-preview-fields",
+            kind: "dynamic-fields",
+            title: "الحقول المختارة",
+            content: "",
+            variant: "card",
+            align: "right",
+            showTitle: true,
+            placement: "flow",
+          },
+          {
+            id: "mobile-preview-summary",
+            kind: "multi-paragraph",
+            title: payload.narrative.title || "وصف التنفيذ",
+            content: cleanText(payload.narrative.body) || "لا يوجد وصف تنفيذ محفوظ حتى الآن.",
+            variant: "soft",
+            align: "right",
+            showTitle: true,
+            placement: "flow",
+          },
+          {
+            id: "mobile-preview-evidence",
+            kind: "evidence-gallery",
+            title: "الشواهد",
+            content: "",
+            variant: "card",
+            align: "right",
+            showTitle: true,
+            placement: "flow",
+            evidenceLayout: payload.evidence.items.length > 1 ? "TWO_PER_PAGE" : "ONE_PER_PAGE",
+            evidenceFit: "contain",
+            evidenceAspectRatio: "LANDSCAPE_4_3",
+            evidenceShowCaptions: true,
+            evidenceAutoCreatePages: true,
+            evidenceEmptyBehavior: "message",
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function hydrateTemplate(
+  payload: SmartReportPayload,
+  selectedTemplate: MobileReportTemplateOption | null,
+) {
+  const templateJson = selectedTemplate?.templateJson;
+  const smartStudio = isRecord(templateJson?.smartStudio)
+    ? (templateJson.smartStudio as Record<string, unknown>)
+    : null;
+
+  if (Array.isArray(smartStudio?.pages) && smartStudio.pages.length) {
+    return {
+      ...smartStudio,
+      name:
+        cleanText(smartStudio.name) ||
+        selectedTemplate?.name ||
+        payload.title ||
+        "معاينة التقرير",
+      designTemplateId:
+        cleanText(smartStudio.designTemplateId) ||
+        cleanText(templateJson?.designTemplateId) ||
+        "modern-official",
+      designConfig:
+        smartStudio.designConfig ||
+        (isRecord(templateJson) ? templateJson.designConfig : undefined),
+    };
+  }
+
+  if (isRecord(templateJson) && Array.isArray(templateJson.pages) && templateJson.pages.length) {
+    return {
+      ...templateJson,
+      name:
+        cleanText(templateJson.name) ||
+        selectedTemplate?.name ||
+        payload.title ||
+        "معاينة التقرير",
+      designTemplateId:
+        cleanText(templateJson.designTemplateId) || "modern-official",
+    };
+  }
+
+  return buildFallbackTemplate(payload, selectedTemplate);
+}
+
+export function MobileReportA4Preview({
+  caseId,
+  payload,
+  selectedVariantId,
+  selectedTemplate,
+  preparation,
+}: MobileReportA4PreviewProps) {
+  const [previewMode, setPreviewMode] = useState<PreviewMode>("fit");
+
+  const preparedPayload = useMemo(
+    () => applyReportFlowPreparationToPayload(payload, preparation),
+    [payload, preparation],
+  );
+
+  const template: any = useMemo(
+    () => hydrateTemplate(preparedPayload, selectedTemplate),
+    [preparedPayload, selectedTemplate],
+  );
+
+  const previewCaseData = useMemo(() => {
+    const values = [...preparedPayload.primaryFields, ...preparedPayload.detailFields]
+      .map((field) => ({
+        fieldKey: cleanText(field.key),
+        fieldLabel: cleanText(field.label),
+        value: fieldValueToText(field.value),
+      }))
+      .filter((field) => field.fieldLabel && field.value);
+
+    return {
+      caseId,
+      title:
+        cleanText(preparedPayload.title) ||
+        cleanText(preparedPayload.caseInfo.title) ||
+        "تقرير ٢",
+      status:
+        cleanText(preparedPayload.caseInfo.status) ||
+        cleanText(preparedPayload.readiness.status) ||
+        selectedVariantId,
+      createdAt: preparedPayload.caseInfo.createdAt || "",
+      updatedAt:
+        preparation.updatedAt ||
+        preparedPayload.caseInfo.issuedAt ||
+        preparedPayload.caseInfo.createdAt ||
+        "",
+      serviceName: cleanText(preparedPayload.service.name),
+      serviceSlug: cleanText(preparedPayload.service.slug),
+      student: preparedPayload.student || undefined,
+      values,
+      evidences: preparedPayload.evidence.items.map((item) => ({
+        id: item.id,
+        title: cleanText(item.title),
+        caption: cleanText(item.caption),
+        imageUrl: item.type === "IMAGE" ? item.url || "" : "",
+        fileUrl: item.url || "",
+      })),
+    };
+  }, [caseId, preparedPayload, preparation.updatedAt, selectedVariantId]);
+
+  const pages = Array.isArray(template?.pages) ? template.pages : [];
+  const pagesCount = pages.length;
+  const previewShellWidthClass =
+    previewMode === "fit" ? "w-full" : "w-[210mm] min-w-[210mm]";
+
+  return (
+    <div className="space-y-3">
+      <section className="rounded-[1.35rem] bg-sky-50/90 p-3 ring-1 ring-sky-100">
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-[1rem] bg-white/90 p-2.5 ring-1 ring-sky-100">
+            <p className="text-[10px] font-black text-sky-700">التقرير</p>
+            <p className="mt-1 text-xs font-black leading-6 text-slate-950">
+              {preparedPayload.title || preparedPayload.caseInfo.title || "تقرير ٢"}
+            </p>
+          </div>
+
+          <div className="rounded-[1rem] bg-white/90 p-2.5 ring-1 ring-sky-100">
+            <p className="text-[10px] font-black text-sky-700">القالب</p>
+            <p className="mt-1 text-xs font-black leading-6 text-slate-950">
+              {selectedTemplate?.name || "معاينة افتراضية"}
+            </p>
+          </div>
+
+          <div className="rounded-[1rem] bg-white/90 p-2.5 ring-1 ring-sky-100">
+            <p className="text-[10px] font-black text-sky-700">الصفحات</p>
+            <p className="mt-1 text-xs font-black leading-6 text-slate-950">
+              {pagesCount > 0 ? `${pagesCount} صفحة` : "معاينة"}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[1.6rem] bg-gradient-to-b from-sky-50/95 to-white p-3 shadow-sm ring-1 ring-sky-100">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-black text-slate-950">معاينة A4 للجوال</h3>
+            <p className="mt-1 text-[11px] font-bold leading-6 text-slate-500">
+              اختر المقاس الأنسب للقراءة ثم راجع الصفحات داخل نفس المسار المحمول.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPreviewMode("fit")}
+              className={[
+                "flex h-10 items-center justify-center gap-1 rounded-[1rem] px-3 text-xs font-black transition",
+                previewMode === "fit"
+                  ? "bg-sky-600 text-white shadow-lg shadow-sky-200"
+                  : "bg-white text-sky-700 ring-1 ring-sky-100 hover:bg-sky-50",
+              ].join(" ")}
+            >
+              ملاءمة
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPreviewMode("large")}
+              className={[
+                "flex h-10 items-center justify-center gap-1 rounded-[1rem] px-3 text-xs font-black transition",
+                previewMode === "large"
+                  ? "bg-sky-600 text-white shadow-lg shadow-sky-200"
+                  : "bg-white text-sky-700 ring-1 ring-sky-100 hover:bg-sky-50",
+              ].join(" ")}
+            >
+              كبير
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={[
+            "rounded-[1.4rem] bg-sky-100/50 p-2 ring-1 ring-white/90",
+            previewMode === "large"
+              ? "overflow-x-auto overscroll-x-contain"
+              : "overflow-hidden",
+          ].join(" ")}
+        >
+          <div className="mx-auto flex justify-center">
+            <div className={previewShellWidthClass}>
+              <div className="rounded-[1.25rem] bg-white/80 p-2 ring-1 ring-sky-100">
+                <FinalReportDesignRenderer
+                  template={template}
+                  previewCaseData={previewCaseData}
+                  identity={{
+                    ...preparedPayload.identity,
+                    semester:
+                      cleanText(preparedPayload.identity.currentSemester) ||
+                      cleanText(preparedPayload.identity.academicYear),
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {previewMode === "large" ? (
+          <div className="mt-3 flex items-start gap-2 rounded-[1.15rem] bg-white/80 p-3 text-xs font-bold leading-6 text-slate-600 ring-1 ring-sky-100">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+              <MobileIcon name="arrow" className="h-4 w-4 rotate-180" />
+            </span>
+            <p>
+              الوضع الكبير يعرض صفحة A4 بعرضها الأقرب للطباعة. اسحب أفقيًا داخل بطاقة المعاينة عند الحاجة.
+            </p>
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+
+============================================================
+FILE: components\mobile\mobile-report-prepare-flow.tsx
+============================================================
+"use client";
+
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Loader2, Sparkles } from "lucide-react";
+
+import { MobileAppShell } from "@/components/mobile/mobile-app-shell";
+import { MobileIcon } from "@/components/mobile/mobile-icons";
+import { MobilePopCard } from "@/components/mobile/mobile-pop-card";
+import type {
+  ReportVariantConfig,
+  ReportVariantId,
+} from "@/lib/report-engine/report-variant-registry";
+import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+import {
+  buildReportFlowContext,
+  buildReportFlowPrepareFields,
+  createReportFlowPreparation,
+} from "@/lib/report-flow/report-flow-payload";
+import {
+  loadReportFlowPreparation,
+  saveReportFlowPreparation,
+} from "@/lib/report-flow/report-flow-storage";
+import type {
+  ReportFlowExecutionSummarySource,
+  ReportFlowPrepareField,
+  ReportFlowPreparation,
+} from "@/lib/report-flow/report-flow-types";
+
+export type MobileReportTemplateOption = {
+  id: string;
+  name: string;
+  description: string;
+  serviceSlug: string | null;
+  updatedAt: string;
+  templateJson?: Record<string, unknown> | null;
+};
+
+type MobileReportPrepareFlowProps = {
+  caseId: string;
+  payload: SmartReportPayload;
+  selectedVariantId: ReportVariantId;
+  variants: ReportVariantConfig[];
+  templates: MobileReportTemplateOption[];
+  initialTemplateId?: string;
+};
+
+type FeedbackState = {
+  open: boolean;
+  title: string;
+  description?: string;
+  variant: "info" | "success" | "warning" | "error";
+};
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function countWords(value: string) {
+  return cleanText(value).split(/\s+/).filter(Boolean).length;
+}
+
+function limitWords(value: string, maxWords = 80) {
+  return cleanText(value).split(/\s+/).filter(Boolean).slice(0, maxWords).join(" ");
+}
+
+function buildInitialSummary(payload: SmartReportPayload) {
+  return cleanText(payload.narrative.body);
+}
+
+function buildInitialSummarySource(): ReportFlowExecutionSummarySource {
+  return "FALLBACK";
+}
+
+function getFieldSearchText(field: ReportFlowPrepareField) {
+  return `${field.label} ${field.value} ${field.key}`.toLowerCase();
+}
+function HeroCard({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-[1.8rem] bg-gradient-to-br from-[#064967] to-[#075f7a] p-4 text-white shadow-xl shadow-sky-900/20">
+      <div className="absolute -left-12 -top-12 h-32 w-32 rounded-full bg-sky-200/70 blur-2xl" />
+      <div className="absolute -bottom-16 right-10 h-36 w-36 rounded-full bg-cyan-100/80 blur-2xl" />
+
+      <div className="relative">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-sky-100">تقرير الجوال</p>
+            <h1 className="mt-1 text-[1.55rem] font-black leading-tight tracking-tight">
+              {title}
+            </h1>
+          </div>
+
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20">
+            <MobileIcon name="file" className="h-5 w-5" />
+          </span>
+        </div>
+
+        <p className="mt-3 text-sm font-bold leading-7 text-sky-50/90">
+          {subtitle}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function SectionCard({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-[1.6rem] bg-white/95 p-4 shadow-sm ring-1 ring-sky-100/70 backdrop-blur-xl">
+      <div className="mb-3">
+        <h2 className="text-base font-black text-slate-950">{title}</h2>
+        {description ? (
+          <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+            {description}
+          </p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+export function MobileReportPrepareFlow({
+  caseId,
+  payload,
+  selectedVariantId,
+  variants,
+  templates,
+  initialTemplateId = "",
+}: MobileReportPrepareFlowProps) {
+  const router = useRouter();
+  void variants;
+  void templates;
+  const context = useMemo(() => buildReportFlowContext(payload), [payload]);
+  const [activeVariantId] = useState<ReportVariantId>(selectedVariantId);
+  const [activeTemplateId] = useState(initialTemplateId);
+  const [hydratedVariantId, setHydratedVariantId] = useState<string>("");
+  const [fields, setFields] = useState<ReportFlowPrepareField[]>(() =>
+    buildReportFlowPrepareFields(payload),
+  );
+  const [executionSummary, setExecutionSummary] = useState(() =>
+    buildInitialSummary(payload),
+  );
+  const [summarySource, setSummarySource] =
+    useState<ReportFlowExecutionSummarySource>(() => buildInitialSummarySource());
+  const [search, setSearch] = useState("");
+  const [fieldsPanelOpen, setFieldsPanelOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackState>({
+    open: false,
+    title: "",
+    description: "",
+    variant: "info",
+  });
+
+  useEffect(() => {
+    const saved = loadReportFlowPreparation(payload.caseInfo.id, activeVariantId);
+
+    if (saved?.fields?.length) {
+      setFields(saved.fields);
+      setExecutionSummary(
+        cleanText(saved.executionSummary) || cleanText(payload.narrative.body),
+      );
+      setSummarySource(saved.executionSummarySource || "FALLBACK");
+      setHydratedVariantId(activeVariantId);
+      return;
+    }
+
+    setFields(buildReportFlowPrepareFields(payload));
+    setExecutionSummary(buildInitialSummary(payload));
+    setSummarySource(buildInitialSummarySource());
+    setHydratedVariantId(activeVariantId);
+  }, [activeVariantId, payload]);
+const selectedFields = useMemo(
+    () =>
+      fields
+        .filter((field) => field.selected)
+        .filter((field) => cleanText(field.label) && cleanText(field.value)),
+    [fields],
+  );
+
+  const visibleFields = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return fields;
+
+    return fields.filter((field) => getFieldSearchText(field).includes(query));
+  }, [fields, search]);
+
+  function openFeedback(
+    variant: FeedbackState["variant"],
+    title: string,
+    description?: string,
+  ) {
+    setFeedback({
+      open: true,
+      variant,
+      title,
+      description,
+    });
+  }
+
+  function updateField(
+    fieldId: string,
+    patch: Partial<Pick<ReportFlowPrepareField, "label" | "value" | "selected">>,
+  ) {
+    setFields((current) =>
+      current.map((field) =>
+        field.id === fieldId
+          ? {
+              ...field,
+              ...patch,
+            }
+          : field,
+      ),
+    );
+  }
+
+  function buildPreparation(
+    summary = executionSummary,
+    source = summarySource,
+  ): ReportFlowPreparation {
+    return createReportFlowPreparation({
+      payload,
+      variantId: activeVariantId,
+      fields,
+      executionSummary: summary,
+      executionSummarySource: source,
+      languageMode: payload.languageMode,
+    });
+  }
+
+  async function generateSummary() {
+    if (selectedFields.length === 0) {
+      openFeedback(
+        "warning",
+        "لا توجد حقول مختارة",
+        "اختر حقلاً واحدًا على الأقل قبل توليد وصف التنفيذ.",
+      );
+      return;
+    }
+
+    setGenerating(true);
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/reports/case/${payload.caseInfo.id}/execution-summary`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            context,
+            fields: selectedFields.map((field) => ({
+              key: field.key,
+              label: field.label,
+              value: field.value,
+            })),
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "تعذر توليد وصف التنفيذ.");
+      }
+
+      const nextSummary = limitWords(String(data.summary || ""), 80);
+      const nextSource = data.source === "AI" ? "AI" : "FALLBACK";
+
+      setExecutionSummary(nextSummary);
+      setSummarySource(nextSource);
+      saveReportFlowPreparation(buildPreparation(nextSummary, nextSource));
+
+      openFeedback(
+        nextSource === "AI" ? "success" : "info",
+        "تم تحديث وصف التنفيذ",
+        nextSource === "AI"
+          ? "تم توليد وصف التنفيذ من الحقول المختارة."
+          : "تم إنشاء وصف احتياطي من الحقول المختارة.",
+      );
+    } catch (error) {
+      openFeedback(
+        "error",
+        "تعذر توليد الوصف",
+        error instanceof Error
+          ? error.message
+          : "يمكنك كتابة وصف التنفيذ يدويًا الآن.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  function continueToStudio() {
+    if (selectedFields.length === 0) {
+      openFeedback(
+        "warning",
+        "أكمل التحضير أولاً",
+        "اختر الحقول التي تريد ظهورها في التقرير قبل المتابعة.",
+      );
+      return;
+    }
+
+    const safeSummary =
+      limitWords(executionSummary, 80) || cleanText(payload.narrative.body);
+
+    if (!safeSummary) {
+      openFeedback(
+        "warning",
+        "وصف التنفيذ فارغ",
+        "أدخل وصف التنفيذ أو ولّده من الحقول المختارة قبل المتابعة.",
+      );
+      return;
+    }
+
+    const preparation = buildPreparation(
+      safeSummary,
+      summarySource === "AI" ? "AI" : "MANUAL",
+    );
+
+    saveReportFlowPreparation(preparation);
+
+    const query = new URLSearchParams();
+    query.set("variant", activeVariantId);
+
+    if (activeTemplateId) {
+      query.set("templateId", activeTemplateId);
+    }
+
+    router.push(
+      `/mobile/counselor/report-2/cases/${encodeURIComponent(caseId)}/ready?${query.toString()}`,
+    );
+  }
+
+  return (
+    <MobileAppShell activeSection="reports">
+      <div className="space-y-4" dir="rtl">
+        <HeroCard
+          title="تحضير تقرير ٢"
+          subtitle="راجع القالب والحقول ووصف التنفيذ قبل الانتقال إلى التقرير الجاهز للمراجعة."
+        />
+
+        <Link
+          href={`/mobile/counselor/cases/${encodeURIComponent(caseId)}`}
+          className="flex h-11 items-center justify-center gap-2 rounded-[1.35rem] bg-white/80 text-sm font-black text-sky-700 ring-1 ring-white/90"
+        >
+          <MobileIcon name="arrow" className="h-4 w-4" />
+          العودة إلى الحالة
+        </Link>
+        <section className="overflow-hidden rounded-[1.7rem] bg-white p-0 shadow-sm ring-1 ring-slate-100">
+          <button
+            type="button"
+            onClick={() => setFieldsPanelOpen((open) => !open)}
+            aria-expanded={fieldsPanelOpen}
+            className="flex w-full items-center justify-between gap-3 p-4 text-right transition active:scale-[0.995]"
+          >
+            <div className="min-w-0">
+              <p className="text-[11px] font-black text-sky-700">
+                الحقول المختارة
+              </p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">
+                {selectedFields.length} من أصل {fields.length} حقل
+              </h2>
+              <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                اضغط لعرض الحقول وتعديل طريقة ظهورها داخل التقرير.
+              </p>
+            </div>
+
+            <span
+              className={[
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-sky-700 ring-1 ring-slate-100 transition",
+                fieldsPanelOpen ? "-rotate-90" : "rotate-0",
+              ].join(" ")}
+            >
+              <MobileIcon name="arrow" className="h-5 w-5" />
+            </span>
+          </button>
+
+          {fieldsPanelOpen ? (
+            <div className="border-t border-slate-100 p-4">
+<div className="space-y-3">
+            <div className="rounded-[1.35rem] bg-slate-50/90 p-3 ring-1 ring-slate-100">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-black text-slate-500">الحالة الحالية</p>
+                  <p className="mt-1 text-sm font-black text-slate-900">
+                    {selectedFields.length} من أصل {fields.length} حقل
+                  </p>
+                </div>
+
+                {hydratedVariantId === activeVariantId ? (
+                  <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-sky-700 ring-1 ring-sky-100">
+                    تم تحميل التحضير
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="ابحث داخل الحقول"
+              className="h-12 w-full rounded-[1.35rem] border border-sky-100 bg-sky-50/70 px-4 text-sm font-bold text-slate-950 outline-none transition focus:border-sky-300 focus:bg-white"
+            />
+
+            <div className="space-y-2.5">
+              {visibleFields.map((field) => (
+                <article
+                  key={field.id}
+                  className={[
+                    "rounded-[1.45rem] p-3 transition",
+                    field.selected
+                      ? "bg-white ring-1 ring-sky-100"
+                      : "bg-slate-50/90 ring-1 ring-slate-100",
+                  ].join(" ")}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 text-xs font-black text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={field.selected}
+                        onChange={(event) =>
+                          updateField(field.id, { selected: event.target.checked })
+                        }
+                        className="h-4 w-4 accent-sky-600"
+                      />
+                      إظهار في التقرير
+                    </label>
+
+                    {field.technical ? (
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-700 ring-1 ring-amber-100">
+                        تقني
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <label className="text-[10px] font-black text-slate-400">
+                    اسم الحقل
+                  </label>
+                  <input
+                    value={field.label}
+                    onChange={(event) =>
+                      updateField(field.id, { label: event.target.value })
+                    }
+                    className="mt-1 h-11 w-full rounded-[1rem] border border-slate-200 bg-slate-50 px-3 text-sm font-black text-slate-950 outline-none transition focus:border-sky-300 focus:bg-white"
+                  />
+
+                  <label className="mt-3 block text-[10px] font-black text-slate-400">
+                    القيمة المعروضة
+                  </label>
+                  <textarea
+                    value={field.value}
+                    onChange={(event) =>
+                      updateField(field.id, { value: event.target.value })
+                    }
+                    rows={3}
+                    className="mt-1 w-full rounded-[1rem] border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold leading-7 text-slate-950 outline-none transition focus:border-sky-300 focus:bg-white"
+                  />
+                </article>
+              ))}
+
+              {!visibleFields.length ? (
+                <div className="rounded-[1.35rem] bg-slate-50 p-4 text-center text-sm font-bold text-slate-500 ring-1 ring-slate-100">
+                  لا توجد نتائج مطابقة للبحث الحالي.
+                </div>
+              ) : null}
+            </div>
+          </div>
+            </div>
+          ) : null}
+        </section>
+
+        <SectionCard
+          title="وصف التنفيذ"
+          description="يمكنك كتابته يدويًا أو توليده من الحقول المختارة، ويُحفظ بنفس تخزين التحضير المستخدم في لوحة التحكم."
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-[10px] font-black text-sky-700 ring-1 ring-sky-100">
+                {summarySource === "AI"
+                  ? "مولد"
+                  : summarySource === "MANUAL"
+                    ? "معدل يدويًا"
+                    : "افتراضي"}
+              </span>
+
+              <span className="text-[11px] font-bold text-slate-400">
+                {countWords(executionSummary)} / 80 كلمة
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={generateSummary}
+              disabled={generating || selectedFields.length === 0}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-[1.35rem] bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {generating ? "جارٍ التوليد..." : "توليد وصف التنفيذ"}
+            </button>
+
+            <textarea
+              value={executionSummary}
+              onChange={(event) => {
+                setExecutionSummary(limitWords(event.target.value, 80));
+                setSummarySource("MANUAL");
+              }}
+              rows={7}
+              placeholder="اكتب وصف التنفيذ هنا"
+              className="w-full rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-7 text-slate-950 outline-none transition focus:border-sky-300 focus:bg-white"
+            />
+          </div>
+        </SectionCard>
+
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={continueToStudio}
+            className="flex h-13 w-full items-center justify-center gap-2 rounded-[1.45rem] bg-sky-600 text-base font-black text-white shadow-xl shadow-sky-200 transition hover:bg-sky-700"
+          >
+            المتابعة إلى التقرير الجاهز
+            <MobileIcon name="arrow" className="h-4 w-4 rotate-180" />
+          </button>          <p className="px-1 text-center text-[11px] font-bold leading-6 text-slate-400">
+            سيتم تجهيز التقرير حسب إعدادات النظام، ثم فتح المعاينة مباشرة.
+          </p></div>
+      </div>
+
+      <MobilePopCard
+        open={feedback.open}
+        title={feedback.title}
+        description={feedback.description}
+        variant={feedback.variant}
+        onClose={() =>
+          setFeedback((current) => ({
+            ...current,
+            open: false,
+          }))
+        }
+      />
+    </MobileAppShell>
+  );
+}
+
+
+============================================================
+FILE: components\mobile\mobile-report-a4-viewer-page.tsx
+============================================================
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+
+import { MobileIcon } from "@/components/mobile/mobile-icons";
+import { MobilePopCard } from "@/components/mobile/mobile-pop-card";
+import type { MobileReportTemplateOption } from "@/components/mobile/mobile-report-prepare-flow";
+import { FinalReportDesignRenderer } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { getReportVariantById } from "@/lib/report-engine/report-variant-registry";
+import type { SmartReportField, SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
+import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
+import type { ReportFlowPreparation } from "@/lib/report-flow/report-flow-types";
+
+type MobileReportA4ViewerPageProps = {
+  caseId: string;
+  payload: SmartReportPayload;
+  selectedVariantId: string;
+  templates: MobileReportTemplateOption[];
+  selectedTemplateId?: string;
+};
+
+type FeedbackState = {
+  open: boolean;
+  title: string;
+  description?: string;
+  variant: "info" | "success" | "warning" | "error";
+};
+
+const A4_WIDTH_PX = 794;
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function fieldValueToText(value: SmartReportField["value"]) {
+  if (Array.isArray(value)) {
+    return value.map((item) => cleanText(item)).filter(Boolean).join("، ");
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "نعم" : "لا";
+  }
+
+  return cleanText(value);
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "";
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  } catch {
+    return cleanText(value);
+  }
+}
+
+function safeFileName(value: unknown) {
+  const text = cleanText(value)
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 150);
+
+  return text || "تقرير";
+}
+
+function buildFallbackTemplate(
+  payload: SmartReportPayload,
+  selectedTemplate: MobileReportTemplateOption | null,
+) {
+  return {
+    name: selectedTemplate?.name || payload.title || "التقرير A4",
+    designTemplateId: "modern-official",
+    pages: [
+      {
+        id: "mobile-a4-page-1",
+        title: "المعاينة",
+        kind: "content",
+        blocks: [
+          {
+            id: "mobile-a4-hero",
+            kind: "hero-title",
+            title: "عنوان التقرير",
+            content: "{{case.title}}",
+            variant: "hero",
+            align: "center",
+            showTitle: false,
+            placement: "flow",
+          },
+          {
+            id: "mobile-a4-fields",
+            kind: "dynamic-fields",
+            title: "التفاصيل",
+            content: "",
+            variant: "card",
+            align: "right",
+            showTitle: true,
+            placement: "flow",
+          },
+          {
+            id: "mobile-a4-summary",
+            kind: "multi-paragraph",
+            title: payload.narrative.title || "وصف التنفيذ",
+            content: cleanText(payload.narrative.body),
+            variant: "soft",
+            align: "right",
+            showTitle: true,
+            placement: "flow",
+          },
+          {
+            id: "mobile-a4-evidence",
+            kind: "evidence-gallery",
+            title: "الشواهد والمرفقات",
+            content: "",
+            variant: "card",
+            align: "right",
+            showTitle: true,
+            placement: "flow",
+            evidenceLayout: payload.evidence.items.length > 1 ? "TWO_PER_PAGE" : "ONE_PER_PAGE",
+            evidenceFit: "contain",
+            evidenceAspectRatio: "LANDSCAPE_4_3",
+            evidenceShowCaptions: true,
+            evidenceAutoCreatePages: true,
+            evidenceEmptyBehavior: "message",
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function hydrateTemplate(
+  payload: SmartReportPayload,
+  selectedTemplate: MobileReportTemplateOption | null,
+) {
+  const templateJson = selectedTemplate?.templateJson;
+  const smartStudio = isRecord(templateJson?.smartStudio)
+    ? (templateJson.smartStudio as Record<string, unknown>)
+    : null;
+
+  if (Array.isArray(smartStudio?.pages) && smartStudio.pages.length) {
+    return {
+      ...smartStudio,
+      name:
+        cleanText(smartStudio.name) ||
+        selectedTemplate?.name ||
+        payload.title ||
+        "التقرير A4",
+      designTemplateId:
+        cleanText(smartStudio.designTemplateId) ||
+        cleanText(templateJson?.designTemplateId) ||
+        "modern-official",
+      designConfig:
+        smartStudio.designConfig ||
+        (isRecord(templateJson) ? templateJson.designConfig : undefined),
+    };
+  }
+
+  if (
+    isRecord(templateJson) &&
+    Array.isArray(templateJson.pages) &&
+    templateJson.pages.length
+  ) {
+    return {
+      ...templateJson,
+      name:
+        cleanText(templateJson.name) ||
+        selectedTemplate?.name ||
+        payload.title ||
+        "التقرير A4",
+      designTemplateId:
+        cleanText(templateJson.designTemplateId) || "modern-official",
+    };
+  }
+
+  return buildFallbackTemplate(payload, selectedTemplate);
+}
+
+function buildPreviewCaseData({
+  caseId,
+  preparedPayload,
+  preparation,
+  selectedVariantId,
+}: {
+  caseId: string;
+  preparedPayload: SmartReportPayload;
+  preparation: ReportFlowPreparation;
+  selectedVariantId: string;
+}) {
+  const values = [...preparedPayload.primaryFields, ...preparedPayload.detailFields]
+    .map((field) => ({
+      fieldKey: cleanText(field.key),
+      fieldLabel: cleanText(field.label),
+      value: fieldValueToText(field.value),
+    }))
+    .filter((field) => field.fieldLabel && field.value);
+
+  return {
+    caseId,
+    title:
+      cleanText(preparedPayload.title) ||
+      cleanText(preparedPayload.caseInfo.title) ||
+      "تقرير",
+    status:
+      cleanText(preparedPayload.caseInfo.status) ||
+      cleanText(preparedPayload.readiness.status) ||
+      selectedVariantId,
+    createdAt: preparedPayload.caseInfo.createdAt || "",
+    updatedAt:
+      preparation.updatedAt ||
+      preparedPayload.caseInfo.issuedAt ||
+      preparedPayload.caseInfo.createdAt ||
+      "",
+    serviceName: cleanText(preparedPayload.service.name),
+    serviceSlug: cleanText(preparedPayload.service.slug),
+    student: preparedPayload.student || undefined,
+    values,
+    evidences: preparedPayload.evidence.items.map((item) => ({
+      id: item.id,
+      title: cleanText(item.title),
+      caption: cleanText(item.caption),
+      imageUrl: item.type === "IMAGE" ? item.url || "" : "",
+      fileUrl: item.url || "",
+    })),
+  };
+}
+
+function buildExportContext(
+  preparedPayload: SmartReportPayload,
+  previewCaseData: ReturnType<typeof buildPreviewCaseData>,
+) {
+  const student = previewCaseData.student || {};
+  const identity = (preparedPayload as any).identity || {};
+  const context: Record<string, string> = {
+    "case.id": previewCaseData.caseId,
+    "case.title": previewCaseData.title,
+    "case.status": previewCaseData.status,
+    "case.createdAt": formatDate(previewCaseData.createdAt),
+    "case.updatedAt": formatDate(previewCaseData.updatedAt),
+
+    caseId: previewCaseData.caseId,
+    caseTitle: previewCaseData.title,
+    reportTitle: previewCaseData.title,
+
+    "service.name": previewCaseData.serviceName,
+    "service.slug": previewCaseData.serviceSlug,
+    serviceName: previewCaseData.serviceName,
+    serviceSlug: previewCaseData.serviceSlug,
+
+    "student.name": cleanText((student as any).name),
+    "student.grade": cleanText((student as any).grade),
+    "student.classroom": cleanText((student as any).classroom),
+    "student.stage": cleanText((student as any).stage),
+    "student.guardianName": cleanText((student as any).guardianName),
+    "student.guardianPhone": cleanText((student as any).guardianPhone),
+
+    studentName: cleanText((student as any).name),
+    studentGrade: cleanText((student as any).grade),
+    studentClassroom: cleanText((student as any).classroom),
+    studentStage: cleanText((student as any).stage),
+
+    "identity.schoolName": cleanText(identity.schoolName || identity.school?.name),
+    "identity.ministryName": cleanText(identity.ministryName) || "وزارة التعليم",
+    "identity.educationDepartment": cleanText(identity.educationDepartment),
+    "identity.educationOffice": cleanText(identity.educationOffice),
+    "identity.academicYear": cleanText(identity.academicYear),
+    "identity.semester":
+      cleanText(identity.currentSemester) || cleanText(identity.semester),
+    "identity.counselorName":
+      cleanText(identity.counselorName) || cleanText(identity.counselor?.name),
+    "identity.principalName":
+      cleanText(identity.principalName) ||
+      cleanText(identity.schoolLeaderName) ||
+      cleanText(identity.school?.principalName),
+
+    schoolName: cleanText(identity.schoolName || identity.school?.name),
+    ministryName: cleanText(identity.ministryName) || "وزارة التعليم",
+    counselorName:
+      cleanText(identity.counselorName) || cleanText(identity.counselor?.name),
+    principalName:
+      cleanText(identity.principalName) ||
+      cleanText(identity.schoolLeaderName) ||
+      cleanText(identity.school?.principalName),
+
+    "report.logoUrl":
+      cleanText(identity.logoUrl) ||
+      cleanText(identity.schoolLogoUrl) ||
+      "/uploads/school-logos/MOE.png",
+    "report.platformName": "منصة التوجيه الطلابي",
+    "evidence.count": String(previewCaseData.evidences.length),
+    evidenceCount: String(previewCaseData.evidences.length),
+  };
+
+  previewCaseData.values.forEach((item) => {
+    if (item.fieldKey) {
+      context[item.fieldKey] = item.value;
+      context[`field.${item.fieldKey}`] = item.value;
+    }
+
+    if (item.fieldLabel) {
+      context[item.fieldLabel] = item.value;
+      context[`field.${item.fieldLabel}`] = item.value;
+    }
+  });
+
+  return context;
+}
+
+export function MobileReportA4ViewerPage({
+  caseId,
+  payload,
+  selectedVariantId,
+  templates,
+  selectedTemplateId = "",
+}: MobileReportA4ViewerPageProps) {
+  const selectedVariant = getReportVariantById(selectedVariantId);
+  const selectedTemplate =
+    templates.find((template) => template.id === selectedTemplateId) ||
+    templates[0] ||
+    null;
+
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const documentRef = useRef<HTMLDivElement | null>(null);
+
+  const [preparation, setPreparation] = useState<ReportFlowPreparation | null>(null);
+  const [documentScale, setDocumentScale] = useState(1);
+  const [documentHeight, setDocumentHeight] = useState(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackState>({
+    open: false,
+    title: "",
+    description: "",
+    variant: "info",
+  });
+
+  useEffect(() => {
+    const loaded = loadReportFlowPreparation(caseId, selectedVariant.id);
+
+    if (!loaded) {
+      setFeedback({
+        open: true,
+        title: "المعاينة غير جاهزة",
+        description:
+          "لم يتم العثور على تحضير محفوظ لهذا التقرير. ارجع إلى صفحة الجاهزية أو التحضير أولًا.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    setPreparation(loaded);
+  }, [caseId, selectedVariant.id]);
+
+  const readyHref = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("variant", selectedVariant.id);
+
+    if (selectedTemplate?.id) {
+      params.set("templateId", selectedTemplate.id);
+    }
+
+    return `/mobile/counselor/report-2/cases/${encodeURIComponent(caseId)}/ready?${params.toString()}`;
+  }, [caseId, selectedTemplate?.id, selectedVariant.id]);
+
+  const preparedPayload = useMemo(
+    () => (preparation ? applyReportFlowPreparationToPayload(payload, preparation) : null),
+    [payload, preparation],
+  );
+
+  const template: any = useMemo(
+    () => (preparedPayload ? hydrateTemplate(preparedPayload, selectedTemplate) : null),
+    [preparedPayload, selectedTemplate],
+  );
+
+  const previewCaseData = useMemo(() => {
+    if (!preparedPayload || !preparation) return null;
+
+    return buildPreviewCaseData({
+      caseId,
+      preparedPayload,
+      preparation,
+      selectedVariantId: selectedVariant.id,
+    });
+  }, [caseId, preparation, preparedPayload, selectedVariant.id]);
+
+  const exportContext = useMemo(() => {
+    if (!preparedPayload || !previewCaseData) return null;
+
+    return buildExportContext(preparedPayload, previewCaseData);
+  }, [preparedPayload, previewCaseData]);
+
+  const reportTitle =
+    previewCaseData?.title ||
+    preparedPayload?.title ||
+    preparedPayload?.caseInfo.title ||
+    "تقرير";
+
+  const updateScale = useCallback(() => {
+    const shell = shellRef.current;
+    const doc = documentRef.current;
+
+    if (!shell || !doc) return;
+
+    const availableWidth = Math.max(280, shell.clientWidth);
+    const nextScale = Math.min(1, availableWidth / A4_WIDTH_PX);
+    const nextHeight = doc.scrollHeight * nextScale;
+
+    setDocumentScale(Number(nextScale.toFixed(4)));
+    setDocumentHeight(Math.ceil(nextHeight));
+  }, []);
+
+  useEffect(() => {
+    updateScale();
+
+    const shell = shellRef.current;
+    const doc = documentRef.current;
+    const resizeObserver = new ResizeObserver(updateScale);
+
+    if (shell) resizeObserver.observe(shell);
+    if (doc) resizeObserver.observe(doc);
+
+    window.addEventListener("resize", updateScale);
+
+    const fontsReady = (document as any).fonts?.ready;
+    if (fontsReady) {
+      fontsReady.then(updateScale).catch(() => undefined);
+    }
+
+    const timer = window.setTimeout(updateScale, 700);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateScale);
+      window.clearTimeout(timer);
+    };
+  }, [preparedPayload, template, previewCaseData, updateScale]);
+
+  async function downloadPdf() {
+    if (pdfLoading) return;
+
+    if (!template?.pages?.length || !previewCaseData || !exportContext) {
+      setFeedback({
+        open: true,
+        title: "التقرير غير جاهز",
+        description: "لا توجد صفحات A4 جاهزة للتحميل. ارجع للتحضير ثم حاول مرة أخرى.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    setPdfLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: `${safeFileName(reportTitle)}.pdf`,
+            snapshot: {
+              template,
+              context: exportContext,
+              previewCase: previewCaseData,
+              designTemplateId: template.designTemplateId || "modern-official",
+            },
+          }),
+        },
+      );
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (response.ok && contentType.includes("application/pdf")) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+
+        anchor.href = url;
+        anchor.download = `${safeFileName(reportTitle)}.pdf`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+
+        setFeedback({
+          open: true,
+          title: "تم تجهيز التحميل",
+          description: "تم إنشاء ملف PDF وبدء تحميله على جهازك.",
+          variant: "success",
+        });
+        return;
+      }
+
+      const data = await response.json().catch(() => ({} as Record<string, unknown>));
+
+      if (
+        response.ok &&
+        data.fallback === "PRINT_PREVIEW" &&
+        typeof data.previewUrl === "string"
+      ) {
+        window.open(data.previewUrl, "_blank", "noopener,noreferrer");
+
+        setFeedback({
+          open: true,
+          title: "تم فتح معاينة الطباعة",
+          description:
+            "استخدم خيار الطباعة أو الحفظ كـ PDF من المتصفح إذا لم يبدأ التحميل تلقائيًا.",
+          variant: "info",
+        });
+        return;
+      }
+
+      throw new Error(
+        cleanText((data as any).error) ||
+          cleanText((data as any).message) ||
+          "تعذر تحميل PDF.",
+      );
+    } catch (error) {
+      setFeedback({
+        open: true,
+        title: "تعذر تحميل PDF",
+        description:
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء إنشاء ملف PDF. حاول مرة أخرى.",
+        variant: "error",
+      });
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
+  return (
+    <div
+      dir="rtl"
+      className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-sky-50 text-slate-950"
+    >
+      <style>{`
+        html,
+        body {
+          background: #f0f9ff;
+        }
+
+        .mobile-a4-viewer-frame {
+          width: 210mm;
+          min-width: 210mm;
+          max-width: 210mm;
+        }
+
+        .mobile-a4-viewer-frame > section {
+          width: 210mm !important;
+          max-width: 210mm !important;
+          margin: 0 !important;
+        }
+
+        .mobile-a4-viewer-frame .pdf-report-page,
+        .mobile-a4-viewer-frame [data-report-design-page],
+        .mobile-a4-viewer-frame .report-design-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          margin: 0 auto 18px auto !important;
+          overflow: hidden !important;
+          border-radius: 0 !important;
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12) !important;
+          background: #ffffff !important;
+        }
+
+        .mobile-a4-viewer-frame .pdf-report-page:last-child,
+        .mobile-a4-viewer-frame [data-report-design-page]:last-child,
+        .mobile-a4-viewer-frame .report-design-page:last-child {
+          margin-bottom: 0 !important;
+        }
+
+        @media print {
+          header,
+          .mobile-a4-viewer-actions {
+            display: none !important;
+          }
+
+          body {
+            background: #ffffff !important;
+          }
+
+          .mobile-a4-viewer-frame {
+            position: static !important;
+            width: 210mm !important;
+            transform: none !important;
+          }
+
+          .mobile-a4-viewer-frame .pdf-report-page,
+          .mobile-a4-viewer-frame [data-report-design-page],
+          .mobile-a4-viewer-frame .report-design-page {
+            margin: 0 !important;
+            box-shadow: none !important;
+            break-after: page !important;
+            page-break-after: always !important;
+          }
+        }
+      `}</style>
+
+      <header className="sticky top-0 z-20 border-b border-sky-100 bg-white/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[430px] items-center justify-between gap-2 px-3 py-3">
+          <Link
+            href={readyHref}
+            className="flex h-11 items-center justify-center gap-1 rounded-[1.2rem] bg-sky-50 px-3 text-xs font-black text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
+          >
+            <MobileIcon name="arrow" className="h-4 w-4" />
+            رجوع
+          </Link>
+
+          <div className="min-w-0 text-center">
+            <p className="text-[11px] font-black text-sky-700">نسخة A4</p>
+            <h1 className="truncate text-sm font-black text-slate-950">
+              {reportTitle}
+            </h1>
+          </div>
+
+          <button
+            type="button"
+            onClick={downloadPdf}
+            disabled={pdfLoading || !preparation}
+            className="flex h-11 items-center justify-center gap-1 rounded-[1.2rem] bg-sky-600 px-3 text-xs font-black text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {pdfLoading ? "جارٍ..." : "تحميل PDF"}
+          </button>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-[430px] px-3 py-4">
+        {preparation && template && previewCaseData && preparedPayload ? (
+          <>
+
+            <section
+              ref={shellRef}
+              className="mx-auto w-full overflow-hidden rounded-[2rem] bg-white/95 p-3 shadow-xl shadow-sky-100 ring-1 ring-sky-100"
+            >
+              <div
+                className="relative mx-auto"
+                style={{
+                  height: documentHeight ? `${documentHeight}px` : undefined,
+                }}
+              >
+                <div
+                  ref={documentRef}
+                  className="mobile-a4-viewer-frame absolute left-1/2 top-0"
+                  style={{
+                    transform: `translateX(-50%) scale(${documentScale})`,
+                    transformOrigin: "top center",
+                  }}
+                >
+                  <FinalReportDesignRenderer
+                    template={template}
+                    previewCaseData={previewCaseData}
+                    identity={{
+                      ...(preparedPayload as any).identity,
+                      semester:
+                        cleanText((preparedPayload as any).identity?.currentSemester) ||
+                        cleanText((preparedPayload as any).identity?.academicYear),
+                    }}
+                  />
+                </div>
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="rounded-[1.8rem] bg-white/90 p-5 text-center shadow-sm ring-1 ring-amber-100">
+            <p className="text-lg font-black text-slate-950">
+              لا توجد معاينة A4 متاحة
+            </p>
+            <p className="mt-2 text-sm font-bold leading-7 text-slate-600">
+              ارجع إلى صفحة الجاهزية أو التحضير ثم احفظ التقرير قبل مراجعة نسخة الطباعة.
+            </p>
+
+            <Link
+              href={readyHref}
+              className="mt-4 inline-flex h-11 items-center justify-center rounded-[1.2rem] bg-sky-600 px-5 text-sm font-black text-white shadow-lg shadow-sky-200"
+            >
+              العودة للتقرير الجاهز
+            </Link>
+          </section>
+        )}
+      </main>
+
+      <MobilePopCard
+        open={feedback.open}
+        title={feedback.title}
+        description={feedback.description}
+        variant={feedback.variant}
+        onClose={() =>
+          setFeedback((current) => ({
+            ...current,
+            open: false,
+          }))
+        }
+      />
+    </div>
+  );
+}
+
+============================================================
+FILE: components\report-2\report-two-snapshot-preview.tsx
+============================================================
+import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
+
+type SnapshotForDownload = {
+  caseEntryId: string;
+  reportTitle: string;
+  snapshotTemplateJson?: unknown;
+  snapshotPagesJson?: unknown;
+};
+
+type ReportTwoSnapshotPreviewProps = {
+  snapshot: {
+    caseEntryId: string;
+    reportTitle: string;
+    serviceName?: string | null;
+    serviceSlug?: string | null;
+    approvedAt?: string | null;
+    approvedByName?: string | null;
+    snapshotTemplateJson?: unknown;
+    snapshotPagesJson?: unknown;
+    snapshotHtml: string;
+    pdfUrl?: string | null;
+  };
+  printMode?: boolean;
+};
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+export function ReportTwoSnapshotPreview({
+  snapshot,
+  printMode = false,
+}: ReportTwoSnapshotPreviewProps) {
+  return (
+    <main
+      className={printMode ? "bg-white" : "px-6 py-8"}
+      dir="rtl"
+    >
+      <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        @media print {
+          body {
+            background: #ffffff !important;
+          }
+
+          [data-report-two-snapshot-toolbar] {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      {!printMode ? (
+        <section
+          data-report-two-snapshot-toolbar
+          className="mx-auto mb-6 max-w-6xl rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+                التقارير المعتمدة
+              </p>
+
+              <h1 className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
+                {snapshot.reportTitle}
+              </h1>
+
+              <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+                {snapshot.serviceName || snapshot.serviceSlug || "خدمة غير محددة"}
+                {" · "}
+                تم اعتماد التقرير {formatDate(snapshot.approvedAt)}
+                {snapshot.approvedByName ? ` · ${snapshot.approvedByName}` : ""}
+              </p>
+            </div>
+
+            <ReportTwoPdfDownloadButton
+              snapshot={snapshot as SnapshotForDownload}
+              className="inline-flex items-center justify-center rounded-2xl bg-sky-700 px-5 py-3 text-xs font-black text-white transition hover:bg-sky-800 disabled:opacity-60"
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section
+        className={printMode ? "" : "mx-auto max-w-6xl pb-10"}
+        dangerouslySetInnerHTML={{ __html: snapshot.snapshotHtml }}
+      />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-pdf-export-preview.tsx
+============================================================
+"use client";
+
+import {
+  ReportDesignRenderer,
+  type ReportDesignId,
+} from "@/components/report-engine/design-renderers/report-design-renderer";
+import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+
+type ReportTwoPdfExportSnapshot = {
+  template: any;
+  context: Record<string, string>;
+  previewCase: any;
+  designTemplateId?: ReportDesignId;
+};
+
+export function ReportTwoPdfExportPreview({
+  snapshot,
+  printMode = false,
+}: {
+  snapshot: ReportTwoPdfExportSnapshot;
+  printMode?: boolean;
+}) {
+  if (printMode) {
+    return <ReportTwoPrintDocument snapshot={snapshot} />;
+  }
+
+  const template = snapshot.template || {
+    id: "report-2-export-empty",
+    name: "تقرير",
+    pages: [],
+  };
+
+  const pages = Array.isArray(template.pages) ? template.pages : [];
+  const activePage = pages[0] || null;
+  const activePageId = activePage?.id || "";
+
+  return (
+    <main className="report-two-pdf-export-preview report-two-pdf-force-light" dir="rtl">
+      <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        :root,
+        html,
+        body,
+        .report-two-pdf-export-preview {
+          color-scheme: light !important;
+        }
+
+        .report-two-pdf-force-light {
+          color-scheme: light !important;
+        }
+
+        * {
+          box-sizing: border-box;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a;
+          direction: rtl;
+          width: 210mm;
+          min-height: 297mm;
+        }
+
+        body {
+          overflow: visible !important;
+        }
+
+        .report-two-pdf-export-preview {
+          width: 210mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+        }
+
+        .report-two-pdf-export-preview .pdf-report-page,
+        .report-two-pdf-export-preview [data-report-design-page],
+        .report-two-pdf-export-preview .report-design-page {
+          width: 210mm !important;
+          min-width: 210mm !important;
+          max-width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          margin: 0 !important;
+          box-shadow: none !important;
+          transform: none !important;
+          zoom: 1 !important;
+          overflow: hidden !important;
+          background: #ffffff !important;
+          break-after: page;
+          page-break-after: always;
+          page-break-inside: avoid;
+        }
+
+        .report-two-pdf-export-preview .pdf-report-page:last-child,
+        .report-two-pdf-export-preview [data-report-design-page]:last-child,
+        .report-two-pdf-export-preview .report-design-page:last-child {
+          break-after: auto;
+          page-break-after: auto;
+        }
+
+        [data-report-two-pdf-hide="evidence-overflow-note"] {
+          display: none !important;
+        }
+
+        img {
+          max-width: 100%;
+        }
+      `}</style>
+
+      <ReportDesignRenderer
+        suppressAutoEvidencePages
+        renderMode="stack"
+        chromeLayout="joined"
+        designId={snapshot.designTemplateId || template.designTemplateId || "ministry-form"}
+        template={template}
+        activePage={activePage}
+        activePageId={activePageId}
+        context={snapshot.context || {}}
+        previewCase={snapshot.previewCase || {}}
+        onActivePageChange={() => undefined}
+        onAddPage={() => undefined}
+        onMovePage={() => undefined}
+        onDeletePage={() => undefined}
+        canMovePage={() => false}
+        canDeletePage={() => false}
+      />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: components\report-2\report-two-studio-runtime.tsx
+============================================================
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -831,6 +3145,50 @@ function getPayloadAny(payload: SmartReportPayload) {
   return payload as any;
 }
 
+function normalizeReportTwoSignatureKey(value: unknown) {
+  return cleanText(value).toLowerCase().replace(/[\s_-]+/g, "");
+}
+
+function getReportTwoIdentitySignatureUrl(
+  payload: SmartReportPayload,
+  key: unknown,
+) {
+  const data = getPayloadAny(payload);
+  const identity = data.identity || {};
+  const normalizedKey = normalizeReportTwoSignatureKey(key);
+
+  if (
+    normalizedKey.includes("principal") ||
+    normalizedKey.includes("schoolleader") ||
+    normalizedKey.includes("manager")
+  ) {
+    return cleanText(
+      identity.principalSignatureUrl || identity.schoolLeaderSignatureUrl,
+    );
+  }
+
+  if (
+    normalizedKey.includes("activityleader") ||
+    normalizedKey.includes("activity")
+  ) {
+    return cleanText(identity.activityLeaderSignatureUrl);
+  }
+
+  if (
+    normalizedKey.includes("counselor") ||
+    normalizedKey.includes("guidance") ||
+    normalizedKey.includes("advisor")
+  ) {
+    return cleanText(
+      identity.counselorSignatureUrl ||
+        identity.activityLeaderSignatureUrl ||
+        identity.userSignatureUrl,
+    );
+  }
+
+  return "";
+}
+
 function getRuntimeContext(payload: SmartReportPayload) {
   const data = getPayloadAny(payload);
   const student = data.student || data.caseInfo?.student || {};
@@ -856,6 +3214,68 @@ function getRuntimeContext(payload: SmartReportPayload) {
     "identity.ministryName": cleanText(data.identity?.ministryName || "وزارة التعليم"),
     "identity.educationDepartment": cleanText(data.identity?.educationDepartment || "الإدارة العامة للتعليم"),
     "identity.schoolName": cleanText(data.identity?.schoolName || ""),
+    "identity.educationOffice": cleanText(data.identity?.educationOffice),
+    "identity.academicYear": cleanText(data.identity?.academicYear),
+    "identity.currentSemester": cleanText(data.identity?.currentSemester),
+    "identity.counselorName": cleanText(data.identity?.counselorName),
+    "identity.principalName": cleanText(
+      data.identity?.principalName || data.identity?.schoolLeaderName,
+    ),
+    "identity.schoolLeaderName": cleanText(
+      data.identity?.schoolLeaderName || data.identity?.principalName,
+    ),
+    "identity.activityLeaderName": cleanText(data.identity?.activityLeaderName),
+    "identity.userName": cleanText(
+      data.identity?.userName || data.caseInfo?.issuedBy,
+    ),
+    "identity.principalSignatureUrl": cleanText(
+      data.identity?.principalSignatureUrl ||
+        data.identity?.schoolLeaderSignatureUrl,
+    ),
+    "identity.schoolLeaderSignatureUrl": cleanText(
+      data.identity?.schoolLeaderSignatureUrl ||
+        data.identity?.principalSignatureUrl,
+    ),
+    "identity.activityLeaderSignatureUrl": cleanText(
+      data.identity?.activityLeaderSignatureUrl,
+    ),
+    "identity.counselorSignatureUrl": cleanText(
+      data.identity?.counselorSignatureUrl,
+    ),
+    "identity.userSignatureUrl": cleanText(
+      data.identity?.userSignatureUrl ||
+        data.identity?.counselorSignatureUrl ||
+        data.identity?.activityLeaderSignatureUrl,
+    ),
+    principalName: cleanText(
+      data.identity?.principalName || data.identity?.schoolLeaderName,
+    ),
+    schoolLeaderName: cleanText(
+      data.identity?.schoolLeaderName || data.identity?.principalName,
+    ),
+    counselorName: cleanText(data.identity?.counselorName),
+    activityLeaderName: cleanText(data.identity?.activityLeaderName),
+    userName: cleanText(data.identity?.userName || data.caseInfo?.issuedBy),
+    principalSignatureUrl: cleanText(
+      data.identity?.principalSignatureUrl ||
+        data.identity?.schoolLeaderSignatureUrl,
+    ),
+    schoolLeaderSignatureUrl: cleanText(
+      data.identity?.schoolLeaderSignatureUrl ||
+        data.identity?.principalSignatureUrl,
+    ),
+    activityLeaderSignatureUrl: cleanText(
+      data.identity?.activityLeaderSignatureUrl,
+    ),
+    counselorSignatureUrl: cleanText(
+      data.identity?.counselorSignatureUrl ||
+        data.identity?.activityLeaderSignatureUrl,
+    ),
+    userSignatureUrl: cleanText(
+      data.identity?.userSignatureUrl ||
+        data.identity?.counselorSignatureUrl ||
+        data.identity?.activityLeaderSignatureUrl,
+    ),
   };
 
   fields.forEach((field: any, index: number) => {
@@ -891,24 +3311,16 @@ function collectEvidences(payload: SmartReportPayload) {
   const data = getPayloadAny(payload);
 
   const candidates = [
-    data.evidence,
     data.evidence?.items,
     data.evidence?.evidences,
-    data.evidence?.files,
-    data.evidence?.attachments,
     data.evidenceItems,
     data.evidences,
     data.attachments,
     data.files,
-    data.caseInfo?.evidence,
     data.caseInfo?.evidence?.items,
-    data.caseInfo?.evidence?.evidences,
-    data.caseInfo?.evidence?.files,
-    data.caseInfo?.evidence?.attachments,
     data.caseInfo?.evidenceItems,
     data.caseInfo?.evidences,
     data.caseInfo?.attachments,
-    data.caseInfo?.files,
   ];
 
   const collected: any[] = [];
@@ -916,91 +3328,29 @@ function collectEvidences(payload: SmartReportPayload) {
   candidates.forEach((candidate) => {
     if (Array.isArray(candidate)) {
       collected.push(...candidate);
-      return;
-    }
-
-    if (candidate && typeof candidate === "object") {
-      const record = candidate as Record<string, any>;
-
-      [
-        record.items,
-        record.evidences,
-        record.files,
-        record.attachments,
-        record.data,
-      ].forEach((value) => {
-        if (Array.isArray(value)) {
-          collected.push(...value);
-        }
-      });
     }
   });
 
-  const seen = new Set<string>();
-
   return collected
     .map((item, index) => {
-      const rawUrl =
+      const fileUrl = normalizeEvidenceUrl(
         item.fileUrl ||
-        item.url ||
-        item.imageUrl ||
-        item.publicUrl ||
-        item.path ||
-        item.filePath ||
-        item.storagePath ||
-        item.thumbnailUrl ||
-        item.previewUrl ||
-        item.downloadUrl ||
-        item.secureUrl ||
-        item.src ||
-        "";
-
-      const fileUrl = normalizeEvidenceUrl(rawUrl);
-      const imageUrl =
-        normalizeEvidenceUrl(
+          item.url ||
           item.imageUrl ||
-            item.thumbnailUrl ||
-            item.previewUrl ||
-            item.publicUrl ||
-            rawUrl,
-        ) || fileUrl;
-
-      const id =
-        cleanText(item.id) ||
-        cleanText(item.evidenceId) ||
-        cleanText(item.fileId) ||
-        fileUrl ||
-        imageUrl ||
-        `evidence-${index + 1}`;
+          item.publicUrl ||
+          item.path ||
+          "",
+      );
 
       return {
-        id,
-        title:
-          cleanText(item.title || item.fileName || item.originalName || item.name) ||
-          `شاهد ${index + 1}`,
+        id: cleanText(item.id) || `evidence-${index + 1}`,
+        title: cleanText(item.title || item.fileName || item.name) || `شاهد ${index + 1}`,
         fileUrl,
-        imageUrl,
-        caption: cleanText(
-          item.caption ||
-            item.note ||
-            item.description ||
-            item.title ||
-            item.fileName ||
-            item.originalName,
-        ),
+        imageUrl: normalizeEvidenceUrl(item.imageUrl) || fileUrl,
+        caption: cleanText(item.caption || item.note || item.description || item.title),
       };
     })
-    .filter((item) => item.fileUrl || item.imageUrl)
-    .filter((item) => {
-      const key = `${item.id}|${item.fileUrl}|${item.imageUrl}`;
-
-      if (seen.has(key)) {
-        return false;
-      }
-
-      seen.add(key);
-      return true;
-    });
+    .filter((item) => item.fileUrl || item.imageUrl);
 }
 
 function getPreviewCase(payload: SmartReportPayload) {
@@ -1084,7 +3434,9 @@ function getReportTwoSignatureCardsFromPayload(payload: SmartReportPayload) {
       label: String(signature.label || "التوقيع"),
       signerName: String(signature.signerName || ""),
       signerTitle: String(signature.signerTitle || ""),
-      imageUrl: String(signature.imageUrl || ""),
+      imageUrl:
+        String(signature.imageUrl || "") ||
+        getReportTwoIdentitySignatureUrl(payload, signature.key),
       required: Boolean(signature.required),
     }));
 }
@@ -1149,12 +3501,44 @@ function getReportTwoOrderedSignatureCards(
 function getReportTwoConfiguredSignatureCards(
   signatures: ReturnType<typeof getReportTwoSignatureCardsFromPayload>,
   block: StudioBlock | null | undefined,
+  payload: SmartReportPayload,
 ) {
   const hiddenKeys = getReportTwoSignatureHiddenKeys(block);
+  const configuredByKey = new Map<string, any>();
 
-  return getReportTwoOrderedSignatureCards(signatures, block).filter(
-    (signature) => !hiddenKeys.has(signature.key),
-  );
+  (
+    Array.isArray((block as any)?.signatures) ? (block as any).signatures : []
+  ).forEach((signature: any) => {
+    const normalizedKey = normalizeReportTwoSignatureKey(signature?.key);
+
+    if (normalizedKey) {
+      configuredByKey.set(normalizedKey, signature);
+    }
+  });
+
+  return getReportTwoOrderedSignatureCards(signatures, block)
+    .map((signature) => {
+      const configured = configuredByKey.get(
+        normalizeReportTwoSignatureKey(signature.key),
+      );
+
+      return {
+        ...signature,
+        label: cleanText(configured?.label) || signature.label,
+        signerName: cleanText(configured?.signerName) || signature.signerName,
+        signerTitle:
+          cleanText(configured?.signerTitle) || signature.signerTitle,
+        imageUrl:
+          signature.imageUrl ||
+          cleanText(configured?.imageUrl) ||
+          getReportTwoIdentitySignatureUrl(payload, signature.key),
+        required:
+          typeof configured?.required === "boolean"
+            ? configured.required
+            : signature.required,
+      };
+    })
+    .filter((signature) => !hiddenKeys.has(signature.key));
 }
 
 function moveReportTwoSignatureOrder(
@@ -1250,7 +3634,11 @@ function withReportTwoSignatureBlock(
     showMeta: false,
     align: "center",
     placement: "bottom",
-    signatures: getReportTwoConfiguredSignatureCards(signatures, signatureBlock),
+    signatures: getReportTwoConfiguredSignatureCards(
+      signatures,
+      signatureBlock,
+      payload,
+    ),
   } as StudioBlock;
 
   return {
@@ -1297,7 +3685,7 @@ function getReportTwoBlockHeightScore(
   if (block.kind === "section-text" || block.kind === "multi-paragraph") {
     const content = cleanText(block.content);
     const lineCount = getReportTwoTextLineCount(content);
-    const baseScore = 20;
+    const baseScore = isReportTwoExecutionSummaryBlock(block) ? 18 : 20;
 
     return baseScore + lineCount * 8.5;
   }
@@ -1421,6 +3809,7 @@ function splitReportTwoBlockForPagination(
     sourceBlockId: (block as any).sourceBlockId || block.id,
   })) as StudioBlock[];
 }
+
 function makeReportTwoContinuationPage(
   sourcePage: StudioPage,
   index: number,
@@ -1520,7 +3909,15 @@ function buildReportTwoRuntimeTemplate(
         startNextPage();
       }
 
-      currentPage.blocks.push(block);
+      const blockToPlace =
+        isReportTwoSignatureBlock(block) && currentPage.reportTwoVirtualPage
+          ? {
+              ...block,
+              
+            }
+          : block;
+
+      currentPage.blocks.push(blockToPlace);
       usedScore += Math.min(blockScore, pageSafeHeightScore);
 
       if (block.kind === "evidence-gallery") {
@@ -1545,7 +3942,6 @@ function buildReportTwoRuntimeTemplate(
                 {
                   ...block,
                   id: `${block.id}-evidence-${index + 1}`,
-                  sourceBlockId: (block as any).sourceBlockId || block.id,
                   title: `${block.title || "الشواهد"} - صفحة ${index + 1}`,
                   evidenceStartIndex: index * perPage,
                   evidenceLimit: perPage,
@@ -1585,6 +3981,7 @@ function buildReportTwoRuntimeTemplate(
     pages: runtimePages,
   };
 }
+
 function getWritableReportTwoPageId(
   activePageId: string,
   activePage: StudioPage | undefined,
@@ -2465,16 +4862,13 @@ function getReportTwoPreparedExecutionSummary(payload: SmartReportPayload) {
   );
 }
 
-function isReportTwoExecutionSummaryPlaceholderText(input: unknown) {
+function isReportTwoExecutionSummaryPlaceholderText(input: any) {
   const content = cleanText(input).toLowerCase();
 
   if (!content) return true;
   if (content.includes("workflow")) return true;
   if (content.includes("تم توثيق هذا الجزء")) return true;
   if (content.includes("اكتب النص هنا")) return true;
-  if (content.includes("{{execution")) return true;
-  if (content.includes("{{report.execution")) return true;
-  if (content.includes("{{case.execution")) return true;
 
   return false;
 }
@@ -2620,16 +5014,12 @@ export function ReportTwoStudioRuntime({
     useState("");
 
   const [template, setTemplate] = useState<StudioTemplate>(() =>
-    hydrateTemplate(initialTemplateOption),
+    applyReportTwoPreparedExecutionSummary(
+      hydrateTemplate(initialTemplateOption),
+      payload,
+    ),
   );
 
-
-  // report-two-sync-prepared-execution-summary
-  useEffect(() => {
-    setTemplate((current) =>
-      applyReportTwoPreparedExecutionSummary(current, preparedPayload),
-    );
-  }, [preparedPayload]);
   const [protectedPageIds, setProtectedPageIds] = useState<string[]>(() =>
     hydrateTemplate(initialTemplateOption).pages.map((page) => page.id),
   );
@@ -2718,8 +5108,12 @@ export function ReportTwoStudioRuntime({
   const previewCase = useMemo(() => getPreviewCase(preparedPayload), [preparedPayload]);
 
   const previewTemplate = useMemo(
-    () => buildReportTwoRuntimeTemplate(template, previewCase),
-    [template, previewCase],
+    () =>
+      applyReportTwoPreparedExecutionSummary(
+        buildReportTwoRuntimeTemplate(template, previewCase),
+        preparedPayload,
+      ),
+    [template, previewCase, preparedPayload],
   );
 
   const visiblePreviewPages = useMemo(() => {
@@ -5946,5 +8340,211 @@ export function ReportTwoStudioRuntime({
         </div>
       ) : null}
     </main>
+  );
+}
+
+
+============================================================
+FILE: app\dashboard\report-2\snapshots\[snapshotId]\preview\page.tsx
+============================================================
+import { notFound } from "next/navigation";
+
+import { ReportTwoSnapshotPreview } from "@/components/report-2/report-two-snapshot-preview";
+import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { getReportTwoSnapshotById } from "@/lib/report-2/report-snapshot-service";
+
+type PageProps = {
+  params: Promise<{
+    snapshotId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function ReportTwoSnapshotPreviewPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const context = await requireDashboardPageContext();
+  const { snapshotId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const printMode = firstParam(resolvedSearchParams.print) === "1";
+  const snapshot = await getReportTwoSnapshotById(context, snapshotId);
+
+  if (!snapshot) {
+    notFound();
+  }
+
+  return (
+    <>
+      {printMode ? <ReportTwoSnapshotPrintController /> : null}
+      <ReportTwoSnapshotPreview
+        snapshot={snapshot}
+        printMode={printMode}
+      />
+    </>
+  );
+}
+
+
+============================================================
+FILE: app\dashboard\report-2\cases\[caseId]\studio\page.tsx
+============================================================
+import { notFound, redirect } from "next/navigation";
+
+import { ReportTwoStudioRuntime } from "@/components/report-2/report-two-studio-runtime";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+import { prisma } from "@/lib/prisma";
+import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseTemplateJson(value: unknown) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return null;
+}
+
+function isVisibleTemplate(templateJson: Record<string, unknown> | null) {
+  const status = String(templateJson?.status || "").toUpperCase();
+
+  if (!status) return true;
+
+  return status === "PUBLISHED" || status === "DRAFT";
+}
+
+export default async function ReportTwoCaseStudioPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const current = await requireDashboardUser();
+
+  if (current.user.role !== "ADMIN") {
+    if (!current.user.schoolAccountId) {
+      redirect("/dashboard/plans?reason=activation-required");
+    }
+
+    const overview = await getSchoolSubscriptionOverview(
+      current.user.schoolAccountId,
+    );
+
+    if (!overview.usable) {
+      redirect("/dashboard/plans?reason=activation-required");
+    }
+  }
+
+  const { caseId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedTemplateId = firstParam(resolvedSearchParams.templateId) || "";
+  const selectedVariantId = firstParam(resolvedSearchParams.variant) || "";
+
+  const result = await buildSmartReportPayloadForCase({
+    caseId,
+    current,
+  });
+
+  if (!result.ok) {
+    notFound();
+  }
+
+  if (current.user.role !== "ADMIN") {
+    const access = await isServiceAllowedForSchool({
+      schoolAccountId: current.user.schoolAccountId || "",
+      serviceSlug: result.serviceSlug,
+    });
+
+    if (!access.ok) {
+      const reason =
+        access.reason === "SUBSCRIPTION_INACTIVE"
+          ? "activation-required"
+          : "service-not-in-plan";
+
+      redirect(
+        `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+          result.serviceSlug,
+        )}`,
+      );
+    }
+  }
+
+  const templatesRaw = await prisma.reportTemplate.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        {
+          serviceSlug: null,
+        },
+        {
+          serviceSlug: result.serviceSlug,
+        },
+      ],
+    },
+    orderBy: [
+      {
+        serviceSlug: "desc",
+      },
+      {
+        updatedAt: "desc",
+      },
+    ],
+    take: 30,
+  });
+
+  const templates = templatesRaw
+    .map((template) => {
+      const item = template as any;
+      const templateJson =
+        parseTemplateJson(item.templateJson) || parseTemplateJson(item.content);
+
+      return {
+        id: template.id,
+        name: template.name,
+        description: template.description || "",
+        serviceSlug: template.serviceSlug || null,
+        updatedAt: template.updatedAt.toISOString(),
+        templateJson,
+        visible: isVisibleTemplate(templateJson),
+      };
+    })
+    .filter((template) => template.visible)
+    .map(({ visible: _visible, ...template }) => template);
+
+  return (
+    <ReportTwoStudioRuntime
+      caseId={caseId}
+      selectedTemplateId={selectedTemplateId}
+      selectedVariantId={selectedVariantId}
+      payload={result.payload}
+      templates={templates}
+    />
   );
 }

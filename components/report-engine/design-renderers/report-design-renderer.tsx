@@ -655,11 +655,27 @@ export function FinalReportDesignRenderer({
   );
 }
 
+function findSavedEvidenceGalleryBlock(template: any) {
+  const pages = Array.isArray(template?.pages) ? template.pages : [];
+  const savedEvidenceBlock = findSavedEvidenceGalleryBlock(template);
+
+  for (const page of pages) {
+    const blocks = Array.isArray(page?.blocks) ? page.blocks : [];
+    const block = blocks.find((item: any) => item?.kind === "evidence-gallery");
+
+    if (block) {
+      return block;
+    }
+  }
+
+  return null;
+}
 function normalizeFinalReportTemplate(
   template: any,
   editorialBlocks: Record<string, string>,
 ) {
   const pages = Array.isArray(template?.pages) ? template.pages : [];
+  const savedEvidenceBlock = findSavedEvidenceGalleryBlock(template);
 
   return {
     ...template,
@@ -672,6 +688,7 @@ function normalizeFinalReportTemplate(
 
       const shouldAddEvidenceBlock =
         page?.kind === "evidence" &&
+        !savedEvidenceBlock &&
         !normalizedBlocks.some((block: any) => block.kind === "evidence-gallery");
 
       return {
@@ -2367,7 +2384,7 @@ function DesignBlock({
                 )}
               </div>
 
-              <div className="mt-1 text-[10px] font-black text-slate-950">
+              <div className="report-design-signature-name mt-1 text-[10px] font-black text-slate-950">
                 {signature.signerName || "—"}
               </div>
 

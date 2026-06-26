@@ -48,8 +48,6 @@ type ReportPrepareFlowProps = {
 
 type PrepareStep = "prepare" | "studio";
 
-const EXECUTION_SUMMARY_MAX_WORDS = 40;
-
 function cleanText(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -64,7 +62,7 @@ function countWords(value: string) {
   return cleanText(value).split(/\s+/).filter(Boolean).length;
 }
 
-function limitWords(value: string, maxWords = EXECUTION_SUMMARY_MAX_WORDS) {
+function limitWords(value: string, maxWords = 50) {
   return cleanText(value).split(/\s+/).filter(Boolean).slice(0, maxWords).join(" ");
 }
 
@@ -122,7 +120,7 @@ export function ReportPrepareFlow({
   );
 
   const summarySourceLabel =
-    summarySource === "AI"
+    summarySource === ""
       ? "تم توليد الوصف"
       : summarySource === "FALLBACK"
         ? "تم استخدام صياغة احتياطية محلية"
@@ -157,7 +155,7 @@ export function ReportPrepareFlow({
       setFields((current) =>
         applyReportFlowLanguageModeToFields(current, preferredMode),
       );
-      setExecutionSummary(cleanText(buildInitialSummary(payload, preferredMode)));
+      setExecutionSummary(buildInitialSummary(payload, preferredMode));
       setSummarySource("FALLBACK");
       setHydratedFromStorage(true);
       return;
@@ -167,7 +165,7 @@ export function ReportPrepareFlow({
       saveReportFlowLanguageModePreference("FEMALE");
       setLanguageMode("FEMALE");
       setFields((current) => applyReportFlowLanguageModeToFields(current, "FEMALE"));
-      setExecutionSummary(cleanText(buildInitialSummary(payload, "FEMALE")));
+      setExecutionSummary(buildInitialSummary(payload, "FEMALE"));
       setSummarySource("FALLBACK");
       setHydratedFromStorage(true);
       return;
@@ -208,7 +206,7 @@ export function ReportPrepareFlow({
     setLanguageMode(normalizedMode);
     saveReportFlowLanguageModePreference(normalizedMode);
     setFields((current) => applyReportFlowLanguageModeToFields(current, normalizedMode));
-    setExecutionSummary(cleanText(buildInitialSummary(payload, normalizedMode)));
+    setExecutionSummary(buildInitialSummary(payload, normalizedMode));
     setSummarySource("FALLBACK");
 
     if (options?.showMessage !== false) {
@@ -317,16 +315,16 @@ export function ReportPrepareFlow({
         throw new Error(data?.error || "تعذر توليد وصف التنفيذ.");
       }
 
-      const nextSummary = cleanText(String(data.summary || ""));
-      const nextSource = data?.source === "AI" ? "AI" : "FALLBACK";
+      const nextSummary = limitWords(String(data.summary || ""), 80);
+      const nextSource = data.source === "" ? "" : "FALLBACK";
 
       setExecutionSummary(nextSummary);
       setSummarySource(nextSource);
       saveReportFlowPreparation(buildPreparation(nextSummary, nextSource));
       setMessage(
-        nextSource === "AI"
-          ? "تم توليد وصف تنفيذ مكتمل من البيانات المختارة."
-          : "تم إنشاء وصف احتياطي مكتمل من البيانات المختارة.",
+        nextSource === ""
+          ? "تم توليد وصف التنفيذ من الحقول المختارة."
+          : "تم إنشاء وصف احتياطي من الحقول المختارة.",
       );
     } catch {
       setMessage("تعذر توليد الوصف الآن. يمكنك كتابة وصف التنفيذ يدويًا.");
@@ -342,13 +340,13 @@ export function ReportPrepareFlow({
     }
 
     const safeSummary =
-      limitWords(executionSummary, EXECUTION_SUMMARY_MAX_WORDS) ||
+      limitWords(executionSummary, 80) ||
       buildInitialSummary(payload, languageMode) ||
       "";
 
     const preparation = buildPreparation(
       safeSummary,
-      summarySource === "FALLBACK" ? "FALLBACK" : "MANUAL",
+      summarySource === "" ? "" : "MANUAL",
     );
 
     saveReportFlowPreparation(preparation);
@@ -421,37 +419,25 @@ export function ReportPrepareFlow({
         dir="rtl"
       >
         <div className="mx-auto max-w-6xl space-y-5">
-          <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-sm font-black text-sky-100">
-                  تحضير التقرير
-                </p>
+                <p className="text-sm font-black text-emerald-700">تحضير التقرير</p>
 
-                <h1 className="mt-2 text-3xl font-black leading-tight lg:text-4xl">
+                <h1 className="mt-1 text-2xl font-black text-slate-950">
                   راجع عناصر التقرير قبل المعاينة
                 </h1>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-black text-sky-100/90">
-                  <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
-                    {payload.title || payload.caseInfo.title}
-                  </span>
-                  <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
-                    {payload.service.name}
-                  </span>
-                  <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
-                    {selectedVariant?.shortName || selectedVariant?.name || "تقرير"}
-                  </span>
-                  <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
-                    {selectedFields.length} من {fields.length} حقل
-                  </span>
-                </div>
+                <p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-slate-500 dark:text-slate-300">
+                  اختر الحقول المهمة، عدّل صياغة القيم للعرض فقط، ثم ولّد وصف
+                  التنفيذ من البيانات المختارة.
+                </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <Link
                   href={`/dashboard/cases/${payload.caseInfo.id}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   <ArrowRight className="h-4 w-4" />
                   العودة للحالة
@@ -460,7 +446,7 @@ export function ReportPrepareFlow({
                 <button
                   type="button"
                   onClick={continueToStudio}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
                 >
                   متابعة إلى المعاينة والتعديل
                   <CheckCircle2 className="h-4 w-4" />
@@ -468,6 +454,42 @@ export function ReportPrepareFlow({
               </div>
             </div>
           </section>
+
+          <section className="grid gap-4 lg:grid-cols-4">
+            <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 lg:col-span-2">
+              <p className="text-xs font-black text-slate-400 dark:text-slate-500">
+                عنوان التقرير
+              </p>
+              <h2 className="mt-2 text-lg font-black leading-8 text-slate-950 dark:text-white">
+                {payload.title || payload.caseInfo.title}
+              </h2>
+            </article>
+
+            <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+              <p className="text-xs font-black text-slate-400 dark:text-slate-500">
+                الخدمة
+              </p>
+              <h2 className="mt-2 text-lg font-black text-slate-950 dark:text-white">
+                {payload.service.name}
+              </h2>
+              <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">
+                {selectedVariant?.shortName || selectedVariant?.name || "تقرير"}
+              </p>
+            </article>
+
+            <article className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+              <p className="text-xs font-black text-slate-400 dark:text-slate-500">
+                الحقول المختارة
+              </p>
+              <h2 className="mt-2 text-3xl font-black text-emerald-700">
+                {selectedFields.length}
+              </h2>
+              <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">
+                من أصل {fields.length} حقل قابل للعرض
+              </p>
+            </article>
+          </section>
+
           {message ? (
             <div className="rounded-[1.5rem] border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
               {message}
@@ -479,7 +501,7 @@ export function ReportPrepareFlow({
               <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h2 className="text-lg font-black text-slate-950 dark:text-white">
-                    عناصر التقرير
+                    عناصر Workflow
                   </h2>
                   <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-300">
                     اختر فقط ما تريد ظهوره في التقرير. التعديل هنا لا يغيّر أصل
@@ -547,7 +569,7 @@ export function ReportPrepareFlow({
 
                       {field.technical ? (
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500">
-                          مخفي ًا
+                          مخفي افتراضيًا
                         </span>
                       ) : null}
                     </div>
@@ -580,16 +602,20 @@ export function ReportPrepareFlow({
             </div>
 
             <aside className="space-y-4">
-<section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
-                <div className="flex items-start justify-between gap-3">
+              <section className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-black text-slate-950 dark:text-white">
-                      وصف التنفيذ
+                    <h2 className="text-base font-black text-slate-950 dark:text-white">
+                      صيغة التقرير
                     </h2>
                     <p className="mt-1 text-sm font-bold leading-7 text-slate-500 dark:text-slate-300">
-                      وصف مختصر بحد أقصى 40 كلمة.
+                      اختر الصياغة العامة للتقرير قبل توليد وصف التنفيذ.
                     </p>
                   </div>
+
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">
+                    {getReportLanguageModeLabel(languageMode)}
+                  </span>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
@@ -619,6 +645,27 @@ export function ReportPrepareFlow({
                     مؤنث
                   </button>
                 </div>
+              </section>
+
+              <section className="rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-black text-slate-950 dark:text-white">
+                      وصف التنفيذ
+                    </h2>
+                    <p className="mt-1 text-sm font-bold leading-7 text-slate-500 dark:text-slate-300">
+                      يولد الوصف من الحقول المختارة فقط، ويمكنك تعديله يدويًا.
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">
+                    {summarySource === ""
+                      ? ""
+                      : summarySource === "MANUAL"
+                        ? "يدوي"
+                        : "افتراضي"}
+                  </span>
+                </div>
 
                 <button
                   type="button"
@@ -639,19 +686,42 @@ export function ReportPrepareFlow({
                 <textarea
                   value={executionSummary}
                   onChange={(event) => {
-                    setExecutionSummary(
-                      limitWords(event.target.value, EXECUTION_SUMMARY_MAX_WORDS),
-                    );
+                    setExecutionSummary(limitWords(event.target.value, 30));
                     setSummarySource("MANUAL");
                   }}
-                  rows={5}
+                  rows={8}
                   placeholder="اكتب أو ولّد وصف التنفيذ..."
                   className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-8 text-slate-950 outline-none transition focus:border-emerald-300 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-950"
                 />
 
                 <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400 dark:text-slate-500">
                   <span>{summarySourceLabel}</span>
-                  <span>{countWords(executionSummary)} / 40</span>
+                  <span>{countWords(executionSummary)} / 80</span>
+                </div>
+              </section>
+
+              <section className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+                <h2 className="text-base font-black text-slate-950 dark:text-white">
+                  الترتيب المقترح
+                </h2>
+
+                <div className="mt-4 space-y-3">
+                  {[
+                    ["١", "اختر الحقول المهمة"],
+                    ["٢", "راجع القيم وعدّل العرض"],
+                    ["٣", "حدد صيغة التقرير"],
+                    ["٤", "ولّد وصف التنفيذ"],
+                    ["٥", "تابع إلى المعاينة والتعديل"],
+                  ].map(([number, label]) => (
+                    <div key={number} className="flex items-center gap-3">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-700">
+                        {number}
+                      </span>
+                      <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                        {label}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </section>
             </aside>

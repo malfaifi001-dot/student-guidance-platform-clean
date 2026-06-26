@@ -1,0 +1,2078 @@
+BLOCK CAPACITY CHECK DEBUG
+Generated: 06/26/2026 00:48:46
+
+===== git status --short =====
+ M components/evidence/evidence-item-card.tsx
+ M components/evidence/evidence-preview-grid.tsx
+ M components/report-engine/design-renderers/report-design-renderer.tsx
+ M components/reports/report-evidence-gallery.tsx
+ M components/reports/report-studio-editor.tsx
+?? evidence-renderer-after-codex.txt
+?? evidence-root-source-debug.txt
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-1cc2b151-bf10-42fb-bf7f-71fcf464f28d.jpg
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-f6a2c11f-3eb9-4fce-9bd7-cd14b4c6bb05.jpg
+?? signature-pagination-debug.txt
+?? signature-template-source-debug.txt
+
+
+
+############################################################
+FILE: components\reports\report-studio-editor.tsx
+############################################################
+
+----- PATTERN: signature -----
+
+  components\reports\report-studio-editor.tsx:182:
+  components\reports\report-studio-editor.tsx:183:export function ReportStudioEditor({ 
+report }: ReportStudioEditorProps) {
+  components\reports\report-studio-editor.tsx:184:  const router = useRouter();
+  components\reports\report-studio-editor.tsx:185:  const [, startTransition] = 
+useTransition();
+  components\reports\report-studio-editor.tsx:186:
+  components\reports\report-studio-editor.tsx:187:  const locked = report.status === 
+"APPROVED" || report.status === "ARCHIVED";
+  components\reports\report-studio-editor.tsx:188:
+  components\reports\report-studio-editor.tsx:189:  const parsed = useMemo(
+  components\reports\report-studio-editor.tsx:190:    () => 
+parseEditableContent(report.editableContent, report.renderedContent),
+  components\reports\report-studio-editor.tsx:191:    [report.editableContent, 
+report.renderedContent],
+  components\reports\report-studio-editor.tsx:192:  );
+  components\reports\report-studio-editor.tsx:193:
+> components\reports\report-studio-editor.tsx:194:  const template = useMemo(() => mergeSig
+natureOnlyStudioPagesIntoPrevious(ensureDefaultStudioSignatureBlock(normalizeTemplateSnapsh
+ot(report))), [report]);
+  components\reports\report-studio-editor.tsx:195:  const pages = template.pages as 
+TemplatePage[];
+  components\reports\report-studio-editor.tsx:196:
+  components\reports\report-studio-editor.tsx:197:  const [activePageId, setActivePageId] 
+= useState(
+  components\reports\report-studio-editor.tsx:198:    pages[0]?.id || 
+"missing-template-pages",
+  components\reports\report-studio-editor.tsx:199:  );
+  components\reports\report-studio-editor.tsx:200:  const [title, setTitle] = 
+useState(report.title);
+  components\reports\report-studio-editor.tsx:201:  const [feedback, setFeedback] = 
+useState<FeedbackState>(null);
+  components\reports\report-studio-editor.tsx:202:  const [saving, setSaving] = 
+useState(false);
+  components\reports\report-studio-editor.tsx:203:  const [approving, setApproving] = 
+useState(false);
+  components\reports\report-studio-editor.tsx:204:  const [previewVersion, 
+setPreviewVersion] = useState(1);
+  components\reports\report-studio-editor.tsx:205:  const [blockOverrides, 
+setBlockOverrides] = useState<Record<string, string>>(() =>
+  components\reports\report-studio-editor.tsx:206:    sanitizeInitialBlockOverrides(pages, 
+parsed.blocks || {}),
+  components\reports\report-studio-editor.tsx:1238:  }
+  components\reports\report-studio-editor.tsx:1239:
+  components\reports\report-studio-editor.tsx:1240:  return pagesCandidate.map((page: any, 
+index: number) => ({
+  components\reports\report-studio-editor.tsx:1241:    ...page,
+  components\reports\report-studio-editor.tsx:1242:    id: String(page?.id || "page-" + 
+(index + 1)),
+  components\reports\report-studio-editor.tsx:1243:    title: String(page?.title || "صفحة 
+" + (index + 1)),
+  components\reports\report-studio-editor.tsx:1244:    kind: page?.kind || "content",
+  components\reports\report-studio-editor.tsx:1245:    blocks: Array.isArray(page?.blocks) 
+? page.blocks : [],
+  components\reports\report-studio-editor.tsx:1246:  }));
+  components\reports\report-studio-editor.tsx:1247:}
+  components\reports\report-studio-editor.tsx:1248:
+  components\reports\report-studio-editor.tsx:1249:
+> components\reports\report-studio-editor.tsx:1250:function isStudioSignatureBlock(block: 
+any) {
+  components\reports\report-studio-editor.tsx:1251:  const kind = String(
+  components\reports\report-studio-editor.tsx:1252:    block?.settings?.smartBlockKind ||
+  components\reports\report-studio-editor.tsx:1253:      block?.smartBlockKind ||
+  components\reports\report-studio-editor.tsx:1254:      block?.kind ||
+  components\reports\report-studio-editor.tsx:1255:      "",
+  components\reports\report-studio-editor.tsx:1256:  ).trim();
+  components\reports\report-studio-editor.tsx:1257:
+  components\reports\report-studio-editor.tsx:1258:  const title = String(block?.title || 
+block?.settings?.title || "").trim();
+  components\reports\report-studio-editor.tsx:1259:
+  components\reports\report-studio-editor.tsx:1260:  return (
+> components\reports\report-studio-editor.tsx:1261:    kind === "signature-grid" ||
+> components\reports\report-studio-editor.tsx:1262:    kind === "signatures" ||
+> components\reports\report-studio-editor.tsx:1263:    kind === "approval-signatures" ||
+> components\reports\report-studio-editor.tsx:1264:    kind === "approval-signature" ||
+  components\reports\report-studio-editor.tsx:1265:    kind === "closing-note" ||
+  components\reports\report-studio-editor.tsx:1266:    title.includes("توقيع") ||
+  components\reports\report-studio-editor.tsx:1267:    title.includes("تواقيع") ||
+  components\reports\report-studio-editor.tsx:1268:    title.includes("اعتماد") ||
+> components\reports\report-studio-editor.tsx:1269:    Array.isArray(block?.signatures)
+  components\reports\report-studio-editor.tsx:1270:  );
+  components\reports\report-studio-editor.tsx:1271:}
+  components\reports\report-studio-editor.tsx:1272:
+> components\reports\report-studio-editor.tsx:1273:function 
+createDefaultStudioSignatureBlock() {
+  components\reports\report-studio-editor.tsx:1274:  return {
+> components\reports\report-studio-editor.tsx:1275:    id: "auto-default-signatures",
+> components\reports\report-studio-editor.tsx:1276:    kind: "signature-grid",
+  components\reports\report-studio-editor.tsx:1277:    title: "تواقيع الاعتماد",
+  components\reports\report-studio-editor.tsx:1278:    content: "",
+  components\reports\report-studio-editor.tsx:1279:    variant: "minimal",
+  components\reports\report-studio-editor.tsx:1280:    align: "center",
+  components\reports\report-studio-editor.tsx:1281:    showTitle: false,
+  components\reports\report-studio-editor.tsx:1282:    placement: "bottom",
+  components\reports\report-studio-editor.tsx:1283:    visible: true,
+> components\reports\report-studio-editor.tsx:1284:    autoDefaultSignature: true,
+> components\reports\report-studio-editor.tsx:1285:    signatures: [
+  components\reports\report-studio-editor.tsx:1286:      {
+  components\reports\report-studio-editor.tsx:1287:        key: "counselor",
+  components\reports\report-studio-editor.tsx:1288:        label: "الموجه الطلابي",
+  components\reports\report-studio-editor.tsx:1289:        signerName: 
+"{{identity.counselorName}}",
+  components\reports\report-studio-editor.tsx:1290:        signerTitle: "موجه طلابي",
+> components\reports\report-studio-editor.tsx:1291:        imageUrl: 
+"{{identity.counselorSignatureUrl}}",
+  components\reports\report-studio-editor.tsx:1292:        required: false,
+  components\reports\report-studio-editor.tsx:1293:      },
+  components\reports\report-studio-editor.tsx:1294:      {
+  components\reports\report-studio-editor.tsx:1295:        key: "principal",
+  components\reports\report-studio-editor.tsx:1296:        label: "مدير المدرسة",
+  components\reports\report-studio-editor.tsx:1297:        signerName: 
+"{{identity.principalName}}",
+  components\reports\report-studio-editor.tsx:1298:        signerTitle: "مدير المدرسة",
+> components\reports\report-studio-editor.tsx:1299:        imageUrl: 
+"{{identity.principalSignatureUrl}}",
+  components\reports\report-studio-editor.tsx:1300:        required: false,
+  components\reports\report-studio-editor.tsx:1301:      },
+  components\reports\report-studio-editor.tsx:1302:    ],
+  components\reports\report-studio-editor.tsx:1303:  };
+  components\reports\report-studio-editor.tsx:1304:}
+  components\reports\report-studio-editor.tsx:1305:
+> components\reports\report-studio-editor.tsx:1306:function 
+ensureDefaultStudioSignatureBlock(template: any) {
+  components\reports\report-studio-editor.tsx:1307:  const pages = 
+Array.isArray(template?.pages) ? template.pages : [];
+  components\reports\report-studio-editor.tsx:1308:
+  components\reports\report-studio-editor.tsx:1309:  if (!pages.length) {
+  components\reports\report-studio-editor.tsx:1310:    return template;
+  components\reports\report-studio-editor.tsx:1311:  }
+  components\reports\report-studio-editor.tsx:1312:
+> components\reports\report-studio-editor.tsx:1313:  const hasSignature = 
+pages.some((page: any) => {
+  components\reports\report-studio-editor.tsx:1314:    const blocks = 
+Array.isArray(page?.blocks) ? page.blocks : [];
+> components\reports\report-studio-editor.tsx:1315:    return blocks.some((block: any) => 
+isStudioSignatureBlock(block));
+  components\reports\report-studio-editor.tsx:1316:  });
+  components\reports\report-studio-editor.tsx:1317:
+> components\reports\report-studio-editor.tsx:1318:  if (hasSignature) {
+  components\reports\report-studio-editor.tsx:1319:    return template;
+  components\reports\report-studio-editor.tsx:1320:  }
+  components\reports\report-studio-editor.tsx:1321:
+  components\reports\report-studio-editor.tsx:1322:  const lastPageIndex = pages.length - 
+1;
+  components\reports\report-studio-editor.tsx:1323:
+  components\reports\report-studio-editor.tsx:1324:  return {
+  components\reports\report-studio-editor.tsx:1325:    ...template,
+  components\reports\report-studio-editor.tsx:1326:    pages: pages.map((page: any, 
+pageIndex: number) => {
+  components\reports\report-studio-editor.tsx:1327:      if (pageIndex !== lastPageIndex) {
+  components\reports\report-studio-editor.tsx:1328:        return page;
+  components\reports\report-studio-editor.tsx:1329:      }
+  components\reports\report-studio-editor.tsx:1330:
+  components\reports\report-studio-editor.tsx:1331:      const blocks = 
+Array.isArray(page?.blocks) ? page.blocks : [];
+  components\reports\report-studio-editor.tsx:1332:
+  components\reports\report-studio-editor.tsx:1333:      return {
+  components\reports\report-studio-editor.tsx:1334:        ...page,
+> components\reports\report-studio-editor.tsx:1335:        blocks: [...blocks, 
+createDefaultStudioSignatureBlock()],
+  components\reports\report-studio-editor.tsx:1336:      };
+  components\reports\report-studio-editor.tsx:1337:    }),
+  components\reports\report-studio-editor.tsx:1338:  };
+  components\reports\report-studio-editor.tsx:1339:}
+  components\reports\report-studio-editor.tsx:1340:
+> components\reports\report-studio-editor.tsx:1341:function 
+isSignatureOnlyStudioPage(page: any) {
+  components\reports\report-studio-editor.tsx:1342:  const blocks = 
+Array.isArray(page?.blocks) ? page.blocks : [];
+  components\reports\report-studio-editor.tsx:1343:  const pageKind = String(page?.kind || 
+"").trim();
+  components\reports\report-studio-editor.tsx:1344:
+  components\reports\report-studio-editor.tsx:1345:  if (!blocks.length) {
+  components\reports\report-studio-editor.tsx:1346:    return false;
+  components\reports\report-studio-editor.tsx:1347:  }
+  components\reports\report-studio-editor.tsx:1348:
+  components\reports\report-studio-editor.tsx:1349:  if (pageKind === "approval") {
+  components\reports\report-studio-editor.tsx:1350:    return true;
+  components\reports\report-studio-editor.tsx:1351:  }
+  components\reports\report-studio-editor.tsx:1352:
+> components\reports\report-studio-editor.tsx:1353:  return blocks.every((block: any) => 
+isStudioSignatureBlock(block));
+  components\reports\report-studio-editor.tsx:1354:}
+  components\reports\report-studio-editor.tsx:1355:
+> components\reports\report-studio-editor.tsx:1356:function 
+mergeSignatureOnlyStudioPagesIntoPrevious(template: any) {
+  components\reports\report-studio-editor.tsx:1357:  const pages = 
+Array.isArray(template?.pages) ? template.pages : [];
+  components\reports\report-studio-editor.tsx:1358:
+  components\reports\report-studio-editor.tsx:1359:  if (pages.length <= 1) {
+  components\reports\report-studio-editor.tsx:1360:    return template;
+  components\reports\report-studio-editor.tsx:1361:  }
+  components\reports\report-studio-editor.tsx:1362:
+  components\reports\report-studio-editor.tsx:1363:  const mergedPages: any[] = [];
+  components\reports\report-studio-editor.tsx:1364:
+  components\reports\report-studio-editor.tsx:1365:  for (const page of pages) {
+  components\reports\report-studio-editor.tsx:1366:    const blocks = 
+Array.isArray(page?.blocks) ? page.blocks : [];
+  components\reports\report-studio-editor.tsx:1367:
+> components\reports\report-studio-editor.tsx:1368:    if (isSignatureOnlyStudioPage(page) 
+&& mergedPages.length > 0) {
+  components\reports\report-studio-editor.tsx:1369:      const previousPage = 
+mergedPages[mergedPages.length - 1];
+  components\reports\report-studio-editor.tsx:1370:      const previousBlocks = 
+Array.isArray(previousPage?.blocks) ? previousPage.blocks : [];
+  components\reports\report-studio-editor.tsx:1371:
+  components\reports\report-studio-editor.tsx:1372:      mergedPages[mergedPages.length - 
+1] = {
+  components\reports\report-studio-editor.tsx:1373:        ...previousPage,
+  components\reports\report-studio-editor.tsx:1374:        blocks: [
+  components\reports\report-studio-editor.tsx:1375:          ...previousBlocks,
+  components\reports\report-studio-editor.tsx:1376:          ...blocks.map((block: any, 
+index: number) => ({
+  components\reports\report-studio-editor.tsx:1377:            ...block,
+> components\reports\report-studio-editor.tsx:1378:            id: block?.id || 
+`merged-signature-${mergedPages.length}-${index + 1}`,
+  components\reports\report-studio-editor.tsx:1379:            placement: block?.placement 
+|| "bottom",
+  components\reports\report-studio-editor.tsx:1380:          })),
+  components\reports\report-studio-editor.tsx:1381:        ],
+  components\reports\report-studio-editor.tsx:1382:      };
+  components\reports\report-studio-editor.tsx:1383:
+  components\reports\report-studio-editor.tsx:1384:      continue;
+  components\reports\report-studio-editor.tsx:1385:    }
+  components\reports\report-studio-editor.tsx:1386:
+  components\reports\report-studio-editor.tsx:1387:    mergedPages.push(page);
+  components\reports\report-studio-editor.tsx:1388:  }
+  components\reports\report-studio-editor.tsx:1389:
+  components\reports\report-studio-editor.tsx:1390:  return {
+  components\reports\report-studio-editor.tsx:1634:  );
+  components\reports\report-studio-editor.tsx:1635:}
+  components\reports\report-studio-editor.tsx:1636:
+  components\reports\report-studio-editor.tsx:1637:function getFriendlyBlockKind(block: 
+TemplateBlock) {
+  components\reports\report-studio-editor.tsx:1638:  const kind = 
+normalizeBlockKind(block);
+  components\reports\report-studio-editor.tsx:1639:
+  components\reports\report-studio-editor.tsx:1640:  if (kind === "hero-title" || kind === 
+"cover-title") return "عنوان رئيسي";
+  components\reports\report-studio-editor.tsx:1641:  if (kind === "text-library") return 
+"نص من مكتبة النصوص";
+  components\reports\report-studio-editor.tsx:1642:  if (kind === "custom-paragraph") 
+return "فقرة مخصصة";
+  components\reports\report-studio-editor.tsx:1643:  if (kind === "multi-paragraph") 
+return "نص متعدد الفقرات";
+  components\reports\report-studio-editor.tsx:1644:  if (kind === "bullet-list") return 
+"قائمة نقاط";
+  components\reports\report-studio-editor.tsx:1645:  if (kind === "closing-note") return 
+"خاتمة واعتماد";
+> components\reports\report-studio-editor.tsx:1646:  if (kind === "signature-grid" || kind 
+=== "signatures" || kind === "approval-signatures") return "توقيع واعتماد";
+  components\reports\report-studio-editor.tsx:1647:
+  components\reports\report-studio-editor.tsx:1648:  return "نص قابل للتعديل";
+  components\reports\report-studio-editor.tsx:1649:}
+  components\reports\report-studio-editor.tsx:1650:
+  components\reports\report-studio-editor.tsx:1651:function getAutomaticBlockText(block: 
+TemplateBlock, context: Record<string, string>) {
+  components\reports\report-studio-editor.tsx:1652:  const kind = 
+normalizeBlockKind(block);
+  components\reports\report-studio-editor.tsx:1653:  const settings = block.settings || {};
+  components\reports\report-studio-editor.tsx:1654:
+  components\reports\report-studio-editor.tsx:1655:  if (kind === "cover-title" || kind 
+=== "hero-title") {
+  components\reports\report-studio-editor.tsx:1656:    return renderText(
+  components\reports\report-studio-editor.tsx:1657:      
+repairArabicMojibake(block.content || settings.content || "{{case.title}}"),
+  components\reports\report-studio-editor.tsx:1658:      context,
+
+
+
+
+----- PATTERN: approval -----
+
+  components\reports\report-studio-editor.tsx:1251:  const kind = String(
+  components\reports\report-studio-editor.tsx:1252:    block?.settings?.smartBlockKind ||
+  components\reports\report-studio-editor.tsx:1253:      block?.smartBlockKind ||
+  components\reports\report-studio-editor.tsx:1254:      block?.kind ||
+  components\reports\report-studio-editor.tsx:1255:      "",
+  components\reports\report-studio-editor.tsx:1256:  ).trim();
+  components\reports\report-studio-editor.tsx:1257:
+  components\reports\report-studio-editor.tsx:1258:  const title = String(block?.title || 
+block?.settings?.title || "").trim();
+  components\reports\report-studio-editor.tsx:1259:
+  components\reports\report-studio-editor.tsx:1260:  return (
+  components\reports\report-studio-editor.tsx:1261:    kind === "signature-grid" ||
+  components\reports\report-studio-editor.tsx:1262:    kind === "signatures" ||
+> components\reports\report-studio-editor.tsx:1263:    kind === "approval-signatures" ||
+> components\reports\report-studio-editor.tsx:1264:    kind === "approval-signature" ||
+  components\reports\report-studio-editor.tsx:1265:    kind === "closing-note" ||
+  components\reports\report-studio-editor.tsx:1266:    title.includes("توقيع") ||
+  components\reports\report-studio-editor.tsx:1267:    title.includes("تواقيع") ||
+  components\reports\report-studio-editor.tsx:1268:    title.includes("اعتماد") ||
+  components\reports\report-studio-editor.tsx:1269:    Array.isArray(block?.signatures)
+  components\reports\report-studio-editor.tsx:1270:  );
+  components\reports\report-studio-editor.tsx:1271:}
+  components\reports\report-studio-editor.tsx:1272:
+  components\reports\report-studio-editor.tsx:1273:function 
+createDefaultStudioSignatureBlock() {
+  components\reports\report-studio-editor.tsx:1274:  return {
+  components\reports\report-studio-editor.tsx:1275:    id: "auto-default-signatures",
+  components\reports\report-studio-editor.tsx:1276:    kind: "signature-grid",
+  components\reports\report-studio-editor.tsx:1337:    }),
+  components\reports\report-studio-editor.tsx:1338:  };
+  components\reports\report-studio-editor.tsx:1339:}
+  components\reports\report-studio-editor.tsx:1340:
+  components\reports\report-studio-editor.tsx:1341:function 
+isSignatureOnlyStudioPage(page: any) {
+  components\reports\report-studio-editor.tsx:1342:  const blocks = 
+Array.isArray(page?.blocks) ? page.blocks : [];
+  components\reports\report-studio-editor.tsx:1343:  const pageKind = String(page?.kind || 
+"").trim();
+  components\reports\report-studio-editor.tsx:1344:
+  components\reports\report-studio-editor.tsx:1345:  if (!blocks.length) {
+  components\reports\report-studio-editor.tsx:1346:    return false;
+  components\reports\report-studio-editor.tsx:1347:  }
+  components\reports\report-studio-editor.tsx:1348:
+> components\reports\report-studio-editor.tsx:1349:  if (pageKind === "approval") {
+  components\reports\report-studio-editor.tsx:1350:    return true;
+  components\reports\report-studio-editor.tsx:1351:  }
+  components\reports\report-studio-editor.tsx:1352:
+  components\reports\report-studio-editor.tsx:1353:  return blocks.every((block: any) => 
+isStudioSignatureBlock(block));
+  components\reports\report-studio-editor.tsx:1354:}
+  components\reports\report-studio-editor.tsx:1355:
+  components\reports\report-studio-editor.tsx:1356:function 
+mergeSignatureOnlyStudioPagesIntoPrevious(template: any) {
+  components\reports\report-studio-editor.tsx:1357:  const pages = 
+Array.isArray(template?.pages) ? template.pages : [];
+  components\reports\report-studio-editor.tsx:1358:
+  components\reports\report-studio-editor.tsx:1359:  if (pages.length <= 1) {
+  components\reports\report-studio-editor.tsx:1360:    return template;
+  components\reports\report-studio-editor.tsx:1361:  }
+  components\reports\report-studio-editor.tsx:1634:  );
+  components\reports\report-studio-editor.tsx:1635:}
+  components\reports\report-studio-editor.tsx:1636:
+  components\reports\report-studio-editor.tsx:1637:function getFriendlyBlockKind(block: 
+TemplateBlock) {
+  components\reports\report-studio-editor.tsx:1638:  const kind = 
+normalizeBlockKind(block);
+  components\reports\report-studio-editor.tsx:1639:
+  components\reports\report-studio-editor.tsx:1640:  if (kind === "hero-title" || kind === 
+"cover-title") return "عنوان رئيسي";
+  components\reports\report-studio-editor.tsx:1641:  if (kind === "text-library") return 
+"نص من مكتبة النصوص";
+  components\reports\report-studio-editor.tsx:1642:  if (kind === "custom-paragraph") 
+return "فقرة مخصصة";
+  components\reports\report-studio-editor.tsx:1643:  if (kind === "multi-paragraph") 
+return "نص متعدد الفقرات";
+  components\reports\report-studio-editor.tsx:1644:  if (kind === "bullet-list") return 
+"قائمة نقاط";
+  components\reports\report-studio-editor.tsx:1645:  if (kind === "closing-note") return 
+"خاتمة واعتماد";
+> components\reports\report-studio-editor.tsx:1646:  if (kind === "signature-grid" || kind 
+=== "signatures" || kind === "approval-signatures") return "توقيع واعتماد";
+  components\reports\report-studio-editor.tsx:1647:
+  components\reports\report-studio-editor.tsx:1648:  return "نص قابل للتعديل";
+  components\reports\report-studio-editor.tsx:1649:}
+  components\reports\report-studio-editor.tsx:1650:
+  components\reports\report-studio-editor.tsx:1651:function getAutomaticBlockText(block: 
+TemplateBlock, context: Record<string, string>) {
+  components\reports\report-studio-editor.tsx:1652:  const kind = 
+normalizeBlockKind(block);
+  components\reports\report-studio-editor.tsx:1653:  const settings = block.settings || {};
+  components\reports\report-studio-editor.tsx:1654:
+  components\reports\report-studio-editor.tsx:1655:  if (kind === "cover-title" || kind 
+=== "hero-title") {
+  components\reports\report-studio-editor.tsx:1656:    return renderText(
+  components\reports\report-studio-editor.tsx:1657:      
+repairArabicMojibake(block.content || settings.content || "{{case.title}}"),
+  components\reports\report-studio-editor.tsx:1658:      context,
+
+
+
+
+----- PATTERN: closing-note -----
+
+  components\reports\report-studio-editor.tsx:1253:      block?.smartBlockKind ||
+  components\reports\report-studio-editor.tsx:1254:      block?.kind ||
+  components\reports\report-studio-editor.tsx:1255:      "",
+  components\reports\report-studio-editor.tsx:1256:  ).trim();
+  components\reports\report-studio-editor.tsx:1257:
+  components\reports\report-studio-editor.tsx:1258:  const title = String(block?.title || 
+block?.settings?.title || "").trim();
+  components\reports\report-studio-editor.tsx:1259:
+  components\reports\report-studio-editor.tsx:1260:  return (
+  components\reports\report-studio-editor.tsx:1261:    kind === "signature-grid" ||
+  components\reports\report-studio-editor.tsx:1262:    kind === "signatures" ||
+  components\reports\report-studio-editor.tsx:1263:    kind === "approval-signatures" ||
+  components\reports\report-studio-editor.tsx:1264:    kind === "approval-signature" ||
+> components\reports\report-studio-editor.tsx:1265:    kind === "closing-note" ||
+  components\reports\report-studio-editor.tsx:1266:    title.includes("توقيع") ||
+  components\reports\report-studio-editor.tsx:1267:    title.includes("تواقيع") ||
+  components\reports\report-studio-editor.tsx:1268:    title.includes("اعتماد") ||
+  components\reports\report-studio-editor.tsx:1269:    Array.isArray(block?.signatures)
+  components\reports\report-studio-editor.tsx:1270:  );
+  components\reports\report-studio-editor.tsx:1271:}
+  components\reports\report-studio-editor.tsx:1272:
+  components\reports\report-studio-editor.tsx:1273:function 
+createDefaultStudioSignatureBlock() {
+  components\reports\report-studio-editor.tsx:1274:  return {
+  components\reports\report-studio-editor.tsx:1275:    id: "auto-default-signatures",
+  components\reports\report-studio-editor.tsx:1276:    kind: "signature-grid",
+  components\reports\report-studio-editor.tsx:1277:    title: "تواقيع الاعتماد",
+  components\reports\report-studio-editor.tsx:1588:    return false;
+  components\reports\report-studio-editor.tsx:1589:  }
+  components\reports\report-studio-editor.tsx:1590:
+  components\reports\report-studio-editor.tsx:1591:  return (
+  components\reports\report-studio-editor.tsx:1592:    kind === "hero-title" ||
+  components\reports\report-studio-editor.tsx:1593:    kind === "cover-title" ||
+  components\reports\report-studio-editor.tsx:1594:    kind === "section-text" ||
+  components\reports\report-studio-editor.tsx:1595:    kind === "multi-paragraph" ||
+  components\reports\report-studio-editor.tsx:1596:    kind === "paragraph" ||
+  components\reports\report-studio-editor.tsx:1597:    kind === "custom-paragraph" ||
+  components\reports\report-studio-editor.tsx:1598:    kind === "text-library" ||
+  components\reports\report-studio-editor.tsx:1599:    kind === "bullet-list" ||
+> components\reports\report-studio-editor.tsx:1600:    kind === "closing-note" ||
+  components\reports\report-studio-editor.tsx:1601:    Boolean(block.content || 
+block.defaultContent || block.settings?.content)
+  components\reports\report-studio-editor.tsx:1602:  );
+  components\reports\report-studio-editor.tsx:1603:}
+  components\reports\report-studio-editor.tsx:1604:
+  components\reports\report-studio-editor.tsx:1605:function normalizeBlockKind(block: 
+TemplateBlock) {
+  components\reports\report-studio-editor.tsx:1606:  return (
+  components\reports\report-studio-editor.tsx:1607:    block.settings?.smartBlockKind ||
+  components\reports\report-studio-editor.tsx:1608:    block.smartBlockKind ||
+  components\reports\report-studio-editor.tsx:1609:    block.kind ||
+  components\reports\report-studio-editor.tsx:1610:    "section-text"
+  components\reports\report-studio-editor.tsx:1611:  );
+  components\reports\report-studio-editor.tsx:1612:}
+  components\reports\report-studio-editor.tsx:1633:      getFriendlyBlockKind(block),
+  components\reports\report-studio-editor.tsx:1634:  );
+  components\reports\report-studio-editor.tsx:1635:}
+  components\reports\report-studio-editor.tsx:1636:
+  components\reports\report-studio-editor.tsx:1637:function getFriendlyBlockKind(block: 
+TemplateBlock) {
+  components\reports\report-studio-editor.tsx:1638:  const kind = 
+normalizeBlockKind(block);
+  components\reports\report-studio-editor.tsx:1639:
+  components\reports\report-studio-editor.tsx:1640:  if (kind === "hero-title" || kind === 
+"cover-title") return "عنوان رئيسي";
+  components\reports\report-studio-editor.tsx:1641:  if (kind === "text-library") return 
+"نص من مكتبة النصوص";
+  components\reports\report-studio-editor.tsx:1642:  if (kind === "custom-paragraph") 
+return "فقرة مخصصة";
+  components\reports\report-studio-editor.tsx:1643:  if (kind === "multi-paragraph") 
+return "نص متعدد الفقرات";
+  components\reports\report-studio-editor.tsx:1644:  if (kind === "bullet-list") return 
+"قائمة نقاط";
+> components\reports\report-studio-editor.tsx:1645:  if (kind === "closing-note") return 
+"خاتمة واعتماد";
+  components\reports\report-studio-editor.tsx:1646:  if (kind === "signature-grid" || kind 
+=== "signatures" || kind === "approval-signatures") return "توقيع واعتماد";
+  components\reports\report-studio-editor.tsx:1647:
+  components\reports\report-studio-editor.tsx:1648:  return "نص قابل للتعديل";
+  components\reports\report-studio-editor.tsx:1649:}
+  components\reports\report-studio-editor.tsx:1650:
+  components\reports\report-studio-editor.tsx:1651:function getAutomaticBlockText(block: 
+TemplateBlock, context: Record<string, string>) {
+  components\reports\report-studio-editor.tsx:1652:  const kind = 
+normalizeBlockKind(block);
+  components\reports\report-studio-editor.tsx:1653:  const settings = block.settings || {};
+  components\reports\report-studio-editor.tsx:1654:
+  components\reports\report-studio-editor.tsx:1655:  if (kind === "cover-title" || kind 
+=== "hero-title") {
+  components\reports\report-studio-editor.tsx:1656:    return renderText(
+  components\reports\report-studio-editor.tsx:1657:      
+repairArabicMojibake(block.content || settings.content || "{{case.title}}"),
+
+
+
+
+############################################################
+FILE: components\report-engine\report-template-studio.tsx
+############################################################
+
+----- PATTERN: capacity -----
+
+  components\report-engine\report-template-studio.tsx:2910:}
+  components\report-engine\report-template-studio.tsx:2911:
+  components\report-engine\report-template-studio.tsx:2912:function 
+getSmartEvidencePerPage(block: any) {
+  components\report-engine\report-template-studio.tsx:2913:  const layout = 
+String(block?.evidenceLayout || "TWO_PER_PAGE");
+  components\report-engine\report-template-studio.tsx:2914:  const ratio = 
+String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
+  components\report-engine\report-template-studio.tsx:2915:  const fit = 
+String(block?.evidenceFit || "contain");
+  components\report-engine\report-template-studio.tsx:2916:
+  components\report-engine\report-template-studio.tsx:2917:  if (layout === 
+"ATTACHMENT_LIST") return 10;
+  components\report-engine\report-template-studio.tsx:2918:  if (layout === 
+"ONE_PER_PAGE") return 1;
+  components\report-engine\report-template-studio.tsx:2919:  if (layout === 
+"TWO_PER_PAGE") return 2;
+  components\report-engine\report-template-studio.tsx:2920:
+  components\report-engine\report-template-studio.tsx:2921:  /*
+> components\report-engine\report-template-studio.tsx:2922:    GRID_2X2 is a maximum 
+capacity, not a forced capacity.
+  components\report-engine\report-template-studio.tsx:2923:    The system must keep every 
+evidence card inside the A4 frame.
+  components\report-engine\report-template-studio.tsx:2924:    Portrait images are tall, 
+so 4 cards can overflow the page.
+  components\report-engine\report-template-studio.tsx:2925:  */
+  components\report-engine\report-template-studio.tsx:2926:  if (layout === "GRID_2X2") {
+  components\report-engine\report-template-studio.tsx:2927:    if (ratio === 
+"PORTRAIT_3_4") return 2;
+  components\report-engine\report-template-studio.tsx:2928:    if (ratio === "SQUARE_1_1" 
+&& fit === "cover") return 4;
+  components\report-engine\report-template-studio.tsx:2929:    if (ratio === "SQUARE_1_1") 
+return 4;
+  components\report-engine\report-template-studio.tsx:2930:    if (ratio === 
+"LANDSCAPE_16_9") return 4;
+  components\report-engine\report-template-studio.tsx:2931:    return 4;
+  components\report-engine\report-template-studio.tsx:2932:  }
+  components\report-engine\report-template-studio.tsx:2933:
+  components\report-engine\report-template-studio.tsx:2934:  return 2;
+
+
+
+
+----- PATTERN: height -----
+
+  components\report-engine\report-template-studio.tsx:2449:    </div>
+  components\report-engine\report-template-studio.tsx:2450:  );
+  components\report-engine\report-template-studio.tsx:2451:}
+  components\report-engine\report-template-studio.tsx:2452:
+  components\report-engine\report-template-studio.tsx:2453:function HeaderSettingsPanel({
+  components\report-engine\report-template-studio.tsx:2454:  settings,
+  components\report-engine\report-template-studio.tsx:2455:  onChange,
+  components\report-engine\report-template-studio.tsx:2456:}: {
+  components\report-engine\report-template-studio.tsx:2457:  settings: 
+ReportHeaderSettings;
+  components\report-engine\report-template-studio.tsx:2458:  onChange: (settings: 
+ReportHeaderSettings) => void;
+  components\report-engine\report-template-studio.tsx:2459:}) {
+  components\report-engine\report-template-studio.tsx:2460:  type NumericHeaderKey =
+> components\report-engine\report-template-studio.tsx:2461:    | "heightPx"
+  components\report-engine\report-template-studio.tsx:2462:    | "paddingTopPx"
+  components\report-engine\report-template-studio.tsx:2463:    | "paddingBottomPx"
+  components\report-engine\report-template-studio.tsx:2464:    | "paddingInlinePx"
+  components\report-engine\report-template-studio.tsx:2465:    | "itemGapPx"
+  components\report-engine\report-template-studio.tsx:2466:    | "logoSizePx"
+  components\report-engine\report-template-studio.tsx:2467:    | "headerFontSizePx"
+  components\report-engine\report-template-studio.tsx:2468:    | "titleFontSizePx"
+  components\report-engine\report-template-studio.tsx:2469:    | "subtitleFontSizePx"
+> components\report-engine\report-template-studio.tsx:2470:    | "lineHeight";
+  components\report-engine\report-template-studio.tsx:2471:
+  components\report-engine\report-template-studio.tsx:2472:  function updateNumber(key: 
+NumericHeaderKey, value: string) {
+  components\report-engine\report-template-studio.tsx:2473:    onChange({
+  components\report-engine\report-template-studio.tsx:2474:      ...settings,
+  components\report-engine\report-template-studio.tsx:2475:      [key]: Number(value),
+  components\report-engine\report-template-studio.tsx:2476:    });
+  components\report-engine\report-template-studio.tsx:2477:  }
+  components\report-engine\report-template-studio.tsx:2478:
+  components\report-engine\report-template-studio.tsx:2479:  const numberControls: Array<{
+> components\report-engine\report-template-studio.tsx:2480:    key: 
+Exclude<NumericHeaderKey, "lineHeight">;
+  components\report-engine\report-template-studio.tsx:2481:    label: string;
+  components\report-engine\report-template-studio.tsx:2482:    max: number;
+  components\report-engine\report-template-studio.tsx:2483:  }> = [
+> components\report-engine\report-template-studio.tsx:2484:    { key: "heightPx", label: 
+"ارتفاع الترويسة", max: 420 },
+  components\report-engine\report-template-studio.tsx:2485:    { key: "paddingTopPx", 
+label: "مسافة علوية", max: 160 },
+  components\report-engine\report-template-studio.tsx:2486:    { key: "paddingBottomPx", 
+label: "مسافة سفلية", max: 160 },
+  components\report-engine\report-template-studio.tsx:2487:    { key: "paddingInlinePx", 
+label: "مسافة يمين/يسار", max: 180 },
+  components\report-engine\report-template-studio.tsx:2488:    { key: "itemGapPx", label: 
+"الفجوة بين عناصر الترويسة", max: 100 },
+  components\report-engine\report-template-studio.tsx:2489:    { key: "logoSizePx", label: 
+"حجم الشعار", max: 240 },
+  components\report-engine\report-template-studio.tsx:2490:    { key: "headerFontSizePx", 
+label: "حجم خط الترويسة", max: 48 },
+  components\report-engine\report-template-studio.tsx:2491:    { key: "titleFontSizePx", 
+label: "حجم خط العنوان", max: 72 },
+  components\report-engine\report-template-studio.tsx:2492:    {
+  components\report-engine\report-template-studio.tsx:2493:      key: "subtitleFontSizePx",
+  components\report-engine\report-template-studio.tsx:2494:      label: "حجم خط العنوان 
+الفرعي",
+  components\report-engine\report-template-studio.tsx:2495:      max: 48,
+  components\report-engine\report-template-studio.tsx:2496:    },
+  components\report-engine\report-template-studio.tsx:2562:          </select>
+  components\report-engine\report-template-studio.tsx:2563:        </label>
+  components\report-engine\report-template-studio.tsx:2564:
+  components\report-engine\report-template-studio.tsx:2565:        <label 
+className="block">
+  components\report-engine\report-template-studio.tsx:2566:          <span 
+className="text-xs font-black text-slate-600">
+  components\report-engine\report-template-studio.tsx:2567:            تباعد الأسطر
+  components\report-engine\report-template-studio.tsx:2568:          </span>
+  components\report-engine\report-template-studio.tsx:2569:          <input
+  components\report-engine\report-template-studio.tsx:2570:            type="number"
+  components\report-engine\report-template-studio.tsx:2571:            min={0}
+  components\report-engine\report-template-studio.tsx:2572:            max={3}
+  components\report-engine\report-template-studio.tsx:2573:            step={0.05}
+> components\report-engine\report-template-studio.tsx:2574:            
+value={settings.lineHeight}
+  components\report-engine\report-template-studio.tsx:2575:            onChange={(event) =>
+> components\report-engine\report-template-studio.tsx:2576:              
+updateNumber("lineHeight", event.target.value)
+  components\report-engine\report-template-studio.tsx:2577:            }
+  components\report-engine\report-template-studio.tsx:2578:            className="mt-2 
+w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black 
+text-slate-900 outline-none focus:border-emerald-600"
+  components\report-engine\report-template-studio.tsx:2579:          />
+  components\report-engine\report-template-studio.tsx:2580:        </label>
+  components\report-engine\report-template-studio.tsx:2581:
+  components\report-engine\report-template-studio.tsx:2582:        <label 
+className="block">
+  components\report-engine\report-template-studio.tsx:2583:          <span 
+className="text-xs font-black text-slate-600">نوع الخط</span>
+  components\report-engine\report-template-studio.tsx:2584:          <select
+  components\report-engine\report-template-studio.tsx:2585:            
+value={settings.fontFamily}
+  components\report-engine\report-template-studio.tsx:2586:            onChange={(event) =>
+  components\report-engine\report-template-studio.tsx:2587:              onChange({
+  components\report-engine\report-template-studio.tsx:2588:                ...settings,
+  components\report-engine\report-template-studio.tsx:2804:            return (
+  components\report-engine\report-template-studio.tsx:2805:              <figure
+  components\report-engine\report-template-studio.tsx:2806:                
+key={evidence.id || imageUrl || String(index)}
+  components\report-engine\report-template-studio.tsx:2807:                
+className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white"
+  components\report-engine\report-template-studio.tsx:2808:              >
+  components\report-engine\report-template-studio.tsx:2809:                {imageUrl && 
+!isPlaceholderMode ? (
+  components\report-engine\report-template-studio.tsx:2810:                  <img
+  components\report-engine\report-template-studio.tsx:2811:                    
+src={imageUrl}
+  components\report-engine\report-template-studio.tsx:2812:                    
+alt={evidence.title || "شاهد " + (startIndex + index + 1)}
+  components\report-engine\report-template-studio.tsx:2813:                    
+className={getEvidenceImageClass(block) + " bg-slate-50"}
+  components\report-engine\report-template-studio.tsx:2814:                  />
+  components\report-engine\report-template-studio.tsx:2815:                ) : (
+> components\report-engine\report-template-studio.tsx:2816:                  <div 
+className={getEvidenceImageHeightClass(block) + " flex w-full flex-col items-center 
+justify-center bg-slate-50 text-center"}>
+  components\report-engine\report-template-studio.tsx:2817:                    <div 
+className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">
+  components\report-engine\report-template-studio.tsx:2818:                      📎
+  components\report-engine\report-template-studio.tsx:2819:                    </div>
+  components\report-engine\report-template-studio.tsx:2820:                    <p 
+className="mt-3 text-xs font-black text-slate-500">
+  components\report-engine\report-template-studio.tsx:2821:                      
+{isPlaceholderMode ? "مساحة شاهد للمعاينة" : "شاهد بدون صورة"}
+  components\report-engine\report-template-studio.tsx:2822:                    </p>
+  components\report-engine\report-template-studio.tsx:2823:                  </div>
+  components\report-engine\report-template-studio.tsx:2824:                )}
+  components\report-engine\report-template-studio.tsx:2825:
+  components\report-engine\report-template-studio.tsx:2826:                
+{block.evidenceShowCaptions !== false ? (
+  components\report-engine\report-template-studio.tsx:2827:                  <figcaption 
+className="max-h-12 overflow-hidden border-t border-slate-100 px-3 py-2 text-xs font-bold 
+leading-6 text-slate-600">
+  components\report-engine\report-template-studio.tsx:2828:                    
+{evidence.caption || evidence.title || "شاهد " + (startIndex + index + 1)}
+  components\report-engine\report-template-studio.tsx:2954:    case "LANDSCAPE_16_9":
+  components\report-engine\report-template-studio.tsx:2955:      return "aspect-video";
+  components\report-engine\report-template-studio.tsx:2956:    case "PORTRAIT_3_4":
+  components\report-engine\report-template-studio.tsx:2957:      return "aspect-[3/4]";
+  components\report-engine\report-template-studio.tsx:2958:    case "SQUARE_1_1":
+  components\report-engine\report-template-studio.tsx:2959:      return "aspect-square";
+  components\report-engine\report-template-studio.tsx:2960:    case "LANDSCAPE_4_3":
+  components\report-engine\report-template-studio.tsx:2961:    default:
+  components\report-engine\report-template-studio.tsx:2962:      return "aspect-[4/3]";
+  components\report-engine\report-template-studio.tsx:2963:  }
+  components\report-engine\report-template-studio.tsx:2964:}
+  components\report-engine\report-template-studio.tsx:2965:
+> components\report-engine\report-template-studio.tsx:2966:function 
+getEvidenceImageHeightClass(block: any) {
+  components\report-engine\report-template-studio.tsx:2967:  const perPage = 
+getEvidencePerPage(block);
+  components\report-engine\report-template-studio.tsx:2968:  const ratio = 
+block.evidenceAspectRatio || "LANDSCAPE_4_3";
+  components\report-engine\report-template-studio.tsx:2969:
+  components\report-engine\report-template-studio.tsx:2970:  /*
+> components\report-engine\report-template-studio.tsx:2971:    Fixed heights are 
+intentional:
+  components\report-engine\report-template-studio.tsx:2972:    they keep evidence inside 
+the printable A4 area.
+  components\report-engine\report-template-studio.tsx:2973:    Extra evidence must go to a 
+new Evidence Page instead of stretching A4.
+  components\report-engine\report-template-studio.tsx:2974:  */
+  components\report-engine\report-template-studio.tsx:2975:  if (perPage <= 1) {
+  components\report-engine\report-template-studio.tsx:2976:    switch (ratio) {
+  components\report-engine\report-template-studio.tsx:2977:      case "PORTRAIT_3_4":
+  components\report-engine\report-template-studio.tsx:2978:        return "h-[185mm]";
+  components\report-engine\report-template-studio.tsx:2979:      case "SQUARE_1_1":
+  components\report-engine\report-template-studio.tsx:2980:        return "h-[160mm]";
+  components\report-engine\report-template-studio.tsx:2981:      case "LANDSCAPE_16_9":
+  components\report-engine\report-template-studio.tsx:2982:        return "h-[122mm]";
+  components\report-engine\report-template-studio.tsx:2983:      case "LANDSCAPE_4_3":
+  components\report-engine\report-template-studio.tsx:3006:    case "LANDSCAPE_16_9":
+  components\report-engine\report-template-studio.tsx:3007:      return "h-[42mm]";
+  components\report-engine\report-template-studio.tsx:3008:    case "PORTRAIT_3_4":
+  components\report-engine\report-template-studio.tsx:3009:      return "h-[82mm]";
+  components\report-engine\report-template-studio.tsx:3010:    case "LANDSCAPE_4_3":
+  components\report-engine\report-template-studio.tsx:3011:    default:
+  components\report-engine\report-template-studio.tsx:3012:      return "h-[48mm]";
+  components\report-engine\report-template-studio.tsx:3013:  }
+  components\report-engine\report-template-studio.tsx:3014:}
+  components\report-engine\report-template-studio.tsx:3015:
+  components\report-engine\report-template-studio.tsx:3016:function 
+getEvidenceImageClass(block: any) {
+  components\report-engine\report-template-studio.tsx:3017:  const fit = block.evidenceFit 
+=== "cover" ? "object-cover" : "object-contain";
+> components\report-engine\report-template-studio.tsx:3018:  return 
+`${getEvidenceImageHeightClass(block)} w-full ${fit}`;
+  components\report-engine\report-template-studio.tsx:3019:}
+  components\report-engine\report-template-studio.tsx:3020:
+  components\report-engine\report-template-studio.tsx:3021:function EmptyEvidenceMessage() 
+{
+  components\report-engine\report-template-studio.tsx:3022:  return (
+  components\report-engine\report-template-studio.tsx:3023:    <div className="rounded-3xl 
+border border-dashed border-emerald-200 bg-emerald-50 p-6 text-center">
+  components\report-engine\report-template-studio.tsx:3024:      <p className="text-sm 
+font-black text-emerald-800">
+  components\report-engine\report-template-studio.tsx:3025:        لا توجد شواهد مرتبطة 
+بالـ Case ID الحالي
+  components\report-engine\report-template-studio.tsx:3026:      </p>
+  components\report-engine\report-template-studio.tsx:3027:
+  components\report-engine\report-template-studio.tsx:3028:      <p className="mt-2 
+text-xs font-bold leading-6 text-emerald-700">
+  components\report-engine\report-template-studio.tsx:3029:        هذا البلوك لن يعرض أي 
+مرفقات في التقارير النهائي إلا إذا كانت الحالة تحتوي على شواهد.
+  components\report-engine\report-template-studio.tsx:3030:      </p>
+
+
+
+
+----- PATTERN: addBlock -----
+
+  components\report-engine\report-template-studio.tsx:894:    const remainingPages = 
+template.pages.filter((page) => page.id !== activePage.id);
+  components\report-engine\report-template-studio.tsx:895:
+  components\report-engine\report-template-studio.tsx:896:    setTemplate((current) => ({
+  components\report-engine\report-template-studio.tsx:897:      ...current,
+  components\report-engine\report-template-studio.tsx:898:      updatedAt: new 
+Date().toISOString().slice(0, 10),
+  components\report-engine\report-template-studio.tsx:899:      pages: remainingPages,
+  components\report-engine\report-template-studio.tsx:900:    }));
+  components\report-engine\report-template-studio.tsx:901:
+  components\report-engine\report-template-studio.tsx:902:    
+setActivePageId(remainingPages[0]?.id || "");
+  components\report-engine\report-template-studio.tsx:903:    
+setSelectedBlockId(remainingPages[0]?.blocks[0]?.id || "");
+  components\report-engine\report-template-studio.tsx:904:  }
+  components\report-engine\report-template-studio.tsx:905:
+> components\report-engine\report-template-studio.tsx:906:  function addBlock(kind: 
+BlockKind) {
+  components\report-engine\report-template-studio.tsx:907:    if (!activePage) return;
+  components\report-engine\report-template-studio.tsx:908:
+  components\report-engine\report-template-studio.tsx:909:    const block = 
+createBlock(kind);
+  components\report-engine\report-template-studio.tsx:910:
+  components\report-engine\report-template-studio.tsx:911:    updatePage(activePage.id, 
+(page) => ({
+  components\report-engine\report-template-studio.tsx:912:      ...page,
+  components\report-engine\report-template-studio.tsx:913:      blocks: [...page.blocks, 
+block],
+  components\report-engine\report-template-studio.tsx:914:    }));
+  components\report-engine\report-template-studio.tsx:915:
+  components\report-engine\report-template-studio.tsx:916:    setSelectedBlockId(block.id);
+  components\report-engine\report-template-studio.tsx:917:  }
+  components\report-engine\report-template-studio.tsx:918:
+  components\report-engine\report-template-studio.tsx:1319:              مكتبة البلوكات
+  components\report-engine\report-template-studio.tsx:1320:            </h2>
+  components\report-engine\report-template-studio.tsx:1321:
+  components\report-engine\report-template-studio.tsx:1322:            <p className="mt-1 
+text-xs leading-6 text-slate-500">
+  components\report-engine\report-template-studio.tsx:1323:              تتم إضافة البلوك 
+داخل الصفحة المحددة فقط.
+  components\report-engine\report-template-studio.tsx:1324:            </p>
+  components\report-engine\report-template-studio.tsx:1325:
+  components\report-engine\report-template-studio.tsx:1326:            <div 
+className="mt-4 space-y-2">
+  components\report-engine\report-template-studio.tsx:1327:              
+{blockLibrary.map((block) => (
+  components\report-engine\report-template-studio.tsx:1328:                <button
+  components\report-engine\report-template-studio.tsx:1329:                  
+key={block.kind}
+  components\report-engine\report-template-studio.tsx:1330:                  type="button"
+> components\report-engine\report-template-studio.tsx:1331:                  onClick={() 
+=> addBlock(block.kind)}
+  components\report-engine\report-template-studio.tsx:1332:                  
+className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-right 
+transition hover:border-emerald-300 hover:bg-emerald-50"
+  components\report-engine\report-template-studio.tsx:1333:                >
+  components\report-engine\report-template-studio.tsx:1334:                  <strong 
+className="text-xs font-black text-slate-900">
+  components\report-engine\report-template-studio.tsx:1335:                    
+{block.title}
+  components\report-engine\report-template-studio.tsx:1336:                  </strong>
+  components\report-engine\report-template-studio.tsx:1337:
+  components\report-engine\report-template-studio.tsx:1338:                  <p 
+className="mt-1 text-[11px] leading-5 text-slate-500">
+  components\report-engine\report-template-studio.tsx:1339:                    
+{block.description}
+  components\report-engine\report-template-studio.tsx:1340:                  </p>
+  components\report-engine\report-template-studio.tsx:1341:                </button>
+  components\report-engine\report-template-studio.tsx:1342:              ))}
+  components\report-engine\report-template-studio.tsx:1343:            </div>
+
+
+
+
+----- PATTERN: createBlock -----
+
+  components\report-engine\report-template-studio.tsx:321:    title: "خاتمة واعتماد",
+  components\report-engine\report-template-studio.tsx:322:    description: "خاتمة رسمية 
+ومساحة اعتماد خفيفة.",
+  components\report-engine\report-template-studio.tsx:323:    defaultContent:
+  components\report-engine\report-template-studio.tsx:324:      "تم إعداد التقارير 
+واعتماده وفق البيانات المتاحة في منصة التوجيه الطلابي.",
+  components\report-engine\report-template-studio.tsx:325:    defaultVariant: "quote",
+  components\report-engine\report-template-studio.tsx:326:  },
+  components\report-engine\report-template-studio.tsx:327:];
+  components\report-engine\report-template-studio.tsx:328:
+  components\report-engine\report-template-studio.tsx:329:function makeId(prefix: string) {
+  components\report-engine\report-template-studio.tsx:330:  return 
+`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  components\report-engine\report-template-studio.tsx:331:}
+  components\report-engine\report-template-studio.tsx:332:
+> components\report-engine\report-template-studio.tsx:333:function createBlock(kind: 
+BlockKind): StudioBlock {
+  components\report-engine\report-template-studio.tsx:334:  const item = 
+blockLibrary.find((block) => block.kind === kind) || blockLibrary[2];
+  components\report-engine\report-template-studio.tsx:335:
+  components\report-engine\report-template-studio.tsx:336:  return {
+  components\report-engine\report-template-studio.tsx:337:    id: makeId(kind),
+  components\report-engine\report-template-studio.tsx:338:    kind: item.kind,
+  components\report-engine\report-template-studio.tsx:339:    title: item.title,
+  components\report-engine\report-template-studio.tsx:340:    content: item.defaultContent,
+  components\report-engine\report-template-studio.tsx:341:    variant: item.defaultVariant,
+  components\report-engine\report-template-studio.tsx:342:    source: "manual",
+  components\report-engine\report-template-studio.tsx:343:    boundFieldKey: undefined,
+  components\report-engine\report-template-studio.tsx:344:    hideWhenMissing: false,
+  components\report-engine\report-template-studio.tsx:345:    showTitle: item.kind !== 
+"plain-text" && item.kind !== "hero-title",
+  components\report-engine\report-template-studio.tsx:391:      description: "صفحة مخصصة 
+يمكن بناؤها بالبلوكات.",
+  components\report-engine\report-template-studio.tsx:392:      blockKinds: ["plain-text"],
+  components\report-engine\report-template-studio.tsx:393:    },
+  components\report-engine\report-template-studio.tsx:394:  };
+  components\report-engine\report-template-studio.tsx:395:
+  components\report-engine\report-template-studio.tsx:396:  const preset = presets[kind];
+  components\report-engine\report-template-studio.tsx:397:
+  components\report-engine\report-template-studio.tsx:398:  return {
+  components\report-engine\report-template-studio.tsx:399:    id: makeId(`page-${kind}`),
+  components\report-engine\report-template-studio.tsx:400:    kind: preset.kind,
+  components\report-engine\report-template-studio.tsx:401:    title: preset.title,
+  components\report-engine\report-template-studio.tsx:402:    description: 
+preset.description,
+> components\report-engine\report-template-studio.tsx:403:    blocks: 
+preset.blockKinds.map(createBlock),
+  components\report-engine\report-template-studio.tsx:404:  };
+  components\report-engine\report-template-studio.tsx:405:}
+  components\report-engine\report-template-studio.tsx:406:
+  components\report-engine\report-template-studio.tsx:407:function 
+createInitialTemplate(): StudioTemplate {
+  components\report-engine\report-template-studio.tsx:408:  return {
+  components\report-engine\report-template-studio.tsx:409:    id: 
+"official-smart-template",
+  components\report-engine\report-template-studio.tsx:410:    name: "القالب الرسمي الذكي",
+  components\report-engine\report-template-studio.tsx:411:    description:
+  components\report-engine\report-template-studio.tsx:412:      "قالب رسمي متعدد الصفحات 
+بهوية ثابتة، يتم بناء محتواه من بلوكات نصية ذكية ومتغيرات ديناميكية.",
+  components\report-engine\report-template-studio.tsx:413:    status: "DRAFT",
+  components\report-engine\report-template-studio.tsx:414:    designTemplateId: 
+"ministry-form",
+  components\report-engine\report-template-studio.tsx:415:    scope: "GLOBAL",
+  components\report-engine\report-template-studio.tsx:608:                  placement: 
+block.settings?.placement || "flow",
+  components\report-engine\report-template-studio.tsx:609:                  titleFontSize: 
+block.settings?.titleFontSize || block.titleFontSize || "base",
+  components\report-engine\report-template-studio.tsx:610:                  
+contentFontSize: block.settings?.contentFontSize || block.contentFontSize || "base",
+  components\report-engine\report-template-studio.tsx:611:                  
+fieldLabelFontSize: block.settings?.fieldLabelFontSize || block.fieldLabelFontSize || "sm",
+  components\report-engine\report-template-studio.tsx:612:                  
+fieldValueFontSize: block.settings?.fieldValueFontSize || block.fieldValueFontSize || 
+"base",
+  components\report-engine\report-template-studio.tsx:613:                  
+evidenceLayout: block.settings?.evidenceLayout || undefined,
+  components\report-engine\report-template-studio.tsx:614:                  evidenceFit: 
+block.settings?.evidenceFit || undefined,
+  components\report-engine\report-template-studio.tsx:615:                  
+evidenceAspectRatio: block.settings?.evidenceAspectRatio || "LANDSCAPE_4_3",
+  components\report-engine\report-template-studio.tsx:616:                  
+evidenceShowCaptions: block.settings?.evidenceShowCaptions !== false,
+  components\report-engine\report-template-studio.tsx:617:                  
+evidenceAutoCreatePages: block.settings?.evidenceAutoCreatePages !== false,
+  components\report-engine\report-template-studio.tsx:618:                  
+evidenceEmptyBehavior: block.settings?.evidenceEmptyBehavior || "message",
+  components\report-engine\report-template-studio.tsx:619:                }))
+> components\report-engine\report-template-studio.tsx:620:              : 
+[createBlock("section-text")],
+  components\report-engine\report-template-studio.tsx:621:          }))
+  components\report-engine\report-template-studio.tsx:622:        : fallback.pages;
+  components\report-engine\report-template-studio.tsx:623:
+  components\report-engine\report-template-studio.tsx:624:  return {
+  components\report-engine\report-template-studio.tsx:625:    ...fallback,
+  components\report-engine\report-template-studio.tsx:626:    id: templateJson.id || 
+item?.id || fallback.id,
+  components\report-engine\report-template-studio.tsx:627:    designTemplateId:
+  components\report-engine\report-template-studio.tsx:628:      
+templateJson.designTemplateId ||
+  components\report-engine\report-template-studio.tsx:629:      
+smartStudio.designTemplateId ||
+  components\report-engine\report-template-studio.tsx:630:      "ministry-form",
+  components\report-engine\report-template-studio.tsx:631:    name: item?.name || 
+templateJson.name || fallback.name,
+  components\report-engine\report-template-studio.tsx:632:    description:
+  components\report-engine\report-template-studio.tsx:897:      ...current,
+  components\report-engine\report-template-studio.tsx:898:      updatedAt: new 
+Date().toISOString().slice(0, 10),
+  components\report-engine\report-template-studio.tsx:899:      pages: remainingPages,
+  components\report-engine\report-template-studio.tsx:900:    }));
+  components\report-engine\report-template-studio.tsx:901:
+  components\report-engine\report-template-studio.tsx:902:    
+setActivePageId(remainingPages[0]?.id || "");
+  components\report-engine\report-template-studio.tsx:903:    
+setSelectedBlockId(remainingPages[0]?.blocks[0]?.id || "");
+  components\report-engine\report-template-studio.tsx:904:  }
+  components\report-engine\report-template-studio.tsx:905:
+  components\report-engine\report-template-studio.tsx:906:  function addBlock(kind: 
+BlockKind) {
+  components\report-engine\report-template-studio.tsx:907:    if (!activePage) return;
+  components\report-engine\report-template-studio.tsx:908:
+> components\report-engine\report-template-studio.tsx:909:    const block = 
+createBlock(kind);
+  components\report-engine\report-template-studio.tsx:910:
+  components\report-engine\report-template-studio.tsx:911:    updatePage(activePage.id, 
+(page) => ({
+  components\report-engine\report-template-studio.tsx:912:      ...page,
+  components\report-engine\report-template-studio.tsx:913:      blocks: [...page.blocks, 
+block],
+  components\report-engine\report-template-studio.tsx:914:    }));
+  components\report-engine\report-template-studio.tsx:915:
+  components\report-engine\report-template-studio.tsx:916:    setSelectedBlockId(block.id);
+  components\report-engine\report-template-studio.tsx:917:  }
+  components\report-engine\report-template-studio.tsx:918:
+  components\report-engine\report-template-studio.tsx:919:  function removeSelectedBlock() 
+{
+  components\report-engine\report-template-studio.tsx:920:    if (!selectedBlock || 
+!activePage || activePage.blocks.length <= 1) {
+  components\report-engine\report-template-studio.tsx:921:      return;
+
+
+
+
+----- PATTERN: approval -----
+
+  components\report-engine\report-template-studio.tsx:6:import { useEffect, useMemo, 
+useState } from "react";
+  components\report-engine\report-template-studio.tsx:7:import {
+  components\report-engine\report-template-studio.tsx:8:  DEFAULT_REPORT_HEADER_SETTINGS,
+  components\report-engine\report-template-studio.tsx:9:  ReportDesignRenderer,
+  components\report-engine\report-template-studio.tsx:10:  normalizeReportHeaderSettings,
+  components\report-engine\report-template-studio.tsx:11:  reportDesignTemplates,
+  components\report-engine\report-template-studio.tsx:12:  type ReportDesignId,
+  components\report-engine\report-template-studio.tsx:13:  type ReportHeaderSettings,
+  components\report-engine\report-template-studio.tsx:14:} from 
+"@/components/report-engine/design-renderers/report-design-renderer";
+  components\report-engine\report-template-studio.tsx:15:
+  components\report-engine\report-template-studio.tsx:16:type TemplateStatus = "DRAFT" | 
+"PUBLISHED" | "ARCHIVED";
+  components\report-engine\report-template-studio.tsx:17:type TemplateScope = "GLOBAL" | 
+"SERVICE" | "WORKFLOW" | "LOCATION";
+> components\report-engine\report-template-studio.tsx:18:type PageKind = "content" | 
+"recommendations" | "evidence" | "approval" | "custom";
+  components\report-engine\report-template-studio.tsx:19:
+  components\report-engine\report-template-studio.tsx:20:
+  components\report-engine\report-template-studio.tsx:21:type BlockKind =
+  components\report-engine\report-template-studio.tsx:22:  | "hero-title"
+  components\report-engine\report-template-studio.tsx:23:  | "meta-strip"
+  components\report-engine\report-template-studio.tsx:24:  | "plain-text"
+  components\report-engine\report-template-studio.tsx:25:  | "section-text"
+  components\report-engine\report-template-studio.tsx:26:  | "multi-paragraph"
+  components\report-engine\report-template-studio.tsx:27:  | "highlight-note"
+  components\report-engine\report-template-studio.tsx:28:  | "bullet-list"
+  components\report-engine\report-template-studio.tsx:29:  | "dynamic-fields"
+  components\report-engine\report-template-studio.tsx:30:  | "evidence-gallery"
+  components\report-engine\report-template-studio.tsx:178:
+  components\report-engine\report-template-studio.tsx:179:const scopeLabels: 
+Record<TemplateScope, string> = {
+  components\report-engine\report-template-studio.tsx:180:  GLOBAL: "عام لكل المنصة",
+  components\report-engine\report-template-studio.tsx:181:  SERVICE: "موجه لخدمة",
+  components\report-engine\report-template-studio.tsx:182:  WORKFLOW: "موجه لـ Workflow",
+  components\report-engine\report-template-studio.tsx:183:  LOCATION: "موجه لمكان محدد",
+  components\report-engine\report-template-studio.tsx:184:};
+  components\report-engine\report-template-studio.tsx:185:
+  components\report-engine\report-template-studio.tsx:186:const pageKindLabels: 
+Record<PageKind, string> = {
+  components\report-engine\report-template-studio.tsx:187:  content: "محتوى",
+  components\report-engine\report-template-studio.tsx:188:  recommendations: "توصيات",
+  components\report-engine\report-template-studio.tsx:189:  evidence: "شواهد",
+> components\report-engine\report-template-studio.tsx:190:  approval: "اعتماد",
+  components\report-engine\report-template-studio.tsx:191:  custom: "مخصصة",
+  components\report-engine\report-template-studio.tsx:192:};
+  components\report-engine\report-template-studio.tsx:193:
+  components\report-engine\report-template-studio.tsx:194:const textSnippets: 
+StudioTextSnippet[] = [
+  components\report-engine\report-template-studio.tsx:195:  {
+  components\report-engine\report-template-studio.tsx:196:    id: "intro-official",
+  components\report-engine\report-template-studio.tsx:197:    title: "مقدمة رسمية مختصرة",
+  components\report-engine\report-template-studio.tsx:198:    category: "مقدمة",
+  components\report-engine\report-template-studio.tsx:199:    content:
+  components\report-engine\report-template-studio.tsx:200:      "بناءً على ما تم رصده في 
+{{service.name}}، تم إعداد هذا التقارير لتوثيق الإجراء المتخذ وبيان أبرز النتائج 
+والتوصيات.",
+  components\report-engine\report-template-studio.tsx:201:  },
+  components\report-engine\report-template-studio.tsx:202:  {
+  components\report-engine\report-template-studio.tsx:370:    recommendations: {
+  components\report-engine\report-template-studio.tsx:371:      kind: "recommendations",
+  components\report-engine\report-template-studio.tsx:372:      title: "التوصيات والنتائج",
+  components\report-engine\report-template-studio.tsx:373:      description: "صفحة مخصصة 
+لعرض النتائج والتوصيات.",
+  components\report-engine\report-template-studio.tsx:374:      blockKinds: 
+["highlight-note", "bullet-list"],
+  components\report-engine\report-template-studio.tsx:375:    },
+  components\report-engine\report-template-studio.tsx:376:    evidence: {
+  components\report-engine\report-template-studio.tsx:377:      kind: "evidence",
+  components\report-engine\report-template-studio.tsx:378:      title: "الشواهد والمرفقات",
+  components\report-engine\report-template-studio.tsx:379:      description: "صفحة مستقلة 
+لعرض الشواهد وتقسيمها تلقائيًا على صفحات A4 عند كثرتها.",
+  components\report-engine\report-template-studio.tsx:380:      blockKinds: 
+["evidence-gallery"],
+  components\report-engine\report-template-studio.tsx:381:    },
+> components\report-engine\report-template-studio.tsx:382:    approval: {
+> components\report-engine\report-template-studio.tsx:383:      kind: "approval",
+  components\report-engine\report-template-studio.tsx:384:      title: "الاعتماد والتوقيع",
+  components\report-engine\report-template-studio.tsx:385:      description: "صفحة ختامية 
+للاعتماد.",
+  components\report-engine\report-template-studio.tsx:386:      blockKinds: 
+["closing-note"],
+  components\report-engine\report-template-studio.tsx:387:    },
+  components\report-engine\report-template-studio.tsx:388:    custom: {
+  components\report-engine\report-template-studio.tsx:389:      kind: "custom",
+  components\report-engine\report-template-studio.tsx:390:      title: `صفحة مخصصة 
+${index}`,
+  components\report-engine\report-template-studio.tsx:391:      description: "صفحة مخصصة 
+يمكن بناؤها بالبلوكات.",
+  components\report-engine\report-template-studio.tsx:392:      blockKinds: ["plain-text"],
+  components\report-engine\report-template-studio.tsx:393:    },
+  components\report-engine\report-template-studio.tsx:394:  };
+  components\report-engine\report-template-studio.tsx:395:
+  components\report-engine\report-template-studio.tsx:562:function 
+hydrateStudioTemplateFromSavedItem(item: any): StudioTemplate {
+  components\report-engine\report-template-studio.tsx:563:  const templateJson = 
+parseSavedTemplateJson(item) || {};
+  components\report-engine\report-template-studio.tsx:564:  const smartStudio = 
+templateJson?.smartStudio || {};
+  components\report-engine\report-template-studio.tsx:565:  const fallback = 
+createInitialTemplate();
+  components\report-engine\report-template-studio.tsx:566:
+  components\report-engine\report-template-studio.tsx:567:  const pages =
+  components\report-engine\report-template-studio.tsx:568:    
+Array.isArray(smartStudio?.pages) && smartStudio.pages.length
+  components\report-engine\report-template-studio.tsx:569:      ? smartStudio.pages
+  components\report-engine\report-template-studio.tsx:570:      : 
+Array.isArray(templateJson?.pages) && templateJson.pages.length
+  components\report-engine\report-template-studio.tsx:571:        ? 
+templateJson.pages.map((page: any, pageIndex: number) => ({
+  components\report-engine\report-template-studio.tsx:572:            id: page.id || 
+makeId("page-loaded"),
+  components\report-engine\report-template-studio.tsx:573:            kind:
+> components\report-engine\report-template-studio.tsx:574:              page.kind === 
+"approval"
+> components\report-engine\report-template-studio.tsx:575:                ? "approval"
+  components\report-engine\report-template-studio.tsx:576:                : page.kind === 
+"evidence"
+  components\report-engine\report-template-studio.tsx:577:                  ? "evidence"
+  components\report-engine\report-template-studio.tsx:578:                  : pageIndex 
+=== 0
+  components\report-engine\report-template-studio.tsx:579:                    ? "content"
+  components\report-engine\report-template-studio.tsx:580:                    : "custom",
+  components\report-engine\report-template-studio.tsx:581:            title: page.title || 
+`صفحة ${pageIndex + 1}`,
+  components\report-engine\report-template-studio.tsx:582:            description: 
+page.description || "صفحة مستوردة من قالب محفوظ.",
+  components\report-engine\report-template-studio.tsx:583:            blocks: 
+Array.isArray(page.blocks)
+  components\report-engine\report-template-studio.tsx:584:              ? 
+page.blocks.map((block: any) => ({
+  components\report-engine\report-template-studio.tsx:585:                  id: block.id 
+|| makeId("block-loaded"),
+  components\report-engine\report-template-studio.tsx:586:                  kind:
+  components\report-engine\report-template-studio.tsx:587:                    
+block.settings?.smartBlockKind ||
+  components\report-engine\report-template-studio.tsx:1046:        multiPage: true,
+  components\report-engine\report-template-studio.tsx:1047:      },
+  components\report-engine\report-template-studio.tsx:1048:      workflowBinding: {
+  components\report-engine\report-template-studio.tsx:1049:        scope: template.scope,
+  components\report-engine\report-template-studio.tsx:1050:        serviceSlug: 
+template.serviceSlug || null,
+  components\report-engine\report-template-studio.tsx:1051:        workflowSlug: 
+template.workflowSlug || null,
+  components\report-engine\report-template-studio.tsx:1052:        locationKey: 
+template.locationKey || null,
+  components\report-engine\report-template-studio.tsx:1053:        fields: workflowFields,
+  components\report-engine\report-template-studio.tsx:1054:        usedFieldKeys: 
+Array.from(usedWorkflowFieldKeys),
+  components\report-engine\report-template-studio.tsx:1055:      },
+  components\report-engine\report-template-studio.tsx:1056:      pages: 
+template.pages.map((page) => ({
+  components\report-engine\report-template-studio.tsx:1057:        id: page.id,
+> components\report-engine\report-template-studio.tsx:1058:        kind: page.kind === 
+"approval" ? "approval" : page.kind === "evidence" ? "evidence" : "narrative",
+  components\report-engine\report-template-studio.tsx:1059:        title: page.title,
+  components\report-engine\report-template-studio.tsx:1060:        description: 
+page.description,
+  components\report-engine\report-template-studio.tsx:1061:        blocks: 
+page.blocks.map((block) => ({
+  components\report-engine\report-template-studio.tsx:1062:          id: block.id,
+  components\report-engine\report-template-studio.tsx:1063:          kind: 
+"custom-paragraph",
+  components\report-engine\report-template-studio.tsx:1064:          title: block.title,
+  components\report-engine\report-template-studio.tsx:1065:          customTitle: 
+block.showTitle ? block.title : "",
+  components\report-engine\report-template-studio.tsx:1066:          customContent: 
+block.content,
+  components\report-engine\report-template-studio.tsx:1067:          required: false,
+  components\report-engine\report-template-studio.tsx:1068:          source: {
+  components\report-engine\report-template-studio.tsx:1069:            source: 
+block.source,
+  components\report-engine\report-template-studio.tsx:1070:            label: block.source 
+=== "library" ? "مكتبة النصوص" : "كتابة مباشرة",
+  components\report-engine\report-template-studio.tsx:1290:                    
+event.target.value = "";
+  components\report-engine\report-template-studio.tsx:1291:                  }
+  components\report-engine\report-template-studio.tsx:1292:                }}
+  components\report-engine\report-template-studio.tsx:1293:                
+className="w-full rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-xs 
+font-black text-emerald-900 outline-none"
+  components\report-engine\report-template-studio.tsx:1294:                defaultValue=""
+  components\report-engine\report-template-studio.tsx:1295:              >
+  components\report-engine\report-template-studio.tsx:1296:                <option 
+value="" disabled>
+  components\report-engine\report-template-studio.tsx:1297:                  + إضافة صفحة
+  components\report-engine\report-template-studio.tsx:1298:                </option>
+  components\report-engine\report-template-studio.tsx:1299:                <option 
+value="content">صفحة محتوى</option>
+  components\report-engine\report-template-studio.tsx:1300:                <option 
+value="recommendations">صفحة توصيات ونتائج</option>
+  components\report-engine\report-template-studio.tsx:1301:                <option 
+value="evidence">صفحة شواهد</option>
+> components\report-engine\report-template-studio.tsx:1302:                <option 
+value="approval">صفحة اعتماد</option>
+  components\report-engine\report-template-studio.tsx:1303:                <option 
+value="custom">صفحة مخصصة</option>
+  components\report-engine\report-template-studio.tsx:1304:              </select>
+  components\report-engine\report-template-studio.tsx:1305:
+  components\report-engine\report-template-studio.tsx:1306:              <button
+  components\report-engine\report-template-studio.tsx:1307:                type="button"
+  components\report-engine\report-template-studio.tsx:1308:                
+onClick={removeActivePage}
+  components\report-engine\report-template-studio.tsx:1309:                
+disabled={template.pages.length <= 1}
+  components\report-engine\report-template-studio.tsx:1310:                
+className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black 
+text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+  components\report-engine\report-template-studio.tsx:1311:              >
+  components\report-engine\report-template-studio.tsx:1312:                حذف الصفحة 
+الحالية
+  components\report-engine\report-template-studio.tsx:1313:              </button>
+  components\report-engine\report-template-studio.tsx:1314:            </div>
+  components\report-engine\report-template-studio.tsx:1723:                    
+value={activePage.kind}
+  components\report-engine\report-template-studio.tsx:1724:                    
+onChange={(event) =>
+  components\report-engine\report-template-studio.tsx:1725:                      
+updatePage(activePage.id, (page) => ({
+  components\report-engine\report-template-studio.tsx:1726:                        ...page,
+  components\report-engine\report-template-studio.tsx:1727:                        kind: 
+event.target.value as PageKind,
+  components\report-engine\report-template-studio.tsx:1728:                      }))
+  components\report-engine\report-template-studio.tsx:1729:                    }
+  components\report-engine\report-template-studio.tsx:1730:                    
+className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm 
+font-black text-slate-900 outline-none focus:border-emerald-600"
+  components\report-engine\report-template-studio.tsx:1731:                  >
+  components\report-engine\report-template-studio.tsx:1732:                    <option 
+value="content">محتوى</option>
+  components\report-engine\report-template-studio.tsx:1733:                    <option 
+value="recommendations">توصيات</option>
+  components\report-engine\report-template-studio.tsx:1734:                    <option 
+value="evidence">شواهد</option>
+> components\report-engine\report-template-studio.tsx:1735:                    <option 
+value="approval">اعتماد</option>
+  components\report-engine\report-template-studio.tsx:1736:                    <option 
+value="custom">مخصصة</option>
+  components\report-engine\report-template-studio.tsx:1737:                  </select>
+  components\report-engine\report-template-studio.tsx:1738:                </label>
+  components\report-engine\report-template-studio.tsx:1739:
+  components\report-engine\report-template-studio.tsx:1740:                <label 
+className="block">
+  components\report-engine\report-template-studio.tsx:1741:                  <span 
+className="text-xs font-black text-slate-500">
+  components\report-engine\report-template-studio.tsx:1742:                    وصف الصفحة
+  components\report-engine\report-template-studio.tsx:1743:                  </span>
+  components\report-engine\report-template-studio.tsx:1744:                  <textarea
+  components\report-engine\report-template-studio.tsx:1745:                    
+value={activePage.description}
+  components\report-engine\report-template-studio.tsx:1746:                    
+onChange={(event) =>
+  components\report-engine\report-template-studio.tsx:1747:                      
+updatePage(activePage.id, (page) => ({
+
+
+
+
+----- PATTERN: closing-note -----
+
+  components\report-engine\report-template-studio.tsx:19:
+  components\report-engine\report-template-studio.tsx:20:
+  components\report-engine\report-template-studio.tsx:21:type BlockKind =
+  components\report-engine\report-template-studio.tsx:22:  | "hero-title"
+  components\report-engine\report-template-studio.tsx:23:  | "meta-strip"
+  components\report-engine\report-template-studio.tsx:24:  | "plain-text"
+  components\report-engine\report-template-studio.tsx:25:  | "section-text"
+  components\report-engine\report-template-studio.tsx:26:  | "multi-paragraph"
+  components\report-engine\report-template-studio.tsx:27:  | "highlight-note"
+  components\report-engine\report-template-studio.tsx:28:  | "bullet-list"
+  components\report-engine\report-template-studio.tsx:29:  | "dynamic-fields"
+  components\report-engine\report-template-studio.tsx:30:  | "evidence-gallery"
+> components\report-engine\report-template-studio.tsx:31:  | "closing-note";
+  components\report-engine\report-template-studio.tsx:32:
+  components\report-engine\report-template-studio.tsx:33:type BlockVariant =
+  components\report-engine\report-template-studio.tsx:34:  | "hero"
+  components\report-engine\report-template-studio.tsx:35:  | "plain"
+  components\report-engine\report-template-studio.tsx:36:  | "card"
+  components\report-engine\report-template-studio.tsx:37:  | "soft"
+  components\report-engine\report-template-studio.tsx:38:  | "highlight"
+  components\report-engine\report-template-studio.tsx:39:  | "outline"
+  components\report-engine\report-template-studio.tsx:40:  | "quote";
+  components\report-engine\report-template-studio.tsx:41:type BlockPlacement =
+  components\report-engine\report-template-studio.tsx:42:  | "flow"
+  components\report-engine\report-template-studio.tsx:43:  | "top"
+  components\report-engine\report-template-studio.tsx:308:      "هذا البلوك يعرض بيانات 
+الحالة والطالب والحقول المتاحة عند اختبار Case ID.",
+  components\report-engine\report-template-studio.tsx:309:    defaultVariant: "soft",
+  components\report-engine\report-template-studio.tsx:310:  },
+  components\report-engine\report-template-studio.tsx:311:  {
+  components\report-engine\report-template-studio.tsx:312:    kind: "evidence-gallery",
+  components\report-engine\report-template-studio.tsx:313:    title: "الشواهد والمرفقات",
+  components\report-engine\report-template-studio.tsx:314:    description: "يعرض الشواهد 
+المرتبطة بالحالة. إذا زادت الشواهد عن سعة الصفحة يتم إنشاء صفحات إضافية.",
+  components\report-engine\report-template-studio.tsx:315:    defaultContent:
+  components\report-engine\report-template-studio.tsx:316:      "يعرض هذا البلوك الشواهد 
+المرتبطة بـ Case ID. لا تظهر الشواهد إلا إذا أضفت هذا البلوك.",
+  components\report-engine\report-template-studio.tsx:317:    defaultVariant: "card",
+  components\report-engine\report-template-studio.tsx:318:  },
+  components\report-engine\report-template-studio.tsx:319:  {
+> components\report-engine\report-template-studio.tsx:320:    kind: "closing-note",
+  components\report-engine\report-template-studio.tsx:321:    title: "خاتمة واعتماد",
+  components\report-engine\report-template-studio.tsx:322:    description: "خاتمة رسمية 
+ومساحة اعتماد خفيفة.",
+  components\report-engine\report-template-studio.tsx:323:    defaultContent:
+  components\report-engine\report-template-studio.tsx:324:      "تم إعداد التقارير 
+واعتماده وفق البيانات المتاحة في منصة التوجيه الطلابي.",
+  components\report-engine\report-template-studio.tsx:325:    defaultVariant: "quote",
+  components\report-engine\report-template-studio.tsx:326:  },
+  components\report-engine\report-template-studio.tsx:327:];
+  components\report-engine\report-template-studio.tsx:328:
+  components\report-engine\report-template-studio.tsx:329:function makeId(prefix: string) {
+  components\report-engine\report-template-studio.tsx:330:  return 
+`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  components\report-engine\report-template-studio.tsx:331:}
+  components\report-engine\report-template-studio.tsx:332:
+  components\report-engine\report-template-studio.tsx:374:      blockKinds: 
+["highlight-note", "bullet-list"],
+  components\report-engine\report-template-studio.tsx:375:    },
+  components\report-engine\report-template-studio.tsx:376:    evidence: {
+  components\report-engine\report-template-studio.tsx:377:      kind: "evidence",
+  components\report-engine\report-template-studio.tsx:378:      title: "الشواهد والمرفقات",
+  components\report-engine\report-template-studio.tsx:379:      description: "صفحة مستقلة 
+لعرض الشواهد وتقسيمها تلقائيًا على صفحات A4 عند كثرتها.",
+  components\report-engine\report-template-studio.tsx:380:      blockKinds: 
+["evidence-gallery"],
+  components\report-engine\report-template-studio.tsx:381:    },
+  components\report-engine\report-template-studio.tsx:382:    approval: {
+  components\report-engine\report-template-studio.tsx:383:      kind: "approval",
+  components\report-engine\report-template-studio.tsx:384:      title: "الاعتماد والتوقيع",
+  components\report-engine\report-template-studio.tsx:385:      description: "صفحة ختامية 
+للاعتماد.",
+> components\report-engine\report-template-studio.tsx:386:      blockKinds: 
+["closing-note"],
+  components\report-engine\report-template-studio.tsx:387:    },
+  components\report-engine\report-template-studio.tsx:388:    custom: {
+  components\report-engine\report-template-studio.tsx:389:      kind: "custom",
+  components\report-engine\report-template-studio.tsx:390:      title: `صفحة مخصصة 
+${index}`,
+  components\report-engine\report-template-studio.tsx:391:      description: "صفحة مخصصة 
+يمكن بناؤها بالبلوكات.",
+  components\report-engine\report-template-studio.tsx:392:      blockKinds: ["plain-text"],
+  components\report-engine\report-template-studio.tsx:393:    },
+  components\report-engine\report-template-studio.tsx:394:  };
+  components\report-engine\report-template-studio.tsx:395:
+  components\report-engine\report-template-studio.tsx:396:  const preset = presets[kind];
+  components\report-engine\report-template-studio.tsx:397:
+  components\report-engine\report-template-studio.tsx:398:  return {
+  components\report-engine\report-template-studio.tsx:2839:          </p>
+  components\report-engine\report-template-studio.tsx:2840:        ) : null}
+  components\report-engine\report-template-studio.tsx:2841:
+  components\report-engine\report-template-studio.tsx:2842:        {isPlaceholderMode ? (
+  components\report-engine\report-template-studio.tsx:2843:          <p className="mt-3 
+rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
+  components\report-engine\report-template-studio.tsx:2844:            هذه مربعات معاينة 
+فقط. عند اختبار Case ID يحتوي شواهد، سيتم عرض الشواهد الفعلية هنا.
+  components\report-engine\report-template-studio.tsx:2845:          </p>
+  components\report-engine\report-template-studio.tsx:2846:        ) : null}
+  components\report-engine\report-template-studio.tsx:2847:      </section>
+  components\report-engine\report-template-studio.tsx:2848:    );
+  components\report-engine\report-template-studio.tsx:2849:  }
+  components\report-engine\report-template-studio.tsx:2850:
+> components\report-engine\report-template-studio.tsx:2851:  if (block.kind === 
+"closing-note") {
+  components\report-engine\report-template-studio.tsx:2852:    return (
+  components\report-engine\report-template-studio.tsx:2853:      <section 
+className={getBlockClass(block.variant, textAlign)}>
+  components\report-engine\report-template-studio.tsx:2854:        {block.showTitle ? 
+<BlockTitle title={block.title} /> : null}
+  components\report-engine\report-template-studio.tsx:2855:        <p className="text-sm 
+leading-8 text-slate-700">{rendered}</p>
+  components\report-engine\report-template-studio.tsx:2856:
+  components\report-engine\report-template-studio.tsx:2857:        <div className="mt-5 
+grid grid-cols-2 gap-4">
+  components\report-engine\report-template-studio.tsx:2858:          <div 
+className="rounded-2xl border border-slate-200 bg-white p-4">
+  components\report-engine\report-template-studio.tsx:2859:            <p 
+className="text-xs font-black text-slate-400">
+  components\report-engine\report-template-studio.tsx:2860:              الموجه/الموجهة 
+الطلابية
+  components\report-engine\report-template-studio.tsx:2861:            </p>
+  components\report-engine\report-template-studio.tsx:2862:            <p className="mt-4 
+text-sm font-black text-slate-800">
+  components\report-engine\report-template-studio.tsx:2863:              
+{context["identity.counselorName"]}
+
+
+
+
+############################################################
+FILE: components\report-engine\document-editor\report-document-editor.tsx
+############################################################
+
+----- PATTERN: addBlock -----
+
+  components\report-engine\document-editor\report-document-editor.tsx:1:"use client";
+  components\report-engine\document-editor\report-document-editor.tsx:2:
+  components\report-engine\document-editor\report-document-editor.tsx:3:import { 
+useEffect, useMemo, useState } from "react";
+  components\report-engine\document-editor\report-document-editor.tsx:4:import { 
+ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+  components\report-engine\document-editor\report-document-editor.tsx:5:
+> components\report-engine\document-editor\report-document-editor.tsx:6:import { 
+ReportAddBlockMenu } from 
+"@/components/report-engine/document-editor/report-add-block-menu";
+  components\report-engine\document-editor\report-document-editor.tsx:7:import { 
+ReportPageCanvas } from "@/components/report-engine/document-editor/report-page-canvas";
+  components\report-engine\document-editor\report-document-editor.tsx:8:import { 
+ReportPageTabs } from "@/components/report-engine/document-editor/report-page-tabs";
+  components\report-engine\document-editor\report-document-editor.tsx:9:import { 
+ReportTableEditorModal } from 
+"@/components/report-engine/document-editor/report-table-editor-modal";
+  components\report-engine\document-editor\report-document-editor.tsx:10:import type {
+  components\report-engine\document-editor\report-document-editor.tsx:11:  
+ReportDocumentBlock,
+  components\report-engine\document-editor\report-document-editor.tsx:12:  
+ReportDocumentBlockInsertType,
+  components\report-engine\document-editor\report-document-editor.tsx:13:  
+ReportDocumentDraft,
+  components\report-engine\document-editor\report-document-editor.tsx:14:  
+ReportTableBlock,
+  components\report-engine\document-editor\report-document-editor.tsx:15:} from 
+"@/lib/report-engine/document-draft/report-document-types";
+  components\report-engine\document-editor\report-document-editor.tsx:16:import {
+  components\report-engine\document-editor\report-document-editor.tsx:17:  
+addReportDocumentBlock,
+  components\report-engine\document-editor\report-document-editor.tsx:18:  
+addReportDocumentPageAfter,
+  components\report-engine\document-editor\report-document-editor.tsx:48:  return 
+String(value);
+  components\report-engine\document-editor\report-document-editor.tsx:49:}
+  components\report-engine\document-editor\report-document-editor.tsx:50:
+  components\report-engine\document-editor\report-document-editor.tsx:51:export function 
+ReportDocumentEditor({
+  components\report-engine\document-editor\report-document-editor.tsx:52:  initialDraft,
+  components\report-engine\document-editor\report-document-editor.tsx:53:  onDraftChange,
+  components\report-engine\document-editor\report-document-editor.tsx:54:}: 
+ReportDocumentEditorProps) {
+  components\report-engine\document-editor\report-document-editor.tsx:55:  const [draft, 
+setDraft] = useState<ReportDocumentDraft>(() =>
+  components\report-engine\document-editor\report-document-editor.tsx:56:    
+ensureReportDocumentSystemBlocks(initialDraft),
+  components\report-engine\document-editor\report-document-editor.tsx:57:  );
+  components\report-engine\document-editor\report-document-editor.tsx:58:  const 
+[metaFieldsOpen, setMetaFieldsOpen] = useState(true);
+  components\report-engine\document-editor\report-document-editor.tsx:59:  const 
+[evidenceSettingsOpen, setEvidenceSettingsOpen] = useState(false);
+> components\report-engine\document-editor\report-document-editor.tsx:60:  const 
+[addBlockOpen, setAddBlockOpen] = useState(false);
+  components\report-engine\document-editor\report-document-editor.tsx:61:  const 
+[activePageId, setActivePageId] = useState("");
+  components\report-engine\document-editor\report-document-editor.tsx:62:  const 
+[selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  components\report-engine\document-editor\report-document-editor.tsx:63:  const 
+[editingTable, setEditingTable] = useState<ReportTableBlock | null>(null);
+  components\report-engine\document-editor\report-document-editor.tsx:64:  const 
+[reportApproved, setReportApproved] = useState(false);
+  components\report-engine\document-editor\report-document-editor.tsx:65:
+  components\report-engine\document-editor\report-document-editor.tsx:66:  const 
+renderedPages = useMemo(
+  components\report-engine\document-editor\report-document-editor.tsx:67:    () => 
+paginateReportDocumentDraftForA4(draft),
+  components\report-engine\document-editor\report-document-editor.tsx:68:    [draft],
+  components\report-engine\document-editor\report-document-editor.tsx:69:  );
+  components\report-engine\document-editor\report-document-editor.tsx:70:
+  components\report-engine\document-editor\report-document-editor.tsx:71:  const 
+metaFields = useMemo(() => {
+  components\report-engine\document-editor\report-document-editor.tsx:72:    const fields 
+= draft.pages.flatMap((page) =>
+  components\report-engine\document-editor\report-document-editor.tsx:164:      const 
+nextRenderedPages = paginateReportDocumentDraftForA4(nextDraft);
+  components\report-engine\document-editor\report-document-editor.tsx:165:      
+setActivePageId(nextRenderedPages[0]?.id || "");
+  components\report-engine\document-editor\report-document-editor.tsx:166:      
+setSelectedBlockId(null);
+  components\report-engine\document-editor\report-document-editor.tsx:167:    }, 0);
+  components\report-engine\document-editor\report-document-editor.tsx:168:  }
+  components\report-engine\document-editor\report-document-editor.tsx:169:
+  components\report-engine\document-editor\report-document-editor.tsx:170:  function 
+handleMovePage(renderedPageId: string, direction: "previous" | "next") {
+  components\report-engine\document-editor\report-document-editor.tsx:171:    const 
+sourcePageId = getSourcePageId(renderedPageId);
+  components\report-engine\document-editor\report-document-editor.tsx:172:
+  components\report-engine\document-editor\report-document-editor.tsx:173:    
+commitDraft(moveReportDocumentPage(draft, sourcePageId, direction));
+  components\report-engine\document-editor\report-document-editor.tsx:174:  }
+  components\report-engine\document-editor\report-document-editor.tsx:175:
+> components\report-engine\document-editor\report-document-editor.tsx:176:  function 
+handleAddBlock(type: ReportDocumentBlockInsertType) {
+  components\report-engine\document-editor\report-document-editor.tsx:177:    if 
+(!activePage) return;
+  components\report-engine\document-editor\report-document-editor.tsx:178:
+  components\report-engine\document-editor\report-document-editor.tsx:179:    const result 
+= addReportDocumentBlock(
+  components\report-engine\document-editor\report-document-editor.tsx:180:      draft,
+  components\report-engine\document-editor\report-document-editor.tsx:181:      
+activePage.sourcePageId,
+  components\report-engine\document-editor\report-document-editor.tsx:182:      type,
+  components\report-engine\document-editor\report-document-editor.tsx:183:      
+selectedBlockId,
+  components\report-engine\document-editor\report-document-editor.tsx:184:    );
+  components\report-engine\document-editor\report-document-editor.tsx:185:
+  components\report-engine\document-editor\report-document-editor.tsx:186:    
+commitDraft(result.draft);
+  components\report-engine\document-editor\report-document-editor.tsx:187:    
+setSelectedBlockId(result.blockId);
+  components\report-engine\document-editor\report-document-editor.tsx:188:  }
+  components\report-engine\document-editor\report-document-editor.tsx:499:                 
+       {label}
+  components\report-engine\document-editor\report-document-editor.tsx:500:                 
+     </button>
+  components\report-engine\document-editor\report-document-editor.tsx:501:                 
+   ))}
+  components\report-engine\document-editor\report-document-editor.tsx:502:                 
+ </div>
+  components\report-engine\document-editor\report-document-editor.tsx:503:                
+</div>
+  components\report-engine\document-editor\report-document-editor.tsx:504:                
+</div>
+  components\report-engine\document-editor\report-document-editor.tsx:505:              ) 
+: null}
+  components\report-engine\document-editor\report-document-editor.tsx:506:            
+</section>
+  components\report-engine\document-editor\report-document-editor.tsx:507:
+  components\report-engine\document-editor\report-document-editor.tsx:508:            
+<section className="overflow-hidden rounded-[1.5rem] border border-slate-100 
+bg-slate-50/70">
+  components\report-engine\document-editor\report-document-editor.tsx:509:              
+<button
+  components\report-engine\document-editor\report-document-editor.tsx:510:                
+type="button"
+> components\report-engine\document-editor\report-document-editor.tsx:511:                
+onClick={() => setAddBlockOpen((value) => !value)}
+  components\report-engine\document-editor\report-document-editor.tsx:512:                
+className="flex w-full items-center justify-between gap-3 border-b border-slate-100 
+bg-white px-4 py-4 text-right"
+  components\report-engine\document-editor\report-document-editor.tsx:513:              >
+  components\report-engine\document-editor\report-document-editor.tsx:514:                
+<div>
+  components\report-engine\document-editor\report-document-editor.tsx:515:                 
+ <h3 className="text-sm font-black text-slate-900">٤. إضافة بلوك</h3>
+  components\report-engine\document-editor\report-document-editor.tsx:516:                 
+ <p className="mt-1 text-xs font-bold text-slate-400">
+  components\report-engine\document-editor\report-document-editor.tsx:517:                 
+   أضف فقرة أو قائمة أو جدول داخل الصفحة الحالية.
+  components\report-engine\document-editor\report-document-editor.tsx:518:                 
+ </p>
+  components\report-engine\document-editor\report-document-editor.tsx:519:                
+</div>
+  components\report-engine\document-editor\report-document-editor.tsx:520:
+  components\report-engine\document-editor\report-document-editor.tsx:521:                
+<span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 
+text-slate-500 ring-1 ring-slate-100">
+> components\report-engine\document-editor\report-document-editor.tsx:522:                 
+ {addBlockOpen ? (
+  components\report-engine\document-editor\report-document-editor.tsx:523:                 
+   <ChevronUp className="h-4 w-4" />
+  components\report-engine\document-editor\report-document-editor.tsx:524:                 
+ ) : (
+  components\report-engine\document-editor\report-document-editor.tsx:525:                 
+   <ChevronDown className="h-4 w-4" />
+  components\report-engine\document-editor\report-document-editor.tsx:526:                 
+ )}
+  components\report-engine\document-editor\report-document-editor.tsx:527:                
+</span>
+  components\report-engine\document-editor\report-document-editor.tsx:528:              
+</button>
+  components\report-engine\document-editor\report-document-editor.tsx:529:
+> components\report-engine\document-editor\report-document-editor.tsx:530:              
+{addBlockOpen ? (
+  components\report-engine\document-editor\report-document-editor.tsx:531:                
+<div className="p-3">
+> components\report-engine\document-editor\report-document-editor.tsx:532:                 
+ <ReportAddBlockMenu onAddBlock={handleAddBlock} />
+  components\report-engine\document-editor\report-document-editor.tsx:533:                
+</div>
+  components\report-engine\document-editor\report-document-editor.tsx:534:              ) 
+: null}
+  components\report-engine\document-editor\report-document-editor.tsx:535:            
+</section>
+  components\report-engine\document-editor\report-document-editor.tsx:536:
+  components\report-engine\document-editor\report-document-editor.tsx:537:                 
+       <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/60 
+p-4">
+  components\report-engine\document-editor\report-document-editor.tsx:538:              
+<h3 className="text-sm font-black text-slate-900">٥. حفظ واعتماد التقرير</h3>
+  components\report-engine\document-editor\report-document-editor.tsx:539:              <p 
+className="mt-1 text-xs font-bold leading-6 text-slate-500">
+  components\report-engine\document-editor\report-document-editor.tsx:540:                
+احفظ واعتمد التقرير أولاً، ثم حمّله PDF من نفس الصفحة. بعد الاعتماد لا يمكن التعديل.
+  components\report-engine\document-editor\report-document-editor.tsx:541:              
+</p>
+  components\report-engine\document-editor\report-document-editor.tsx:542:
+  components\report-engine\document-editor\report-document-editor.tsx:543:              
+<div className="mt-3 grid gap-2">
+  components\report-engine\document-editor\report-document-editor.tsx:544:                
+<button
+
+
+
+
+############################################################
+FILE: components\report-engine\document-editor\report-page-canvas.tsx
+############################################################
+
+----- PATTERN: signature -----
+
+  components\report-engine\document-editor\report-page-canvas.tsx:161:  if (itemsPerPage 
+=== 1) return "h-[520px] w-full";
+  components\report-engine\document-editor\report-page-canvas.tsx:162:  if (itemsPerPage 
+=== 2) return "h-[330px] w-full";
+  components\report-engine\document-editor\report-page-canvas.tsx:163:
+  components\report-engine\document-editor\report-page-canvas.tsx:164:  return "h-[210px] 
+w-full";
+  components\report-engine\document-editor\report-page-canvas.tsx:165:}
+  components\report-engine\document-editor\report-page-canvas.tsx:166:
+  components\report-engine\document-editor\report-page-canvas.tsx:167:function 
+getEvidenceGridClass(itemsPerPage?: number) {
+  components\report-engine\document-editor\report-page-canvas.tsx:168:  if (itemsPerPage 
+=== 1) return "grid-cols-1";
+  components\report-engine\document-editor\report-page-canvas.tsx:169:
+  components\report-engine\document-editor\report-page-canvas.tsx:170:  return 
+"grid-cols-2";
+  components\report-engine\document-editor\report-page-canvas.tsx:171:}
+  components\report-engine\document-editor\report-page-canvas.tsx:172:
+> components\report-engine\document-editor\report-page-canvas.tsx:173:function 
+getSignatureLayoutClass(count: number) {
+  components\report-engine\document-editor\report-page-canvas.tsx:174:  if (count <= 1) 
+return "mx-auto grid w-[260px] grid-cols-1";
+  components\report-engine\document-editor\report-page-canvas.tsx:175:  if (count === 2) 
+return "grid grid-cols-2 gap-[150px]";
+  components\report-engine\document-editor\report-page-canvas.tsx:176:
+  components\report-engine\document-editor\report-page-canvas.tsx:177:  return "grid 
+grid-cols-3 gap-4";
+  components\report-engine\document-editor\report-page-canvas.tsx:178:}
+  components\report-engine\document-editor\report-page-canvas.tsx:179:
+  components\report-engine\document-editor\report-page-canvas.tsx:180:function 
+TablePreview({ table }: { table: ReportTableBlock }) {
+  components\report-engine\document-editor\report-page-canvas.tsx:181:  return (
+  components\report-engine\document-editor\report-page-canvas.tsx:182:    <section>
+  components\report-engine\document-editor\report-page-canvas.tsx:183:      
+<SectionTitle>{table.title || "جدول"}</SectionTitle>
+  components\report-engine\document-editor\report-page-canvas.tsx:184:
+  components\report-engine\document-editor\report-page-canvas.tsx:185:      <div
+  components\report-engine\document-editor\report-page-canvas.tsx:369:                     
+         />
+  components\report-engine\document-editor\report-page-canvas.tsx:370:                     
+       ) : (
+  components\report-engine\document-editor\report-page-canvas.tsx:371:                     
+         <div className="flex h-full w-full items-center justify-center bg-slate-50 px-4 
+text-center text-xs font-black text-slate-500">
+  components\report-engine\document-editor\report-page-canvas.tsx:372:                     
+           {item.title || `شاهد ${index + 1}`}
+  components\report-engine\document-editor\report-page-canvas.tsx:373:                     
+         </div>
+  components\report-engine\document-editor\report-page-canvas.tsx:374:                     
+       )}
+  components\report-engine\document-editor\report-page-canvas.tsx:375:                     
+     </div>
+  components\report-engine\document-editor\report-page-canvas.tsx:376:                     
+   ))}
+  components\report-engine\document-editor\report-page-canvas.tsx:377:                     
+ </div>
+  components\report-engine\document-editor\report-page-canvas.tsx:378:                    
+</section>
+  components\report-engine\document-editor\report-page-canvas.tsx:379:                  ) 
+: null}
+  components\report-engine\document-editor\report-page-canvas.tsx:380:
+> components\report-engine\document-editor\report-page-canvas.tsx:381:                  
+{block.type === "SIGNATURES" ? (
+> components\report-engine\document-editor\report-page-canvas.tsx:382:                    
+<section className={["mt-auto pt-3", 
+getSignatureLayoutClass(block.signatures.length)].join(" ")}>
+> components\report-engine\document-editor\report-page-canvas.tsx:383:                     
+ {block.signatures.map((signature) => (
+  components\report-engine\document-editor\report-page-canvas.tsx:384:                     
+   <div
+> components\report-engine\document-editor\report-page-canvas.tsx:385:                     
+     key={signature.key}
+  components\report-engine\document-editor\report-page-canvas.tsx:386:                     
+     className="min-h-[74px] rounded-xl border border-slate-200 bg-white px-3 py-3 
+text-center"
+  components\report-engine\document-editor\report-page-canvas.tsx:387:                     
+   >
+  components\report-engine\document-editor\report-page-canvas.tsx:388:                     
+     <div className="text-[10px] font-bold text-slate-500">
+> components\report-engine\document-editor\report-page-canvas.tsx:389:                     
+       {signature.label}
+  components\report-engine\document-editor\report-page-canvas.tsx:390:                     
+     </div>
+  components\report-engine\document-editor\report-page-canvas.tsx:391:
+  components\report-engine\document-editor\report-page-canvas.tsx:392:                     
+     <div className="my-3 border-b border-dashed border-slate-400" />
+  components\report-engine\document-editor\report-page-canvas.tsx:393:
+  components\report-engine\document-editor\report-page-canvas.tsx:394:                     
+     <div className="text-[12px] font-bold text-slate-950">
+> components\report-engine\document-editor\report-page-canvas.tsx:395:                     
+       {signature.signerName || "—"}
+  components\report-engine\document-editor\report-page-canvas.tsx:396:                     
+     </div>
+  components\report-engine\document-editor\report-page-canvas.tsx:397:                     
+   </div>
+  components\report-engine\document-editor\report-page-canvas.tsx:398:                     
+ ))}
+  components\report-engine\document-editor\report-page-canvas.tsx:399:                    
+</section>
+  components\report-engine\document-editor\report-page-canvas.tsx:400:                  ) 
+: null}
+  components\report-engine\document-editor\report-page-canvas.tsx:401:                
+</ReportBlockFrame>
+  components\report-engine\document-editor\report-page-canvas.tsx:402:              ))}
+  components\report-engine\document-editor\report-page-canvas.tsx:403:            </div>
+  components\report-engine\document-editor\report-page-canvas.tsx:404:          </main>
+  components\report-engine\document-editor\report-page-canvas.tsx:405:
+  components\report-engine\document-editor\report-page-canvas.tsx:406:          
+<ReportA4Footer payload={payload} />
+  components\report-engine\document-editor\report-page-canvas.tsx:407:        </article>
+
+
+
+
+############################################################
+FILE: components\report-engine\document-editor\report-add-block-menu.tsx
+############################################################
+
+----- PATTERN: addBlock -----
+
+  components\report-engine\document-editor\report-add-block-menu.tsx:1:"use client";
+  components\report-engine\document-editor\report-add-block-menu.tsx:2:
+  components\report-engine\document-editor\report-add-block-menu.tsx:3:import type { 
+ReportDocumentBlockInsertType } from 
+"@/lib/report-engine/document-draft/report-document-types";
+  components\report-engine\document-editor\report-add-block-menu.tsx:4:
+> components\report-engine\document-editor\report-add-block-menu.tsx:5:type 
+ReportAddBlockMenuProps = {
+> components\report-engine\document-editor\report-add-block-menu.tsx:6:  onAddBlock: 
+(type: ReportDocumentBlockInsertType) => void;
+  components\report-engine\document-editor\report-add-block-menu.tsx:7:};
+  components\report-engine\document-editor\report-add-block-menu.tsx:8:
+  components\report-engine\document-editor\report-add-block-menu.tsx:9:const 
+BLOCK_OPTIONS: Array<{
+  components\report-engine\document-editor\report-add-block-menu.tsx:10:  type: 
+ReportDocumentBlockInsertType;
+  components\report-engine\document-editor\report-add-block-menu.tsx:11:  title: string;
+  components\report-engine\document-editor\report-add-block-menu.tsx:12:  description: 
+string;
+  components\report-engine\document-editor\report-add-block-menu.tsx:13:}> = [
+  components\report-engine\document-editor\report-add-block-menu.tsx:14:  {
+  components\report-engine\document-editor\report-add-block-menu.tsx:15:    type: 
+"PARAGRAPH",
+  components\report-engine\document-editor\report-add-block-menu.tsx:16:    title: "فقرة",
+  components\report-engine\document-editor\report-add-block-menu.tsx:17:    description: 
+"عنوان ونص حر داخل التقرير.",
+  components\report-engine\document-editor\report-add-block-menu.tsx:18:  },
+  components\report-engine\document-editor\report-add-block-menu.tsx:19:  {
+  components\report-engine\document-editor\report-add-block-menu.tsx:20:    type: 
+"BULLET_LIST",
+  components\report-engine\document-editor\report-add-block-menu.tsx:21:    title: "قائمة",
+  components\report-engine\document-editor\report-add-block-menu.tsx:22:    description: 
+"قائمة نقاط منظمة.",
+  components\report-engine\document-editor\report-add-block-menu.tsx:23:  },
+  components\report-engine\document-editor\report-add-block-menu.tsx:24:  {
+  components\report-engine\document-editor\report-add-block-menu.tsx:25:    type: "TABLE",
+  components\report-engine\document-editor\report-add-block-menu.tsx:26:    title: "جدول",
+  components\report-engine\document-editor\report-add-block-menu.tsx:27:    description: 
+"جدول قابل للتحكم بالصفوف والأعمدة.",
+  components\report-engine\document-editor\report-add-block-menu.tsx:28:  },
+  components\report-engine\document-editor\report-add-block-menu.tsx:29:];
+  components\report-engine\document-editor\report-add-block-menu.tsx:30:
+> components\report-engine\document-editor\report-add-block-menu.tsx:31:export function 
+ReportAddBlockMenu({ onAddBlock }: ReportAddBlockMenuProps) {
+  components\report-engine\document-editor\report-add-block-menu.tsx:32:  return (
+  components\report-engine\document-editor\report-add-block-menu.tsx:33:    <div 
+className="rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
+  components\report-engine\document-editor\report-add-block-menu.tsx:34:      <div 
+className="mb-3 flex items-center justify-between gap-3">
+  components\report-engine\document-editor\report-add-block-menu.tsx:35:        <div>
+  components\report-engine\document-editor\report-add-block-menu.tsx:36:          <h3 
+className="text-sm font-black text-slate-900">إضافة بلوك</h3>
+  components\report-engine\document-editor\report-add-block-menu.tsx:37:          <p 
+className="mt-1 text-xs font-bold text-slate-500">
+  components\report-engine\document-editor\report-add-block-menu.tsx:38:            اختر 
+نوع المحتوى الذي تريد إضافته للصفحة الحالية.
+  components\report-engine\document-editor\report-add-block-menu.tsx:39:          </p>
+  components\report-engine\document-editor\report-add-block-menu.tsx:40:        </div>
+  components\report-engine\document-editor\report-add-block-menu.tsx:41:      </div>
+  components\report-engine\document-editor\report-add-block-menu.tsx:42:
+  components\report-engine\document-editor\report-add-block-menu.tsx:43:      <div 
+className="grid gap-2">
+  components\report-engine\document-editor\report-add-block-menu.tsx:44:        
+{BLOCK_OPTIONS.map((option) => (
+  components\report-engine\document-editor\report-add-block-menu.tsx:45:          <button
+  components\report-engine\document-editor\report-add-block-menu.tsx:46:            
+key={option.type}
+  components\report-engine\document-editor\report-add-block-menu.tsx:47:            
+type="button"
+> components\report-engine\document-editor\report-add-block-menu.tsx:48:            
+onClick={() => onAddBlock(option.type)}
+  components\report-engine\document-editor\report-add-block-menu.tsx:49:            
+className="group rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-right 
+transition hover:border-emerald-200 hover:bg-emerald-50"
+  components\report-engine\document-editor\report-add-block-menu.tsx:50:          >
+  components\report-engine\document-editor\report-add-block-menu.tsx:51:            <div 
+className="text-sm font-black text-slate-900 group-hover:text-emerald-800">
+  components\report-engine\document-editor\report-add-block-menu.tsx:52:              + 
+{option.title}
+  components\report-engine\document-editor\report-add-block-menu.tsx:53:            </div>
+  components\report-engine\document-editor\report-add-block-menu.tsx:54:            <div 
+className="mt-1 text-xs font-bold text-slate-500">
+  components\report-engine\document-editor\report-add-block-menu.tsx:55:              
+{option.description}
+  components\report-engine\document-editor\report-add-block-menu.tsx:56:            </div>
+  components\report-engine\document-editor\report-add-block-menu.tsx:57:          </button>
+  components\report-engine\document-editor\report-add-block-menu.tsx:58:        ))}
+  components\report-engine\document-editor\report-add-block-menu.tsx:59:      </div>
+  components\report-engine\document-editor\report-add-block-menu.tsx:60:    </div>
+
+
+
+
+############################################################
+FILE: components\report-engine\document-editor\report-block-frame.tsx
+############################################################
+
+----- PATTERN: signature -----
+
+  components\report-engine\document-editor\report-block-frame.tsx:12:  onMovePrevious: () 
+=> void;
+  components\report-engine\document-editor\report-block-frame.tsx:13:  onMoveNext: () => 
+void;
+  components\report-engine\document-editor\report-block-frame.tsx:14:  onEditTable?: () => 
+void;
+  components\report-engine\document-editor\report-block-frame.tsx:15:};
+  components\report-engine\document-editor\report-block-frame.tsx:16:
+  components\report-engine\document-editor\report-block-frame.tsx:17:function 
+getBlockLabel(block: ReportDocumentBlock) {
+  components\report-engine\document-editor\report-block-frame.tsx:18:  if (block.type === 
+"META_FIELDS") return "بيانات التقرير";
+  components\report-engine\document-editor\report-block-frame.tsx:19:  if (block.type === 
+"NARRATIVE") return "وصف التنفيذ";
+  components\report-engine\document-editor\report-block-frame.tsx:20:  if (block.type === 
+"PARAGRAPH") return "فقرة";
+  components\report-engine\document-editor\report-block-frame.tsx:21:  if (block.type === 
+"BULLET_LIST") return "قائمة";
+  components\report-engine\document-editor\report-block-frame.tsx:22:  if (block.type === 
+"TABLE") return "جدول";
+  components\report-engine\document-editor\report-block-frame.tsx:23:  if (block.type === 
+"EVIDENCE") return "الشواهد";
+> components\report-engine\document-editor\report-block-frame.tsx:24:  if (block.type === 
+"SIGNATURES") return "الاعتمادات";
+  components\report-engine\document-editor\report-block-frame.tsx:25:
+  components\report-engine\document-editor\report-block-frame.tsx:26:  return "بلوك";
+  components\report-engine\document-editor\report-block-frame.tsx:27:}
+  components\report-engine\document-editor\report-block-frame.tsx:28:
+  components\report-engine\document-editor\report-block-frame.tsx:29:export function 
+ReportBlockFrame({
+  components\report-engine\document-editor\report-block-frame.tsx:30:  block,
+  components\report-engine\document-editor\report-block-frame.tsx:31:  selected = false,
+  components\report-engine\document-editor\report-block-frame.tsx:32:  children,
+  components\report-engine\document-editor\report-block-frame.tsx:33:  onSelect,
+  components\report-engine\document-editor\report-block-frame.tsx:34:  onRemove,
+  components\report-engine\document-editor\report-block-frame.tsx:35:  onMovePrevious,
+  components\report-engine\document-editor\report-block-frame.tsx:36:  onMoveNext,
+
+
+
+
+############################################################
+FILE: lib\report-engine\report-template-builder-types.ts
+############################################################
+
+----- PATTERN: signature -----
+
+  lib\report-engine\report-template-builder-types.ts:31:
+  lib\report-engine\report-template-builder-types.ts:32:export type ReportBlockKind =
+  lib\report-engine\report-template-builder-types.ts:33:  | "identity-header"
+  lib\report-engine\report-template-builder-types.ts:34:  | "cover-title"
+  lib\report-engine\report-template-builder-types.ts:35:  | "case-meta"
+  lib\report-engine\report-template-builder-types.ts:36:  | "student-summary"
+  lib\report-engine\report-template-builder-types.ts:37:  | "service-summary"
+  lib\report-engine\report-template-builder-types.ts:38:  | "paragraph"
+  lib\report-engine\report-template-builder-types.ts:39:  | "field-list"
+  lib\report-engine\report-template-builder-types.ts:40:  | "text-library"
+  lib\report-engine\report-template-builder-types.ts:41:  | "custom-paragraph"
+  lib\report-engine\report-template-builder-types.ts:42:  | "evidence-gallery"
+> lib\report-engine\report-template-builder-types.ts:43:  | "approval-signature";
+  lib\report-engine\report-template-builder-types.ts:44:
+  lib\report-engine\report-template-builder-types.ts:45:export type ReportDataSource =
+  lib\report-engine\report-template-builder-types.ts:46:  | "identity"
+  lib\report-engine\report-template-builder-types.ts:47:  | "caseEntry"
+  lib\report-engine\report-template-builder-types.ts:48:  | "caseValues"
+  lib\report-engine\report-template-builder-types.ts:49:  | "student"
+  lib\report-engine\report-template-builder-types.ts:50:  | "service"
+  lib\report-engine\report-template-builder-types.ts:51:  | "evidence"
+  lib\report-engine\report-template-builder-types.ts:52:  | "textLibrary"
+  lib\report-engine\report-template-builder-types.ts:53:  | "custom"
+  lib\report-engine\report-template-builder-types.ts:54:  | "computed";
+  lib\report-engine\report-template-builder-types.ts:55:
+  lib\report-engine\report-template-builder-types.ts:416:      label: "شواهد الحالة",
+  lib\report-engine\report-template-builder-types.ts:417:      description: "الصور 
+والملفات المرتبطة بالحالة أو الخدمة.",
+  lib\report-engine\report-template-builder-types.ts:418:    },
+  lib\report-engine\report-template-builder-types.ts:419:    required: false,
+  lib\report-engine\report-template-builder-types.ts:420:    settings: {
+  lib\report-engine\report-template-builder-types.ts:421:      evidenceLayout: "grid-2x2",
+  lib\report-engine\report-template-builder-types.ts:422:      imageFit: "cover",
+  lib\report-engine\report-template-builder-types.ts:423:      showCaptions: true,
+  lib\report-engine\report-template-builder-types.ts:424:      itemsPerPage: 4,
+  lib\report-engine\report-template-builder-types.ts:425:    },
+  lib\report-engine\report-template-builder-types.ts:426:  },
+  lib\report-engine\report-template-builder-types.ts:427:  {
+> lib\report-engine\report-template-builder-types.ts:428:    id: 
+"block-approval-signature",
+> lib\report-engine\report-template-builder-types.ts:429:    kind: "approval-signature",
+  lib\report-engine\report-template-builder-types.ts:430:    title: "الاعتماد والتوقيع",
+  lib\report-engine\report-template-builder-types.ts:431:    source: {
+  lib\report-engine\report-template-builder-types.ts:432:      source: "identity",
+  lib\report-engine\report-template-builder-types.ts:433:      label: "بيانات الاعتماد",
+  lib\report-engine\report-template-builder-types.ts:434:      description: "اسم 
+الموجه/الموجهة، قائد/قائدة المدرسة، التاريخ، والتوقيع.",
+  lib\report-engine\report-template-builder-types.ts:435:    },
+  lib\report-engine\report-template-builder-types.ts:436:    required: false,
+  lib\report-engine\report-template-builder-types.ts:437:    settings: {
+  lib\report-engine\report-template-builder-types.ts:438:      style: "highlight",
+  lib\report-engine\report-template-builder-types.ts:439:    },
+  lib\report-engine\report-template-builder-types.ts:440:  },
+  lib\report-engine\report-template-builder-types.ts:441:];
+
+
+
+
+----- PATTERN: approval -----
+
+  lib\report-engine\report-template-builder-types.ts:17:
+  lib\report-engine\report-template-builder-types.ts:18:export type ReportDesignPreset =
+  lib\report-engine\report-template-builder-types.ts:19:  | "official-school-report"
+  lib\report-engine\report-template-builder-types.ts:20:  | "visual-program-report"
+  lib\report-engine\report-template-builder-types.ts:21:  | "guardian-summons-letter-v1";
+  lib\report-engine\report-template-builder-types.ts:22:
+  lib\report-engine\report-template-builder-types.ts:23:export type ReportPageKind =
+  lib\report-engine\report-template-builder-types.ts:24:  | "cover"
+  lib\report-engine\report-template-builder-types.ts:25:  | "summary"
+  lib\report-engine\report-template-builder-types.ts:26:  | "narrative"
+  lib\report-engine\report-template-builder-types.ts:27:  | "results"
+  lib\report-engine\report-template-builder-types.ts:28:  | "evidence"
+> lib\report-engine\report-template-builder-types.ts:29:  | "approval"
+  lib\report-engine\report-template-builder-types.ts:30:  | "letter";
+  lib\report-engine\report-template-builder-types.ts:31:
+  lib\report-engine\report-template-builder-types.ts:32:export type ReportBlockKind =
+  lib\report-engine\report-template-builder-types.ts:33:  | "identity-header"
+  lib\report-engine\report-template-builder-types.ts:34:  | "cover-title"
+  lib\report-engine\report-template-builder-types.ts:35:  | "case-meta"
+  lib\report-engine\report-template-builder-types.ts:36:  | "student-summary"
+  lib\report-engine\report-template-builder-types.ts:37:  | "service-summary"
+  lib\report-engine\report-template-builder-types.ts:38:  | "paragraph"
+  lib\report-engine\report-template-builder-types.ts:39:  | "field-list"
+  lib\report-engine\report-template-builder-types.ts:40:  | "text-library"
+  lib\report-engine\report-template-builder-types.ts:41:  | "custom-paragraph"
+  lib\report-engine\report-template-builder-types.ts:42:  | "evidence-gallery"
+> lib\report-engine\report-template-builder-types.ts:43:  | "approval-signature";
+  lib\report-engine\report-template-builder-types.ts:44:
+  lib\report-engine\report-template-builder-types.ts:45:export type ReportDataSource =
+  lib\report-engine\report-template-builder-types.ts:46:  | "identity"
+  lib\report-engine\report-template-builder-types.ts:47:  | "caseEntry"
+  lib\report-engine\report-template-builder-types.ts:48:  | "caseValues"
+  lib\report-engine\report-template-builder-types.ts:49:  | "student"
+  lib\report-engine\report-template-builder-types.ts:50:  | "service"
+  lib\report-engine\report-template-builder-types.ts:51:  | "evidence"
+  lib\report-engine\report-template-builder-types.ts:52:  | "textLibrary"
+  lib\report-engine\report-template-builder-types.ts:53:  | "custom"
+  lib\report-engine\report-template-builder-types.ts:54:  | "computed";
+  lib\report-engine\report-template-builder-types.ts:55:
+  lib\report-engine\report-template-builder-types.ts:416:      label: "شواهد الحالة",
+  lib\report-engine\report-template-builder-types.ts:417:      description: "الصور 
+والملفات المرتبطة بالحالة أو الخدمة.",
+  lib\report-engine\report-template-builder-types.ts:418:    },
+  lib\report-engine\report-template-builder-types.ts:419:    required: false,
+  lib\report-engine\report-template-builder-types.ts:420:    settings: {
+  lib\report-engine\report-template-builder-types.ts:421:      evidenceLayout: "grid-2x2",
+  lib\report-engine\report-template-builder-types.ts:422:      imageFit: "cover",
+  lib\report-engine\report-template-builder-types.ts:423:      showCaptions: true,
+  lib\report-engine\report-template-builder-types.ts:424:      itemsPerPage: 4,
+  lib\report-engine\report-template-builder-types.ts:425:    },
+  lib\report-engine\report-template-builder-types.ts:426:  },
+  lib\report-engine\report-template-builder-types.ts:427:  {
+> lib\report-engine\report-template-builder-types.ts:428:    id: 
+"block-approval-signature",
+> lib\report-engine\report-template-builder-types.ts:429:    kind: "approval-signature",
+  lib\report-engine\report-template-builder-types.ts:430:    title: "الاعتماد والتوقيع",
+  lib\report-engine\report-template-builder-types.ts:431:    source: {
+  lib\report-engine\report-template-builder-types.ts:432:      source: "identity",
+  lib\report-engine\report-template-builder-types.ts:433:      label: "بيانات الاعتماد",
+  lib\report-engine\report-template-builder-types.ts:434:      description: "اسم 
+الموجه/الموجهة، قائد/قائدة المدرسة، التاريخ، والتوقيع.",
+  lib\report-engine\report-template-builder-types.ts:435:    },
+  lib\report-engine\report-template-builder-types.ts:436:    required: false,
+  lib\report-engine\report-template-builder-types.ts:437:    settings: {
+  lib\report-engine\report-template-builder-types.ts:438:      style: "highlight",
+  lib\report-engine\report-template-builder-types.ts:439:    },
+  lib\report-engine\report-template-builder-types.ts:440:  },
+  lib\report-engine\report-template-builder-types.ts:441:];
+
+
+
+
+############################################################
+FILE: lib\report-engine\report-template-builder-presets.ts
+############################################################
+
+----- PATTERN: signature -----
+
+  lib\report-engine\report-template-builder-presets.ts:182:                itemsPerPage: 4,
+  lib\report-engine\report-template-builder-presets.ts:183:              },
+  lib\report-engine\report-template-builder-presets.ts:184:            },
+  lib\report-engine\report-template-builder-presets.ts:185:          ],
+  lib\report-engine\report-template-builder-presets.ts:186:        },
+  lib\report-engine\report-template-builder-presets.ts:187:        {
+  lib\report-engine\report-template-builder-presets.ts:188:          id: "page-approval",
+  lib\report-engine\report-template-builder-presets.ts:189:          kind: "approval",
+  lib\report-engine\report-template-builder-presets.ts:190:          title: "الاعتماد 
+والتوقيع",
+  lib\report-engine\report-template-builder-presets.ts:191:          description: "صفحة 
+رسمية ختامية للتوقيع والختم.",
+  lib\report-engine\report-template-builder-presets.ts:192:          blocks: [
+  lib\report-engine\report-template-builder-presets.ts:193:            {
+> lib\report-engine\report-template-builder-presets.ts:194:              id: 
+"approval-signature",
+> lib\report-engine\report-template-builder-presets.ts:195:              kind: 
+"approval-signature",
+  lib\report-engine\report-template-builder-presets.ts:196:              title: "التوقيع 
+والاعتماد",
+  lib\report-engine\report-template-builder-presets.ts:197:              source: {
+  lib\report-engine\report-template-builder-presets.ts:198:                source: 
+"identity",
+  lib\report-engine\report-template-builder-presets.ts:199:                label: "بيانات 
+الاعتماد",
+  lib\report-engine\report-template-builder-presets.ts:200:                description: 
+"اسم الموجه/الموجهة وقائد/قائدة المدرسة.",
+  lib\report-engine\report-template-builder-presets.ts:201:              },
+  lib\report-engine\report-template-builder-presets.ts:202:              required: false,
+  lib\report-engine\report-template-builder-presets.ts:203:            },
+  lib\report-engine\report-template-builder-presets.ts:204:          ],
+  lib\report-engine\report-template-builder-presets.ts:205:        },
+  lib\report-engine\report-template-builder-presets.ts:206:      ],
+  lib\report-engine\report-template-builder-presets.ts:207:    },
+
+
+
+
+----- PATTERN: approval -----
+
+  lib\report-engine\report-template-builder-presets.ts:176:              },
+  lib\report-engine\report-template-builder-presets.ts:177:              required: false,
+  lib\report-engine\report-template-builder-presets.ts:178:              settings: {
+  lib\report-engine\report-template-builder-presets.ts:179:                evidenceLayout: 
+"grid-2x2",
+  lib\report-engine\report-template-builder-presets.ts:180:                imageFit: 
+"cover",
+  lib\report-engine\report-template-builder-presets.ts:181:                showCaptions: 
+true,
+  lib\report-engine\report-template-builder-presets.ts:182:                itemsPerPage: 4,
+  lib\report-engine\report-template-builder-presets.ts:183:              },
+  lib\report-engine\report-template-builder-presets.ts:184:            },
+  lib\report-engine\report-template-builder-presets.ts:185:          ],
+  lib\report-engine\report-template-builder-presets.ts:186:        },
+  lib\report-engine\report-template-builder-presets.ts:187:        {
+> lib\report-engine\report-template-builder-presets.ts:188:          id: "page-approval",
+> lib\report-engine\report-template-builder-presets.ts:189:          kind: "approval",
+  lib\report-engine\report-template-builder-presets.ts:190:          title: "الاعتماد 
+والتوقيع",
+  lib\report-engine\report-template-builder-presets.ts:191:          description: "صفحة 
+رسمية ختامية للتوقيع والختم.",
+  lib\report-engine\report-template-builder-presets.ts:192:          blocks: [
+  lib\report-engine\report-template-builder-presets.ts:193:            {
+> lib\report-engine\report-template-builder-presets.ts:194:              id: 
+"approval-signature",
+> lib\report-engine\report-template-builder-presets.ts:195:              kind: 
+"approval-signature",
+  lib\report-engine\report-template-builder-presets.ts:196:              title: "التوقيع 
+والاعتماد",
+  lib\report-engine\report-template-builder-presets.ts:197:              source: {
+  lib\report-engine\report-template-builder-presets.ts:198:                source: 
+"identity",
+  lib\report-engine\report-template-builder-presets.ts:199:                label: "بيانات 
+الاعتماد",
+  lib\report-engine\report-template-builder-presets.ts:200:                description: 
+"اسم الموجه/الموجهة وقائد/قائدة المدرسة.",
+  lib\report-engine\report-template-builder-presets.ts:201:              },
+  lib\report-engine\report-template-builder-presets.ts:202:              required: false,
+  lib\report-engine\report-template-builder-presets.ts:203:            },
+  lib\report-engine\report-template-builder-presets.ts:204:          ],
+  lib\report-engine\report-template-builder-presets.ts:205:        },
+  lib\report-engine\report-template-builder-presets.ts:206:      ],
+  lib\report-engine\report-template-builder-presets.ts:207:    },
+
+

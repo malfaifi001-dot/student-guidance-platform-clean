@@ -63,6 +63,16 @@ export type SmartReportIdentity = {
   schoolLogoUrl?: string;
   academicYear?: string;
   currentSemester?: string;
+  counselorName?: string;
+  counselorSignatureUrl?: string;
+  principalName?: string;
+  principalSignatureUrl?: string;
+  activityLeaderName?: string;
+  activityLeaderSignatureUrl?: string;
+  schoolLeaderName?: string;
+  schoolLeaderSignatureUrl?: string;
+  userName?: string;
+  userSignatureUrl?: string;
 };
 
 export type SmartReportCaseInfo = {

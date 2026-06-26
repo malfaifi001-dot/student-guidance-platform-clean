@@ -1,0 +1,1059 @@
+REAL CAPACITY MESSAGE SOURCE
+Generated: 06/26/2026 00:50:14
+
+===== git status --short =====
+ M components/evidence/evidence-item-card.tsx
+ M components/evidence/evidence-preview-grid.tsx
+ M components/report-engine/design-renderers/report-design-renderer.tsx
+ M components/reports/report-evidence-gallery.tsx
+ M components/reports/report-studio-editor.tsx
+?? block-capacity-check-debug.txt
+?? evidence-renderer-after-codex.txt
+?? evidence-root-source-debug.txt
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-1cc2b151-bf10-42fb-bf7f-71fcf464f28d.jpg
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-f6a2c11f-3eb9-4fce-9bd7-cd14b4c6bb05.jpg
+?? signature-pagination-debug.txt
+?? signature-template-source-debug.txt
+
+
+
+############################################################
+FILE: components\document-export\document-pdf-download-button.tsx
+PATTERN: remainingHeight
+############################################################
+
+  components\document-export\document-pdf-download-button.tsx:154:        compress: true,
+  components\document-export\document-pdf-download-button.tsx:155:      });
+  components\document-export\document-pdf-download-button.tsx:156:
+  components\document-export\document-pdf-download-button.tsx:157:      const pageWidth = 
+pdf.internal.pageSize.getWidth();
+  components\document-export\document-pdf-download-button.tsx:158:      const pageHeight = 
+pdf.internal.pageSize.getHeight();
+  components\document-export\document-pdf-download-button.tsx:159:
+  components\document-export\document-pdf-download-button.tsx:160:      const imageWidth = 
+pageWidth;
+  components\document-export\document-pdf-download-button.tsx:161:      const imageHeight 
+= (canvas.height * imageWidth) / canvas.width;
+  components\document-export\document-pdf-download-button.tsx:162:
+  components\document-export\document-pdf-download-button.tsx:163:      if (imageHeight <= 
+pageHeight) {
+  components\document-export\document-pdf-download-button.tsx:164:        
+pdf.addImage(imageData, "PNG", 0, 0, imageWidth, imageHeight);
+  components\document-export\document-pdf-download-button.tsx:165:      } else {
+> components\document-export\document-pdf-download-button.tsx:166:        let 
+remainingHeight = imageHeight;
+  components\document-export\document-pdf-download-button.tsx:167:        let position = 0;
+  components\document-export\document-pdf-download-button.tsx:168:
+> components\document-export\document-pdf-download-button.tsx:169:        while 
+(remainingHeight > 0) {
+  components\document-export\document-pdf-download-button.tsx:170:          
+pdf.addImage(imageData, "PNG", 0, position, imageWidth, imageHeight);
+> components\document-export\document-pdf-download-button.tsx:171:          
+remainingHeight -= pageHeight;
+  components\document-export\document-pdf-download-button.tsx:172:
+> components\document-export\document-pdf-download-button.tsx:173:          if 
+(remainingHeight > 0) {
+  components\document-export\document-pdf-download-button.tsx:174:            
+pdf.addPage();
+  components\document-export\document-pdf-download-button.tsx:175:            position -= 
+pageHeight;
+  components\document-export\document-pdf-download-button.tsx:176:          }
+  components\document-export\document-pdf-download-button.tsx:177:        }
+  components\document-export\document-pdf-download-button.tsx:178:      }
+  components\document-export\document-pdf-download-button.tsx:179:
+  components\document-export\document-pdf-download-button.tsx:180:      
+pdf.save(sanitizePdfFileName(fileName));
+  components\document-export\document-pdf-download-button.tsx:181:
+  components\document-export\document-pdf-download-button.tsx:182:      await 
+onAfterDownload?.();
+  components\document-export\document-pdf-download-button.tsx:183:    } catch (error) {
+  components\document-export\document-pdf-download-button.tsx:184:      const message =
+  components\document-export\document-pdf-download-button.tsx:185:        error instanceof 
+Error ? error.message : "خطأ غير معروف أثناء PDF";
+
+
+
+
+############################################################
+FILE: components\report-2\report-two-studio-runtime.tsx
+PATTERN: لا توجد مساحة كافية
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:250:  selectedTemplateId: string;
+  components\report-2\report-two-studio-runtime.tsx:251:  selectedVariantId?: string;
+  components\report-2\report-two-studio-runtime.tsx:252:  payload: SmartReportPayload;
+  components\report-2\report-two-studio-runtime.tsx:253:  templates: TemplateOption[];
+  components\report-2\report-two-studio-runtime.tsx:254:};
+  components\report-2\report-two-studio-runtime.tsx:255:
+  components\report-2\report-two-studio-runtime.tsx:256:const 
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 184;
+  components\report-2\report-two-studio-runtime.tsx:257:const 
+REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE = 6;
+  components\report-2\report-two-studio-runtime.tsx:258:const 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE = REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:259:const 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE =
+  components\report-2\report-two-studio-runtime.tsx:260:  
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE - REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:261:const 
+REPORT_TWO_BLOCK_MOVED_NOTICE =
+> components\report-2\report-two-studio-runtime.tsx:262:  "لا توجد مساحة كافية في هذه 
+الصفحة، سيتم نقل البلوك إلى الصفحة التالية.";
+  components\report-2\report-two-studio-runtime.tsx:263:
+  components\report-2\report-two-studio-runtime.tsx:264:function 
+getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+  components\report-2\report-two-studio-runtime.tsx:265:  return 
+`report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+  components\report-2\report-two-studio-runtime.tsx:266:}
+  components\report-2\report-two-studio-runtime.tsx:267:
+  components\report-2\report-two-studio-runtime.tsx:268:function 
+readReportTwoSavedTemplates(
+  components\report-2\report-two-studio-runtime.tsx:269:  serviceSlug: string,
+  components\report-2\report-two-studio-runtime.tsx:270:): ReportTwoSavedRuntimeTemplate[] 
+{
+  components\report-2\report-two-studio-runtime.tsx:271:  if (typeof window === 
+"undefined") return [];
+  components\report-2\report-two-studio-runtime.tsx:272:
+  components\report-2\report-two-studio-runtime.tsx:273:  try {
+  components\report-2\report-two-studio-runtime.tsx:274:    const raw = 
+window.localStorage.getItem(
+
+
+
+
+############################################################
+FILE: components\report-2\report-two-studio-runtime.tsx
+PATTERN: سيتم نقل البلوك
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:250:  selectedTemplateId: string;
+  components\report-2\report-two-studio-runtime.tsx:251:  selectedVariantId?: string;
+  components\report-2\report-two-studio-runtime.tsx:252:  payload: SmartReportPayload;
+  components\report-2\report-two-studio-runtime.tsx:253:  templates: TemplateOption[];
+  components\report-2\report-two-studio-runtime.tsx:254:};
+  components\report-2\report-two-studio-runtime.tsx:255:
+  components\report-2\report-two-studio-runtime.tsx:256:const 
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 184;
+  components\report-2\report-two-studio-runtime.tsx:257:const 
+REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE = 6;
+  components\report-2\report-two-studio-runtime.tsx:258:const 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE = REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:259:const 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE =
+  components\report-2\report-two-studio-runtime.tsx:260:  
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE - REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:261:const 
+REPORT_TWO_BLOCK_MOVED_NOTICE =
+> components\report-2\report-two-studio-runtime.tsx:262:  "لا توجد مساحة كافية في هذه 
+الصفحة، سيتم نقل البلوك إلى الصفحة التالية.";
+  components\report-2\report-two-studio-runtime.tsx:263:
+  components\report-2\report-two-studio-runtime.tsx:264:function 
+getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+  components\report-2\report-two-studio-runtime.tsx:265:  return 
+`report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+  components\report-2\report-two-studio-runtime.tsx:266:}
+  components\report-2\report-two-studio-runtime.tsx:267:
+  components\report-2\report-two-studio-runtime.tsx:268:function 
+readReportTwoSavedTemplates(
+  components\report-2\report-two-studio-runtime.tsx:269:  serviceSlug: string,
+  components\report-2\report-two-studio-runtime.tsx:270:): ReportTwoSavedRuntimeTemplate[] 
+{
+  components\report-2\report-two-studio-runtime.tsx:271:  if (typeof window === 
+"undefined") return [];
+  components\report-2\report-two-studio-runtime.tsx:272:
+  components\report-2\report-two-studio-runtime.tsx:273:  try {
+  components\report-2\report-two-studio-runtime.tsx:274:    const raw = 
+window.localStorage.getItem(
+
+
+
+
+############################################################
+FILE: components\report-2\report-two-studio-runtime.tsx
+PATTERN: البلوك إلى الصفحة التالية
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:250:  selectedTemplateId: string;
+  components\report-2\report-two-studio-runtime.tsx:251:  selectedVariantId?: string;
+  components\report-2\report-two-studio-runtime.tsx:252:  payload: SmartReportPayload;
+  components\report-2\report-two-studio-runtime.tsx:253:  templates: TemplateOption[];
+  components\report-2\report-two-studio-runtime.tsx:254:};
+  components\report-2\report-two-studio-runtime.tsx:255:
+  components\report-2\report-two-studio-runtime.tsx:256:const 
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 184;
+  components\report-2\report-two-studio-runtime.tsx:257:const 
+REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE = 6;
+  components\report-2\report-two-studio-runtime.tsx:258:const 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE = REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:259:const 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE =
+  components\report-2\report-two-studio-runtime.tsx:260:  
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE - REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:261:const 
+REPORT_TWO_BLOCK_MOVED_NOTICE =
+> components\report-2\report-two-studio-runtime.tsx:262:  "لا توجد مساحة كافية في هذه 
+الصفحة، سيتم نقل البلوك إلى الصفحة التالية.";
+  components\report-2\report-two-studio-runtime.tsx:263:
+  components\report-2\report-two-studio-runtime.tsx:264:function 
+getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+  components\report-2\report-two-studio-runtime.tsx:265:  return 
+`report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+  components\report-2\report-two-studio-runtime.tsx:266:}
+  components\report-2\report-two-studio-runtime.tsx:267:
+  components\report-2\report-two-studio-runtime.tsx:268:function 
+readReportTwoSavedTemplates(
+  components\report-2\report-two-studio-runtime.tsx:269:  serviceSlug: string,
+  components\report-2\report-two-studio-runtime.tsx:270:): ReportTwoSavedRuntimeTemplate[] 
+{
+  components\report-2\report-two-studio-runtime.tsx:271:  if (typeof window === 
+"undefined") return [];
+  components\report-2\report-two-studio-runtime.tsx:272:
+  components\report-2\report-two-studio-runtime.tsx:273:  try {
+  components\report-2\report-two-studio-runtime.tsx:274:    const raw = 
+window.localStorage.getItem(
+
+
+
+
+############################################################
+FILE: components\report-2\report-two-studio-runtime.tsx
+PATTERN: نقل البلوك
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:250:  selectedTemplateId: string;
+  components\report-2\report-two-studio-runtime.tsx:251:  selectedVariantId?: string;
+  components\report-2\report-two-studio-runtime.tsx:252:  payload: SmartReportPayload;
+  components\report-2\report-two-studio-runtime.tsx:253:  templates: TemplateOption[];
+  components\report-2\report-two-studio-runtime.tsx:254:};
+  components\report-2\report-two-studio-runtime.tsx:255:
+  components\report-2\report-two-studio-runtime.tsx:256:const 
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 184;
+  components\report-2\report-two-studio-runtime.tsx:257:const 
+REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE = 6;
+  components\report-2\report-two-studio-runtime.tsx:258:const 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE = REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:259:const 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE =
+  components\report-2\report-two-studio-runtime.tsx:260:  
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE - REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:261:const 
+REPORT_TWO_BLOCK_MOVED_NOTICE =
+> components\report-2\report-two-studio-runtime.tsx:262:  "لا توجد مساحة كافية في هذه 
+الصفحة، سيتم نقل البلوك إلى الصفحة التالية.";
+  components\report-2\report-two-studio-runtime.tsx:263:
+  components\report-2\report-two-studio-runtime.tsx:264:function 
+getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+  components\report-2\report-two-studio-runtime.tsx:265:  return 
+`report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+  components\report-2\report-two-studio-runtime.tsx:266:}
+  components\report-2\report-two-studio-runtime.tsx:267:
+  components\report-2\report-two-studio-runtime.tsx:268:function 
+readReportTwoSavedTemplates(
+  components\report-2\report-two-studio-runtime.tsx:269:  serviceSlug: string,
+  components\report-2\report-two-studio-runtime.tsx:270:): ReportTwoSavedRuntimeTemplate[] 
+{
+  components\report-2\report-two-studio-runtime.tsx:271:  if (typeof window === 
+"undefined") return [];
+  components\report-2\report-two-studio-runtime.tsx:272:
+  components\report-2\report-two-studio-runtime.tsx:273:  try {
+  components\report-2\report-two-studio-runtime.tsx:274:    const raw = 
+window.localStorage.getItem(
+
+
+
+
+############################################################
+FILE: components\report-2\report-two-studio-runtime.tsx
+PATTERN: مساحة كافية
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:250:  selectedTemplateId: string;
+  components\report-2\report-two-studio-runtime.tsx:251:  selectedVariantId?: string;
+  components\report-2\report-two-studio-runtime.tsx:252:  payload: SmartReportPayload;
+  components\report-2\report-two-studio-runtime.tsx:253:  templates: TemplateOption[];
+  components\report-2\report-two-studio-runtime.tsx:254:};
+  components\report-2\report-two-studio-runtime.tsx:255:
+  components\report-2\report-two-studio-runtime.tsx:256:const 
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 184;
+  components\report-2\report-two-studio-runtime.tsx:257:const 
+REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE = 6;
+  components\report-2\report-two-studio-runtime.tsx:258:const 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE = REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:259:const 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE =
+  components\report-2\report-two-studio-runtime.tsx:260:  
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE - REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:261:const 
+REPORT_TWO_BLOCK_MOVED_NOTICE =
+> components\report-2\report-two-studio-runtime.tsx:262:  "لا توجد مساحة كافية في هذه 
+الصفحة، سيتم نقل البلوك إلى الصفحة التالية.";
+  components\report-2\report-two-studio-runtime.tsx:263:
+  components\report-2\report-two-studio-runtime.tsx:264:function 
+getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+  components\report-2\report-two-studio-runtime.tsx:265:  return 
+`report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+  components\report-2\report-two-studio-runtime.tsx:266:}
+  components\report-2\report-two-studio-runtime.tsx:267:
+  components\report-2\report-two-studio-runtime.tsx:268:function 
+readReportTwoSavedTemplates(
+  components\report-2\report-two-studio-runtime.tsx:269:  serviceSlug: string,
+  components\report-2\report-two-studio-runtime.tsx:270:): ReportTwoSavedRuntimeTemplate[] 
+{
+  components\report-2\report-two-studio-runtime.tsx:271:  if (typeof window === 
+"undefined") return [];
+  components\report-2\report-two-studio-runtime.tsx:272:
+  components\report-2\report-two-studio-runtime.tsx:273:  try {
+  components\report-2\report-two-studio-runtime.tsx:274:    const raw = 
+window.localStorage.getItem(
+
+
+
+
+############################################################
+FILE: components\report-2\report-two-studio-runtime.tsx
+PATTERN: blockHeight
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:1184:  return {
+  components\report-2\report-two-studio-runtime.tsx:1185:    ...template,
+  components\report-2\report-two-studio-runtime.tsx:1186:    pages: 
+pagesWithoutSignatureBlocks.map((page) =>
+  components\report-2\report-two-studio-runtime.tsx:1187:      page.id === targetPageId
+  components\report-2\report-two-studio-runtime.tsx:1188:        ? {
+  components\report-2\report-two-studio-runtime.tsx:1189:            ...page,
+  components\report-2\report-two-studio-runtime.tsx:1190:            blocks: 
+[...page.blocks, normalizedSignatureBlock],
+  components\report-2\report-two-studio-runtime.tsx:1191:          }
+  components\report-2\report-two-studio-runtime.tsx:1192:        : page,
+  components\report-2\report-two-studio-runtime.tsx:1193:    ),
+  components\report-2\report-two-studio-runtime.tsx:1194:  };
+  components\report-2\report-two-studio-runtime.tsx:1195:}
+> components\report-2\report-two-studio-runtime.tsx:1196:function 
+getReportTwoBlockHeightScore(
+  components\report-2\report-two-studio-runtime.tsx:1197:  block: StudioBlock,
+  components\report-2\report-two-studio-runtime.tsx:1198:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1199:) {
+  components\report-2\report-two-studio-runtime.tsx:1200:  if (block.kind === 
+"hero-title") return 32;
+  components\report-2\report-two-studio-runtime.tsx:1201:  if (block.kind === 
+"meta-strip") return 28;
+  components\report-2\report-two-studio-runtime.tsx:1202:  if (block.kind === 
+"closing-note") return 34;
+  components\report-2\report-two-studio-runtime.tsx:1203:  if (block.kind === 
+"highlight-note") return 34;
+  components\report-2\report-two-studio-runtime.tsx:1204:  if (block.kind === 
+"plain-text") return 26;
+  components\report-2\report-two-studio-runtime.tsx:1205:
+  components\report-2\report-two-studio-runtime.tsx:1206:  if (block.kind === 
+"dynamic-fields") {
+  components\report-2\report-two-studio-runtime.tsx:1207:    const fields = 
+getDynamicFieldsForBlock(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1208:    const visibleFields = 
+fields.filter((f) => f.visible !== false);
+  components\report-2\report-two-studio-runtime.tsx:1328:      currentPageAlreadyPushed = 
+true;
+  components\report-2\report-two-studio-runtime.tsx:1329:    }
+  components\report-2\report-two-studio-runtime.tsx:1330:
+  components\report-2\report-two-studio-runtime.tsx:1331:    function startNextPage() {
+  components\report-2\report-two-studio-runtime.tsx:1332:      pageNumber += 1;
+  components\report-2\report-two-studio-runtime.tsx:1333:      usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1334:      currentPage = 
+makeReportTwoContinuationPage(sourcePage, pageNumber);
+  components\report-2\report-two-studio-runtime.tsx:1335:      currentPageAlreadyPushed = 
+false;
+  components\report-2\report-two-studio-runtime.tsx:1336:    }
+  components\report-2\report-two-studio-runtime.tsx:1337:
+  components\report-2\report-two-studio-runtime.tsx:1338:    
+sourcePage.blocks.forEach((originalBlock) => {
+  components\report-2\report-two-studio-runtime.tsx:1339:      const block = 
+normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
+> components\report-2\report-two-studio-runtime.tsx:1340:      const blockScore = 
+getReportTwoBlockHeightScore(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1341:      const pageSafeHeightScore =
+  components\report-2\report-two-studio-runtime.tsx:1342:        block.kind === 
+"evidence-gallery"
+  components\report-2\report-two-studio-runtime.tsx:1343:          ? 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
+  components\report-2\report-two-studio-runtime.tsx:1344:          : 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1345:
+  components\report-2\report-two-studio-runtime.tsx:1346:      if (
+  components\report-2\report-two-studio-runtime.tsx:1347:        currentPage.blocks.length 
+> 0 &&
+  components\report-2\report-two-studio-runtime.tsx:1348:        usedScore + blockScore > 
+pageSafeHeightScore
+  components\report-2\report-two-studio-runtime.tsx:1349:      ) {
+  components\report-2\report-two-studio-runtime.tsx:1350:        pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1351:        startNextPage();
+  components\report-2\report-two-studio-runtime.tsx:1352:      }
+
+
+
+
+############################################################
+FILE: components\report-engine\design-renderers\report-design-renderer.tsx
+PATTERN: capacity
+############################################################
+
+  components\report-engine\design-renderers\report-design-renderer.tsx:3273:}
+  components\report-engine\design-renderers\report-design-renderer.tsx:3274:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3275:function 
+getSmartEvidencePerPage(block: any) {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3276:  const layout 
+= String(block?.evidenceLayout || "TWO_PER_PAGE");
+  components\report-engine\design-renderers\report-design-renderer.tsx:3277:  const ratio 
+= String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
+  components\report-engine\design-renderers\report-design-renderer.tsx:3278:  const fit = 
+String(block?.evidenceFit || "contain");
+  components\report-engine\design-renderers\report-design-renderer.tsx:3279:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3280:  if (layout 
+=== "ATTACHMENT_LIST") return 10;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3281:  if (layout 
+=== "ONE_PER_PAGE") return 1;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3282:  if (layout 
+=== "TWO_PER_PAGE") return 2;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3283:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3284:  /*
+> components\report-engine\design-renderers\report-design-renderer.tsx:3285:    GRID_2X2 
+is a maximum capacity, not a forced capacity.
+  components\report-engine\design-renderers\report-design-renderer.tsx:3286:    The system 
+must keep every evidence card inside the A4 frame.
+  components\report-engine\design-renderers\report-design-renderer.tsx:3287:    Portrait 
+images are tall, so 4 cards can overflow the page.
+  components\report-engine\design-renderers\report-design-renderer.tsx:3288:  */
+  components\report-engine\design-renderers\report-design-renderer.tsx:3289:  if (layout 
+=== "GRID_2X2") {
+  components\report-engine\design-renderers\report-design-renderer.tsx:3290:    if (ratio 
+=== "PORTRAIT_3_4") return 2;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3291:    if (ratio 
+=== "SQUARE_1_1" && fit === "cover") return 4;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3292:    if (ratio 
+=== "SQUARE_1_1") return 4;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3293:    if (ratio 
+=== "LANDSCAPE_16_9") return 4;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3294:    return 4;
+  components\report-engine\design-renderers\report-design-renderer.tsx:3295:  }
+  components\report-engine\design-renderers\report-design-renderer.tsx:3296:
+  components\report-engine\design-renderers\report-design-renderer.tsx:3297:  return 2;
+
+
+
+
+############################################################
+FILE: components\report-engine\report-template-studio.tsx
+PATTERN: capacity
+############################################################
+
+  components\report-engine\report-template-studio.tsx:2910:}
+  components\report-engine\report-template-studio.tsx:2911:
+  components\report-engine\report-template-studio.tsx:2912:function 
+getSmartEvidencePerPage(block: any) {
+  components\report-engine\report-template-studio.tsx:2913:  const layout = 
+String(block?.evidenceLayout || "TWO_PER_PAGE");
+  components\report-engine\report-template-studio.tsx:2914:  const ratio = 
+String(block?.evidenceAspectRatio || "LANDSCAPE_4_3");
+  components\report-engine\report-template-studio.tsx:2915:  const fit = 
+String(block?.evidenceFit || "contain");
+  components\report-engine\report-template-studio.tsx:2916:
+  components\report-engine\report-template-studio.tsx:2917:  if (layout === 
+"ATTACHMENT_LIST") return 10;
+  components\report-engine\report-template-studio.tsx:2918:  if (layout === 
+"ONE_PER_PAGE") return 1;
+  components\report-engine\report-template-studio.tsx:2919:  if (layout === 
+"TWO_PER_PAGE") return 2;
+  components\report-engine\report-template-studio.tsx:2920:
+  components\report-engine\report-template-studio.tsx:2921:  /*
+> components\report-engine\report-template-studio.tsx:2922:    GRID_2X2 is a maximum 
+capacity, not a forced capacity.
+  components\report-engine\report-template-studio.tsx:2923:    The system must keep every 
+evidence card inside the A4 frame.
+  components\report-engine\report-template-studio.tsx:2924:    Portrait images are tall, 
+so 4 cards can overflow the page.
+  components\report-engine\report-template-studio.tsx:2925:  */
+  components\report-engine\report-template-studio.tsx:2926:  if (layout === "GRID_2X2") {
+  components\report-engine\report-template-studio.tsx:2927:    if (ratio === 
+"PORTRAIT_3_4") return 2;
+  components\report-engine\report-template-studio.tsx:2928:    if (ratio === "SQUARE_1_1" 
+&& fit === "cover") return 4;
+  components\report-engine\report-template-studio.tsx:2929:    if (ratio === "SQUARE_1_1") 
+return 4;
+  components\report-engine\report-template-studio.tsx:2930:    if (ratio === 
+"LANDSCAPE_16_9") return 4;
+  components\report-engine\report-template-studio.tsx:2931:    return 4;
+  components\report-engine\report-template-studio.tsx:2932:  }
+  components\report-engine\report-template-studio.tsx:2933:
+  components\report-engine\report-template-studio.tsx:2934:  return 2;
+
+
+
+
+############################################################
+FILE: lib\report-engine\document-draft\report-document-a4-paginator.ts
+PATTERN: capacity
+############################################################
+
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:4:  ReportDocumentPage,
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:5:  ReportEvidenceBlock,
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:6:  ReportTableBlock,
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:7:} from 
+"@/lib/report-engine/document-draft/report-document-types";
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:8:import { sortByOrder 
+} from "@/lib/report-engine/document-draft/report-document-utils";
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:9:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:10:export type 
+ReportDocumentRenderablePage = ReportDocumentPage & {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:11:  sourcePageId: 
+string;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:12:  physicalPageIndex: 
+number;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:13:  isContinuation: 
+boolean;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:14:};
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:15:
+> lib\report-engine\document-draft\report-document-a4-paginator.ts:16:const 
+A4_CONTENT_CAPACITY = 665;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:17:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:18:function 
+estimateTextHeight(text: string, charsPerLine: number, lineHeight: number) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:19:  const length = 
+String(text || "").trim().length;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:20:  const lines = 
+Math.max(1, Math.ceil(length / charsPerLine));
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:21:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:22:  return lines * 
+lineHeight;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:23:}
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:24:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:25:function 
+estimateBlockHeight(block: ReportDocumentBlock) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:26:  if (block.type === 
+"META_FIELDS") {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:27:    return 
+Math.ceil(block.fields.length / 3) * 48 + 58;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:28:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:140:  let 
+currentBlocks: ReportDocumentBlock[] = [];
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:141:  let currentHeight 
+= 0;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:142:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:143:  function 
+flushPage() {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:144:    
+pages.push(createRenderablePage(sourcePage, currentBlocks, pages.length));
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:145:    currentBlocks = 
+[];
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:146:    currentHeight = 
+0;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:147:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:148:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:149:  for (const block 
+of blocks) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:150:    const height = 
+estimateBlockHeight(block);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:151:
+> lib\report-engine\document-draft\report-document-a4-paginator.ts:152:    if 
+(currentBlocks.length > 0 && currentHeight + height > A4_CONTENT_CAPACITY) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:153:      flushPage();
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:154:    }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:155:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:156:    
+currentBlocks.push(block);
+> lib\report-engine\document-draft\report-document-a4-paginator.ts:157:    currentHeight 
++= Math.min(height, A4_CONTENT_CAPACITY);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:158:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:159:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:160:  if 
+(currentBlocks.length > 0 || pages.length === 0) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:161:    flushPage();
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:162:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:163:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:164:  return pages;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:165:}
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:166:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:167:export function 
+paginateReportDocumentDraftForA4(
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:168:  draft: 
+ReportDocumentDraft,
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:169:): 
+ReportDocumentRenderablePage[] {
+
+
+
+
+############################################################
+FILE: lib\report-engine\document-draft\report-document-a4-paginator.ts
+PATTERN: estimateBlock
+############################################################
+
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:13:  isContinuation: 
+boolean;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:14:};
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:15:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:16:const 
+A4_CONTENT_CAPACITY = 665;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:17:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:18:function 
+estimateTextHeight(text: string, charsPerLine: number, lineHeight: number) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:19:  const length = 
+String(text || "").trim().length;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:20:  const lines = 
+Math.max(1, Math.ceil(length / charsPerLine));
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:21:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:22:  return lines * 
+lineHeight;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:23:}
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:24:
+> lib\report-engine\document-draft\report-document-a4-paginator.ts:25:function 
+estimateBlockHeight(block: ReportDocumentBlock) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:26:  if (block.type === 
+"META_FIELDS") {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:27:    return 
+Math.ceil(block.fields.length / 3) * 48 + 58;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:28:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:29:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:30:  if (block.type === 
+"NARRATIVE") {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:31:    return 76 + 
+estimateTextHeight(block.body, 58, 24);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:32:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:33:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:34:  if (block.type === 
+"PARAGRAPH") {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:35:    return 76 + 
+estimateTextHeight(block.body, 58, 24);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:36:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:37:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:138:  const pages: 
+ReportDocumentRenderablePage[] = [];
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:139:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:140:  let 
+currentBlocks: ReportDocumentBlock[] = [];
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:141:  let currentHeight 
+= 0;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:142:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:143:  function 
+flushPage() {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:144:    
+pages.push(createRenderablePage(sourcePage, currentBlocks, pages.length));
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:145:    currentBlocks = 
+[];
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:146:    currentHeight = 
+0;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:147:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:148:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:149:  for (const block 
+of blocks) {
+> lib\report-engine\document-draft\report-document-a4-paginator.ts:150:    const height = 
+estimateBlockHeight(block);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:151:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:152:    if 
+(currentBlocks.length > 0 && currentHeight + height > A4_CONTENT_CAPACITY) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:153:      flushPage();
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:154:    }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:155:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:156:    
+currentBlocks.push(block);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:157:    currentHeight 
++= Math.min(height, A4_CONTENT_CAPACITY);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:158:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:159:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:160:  if 
+(currentBlocks.length > 0 || pages.length === 0) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:161:    flushPage();
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:162:  }
+
+
+
+
+############################################################
+FILE: lib\report-engine\document-draft\report-document-a4-paginator.ts
+PATTERN: blockHeight
+############################################################
+
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:13:  isContinuation: 
+boolean;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:14:};
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:15:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:16:const 
+A4_CONTENT_CAPACITY = 665;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:17:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:18:function 
+estimateTextHeight(text: string, charsPerLine: number, lineHeight: number) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:19:  const length = 
+String(text || "").trim().length;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:20:  const lines = 
+Math.max(1, Math.ceil(length / charsPerLine));
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:21:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:22:  return lines * 
+lineHeight;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:23:}
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:24:
+> lib\report-engine\document-draft\report-document-a4-paginator.ts:25:function 
+estimateBlockHeight(block: ReportDocumentBlock) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:26:  if (block.type === 
+"META_FIELDS") {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:27:    return 
+Math.ceil(block.fields.length / 3) * 48 + 58;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:28:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:29:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:30:  if (block.type === 
+"NARRATIVE") {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:31:    return 76 + 
+estimateTextHeight(block.body, 58, 24);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:32:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:33:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:34:  if (block.type === 
+"PARAGRAPH") {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:35:    return 76 + 
+estimateTextHeight(block.body, 58, 24);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:36:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:37:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:138:  const pages: 
+ReportDocumentRenderablePage[] = [];
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:139:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:140:  let 
+currentBlocks: ReportDocumentBlock[] = [];
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:141:  let currentHeight 
+= 0;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:142:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:143:  function 
+flushPage() {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:144:    
+pages.push(createRenderablePage(sourcePage, currentBlocks, pages.length));
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:145:    currentBlocks = 
+[];
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:146:    currentHeight = 
+0;
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:147:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:148:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:149:  for (const block 
+of blocks) {
+> lib\report-engine\document-draft\report-document-a4-paginator.ts:150:    const height = 
+estimateBlockHeight(block);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:151:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:152:    if 
+(currentBlocks.length > 0 && currentHeight + height > A4_CONTENT_CAPACITY) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:153:      flushPage();
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:154:    }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:155:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:156:    
+currentBlocks.push(block);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:157:    currentHeight 
++= Math.min(height, A4_CONTENT_CAPACITY);
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:158:  }
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:159:
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:160:  if 
+(currentBlocks.length > 0 || pages.length === 0) {
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:161:    flushPage();
+  lib\report-engine\document-draft\report-document-a4-paginator.ts:162:  }
+
+
+
+
+############################################################
+FILE: lib\report-engine\report-block-paginator.ts
+PATTERN: capacity
+############################################################
+
+  lib\report-engine\report-block-paginator.ts:1:import type {
+  lib\report-engine\report-block-paginator.ts:2:  ReportBlock,
+  lib\report-engine\report-block-paginator.ts:3:  ReportPage,
+  lib\report-engine\report-block-paginator.ts:4:  ReportPaginationOptions,
+  lib\report-engine\report-block-paginator.ts:5:} from 
+"@/lib/report-engine/report-block-types";
+  lib\report-engine\report-block-paginator.ts:6:import type {
+  lib\report-engine\report-block-paginator.ts:7:  ReportEvidenceConfig,
+  lib\report-engine\report-block-paginator.ts:8:  SmartReportPayload,
+  lib\report-engine\report-block-paginator.ts:9:} from 
+"@/lib/report-engine/smart-report-types";
+  lib\report-engine\report-block-paginator.ts:10:
+> lib\report-engine\report-block-paginator.ts:11:const DEFAULT_PAGE_CAPACITY = 260;
+  lib\report-engine\report-block-paginator.ts:12:const MAX_TEXT_BLOCK_HEIGHT = 82;
+  lib\report-engine\report-block-paginator.ts:13:const APPROX_CHARS_PER_TEXT_PAGE = 280;
+  lib\report-engine\report-block-paginator.ts:14:const BULLET_LINES_PER_PAGE = 7;
+  lib\report-engine\report-block-paginator.ts:15:
+  lib\report-engine\report-block-paginator.ts:16:function clonePayload(payload: 
+SmartReportPayload): SmartReportPayload {
+  lib\report-engine\report-block-paginator.ts:17:  return 
+JSON.parse(JSON.stringify(payload));
+  lib\report-engine\report-block-paginator.ts:18:}
+  lib\report-engine\report-block-paginator.ts:19:
+  lib\report-engine\report-block-paginator.ts:20:function chunkArray<T>(items: T[], size: 
+number) {
+  lib\report-engine\report-block-paginator.ts:21:  const result: T[][] = [];
+  lib\report-engine\report-block-paginator.ts:22:
+  lib\report-engine\report-block-paginator.ts:23:  for (let index = 0; index < 
+items.length; index += size) {
+  lib\report-engine\report-block-paginator.ts:152:
+  lib\report-engine\report-block-paginator.ts:153:function normalizeContentBlock(
+  lib\report-engine\report-block-paginator.ts:154:  block: ReportBlock,
+  lib\report-engine\report-block-paginator.ts:155:  evidenceConfig?: ReportEvidenceConfig,
+  lib\report-engine\report-block-paginator.ts:156:): ReportBlock[] {
+  lib\report-engine\report-block-paginator.ts:157:  if (block.type === "EVIDENCE_GRID") {
+  lib\report-engine\report-block-paginator.ts:158:    return expandEvidenceBlocks(block, 
+evidenceConfig);
+  lib\report-engine\report-block-paginator.ts:159:  }
+  lib\report-engine\report-block-paginator.ts:160:
+  lib\report-engine\report-block-paginator.ts:161:  return splitOversizedTextBlock(block);
+  lib\report-engine\report-block-paginator.ts:162:}
+  lib\report-engine\report-block-paginator.ts:163:
+> lib\report-engine\report-block-paginator.ts:164:function pushBlockWithCapacity(
+  lib\report-engine\report-block-paginator.ts:165:  pages: ReportBlock[][],
+  lib\report-engine\report-block-paginator.ts:166:  block: ReportBlock,
+> lib\report-engine\report-block-paginator.ts:167:  pageCapacity: number,
+  lib\report-engine\report-block-paginator.ts:168:) {
+  lib\report-engine\report-block-paginator.ts:169:  let currentPage = pages[pages.length - 
+1];
+  lib\report-engine\report-block-paginator.ts:170:
+  lib\report-engine\report-block-paginator.ts:171:  if (!currentPage) {
+  lib\report-engine\report-block-paginator.ts:172:    currentPage = [];
+  lib\report-engine\report-block-paginator.ts:173:    pages.push(currentPage);
+  lib\report-engine\report-block-paginator.ts:174:  }
+  lib\report-engine\report-block-paginator.ts:175:
+  lib\report-engine\report-block-paginator.ts:176:  const currentHeight = 
+getPageHeight(currentPage);
+  lib\report-engine\report-block-paginator.ts:177:
+> lib\report-engine\report-block-paginator.ts:178:  if (currentPage.length > 0 && 
+currentHeight + block.estimatedHeight > pageCapacity) {
+  lib\report-engine\report-block-paginator.ts:179:    pages.push([block]);
+  lib\report-engine\report-block-paginator.ts:180:    return;
+  lib\report-engine\report-block-paginator.ts:181:  }
+  lib\report-engine\report-block-paginator.ts:182:
+  lib\report-engine\report-block-paginator.ts:183:  currentPage.push(block);
+  lib\report-engine\report-block-paginator.ts:184:}
+  lib\report-engine\report-block-paginator.ts:185:
+  lib\report-engine\report-block-paginator.ts:186:function insertAnchoredBlock(
+  lib\report-engine\report-block-paginator.ts:187:  pages: ReportBlock[][],
+  lib\report-engine\report-block-paginator.ts:188:  block: ReportBlock,
+> lib\report-engine\report-block-paginator.ts:189:  pageCapacity: number,
+  lib\report-engine\report-block-paginator.ts:190:) {
+  lib\report-engine\report-block-paginator.ts:191:  const targetPageIndex =
+  lib\report-engine\report-block-paginator.ts:192:    typeof block.targetPageIndex === 
+"number" && block.targetPageIndex >= 0
+  lib\report-engine\report-block-paginator.ts:193:      ? block.targetPageIndex
+  lib\report-engine\report-block-paginator.ts:194:      : 0;
+  lib\report-engine\report-block-paginator.ts:195:
+  lib\report-engine\report-block-paginator.ts:196:  while (pages.length <= 
+targetPageIndex) {
+  lib\report-engine\report-block-paginator.ts:197:    pages.push([]);
+  lib\report-engine\report-block-paginator.ts:198:  }
+  lib\report-engine\report-block-paginator.ts:199:
+  lib\report-engine\report-block-paginator.ts:200:  let pageIndex = targetPageIndex;
+  lib\report-engine\report-block-paginator.ts:201:
+  lib\report-engine\report-block-paginator.ts:202:  while (true) {
+  lib\report-engine\report-block-paginator.ts:203:    const page = pages[pageIndex] || [];
+  lib\report-engine\report-block-paginator.ts:204:    pages[pageIndex] = page;
+  lib\report-engine\report-block-paginator.ts:205:
+  lib\report-engine\report-block-paginator.ts:206:    const pageHeight = 
+getPageHeight(page);
+> lib\report-engine\report-block-paginator.ts:207:    const relaxedCapacity =
+> lib\report-engine\report-block-paginator.ts:208:      pageIndex === targetPageIndex ? 
+pageCapacity + 45 : pageCapacity;
+  lib\report-engine\report-block-paginator.ts:209:
+> lib\report-engine\report-block-paginator.ts:210:    if (page.length === 0 || pageHeight 
++ block.estimatedHeight <= relaxedCapacity) {
+  lib\report-engine\report-block-paginator.ts:211:      page.push(block);
+  lib\report-engine\report-block-paginator.ts:212:      return;
+  lib\report-engine\report-block-paginator.ts:213:    }
+  lib\report-engine\report-block-paginator.ts:214:
+  lib\report-engine\report-block-paginator.ts:215:    pageIndex++;
+  lib\report-engine\report-block-paginator.ts:216:
+  lib\report-engine\report-block-paginator.ts:217:    if (!pages[pageIndex]) {
+  lib\report-engine\report-block-paginator.ts:218:      pages[pageIndex] = [];
+  lib\report-engine\report-block-paginator.ts:219:    }
+  lib\report-engine\report-block-paginator.ts:220:  }
+  lib\report-engine\report-block-paginator.ts:221:}
+  lib\report-engine\report-block-paginator.ts:222:
+  lib\report-engine\report-block-paginator.ts:274:  };
+  lib\report-engine\report-block-paginator.ts:275:  payload.signatures = signatures;
+  lib\report-engine\report-block-paginator.ts:276:  payload.evidenceConfig = 
+evidenceConfig;
+  lib\report-engine\report-block-paginator.ts:277:
+  lib\report-engine\report-block-paginator.ts:278:  return payload;
+  lib\report-engine\report-block-paginator.ts:279:}
+  lib\report-engine\report-block-paginator.ts:280:
+  lib\report-engine\report-block-paginator.ts:281:export function paginateReportBlocks(
+  lib\report-engine\report-block-paginator.ts:282:  payload: SmartReportPayload,
+  lib\report-engine\report-block-paginator.ts:283:  blocks: ReportBlock[],
+  lib\report-engine\report-block-paginator.ts:284:  options: ReportPaginationOptions = {},
+  lib\report-engine\report-block-paginator.ts:285:): ReportPage[] {
+> lib\report-engine\report-block-paginator.ts:286:  const pageCapacity = 
+options.pageCapacity ?? DEFAULT_PAGE_CAPACITY;
+  lib\report-engine\report-block-paginator.ts:287:  const evidenceConfig = 
+options.evidenceConfig;
+  lib\report-engine\report-block-paginator.ts:288:  const baseTitle = payload.title || 
+payload.caseInfo.title || "التقرير";
+  lib\report-engine\report-block-paginator.ts:289:
+  lib\report-engine\report-block-paginator.ts:290:  const anchoredCustomBlocks = 
+blocks.filter(
+  lib\report-engine\report-block-paginator.ts:291:    (block) => isCustomBlock(block) && 
+typeof block.targetPageIndex === "number",
+  lib\report-engine\report-block-paginator.ts:292:  );
+  lib\report-engine\report-block-paginator.ts:293:
+  lib\report-engine\report-block-paginator.ts:294:  const contentBlocks = blocks
+  lib\report-engine\report-block-paginator.ts:295:    .filter((block) => block.placement 
+=== "CONTENT")
+  lib\report-engine\report-block-paginator.ts:296:    .filter((block) => 
+!(isCustomBlock(block) && typeof block.targetPageIndex === "number"))
+  lib\report-engine\report-block-paginator.ts:297:    .sort((a, b) => (a.order ?? 500) - 
+(b.order ?? 500))
+  lib\report-engine\report-block-paginator.ts:298:    .flatMap((block) => 
+normalizeContentBlock(block, evidenceConfig));
+  lib\report-engine\report-block-paginator.ts:300:  const signatureBlock =
+  lib\report-engine\report-block-paginator.ts:301:    blocks.find((block) => 
+block.placement === "END" && block.type === "SIGNATURES") ||
+  lib\report-engine\report-block-paginator.ts:302:    null;
+  lib\report-engine\report-block-paginator.ts:303:
+  lib\report-engine\report-block-paginator.ts:304:  const pages: ReportBlock[][] = [[]];
+  lib\report-engine\report-block-paginator.ts:305:
+  lib\report-engine\report-block-paginator.ts:306:  for (const block of contentBlocks) {
+  lib\report-engine\report-block-paginator.ts:307:    if (block.type === 
+"MANUAL_PAGE_BREAK") {
+  lib\report-engine\report-block-paginator.ts:308:      pages.push([block]);
+  lib\report-engine\report-block-paginator.ts:309:      continue;
+  lib\report-engine\report-block-paginator.ts:310:    }
+  lib\report-engine\report-block-paginator.ts:311:
+> lib\report-engine\report-block-paginator.ts:312:    pushBlockWithCapacity(pages, block, 
+pageCapacity);
+  lib\report-engine\report-block-paginator.ts:313:  }
+  lib\report-engine\report-block-paginator.ts:314:
+  lib\report-engine\report-block-paginator.ts:315:  for (const anchoredBlock of 
+anchoredCustomBlocks) {
+  lib\report-engine\report-block-paginator.ts:316:    const parts = 
+splitOversizedTextBlock(anchoredBlock);
+  lib\report-engine\report-block-paginator.ts:317:
+  lib\report-engine\report-block-paginator.ts:318:    for (const part of parts) {
+> lib\report-engine\report-block-paginator.ts:319:      insertAnchoredBlock(pages, part, 
+pageCapacity);
+  lib\report-engine\report-block-paginator.ts:320:    }
+  lib\report-engine\report-block-paginator.ts:321:  }
+  lib\report-engine\report-block-paginator.ts:322:
+  lib\report-engine\report-block-paginator.ts:323:  const safePages = pages.length > 0 ? 
+pages : [[]];
+  lib\report-engine\report-block-paginator.ts:324:
+  lib\report-engine\report-block-paginator.ts:325:  if (signatureBlock) {
+  lib\report-engine\report-block-paginator.ts:326:    const lastPage = 
+safePages[safePages.length - 1];
+  lib\report-engine\report-block-paginator.ts:327:    const lastPageHeight = 
+getPageHeight(lastPage);
+  lib\report-engine\report-block-paginator.ts:328:
+> lib\report-engine\report-block-paginator.ts:329:    if (lastPage.length > 0 && 
+lastPageHeight + signatureBlock.estimatedHeight <= pageCapacity) {
+  lib\report-engine\report-block-paginator.ts:330:      lastPage.push(signatureBlock);
+  lib\report-engine\report-block-paginator.ts:331:    } else {
+  lib\report-engine\report-block-paginator.ts:332:      safePages.push([signatureBlock]);
+  lib\report-engine\report-block-paginator.ts:333:    }
+  lib\report-engine\report-block-paginator.ts:334:  }
+  lib\report-engine\report-block-paginator.ts:335:
+  lib\report-engine\report-block-paginator.ts:336:  return safePages.map((pageBlocks, 
+index) => {
+  lib\report-engine\report-block-paginator.ts:337:    const title = 
+getPageTitle(baseTitle, index);
+  lib\report-engine\report-block-paginator.ts:338:
+  lib\report-engine\report-block-paginator.ts:339:    return {
+  lib\report-engine\report-block-paginator.ts:340:      key: index === 0 ? "main" : 
+`page-${index + 1}`,
+  lib\report-engine\report-block-paginator.ts:341:      title,
+
+
+
+
+############################################################
+FILE: lib\report-engine\report-block-paginator.ts
+PATTERN: blockHeight
+############################################################
+
+  lib\report-engine\report-block-paginator.ts:51:  return chunks;
+  lib\report-engine\report-block-paginator.ts:52:}
+  lib\report-engine\report-block-paginator.ts:53:
+  lib\report-engine\report-block-paginator.ts:54:function estimateTextHeight(title: string 
+| undefined, body: string | undefined) {
+  lib\report-engine\report-block-paginator.ts:55:  const titleLength = String(title || 
+"").trim().length;
+  lib\report-engine\report-block-paginator.ts:56:  const bodyLength = String(body || 
+"").trim().length;
+  lib\report-engine\report-block-paginator.ts:57:  const titleHeight = titleLength > 0 ? 
+12 : 0;
+  lib\report-engine\report-block-paginator.ts:58:  const lineCount = Math.max(1, 
+Math.ceil(bodyLength / 38));
+  lib\report-engine\report-block-paginator.ts:59:
+  lib\report-engine\report-block-paginator.ts:60:  return 20 + titleHeight + lineCount * 9;
+  lib\report-engine\report-block-paginator.ts:61:}
+  lib\report-engine\report-block-paginator.ts:62:
+> lib\report-engine\report-block-paginator.ts:63:function getEvidenceBlockHeight(config?: 
+ReportEvidenceConfig) {
+  lib\report-engine\report-block-paginator.ts:64:  const itemsPerPage = 
+config?.itemsPerPage ?? 2;
+  lib\report-engine\report-block-paginator.ts:65:
+  lib\report-engine\report-block-paginator.ts:66:  if (itemsPerPage === 1) return 165;
+  lib\report-engine\report-block-paginator.ts:67:  if (itemsPerPage === 2) return 108;
+  lib\report-engine\report-block-paginator.ts:68:
+  lib\report-engine\report-block-paginator.ts:69:  return 84;
+  lib\report-engine\report-block-paginator.ts:70:}
+  lib\report-engine\report-block-paginator.ts:71:
+  lib\report-engine\report-block-paginator.ts:72:function getPageTitle(baseTitle: string, 
+index: number) {
+  lib\report-engine\report-block-paginator.ts:73:  return index === 0 ? baseTitle : 
+`${baseTitle} ${index + 1}`;
+  lib\report-engine\report-block-paginator.ts:74:}
+  lib\report-engine\report-block-paginator.ts:75:
+  lib\report-engine\report-block-paginator.ts:98:  const items = block.evidenceItems || [];
+  lib\report-engine\report-block-paginator.ts:99:  const visible = evidenceConfig?.visible 
+?? true;
+  lib\report-engine\report-block-paginator.ts:100:
+  lib\report-engine\report-block-paginator.ts:101:  if (!visible || items.length === 0) 
+return [];
+  lib\report-engine\report-block-paginator.ts:102:
+  lib\report-engine\report-block-paginator.ts:103:  const itemsPerPage = 
+evidenceConfig?.itemsPerPage ?? 2;
+  lib\report-engine\report-block-paginator.ts:104:  const chunks = chunkArray(items, 
+itemsPerPage);
+  lib\report-engine\report-block-paginator.ts:105:
+  lib\report-engine\report-block-paginator.ts:106:  return chunks.map((chunk, index) => ({
+  lib\report-engine\report-block-paginator.ts:107:    ...block,
+  lib\report-engine\report-block-paginator.ts:108:    id: `${block.id}-${index + 1}`,
+  lib\report-engine\report-block-paginator.ts:109:    evidenceItems: chunk,
+> lib\report-engine\report-block-paginator.ts:110:    estimatedHeight: 
+getEvidenceBlockHeight(evidenceConfig),
+  lib\report-engine\report-block-paginator.ts:111:  }));
+  lib\report-engine\report-block-paginator.ts:112:}
+  lib\report-engine\report-block-paginator.ts:113:
+  lib\report-engine\report-block-paginator.ts:114:function splitOversizedTextBlock(block: 
+ReportBlock): ReportBlock[] {
+  lib\report-engine\report-block-paginator.ts:115:  if (!isCustomTextBlock(block)) return 
+[block];
+  lib\report-engine\report-block-paginator.ts:116:
+  lib\report-engine\report-block-paginator.ts:117:  const body = String(block.body || 
+"").trim();
+  lib\report-engine\report-block-paginator.ts:118:  const title = String(block.title || 
+"").trim();
+  lib\report-engine\report-block-paginator.ts:119:
+  lib\report-engine\report-block-paginator.ts:120:  const chunks =
+  lib\report-engine\report-block-paginator.ts:121:    block.type === "CUSTOM_BULLET_LIST"
+  lib\report-engine\report-block-paginator.ts:122:      ? chunkArray(
+
+
+
+
+############################################################
+FILE: lib\report-engine\report-block-types.ts
+PATTERN: capacity
+############################################################
+
+  lib\report-engine\report-block-types.ts:38:};
+  lib\report-engine\report-block-types.ts:39:
+  lib\report-engine\report-block-types.ts:40:export type ReportPage = {
+  lib\report-engine\report-block-types.ts:41:  key: string;
+  lib\report-engine\report-block-types.ts:42:  title: string;
+  lib\report-engine\report-block-types.ts:43:  index: number;
+  lib\report-engine\report-block-types.ts:44:  blocks: ReportBlock[];
+  lib\report-engine\report-block-types.ts:45:  payload: SmartReportPayload;
+  lib\report-engine\report-block-types.ts:46:};
+  lib\report-engine\report-block-types.ts:47:
+  lib\report-engine\report-block-types.ts:48:export type ReportPaginationOptions = {
+  lib\report-engine\report-block-types.ts:49:  evidenceConfig?: ReportEvidenceConfig;
+> lib\report-engine\report-block-types.ts:50:  pageCapacity?: number;
+  lib\report-engine\report-block-types.ts:51:};
+
+

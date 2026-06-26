@@ -1,0 +1,1988 @@
+REPORT TWO PAGINATION EXACT CODE
+Generated: 06/26/2026 01:10:18
+
+===== git diff report-two =====
+diff --git a/components/report-2/report-two-studio-runtime.tsx b/components/report-2/report-two-studio-runtime.tsx
+index 432119e..d18ded1 100644
+--- a/components/report-2/report-two-studio-runtime.tsx
++++ b/components/report-2/report-two-studio-runtime.tsx
+@@ -1197,28 +1197,43 @@ function getReportTwoBlockHeightScore(
+   block: StudioBlock,
+   previewCase: ReturnType<typeof getPreviewCase>,
+ ) {
++  /*
++    ┘ç╪░╪º ╪¬┘é╪»┘è╪▒ ┘à┘å╪╖┘é┘è ┘ä┘ä╪¬┘é╪│┘è┘à ┘ü┘é╪╖╪î ┘ê┘ä┘è╪│ ┘é┘è╪º╪│┘ï╪º ╪¿╪╡╪▒┘è┘ï╪º ╪¡┘é┘è┘é┘è┘ï╪º.
++    ╪º┘ä╪┤┘ê╪º┘ç╪» ┘ê╪º┘ä╪¬┘ê╪º┘é┘è╪╣ ┘ü┘è ╪º┘ä┘é╪º┘ä╪¿ ╪º┘ä╪▒╪│┘à┘è ┘à╪╢╪║┘ê╪╖╪⌐ ╪¿╪╡╪▒┘è┘ï╪º╪î ┘ä╪░┘ä┘â ┘ä╪º ┘å╪╣╪º┘à┘ä┘ç╪º ┘â╪¿┘ä┘ê┘â╪º╪¬ ╪╢╪«┘à╪⌐.
++  */
++
++  if (isReportTwoSignatureBlock(block) || (block as any)?.placement === "bottom") {
++    return 0;
++  }
++
+   if (block.kind === "hero-title") return 32;
+   if (block.kind === "meta-strip") return 28;
+-  if (block.kind === "closing-note") return 34;
+-  if (block.kind === "highlight-note") return 34;
+-  if (block.kind === "plain-text") return 26;
++  if (block.kind === "closing-note") return 28;
++  if (block.kind === "highlight-note") return 28;
++  if (block.kind === "plain-text") return 22;
+ 
+   if (block.kind === "dynamic-fields") {
+     const fields = getDynamicFieldsForBlock(block, previewCase);
+-    const visibleFields = fields.filter((f) => f.visible !== false);
++    const visibleFields = fields.filter((field) => field.visible !== false);
+     const count = Math.max(visibleFields.length, 1);
+-    return 24 + Math.ceil(count / 2) * 10.5;
++
++    return 22 + Math.ceil(count / 3) * 9.5;
+   }
+ 
+   if (block.kind === "section-text" || block.kind === "multi-paragraph") {
+-    const contentLength = cleanText(block.content).length;
++    if (isReportTwoExecutionSummaryBlock(block)) {
++      return 30;
++    }
++
++    const content = cleanText(block.content);
++    const contentLength = content.length;
+     const lineCount = Math.max(
+-      cleanText(block.content).split("\n").length,
+-      Math.ceil(contentLength / 80),
++      content.split("\n").filter(Boolean).length,
++      Math.ceil(contentLength / 90),
+       1,
+     );
+ 
+-    return 24 + lineCount * 5.8;
++    return Math.min(58, 20 + lineCount * 5.2);
+   }
+ 
+   if (block.kind === "bullet-list") {
+@@ -1229,28 +1244,26 @@ function getReportTwoBlockHeightScore(
+       1,
+     );
+ 
+-    return 24 + count * 7;
++    return Math.min(52, 20 + count * 6);
+   }
+ 
+-  if (block.kind === "signature-grid") return 34;
+-
+   if (block.kind === "report-one-table") {
+     const rowCount = Math.max(block.rows?.length || 0, 1);
+-    return 28 + rowCount * 11;
++    return 24 + rowCount * 9;
+   }
+ 
+   if (block.kind === "evidence-gallery") {
+     const perPage = getEvidencePerPageFromBlock(block);
+     const shown = Math.min(perPage, Math.max(previewCase.evidences.length, 1));
+ 
+-    if (block.evidenceLayout === "ONE_PER_PAGE") return 98;
+-    if (block.evidenceLayout === "GRID_2X2") return 96;
+-    if (block.evidenceLayout === "ATTACHMENT_LIST") return 24 + shown * 8;
++    if (block.evidenceLayout === "ONE_PER_PAGE") return 88;
++    if (block.evidenceLayout === "GRID_2X2") return shown <= 2 ? 62 : 74;
++    if (block.evidenceLayout === "ATTACHMENT_LIST") return 18 + shown * 7;
+ 
+-    return 72;
++    return shown <= 2 ? 58 : 70;
+   }
+ 
+-  return 36;
++  return 30;
+ }
+ 
+ function makeReportTwoContinuationPage(
+@@ -2281,6 +2294,17 @@ function getReportTwoPreparedExecutionSummary(payload: SmartReportPayload) {
+   );
+ }
+ 
++function isReportTwoExecutionSummaryPlaceholderText(input: any) {
++  const content = cleanText(input).toLowerCase();
++
++  if (!content) return true;
++  if (content.includes("workflow")) return true;
++  if (content.includes("╪¬┘à ╪¬┘ê╪½┘è┘é ┘ç╪░╪º ╪º┘ä╪¼╪▓╪í")) return true;
++  if (content.includes("╪º┘â╪¬╪¿ ╪º┘ä┘å╪╡ ┘ç┘å╪º")) return true;
++
++  return false;
++}
++
+ function isReportTwoExecutionSummaryBlock(block: StudioBlock) {
+   if (
+     block.kind !== "section-text" &&
+@@ -2300,6 +2324,20 @@ function isReportTwoExecutionSummaryBlock(block: StudioBlock) {
+   return false;
+ }
+ 
++function shouldAutoApplyReportTwoExecutionSummary(block: StudioBlock) {
++  if (!isReportTwoExecutionSummaryBlock(block)) {
++    return false;
++  }
++
++  const rawBlock = block as any;
++
++  if (rawBlock.autoFilledFromExecutionSummary === true) {
++    return true;
++  }
++
++  return isReportTwoExecutionSummaryPlaceholderText(block.content);
++}
++
+ function applyReportTwoPreparedExecutionSummary(
+   template: StudioTemplate,
+   payload: SmartReportPayload,
+@@ -2315,7 +2353,7 @@ function applyReportTwoPreparedExecutionSummary(
+     pages: template.pages.map((page) => ({
+       ...page,
+       blocks: page.blocks.map((block) => {
+-        if (replaced || !isReportTwoExecutionSummaryBlock(block)) {
++        if (replaced || !shouldAutoApplyReportTwoExecutionSummary(block)) {
+           return block;
+         }
+ 
+@@ -2324,6 +2362,7 @@ function applyReportTwoPreparedExecutionSummary(
+         return {
+           ...block,
+           content: summary,
++          autoFilledFromExecutionSummary: true,
+         };
+       }),
+     })),
+@@ -2407,7 +2446,10 @@ export function ReportTwoStudioRuntime({
+     useState("");
+ 
+   const [template, setTemplate] = useState<StudioTemplate>(() =>
+-    hydrateTemplate(initialTemplateOption),
++    applyReportTwoPreparedExecutionSummary(
++      hydrateTemplate(initialTemplateOption),
++      payload,
++    ),
+   );
+ 
+   const [protectedPageIds, setProtectedPageIds] = useState<string[]>(() =>
+@@ -3262,7 +3304,7 @@ export function ReportTwoStudioRuntime({
+     setActiveSavedRuntimeTemplateId("");
+     setSelectedQuickSavedTemplateId("");
+     setRuntimeTemplateName("");
+-    setTemplate(nextTemplate);
++    setTemplate(applyReportTwoPreparedExecutionSummary(nextTemplate, preparedPayload));
+     setProtectedPageIds(nextTemplate.pages.map((page) => page.id));
+     setHiddenRuntimePageIds([]);
+     setRuntimePageOrder([]);
+@@ -3476,7 +3518,7 @@ export function ReportTwoStudioRuntime({
+       targetPage.id,
+     );
+ 
+-    setTemplate(nextTemplate);
++    setTemplate(applyReportTwoPreparedExecutionSummary(nextTemplate, preparedPayload));
+ 
+     setActivePageId(runtimePageId);
+     setSelectedBlockId(block.id);
+@@ -4888,6 +4930,7 @@ export function ReportTwoStudioRuntime({
+                         updateBlock(selectedBlock.id, (block) => ({
+                           ...block,
+                           content: event.target.value,
++                          autoFilledFromExecutionSummary: false,
+                         }))
+                       }
+                       rows={7}
+
+
+
+############################################################
+PATTERN: REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:221:  blockId?: string;
+  components\report-2\report-two-studio-runtime.tsx:222:  action?: 
+ReportTwoSmartAlertAction;
+  components\report-2\report-two-studio-runtime.tsx:223:};
+  components\report-2\report-two-studio-runtime.tsx:224:
+  components\report-2\report-two-studio-runtime.tsx:225:type ReportTwoFinalCheckItem = {
+  components\report-2\report-two-studio-runtime.tsx:226:  id: string;
+  components\report-2\report-two-studio-runtime.tsx:227:  label: string;
+  components\report-2\report-two-studio-runtime.tsx:228:  description: string;
+  components\report-2\report-two-studio-runtime.tsx:229:  passed: boolean;
+  components\report-2\report-two-studio-runtime.tsx:230:  required: boolean;
+  components\report-2\report-two-studio-runtime.tsx:231:};
+  components\report-2\report-two-studio-runtime.tsx:232:
+  components\report-2\report-two-studio-runtime.tsx:233:type ReportTwoSavedRuntimeTemplate 
+= {
+  components\report-2\report-two-studio-runtime.tsx:234:  id: string;
+  components\report-2\report-two-studio-runtime.tsx:235:  name: string;
+  components\report-2\report-two-studio-runtime.tsx:236:  serviceSlug: string;
+  components\report-2\report-two-studio-runtime.tsx:237:  sourceTemplateId: string;
+  components\report-2\report-two-studio-runtime.tsx:238:  createdAt: string;
+  components\report-2\report-two-studio-runtime.tsx:239:  updatedAt: string;
+  components\report-2\report-two-studio-runtime.tsx:240:  template: StudioTemplate;
+  components\report-2\report-two-studio-runtime.tsx:241:  headerValues: 
+ReportTwoHeaderValues | null;
+  components\report-2\report-two-studio-runtime.tsx:242:  headerAlignments: 
+ReportTwoHeaderAlignments | null;
+  components\report-2\report-two-studio-runtime.tsx:243:  logoSettings: 
+ReportTwoLogoSettings | null;
+  components\report-2\report-two-studio-runtime.tsx:244:  hiddenRuntimePageIds: string[];
+  components\report-2\report-two-studio-runtime.tsx:245:  runtimePageOrder: string[];
+  components\report-2\report-two-studio-runtime.tsx:246:};
+  components\report-2\report-two-studio-runtime.tsx:247:
+  components\report-2\report-two-studio-runtime.tsx:248:type ReportTwoStudioRuntimeProps = 
+{
+  components\report-2\report-two-studio-runtime.tsx:249:  caseId: string;
+  components\report-2\report-two-studio-runtime.tsx:250:  selectedTemplateId: string;
+  components\report-2\report-two-studio-runtime.tsx:251:  selectedVariantId?: string;
+  components\report-2\report-two-studio-runtime.tsx:252:  payload: SmartReportPayload;
+  components\report-2\report-two-studio-runtime.tsx:253:  templates: TemplateOption[];
+  components\report-2\report-two-studio-runtime.tsx:254:};
+  components\report-2\report-two-studio-runtime.tsx:255:
+> components\report-2\report-two-studio-runtime.tsx:256:const 
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 184;
+  components\report-2\report-two-studio-runtime.tsx:257:const 
+REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE = 6;
+> components\report-2\report-two-studio-runtime.tsx:258:const 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE = REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:259:const 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE =
+> components\report-2\report-two-studio-runtime.tsx:260:  
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE - REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:261:const 
+REPORT_TWO_BLOCK_MOVED_NOTICE =
+  components\report-2\report-two-studio-runtime.tsx:262:  "لا توجد مساحة كافية في هذه 
+الصفحة، سيتم نقل البلوك إلى الصفحة التالية.";
+  components\report-2\report-two-studio-runtime.tsx:263:
+  components\report-2\report-two-studio-runtime.tsx:264:function 
+getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+  components\report-2\report-two-studio-runtime.tsx:265:  return 
+`report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+  components\report-2\report-two-studio-runtime.tsx:266:}
+  components\report-2\report-two-studio-runtime.tsx:267:
+  components\report-2\report-two-studio-runtime.tsx:268:function 
+readReportTwoSavedTemplates(
+  components\report-2\report-two-studio-runtime.tsx:269:  serviceSlug: string,
+  components\report-2\report-two-studio-runtime.tsx:270:): ReportTwoSavedRuntimeTemplate[] 
+{
+  components\report-2\report-two-studio-runtime.tsx:271:  if (typeof window === 
+"undefined") return [];
+  components\report-2\report-two-studio-runtime.tsx:272:
+  components\report-2\report-two-studio-runtime.tsx:273:  try {
+  components\report-2\report-two-studio-runtime.tsx:274:    const raw = 
+window.localStorage.getItem(
+  components\report-2\report-two-studio-runtime.tsx:275:      
+getReportTwoSavedTemplatesStorageKey(serviceSlug),
+  components\report-2\report-two-studio-runtime.tsx:276:    );
+  components\report-2\report-two-studio-runtime.tsx:277:
+  components\report-2\report-two-studio-runtime.tsx:278:    if (!raw) return [];
+  components\report-2\report-two-studio-runtime.tsx:279:
+  components\report-2\report-two-studio-runtime.tsx:280:    const parsed = JSON.parse(raw);
+  components\report-2\report-two-studio-runtime.tsx:281:
+  components\report-2\report-two-studio-runtime.tsx:282:    return Array.isArray(parsed) ? 
+parsed : [];
+  components\report-2\report-two-studio-runtime.tsx:283:  } catch {
+  components\report-2\report-two-studio-runtime.tsx:284:    return [];
+  components\report-2\report-two-studio-runtime.tsx:285:  }
+  components\report-2\report-two-studio-runtime.tsx:286:}
+  components\report-2\report-two-studio-runtime.tsx:287:
+  components\report-2\report-two-studio-runtime.tsx:288:function 
+getReportTwoSavedTemplatesStoragePrefix() {
+  components\report-2\report-two-studio-runtime.tsx:289:  return 
+"report-2:saved-runtime-templates:";
+  components\report-2\report-two-studio-runtime.tsx:290:}
+  components\report-2\report-two-studio-runtime.tsx:291:
+  components\report-2\report-two-studio-runtime.tsx:292:function 
+readAllReportTwoSavedTemplates() {
+  components\report-2\report-two-studio-runtime.tsx:293:  if (typeof window === 
+"undefined") return [];
+  components\report-2\report-two-studio-runtime.tsx:294:
+  components\report-2\report-two-studio-runtime.tsx:295:  const prefix = 
+getReportTwoSavedTemplatesStoragePrefix();
+  components\report-2\report-two-studio-runtime.tsx:296:  const items: 
+ReportTwoSavedRuntimeTemplate[] = [];
+  components\report-2\report-two-studio-runtime.tsx:297:
+  components\report-2\report-two-studio-runtime.tsx:298:  for (let index = 0; index < 
+window.localStorage.length; index += 1) {
+  components\report-2\report-two-studio-runtime.tsx:299:    const key = 
+window.localStorage.key(index);
+  components\report-2\report-two-studio-runtime.tsx:300:
+  components\report-2\report-two-studio-runtime.tsx:301:    if (!key || 
+!key.startsWith(prefix)) continue;
+  components\report-2\report-two-studio-runtime.tsx:302:
+  components\report-2\report-two-studio-runtime.tsx:303:    const serviceSlug = 
+key.slice(prefix.length);
+  components\report-2\report-two-studio-runtime.tsx:304:    const templates = 
+readReportTwoSavedTemplates(serviceSlug);
+  components\report-2\report-two-studio-runtime.tsx:305:
+
+
+
+
+############################################################
+PATTERN: REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:222:  action?: 
+ReportTwoSmartAlertAction;
+  components\report-2\report-two-studio-runtime.tsx:223:};
+  components\report-2\report-two-studio-runtime.tsx:224:
+  components\report-2\report-two-studio-runtime.tsx:225:type ReportTwoFinalCheckItem = {
+  components\report-2\report-two-studio-runtime.tsx:226:  id: string;
+  components\report-2\report-two-studio-runtime.tsx:227:  label: string;
+  components\report-2\report-two-studio-runtime.tsx:228:  description: string;
+  components\report-2\report-two-studio-runtime.tsx:229:  passed: boolean;
+  components\report-2\report-two-studio-runtime.tsx:230:  required: boolean;
+  components\report-2\report-two-studio-runtime.tsx:231:};
+  components\report-2\report-two-studio-runtime.tsx:232:
+  components\report-2\report-two-studio-runtime.tsx:233:type ReportTwoSavedRuntimeTemplate 
+= {
+  components\report-2\report-two-studio-runtime.tsx:234:  id: string;
+  components\report-2\report-two-studio-runtime.tsx:235:  name: string;
+  components\report-2\report-two-studio-runtime.tsx:236:  serviceSlug: string;
+  components\report-2\report-two-studio-runtime.tsx:237:  sourceTemplateId: string;
+  components\report-2\report-two-studio-runtime.tsx:238:  createdAt: string;
+  components\report-2\report-two-studio-runtime.tsx:239:  updatedAt: string;
+  components\report-2\report-two-studio-runtime.tsx:240:  template: StudioTemplate;
+  components\report-2\report-two-studio-runtime.tsx:241:  headerValues: 
+ReportTwoHeaderValues | null;
+  components\report-2\report-two-studio-runtime.tsx:242:  headerAlignments: 
+ReportTwoHeaderAlignments | null;
+  components\report-2\report-two-studio-runtime.tsx:243:  logoSettings: 
+ReportTwoLogoSettings | null;
+  components\report-2\report-two-studio-runtime.tsx:244:  hiddenRuntimePageIds: string[];
+  components\report-2\report-two-studio-runtime.tsx:245:  runtimePageOrder: string[];
+  components\report-2\report-two-studio-runtime.tsx:246:};
+  components\report-2\report-two-studio-runtime.tsx:247:
+  components\report-2\report-two-studio-runtime.tsx:248:type ReportTwoStudioRuntimeProps = 
+{
+  components\report-2\report-two-studio-runtime.tsx:249:  caseId: string;
+  components\report-2\report-two-studio-runtime.tsx:250:  selectedTemplateId: string;
+  components\report-2\report-two-studio-runtime.tsx:251:  selectedVariantId?: string;
+  components\report-2\report-two-studio-runtime.tsx:252:  payload: SmartReportPayload;
+  components\report-2\report-two-studio-runtime.tsx:253:  templates: TemplateOption[];
+  components\report-2\report-two-studio-runtime.tsx:254:};
+  components\report-2\report-two-studio-runtime.tsx:255:
+  components\report-2\report-two-studio-runtime.tsx:256:const 
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 184;
+> components\report-2\report-two-studio-runtime.tsx:257:const 
+REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE = 6;
+  components\report-2\report-two-studio-runtime.tsx:258:const 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE = REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:259:const 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE =
+> components\report-2\report-two-studio-runtime.tsx:260:  
+REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE - REPORT_TWO_EVIDENCE_FOOTER_SAFE_GAP_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:261:const 
+REPORT_TWO_BLOCK_MOVED_NOTICE =
+  components\report-2\report-two-studio-runtime.tsx:262:  "لا توجد مساحة كافية في هذه 
+الصفحة، سيتم نقل البلوك إلى الصفحة التالية.";
+  components\report-2\report-two-studio-runtime.tsx:263:
+  components\report-2\report-two-studio-runtime.tsx:264:function 
+getReportTwoSavedTemplatesStorageKey(serviceSlug: string) {
+  components\report-2\report-two-studio-runtime.tsx:265:  return 
+`report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+  components\report-2\report-two-studio-runtime.tsx:266:}
+  components\report-2\report-two-studio-runtime.tsx:267:
+  components\report-2\report-two-studio-runtime.tsx:268:function 
+readReportTwoSavedTemplates(
+  components\report-2\report-two-studio-runtime.tsx:269:  serviceSlug: string,
+  components\report-2\report-two-studio-runtime.tsx:270:): ReportTwoSavedRuntimeTemplate[] 
+{
+  components\report-2\report-two-studio-runtime.tsx:271:  if (typeof window === 
+"undefined") return [];
+  components\report-2\report-two-studio-runtime.tsx:272:
+  components\report-2\report-two-studio-runtime.tsx:273:  try {
+  components\report-2\report-two-studio-runtime.tsx:274:    const raw = 
+window.localStorage.getItem(
+  components\report-2\report-two-studio-runtime.tsx:275:      
+getReportTwoSavedTemplatesStorageKey(serviceSlug),
+  components\report-2\report-two-studio-runtime.tsx:276:    );
+  components\report-2\report-two-studio-runtime.tsx:277:
+  components\report-2\report-two-studio-runtime.tsx:278:    if (!raw) return [];
+  components\report-2\report-two-studio-runtime.tsx:279:
+  components\report-2\report-two-studio-runtime.tsx:280:    const parsed = JSON.parse(raw);
+  components\report-2\report-two-studio-runtime.tsx:281:
+  components\report-2\report-two-studio-runtime.tsx:282:    return Array.isArray(parsed) ? 
+parsed : [];
+  components\report-2\report-two-studio-runtime.tsx:283:  } catch {
+  components\report-2\report-two-studio-runtime.tsx:284:    return [];
+  components\report-2\report-two-studio-runtime.tsx:285:  }
+  components\report-2\report-two-studio-runtime.tsx:286:}
+  components\report-2\report-two-studio-runtime.tsx:287:
+  components\report-2\report-two-studio-runtime.tsx:288:function 
+getReportTwoSavedTemplatesStoragePrefix() {
+  components\report-2\report-two-studio-runtime.tsx:289:  return 
+"report-2:saved-runtime-templates:";
+  components\report-2\report-two-studio-runtime.tsx:290:}
+  components\report-2\report-two-studio-runtime.tsx:291:
+  components\report-2\report-two-studio-runtime.tsx:292:function 
+readAllReportTwoSavedTemplates() {
+  components\report-2\report-two-studio-runtime.tsx:293:  if (typeof window === 
+"undefined") return [];
+  components\report-2\report-two-studio-runtime.tsx:294:
+  components\report-2\report-two-studio-runtime.tsx:295:  const prefix = 
+getReportTwoSavedTemplatesStoragePrefix();
+  components\report-2\report-two-studio-runtime.tsx:296:  const items: 
+ReportTwoSavedRuntimeTemplate[] = [];
+  components\report-2\report-two-studio-runtime.tsx:297:
+  components\report-2\report-two-studio-runtime.tsx:298:  for (let index = 0; index < 
+window.localStorage.length; index += 1) {
+  components\report-2\report-two-studio-runtime.tsx:299:    const key = 
+window.localStorage.key(index);
+  components\report-2\report-two-studio-runtime.tsx:300:
+  components\report-2\report-two-studio-runtime.tsx:301:    if (!key || 
+!key.startsWith(prefix)) continue;
+  components\report-2\report-two-studio-runtime.tsx:302:
+  components\report-2\report-two-studio-runtime.tsx:303:    const serviceSlug = 
+key.slice(prefix.length);
+  components\report-2\report-two-studio-runtime.tsx:304:    const templates = 
+readReportTwoSavedTemplates(serviceSlug);
+  components\report-2\report-two-studio-runtime.tsx:305:
+
+
+
+
+############################################################
+PATTERN: getReportTwoBlockHeightScore
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:1161:
+  components\report-2\report-two-studio-runtime.tsx:1162:  const targetPageId = 
+getReportTwoSignatureTargetPageId(pagesWithoutSignatureBlocks);
+  components\report-2\report-two-studio-runtime.tsx:1163:
+  components\report-2\report-two-studio-runtime.tsx:1164:  if (!targetPageId) {
+  components\report-2\report-two-studio-runtime.tsx:1165:    return template;
+  components\report-2\report-two-studio-runtime.tsx:1166:  }
+  components\report-2\report-two-studio-runtime.tsx:1167:
+  components\report-2\report-two-studio-runtime.tsx:1168:  const baseSignatureBlock = 
+signatureBlock as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1169:
+  components\report-2\report-two-studio-runtime.tsx:1170:  const normalizedSignatureBlock 
+= {
+  components\report-2\report-two-studio-runtime.tsx:1171:    ...baseSignatureBlock,
+  components\report-2\report-two-studio-runtime.tsx:1172:    kind: "signature-grid" as 
+StudioBlockKind,
+  components\report-2\report-two-studio-runtime.tsx:1173:    title: 
+baseSignatureBlock.title || "تواقيع الاعتماد",
+  components\report-2\report-two-studio-runtime.tsx:1174:    content: "",
+  components\report-2\report-two-studio-runtime.tsx:1175:    variant: 
+baseSignatureBlock.variant || "soft",
+  components\report-2\report-two-studio-runtime.tsx:1176:    source: 
+baseSignatureBlock.source || "manual",
+  components\report-2\report-two-studio-runtime.tsx:1177:    showTitle: 
+baseSignatureBlock.showTitle ?? false,
+  components\report-2\report-two-studio-runtime.tsx:1178:    showMeta: false,
+  components\report-2\report-two-studio-runtime.tsx:1179:    align: "center",
+  components\report-2\report-two-studio-runtime.tsx:1180:    placement: "bottom",
+  components\report-2\report-two-studio-runtime.tsx:1181:    signatures: 
+getReportTwoConfiguredSignatureCards(signatures, signatureBlock),
+  components\report-2\report-two-studio-runtime.tsx:1182:  } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1183:
+  components\report-2\report-two-studio-runtime.tsx:1184:  return {
+  components\report-2\report-two-studio-runtime.tsx:1185:    ...template,
+  components\report-2\report-two-studio-runtime.tsx:1186:    pages: 
+pagesWithoutSignatureBlocks.map((page) =>
+  components\report-2\report-two-studio-runtime.tsx:1187:      page.id === targetPageId
+  components\report-2\report-two-studio-runtime.tsx:1188:        ? {
+  components\report-2\report-two-studio-runtime.tsx:1189:            ...page,
+  components\report-2\report-two-studio-runtime.tsx:1190:            blocks: 
+[...page.blocks, normalizedSignatureBlock],
+  components\report-2\report-two-studio-runtime.tsx:1191:          }
+  components\report-2\report-two-studio-runtime.tsx:1192:        : page,
+  components\report-2\report-two-studio-runtime.tsx:1193:    ),
+  components\report-2\report-two-studio-runtime.tsx:1194:  };
+  components\report-2\report-two-studio-runtime.tsx:1195:}
+> components\report-2\report-two-studio-runtime.tsx:1196:function 
+getReportTwoBlockHeightScore(
+  components\report-2\report-two-studio-runtime.tsx:1197:  block: StudioBlock,
+  components\report-2\report-two-studio-runtime.tsx:1198:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1199:) {
+  components\report-2\report-two-studio-runtime.tsx:1200:  /*
+  components\report-2\report-two-studio-runtime.tsx:1201:    هذا تقدير منطقي للتقسيم فقط، 
+وليس قياسًا بصريًا حقيقيًا.
+  components\report-2\report-two-studio-runtime.tsx:1202:    الشواهد والتواقيع في القالب 
+الرسمي مضغوطة بصريًا، لذلك لا نعاملها كبلوكات ضخمة.
+  components\report-2\report-two-studio-runtime.tsx:1203:  */
+  components\report-2\report-two-studio-runtime.tsx:1204:
+  components\report-2\report-two-studio-runtime.tsx:1205:  if 
+(isReportTwoSignatureBlock(block) || (block as any)?.placement === "bottom") {
+  components\report-2\report-two-studio-runtime.tsx:1206:    return 0;
+  components\report-2\report-two-studio-runtime.tsx:1207:  }
+  components\report-2\report-two-studio-runtime.tsx:1208:
+  components\report-2\report-two-studio-runtime.tsx:1209:  if (block.kind === 
+"hero-title") return 32;
+  components\report-2\report-two-studio-runtime.tsx:1210:  if (block.kind === 
+"meta-strip") return 28;
+  components\report-2\report-two-studio-runtime.tsx:1211:  if (block.kind === 
+"closing-note") return 28;
+  components\report-2\report-two-studio-runtime.tsx:1212:  if (block.kind === 
+"highlight-note") return 28;
+  components\report-2\report-two-studio-runtime.tsx:1213:  if (block.kind === 
+"plain-text") return 22;
+  components\report-2\report-two-studio-runtime.tsx:1214:
+  components\report-2\report-two-studio-runtime.tsx:1215:  if (block.kind === 
+"dynamic-fields") {
+  components\report-2\report-two-studio-runtime.tsx:1216:    const fields = 
+getDynamicFieldsForBlock(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1217:    const visibleFields = 
+fields.filter((field) => field.visible !== false);
+  components\report-2\report-two-studio-runtime.tsx:1218:    const count = 
+Math.max(visibleFields.length, 1);
+  components\report-2\report-two-studio-runtime.tsx:1219:
+  components\report-2\report-two-studio-runtime.tsx:1220:    return 22 + Math.ceil(count / 
+3) * 9.5;
+  components\report-2\report-two-studio-runtime.tsx:1221:  }
+  components\report-2\report-two-studio-runtime.tsx:1222:
+  components\report-2\report-two-studio-runtime.tsx:1223:  if (block.kind === 
+"section-text" || block.kind === "multi-paragraph") {
+  components\report-2\report-two-studio-runtime.tsx:1224:    if 
+(isReportTwoExecutionSummaryBlock(block)) {
+  components\report-2\report-two-studio-runtime.tsx:1225:      return 30;
+  components\report-2\report-two-studio-runtime.tsx:1226:    }
+  components\report-2\report-two-studio-runtime.tsx:1227:
+  components\report-2\report-two-studio-runtime.tsx:1228:    const content = 
+cleanText(block.content);
+  components\report-2\report-two-studio-runtime.tsx:1229:    const contentLength = 
+content.length;
+  components\report-2\report-two-studio-runtime.tsx:1230:    const lineCount = Math.max(
+  components\report-2\report-two-studio-runtime.tsx:1231:      
+content.split("\n").filter(Boolean).length,
+  components\report-2\report-two-studio-runtime.tsx:1232:      Math.ceil(contentLength / 
+90),
+  components\report-2\report-two-studio-runtime.tsx:1233:      1,
+  components\report-2\report-two-studio-runtime.tsx:1234:    );
+  components\report-2\report-two-studio-runtime.tsx:1235:
+  components\report-2\report-two-studio-runtime.tsx:1236:    return Math.min(58, 20 + 
+lineCount * 5.2);
+  components\report-2\report-two-studio-runtime.tsx:1237:  }
+  components\report-2\report-two-studio-runtime.tsx:1238:
+  components\report-2\report-two-studio-runtime.tsx:1239:  if (block.kind === 
+"bullet-list") {
+  components\report-2\report-two-studio-runtime.tsx:1240:    const count = Math.max(
+  components\report-2\report-two-studio-runtime.tsx:1241:      cleanText(block.content)
+  components\report-2\report-two-studio-runtime.tsx:1318:function 
+buildReportTwoRuntimeTemplate(
+  components\report-2\report-two-studio-runtime.tsx:1319:  template: StudioTemplate,
+  components\report-2\report-two-studio-runtime.tsx:1320:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1321:): StudioTemplate {
+  components\report-2\report-two-studio-runtime.tsx:1322:  const runtimePages: 
+StudioPage[] = [];
+  components\report-2\report-two-studio-runtime.tsx:1323:
+  components\report-2\report-two-studio-runtime.tsx:1324:  
+template.pages.forEach((sourcePage) => {
+  components\report-2\report-two-studio-runtime.tsx:1325:    let pageNumber = 1;
+  components\report-2\report-two-studio-runtime.tsx:1326:    let usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1327:    let currentPageAlreadyPushed 
+= false;
+  components\report-2\report-two-studio-runtime.tsx:1328:
+  components\report-2\report-two-studio-runtime.tsx:1329:    let currentPage: StudioPage = 
+{
+  components\report-2\report-two-studio-runtime.tsx:1330:      ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1331:      blocks: [],
+  components\report-2\report-two-studio-runtime.tsx:1332:    };
+  components\report-2\report-two-studio-runtime.tsx:1333:
+  components\report-2\report-two-studio-runtime.tsx:1334:    function pushCurrentPage() {
+  components\report-2\report-two-studio-runtime.tsx:1335:      if 
+(currentPageAlreadyPushed) return;
+  components\report-2\report-two-studio-runtime.tsx:1336:
+  components\report-2\report-two-studio-runtime.tsx:1337:      runtimePages.push({
+  components\report-2\report-two-studio-runtime.tsx:1338:        ...currentPage,
+  components\report-2\report-two-studio-runtime.tsx:1339:        blocks: 
+currentPage.blocks,
+  components\report-2\report-two-studio-runtime.tsx:1340:      });
+  components\report-2\report-two-studio-runtime.tsx:1341:      currentPageAlreadyPushed = 
+true;
+  components\report-2\report-two-studio-runtime.tsx:1342:    }
+  components\report-2\report-two-studio-runtime.tsx:1343:
+  components\report-2\report-two-studio-runtime.tsx:1344:    function startNextPage() {
+  components\report-2\report-two-studio-runtime.tsx:1345:      pageNumber += 1;
+  components\report-2\report-two-studio-runtime.tsx:1346:      usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1347:      currentPage = 
+makeReportTwoContinuationPage(sourcePage, pageNumber);
+  components\report-2\report-two-studio-runtime.tsx:1348:      currentPageAlreadyPushed = 
+false;
+  components\report-2\report-two-studio-runtime.tsx:1349:    }
+  components\report-2\report-two-studio-runtime.tsx:1350:
+  components\report-2\report-two-studio-runtime.tsx:1351:    
+sourcePage.blocks.forEach((originalBlock) => {
+  components\report-2\report-two-studio-runtime.tsx:1352:      const block = 
+normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
+> components\report-2\report-two-studio-runtime.tsx:1353:      const blockScore = 
+getReportTwoBlockHeightScore(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1354:      const pageSafeHeightScore =
+  components\report-2\report-two-studio-runtime.tsx:1355:        block.kind === 
+"evidence-gallery"
+  components\report-2\report-two-studio-runtime.tsx:1356:          ? 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
+  components\report-2\report-two-studio-runtime.tsx:1357:          : 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1358:
+  components\report-2\report-two-studio-runtime.tsx:1359:      if (
+  components\report-2\report-two-studio-runtime.tsx:1360:        currentPage.blocks.length 
+> 0 &&
+  components\report-2\report-two-studio-runtime.tsx:1361:        usedScore + blockScore > 
+pageSafeHeightScore
+  components\report-2\report-two-studio-runtime.tsx:1362:      ) {
+  components\report-2\report-two-studio-runtime.tsx:1363:        pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1364:        startNextPage();
+  components\report-2\report-two-studio-runtime.tsx:1365:      }
+  components\report-2\report-two-studio-runtime.tsx:1366:
+  components\report-2\report-two-studio-runtime.tsx:1367:      
+currentPage.blocks.push(block);
+  components\report-2\report-two-studio-runtime.tsx:1368:      usedScore += blockScore;
+  components\report-2\report-two-studio-runtime.tsx:1369:
+  components\report-2\report-two-studio-runtime.tsx:1370:      if (block.kind === 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1371:        const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1372:        const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1373:        const pagesCount = 
+Math.ceil(count / perPage);
+  components\report-2\report-two-studio-runtime.tsx:1374:
+  components\report-2\report-two-studio-runtime.tsx:1375:        if (pagesCount > 1) {
+  components\report-2\report-two-studio-runtime.tsx:1376:          pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1377:
+  components\report-2\report-two-studio-runtime.tsx:1378:          for (let index = 1; 
+index < pagesCount; index += 1) {
+  components\report-2\report-two-studio-runtime.tsx:1379:            const 
+evidencePageNumber = pageNumber + index;
+  components\report-2\report-two-studio-runtime.tsx:1380:            const evidencePage: 
+StudioPage = {
+  components\report-2\report-two-studio-runtime.tsx:1381:              ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1382:              id: 
+`${sourcePage.id}-${block.id}-evidence-${evidencePageNumber}`,
+  components\report-2\report-two-studio-runtime.tsx:1383:              kind: "evidence",
+  components\report-2\report-two-studio-runtime.tsx:1384:              title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1385:              description: "صفحة 
+شواهد إضافية داخل التقرير.",
+  components\report-2\report-two-studio-runtime.tsx:1386:              
+sourceTemplatePageId: sourcePage.id,
+  components\report-2\report-two-studio-runtime.tsx:1387:              
+reportTwoVirtualPage: true,
+  components\report-2\report-two-studio-runtime.tsx:1388:              blocks: [
+  components\report-2\report-two-studio-runtime.tsx:1389:                {
+  components\report-2\report-two-studio-runtime.tsx:1390:                  ...block,
+  components\report-2\report-two-studio-runtime.tsx:1391:                  id: 
+`${block.id}-evidence-${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1392:                  title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1393:                  
+evidenceStartIndex: index * perPage,
+  components\report-2\report-two-studio-runtime.tsx:1394:                  evidenceLimit: 
+perPage,
+  components\report-2\report-two-studio-runtime.tsx:1395:                  
+evidenceAutoCreatePages: false,
+  components\report-2\report-two-studio-runtime.tsx:1396:                },
+  components\report-2\report-two-studio-runtime.tsx:1397:              ],
+  components\report-2\report-two-studio-runtime.tsx:1398:            };
+
+
+
+
+############################################################
+PATTERN: makeReportTwoContinuationPage
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:1234:    );
+  components\report-2\report-two-studio-runtime.tsx:1235:
+  components\report-2\report-two-studio-runtime.tsx:1236:    return Math.min(58, 20 + 
+lineCount * 5.2);
+  components\report-2\report-two-studio-runtime.tsx:1237:  }
+  components\report-2\report-two-studio-runtime.tsx:1238:
+  components\report-2\report-two-studio-runtime.tsx:1239:  if (block.kind === 
+"bullet-list") {
+  components\report-2\report-two-studio-runtime.tsx:1240:    const count = Math.max(
+  components\report-2\report-two-studio-runtime.tsx:1241:      cleanText(block.content)
+  components\report-2\report-two-studio-runtime.tsx:1242:        .split("\n")
+  components\report-2\report-two-studio-runtime.tsx:1243:        .filter(Boolean).length,
+  components\report-2\report-two-studio-runtime.tsx:1244:      1,
+  components\report-2\report-two-studio-runtime.tsx:1245:    );
+  components\report-2\report-two-studio-runtime.tsx:1246:
+  components\report-2\report-two-studio-runtime.tsx:1247:    return Math.min(52, 20 + 
+count * 6);
+  components\report-2\report-two-studio-runtime.tsx:1248:  }
+  components\report-2\report-two-studio-runtime.tsx:1249:
+  components\report-2\report-two-studio-runtime.tsx:1250:  if (block.kind === 
+"report-one-table") {
+  components\report-2\report-two-studio-runtime.tsx:1251:    const rowCount = 
+Math.max(block.rows?.length || 0, 1);
+  components\report-2\report-two-studio-runtime.tsx:1252:    return 24 + rowCount * 9;
+  components\report-2\report-two-studio-runtime.tsx:1253:  }
+  components\report-2\report-two-studio-runtime.tsx:1254:
+  components\report-2\report-two-studio-runtime.tsx:1255:  if (block.kind === 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1256:    const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1257:    const shown = 
+Math.min(perPage, Math.max(previewCase.evidences.length, 1));
+  components\report-2\report-two-studio-runtime.tsx:1258:
+  components\report-2\report-two-studio-runtime.tsx:1259:    if (block.evidenceLayout === 
+"ONE_PER_PAGE") return 88;
+  components\report-2\report-two-studio-runtime.tsx:1260:    if (block.evidenceLayout === 
+"GRID_2X2") return shown <= 2 ? 62 : 74;
+  components\report-2\report-two-studio-runtime.tsx:1261:    if (block.evidenceLayout === 
+"ATTACHMENT_LIST") return 18 + shown * 7;
+  components\report-2\report-two-studio-runtime.tsx:1262:
+  components\report-2\report-two-studio-runtime.tsx:1263:    return shown <= 2 ? 58 : 70;
+  components\report-2\report-two-studio-runtime.tsx:1264:  }
+  components\report-2\report-two-studio-runtime.tsx:1265:
+  components\report-2\report-two-studio-runtime.tsx:1266:  return 30;
+  components\report-2\report-two-studio-runtime.tsx:1267:}
+  components\report-2\report-two-studio-runtime.tsx:1268:
+> components\report-2\report-two-studio-runtime.tsx:1269:function 
+makeReportTwoContinuationPage(
+  components\report-2\report-two-studio-runtime.tsx:1270:  sourcePage: StudioPage,
+  components\report-2\report-two-studio-runtime.tsx:1271:  index: number,
+  components\report-2\report-two-studio-runtime.tsx:1272:): StudioPage {
+  components\report-2\report-two-studio-runtime.tsx:1273:  return {
+  components\report-2\report-two-studio-runtime.tsx:1274:    ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1275:    id: 
+`${sourcePage.id}-auto-page-${index}`,
+  components\report-2\report-two-studio-runtime.tsx:1276:    title: `${sourcePage.title} - 
+صفحة ${index}`,
+  components\report-2\report-two-studio-runtime.tsx:1277:    description: "صفحة تكميلية 
+أنشأها report-2 لحماية حدود A4.",
+  components\report-2\report-two-studio-runtime.tsx:1278:    sourceTemplatePageId: 
+sourcePage.id,
+  components\report-2\report-two-studio-runtime.tsx:1279:    reportTwoVirtualPage: true,
+  components\report-2\report-two-studio-runtime.tsx:1280:    blocks: [],
+  components\report-2\report-two-studio-runtime.tsx:1281:  } as StudioPage;
+  components\report-2\report-two-studio-runtime.tsx:1282:}
+  components\report-2\report-two-studio-runtime.tsx:1283:
+  components\report-2\report-two-studio-runtime.tsx:1284:function 
+normalizeReportTwoBlockForRuntime(
+  components\report-2\report-two-studio-runtime.tsx:1285:  block: StudioBlock,
+  components\report-2\report-two-studio-runtime.tsx:1286:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1287:): StudioBlock {
+  components\report-2\report-two-studio-runtime.tsx:1288:  if 
+(isReportTwoDynamicFieldsBlock(block)) {
+  components\report-2\report-two-studio-runtime.tsx:1289:    return {
+  components\report-2\report-two-studio-runtime.tsx:1290:      ...block,
+  components\report-2\report-two-studio-runtime.tsx:1291:      sourceBlockId: block.id,
+  components\report-2\report-two-studio-runtime.tsx:1292:      kind: "dynamic-fields" as 
+StudioBlockKind,
+  components\report-2\report-two-studio-runtime.tsx:1293:      dynamicFields: 
+block.dynamicFields?.length
+  components\report-2\report-two-studio-runtime.tsx:1294:        ? block.dynamicFields
+  components\report-2\report-two-studio-runtime.tsx:1295:        : 
+getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+  components\report-2\report-two-studio-runtime.tsx:1296:    };
+  components\report-2\report-two-studio-runtime.tsx:1297:  }
+  components\report-2\report-two-studio-runtime.tsx:1298:
+  components\report-2\report-two-studio-runtime.tsx:1299:  if (block.kind !== 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1300:    return {
+  components\report-2\report-two-studio-runtime.tsx:1301:      ...block,
+  components\report-2\report-two-studio-runtime.tsx:1302:      sourceBlockId: block.id,
+  components\report-2\report-two-studio-runtime.tsx:1303:    } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1304:  }
+  components\report-2\report-two-studio-runtime.tsx:1305:
+  components\report-2\report-two-studio-runtime.tsx:1306:  const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1307:  const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1308:
+  components\report-2\report-two-studio-runtime.tsx:1309:  return {
+  components\report-2\report-two-studio-runtime.tsx:1310:    ...block,
+  components\report-2\report-two-studio-runtime.tsx:1311:    evidenceStartIndex: 
+Number(block.evidenceStartIndex || 0),
+  components\report-2\report-two-studio-runtime.tsx:1312:    evidenceLimit: perPage,
+  components\report-2\report-two-studio-runtime.tsx:1313:    evidenceAutoCreatePages: 
+false,
+  components\report-2\report-two-studio-runtime.tsx:1314:    evidenceEmptyBehavior: count 
+? block.evidenceEmptyBehavior : "message",
+  components\report-2\report-two-studio-runtime.tsx:1315:  } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1316:}
+  components\report-2\report-two-studio-runtime.tsx:1317:
+  components\report-2\report-two-studio-runtime.tsx:1318:function 
+buildReportTwoRuntimeTemplate(
+  components\report-2\report-two-studio-runtime.tsx:1319:  template: StudioTemplate,
+  components\report-2\report-two-studio-runtime.tsx:1320:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1321:): StudioTemplate {
+  components\report-2\report-two-studio-runtime.tsx:1322:  const runtimePages: 
+StudioPage[] = [];
+  components\report-2\report-two-studio-runtime.tsx:1323:
+  components\report-2\report-two-studio-runtime.tsx:1324:  
+template.pages.forEach((sourcePage) => {
+  components\report-2\report-two-studio-runtime.tsx:1325:    let pageNumber = 1;
+  components\report-2\report-two-studio-runtime.tsx:1326:    let usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1327:    let currentPageAlreadyPushed 
+= false;
+  components\report-2\report-two-studio-runtime.tsx:1328:
+  components\report-2\report-two-studio-runtime.tsx:1329:    let currentPage: StudioPage = 
+{
+  components\report-2\report-two-studio-runtime.tsx:1330:      ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1331:      blocks: [],
+  components\report-2\report-two-studio-runtime.tsx:1332:    };
+  components\report-2\report-two-studio-runtime.tsx:1333:
+  components\report-2\report-two-studio-runtime.tsx:1334:    function pushCurrentPage() {
+  components\report-2\report-two-studio-runtime.tsx:1335:      if 
+(currentPageAlreadyPushed) return;
+  components\report-2\report-two-studio-runtime.tsx:1336:
+  components\report-2\report-two-studio-runtime.tsx:1337:      runtimePages.push({
+  components\report-2\report-two-studio-runtime.tsx:1338:        ...currentPage,
+  components\report-2\report-two-studio-runtime.tsx:1339:        blocks: 
+currentPage.blocks,
+  components\report-2\report-two-studio-runtime.tsx:1340:      });
+  components\report-2\report-two-studio-runtime.tsx:1341:      currentPageAlreadyPushed = 
+true;
+  components\report-2\report-two-studio-runtime.tsx:1342:    }
+  components\report-2\report-two-studio-runtime.tsx:1343:
+  components\report-2\report-two-studio-runtime.tsx:1344:    function startNextPage() {
+  components\report-2\report-two-studio-runtime.tsx:1345:      pageNumber += 1;
+  components\report-2\report-two-studio-runtime.tsx:1346:      usedScore = 0;
+> components\report-2\report-two-studio-runtime.tsx:1347:      currentPage = 
+makeReportTwoContinuationPage(sourcePage, pageNumber);
+  components\report-2\report-two-studio-runtime.tsx:1348:      currentPageAlreadyPushed = 
+false;
+  components\report-2\report-two-studio-runtime.tsx:1349:    }
+  components\report-2\report-two-studio-runtime.tsx:1350:
+  components\report-2\report-two-studio-runtime.tsx:1351:    
+sourcePage.blocks.forEach((originalBlock) => {
+  components\report-2\report-two-studio-runtime.tsx:1352:      const block = 
+normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1353:      const blockScore = 
+getReportTwoBlockHeightScore(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1354:      const pageSafeHeightScore =
+  components\report-2\report-two-studio-runtime.tsx:1355:        block.kind === 
+"evidence-gallery"
+  components\report-2\report-two-studio-runtime.tsx:1356:          ? 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
+  components\report-2\report-two-studio-runtime.tsx:1357:          : 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1358:
+  components\report-2\report-two-studio-runtime.tsx:1359:      if (
+  components\report-2\report-two-studio-runtime.tsx:1360:        currentPage.blocks.length 
+> 0 &&
+  components\report-2\report-two-studio-runtime.tsx:1361:        usedScore + blockScore > 
+pageSafeHeightScore
+  components\report-2\report-two-studio-runtime.tsx:1362:      ) {
+  components\report-2\report-two-studio-runtime.tsx:1363:        pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1364:        startNextPage();
+  components\report-2\report-two-studio-runtime.tsx:1365:      }
+  components\report-2\report-two-studio-runtime.tsx:1366:
+  components\report-2\report-two-studio-runtime.tsx:1367:      
+currentPage.blocks.push(block);
+  components\report-2\report-two-studio-runtime.tsx:1368:      usedScore += blockScore;
+  components\report-2\report-two-studio-runtime.tsx:1369:
+  components\report-2\report-two-studio-runtime.tsx:1370:      if (block.kind === 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1371:        const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1372:        const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1373:        const pagesCount = 
+Math.ceil(count / perPage);
+  components\report-2\report-two-studio-runtime.tsx:1374:
+  components\report-2\report-two-studio-runtime.tsx:1375:        if (pagesCount > 1) {
+  components\report-2\report-two-studio-runtime.tsx:1376:          pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1377:
+  components\report-2\report-two-studio-runtime.tsx:1378:          for (let index = 1; 
+index < pagesCount; index += 1) {
+  components\report-2\report-two-studio-runtime.tsx:1379:            const 
+evidencePageNumber = pageNumber + index;
+  components\report-2\report-two-studio-runtime.tsx:1380:            const evidencePage: 
+StudioPage = {
+  components\report-2\report-two-studio-runtime.tsx:1381:              ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1382:              id: 
+`${sourcePage.id}-${block.id}-evidence-${evidencePageNumber}`,
+  components\report-2\report-two-studio-runtime.tsx:1383:              kind: "evidence",
+  components\report-2\report-two-studio-runtime.tsx:1384:              title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1385:              description: "صفحة 
+شواهد إضافية داخل التقرير.",
+  components\report-2\report-two-studio-runtime.tsx:1386:              
+sourceTemplatePageId: sourcePage.id,
+  components\report-2\report-two-studio-runtime.tsx:1387:              
+reportTwoVirtualPage: true,
+  components\report-2\report-two-studio-runtime.tsx:1388:              blocks: [
+  components\report-2\report-two-studio-runtime.tsx:1389:                {
+  components\report-2\report-two-studio-runtime.tsx:1390:                  ...block,
+  components\report-2\report-two-studio-runtime.tsx:1391:                  id: 
+`${block.id}-evidence-${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1392:                  title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+
+
+
+
+############################################################
+PATTERN: normalizeReportTwoBlockForRuntime
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:1249:
+  components\report-2\report-two-studio-runtime.tsx:1250:  if (block.kind === 
+"report-one-table") {
+  components\report-2\report-two-studio-runtime.tsx:1251:    const rowCount = 
+Math.max(block.rows?.length || 0, 1);
+  components\report-2\report-two-studio-runtime.tsx:1252:    return 24 + rowCount * 9;
+  components\report-2\report-two-studio-runtime.tsx:1253:  }
+  components\report-2\report-two-studio-runtime.tsx:1254:
+  components\report-2\report-two-studio-runtime.tsx:1255:  if (block.kind === 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1256:    const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1257:    const shown = 
+Math.min(perPage, Math.max(previewCase.evidences.length, 1));
+  components\report-2\report-two-studio-runtime.tsx:1258:
+  components\report-2\report-two-studio-runtime.tsx:1259:    if (block.evidenceLayout === 
+"ONE_PER_PAGE") return 88;
+  components\report-2\report-two-studio-runtime.tsx:1260:    if (block.evidenceLayout === 
+"GRID_2X2") return shown <= 2 ? 62 : 74;
+  components\report-2\report-two-studio-runtime.tsx:1261:    if (block.evidenceLayout === 
+"ATTACHMENT_LIST") return 18 + shown * 7;
+  components\report-2\report-two-studio-runtime.tsx:1262:
+  components\report-2\report-two-studio-runtime.tsx:1263:    return shown <= 2 ? 58 : 70;
+  components\report-2\report-two-studio-runtime.tsx:1264:  }
+  components\report-2\report-two-studio-runtime.tsx:1265:
+  components\report-2\report-two-studio-runtime.tsx:1266:  return 30;
+  components\report-2\report-two-studio-runtime.tsx:1267:}
+  components\report-2\report-two-studio-runtime.tsx:1268:
+  components\report-2\report-two-studio-runtime.tsx:1269:function 
+makeReportTwoContinuationPage(
+  components\report-2\report-two-studio-runtime.tsx:1270:  sourcePage: StudioPage,
+  components\report-2\report-two-studio-runtime.tsx:1271:  index: number,
+  components\report-2\report-two-studio-runtime.tsx:1272:): StudioPage {
+  components\report-2\report-two-studio-runtime.tsx:1273:  return {
+  components\report-2\report-two-studio-runtime.tsx:1274:    ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1275:    id: 
+`${sourcePage.id}-auto-page-${index}`,
+  components\report-2\report-two-studio-runtime.tsx:1276:    title: `${sourcePage.title} - 
+صفحة ${index}`,
+  components\report-2\report-two-studio-runtime.tsx:1277:    description: "صفحة تكميلية 
+أنشأها report-2 لحماية حدود A4.",
+  components\report-2\report-two-studio-runtime.tsx:1278:    sourceTemplatePageId: 
+sourcePage.id,
+  components\report-2\report-two-studio-runtime.tsx:1279:    reportTwoVirtualPage: true,
+  components\report-2\report-two-studio-runtime.tsx:1280:    blocks: [],
+  components\report-2\report-two-studio-runtime.tsx:1281:  } as StudioPage;
+  components\report-2\report-two-studio-runtime.tsx:1282:}
+  components\report-2\report-two-studio-runtime.tsx:1283:
+> components\report-2\report-two-studio-runtime.tsx:1284:function 
+normalizeReportTwoBlockForRuntime(
+  components\report-2\report-two-studio-runtime.tsx:1285:  block: StudioBlock,
+  components\report-2\report-two-studio-runtime.tsx:1286:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1287:): StudioBlock {
+  components\report-2\report-two-studio-runtime.tsx:1288:  if 
+(isReportTwoDynamicFieldsBlock(block)) {
+  components\report-2\report-two-studio-runtime.tsx:1289:    return {
+  components\report-2\report-two-studio-runtime.tsx:1290:      ...block,
+  components\report-2\report-two-studio-runtime.tsx:1291:      sourceBlockId: block.id,
+  components\report-2\report-two-studio-runtime.tsx:1292:      kind: "dynamic-fields" as 
+StudioBlockKind,
+  components\report-2\report-two-studio-runtime.tsx:1293:      dynamicFields: 
+block.dynamicFields?.length
+  components\report-2\report-two-studio-runtime.tsx:1294:        ? block.dynamicFields
+  components\report-2\report-two-studio-runtime.tsx:1295:        : 
+getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+  components\report-2\report-two-studio-runtime.tsx:1296:    };
+  components\report-2\report-two-studio-runtime.tsx:1297:  }
+  components\report-2\report-two-studio-runtime.tsx:1298:
+  components\report-2\report-two-studio-runtime.tsx:1299:  if (block.kind !== 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1300:    return {
+  components\report-2\report-two-studio-runtime.tsx:1301:      ...block,
+  components\report-2\report-two-studio-runtime.tsx:1302:      sourceBlockId: block.id,
+  components\report-2\report-two-studio-runtime.tsx:1303:    } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1304:  }
+  components\report-2\report-two-studio-runtime.tsx:1305:
+  components\report-2\report-two-studio-runtime.tsx:1306:  const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1307:  const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1308:
+  components\report-2\report-two-studio-runtime.tsx:1309:  return {
+  components\report-2\report-two-studio-runtime.tsx:1310:    ...block,
+  components\report-2\report-two-studio-runtime.tsx:1311:    evidenceStartIndex: 
+Number(block.evidenceStartIndex || 0),
+  components\report-2\report-two-studio-runtime.tsx:1312:    evidenceLimit: perPage,
+  components\report-2\report-two-studio-runtime.tsx:1313:    evidenceAutoCreatePages: 
+false,
+  components\report-2\report-two-studio-runtime.tsx:1314:    evidenceEmptyBehavior: count 
+? block.evidenceEmptyBehavior : "message",
+  components\report-2\report-two-studio-runtime.tsx:1315:  } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1316:}
+  components\report-2\report-two-studio-runtime.tsx:1317:
+  components\report-2\report-two-studio-runtime.tsx:1318:function 
+buildReportTwoRuntimeTemplate(
+  components\report-2\report-two-studio-runtime.tsx:1319:  template: StudioTemplate,
+  components\report-2\report-two-studio-runtime.tsx:1320:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1321:): StudioTemplate {
+  components\report-2\report-two-studio-runtime.tsx:1322:  const runtimePages: 
+StudioPage[] = [];
+  components\report-2\report-two-studio-runtime.tsx:1323:
+  components\report-2\report-two-studio-runtime.tsx:1324:  
+template.pages.forEach((sourcePage) => {
+  components\report-2\report-two-studio-runtime.tsx:1325:    let pageNumber = 1;
+  components\report-2\report-two-studio-runtime.tsx:1326:    let usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1327:    let currentPageAlreadyPushed 
+= false;
+  components\report-2\report-two-studio-runtime.tsx:1328:
+  components\report-2\report-two-studio-runtime.tsx:1329:    let currentPage: StudioPage = 
+{
+  components\report-2\report-two-studio-runtime.tsx:1330:      ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1331:      blocks: [],
+  components\report-2\report-two-studio-runtime.tsx:1332:    };
+  components\report-2\report-two-studio-runtime.tsx:1333:
+  components\report-2\report-two-studio-runtime.tsx:1334:    function pushCurrentPage() {
+  components\report-2\report-two-studio-runtime.tsx:1335:      if 
+(currentPageAlreadyPushed) return;
+  components\report-2\report-two-studio-runtime.tsx:1336:
+  components\report-2\report-two-studio-runtime.tsx:1337:      runtimePages.push({
+  components\report-2\report-two-studio-runtime.tsx:1338:        ...currentPage,
+  components\report-2\report-two-studio-runtime.tsx:1339:        blocks: 
+currentPage.blocks,
+  components\report-2\report-two-studio-runtime.tsx:1340:      });
+  components\report-2\report-two-studio-runtime.tsx:1341:      currentPageAlreadyPushed = 
+true;
+  components\report-2\report-two-studio-runtime.tsx:1342:    }
+  components\report-2\report-two-studio-runtime.tsx:1343:
+  components\report-2\report-two-studio-runtime.tsx:1344:    function startNextPage() {
+  components\report-2\report-two-studio-runtime.tsx:1345:      pageNumber += 1;
+  components\report-2\report-two-studio-runtime.tsx:1346:      usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1347:      currentPage = 
+makeReportTwoContinuationPage(sourcePage, pageNumber);
+  components\report-2\report-two-studio-runtime.tsx:1348:      currentPageAlreadyPushed = 
+false;
+  components\report-2\report-two-studio-runtime.tsx:1349:    }
+  components\report-2\report-two-studio-runtime.tsx:1350:
+  components\report-2\report-two-studio-runtime.tsx:1351:    
+sourcePage.blocks.forEach((originalBlock) => {
+> components\report-2\report-two-studio-runtime.tsx:1352:      const block = 
+normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1353:      const blockScore = 
+getReportTwoBlockHeightScore(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1354:      const pageSafeHeightScore =
+  components\report-2\report-two-studio-runtime.tsx:1355:        block.kind === 
+"evidence-gallery"
+  components\report-2\report-two-studio-runtime.tsx:1356:          ? 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
+  components\report-2\report-two-studio-runtime.tsx:1357:          : 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1358:
+  components\report-2\report-two-studio-runtime.tsx:1359:      if (
+  components\report-2\report-two-studio-runtime.tsx:1360:        currentPage.blocks.length 
+> 0 &&
+  components\report-2\report-two-studio-runtime.tsx:1361:        usedScore + blockScore > 
+pageSafeHeightScore
+  components\report-2\report-two-studio-runtime.tsx:1362:      ) {
+  components\report-2\report-two-studio-runtime.tsx:1363:        pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1364:        startNextPage();
+  components\report-2\report-two-studio-runtime.tsx:1365:      }
+  components\report-2\report-two-studio-runtime.tsx:1366:
+  components\report-2\report-two-studio-runtime.tsx:1367:      
+currentPage.blocks.push(block);
+  components\report-2\report-two-studio-runtime.tsx:1368:      usedScore += blockScore;
+  components\report-2\report-two-studio-runtime.tsx:1369:
+  components\report-2\report-two-studio-runtime.tsx:1370:      if (block.kind === 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1371:        const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1372:        const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1373:        const pagesCount = 
+Math.ceil(count / perPage);
+  components\report-2\report-two-studio-runtime.tsx:1374:
+  components\report-2\report-two-studio-runtime.tsx:1375:        if (pagesCount > 1) {
+  components\report-2\report-two-studio-runtime.tsx:1376:          pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1377:
+  components\report-2\report-two-studio-runtime.tsx:1378:          for (let index = 1; 
+index < pagesCount; index += 1) {
+  components\report-2\report-two-studio-runtime.tsx:1379:            const 
+evidencePageNumber = pageNumber + index;
+  components\report-2\report-two-studio-runtime.tsx:1380:            const evidencePage: 
+StudioPage = {
+  components\report-2\report-two-studio-runtime.tsx:1381:              ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1382:              id: 
+`${sourcePage.id}-${block.id}-evidence-${evidencePageNumber}`,
+  components\report-2\report-two-studio-runtime.tsx:1383:              kind: "evidence",
+  components\report-2\report-two-studio-runtime.tsx:1384:              title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1385:              description: "صفحة 
+شواهد إضافية داخل التقرير.",
+  components\report-2\report-two-studio-runtime.tsx:1386:              
+sourceTemplatePageId: sourcePage.id,
+  components\report-2\report-two-studio-runtime.tsx:1387:              
+reportTwoVirtualPage: true,
+  components\report-2\report-two-studio-runtime.tsx:1388:              blocks: [
+  components\report-2\report-two-studio-runtime.tsx:1389:                {
+  components\report-2\report-two-studio-runtime.tsx:1390:                  ...block,
+  components\report-2\report-two-studio-runtime.tsx:1391:                  id: 
+`${block.id}-evidence-${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1392:                  title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1393:                  
+evidenceStartIndex: index * perPage,
+  components\report-2\report-two-studio-runtime.tsx:1394:                  evidenceLimit: 
+perPage,
+  components\report-2\report-two-studio-runtime.tsx:1395:                  
+evidenceAutoCreatePages: false,
+  components\report-2\report-two-studio-runtime.tsx:1396:                },
+  components\report-2\report-two-studio-runtime.tsx:1397:              ],
+
+
+
+
+############################################################
+PATTERN: buildReportTwoRuntimeTemplate
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:1283:
+  components\report-2\report-two-studio-runtime.tsx:1284:function 
+normalizeReportTwoBlockForRuntime(
+  components\report-2\report-two-studio-runtime.tsx:1285:  block: StudioBlock,
+  components\report-2\report-two-studio-runtime.tsx:1286:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1287:): StudioBlock {
+  components\report-2\report-two-studio-runtime.tsx:1288:  if 
+(isReportTwoDynamicFieldsBlock(block)) {
+  components\report-2\report-two-studio-runtime.tsx:1289:    return {
+  components\report-2\report-two-studio-runtime.tsx:1290:      ...block,
+  components\report-2\report-two-studio-runtime.tsx:1291:      sourceBlockId: block.id,
+  components\report-2\report-two-studio-runtime.tsx:1292:      kind: "dynamic-fields" as 
+StudioBlockKind,
+  components\report-2\report-two-studio-runtime.tsx:1293:      dynamicFields: 
+block.dynamicFields?.length
+  components\report-2\report-two-studio-runtime.tsx:1294:        ? block.dynamicFields
+  components\report-2\report-two-studio-runtime.tsx:1295:        : 
+getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+  components\report-2\report-two-studio-runtime.tsx:1296:    };
+  components\report-2\report-two-studio-runtime.tsx:1297:  }
+  components\report-2\report-two-studio-runtime.tsx:1298:
+  components\report-2\report-two-studio-runtime.tsx:1299:  if (block.kind !== 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1300:    return {
+  components\report-2\report-two-studio-runtime.tsx:1301:      ...block,
+  components\report-2\report-two-studio-runtime.tsx:1302:      sourceBlockId: block.id,
+  components\report-2\report-two-studio-runtime.tsx:1303:    } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1304:  }
+  components\report-2\report-two-studio-runtime.tsx:1305:
+  components\report-2\report-two-studio-runtime.tsx:1306:  const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1307:  const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1308:
+  components\report-2\report-two-studio-runtime.tsx:1309:  return {
+  components\report-2\report-two-studio-runtime.tsx:1310:    ...block,
+  components\report-2\report-two-studio-runtime.tsx:1311:    evidenceStartIndex: 
+Number(block.evidenceStartIndex || 0),
+  components\report-2\report-two-studio-runtime.tsx:1312:    evidenceLimit: perPage,
+  components\report-2\report-two-studio-runtime.tsx:1313:    evidenceAutoCreatePages: 
+false,
+  components\report-2\report-two-studio-runtime.tsx:1314:    evidenceEmptyBehavior: count 
+? block.evidenceEmptyBehavior : "message",
+  components\report-2\report-two-studio-runtime.tsx:1315:  } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1316:}
+  components\report-2\report-two-studio-runtime.tsx:1317:
+> components\report-2\report-two-studio-runtime.tsx:1318:function 
+buildReportTwoRuntimeTemplate(
+  components\report-2\report-two-studio-runtime.tsx:1319:  template: StudioTemplate,
+  components\report-2\report-two-studio-runtime.tsx:1320:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1321:): StudioTemplate {
+  components\report-2\report-two-studio-runtime.tsx:1322:  const runtimePages: 
+StudioPage[] = [];
+  components\report-2\report-two-studio-runtime.tsx:1323:
+  components\report-2\report-two-studio-runtime.tsx:1324:  
+template.pages.forEach((sourcePage) => {
+  components\report-2\report-two-studio-runtime.tsx:1325:    let pageNumber = 1;
+  components\report-2\report-two-studio-runtime.tsx:1326:    let usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1327:    let currentPageAlreadyPushed 
+= false;
+  components\report-2\report-two-studio-runtime.tsx:1328:
+  components\report-2\report-two-studio-runtime.tsx:1329:    let currentPage: StudioPage = 
+{
+  components\report-2\report-two-studio-runtime.tsx:1330:      ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1331:      blocks: [],
+  components\report-2\report-two-studio-runtime.tsx:1332:    };
+  components\report-2\report-two-studio-runtime.tsx:1333:
+  components\report-2\report-two-studio-runtime.tsx:1334:    function pushCurrentPage() {
+  components\report-2\report-two-studio-runtime.tsx:1335:      if 
+(currentPageAlreadyPushed) return;
+  components\report-2\report-two-studio-runtime.tsx:1336:
+  components\report-2\report-two-studio-runtime.tsx:1337:      runtimePages.push({
+  components\report-2\report-two-studio-runtime.tsx:1338:        ...currentPage,
+  components\report-2\report-two-studio-runtime.tsx:1339:        blocks: 
+currentPage.blocks,
+  components\report-2\report-two-studio-runtime.tsx:1340:      });
+  components\report-2\report-two-studio-runtime.tsx:1341:      currentPageAlreadyPushed = 
+true;
+  components\report-2\report-two-studio-runtime.tsx:1342:    }
+  components\report-2\report-two-studio-runtime.tsx:1343:
+  components\report-2\report-two-studio-runtime.tsx:1344:    function startNextPage() {
+  components\report-2\report-two-studio-runtime.tsx:1345:      pageNumber += 1;
+  components\report-2\report-two-studio-runtime.tsx:1346:      usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1347:      currentPage = 
+makeReportTwoContinuationPage(sourcePage, pageNumber);
+  components\report-2\report-two-studio-runtime.tsx:1348:      currentPageAlreadyPushed = 
+false;
+  components\report-2\report-two-studio-runtime.tsx:1349:    }
+  components\report-2\report-two-studio-runtime.tsx:1350:
+  components\report-2\report-two-studio-runtime.tsx:1351:    
+sourcePage.blocks.forEach((originalBlock) => {
+  components\report-2\report-two-studio-runtime.tsx:1352:      const block = 
+normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1353:      const blockScore = 
+getReportTwoBlockHeightScore(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1354:      const pageSafeHeightScore =
+  components\report-2\report-two-studio-runtime.tsx:1355:        block.kind === 
+"evidence-gallery"
+  components\report-2\report-two-studio-runtime.tsx:1356:          ? 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
+  components\report-2\report-two-studio-runtime.tsx:1357:          : 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1358:
+  components\report-2\report-two-studio-runtime.tsx:1359:      if (
+  components\report-2\report-two-studio-runtime.tsx:1360:        currentPage.blocks.length 
+> 0 &&
+  components\report-2\report-two-studio-runtime.tsx:1361:        usedScore + blockScore > 
+pageSafeHeightScore
+  components\report-2\report-two-studio-runtime.tsx:1362:      ) {
+  components\report-2\report-two-studio-runtime.tsx:1363:        pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:2510:  );
+  components\report-2\report-two-studio-runtime.tsx:2511:
+  components\report-2\report-two-studio-runtime.tsx:2512:  const activeHeaderAlignments = 
+useMemo(
+  components\report-2\report-two-studio-runtime.tsx:2513:    () => headerAlignments || 
+getDefaultReportTwoHeaderAlignments(),
+  components\report-2\report-two-studio-runtime.tsx:2514:    [headerAlignments],
+  components\report-2\report-two-studio-runtime.tsx:2515:  );
+  components\report-2\report-two-studio-runtime.tsx:2516:
+  components\report-2\report-two-studio-runtime.tsx:2517:  const activeLogoSettings = 
+useMemo(
+  components\report-2\report-two-studio-runtime.tsx:2518:    () => logoSettings || 
+getDefaultReportTwoLogoSettings(runtimeContext),
+  components\report-2\report-two-studio-runtime.tsx:2519:    [logoSettings, 
+runtimeContext],
+  components\report-2\report-two-studio-runtime.tsx:2520:  );
+  components\report-2\report-two-studio-runtime.tsx:2521:
+  components\report-2\report-two-studio-runtime.tsx:2522:  const editableRuntimeContext = 
+useMemo(
+  components\report-2\report-two-studio-runtime.tsx:2523:    () => ({
+  components\report-2\report-two-studio-runtime.tsx:2524:      ...runtimeContext,
+  components\report-2\report-two-studio-runtime.tsx:2525:      ...activeHeaderValues,
+  components\report-2\report-two-studio-runtime.tsx:2526:      "report.logoUrl": 
+activeLogoSettings.url,
+  components\report-2\report-two-studio-runtime.tsx:2527:      "report.logoWidthPx": 
+String(activeLogoSettings.width),
+  components\report-2\report-two-studio-runtime.tsx:2528:      "report.logoHeightPx": 
+String(activeLogoSettings.height),
+  components\report-2\report-two-studio-runtime.tsx:2529:      "report.logoFit": 
+activeLogoSettings.fit,
+  components\report-2\report-two-studio-runtime.tsx:2530:      "report.logoFilter": 
+activeLogoSettings.filter,
+  components\report-2\report-two-studio-runtime.tsx:2531:      
+"report.headerAlign.case.createdAt": activeHeaderAlignments["case.createdAt"],
+  components\report-2\report-two-studio-runtime.tsx:2532:      
+"report.headerAlign.service.name": activeHeaderAlignments["service.name"],
+  components\report-2\report-two-studio-runtime.tsx:2533:      
+"report.headerAlign.identity.ministryName": 
+activeHeaderAlignments["identity.ministryName"],
+  components\report-2\report-two-studio-runtime.tsx:2534:      
+"report.headerAlign.identity.educationDepartment": 
+activeHeaderAlignments["identity.educationDepartment"],
+  components\report-2\report-two-studio-runtime.tsx:2535:      
+"report.headerAlign.report.platformName": activeHeaderAlignments["report.platformName"],
+  components\report-2\report-two-studio-runtime.tsx:2536:    }),
+  components\report-2\report-two-studio-runtime.tsx:2537:    [runtimeContext, 
+activeHeaderValues, activeHeaderAlignments, activeLogoSettings],
+  components\report-2\report-two-studio-runtime.tsx:2538:  );
+  components\report-2\report-two-studio-runtime.tsx:2539:
+  components\report-2\report-two-studio-runtime.tsx:2540:  const previewCase = useMemo(() 
+=> getPreviewCase(preparedPayload), [preparedPayload]);
+  components\report-2\report-two-studio-runtime.tsx:2541:
+  components\report-2\report-two-studio-runtime.tsx:2542:  const previewTemplate = useMemo(
+  components\report-2\report-two-studio-runtime.tsx:2543:    () =>
+  components\report-2\report-two-studio-runtime.tsx:2544:      
+applyReportTwoPreparedExecutionSummary(
+> components\report-2\report-two-studio-runtime.tsx:2545:        
+buildReportTwoRuntimeTemplate(template, previewCase),
+  components\report-2\report-two-studio-runtime.tsx:2546:        preparedPayload,
+  components\report-2\report-two-studio-runtime.tsx:2547:      ),
+  components\report-2\report-two-studio-runtime.tsx:2548:    [template, previewCase, 
+preparedPayload],
+  components\report-2\report-two-studio-runtime.tsx:2549:  );
+  components\report-2\report-two-studio-runtime.tsx:2550:
+  components\report-2\report-two-studio-runtime.tsx:2551:  const visiblePreviewPages = 
+useMemo(() => {
+  components\report-2\report-two-studio-runtime.tsx:2552:    const pages = 
+previewTemplate.pages.filter(
+  components\report-2\report-two-studio-runtime.tsx:2553:      (page) => 
+!hiddenRuntimePageIds.includes(page.id),
+  components\report-2\report-two-studio-runtime.tsx:2554:    );
+  components\report-2\report-two-studio-runtime.tsx:2555:
+  components\report-2\report-two-studio-runtime.tsx:2556:    if (!runtimePageOrder.length) 
+{
+  components\report-2\report-two-studio-runtime.tsx:2557:      return pages;
+  components\report-2\report-two-studio-runtime.tsx:2558:    }
+  components\report-2\report-two-studio-runtime.tsx:2559:
+  components\report-2\report-two-studio-runtime.tsx:2560:    const orderMap = new Map(
+  components\report-2\report-two-studio-runtime.tsx:2561:      
+runtimePageOrder.map((pageId, index) => [pageId, index]),
+  components\report-2\report-two-studio-runtime.tsx:2562:    );
+  components\report-2\report-two-studio-runtime.tsx:2563:
+  components\report-2\report-two-studio-runtime.tsx:2564:    return 
+[...pages].sort((firstPage, secondPage) => {
+  components\report-2\report-two-studio-runtime.tsx:2565:      const firstIndex = 
+orderMap.has(firstPage.id)
+  components\report-2\report-two-studio-runtime.tsx:2566:        ? 
+orderMap.get(firstPage.id)!
+  components\report-2\report-two-studio-runtime.tsx:2567:        : Number.MAX_SAFE_INTEGER;
+  components\report-2\report-two-studio-runtime.tsx:2568:      const secondIndex = 
+orderMap.has(secondPage.id)
+  components\report-2\report-two-studio-runtime.tsx:2569:        ? 
+orderMap.get(secondPage.id)!
+  components\report-2\report-two-studio-runtime.tsx:2570:        : Number.MAX_SAFE_INTEGER;
+  components\report-2\report-two-studio-runtime.tsx:2571:
+  components\report-2\report-two-studio-runtime.tsx:2572:      if (firstIndex !== 
+secondIndex) {
+  components\report-2\report-two-studio-runtime.tsx:2573:        return firstIndex - 
+secondIndex;
+  components\report-2\report-two-studio-runtime.tsx:2574:      }
+  components\report-2\report-two-studio-runtime.tsx:2575:
+  components\report-2\report-two-studio-runtime.tsx:2576:      return 
+pages.indexOf(firstPage) - pages.indexOf(secondPage);
+  components\report-2\report-two-studio-runtime.tsx:2577:    });
+  components\report-2\report-two-studio-runtime.tsx:2578:  }, [previewTemplate.pages, 
+hiddenRuntimePageIds, runtimePageOrder]);
+  components\report-2\report-two-studio-runtime.tsx:2579:
+  components\report-2\report-two-studio-runtime.tsx:2580:  const visiblePreviewTemplate = 
+useMemo(
+  components\report-2\report-two-studio-runtime.tsx:2581:    () => ({
+  components\report-2\report-two-studio-runtime.tsx:2582:      ...previewTemplate,
+  components\report-2\report-two-studio-runtime.tsx:2583:      pages: visiblePreviewPages,
+  components\report-2\report-two-studio-runtime.tsx:2584:    }),
+  components\report-2\report-two-studio-runtime.tsx:2585:    [previewTemplate, 
+visiblePreviewPages],
+  components\report-2\report-two-studio-runtime.tsx:2586:  );
+  components\report-2\report-two-studio-runtime.tsx:2587:
+  components\report-2\report-two-studio-runtime.tsx:2588:  const 
+signedVisiblePreviewTemplate = useMemo(
+  components\report-2\report-two-studio-runtime.tsx:2589:    () => 
+withReportTwoSignatureBlock(visiblePreviewTemplate, preparedPayload),
+  components\report-2\report-two-studio-runtime.tsx:2590:    [visiblePreviewTemplate, 
+preparedPayload],
+  components\report-2\report-two-studio-runtime.tsx:3476:    });
+  components\report-2\report-two-studio-runtime.tsx:3477:  }
+  components\report-2\report-two-studio-runtime.tsx:3478:
+  components\report-2\report-two-studio-runtime.tsx:3479:  function removeActivePage() {
+  components\report-2\report-two-studio-runtime.tsx:3480:    
+deleteReportTwoPage(activePageId);
+  components\report-2\report-two-studio-runtime.tsx:3481:  }
+  components\report-2\report-two-studio-runtime.tsx:3482:
+  components\report-2\report-two-studio-runtime.tsx:3483:  function addBlock(kind: 
+StudioBlockKind) {
+  components\report-2\report-two-studio-runtime.tsx:3484:    const signatureTargetPageId =
+  components\report-2\report-two-studio-runtime.tsx:3485:      kind === "signature-grid" ? 
+getReportTwoSignatureTargetPageId(template.pages) : "";
+  components\report-2\report-two-studio-runtime.tsx:3486:
+  components\report-2\report-two-studio-runtime.tsx:3487:    const targetPageId =
+  components\report-2\report-two-studio-runtime.tsx:3488:      signatureTargetPageId ||
+  components\report-2\report-two-studio-runtime.tsx:3489:      getWritableReportTwoPageId(
+  components\report-2\report-two-studio-runtime.tsx:3490:        activePageId,
+  components\report-2\report-two-studio-runtime.tsx:3491:        activePage,
+  components\report-2\report-two-studio-runtime.tsx:3492:        template,
+  components\report-2\report-two-studio-runtime.tsx:3493:      );
+  components\report-2\report-two-studio-runtime.tsx:3494:
+  components\report-2\report-two-studio-runtime.tsx:3495:    const targetPage = 
+template.pages.find((page) => page.id === targetPageId);
+  components\report-2\report-two-studio-runtime.tsx:3496:
+  components\report-2\report-two-studio-runtime.tsx:3497:    if (!targetPage) return;
+  components\report-2\report-two-studio-runtime.tsx:3498:
+  components\report-2\report-two-studio-runtime.tsx:3499:    const block = 
+createBlock(kind);
+  components\report-2\report-two-studio-runtime.tsx:3500:    const nextTemplate = {
+  components\report-2\report-two-studio-runtime.tsx:3501:      ...template,
+  components\report-2\report-two-studio-runtime.tsx:3502:      pages: 
+template.pages.map((page) =>
+  components\report-2\report-two-studio-runtime.tsx:3503:        page.id === targetPage.id
+  components\report-2\report-two-studio-runtime.tsx:3504:          ? {
+  components\report-2\report-two-studio-runtime.tsx:3505:              ...page,
+  components\report-2\report-two-studio-runtime.tsx:3506:              blocks: 
+[...page.blocks, block],
+  components\report-2\report-two-studio-runtime.tsx:3507:            }
+  components\report-2\report-two-studio-runtime.tsx:3508:          : page,
+  components\report-2\report-two-studio-runtime.tsx:3509:      ),
+  components\report-2\report-two-studio-runtime.tsx:3510:    };
+> components\report-2\report-two-studio-runtime.tsx:3511:    const nextRuntimeTemplate = 
+buildReportTwoRuntimeTemplate(
+  components\report-2\report-two-studio-runtime.tsx:3512:      nextTemplate,
+  components\report-2\report-two-studio-runtime.tsx:3513:      previewCase,
+  components\report-2\report-two-studio-runtime.tsx:3514:    );
+  components\report-2\report-two-studio-runtime.tsx:3515:    const runtimePageId = 
+findReportTwoRuntimePageIdForBlock(
+  components\report-2\report-two-studio-runtime.tsx:3516:      nextRuntimeTemplate,
+  components\report-2\report-two-studio-runtime.tsx:3517:      block.id,
+  components\report-2\report-two-studio-runtime.tsx:3518:      targetPage.id,
+  components\report-2\report-two-studio-runtime.tsx:3519:    );
+  components\report-2\report-two-studio-runtime.tsx:3520:
+  components\report-2\report-two-studio-runtime.tsx:3521:    
+setTemplate(applyReportTwoPreparedExecutionSummary(nextTemplate, preparedPayload));
+  components\report-2\report-two-studio-runtime.tsx:3522:
+  components\report-2\report-two-studio-runtime.tsx:3523:    
+setActivePageId(runtimePageId);
+  components\report-2\report-two-studio-runtime.tsx:3524:    setSelectedBlockId(block.id);
+  components\report-2\report-two-studio-runtime.tsx:3525:
+  components\report-2\report-two-studio-runtime.tsx:3526:    if (runtimePageId !== 
+targetPage.id) {
+  components\report-2\report-two-studio-runtime.tsx:3527:      
+setPageSafePlacementNotice(REPORT_TWO_BLOCK_MOVED_NOTICE);
+  components\report-2\report-two-studio-runtime.tsx:3528:    } else {
+  components\report-2\report-two-studio-runtime.tsx:3529:      
+setPageSafePlacementNotice("");
+  components\report-2\report-two-studio-runtime.tsx:3530:    }
+  components\report-2\report-two-studio-runtime.tsx:3531:  }
+  components\report-2\report-two-studio-runtime.tsx:3532:
+  components\report-2\report-two-studio-runtime.tsx:3533:  function removeSelectedBlock() {
+  components\report-2\report-two-studio-runtime.tsx:3534:    if (!selectedBlock || 
+!activePage) return;
+  components\report-2\report-two-studio-runtime.tsx:3535:
+  components\report-2\report-two-studio-runtime.tsx:3536:    const writablePageId = 
+getWritableReportTwoPageId(activePageId, activePage, template);
+  components\report-2\report-two-studio-runtime.tsx:3537:    const sourcePage = 
+template.pages.find((page) => page.id === writablePageId);
+  components\report-2\report-two-studio-runtime.tsx:3538:    if (!sourcePage) return;
+  components\report-2\report-two-studio-runtime.tsx:3539:
+  components\report-2\report-two-studio-runtime.tsx:3540:    const blockExists = 
+sourcePage.blocks.some((b) => b.id === selectedBlock.id);
+  components\report-2\report-two-studio-runtime.tsx:3541:    if (!blockExists) return;
+  components\report-2\report-two-studio-runtime.tsx:3542:
+  components\report-2\report-two-studio-runtime.tsx:3543:    if (sourcePage.blocks.length 
+<= 1) {
+  components\report-2\report-two-studio-runtime.tsx:3544:      setPopup({ type: "alert", 
+title: "حذف البلوك", message: "لا يمكن حذف آخر بلوك داخل الصفحة." });
+  components\report-2\report-two-studio-runtime.tsx:3545:      return;
+  components\report-2\report-two-studio-runtime.tsx:3546:    }
+  components\report-2\report-two-studio-runtime.tsx:3547:
+  components\report-2\report-two-studio-runtime.tsx:3548:    const remainingBlocks = 
+sourcePage.blocks.filter(
+  components\report-2\report-two-studio-runtime.tsx:3549:      (block) => block.id !== 
+selectedBlock.id,
+  components\report-2\report-two-studio-runtime.tsx:3550:    );
+  components\report-2\report-two-studio-runtime.tsx:3551:
+  components\report-2\report-two-studio-runtime.tsx:3552:    updatePage(sourcePage.id, 
+(page) => ({
+  components\report-2\report-two-studio-runtime.tsx:3553:      ...page,
+  components\report-2\report-two-studio-runtime.tsx:3554:      blocks: remainingBlocks,
+  components\report-2\report-two-studio-runtime.tsx:3555:    }));
+  components\report-2\report-two-studio-runtime.tsx:3556:
+
+
+
+
+############################################################
+PATTERN: sourcePage.blocks.forEach
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:1316:}
+  components\report-2\report-two-studio-runtime.tsx:1317:
+  components\report-2\report-two-studio-runtime.tsx:1318:function 
+buildReportTwoRuntimeTemplate(
+  components\report-2\report-two-studio-runtime.tsx:1319:  template: StudioTemplate,
+  components\report-2\report-two-studio-runtime.tsx:1320:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1321:): StudioTemplate {
+  components\report-2\report-two-studio-runtime.tsx:1322:  const runtimePages: 
+StudioPage[] = [];
+  components\report-2\report-two-studio-runtime.tsx:1323:
+  components\report-2\report-two-studio-runtime.tsx:1324:  
+template.pages.forEach((sourcePage) => {
+  components\report-2\report-two-studio-runtime.tsx:1325:    let pageNumber = 1;
+  components\report-2\report-two-studio-runtime.tsx:1326:    let usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1327:    let currentPageAlreadyPushed 
+= false;
+  components\report-2\report-two-studio-runtime.tsx:1328:
+  components\report-2\report-two-studio-runtime.tsx:1329:    let currentPage: StudioPage = 
+{
+  components\report-2\report-two-studio-runtime.tsx:1330:      ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1331:      blocks: [],
+  components\report-2\report-two-studio-runtime.tsx:1332:    };
+  components\report-2\report-two-studio-runtime.tsx:1333:
+  components\report-2\report-two-studio-runtime.tsx:1334:    function pushCurrentPage() {
+  components\report-2\report-two-studio-runtime.tsx:1335:      if 
+(currentPageAlreadyPushed) return;
+  components\report-2\report-two-studio-runtime.tsx:1336:
+  components\report-2\report-two-studio-runtime.tsx:1337:      runtimePages.push({
+  components\report-2\report-two-studio-runtime.tsx:1338:        ...currentPage,
+  components\report-2\report-two-studio-runtime.tsx:1339:        blocks: 
+currentPage.blocks,
+  components\report-2\report-two-studio-runtime.tsx:1340:      });
+  components\report-2\report-two-studio-runtime.tsx:1341:      currentPageAlreadyPushed = 
+true;
+  components\report-2\report-two-studio-runtime.tsx:1342:    }
+  components\report-2\report-two-studio-runtime.tsx:1343:
+  components\report-2\report-two-studio-runtime.tsx:1344:    function startNextPage() {
+  components\report-2\report-two-studio-runtime.tsx:1345:      pageNumber += 1;
+  components\report-2\report-two-studio-runtime.tsx:1346:      usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1347:      currentPage = 
+makeReportTwoContinuationPage(sourcePage, pageNumber);
+  components\report-2\report-two-studio-runtime.tsx:1348:      currentPageAlreadyPushed = 
+false;
+  components\report-2\report-two-studio-runtime.tsx:1349:    }
+  components\report-2\report-two-studio-runtime.tsx:1350:
+> components\report-2\report-two-studio-runtime.tsx:1351:    
+sourcePage.blocks.forEach((originalBlock) => {
+  components\report-2\report-two-studio-runtime.tsx:1352:      const block = 
+normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1353:      const blockScore = 
+getReportTwoBlockHeightScore(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1354:      const pageSafeHeightScore =
+  components\report-2\report-two-studio-runtime.tsx:1355:        block.kind === 
+"evidence-gallery"
+  components\report-2\report-two-studio-runtime.tsx:1356:          ? 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
+  components\report-2\report-two-studio-runtime.tsx:1357:          : 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1358:
+  components\report-2\report-two-studio-runtime.tsx:1359:      if (
+  components\report-2\report-two-studio-runtime.tsx:1360:        currentPage.blocks.length 
+> 0 &&
+  components\report-2\report-two-studio-runtime.tsx:1361:        usedScore + blockScore > 
+pageSafeHeightScore
+  components\report-2\report-two-studio-runtime.tsx:1362:      ) {
+  components\report-2\report-two-studio-runtime.tsx:1363:        pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1364:        startNextPage();
+  components\report-2\report-two-studio-runtime.tsx:1365:      }
+  components\report-2\report-two-studio-runtime.tsx:1366:
+  components\report-2\report-two-studio-runtime.tsx:1367:      
+currentPage.blocks.push(block);
+  components\report-2\report-two-studio-runtime.tsx:1368:      usedScore += blockScore;
+  components\report-2\report-two-studio-runtime.tsx:1369:
+  components\report-2\report-two-studio-runtime.tsx:1370:      if (block.kind === 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1371:        const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1372:        const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1373:        const pagesCount = 
+Math.ceil(count / perPage);
+  components\report-2\report-two-studio-runtime.tsx:1374:
+  components\report-2\report-two-studio-runtime.tsx:1375:        if (pagesCount > 1) {
+  components\report-2\report-two-studio-runtime.tsx:1376:          pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1377:
+  components\report-2\report-two-studio-runtime.tsx:1378:          for (let index = 1; 
+index < pagesCount; index += 1) {
+  components\report-2\report-two-studio-runtime.tsx:1379:            const 
+evidencePageNumber = pageNumber + index;
+  components\report-2\report-two-studio-runtime.tsx:1380:            const evidencePage: 
+StudioPage = {
+  components\report-2\report-two-studio-runtime.tsx:1381:              ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1382:              id: 
+`${sourcePage.id}-${block.id}-evidence-${evidencePageNumber}`,
+  components\report-2\report-two-studio-runtime.tsx:1383:              kind: "evidence",
+  components\report-2\report-two-studio-runtime.tsx:1384:              title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1385:              description: "صفحة 
+شواهد إضافية داخل التقرير.",
+  components\report-2\report-two-studio-runtime.tsx:1386:              
+sourceTemplatePageId: sourcePage.id,
+  components\report-2\report-two-studio-runtime.tsx:1387:              
+reportTwoVirtualPage: true,
+  components\report-2\report-two-studio-runtime.tsx:1388:              blocks: [
+  components\report-2\report-two-studio-runtime.tsx:1389:                {
+  components\report-2\report-two-studio-runtime.tsx:1390:                  ...block,
+  components\report-2\report-two-studio-runtime.tsx:1391:                  id: 
+`${block.id}-evidence-${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1392:                  title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1393:                  
+evidenceStartIndex: index * perPage,
+  components\report-2\report-two-studio-runtime.tsx:1394:                  evidenceLimit: 
+perPage,
+  components\report-2\report-two-studio-runtime.tsx:1395:                  
+evidenceAutoCreatePages: false,
+  components\report-2\report-two-studio-runtime.tsx:1396:                },
+
+
+
+
+############################################################
+PATTERN: pushCurrentPage
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:1299:  if (block.kind !== 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1300:    return {
+  components\report-2\report-two-studio-runtime.tsx:1301:      ...block,
+  components\report-2\report-two-studio-runtime.tsx:1302:      sourceBlockId: block.id,
+  components\report-2\report-two-studio-runtime.tsx:1303:    } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1304:  }
+  components\report-2\report-two-studio-runtime.tsx:1305:
+  components\report-2\report-two-studio-runtime.tsx:1306:  const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1307:  const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1308:
+  components\report-2\report-two-studio-runtime.tsx:1309:  return {
+  components\report-2\report-two-studio-runtime.tsx:1310:    ...block,
+  components\report-2\report-two-studio-runtime.tsx:1311:    evidenceStartIndex: 
+Number(block.evidenceStartIndex || 0),
+  components\report-2\report-two-studio-runtime.tsx:1312:    evidenceLimit: perPage,
+  components\report-2\report-two-studio-runtime.tsx:1313:    evidenceAutoCreatePages: 
+false,
+  components\report-2\report-two-studio-runtime.tsx:1314:    evidenceEmptyBehavior: count 
+? block.evidenceEmptyBehavior : "message",
+  components\report-2\report-two-studio-runtime.tsx:1315:  } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1316:}
+  components\report-2\report-two-studio-runtime.tsx:1317:
+  components\report-2\report-two-studio-runtime.tsx:1318:function 
+buildReportTwoRuntimeTemplate(
+  components\report-2\report-two-studio-runtime.tsx:1319:  template: StudioTemplate,
+  components\report-2\report-two-studio-runtime.tsx:1320:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1321:): StudioTemplate {
+  components\report-2\report-two-studio-runtime.tsx:1322:  const runtimePages: 
+StudioPage[] = [];
+  components\report-2\report-two-studio-runtime.tsx:1323:
+  components\report-2\report-two-studio-runtime.tsx:1324:  
+template.pages.forEach((sourcePage) => {
+  components\report-2\report-two-studio-runtime.tsx:1325:    let pageNumber = 1;
+  components\report-2\report-two-studio-runtime.tsx:1326:    let usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1327:    let currentPageAlreadyPushed 
+= false;
+  components\report-2\report-two-studio-runtime.tsx:1328:
+  components\report-2\report-two-studio-runtime.tsx:1329:    let currentPage: StudioPage = 
+{
+  components\report-2\report-two-studio-runtime.tsx:1330:      ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1331:      blocks: [],
+  components\report-2\report-two-studio-runtime.tsx:1332:    };
+  components\report-2\report-two-studio-runtime.tsx:1333:
+> components\report-2\report-two-studio-runtime.tsx:1334:    function pushCurrentPage() {
+  components\report-2\report-two-studio-runtime.tsx:1335:      if 
+(currentPageAlreadyPushed) return;
+  components\report-2\report-two-studio-runtime.tsx:1336:
+  components\report-2\report-two-studio-runtime.tsx:1337:      runtimePages.push({
+  components\report-2\report-two-studio-runtime.tsx:1338:        ...currentPage,
+  components\report-2\report-two-studio-runtime.tsx:1339:        blocks: 
+currentPage.blocks,
+  components\report-2\report-two-studio-runtime.tsx:1340:      });
+  components\report-2\report-two-studio-runtime.tsx:1341:      currentPageAlreadyPushed = 
+true;
+  components\report-2\report-two-studio-runtime.tsx:1342:    }
+  components\report-2\report-two-studio-runtime.tsx:1343:
+  components\report-2\report-two-studio-runtime.tsx:1344:    function startNextPage() {
+  components\report-2\report-two-studio-runtime.tsx:1345:      pageNumber += 1;
+  components\report-2\report-two-studio-runtime.tsx:1346:      usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1347:      currentPage = 
+makeReportTwoContinuationPage(sourcePage, pageNumber);
+  components\report-2\report-two-studio-runtime.tsx:1348:      currentPageAlreadyPushed = 
+false;
+  components\report-2\report-two-studio-runtime.tsx:1349:    }
+  components\report-2\report-two-studio-runtime.tsx:1350:
+  components\report-2\report-two-studio-runtime.tsx:1351:    
+sourcePage.blocks.forEach((originalBlock) => {
+  components\report-2\report-two-studio-runtime.tsx:1352:      const block = 
+normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1353:      const blockScore = 
+getReportTwoBlockHeightScore(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1354:      const pageSafeHeightScore =
+  components\report-2\report-two-studio-runtime.tsx:1355:        block.kind === 
+"evidence-gallery"
+  components\report-2\report-two-studio-runtime.tsx:1356:          ? 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
+  components\report-2\report-two-studio-runtime.tsx:1357:          : 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1358:
+  components\report-2\report-two-studio-runtime.tsx:1359:      if (
+  components\report-2\report-two-studio-runtime.tsx:1360:        currentPage.blocks.length 
+> 0 &&
+  components\report-2\report-two-studio-runtime.tsx:1361:        usedScore + blockScore > 
+pageSafeHeightScore
+  components\report-2\report-two-studio-runtime.tsx:1362:      ) {
+> components\report-2\report-two-studio-runtime.tsx:1363:        pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1364:        startNextPage();
+  components\report-2\report-two-studio-runtime.tsx:1365:      }
+  components\report-2\report-two-studio-runtime.tsx:1366:
+  components\report-2\report-two-studio-runtime.tsx:1367:      
+currentPage.blocks.push(block);
+  components\report-2\report-two-studio-runtime.tsx:1368:      usedScore += blockScore;
+  components\report-2\report-two-studio-runtime.tsx:1369:
+  components\report-2\report-two-studio-runtime.tsx:1370:      if (block.kind === 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1371:        const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1372:        const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1373:        const pagesCount = 
+Math.ceil(count / perPage);
+  components\report-2\report-two-studio-runtime.tsx:1374:
+  components\report-2\report-two-studio-runtime.tsx:1375:        if (pagesCount > 1) {
+> components\report-2\report-two-studio-runtime.tsx:1376:          pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1377:
+  components\report-2\report-two-studio-runtime.tsx:1378:          for (let index = 1; 
+index < pagesCount; index += 1) {
+  components\report-2\report-two-studio-runtime.tsx:1379:            const 
+evidencePageNumber = pageNumber + index;
+  components\report-2\report-two-studio-runtime.tsx:1380:            const evidencePage: 
+StudioPage = {
+  components\report-2\report-two-studio-runtime.tsx:1381:              ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1382:              id: 
+`${sourcePage.id}-${block.id}-evidence-${evidencePageNumber}`,
+  components\report-2\report-two-studio-runtime.tsx:1383:              kind: "evidence",
+  components\report-2\report-two-studio-runtime.tsx:1384:              title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1385:              description: "صفحة 
+شواهد إضافية داخل التقرير.",
+  components\report-2\report-two-studio-runtime.tsx:1386:              
+sourceTemplatePageId: sourcePage.id,
+  components\report-2\report-two-studio-runtime.tsx:1387:              
+reportTwoVirtualPage: true,
+  components\report-2\report-two-studio-runtime.tsx:1388:              blocks: [
+  components\report-2\report-two-studio-runtime.tsx:1389:                {
+  components\report-2\report-two-studio-runtime.tsx:1390:                  ...block,
+  components\report-2\report-two-studio-runtime.tsx:1391:                  id: 
+`${block.id}-evidence-${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1392:                  title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1393:                  
+evidenceStartIndex: index * perPage,
+  components\report-2\report-two-studio-runtime.tsx:1394:                  evidenceLimit: 
+perPage,
+  components\report-2\report-two-studio-runtime.tsx:1395:                  
+evidenceAutoCreatePages: false,
+  components\report-2\report-two-studio-runtime.tsx:1396:                },
+  components\report-2\report-two-studio-runtime.tsx:1397:              ],
+  components\report-2\report-two-studio-runtime.tsx:1398:            };
+  components\report-2\report-two-studio-runtime.tsx:1399:
+  components\report-2\report-two-studio-runtime.tsx:1400:            
+runtimePages.push(evidencePage);
+  components\report-2\report-two-studio-runtime.tsx:1401:          }
+  components\report-2\report-two-studio-runtime.tsx:1402:
+  components\report-2\report-two-studio-runtime.tsx:1403:          pageNumber += 
+pagesCount - 1;
+  components\report-2\report-two-studio-runtime.tsx:1404:          usedScore = 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1405:        }
+  components\report-2\report-two-studio-runtime.tsx:1406:      }
+  components\report-2\report-two-studio-runtime.tsx:1407:    });
+  components\report-2\report-two-studio-runtime.tsx:1408:
+> components\report-2\report-two-studio-runtime.tsx:1409:    pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1410:  });
+  components\report-2\report-two-studio-runtime.tsx:1411:
+  components\report-2\report-two-studio-runtime.tsx:1412:  return {
+  components\report-2\report-two-studio-runtime.tsx:1413:    ...template,
+  components\report-2\report-two-studio-runtime.tsx:1414:    pages: 
+runtimePages.filter((page) => page.blocks.length > 0),
+  components\report-2\report-two-studio-runtime.tsx:1415:  };
+  components\report-2\report-two-studio-runtime.tsx:1416:}
+  components\report-2\report-two-studio-runtime.tsx:1417:function 
+getWritableReportTwoPageId(
+  components\report-2\report-two-studio-runtime.tsx:1418:  activePageId: string,
+  components\report-2\report-two-studio-runtime.tsx:1419:  activePage: StudioPage | 
+undefined,
+  components\report-2\report-two-studio-runtime.tsx:1420:  template: StudioTemplate,
+  components\report-2\report-two-studio-runtime.tsx:1421:) {
+  components\report-2\report-two-studio-runtime.tsx:1422:  const directPage = 
+template.pages.find((page) => page.id === activePageId);
+  components\report-2\report-two-studio-runtime.tsx:1423:
+  components\report-2\report-two-studio-runtime.tsx:1424:  if (directPage) return 
+directPage.id;
+  components\report-2\report-two-studio-runtime.tsx:1425:
+  components\report-2\report-two-studio-runtime.tsx:1426:  const sourceTemplatePageId = 
+cleanText((activePage as any)?.sourceTemplatePageId);
+  components\report-2\report-two-studio-runtime.tsx:1427:
+  components\report-2\report-two-studio-runtime.tsx:1428:  if (sourceTemplatePageId) {
+  components\report-2\report-two-studio-runtime.tsx:1429:    const sourcePage = 
+template.pages.find((page) => page.id === sourceTemplatePageId);
+  components\report-2\report-two-studio-runtime.tsx:1430:
+  components\report-2\report-two-studio-runtime.tsx:1431:    if (sourcePage) return 
+sourcePage.id;
+  components\report-2\report-two-studio-runtime.tsx:1432:  }
+  components\report-2\report-two-studio-runtime.tsx:1433:
+  components\report-2\report-two-studio-runtime.tsx:1434:  const autoPageParentId = 
+activePageId.includes("-auto-page-")
+  components\report-2\report-two-studio-runtime.tsx:1435:    ? 
+activePageId.split("-auto-page-")[0]
+  components\report-2\report-two-studio-runtime.tsx:1436:    : "";
+  components\report-2\report-two-studio-runtime.tsx:1437:
+  components\report-2\report-two-studio-runtime.tsx:1438:  if (autoPageParentId) {
+  components\report-2\report-two-studio-runtime.tsx:1439:    const sourcePage = 
+template.pages.find((page) => page.id === autoPageParentId);
+  components\report-2\report-two-studio-runtime.tsx:1440:
+  components\report-2\report-two-studio-runtime.tsx:1441:    if (sourcePage) return 
+sourcePage.id;
+  components\report-2\report-two-studio-runtime.tsx:1442:  }
+  components\report-2\report-two-studio-runtime.tsx:1443:
+  components\report-2\report-two-studio-runtime.tsx:1444:  const evidencePageParentId = 
+activePageId.includes("-evidence-")
+  components\report-2\report-two-studio-runtime.tsx:1445:    ? 
+activePageId.split("-evidence-")[0]
+  components\report-2\report-two-studio-runtime.tsx:1446:    : "";
+  components\report-2\report-two-studio-runtime.tsx:1447:
+  components\report-2\report-two-studio-runtime.tsx:1448:  if (evidencePageParentId) {
+  components\report-2\report-two-studio-runtime.tsx:1449:    const sourcePage = 
+template.pages.find((page) =>
+  components\report-2\report-two-studio-runtime.tsx:1450:      
+evidencePageParentId.startsWith(page.id),
+  components\report-2\report-two-studio-runtime.tsx:1451:    );
+  components\report-2\report-two-studio-runtime.tsx:1452:
+  components\report-2\report-two-studio-runtime.tsx:1453:    if (sourcePage) return 
+sourcePage.id;
+  components\report-2\report-two-studio-runtime.tsx:1454:  }
+
+
+
+
+############################################################
+PATTERN: startNextPage
+############################################################
+
+  components\report-2\report-two-studio-runtime.tsx:1309:  return {
+  components\report-2\report-two-studio-runtime.tsx:1310:    ...block,
+  components\report-2\report-two-studio-runtime.tsx:1311:    evidenceStartIndex: 
+Number(block.evidenceStartIndex || 0),
+  components\report-2\report-two-studio-runtime.tsx:1312:    evidenceLimit: perPage,
+  components\report-2\report-two-studio-runtime.tsx:1313:    evidenceAutoCreatePages: 
+false,
+  components\report-2\report-two-studio-runtime.tsx:1314:    evidenceEmptyBehavior: count 
+? block.evidenceEmptyBehavior : "message",
+  components\report-2\report-two-studio-runtime.tsx:1315:  } as StudioBlock;
+  components\report-2\report-two-studio-runtime.tsx:1316:}
+  components\report-2\report-two-studio-runtime.tsx:1317:
+  components\report-2\report-two-studio-runtime.tsx:1318:function 
+buildReportTwoRuntimeTemplate(
+  components\report-2\report-two-studio-runtime.tsx:1319:  template: StudioTemplate,
+  components\report-2\report-two-studio-runtime.tsx:1320:  previewCase: ReturnType<typeof 
+getPreviewCase>,
+  components\report-2\report-two-studio-runtime.tsx:1321:): StudioTemplate {
+  components\report-2\report-two-studio-runtime.tsx:1322:  const runtimePages: 
+StudioPage[] = [];
+  components\report-2\report-two-studio-runtime.tsx:1323:
+  components\report-2\report-two-studio-runtime.tsx:1324:  
+template.pages.forEach((sourcePage) => {
+  components\report-2\report-two-studio-runtime.tsx:1325:    let pageNumber = 1;
+  components\report-2\report-two-studio-runtime.tsx:1326:    let usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1327:    let currentPageAlreadyPushed 
+= false;
+  components\report-2\report-two-studio-runtime.tsx:1328:
+  components\report-2\report-two-studio-runtime.tsx:1329:    let currentPage: StudioPage = 
+{
+  components\report-2\report-two-studio-runtime.tsx:1330:      ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1331:      blocks: [],
+  components\report-2\report-two-studio-runtime.tsx:1332:    };
+  components\report-2\report-two-studio-runtime.tsx:1333:
+  components\report-2\report-two-studio-runtime.tsx:1334:    function pushCurrentPage() {
+  components\report-2\report-two-studio-runtime.tsx:1335:      if 
+(currentPageAlreadyPushed) return;
+  components\report-2\report-two-studio-runtime.tsx:1336:
+  components\report-2\report-two-studio-runtime.tsx:1337:      runtimePages.push({
+  components\report-2\report-two-studio-runtime.tsx:1338:        ...currentPage,
+  components\report-2\report-two-studio-runtime.tsx:1339:        blocks: 
+currentPage.blocks,
+  components\report-2\report-two-studio-runtime.tsx:1340:      });
+  components\report-2\report-two-studio-runtime.tsx:1341:      currentPageAlreadyPushed = 
+true;
+  components\report-2\report-two-studio-runtime.tsx:1342:    }
+  components\report-2\report-two-studio-runtime.tsx:1343:
+> components\report-2\report-two-studio-runtime.tsx:1344:    function startNextPage() {
+  components\report-2\report-two-studio-runtime.tsx:1345:      pageNumber += 1;
+  components\report-2\report-two-studio-runtime.tsx:1346:      usedScore = 0;
+  components\report-2\report-two-studio-runtime.tsx:1347:      currentPage = 
+makeReportTwoContinuationPage(sourcePage, pageNumber);
+  components\report-2\report-two-studio-runtime.tsx:1348:      currentPageAlreadyPushed = 
+false;
+  components\report-2\report-two-studio-runtime.tsx:1349:    }
+  components\report-2\report-two-studio-runtime.tsx:1350:
+  components\report-2\report-two-studio-runtime.tsx:1351:    
+sourcePage.blocks.forEach((originalBlock) => {
+  components\report-2\report-two-studio-runtime.tsx:1352:      const block = 
+normalizeReportTwoBlockForRuntime(originalBlock, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1353:      const blockScore = 
+getReportTwoBlockHeightScore(block, previewCase);
+  components\report-2\report-two-studio-runtime.tsx:1354:      const pageSafeHeightScore =
+  components\report-2\report-two-studio-runtime.tsx:1355:        block.kind === 
+"evidence-gallery"
+  components\report-2\report-two-studio-runtime.tsx:1356:          ? 
+REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
+  components\report-2\report-two-studio-runtime.tsx:1357:          : 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1358:
+  components\report-2\report-two-studio-runtime.tsx:1359:      if (
+  components\report-2\report-two-studio-runtime.tsx:1360:        currentPage.blocks.length 
+> 0 &&
+  components\report-2\report-two-studio-runtime.tsx:1361:        usedScore + blockScore > 
+pageSafeHeightScore
+  components\report-2\report-two-studio-runtime.tsx:1362:      ) {
+  components\report-2\report-two-studio-runtime.tsx:1363:        pushCurrentPage();
+> components\report-2\report-two-studio-runtime.tsx:1364:        startNextPage();
+  components\report-2\report-two-studio-runtime.tsx:1365:      }
+  components\report-2\report-two-studio-runtime.tsx:1366:
+  components\report-2\report-two-studio-runtime.tsx:1367:      
+currentPage.blocks.push(block);
+  components\report-2\report-two-studio-runtime.tsx:1368:      usedScore += blockScore;
+  components\report-2\report-two-studio-runtime.tsx:1369:
+  components\report-2\report-two-studio-runtime.tsx:1370:      if (block.kind === 
+"evidence-gallery") {
+  components\report-2\report-two-studio-runtime.tsx:1371:        const perPage = 
+getEvidencePerPageFromBlock(block);
+  components\report-2\report-two-studio-runtime.tsx:1372:        const count = 
+previewCase.evidences.length;
+  components\report-2\report-two-studio-runtime.tsx:1373:        const pagesCount = 
+Math.ceil(count / perPage);
+  components\report-2\report-two-studio-runtime.tsx:1374:
+  components\report-2\report-two-studio-runtime.tsx:1375:        if (pagesCount > 1) {
+  components\report-2\report-two-studio-runtime.tsx:1376:          pushCurrentPage();
+  components\report-2\report-two-studio-runtime.tsx:1377:
+  components\report-2\report-two-studio-runtime.tsx:1378:          for (let index = 1; 
+index < pagesCount; index += 1) {
+  components\report-2\report-two-studio-runtime.tsx:1379:            const 
+evidencePageNumber = pageNumber + index;
+  components\report-2\report-two-studio-runtime.tsx:1380:            const evidencePage: 
+StudioPage = {
+  components\report-2\report-two-studio-runtime.tsx:1381:              ...sourcePage,
+  components\report-2\report-two-studio-runtime.tsx:1382:              id: 
+`${sourcePage.id}-${block.id}-evidence-${evidencePageNumber}`,
+  components\report-2\report-two-studio-runtime.tsx:1383:              kind: "evidence",
+  components\report-2\report-two-studio-runtime.tsx:1384:              title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1385:              description: "صفحة 
+شواهد إضافية داخل التقرير.",
+  components\report-2\report-two-studio-runtime.tsx:1386:              
+sourceTemplatePageId: sourcePage.id,
+  components\report-2\report-two-studio-runtime.tsx:1387:              
+reportTwoVirtualPage: true,
+  components\report-2\report-two-studio-runtime.tsx:1388:              blocks: [
+  components\report-2\report-two-studio-runtime.tsx:1389:                {
+  components\report-2\report-two-studio-runtime.tsx:1390:                  ...block,
+  components\report-2\report-two-studio-runtime.tsx:1391:                  id: 
+`${block.id}-evidence-${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1392:                  title: 
+`${block.title || "الشواهد"} - صفحة ${index + 1}`,
+  components\report-2\report-two-studio-runtime.tsx:1393:                  
+evidenceStartIndex: index * perPage,
+  components\report-2\report-two-studio-runtime.tsx:1394:                  evidenceLimit: 
+perPage,
+  components\report-2\report-two-studio-runtime.tsx:1395:                  
+evidenceAutoCreatePages: false,
+  components\report-2\report-two-studio-runtime.tsx:1396:                },
+  components\report-2\report-two-studio-runtime.tsx:1397:              ],
+  components\report-2\report-two-studio-runtime.tsx:1398:            };
+  components\report-2\report-two-studio-runtime.tsx:1399:
+  components\report-2\report-two-studio-runtime.tsx:1400:            
+runtimePages.push(evidencePage);
+  components\report-2\report-two-studio-runtime.tsx:1401:          }
+  components\report-2\report-two-studio-runtime.tsx:1402:
+  components\report-2\report-two-studio-runtime.tsx:1403:          pageNumber += 
+pagesCount - 1;
+  components\report-2\report-two-studio-runtime.tsx:1404:          usedScore = 
+REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+  components\report-2\report-two-studio-runtime.tsx:1405:        }
+  components\report-2\report-two-studio-runtime.tsx:1406:      }
+  components\report-2\report-two-studio-runtime.tsx:1407:    });
+  components\report-2\report-two-studio-runtime.tsx:1408:
+  components\report-2\report-two-studio-runtime.tsx:1409:    pushCurrentPage();
+
+
+
+
+############################################################
+PATTERN: FinalReportDesignRenderer
+############################################################
+NOT FOUND
