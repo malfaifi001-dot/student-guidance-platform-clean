@@ -100,12 +100,29 @@ function isNumericQuestion(type: string) {
   return type === "RATING" || type === "SCALE" || type === "NUMBER";
 }
 
+function getDownloadFileName(contentDisposition: string | null, fallback: string) {
+  const encodedMatch = contentDisposition?.match(/filename\*=UTF-8''([^;]+)/i);
+
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1].trim());
+    } catch {
+      return encodedMatch[1].trim();
+    }
+  }
+
+  const plainMatch = contentDisposition?.match(/filename="?([^";]+)"?/i);
+
+  return plainMatch?.[1]?.trim() || fallback;
+}
+
 export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShellProps) {
   const [analysis, setAnalysis] = useState<SurveyAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selectedReportQuestionIds, setSelectedReportQuestionIds] = useState<string[]>([]);
+  const [isPdfExporting, setIsPdfExporting] = useState(false);
 
   const numericQuestions = useMemo(
     () => analysis?.questions.filter((question) => question.average !== null) || [],
@@ -206,16 +223,64 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
     setSelectedReportQuestionIds([]);
   }
 
-  function openSurveyPdf() {
+  async function openSurveyPdf() {
     if (!selectedReportQuestionIds.length) {
       setFeedback("اختر سؤالًا واحدًا على الأقل قبل تصدير PDF.");
+      return;
+    }
+
+    if (isPdfExporting) {
       return;
     }
 
     const params = new URLSearchParams();
     params.set("questionIds", selectedReportQuestionIds.join(","));
 
-    window.location.href = `/api/dashboard/surveys/${surveyId}/export/pdf?${params.toString()}`;
+    const fallbackTitle =
+      `${analysis?.survey.title || "تقرير الاستبيان"}`
+        .replace(/[\\/:*?"<>|]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim() || "تقرير الاستبيان";
+
+    setIsPdfExporting(true);
+    setFeedback("جاري تجهيز ملف PDF...");
+
+    try {
+      const response = await fetch(`/api/dashboard/surveys/${surveyId}/export/pdf?${params.toString()}`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "تعذر تصدير تقرير الاستبيان PDF.");
+      }
+
+      const blob = await response.blob();
+      const fileName = getDownloadFileName(
+        response.headers.get("Content-Disposition"),
+        `${fallbackTitle}.pdf`,
+      );
+
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.setTimeout(() => {
+        URL.revokeObjectURL(downloadUrl);
+      }, 1000);
+
+      setFeedback("تم تجهيز ملف PDF وبدأ التنزيل.");
+    } catch (error) {
+      console.error("SURVEY_PDF_CLIENT_EXPORT_ERROR", error);
+      setFeedback(error instanceof Error ? error.message : "تعذر تصدير تقرير الاستبيان PDF.");
+    } finally {
+      setIsPdfExporting(false);
+    }
   }
 
   if (isLoading) {
@@ -340,9 +405,10 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
             <button
               type="button"
               onClick={openSurveyPdf}
-              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 dark:text-sky-400 transition hover:bg-sky-100"
+              disabled={isPdfExporting}
+              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-sky-400"
             >
-              تصدير PDF
+              {isPdfExporting ? "جاري تجهيز PDF..." : "تصدير PDF"}
             </button>
 
             <button
