@@ -187,8 +187,11 @@ type PreviewCaseData = {
   evidences?: Array<{
     id?: string;
     title?: string;
+    url?: string;
     fileUrl?: string;
     imageUrl?: string;
+    type?: "IMAGE" | "FILE";
+    mimeType?: string | null;
     caption?: string;
   }>;
   values?: Array<{
@@ -232,6 +235,75 @@ type ReportDesignRendererProps = {
 
   suppressAutoEvidencePages?: boolean;
 };
+
+const REPORT_DESIGN_IMAGE_EVIDENCE_EXTENSION_PATTERN =
+  /\.(png|jpe?g|webp|gif|avif)(?:[?#].*)?$/i;
+
+function hasReportDesignImageEvidenceExtension(value: unknown) {
+  const text = String(value || "").trim().replaceAll("\\", "/");
+
+  if (!text) return false;
+
+  return REPORT_DESIGN_IMAGE_EVIDENCE_EXTENSION_PATTERN.test(text);
+}
+
+function isReportDesignImageEvidence(
+  evidence: NonNullable<PreviewCaseData["evidences"]>[number] | undefined,
+) {
+  if (!evidence) return false;
+  if (String(evidence.type || "").trim().toUpperCase() === "IMAGE") return true;
+  if (String(evidence.mimeType || "").toLowerCase().startsWith("image/")) return true;
+
+  return [evidence.imageUrl, evidence.url, evidence.fileUrl].some((value) =>
+    hasReportDesignImageEvidenceExtension(value),
+  );
+}
+
+function getReportDesignEvidenceImageUrl(
+  evidence: NonNullable<PreviewCaseData["evidences"]>[number] | undefined,
+) {
+  if (!evidence || !isReportDesignImageEvidence(evidence)) return "";
+
+  return String(evidence.imageUrl || evidence.url || evidence.fileUrl || "").trim();
+}
+
+function getReportDesignSignatureStyleText() {
+  return `
+    .pdf-report-page,
+    .pdf-report-page * {
+      color-scheme: light !important;
+    }
+
+    .report-design-signature-grid-block,
+    .report-design-signature-grid-block * {
+      color-scheme: light !important;
+    }
+
+    .report-design-signature-image-frame {
+      background: #ffffff !important;
+    }
+
+    .report-design-signature-image {
+      background: #ffffff !important;
+      object-fit: contain !important;
+      mix-blend-mode: normal !important;
+      filter: none !important;
+    }
+
+    .report-design-evidence-fallback[data-report-design-real-evidence="true"] p {
+      font-size: 0 !important;
+      line-height: 0 !important;
+      color: transparent !important;
+    }
+
+    .report-design-evidence-fallback[data-report-design-real-evidence="true"] p::after {
+      content: "Ø´Ø§Ù‡Ø¯ Ø¨Ø¯ÙˆÙ† ØµÙˆØ±Ø©";
+      font-size: 12px;
+      line-height: 1.5;
+      color: #64748b;
+    }
+  `;
+}
 
 export const reportDesignTemplates: Array<{
   id: ReportDesignId;
@@ -389,6 +461,7 @@ export function ReportDesignRenderer({
   const headerStyleText = getReportHeaderSettingsStyle(
     template?.designConfig?.header,
   );
+  const signatureStyleText = getReportDesignSignatureStyleText();
   const pages = template?.pages || [];
 
   const logoStyle = (
@@ -405,6 +478,7 @@ export function ReportDesignRenderer({
     `}</style>
   );
   const headerStyle = headerStyleText ? <style>{headerStyleText}</style> : null;
+  const signatureStyle = <style>{signatureStyleText}</style>;
 
   const controls = (
     <>
@@ -551,6 +625,7 @@ export function ReportDesignRenderer({
       <div className="space-y-4">
         {logoStyle}
         {headerStyle}
+        {signatureStyle}
 
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           {controls}
@@ -567,6 +642,7 @@ export function ReportDesignRenderer({
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       {logoStyle}
       {headerStyle}
+      {signatureStyle}
 
       <div className="report-design-logo-control-style">
         <div className="mb-5">{controls}</div>
@@ -599,6 +675,7 @@ export function FinalReportDesignRenderer({
   const headerStyleText = getReportHeaderSettingsStyle(
     template?.designConfig?.header,
   );
+  const signatureStyleText = getReportDesignSignatureStyleText();
 
   const pages = normalizedTemplate.pages?.length
     ? normalizedTemplate.pages
@@ -635,6 +712,7 @@ export function FinalReportDesignRenderer({
   return (
     <section className="space-y-4 bg-transparent print:space-y-0" dir="rtl">
       {headerStyleText ? <style>{headerStyleText}</style> : null}
+      <style>{signatureStyleText}</style>
       {pages.map((page: any) => (
         <div key={page.id} className="break-after-page print:break-after-page">
           <A4DesignPage
@@ -2392,12 +2470,18 @@ function DesignBlock({
                     : "w-[58mm]",
               ].join(" ")}
             >
-              <div className="flex h-[10mm] items-end justify-center">
+              <div className="report-design-signature-image-frame flex h-[10mm] items-end justify-center rounded-md bg-white">
                 {signature.imageUrl ? (
                   <img
                     src={signature.imageUrl}
                     alt={signature.label}
-                    className="max-h-[10mm] max-w-[42mm] object-contain"
+                    className="report-design-signature-image max-h-[10mm] max-w-[42mm] object-contain"
+                    style={{
+                      background: "#ffffff",
+                      objectFit: "contain",
+                      mixBlendMode: "normal",
+                      filter: "none",
+                    }}
                   />
                 ) : (
                   <div className="mb-1 w-full border-b border-dashed border-slate-400" />
@@ -2613,7 +2697,7 @@ function EvidenceBlock({
 
       <div className={getEvidenceGridClass(block)} style={getEvidenceGridStyle(block)}>
         {visibleEvidences.map((evidence, index) => {
-          const imageUrl = evidence.imageUrl || evidence.fileUrl || "";
+          const imageUrl = getReportDesignEvidenceImageUrl(evidence);
 
           return (
             <figure
@@ -2629,7 +2713,10 @@ function EvidenceBlock({
                   className={`${getEvidenceImageClass(block)} bg-slate-50`}
                 />
               ) : (
-                <div className={`${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center justify-center bg-slate-50 text-center`}>
+                <div
+                  data-report-design-real-evidence={isPlaceholderMode ? undefined : "true"}
+                  className={`report-design-evidence-fallback ${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center justify-center bg-slate-50 text-center`}
+                >
                   <div className={["flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", accent.iconClass].join(" ")}>📎</div>
                   <p className="mt-3 text-xs font-black text-slate-500">مساحة شاهد للمعاينة</p>
                 </div>

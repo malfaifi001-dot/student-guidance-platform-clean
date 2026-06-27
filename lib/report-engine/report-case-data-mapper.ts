@@ -85,19 +85,26 @@ type CaseEntryForReport = {
 
   evidences?: Array<{
     id: string;
+    title?: string | null;
     fileName?: string | null;
     fileUrl?: string | null;
+    url?: string | null;
     mimeType?: string | null;
     size?: number | null;
     note?: string | null;
+    caption?: string | null;
   }>;
 
   caseEvidences?: Array<{
     id: string;
+    title?: string | null;
     fileName: string;
     fileUrl: string;
+    url?: string | null;
     mimeType?: string | null;
     size?: number | null;
+    note?: string | null;
+    caption?: string | null;
   }>;
 };
 
@@ -127,16 +134,38 @@ function stringifyReportValue(value: unknown): string {
     return String(value);
   }
 }
-function isImageEvidence(mimeType?: string | null, fileUrl?: string | null) {
-  if (mimeType?.startsWith("image/")) {
-    return true;
-  }
+const REPORT_IMAGE_EVIDENCE_EXTENSION_PATTERN =
+  /\.(png|jpe?g|webp|gif|avif)(?:[?#].*)?$/i;
 
-  if (!fileUrl) {
+function hasReportImageEvidenceExtension(value: unknown) {
+  const text = String(value || "").trim().replaceAll("\\", "/");
+
+  if (!text) {
     return false;
   }
 
-  return /\.(png|jpg|jpeg|webp|gif)$/i.test(fileUrl);
+  return REPORT_IMAGE_EVIDENCE_EXTENSION_PATTERN.test(text);
+}
+
+function isImageEvidence(item: {
+  type?: string | null;
+  mimeType?: string | null;
+  fileUrl?: string | null;
+  url?: string | null;
+  fileName?: string | null;
+  title?: string | null;
+}) {
+  if (String(item.type || "").trim().toUpperCase() === "IMAGE") {
+    return true;
+  }
+
+  if (String(item.mimeType || "").toLowerCase().startsWith("image/")) {
+    return true;
+  }
+
+  return [item.fileUrl, item.url, item.fileName, item.title].some((value) =>
+    hasReportImageEvidenceExtension(value)
+  );
 }
 
 function normalizeReportValues(
@@ -153,9 +182,10 @@ function normalizeReportEvidences(
   caseEntry: CaseEntryForReport
 ): ReportMappedEvidence[] {
   const normalEvidences: ReportMappedEvidence[] = (caseEntry.evidences || [])
-    .filter((item) => Boolean(item.fileUrl))
+    .filter((item) => Boolean(item.fileUrl || item.url))
     .map((item) => {
-      const fileUrl = item.fileUrl || "";
+      const fileUrl = item.fileUrl || item.url || "";
+      const evidenceTitle = item.title || item.note || item.fileName || "Ø´Ø§Ù‡Ø¯";
 
       return {
         id: item.id,
@@ -165,16 +195,18 @@ function normalizeReportEvidences(
         mimeType: item.mimeType,
         size: item.size,
         note: item.note,
-        imageUrl: isImageEvidence(item.mimeType, fileUrl) ? fileUrl : undefined,
+        ...(evidenceTitle ? { title: evidenceTitle } : {}),
+        imageUrl: isImageEvidence(item) ? fileUrl : undefined,
       };
     });
 
   const legacyCaseEvidences: ReportMappedEvidence[] = (
     caseEntry.caseEvidences || []
   )
-    .filter((item) => Boolean(item.fileUrl))
+    .filter((item) => Boolean(item.fileUrl || item.url))
     .map((item) => {
-      const fileUrl = item.fileUrl || "";
+      const fileUrl = item.fileUrl || item.url || "";
+      const evidenceTitle = item.title || item.note || item.fileName || "Ø´Ø§Ù‡Ø¯";
 
       return {
         id: item.id,
@@ -183,7 +215,9 @@ function normalizeReportEvidences(
         fileUrl,
         mimeType: item.mimeType,
         size: item.size,
-        imageUrl: isImageEvidence(item.mimeType, fileUrl) ? fileUrl : undefined,
+        note: item.note,
+        ...(evidenceTitle ? { title: evidenceTitle } : {}),
+        imageUrl: isImageEvidence(item) ? fileUrl : undefined,
       };
     });
 

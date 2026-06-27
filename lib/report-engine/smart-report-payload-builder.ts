@@ -824,26 +824,61 @@ function makeDetailField(
   };
 }
 
+const SMART_REPORT_IMAGE_EVIDENCE_EXTENSION_PATTERN =
+  /\.(png|jpe?g|webp|gif|avif)(?:[?#].*)?$/i;
+
+function hasSmartReportImageEvidenceExtension(value: unknown) {
+  const text = cleanText(value).replaceAll("\\", "/");
+
+  if (!text) return false;
+
+  return SMART_REPORT_IMAGE_EVIDENCE_EXTENSION_PATTERN.test(text);
+}
+
+function isImageEvidence(item: any) {
+  const evidenceType = cleanText(item?.type).toUpperCase();
+  const mimeType = cleanText(item?.mimeType).toLowerCase();
+
+  if (evidenceType === "IMAGE") return true;
+  if (mimeType.startsWith("image/")) return true;
+
+  return [
+    item?.fileUrl,
+    item?.url,
+    item?.imageUrl,
+    item?.publicUrl,
+    item?.fileName,
+    item?.originalName,
+    item?.name,
+  ].some((value) => hasSmartReportImageEvidenceExtension(value));
+}
+
 function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
   const normalItems: SmartReportEvidenceItem[] = (caseEntry.evidences || [])
-    .filter((item: any) => Boolean(item.fileUrl))
+    .filter((item: any) => Boolean(item.fileUrl || item.url))
     .map((item: any) => ({
       id: item.id,
       title: item.fileName || item.note || "شاهد",
       caption: item.note || undefined,
-      url: item.fileUrl || undefined,
-      type: item.type === "IMAGE" ? "IMAGE" : "FILE",
+      url: item.fileUrl || item.url || undefined,
+      type: isImageEvidence(item) ? "IMAGE" : "FILE",
+      ...(item.title ? { title: item.title } : {}),
+      ...(item.caption ? { caption: item.caption } : {}),
     }));
 
   const caseEvidenceItems: SmartReportEvidenceItem[] = (
     caseEntry.caseEvidences || []
   )
-    .filter((item: any) => Boolean(item.fileUrl))
+    .filter((item: any) => Boolean(item.fileUrl || item.url))
     .map((item: any) => ({
       id: item.id,
       title: item.fileName || "شاهد",
-      url: item.fileUrl,
-      type: String(item.mimeType || "").startsWith("image/") ? "IMAGE" : "FILE",
+      url: item.fileUrl || item.url,
+      type: isImageEvidence(item) ? "IMAGE" : "FILE",
+      ...(item.title ? { title: item.title } : {}),
+      ...(item.caption || item.note
+        ? { caption: item.caption || item.note }
+        : {}),
     }));
 
   const assignmentEvidenceItems: SmartReportEvidenceItem[] = Array.isArray(
@@ -856,9 +891,7 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
           title: item.fileName || item.title || `شاهد ${index + 1}`,
           caption: item.caption || item.note || undefined,
           url: item.fileUrl || item.url,
-          type: String(item.mimeType || "").startsWith("image/")
-            ? "IMAGE"
-            : "FILE",
+          type: isImageEvidence(item) ? "IMAGE" : "FILE",
         }))
     : [];
 

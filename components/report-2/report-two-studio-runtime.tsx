@@ -917,6 +917,37 @@ function normalizeEvidenceUrl(value: unknown) {
   return `/${url.replace(/^public\//, "")}`;
 }
 
+const REPORT_TWO_IMAGE_EVIDENCE_EXTENSION_PATTERN =
+  /\.(png|jpe?g|webp|gif|avif)(?:[?#].*)?$/i;
+
+function hasReportTwoImageEvidenceExtension(value: unknown) {
+  const text = cleanText(value).replaceAll("\\", "/");
+
+  if (!text) return false;
+
+  return REPORT_TWO_IMAGE_EVIDENCE_EXTENSION_PATTERN.test(text);
+}
+
+function isReportTwoImageEvidence(item: any) {
+  const evidenceType = cleanText(item?.type).toUpperCase();
+  const mimeType = cleanText(item?.mimeType).toLowerCase();
+
+  if (evidenceType === "IMAGE") return true;
+  if (mimeType.startsWith("image/")) return true;
+
+  return [
+    item?.imageUrl,
+    item?.fileUrl,
+    item?.url,
+    item?.publicUrl,
+    item?.thumbnailUrl,
+    item?.previewUrl,
+    item?.fileName,
+    item?.originalName,
+    item?.name,
+  ].some((value) => hasReportTwoImageEvidenceExtension(value));
+}
+
 function collectEvidences(payload: SmartReportPayload) {
   const data = getPayloadAny(payload);
 
@@ -986,14 +1017,22 @@ function collectEvidences(payload: SmartReportPayload) {
         "";
 
       const fileUrl = normalizeEvidenceUrl(rawUrl);
-      const imageUrl =
-        normalizeEvidenceUrl(
-          item.imageUrl ||
-            item.thumbnailUrl ||
-            item.previewUrl ||
-            item.publicUrl ||
-            rawUrl,
-        ) || fileUrl;
+      const normalizedUrl = normalizeEvidenceUrl(item.url || "");
+      const imageUrlCandidate = normalizeEvidenceUrl(
+        item.imageUrl ||
+          item.thumbnailUrl ||
+          item.previewUrl ||
+          item.publicUrl ||
+          item.url ||
+          item.fileUrl ||
+          rawUrl,
+      );
+      const imageUrl = isReportTwoImageEvidence(item)
+        ? imageUrlCandidate || fileUrl || normalizedUrl
+        : "";
+      const evidenceType: "IMAGE" | "FILE" = isReportTwoImageEvidence(item)
+        ? "IMAGE"
+        : "FILE";
 
       const id =
         cleanText(item.id) ||
@@ -1008,8 +1047,11 @@ function collectEvidences(payload: SmartReportPayload) {
         title:
           cleanText(item.title || item.fileName || item.originalName || item.name) ||
           `شاهد ${index + 1}`,
+        url: normalizedUrl || undefined,
         fileUrl,
         imageUrl,
+        type: evidenceType,
+        mimeType: cleanText(item.mimeType) || undefined,
         caption: cleanText(
           item.caption ||
             item.note ||
