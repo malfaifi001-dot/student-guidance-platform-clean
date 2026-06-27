@@ -5,15 +5,6 @@ type Props = {
   schoolProfile?: Record<string, unknown> | null;
 };
 
-const SOURCE_WIDTH = 1600;
-const SOURCE_HEIGHT = 900;
-const A4_LANDSCAPE_WIDTH_MM = 297;
-const A4_LANDSCAPE_HEIGHT_MM = 210;
-const SOURCE_LAYOUT_WIDTH_MM = 423.33418;
-const SOURCE_LAYOUT_HEIGHT_MM = 238.125;
-const SCALE_X = A4_LANDSCAPE_WIDTH_MM / SOURCE_LAYOUT_WIDTH_MM;
-const SCALE_Y = A4_LANDSCAPE_HEIGHT_MM / SOURCE_LAYOUT_HEIGHT_MM;
-
 function extractSection(html: string, pattern: RegExp) {
   const match = html.match(pattern);
   return match?.[1]?.trim() || "";
@@ -53,35 +44,54 @@ export function AssessmentAnalysisPrintReport({
         }
 
         .assessment-print-page {
-          width: 297mm;
-          height: 210mm;
-          margin: 0 auto;
-          background: #ffffff;
-          overflow: hidden;
-          position: relative;
-        }
-
-        .assessment-print-stage {
-          width: ${SOURCE_WIDTH}px;
-          height: ${SOURCE_HEIGHT}px;
-          transform-origin: top center;
-          transform: scale(${SCALE_X}, ${SCALE_Y});
-          position: absolute;
-          top: 0;
-          left: 50%;
-          margin-left: -${SOURCE_WIDTH / 2}px;
+          min-height: 100vh;
+          background: #eef2f6;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding: 24px;
         }
 
         .assessment-print-page .sheet {
-          margin: 0 !important;
+          margin: 0 auto !important;
           box-shadow: none !important;
+        }
+
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 0;
+          }
+
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            width: 297mm !important;
+            height: 210mm !important;
+            overflow: hidden !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .assessment-print-page {
+            display: block !important;
+            width: 297mm !important;
+            height: 210mm !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #ffffff !important;
+            overflow: hidden !important;
+          }
+
+          .assessment-print-page .sheet {
+            margin: 0 !important;
+          }
         }
       `}</style>
 
-      <div
-        className="assessment-print-stage"
-        dangerouslySetInnerHTML={{ __html: bodyContent }}
-      />
+      <div dangerouslySetInnerHTML={{ __html: bodyContent }} />
     </section>
   );
 }

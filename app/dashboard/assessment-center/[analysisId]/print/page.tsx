@@ -76,20 +76,6 @@ export default async function AssessmentAnalysisPrintPage({
 
         .assessment-print-shell {
           min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #e5e7eb;
-          padding: 12px;
-        }
-
-        .assessment-print-frame {
-          width: 297mm;
-          height: 210mm;
-          overflow: hidden;
-          background: #ffffff;
-          box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
-          flex: 0 0 auto;
         }
 
         @media print {
@@ -127,32 +113,15 @@ export default async function AssessmentAnalysisPrintPage({
             background: #ffffff !important;
             display: block !important;
           }
-
-          .assessment-print-frame {
-            width: 297mm !important;
-            height: 210mm !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-          }
-
-          .assessment-print-page {
-            width: 297mm !important;
-            height: 210mm !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            transform-origin: top center !important;
-          }
         }
       `}</style>
 
       {printMode ? <AssessmentAnalysisPrintController /> : null}
 
-      <div className="assessment-print-frame">
-        <AssessmentAnalysisPrintReport
-          analysis={analysis as unknown as Record<string, unknown>}
-          schoolProfile={schoolProfile as unknown as Record<string, unknown> | null}
-        />
-      </div>
+      <AssessmentAnalysisPrintReport
+        analysis={analysis as unknown as Record<string, unknown>}
+        schoolProfile={schoolProfile as unknown as Record<string, unknown> | null}
+      />
     </main>
   );
 }

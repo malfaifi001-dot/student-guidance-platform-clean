@@ -804,6 +804,8 @@ function getAssessmentMoeLogoDataUri() {
 }
 export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
   const assessmentMoeLogoSrc = getAssessmentMoeLogoDataUri();
+  const REPORT_WIDTH = 1600;
+  const REPORT_HEIGHT = 1131;
 
   const data = prepareReportData(input);
   const donutStyle = buildDonutStyle(data.levels);
@@ -837,30 +839,43 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
   html,
   body{
     margin:0;
-    width:1600px;
-    height:900px;
+    width:${REPORT_WIDTH}px;
+    height:${REPORT_HEIGHT}px;
     overflow:hidden;
-    background:#e9eef1;
+    background:#ffffff;
     font-family:'Cairo', Tahoma, Arial, sans-serif;
     color:#09254b;
   }
 
   .sheet{
-    width:1600px;
-    height:900px;
+    width:${REPORT_WIDTH}px;
+    height:${REPORT_HEIGHT}px;
     margin:0 auto;
     background:#fff;
     position:relative;
     overflow:hidden;
-    padding:34px 78px 36px;
+    padding:42px 78px 44px;
     isolation:isolate;
   }
 
-  @page { size: 16.6667in 9.375in; margin: 0; }
+  @page { size: A4 landscape; margin: 0; }
 
   @media print{
-    html, body{ background:white; width:1600px; height:900px; overflow:hidden; }
-    .sheet{ margin:0; box-shadow:none; width:1600px; height:900px; page-break-after:avoid; }
+    html, body{
+      width:297mm;
+      height:210mm;
+      background:#ffffff;
+      overflow:hidden;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    .sheet{
+      margin:0;
+      box-shadow:none;
+      width:297mm;
+      height:210mm;
+      page-break-after:avoid;
+    }
   }
 
   .waves-left{
@@ -981,11 +996,11 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
     z-index:2;
     border:2px solid #d3dce4;
     border-radius:12px;
-    min-height:139px;
-    padding:10px 22px;
+    min-height:156px;
+    padding:14px 22px;
     display:grid;
     grid-template-columns:repeat(4, 1fr);
-    grid-auto-rows:58px;
+    grid-auto-rows:64px;
     align-items:center;
     box-shadow:0 1px 3px rgba(13,38,76,.04) inset;
     background:rgba(255,255,255,.96);
@@ -1026,14 +1041,14 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
   .metrics{
     position:relative;
     z-index:2;
-    margin-top:13px;
+    margin-top:18px;
     display:grid;
     grid-template-columns:repeat(6, 1fr);
-    gap:12px;
+    gap:14px;
   }
 
   .metric-card{
-    height:150px;
+    height:168px;
     border:2px solid #d8e1e8;
     border-radius:12px;
     background:#fff;
@@ -1090,7 +1105,7 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
   .content-grid{
     position:relative;
     z-index:2;
-    margin-top:30px;
+    margin-top:42px;
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:18px;
@@ -1101,9 +1116,9 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
     position:relative;
     border:2px solid #0d8293;
     border-radius:10px;
-    min-height:262px;
+    min-height:454px;
     background:#fff;
-    padding:42px 22px 18px;
+    padding:48px 24px 24px;
     direction:rtl;
   }
 
@@ -1130,6 +1145,7 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
     gap:22px;
     align-items:center;
     direction:ltr;
+    min-height:370px;
   }
 
   .donut-wrap{
@@ -1185,7 +1201,7 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
   .summary-lines{ display:flex; flex-direction:column; gap:0; }
 
   .summary-line{
-    min-height:68px;
+    min-height:84px;
     display:grid;
     grid-template-columns:46px 1fr;
     gap:16px;
@@ -1206,7 +1222,7 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
   .summary-text .red{ color:#df4e43; font-weight:900; }
 
   .footer{
-    position:absolute; left:178px; right:78px; bottom:18px;
+    position:absolute; left:178px; right:78px; bottom:24px;
     display:flex; justify-content:space-between; align-items:flex-end;
     color:#0d3a73;
     font-family:'Cairo', Georgia, serif;
@@ -1329,11 +1345,11 @@ export function buildAssessmentPdfHtml(input: AssessmentPdfBuildInput) {
 
   /* assessment-info-panel-offset-start */
   .info-panel{
-    margin-top: 38px !important;
+    margin-top: 52px !important;
   }
 
   .metrics{
-    margin-top: 14px !important;
+    margin-top: 18px !important;
   }
   /* assessment-info-panel-offset-end */
 
