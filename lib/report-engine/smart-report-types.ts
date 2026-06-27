@@ -173,6 +173,7 @@ export type SmartReportPayload = {
   narrative: {
     title: string;
     body: string;
+    visible?: boolean;
   };
   evidence: {
     layout: SmartReportEvidenceLayout;

@@ -26,6 +26,7 @@ export type ReportFlowPreparation = {
   variantId: string;
   reportType: string;
   languageMode: ReportLanguageMode;
+  showExecutionDescriptionInReport: boolean;
   selectedFieldIds: string[];
   fields: ReportFlowPrepareField[];
   executionSummary: string;

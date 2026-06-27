@@ -2795,6 +2795,21 @@ function applyReportTwoPreparedExecutionSummary(
   template: StudioTemplate,
   payload: SmartReportPayload,
 ): StudioTemplate {
+  const showExecutionDescriptionInReport =
+    (payload as any)?.narrative?.visible !== false;
+
+  if (!showExecutionDescriptionInReport) {
+    return {
+      ...template,
+      pages: template.pages.map((page) => ({
+        ...page,
+        blocks: page.blocks.filter(
+          (block) => !isReportTwoExecutionSummaryBlock(block),
+        ),
+      })),
+    };
+  }
+
   const summary = getReportTwoPreparedExecutionSummary(payload);
 
   if (!summary) return template;

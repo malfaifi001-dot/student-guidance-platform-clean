@@ -438,6 +438,8 @@ export function applyReportFlowPreparationToPayload(
   preparation: ReportFlowPreparation,
 ): SmartReportPayload {
   const languageMode = normalizeReportLanguageMode(preparation.languageMode);
+  const showExecutionDescriptionInReport =
+    preparation.showExecutionDescriptionInReport !== false;
   const primaryFields = applyFields(
     payload.primaryFields,
     preparation,
@@ -460,6 +462,7 @@ export function applyReportFlowPreparationToPayload(
     narrative: {
       ...payload.narrative,
       title: payload.narrative.title || "وصف التنفيذ",
+      visible: showExecutionDescriptionInReport,
       body:
         cleanText(preparation.executionSummary) ||
         cleanText(payload.narrative.body),
@@ -474,6 +477,7 @@ export function createReportFlowPreparation({
   executionSummary,
   executionSummarySource,
   languageMode,
+  showExecutionDescriptionInReport,
 }: {
   payload: SmartReportPayload;
   variantId: string;
@@ -481,6 +485,7 @@ export function createReportFlowPreparation({
   executionSummary: string;
   executionSummarySource: ReportFlowPreparation["executionSummarySource"];
   languageMode: ReportLanguageMode;
+  showExecutionDescriptionInReport?: boolean;
 }): ReportFlowPreparation {
   return {
     version: 1,
@@ -488,6 +493,8 @@ export function createReportFlowPreparation({
     variantId,
     reportType: payload.reportType,
     languageMode: normalizeReportLanguageMode(languageMode),
+    showExecutionDescriptionInReport:
+      showExecutionDescriptionInReport !== false,
     selectedFieldIds: fields
       .filter((field) => field.selected)
       .map((field) => field.id),

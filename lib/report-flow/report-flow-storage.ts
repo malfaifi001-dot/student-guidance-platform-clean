@@ -71,6 +71,8 @@ export function loadReportFlowPreparation(
     return {
       ...parsed,
       languageMode: normalizeReportLanguageMode(parsed.languageMode || "MALE"),
+      showExecutionDescriptionInReport:
+        parsed.showExecutionDescriptionInReport !== false,
       fields: parsed.fields.map((field) => ({
         ...field,
         originalLabel: field.originalLabel || field.label || "",

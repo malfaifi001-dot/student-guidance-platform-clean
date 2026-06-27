@@ -1,3 +1,28 @@
+REPORT-2 PREPARE FLOW CODE DUMP
+Project: D:\student-guidance-platform-clean
+Generated: 06/27/2026 11:01:08
+
+Git status:
+ M components/report-2/report-two-studio-runtime.tsx
+ M components/report-flow/report-prepare-flow.tsx
+ M lib/report-engine/smart-report-types.ts
+ M lib/report-flow/report-flow-payload.ts
+ M lib/report-flow/report-flow-storage.ts
+ M lib/report-flow/report-flow-types.ts
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-112a7351-1e76-4419-b1dd-8850dc8599a0.jpg
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-1bc268b0-53fd-4c46-8d09-b694b900bce2.webp
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-979c1d07-25b1-4cfc-9d22-fd8922c6af2b.jpg
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-dc83df01-d288-4471-a0b3-ec29cb5ea1bd.png
+?? public/uploads/evidence/cmqrxr80100039onohicswjle-f5ef61a8-95d2-4da4-9754-51ed9cade4a0.png
+?? report-2-flow-code-dump.txt
+?? student-reference-gender-diagnostic.txt
+
+
+
+============================================================
+FILE: components\report-flow\report-prepare-flow.tsx
+============================================================
+
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -702,3 +727,682 @@ export function ReportPrepareFlow({
     </>
   );
 }
+
+
+
+============================================================
+FILE: lib\report-flow\report-flow-payload.ts
+============================================================
+
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+import {
+  applyReportLanguageModeToFieldValue,
+  applyReportLanguageModeToText,
+  normalizeReportLanguageMode,
+} from "@/lib/report-engine/report-language-mode";
+import type {
+  SmartReportField,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+import type {
+  ReportFlowFieldSource,
+  ReportFlowPrepareContext,
+  ReportFlowPrepareField,
+  ReportFlowPreparation,
+} from "@/lib/report-flow/report-flow-types";
+
+const FIELD_LABEL_TRANSLATIONS: Record<string, string> = {
+  execution_date: "تاريخ التنفيذ / اليوم",
+  semester: "الفصل الدراسي",
+  week: "الأسبوع",
+  executor: "المعلم المنفذ",
+  target_group: "الفئة المستهدفة",
+  execution_method: "طريقة التنفيذ",
+  execution_mode: "طريقة التنفيذ",
+  activity_domain: "مجال النشاط",
+  activity_program: "برنامج النشاط",
+  beneficiary_count: "عدد المستفيدين",
+  beneficiaries_count: "عدد المستفيدين",
+  participant_students_count: "عدد الطلاب المشاركين",
+  students_with_disabilities_count: "عدد طلاب ذوي الإعاقة",
+  parents_participated: "مشاركة أولياء الأمور",
+  community_partnership_count: "عدد الشراكات المجتمعية",
+  location: "مكان التنفيذ",
+  execution_location: "مكان التنفيذ",
+};
+
+const VALUE_TRANSLATIONS: Record<string, string> = {
+  yes: "نعم",
+  no: "لا",
+  true: "نعم",
+  false: "لا",
+  term_1: "الفصل الدراسي الأول",
+  term_2: "الفصل الدراسي الثاني",
+  term_3: "الفصل الدراسي الثالث",
+  semester_1: "الفصل الدراسي الأول",
+  semester_2: "الفصل الدراسي الثاني",
+  semester_3: "الفصل الدراسي الثالث",
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+  activity_leader: "رائد النشاط",
+  counselor: "الموجه الطلابي",
+  teacher: "المعلم",
+  lecture: "محاضرة",
+  workshop: "ورشة عمل",
+  meeting: "لقاء",
+  competition: "مسابقة",
+  field_visit: "زيارة ميدانية",
+};
+
+function cleanText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function hasArabic(value: string) {
+  return /[\u0600-\u06FF]/.test(value);
+}
+
+function looksLikeJson(value: string) {
+  const text = value.trim();
+
+  return (
+    (text.startsWith("{") && text.endsWith("}")) ||
+    (text.startsWith("[") && text.endsWith("]")) ||
+    text.includes('":') ||
+    text.includes('","')
+  );
+}
+
+function isEnglishTechnicalText(value: string) {
+  return /^[a-z0-9_\-.@:/]+$/i.test(value.trim());
+}
+
+function isTechnicalField(key: string, label: string, value: string) {
+  const text = `${key} ${label}`.toLowerCase().replace(/\s+/g, "");
+
+  if (!value) return true;
+  if (looksLikeJson(value)) return true;
+
+  return (
+    /(^|_)id$/i.test(key) ||
+    text.includes("json") ||
+    text.includes("metadata") ||
+    text.includes("token") ||
+    text.includes("url") ||
+    text.includes("signatureurl") ||
+    text.includes("signedat") ||
+    text.includes("raw") ||
+    text.includes("email") ||
+    text.includes("phone")
+  );
+}
+
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (typeof value === "boolean") return value ? "نعم" : "لا";
+
+  if (Array.isArray(value)) {
+    return value.map(displayValue).filter(Boolean).join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    const candidates = [
+      record.displayValue,
+      record.valueLabel,
+      record.optionLabel,
+      record.selectedOptionLabel,
+      record.labelAr,
+      record.nameAr,
+      record.titleAr,
+      record.fullName,
+      record.name,
+      record.title,
+      record.label,
+      record.text,
+      record.value,
+    ];
+
+    for (const candidate of candidates) {
+      const text = displayValue(candidate);
+      if (text) return text;
+    }
+
+    return "";
+  }
+
+  const raw = cleanText(value);
+  const lower = raw.toLowerCase();
+
+  if (VALUE_TRANSLATIONS[lower]) return VALUE_TRANSLATIONS[lower];
+
+  if (looksLikeJson(raw)) {
+    try {
+      return displayValue(JSON.parse(raw));
+    } catch {
+      return "";
+    }
+  }
+
+  if (isEnglishTechnicalText(raw) && !VALUE_TRANSLATIONS[lower]) return "";
+
+  return raw;
+}
+
+function displayLabel(field: SmartReportField) {
+  const key = cleanText(field.key);
+  const label = cleanText(field.label);
+
+  if (FIELD_LABEL_TRANSLATIONS[key]) return FIELD_LABEL_TRANSLATIONS[key];
+  if (label && label !== key && hasArabic(label)) return label;
+
+  return "";
+}
+
+function makePrepareField(
+  field: SmartReportField,
+  source: ReportFlowFieldSource,
+  index: number,
+  languageMode: ReportLanguageMode,
+): ReportFlowPrepareField | null {
+  const key = cleanText(field.key) || `${source}-${index + 1}`;
+  const originalLabel = displayLabel(field);
+  const originalValue = displayValue(field.value);
+  const technical = isTechnicalField(key, originalLabel, originalValue);
+
+  if (!originalLabel || !originalValue) return null;
+
+  return {
+    id: `${source}:${key}:${index}`,
+    source,
+    key,
+    label: applyReportLanguageModeToText(originalLabel, languageMode),
+    value: applyReportLanguageModeToFieldValue(
+      originalValue,
+      languageMode,
+      key,
+      originalLabel,
+    ),
+    originalLabel,
+    originalValue,
+    selected: !technical,
+    technical,
+  };
+}
+
+
+function buildCustomReportPrepareFields(
+  payload: SmartReportPayload,
+  languageMode: ReportLanguageMode,
+): ReportFlowPrepareField[] {
+  const seen = new Set<string>();
+  const sourceFields = [...payload.detailFields, ...payload.primaryFields];
+  const result: ReportFlowPrepareField[] = [];
+
+  sourceFields.forEach((field, index) => {
+    const key = cleanText(field.key) || `custom_report_field_${index + 1}`;
+    const label = cleanText(field.label) || key;
+    const rawValue =
+      field.value === null || field.value === undefined
+        ? ""
+        : Array.isArray(field.value)
+          ? field.value.map((item) => String(item || "").trim()).filter(Boolean).join("، ")
+          : String(field.value).trim();
+
+    if (!label || !rawValue) return;
+
+    const uniqueKey = `${key}::${label}::${rawValue}`;
+
+    if (seen.has(uniqueKey)) return;
+    seen.add(uniqueKey);
+
+    result.push({
+      id: `custom-report:${key}:${index}`,
+      source: "detail",
+      key,
+      label: applyReportLanguageModeToText(label, languageMode),
+      value: rawValue,
+      originalLabel: label,
+      originalValue: rawValue,
+      selected: true,
+      technical: false,
+    });
+  });
+
+  return result;
+}
+export function buildReportFlowPrepareFields(
+  payload: SmartReportPayload,
+): ReportFlowPrepareField[] {
+  const languageMode = normalizeReportLanguageMode(payload.languageMode);
+
+  if (payload.service?.slug === "custom-report") {
+    return buildCustomReportPrepareFields(payload, languageMode);
+  }
+
+  const fields = [
+    ...payload.primaryFields.map((field, index) =>
+      makePrepareField(field, "primary", index, languageMode),
+    ),
+    ...payload.detailFields.map((field, index) =>
+      makePrepareField(field, "detail", index, languageMode),
+    ),
+  ].filter((field): field is ReportFlowPrepareField => Boolean(field));
+
+  const unique = new Map<string, ReportFlowPrepareField>();
+
+  for (const field of fields) {
+    const key = `${field.originalLabel}::${field.originalValue}`;
+
+    if (!unique.has(key)) {
+      unique.set(key, field);
+    }
+  }
+
+  return Array.from(unique.values());
+}
+
+export function applyReportFlowLanguageModeToFields(
+  fields: ReportFlowPrepareField[],
+  languageMode: ReportLanguageMode,
+): ReportFlowPrepareField[] {
+  const normalizedMode = normalizeReportLanguageMode(languageMode);
+
+  return fields.map((field) => ({
+    ...field,
+    label: applyReportLanguageModeToText(
+      field.originalLabel || field.label,
+      normalizedMode,
+    ),
+    value: applyReportLanguageModeToFieldValue(
+      field.originalValue || field.value,
+      normalizedMode,
+      field.key,
+      field.originalLabel || field.label,
+    ),
+  }));
+}
+
+export function buildReportFlowContext(
+  payload: SmartReportPayload,
+): ReportFlowPrepareContext {
+  const allFields = [...payload.primaryFields, ...payload.detailFields];
+  const languageMode = normalizeReportLanguageMode(payload.languageMode);
+
+  const executor =
+    allFields.find((field) =>
+      ["executor", "assigned_teacher", "teacher"].includes(field.key),
+    )?.value || "";
+
+  return {
+    caseId: payload.caseInfo.id,
+    languageMode,
+    title: payload.title || payload.caseInfo.title || "تقرير",
+    serviceName: payload.service.name,
+    serviceSlug: payload.service.slug,
+    studentName: payload.student?.name || "",
+    executorName: cleanText(executor),
+    executorTitle: cleanText(executor)
+      ? applyReportLanguageModeToText("المعلم المنفذ", languageMode)
+      : "",
+  };
+}
+
+function splitPreparedValueParts(value: string) {
+  return value
+    .split(/\s*(?:،|,|؛|\r?\n)\s*/g)
+    .map((item) => cleanText(item))
+    .filter(Boolean);
+}
+
+function normalizePreparedComparisonText(value: string) {
+  return cleanText(value)
+    .replace(/\s+/g, " ")
+    .replace(/[،,؛]/g, "|")
+    .toLowerCase();
+}
+
+function translateSourceFieldValue(
+  value: string | string[],
+  key: string,
+  label: string,
+  languageMode: ReportLanguageMode,
+) {
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      applyReportLanguageModeToFieldValue(item, languageMode, key, label),
+    );
+  }
+
+  return applyReportLanguageModeToFieldValue(value, languageMode, key, label);
+}
+
+function resolvePreparedFieldValue(
+  originalField: SmartReportField | undefined,
+  field: ReportFlowPrepareField,
+  languageMode: ReportLanguageMode,
+) {
+  const preparedValue = cleanText(field.value);
+  const originalLabel = field.originalLabel || field.label;
+  const originalValue = originalField?.value;
+
+  if (Array.isArray(originalValue)) {
+    const originalItems = originalValue
+      .map((item) => displayValue(item))
+      .filter(Boolean);
+
+    if (!originalItems.length) {
+      return preparedValue;
+    }
+
+    const preparedParts = splitPreparedValueParts(preparedValue);
+    const originalJoined = originalItems.join("، ");
+    const isTechnicalPreparedList =
+      preparedParts.length > 0 &&
+      preparedParts.every((item) => isEnglishTechnicalText(item));
+    const matchesOriginalText =
+      normalizePreparedComparisonText(preparedValue) ===
+      normalizePreparedComparisonText(originalJoined);
+
+    if (preparedValue && (isTechnicalPreparedList || matchesOriginalText)) {
+      return translateSourceFieldValue(
+        originalItems.length > 1 ? originalItems : originalItems[0] || "",
+        field.key,
+        originalLabel,
+        languageMode,
+      );
+    }
+
+    return preparedValue;
+  }
+
+  const originalDisplay = displayValue(originalValue);
+
+  if (
+    preparedValue &&
+    isEnglishTechnicalText(preparedValue) &&
+    originalDisplay &&
+    !isEnglishTechnicalText(originalDisplay)
+  ) {
+    return translateSourceFieldValue(
+      originalDisplay,
+      field.key,
+      originalLabel,
+      languageMode,
+    );
+  }
+
+  return preparedValue;
+}
+
+function applyFields(
+  sourceFields: SmartReportField[],
+  preparation: ReportFlowPreparation,
+  source: ReportFlowFieldSource,
+  languageMode: ReportLanguageMode,
+): SmartReportField[] {
+  const selectedIds = new Set(preparation.selectedFieldIds);
+
+  return preparation.fields
+    .filter((field) => field.source === source)
+    .filter((field) => selectedIds.has(field.id))
+    .map((field) => {
+      const original =
+        sourceFields.find((item) => item.key === field.key) || sourceFields[0];
+
+      return {
+        ...(original || {
+          key: field.key,
+          importance: source === "primary" ? "PRIMARY" : "DETAIL",
+        }),
+        key: field.key,
+        label: field.label,
+        value: resolvePreparedFieldValue(original, field, languageMode),
+      } as SmartReportField;
+    });
+}
+
+export function applyReportFlowPreparationToPayload(
+  payload: SmartReportPayload,
+  preparation: ReportFlowPreparation,
+): SmartReportPayload {
+  const languageMode = normalizeReportLanguageMode(preparation.languageMode);
+  const showExecutionDescriptionInReport =
+    preparation.showExecutionDescriptionInReport !== false;
+  const primaryFields = applyFields(
+    payload.primaryFields,
+    preparation,
+    "primary",
+    languageMode,
+  );
+
+  const detailFields = applyFields(
+    payload.detailFields,
+    preparation,
+    "detail",
+    languageMode,
+  );
+
+  return {
+    ...payload,
+    languageMode,
+    primaryFields,
+    detailFields,
+    narrative: {
+      ...payload.narrative,
+      title: payload.narrative.title || "وصف التنفيذ",
+      visible: showExecutionDescriptionInReport,
+      body:
+        cleanText(preparation.executionSummary) ||
+        cleanText(payload.narrative.body),
+    },
+  };
+}
+
+export function createReportFlowPreparation({
+  payload,
+  variantId,
+  fields,
+  executionSummary,
+  executionSummarySource,
+  languageMode,
+  showExecutionDescriptionInReport,
+}: {
+  payload: SmartReportPayload;
+  variantId: string;
+  fields: ReportFlowPrepareField[];
+  executionSummary: string;
+  executionSummarySource: ReportFlowPreparation["executionSummarySource"];
+  languageMode: ReportLanguageMode;
+  showExecutionDescriptionInReport?: boolean;
+}): ReportFlowPreparation {
+  return {
+    version: 1,
+    caseId: payload.caseInfo.id,
+    variantId,
+    reportType: payload.reportType,
+    languageMode: normalizeReportLanguageMode(languageMode),
+    showExecutionDescriptionInReport:
+      showExecutionDescriptionInReport !== false,
+    selectedFieldIds: fields
+      .filter((field) => field.selected)
+      .map((field) => field.id),
+    fields,
+    executionSummary,
+    executionSummarySource,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+
+
+============================================================
+FILE: lib\report-flow\report-flow-storage.ts
+============================================================
+
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+import { normalizeReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+import type { ReportFlowPreparation } from "@/lib/report-flow/report-flow-types";
+
+export function getReportFlowPreparationKey(caseId: string, variantId: string) {
+  return `report-flow:prepare:${variantId || "default"}:${caseId || "unknown"}`;
+}
+
+export function getReportFlowLanguageModePreferenceKey() {
+  return "report-flow:language-mode-preference:v1";
+}
+
+export function saveReportFlowLanguageModePreference(mode: ReportLanguageMode) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(
+    getReportFlowLanguageModePreferenceKey(),
+    normalizeReportLanguageMode(mode),
+  );
+}
+
+export function loadReportFlowLanguageModePreference(): ReportLanguageMode | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.localStorage.getItem(getReportFlowLanguageModePreferenceKey());
+
+  if (!raw) {
+    return null;
+  }
+
+  return normalizeReportLanguageMode(raw);
+}
+
+export function saveReportFlowPreparation(preparation: ReportFlowPreparation) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(
+    getReportFlowPreparationKey(preparation.caseId, preparation.variantId),
+    JSON.stringify({
+      ...preparation,
+      updatedAt: new Date().toISOString(),
+    }),
+  );
+}
+
+export function loadReportFlowPreparation(
+  caseId: string,
+  variantId: string,
+): ReportFlowPreparation | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.localStorage.getItem(
+    getReportFlowPreparationKey(caseId, variantId),
+  );
+
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as ReportFlowPreparation;
+
+    if (
+      !parsed ||
+      parsed.version !== 1 ||
+      parsed.caseId !== caseId ||
+      parsed.variantId !== variantId ||
+      !Array.isArray(parsed.fields)
+    ) {
+      return null;
+    }
+
+    return {
+      ...parsed,
+      languageMode: normalizeReportLanguageMode(parsed.languageMode || "MALE"),
+      showExecutionDescriptionInReport:
+        parsed.showExecutionDescriptionInReport !== false,
+      fields: parsed.fields.map((field) => ({
+        ...field,
+        originalLabel: field.originalLabel || field.label || "",
+        originalValue: field.originalValue || field.value || "",
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function clearReportFlowPreparation(caseId: string, variantId: string) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.removeItem(getReportFlowPreparationKey(caseId, variantId));
+}
+
+
+
+============================================================
+FILE: lib\report-flow\report-flow-types.ts
+============================================================
+
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+import type {
+  SmartReportField,
+  SmartReportPayload,
+} from "@/lib/report-engine/smart-report-types";
+
+export type ReportFlowFieldSource = "primary" | "detail";
+
+export type ReportFlowPrepareField = {
+  id: string;
+  source: ReportFlowFieldSource;
+  key: string;
+  label: string;
+  value: string;
+  originalLabel: string;
+  originalValue: string;
+  selected: boolean;
+  technical?: boolean;
+};
+
+export type ReportFlowExecutionSummarySource = "AI" | "MANUAL" | "FALLBACK";
+
+export type ReportFlowPreparation = {
+  version: 1;
+  caseId: string;
+  variantId: string;
+  reportType: string;
+  languageMode: ReportLanguageMode;
+  showExecutionDescriptionInReport: boolean;
+  selectedFieldIds: string[];
+  fields: ReportFlowPrepareField[];
+  executionSummary: string;
+  executionSummarySource: ReportFlowExecutionSummarySource;
+  updatedAt: string;
+};
+
+export type ReportFlowPrepareContext = {
+  caseId: string;
+  languageMode: ReportLanguageMode;
+  title: string;
+  serviceName: string;
+  serviceSlug: string;
+  studentName?: string;
+  executorName?: string;
+  executorTitle?: string;
+};
+
+export type ReportFlowApplyResult = {
+  payload: SmartReportPayload;
+  preparation: ReportFlowPreparation;
+};
+
+export type ReportFlowSummaryField = Pick<
+  ReportFlowPrepareField,
+  "key" | "label" | "value"
+>;
+
+export type SmartReportFieldWithSource = SmartReportField & {
+  source?: ReportFlowFieldSource;
+};
+
