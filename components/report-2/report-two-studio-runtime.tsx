@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ReportDesignRenderer,
   reportDesignTemplates,
@@ -277,6 +278,7 @@ type ReportTwoStudioRuntimeProps = {
   caseId: string;
   selectedTemplateId: string;
   selectedVariantId?: string;
+  initialMode?: "preview" | "edit";
   payload: SmartReportPayload;
   templates: TemplateOption[];
 };
@@ -2857,10 +2859,13 @@ export function ReportTwoStudioRuntime({
   caseId,
   selectedTemplateId,
   selectedVariantId = "",
+  initialMode = "edit",
   payload,
   templates,
 }: ReportTwoStudioRuntimeProps) {
+  const router = useRouter();
   const [preparedPayload, setPreparedPayload] = useState<SmartReportPayload>(payload);
+  const [runtimeMode, setRuntimeMode] = useState<"preview" | "edit">(initialMode);
   const [approvedSnapshot, setApprovedSnapshot] = useState<{
     id: string;
     previewUrl: string;
@@ -2870,6 +2875,7 @@ export function ReportTwoStudioRuntime({
 
   useEffect(() => {
     const preparation =
+      loadReportFlowPreparation(caseId, selectedVariantId) ||
       loadReportFlowPreparation(caseId, "official-activity-card") ||
       loadReportFlowPreparation(caseId, "smart-general-a4");
 
@@ -2879,7 +2885,7 @@ export function ReportTwoStudioRuntime({
     }
 
     setPreparedPayload(payload);
-  }, [caseId, payload]);
+  }, [caseId, payload, selectedVariantId]);
 
   const initialTemplateOption =
     templates.find((template) => template.id === selectedTemplateId) ||
@@ -2959,8 +2965,15 @@ export function ReportTwoStudioRuntime({
     onConfirm?: () => void;
     onCancel?: () => void;
   } | null>(null);
+  const [reportTwoActionModal, setReportTwoActionModal] = useState<{
+    title: string;
+    message: string;
+    linkHref?: string;
+    linkLabel?: string;
+  } | null>(null);
 
   function closePopup() { setPopup(null); }
+  function closeReportTwoActionModal() { setReportTwoActionModal(null); }
 
   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
   const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
@@ -3281,6 +3294,28 @@ export function ReportTwoStudioRuntime({
       .trim();
   }
 
+  function getReportTwoSnapshotTitle() {
+    const defaultTitle = "تقرير معتمد";
+
+    return (
+      sanitizeReportTwoPdfFileNamePart(
+        (previewCase as any)?.title ||
+          (previewCase as any)?.caseTitle ||
+          (preparedPayload as any)?.caseInfo?.title ||
+          defaultTitle,
+      ) || defaultTitle
+    );
+
+    return (
+      sanitizeReportTwoPdfFileNamePart(
+        (previewCase as any)?.title ||
+          (previewCase as any)?.caseTitle ||
+          (preparedPayload as any)?.caseInfo?.title ||
+          "ØªÙ‚Ø±ÙŠØ± Ù…Ø¹ØªÙ…Ø¯",
+      ) || "ØªÙ‚Ø±ÙŠØ± Ù…Ø¹ØªÙ…Ø¯"
+    );
+  }
+
   function getReportTwoPdfFileName() {
     const serviceName = sanitizeReportTwoPdfFileNamePart(
       (payload as any)?.service?.name ||
@@ -3292,6 +3327,42 @@ export function ReportTwoStudioRuntime({
     const downloadDate = new Date().toISOString().slice(0, 10);
 
     return `${serviceName || "تقرير"} - ${downloadDate}.pdf`;
+  }
+
+  function buildReportTwoStudioUrl(nextMode: "preview" | "edit") {
+    const params = new URLSearchParams();
+
+    params.set("mode", nextMode);
+
+    if (selectedVariantId) {
+      params.set("variant", selectedVariantId);
+    }
+
+    if (selectedTemplateOptionId) {
+      params.set("templateId", selectedTemplateOptionId);
+    }
+
+    return `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/studio?${params.toString()}`;
+  }
+
+  function syncReportTwoStudioUrl(nextMode: "preview" | "edit") {
+    if (typeof window === "undefined") return;
+
+    window.history.replaceState(window.history.state, "", buildReportTwoStudioUrl(nextMode));
+  }
+
+  function buildReportTwoPrepareUrl() {
+    const params = new URLSearchParams();
+
+    if (selectedVariantId) {
+      params.set("variant", selectedVariantId);
+    }
+
+    const query = params.toString();
+
+    return `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/prepare${
+      query ? `?${query}` : ""
+    }`;
   }
 
   function buildReportTwoPdfExportSnapshot() {
@@ -3356,8 +3427,153 @@ export function ReportTwoStudioRuntime({
     `;
   }
 
+  async function createReportTwoApprovedSnapshotInternal(options?: {
+    showSuccessPopup?: boolean;
+    allowReuseExisting?: boolean;
+  }) {
+    const showSuccessPopup = options?.showSuccessPopup !== false;
+    const allowReuseExisting = options?.allowReuseExisting !== false;
+
+    if (reportTwoApprovalSubmitting) return null;
+
+    if (approvedSnapshot && allowReuseExisting) {
+      return approvedSnapshot;
+    }
+
+    if (!signedVisiblePreviewTemplate.pages.length) {
+      setReportTwoActionModal({
+        title: "اعتماد التقرير",
+        message: "لا توجد صفحات جاهزة للاعتماد.",
+      });
+      return null;
+    }
+
+    if (!signedVisiblePreviewTemplate.pages.length) {
+      setPopup({
+        type: "alert",
+        title: "Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+        message: "Ù„Ø§ ØªÙˆØ¬Ø¯ ØµÙØ­Ø§Øª Ø¬Ø§Ù‡Ø²Ø© Ù„Ù„Ø§Ø¹ØªÙ…Ø§Ø¯.",
+      });
+      return null;
+    }
+
+    const snapshotHtml = buildReportTwoSnapshotHtml();
+
+    if (!snapshotHtml.trim()) {
+      setReportTwoActionModal({
+        title: "اعتماد التقرير",
+        message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+      });
+      return null;
+    }
+
+    if (!snapshotHtml.trim()) {
+      setPopup({
+        type: "alert",
+        title: "Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+        message: "ØªØ¹Ø°Ø± Ø§Ù„ØªÙ‚Ø§Ø· Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ø­Ø§Ù„ÙŠØ© Ù„Ù„Ø§Ø¹ØªÙ…Ø§Ø¯.",
+      });
+      return null;
+    }
+
+    setReportTwoApprovalSubmitting(true);
+
+    try {
+      const activeTemplate = templates.find(
+        (item) => item.id === selectedTemplateOptionId,
+      );
+      const response = await fetch(
+        `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/approve`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reportTitle: getReportTwoSnapshotTitle(),
+            templateId: selectedTemplateOptionId || null,
+            templateName: activeTemplate?.name || template.name || null,
+            variantId: selectedVariantId || null,
+            snapshotPayload: preparedPayload,
+            snapshotTemplateJson: signedVisiblePreviewTemplate,
+            snapshotPagesJson: signedVisiblePreviewTemplate.pages,
+            snapshotHtml,
+          }),
+        },
+      );
+      const text = await response.text();
+      let result: any = {};
+
+      try {
+        result = text ? JSON.parse(text) : {};
+      } catch {
+        result = {
+          error: text || `HTTP ${response.status}`,
+        };
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          result?.details ||
+            result?.error ||
+            `APPROVAL_FAILED_${response.status}`,
+        );
+      }
+
+      const nextApprovedSnapshot = {
+        id: result.snapshot?.id,
+        previewUrl:
+          result.previewUrl ||
+          `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+      };
+
+      setApprovedSnapshot(nextApprovedSnapshot);
+
+      if (showSuccessPopup) {
+        setReportTwoActionModal({
+          title: "تم اعتماد التقرير",
+          message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
+          linkHref: nextApprovedSnapshot.previewUrl,
+          linkLabel: "استعراض التقرير المعتمد",
+        });
+        return nextApprovedSnapshot;
+      }
+
+      if (showSuccessPopup) {
+        setPopup({
+          type: "alert",
+          title: "ØªÙ… Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+          message: "ØªÙ… Ø­ÙØ¸ Ù†Ø³Ø®Ø© Ø«Ø§Ø¨ØªØ© Ù…Ù† Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙÙŠ Ø£Ø±Ø´ÙŠÙ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ù…Ø¹ØªÙ…Ø¯Ø©.",
+        });
+      }
+
+      return nextApprovedSnapshot;
+    } catch (error) {
+      console.error(error);
+      setReportTwoActionModal({
+        title: "اعتماد التقرير",
+        message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
+      });
+      return null;
+      setPopup({
+        type: "alert",
+        title: "Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+        message: "ØªØ¹Ø°Ø± Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±. Ø­Ø§ÙˆÙ„ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.",
+      });
+      return null;
+    } finally {
+      setReportTwoApprovalSubmitting(false);
+    }
+  }
+
   async function approveReportTwoSnapshot() {
-    if (reportTwoApprovalSubmitting || approvedSnapshot) return;
+    if (approvedSnapshot) return;
+
+    await createReportTwoApprovedSnapshotInternal({
+      showSuccessPopup: true,
+      allowReuseExisting: false,
+    });
+    return;
 
     if (!signedVisiblePreviewTemplate.pages.length) {
       setPopup({
@@ -3450,8 +3666,130 @@ export function ReportTwoStudioRuntime({
     }
   }
 
+  async function exportReportTwoPdfInternal(options?: {
+    fileName?: string;
+    snapshot?: ReturnType<typeof buildReportTwoPdfExportSnapshot>;
+  }) {
+    if (reportTwoPdfExporting) return null;
+
+    if (!visiblePreviewTemplate.pages.length) {
+      setReportTwoActionModal({
+        title: "تصدير PDF",
+        message: "لا توجد صفحات جاهزة للتصدير.",
+      });
+      return null;
+    }
+
+    if (!visiblePreviewTemplate.pages.length) {
+      setPopup({
+        type: "alert",
+        title: "ØªØµØ¯ÙŠØ± PDF",
+        message: "Ù„Ø§ ØªÙˆØ¬Ø¯ ØµÙØ­Ø§Øª Ø¬Ø§Ù‡Ø²Ø© Ù„Ù„ØªØµØ¯ÙŠØ±.",
+      });
+      return null;
+    }
+
+    setReportTwoPdfExporting(true);
+
+    try {
+      const fileName = options?.fileName || getReportTwoPdfFileName();
+
+      const response = await fetch(
+        `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName,
+            snapshot: options?.snapshot || buildReportTwoPdfExportSnapshot(),
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("PDF_EXPORT_FAILED");
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        const json = await response.json();
+
+        if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
+          setReportTwoActionModal({
+            title: "تصدير PDF",
+            message:
+              "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم \"طباعة\" أو \"حفظ كملف PDF\" من متصفحك.",
+          });
+
+          const fallbackPreviewWindow = window.open(
+            json.previewUrl,
+            "_blank",
+            "noopener,noreferrer",
+          );
+
+          if (!fallbackPreviewWindow) {
+            window.location.href = json.previewUrl;
+          }
+
+          return "preview-fallback" as const;
+
+          setPopup({
+            type: "alert",
+            title: "ØªØµØ¯ÙŠØ± PDF",
+            message:
+              "ØªÙ… ÙØªØ­ Ù†Ø§ÙØ°Ø© Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ù…Ø¹ Ø®ÙŠØ§Ø± Ø§Ù„Ø·Ø¨Ø§Ø¹Ø©. Ø§Ø³ØªØ®Ø¯Ù… 'Ø·Ø¨Ø§Ø¹Ø©' Ø£Ùˆ 'Ø­ÙØ¸ ÙƒÙ€ PDF' Ù…Ù† Ù…ØªØµÙØ­Ùƒ.",
+          });
+
+          const previewWindow = window.open(
+            json.previewUrl,
+            "_blank",
+            "noopener,noreferrer",
+          );
+
+          if (!previewWindow) {
+            window.location.href = json.previewUrl;
+          }
+
+          return "preview-fallback" as const;
+        }
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+      return "downloaded" as const;
+    } catch (error) {
+      console.error(error);
+      setReportTwoActionModal({
+        title: "تصدير PDF",
+        message: "تعذر تصدير التقرير. حاول مرة أخرى.",
+      });
+      return null;
+      setPopup({
+        type: "alert",
+        title: "ØªØµØ¯ÙŠØ± PDF",
+        message: "ØªØ¹Ø°Ø± ØªØµØ¯ÙŠØ± Ø§Ù„ØªÙ‚Ø±ÙŠØ±. Ø­Ø§ÙˆÙ„ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.",
+      });
+      return null;
+    } finally {
+      setReportTwoPdfExporting(false);
+    }
+  }
+
   async function exportReportTwoPdf() {
-    if (reportTwoPdfExporting) return;
+    await exportReportTwoPdfInternal();
+    return;
 
     if (!visiblePreviewTemplate.pages.length) {
       setPopup({
@@ -3532,6 +3870,40 @@ export function ReportTwoStudioRuntime({
       });
     } finally {
       setReportTwoPdfExporting(false);
+    }
+  }
+
+  async function saveAndDownloadReportTwoSnapshot() {
+    if (reportTwoApprovalSubmitting || reportTwoPdfExporting) return;
+
+    const approval = await createReportTwoApprovedSnapshotInternal({
+      showSuccessPopup: false,
+      allowReuseExisting: true,
+    });
+
+    if (!approval) {
+      return;
+    }
+
+    const exportResult = await exportReportTwoPdfInternal({
+      fileName: getReportTwoSnapshotTitle(),
+      snapshot: buildReportTwoPdfExportSnapshot(),
+    });
+
+    if (exportResult === "downloaded") {
+      setReportTwoActionModal({
+        title: "تم حفظ التقرير واعتماده",
+        message: "تم حفظ التقرير واعتماده، وبدأ تحميل PDF.",
+        linkHref: approval.previewUrl,
+        linkLabel: "استعراض التقرير المعتمد",
+      });
+      return;
+
+      setPopup({
+        type: "alert",
+        title: "Ø­ÙØ¸ ÙˆØªØ­Ù…ÙŠÙ„ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
+        message: "ØªÙ… Ø­ÙØ¸ Ù†Ø³Ø®Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙˆØ¨Ø¯Ø£ ØªÙ†Ø²ÙŠÙ„ Ù…Ù„Ù PDF.",
+      });
     }
   }
   function updateReportTwoLogoSettings(
@@ -4165,6 +4537,11 @@ export function ReportTwoStudioRuntime({
   }, [serviceSlugForSavedTemplates]);
 
   useEffect(() => {
+    if (runtimeMode !== "edit") {
+      setPendingDraftSnapshot(null);
+      return;
+    }
+
     if (draftRestored) return;
 
     const snapshot = parseReportTwoDraftSnapshot(
@@ -4178,7 +4555,7 @@ export function ReportTwoStudioRuntime({
 
     setDraftRestored(true);
     // استعادة مسودة report-2
-  }, [draftRestored, reportTwoDraftStorageKey]);
+  }, [draftRestored, reportTwoDraftStorageKey, runtimeMode]);
 
   useEffect(() => {
     if (!draftRestored) return;
@@ -4223,17 +4600,21 @@ export function ReportTwoStudioRuntime({
   ]);
   const reportTwoLayoutGridClass = [
     "mx-auto grid max-w-[1760px] gap-4 transition-all",
-    rightSidebarCollapsed && leftSidebarCollapsed
+    runtimeMode === "preview"
       ? "xl:grid-cols-[minmax(0,1fr)]"
-      : rightSidebarCollapsed
-        ? "xl:grid-cols-[minmax(0,1fr)_300px]"
-        : leftSidebarCollapsed
-          ? "xl:grid-cols-[280px_minmax(0,1fr)]"
-          : "xl:grid-cols-[280px_minmax(0,1fr)_300px]",
+      : rightSidebarCollapsed && leftSidebarCollapsed
+        ? "xl:grid-cols-[minmax(0,1fr)]"
+        : rightSidebarCollapsed
+          ? "xl:grid-cols-[minmax(0,1fr)_300px]"
+          : leftSidebarCollapsed
+            ? "xl:grid-cols-[280px_minmax(0,1fr)]"
+            : "xl:grid-cols-[280px_minmax(0,1fr)_300px]",
   ].join(" ");
 
   const reportTwoPreviewModeClass =
-    rightSidebarCollapsed && leftSidebarCollapsed
+    runtimeMode === "preview"
+      ? "report-two-preview-focus"
+      : rightSidebarCollapsed && leftSidebarCollapsed
       ? "report-two-preview-focus"
       : rightSidebarCollapsed || leftSidebarCollapsed
         ? "report-two-preview-wide"
@@ -4257,6 +4638,53 @@ export function ReportTwoStudioRuntime({
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-5 transition-colors dark:bg-slate-950" dir="rtl">
+      {runtimeMode === "preview" ? (
+        <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
+          <div>
+            <p className="text-sm font-black text-slate-950 dark:text-white">
+              المعاينة الجاهزة
+            </p>
+            <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
+              راجع التقرير ثم احفظ نسخة ثابتة وحمّل ملف PDF مباشرة.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void saveAndDownloadReportTwoSnapshot()}
+              disabled={reportTwoApprovalSubmitting || reportTwoPdfExporting}
+              className="rounded-2xl bg-emerald-700 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {reportTwoApprovalSubmitting
+                ? "جاري الحفظ..."
+                : reportTwoPdfExporting
+                  ? "جاري التحميل..."
+                  : "حفظ وتحميل"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setRuntimeMode("edit");
+                syncReportTwoStudioUrl("edit");
+              }}
+              className="rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800"
+            >
+              تعديل قبل الحفظ
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push(buildReportTwoPrepareUrl())}
+              className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white transition hover:bg-slate-800"
+            >
+              العودة لاختيار الحقول
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {runtimeMode !== "preview" ? (
       <div className="report-two-sidebar-toolbar mx-auto mb-3 flex max-w-[1900px] flex-wrap items-center justify-between gap-2 rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 dark:shadow-black/30">
         <div className="text-xs font-black text-slate-500 dark:text-slate-400">
           تحكم سريع بمساحة العمل
@@ -4312,10 +4740,11 @@ export function ReportTwoStudioRuntime({
           </button>
         </div>
       </div>
+      ) : null}
       
       
       <div className={reportTwoLayoutGridClass}>
-        {!rightSidebarCollapsed ? (
+        {runtimeMode !== "preview" && !rightSidebarCollapsed ? (
         <aside className="space-y-4">
           <ReportTwoCollapsibleCard id="control" title="تحكم القالب">
 
@@ -4502,6 +4931,7 @@ export function ReportTwoStudioRuntime({
             </div>
           ) : null}
 
+          {runtimeMode !== "preview" ? (
 <section className="report-two-productivity-card grid w-full items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex min-h-[128px] flex-col justify-between rounded-[1.5rem] border border-emerald-100 bg-white p-3 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -4630,6 +5060,7 @@ export function ReportTwoStudioRuntime({
           </div>
         </div>
       </section>
+          ) : null}
 <section ref={reportTwoPreviewExportRef} data-report-two-snapshot-source="preview" className={["report-two-a4-host", reportTwoPreviewModeClass, "rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"].join(" ")}>
             <style>{`
               .report-two-a4-host {
@@ -4746,11 +5177,19 @@ export function ReportTwoStudioRuntime({
                   setSelectedBlockId("");
                 }
               }}
-              onAddPage={addPage}
-              onMovePage={moveReportTwoPage}
-              onDeletePage={deleteReportTwoPage}
-              canMovePage={canMoveReportTwoPage}
-              canDeletePage={canDeleteReportTwoPage}
+              onAddPage={runtimeMode === "preview" ? () => undefined : addPage}
+              onMovePage={
+                runtimeMode === "preview" ? () => undefined : moveReportTwoPage
+              }
+              onDeletePage={
+                runtimeMode === "preview" ? () => undefined : deleteReportTwoPage
+              }
+              canMovePage={
+                runtimeMode === "preview" ? () => false : canMoveReportTwoPage
+              }
+              canDeletePage={
+                runtimeMode === "preview" ? () => false : canDeleteReportTwoPage
+              }
             />
           </section>
 
@@ -4790,7 +5229,7 @@ export function ReportTwoStudioRuntime({
           </section>
         </section>
 
-        {!leftSidebarCollapsed ? (
+        {runtimeMode !== "preview" && !leftSidebarCollapsed ? (
         <aside className="space-y-4">
           <ReportTwoCollapsibleCard id="logo" title="شعار التقرير">
 
@@ -5641,6 +6080,46 @@ export function ReportTwoStudioRuntime({
         ) : null}
       </div>
 
+      {reportTwoActionModal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+              <div>
+                <h2 className="text-xl font-black text-slate-950">
+                  {reportTwoActionModal.title}
+                </h2>
+                <p className="mt-1 text-sm font-bold text-slate-500">
+                  {reportTwoActionModal.message}
+                </p>
+                {reportTwoActionModal.linkHref ? (
+                  <a
+                    href={reportTwoActionModal.linkHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
+                  >
+                    {reportTwoActionModal.linkLabel || "استعراض التقرير المعتمد"}
+                  </a>
+                ) : null}
+              </div>
+            </header>
+
+            <footer className="flex flex-wrap items-center justify-end gap-3 px-6 py-4">
+              <button
+                type="button"
+                onClick={closeReportTwoActionModal}
+                className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+              >
+                حسنًا
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {popup ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
@@ -5693,7 +6172,7 @@ export function ReportTwoStudioRuntime({
         </div>
       ) : null}
 
-      {pendingDraftSnapshot ? (
+      {runtimeMode === "edit" && pendingDraftSnapshot ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
           dir="rtl"
@@ -5731,6 +6210,61 @@ export function ReportTwoStudioRuntime({
                 type="button"
                 onClick={() => {
                   const snapshot = pendingDraftSnapshot;
+                  if (!snapshot) return;
+                  setPendingDraftSnapshot(null);
+                  restoreReportTwoDraftSnapshot(snapshot);
+                  lastDraftSerializedRef.current = JSON.stringify(snapshot);
+                  setLastAutoSavedAt(snapshot.savedAt);
+                  setDraftRestored(true);
+                }}
+                className="rounded-2xl bg-emerald-700 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-800"
+              >
+                نعم، استعادة المسودة
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
+      {false ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          dir="rtl"
+        >
+          <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-xs font-black text-emerald-700">
+                  استعادة المسودة
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-slate-950">
+                  توجد مسودة محفوظة
+                </h2>
+
+                <p className="mt-1 text-sm font-bold text-slate-500">
+                  يوجد مسودة محفوظة لهذا التقرير. هل تريد استعادتها؟
+                </p>
+              </div>
+            </header>
+
+            <footer className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingDraftSnapshot(null);
+                  setDraftRestored(true);
+                }}
+                className="rounded-2xl bg-slate-100 px-5 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+              >
+                لا، بداية جديدة
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const snapshot = pendingDraftSnapshot;
+                  if (!snapshot) return;
                   setPendingDraftSnapshot(null);
                   restoreReportTwoDraftSnapshot(snapshot);
                   lastDraftSerializedRef.current = JSON.stringify(snapshot);

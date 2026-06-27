@@ -480,7 +480,7 @@ export function ReportPrepareFlow({
                   onClick={continueToStudio}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-50"
                 >
-                  متابعة إلى المعاينة والتعديل
+                  معاينة التقرير
                   <CheckCircle2 className="h-4 w-4" />
                 </button>
               </div>

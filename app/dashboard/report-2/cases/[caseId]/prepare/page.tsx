@@ -87,7 +87,10 @@ export default async function ReportTwoPreparePage({
       payload={result.payload}
       selectedVariantId={selectedVariantId}
       variants={reportVariants}
-      continueHref={`/dashboard/report-2/cases/${caseId}/studio`}
+      continueHref={`/dashboard/report-2/cases/${caseId}/studio?${new URLSearchParams({
+        mode: "preview",
+        variant: selectedVariantId,
+      }).toString()}`}
     />
   );
 }
