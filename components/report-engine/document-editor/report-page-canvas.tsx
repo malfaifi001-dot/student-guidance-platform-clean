@@ -82,7 +82,27 @@ function renderValue(value: unknown) {
   if (value === null || value === undefined || value === "") return "";
 
   if (Array.isArray(value)) {
-    return value.map((item) => translateTechnicalValue(String(item))).join("، ");
+    const items = Array.from(
+      new Set(
+        value
+          .map((item) => translateTechnicalValue(String(item)))
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    );
+
+    if (!items.length) return "";
+
+    return (
+      <ul className="mt-1 space-y-1.5 text-right text-sm font-black leading-7 text-slate-950" dir="rtl">
+        {items.map((item, index) => (
+          <li key={`${item}-${index}`} className="flex items-start justify-start gap-2">
+            <span className="mt-[0.75em] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-500" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    );
   }
 
   if (typeof value === "boolean") return value ? "نعم" : "لا";

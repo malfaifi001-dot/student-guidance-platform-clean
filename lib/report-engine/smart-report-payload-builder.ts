@@ -15,6 +15,12 @@ import type {
   SmartReportType,
 } from "@/lib/report-engine/smart-report-types";
 import { prisma } from "@/lib/prisma";
+import {
+  formatWorkflowDisplayValue,
+  getWorkflowFieldKey,
+  getWorkflowFieldLabel,
+  type WorkflowValueLike,
+} from "@/lib/workflow-values/workflow-display-value";
 
 type CurrentUserLike = {
   user: {
@@ -61,7 +67,23 @@ type CaseValueItem = {
   key: string;
   label: string;
   value: string;
+  payloadValue?: string[];
   importance: SmartReportFieldImportance;
+};
+
+type FieldLookupItem = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: Array<{
+    label?: string | null;
+    value?: string | null;
+    key?: string | null;
+    id?: string | null;
+    name?: string | null;
+    text?: string | null;
+    title?: string | null;
+  }> | null;
 };
 
 function cleanText(value: unknown) {
@@ -238,23 +260,453 @@ function collectWorkflowSnapshotFieldLabels(snapshot: unknown) {
   return labels;
 }
 
+function buildSmartReportFieldMap(
+  caseEntry: any,
+  snapshotLabels: Map<string, string>
+) {
+  const map = new Map<string, FieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label || snapshotLabels.get(field.key) || field.key,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  return map;
+}
+
+function normalizeSmartReportCaseValue(
+  value: any,
+  fieldMap: Map<string, FieldLookupItem>,
+  snapshotLabels: Map<string, string>
+): WorkflowValueLike {
+  const fieldKey = value.field?.key || value.fieldKey || "";
+  const fieldFromWorkflow = fieldMap.get(fieldKey);
+
+  return {
+    id: value.id,
+    fieldKey,
+    value: value.value,
+    jsonValue: value.jsonValue,
+    field: value.field
+      ? {
+          key: value.field.key || fieldKey,
+          label:
+            value.field.label ||
+            fieldFromWorkflow?.label ||
+            snapshotLabels.get(fieldKey) ||
+            fieldKey,
+          type: value.field.type || fieldFromWorkflow?.type,
+          options: value.field.options || fieldFromWorkflow?.options || [],
+        }
+      : fieldFromWorkflow
+        ? fieldFromWorkflow
+        : {
+            key: fieldKey,
+            label: snapshotLabels.get(fieldKey) || fieldKey,
+            options: [],
+          },
+  };
+}
+
+function cleanSmartReportOptionText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function uniqueSmartReportItems(items: string[]) {
+  return Array.from(
+    new Set(
+      items
+        .map((item) => cleanSmartReportOptionText(item))
+        .filter(Boolean)
+    )
+  );
+}
+
+function collectSmartReportArrayValue(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  const record = value as Record<string, unknown>;
+  const arrayKeys = [
+    "values",
+    "value",
+    "selected",
+    "selectedValues",
+    "selectedOptions",
+    "items",
+    "options",
+    "answers",
+  ];
+
+  for (const key of arrayKeys) {
+    const candidate = record[key];
+
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+}
+
+function getSmartReportOptionLabels(item: WorkflowValueLike) {
+  const source = item as any;
+  const options = Array.isArray(source.field?.options)
+    ? source.field.options
+    : [];
+
+  const labels = new Map<string, string>();
+
+  for (const option of options) {
+    const label =
+      cleanSmartReportOptionText(option.label) ||
+      cleanSmartReportOptionText(option.name) ||
+      cleanSmartReportOptionText(option.value) ||
+      cleanSmartReportOptionText(option.key) ||
+      cleanSmartReportOptionText(option.id);
+
+    if (!label) {
+      continue;
+    }
+
+    for (const key of [option.value, option.key, option.id, option.label, option.name]) {
+      const cleanKey = cleanSmartReportOptionText(key);
+
+      if (cleanKey) {
+        labels.set(cleanKey, label);
+      }
+    }
+  }
+
+  return labels;
+}
+
+function resolveSmartReportItemLabel(
+  value: unknown,
+  optionLabels: Map<string, string>
+): string {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "نعم" : "لا";
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => resolveSmartReportItemLabel(item, optionLabels))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return (
+      resolveSmartReportItemLabel(record.label, optionLabels) ||
+      resolveSmartReportItemLabel(record.name, optionLabels) ||
+      resolveSmartReportItemLabel(record.value, optionLabels) ||
+      resolveSmartReportItemLabel(record.key, optionLabels) ||
+      resolveSmartReportItemLabel(record.id, optionLabels)
+    );
+  }
+
+  const text = cleanSmartReportOptionText(value);
+
+  return optionLabels.get(text) || text;
+}
+
+function splitSmartReportDisplayValue(displayValue: string) {
+  return uniqueSmartReportItems(
+    String(displayValue || "")
+      .split(/\s*(?:،|,|؛|\r?\n)\s*/g)
+      .map((item) => item.trim())
+  );
+}
+
+function isSmartReportMultiValueField(item: WorkflowValueLike) {
+  const type = String((item as any).field?.type || "").toLowerCase();
+
+  return (
+    type.includes("multi") ||
+    type.includes("multiple") ||
+    type.includes("checkbox") ||
+    type.includes("checklist")
+  );
+}
+
+function getSmartReportDisplayItems(
+  item: WorkflowValueLike,
+  displayValue: string
+) {
+  const source = item as any;
+  const optionLabels = getSmartReportOptionLabels(item);
+
+  const rawItems =
+    collectSmartReportArrayValue(source.jsonValue).length > 0
+      ? collectSmartReportArrayValue(source.jsonValue)
+      : collectSmartReportArrayValue(source.value);
+
+  const directItems = uniqueSmartReportItems(
+    rawItems.map((value) => resolveSmartReportItemLabel(value, optionLabels))
+  );
+
+  if (directItems.length > 1) {
+    return directItems;
+  }
+
+  if (isSmartReportMultiValueField(item)) {
+    const displayItems = splitSmartReportDisplayValue(displayValue);
+
+    if (displayItems.length > 1) {
+      return displayItems;
+    }
+  }
+
+  return [];
+}
+
+function applyLanguageModeToSmartReportValue(
+  value: string | string[] | undefined,
+  languageMode: ReportLanguageMode,
+  key: string,
+  label: string
+) {
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      applyReportLanguageModeToFieldValue(item, languageMode, key, label)
+    );
+  }
+
+  return applyReportLanguageModeToFieldValue(
+    value || "غير محدد",
+    languageMode,
+    key,
+    label
+  );
+}
+
+function buildReportFieldMap(caseEntry: any) {
+  const map = new Map<string, FieldLookupItem>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      if (!field?.key) return;
+
+      map.set(field.key, {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        options: field.options || [],
+      });
+    });
+  });
+
+  caseEntry.values?.forEach((value: any) => {
+    const field = value.field;
+    const key = field?.key || value.fieldKey || "";
+
+    if (!key || map.has(key)) return;
+
+    map.set(key, {
+      key,
+      label: field?.label || key,
+      type: field?.type,
+      options: field?.options || [],
+    });
+  });
+
+  return map;
+}
+
+function cleanReportOptionText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function buildReportOptionLabelMap(field?: FieldLookupItem | null) {
+  const labels = new Map<string, string>();
+  const options = Array.isArray(field?.options) ? field?.options || [] : [];
+
+  for (const option of options) {
+    const label =
+      cleanReportOptionText(option.label) ||
+      cleanReportOptionText(option.name) ||
+      cleanReportOptionText(option.text) ||
+      cleanReportOptionText(option.title) ||
+      cleanReportOptionText(option.value) ||
+      cleanReportOptionText(option.key) ||
+      cleanReportOptionText(option.id);
+
+    if (!label) continue;
+
+    for (const key of [
+      option.value,
+      option.key,
+      option.id,
+      option.label,
+      option.name,
+      option.text,
+      option.title,
+    ]) {
+      const cleanKey = cleanReportOptionText(key);
+      if (cleanKey) labels.set(cleanKey, label);
+    }
+  }
+
+  return labels;
+}
+
+function getReportRawArrayValue(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+
+  if (!value || typeof value !== "object") return [];
+
+  const record = value as Record<string, unknown>;
+  const keys = [
+    "values",
+    "value",
+    "selected",
+    "selectedValues",
+    "selectedOptions",
+    "items",
+    "options",
+    "answers",
+  ];
+
+  for (const key of keys) {
+    const candidate = record[key];
+
+    if (Array.isArray(candidate)) return candidate;
+  }
+
+  return [];
+}
+
+function resolveReportOptionItemLabel(
+  value: unknown,
+  optionLabels: Map<string, string>
+): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (typeof value === "boolean") return value ? "نعم" : "لا";
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => resolveReportOptionItemLabel(item, optionLabels))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return (
+      resolveReportOptionItemLabel(record.label, optionLabels) ||
+      resolveReportOptionItemLabel(record.name, optionLabels) ||
+      resolveReportOptionItemLabel(record.text, optionLabels) ||
+      resolveReportOptionItemLabel(record.title, optionLabels) ||
+      resolveReportOptionItemLabel(record.value, optionLabels) ||
+      resolveReportOptionItemLabel(record.key, optionLabels) ||
+      resolveReportOptionItemLabel(record.id, optionLabels)
+    );
+  }
+
+  const text = cleanReportOptionText(value);
+  return optionLabels.get(text) || text;
+}
+
+function uniqueReportOptionItems(items: string[]) {
+  return Array.from(
+    new Set(
+      items
+        .map((item) => cleanReportOptionText(item))
+        .filter(Boolean)
+    )
+  );
+}
+
+function resolveReportOptionDisplayValue(
+  caseValue: any,
+  fieldMap: Map<string, FieldLookupItem>
+): string | string[] {
+  const key = caseValue.field?.key || caseValue.fieldKey || "";
+  const field = caseValue.field || fieldMap.get(key);
+  const optionLabels = buildReportOptionLabelMap(field);
+  const raw = caseValue.jsonValue ?? caseValue.value;
+
+  const rawArray = getReportRawArrayValue(raw);
+
+  if (rawArray.length) {
+    const labels = uniqueReportOptionItems(
+      rawArray.map((item) => resolveReportOptionItemLabel(item, optionLabels))
+    );
+
+    return labels.length > 1 ? labels : labels[0] || "";
+  }
+
+  if (typeof raw === "string") {
+    const text = cleanReportOptionText(raw);
+
+    if (optionLabels.has(text)) {
+      return optionLabels.get(text) || text;
+    }
+
+    const parts = text
+      .split(/\s*(?:،|,|؛|\r?\n)\s*/g)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (parts.length > 1 && parts.every((part) => optionLabels.has(part))) {
+      return uniqueReportOptionItems(
+        parts.map((part) => optionLabels.get(part) || part)
+      );
+    }
+  }
+
+  return resolveReportOptionItemLabel(raw, optionLabels) || stringifyValue(raw);
+}
+
 function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
   const snapshotLabels = collectWorkflowSnapshotFieldLabels(caseEntry.workflowSnapshot);
+  const fieldMap = buildReportFieldMap(caseEntry);
 
   return (caseEntry.values || [])
     .map((item: any) => {
       const key = item.field?.key || item.fieldKey || "";
       const label =
         cleanText(item.field?.label) ||
+        cleanText(fieldMap.get(key)?.label) ||
         snapshotLabels.get(key) ||
         item.fieldKey ||
         "حقل بدون اسم";
-      const value = stringifyValue(item.value ?? item.jsonValue);
+
+      const resolvedValue = resolveReportOptionDisplayValue(item, fieldMap);
+      const payloadValue = Array.isArray(resolvedValue)
+        ? resolvedValue.filter(Boolean)
+        : undefined;
+      const value = Array.isArray(resolvedValue)
+        ? resolvedValue.filter(Boolean).join("، ")
+        : cleanText(resolvedValue);
 
       return {
         key,
         label,
         value,
+        ...(payloadValue && payloadValue.length > 1 ? { payloadValue } : {}),
         importance: classifyField(key, label),
       };
     })
@@ -347,15 +799,26 @@ function makeDetailField(
   item: CaseValueItem,
   languageMode: ReportLanguageMode,
 ): SmartReportField {
+  const value = item.payloadValue && item.payloadValue.length > 1
+    ? item.payloadValue.map((entry) =>
+        applyReportLanguageModeToFieldValue(
+          entry,
+          languageMode,
+          item.key,
+          item.label,
+        )
+      )
+    : applyReportLanguageModeToFieldValue(
+        item.value || "غير محدد",
+        languageMode,
+        item.key,
+        item.label,
+      );
+
   return {
     key: item.key,
     label: applyReportLanguageModeToText(item.label, languageMode),
-    value: applyReportLanguageModeToFieldValue(
-      item.value,
-      languageMode,
-      item.key,
-      item.label,
-    ),
+    value,
     importance: item.importance,
     group: item.importance === "NARRATIVE" ? "وصف وتفاصيل" : "تفاصيل الحالة",
   };
@@ -581,7 +1044,29 @@ export async function buildSmartReportPayloadForCase({
         },
       },
       service: true,
-      workflow: true,
+      workflow: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+            orderBy: {
+              order: "asc",
+            },
+          },
+        },
+      },
       student: {
         include: {
           guardian: true,

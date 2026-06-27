@@ -180,6 +180,7 @@ type FinalReportValueItem = {
   fieldKey: string;
   fieldLabel: string;
   value: string;
+  valueItems?: string[];
 };
 
 type PreviewCaseData = {
@@ -194,6 +195,7 @@ type PreviewCaseData = {
     fieldKey?: string | null;
     fieldLabel?: string | null;
     value?: string | null;
+    valueItems?: string[] | null;
   }>;
   serviceName?: string;
   serviceSlug?: string;
@@ -1212,6 +1214,9 @@ export function collectFinalValues(data: any): FinalReportValueItem[] {
         item.value === undefined || item.value === null
           ? ""
           : String(item.value),
+      valueItems: Array.isArray(item.valueItems)
+        ? item.valueItems.map((valueItem: unknown) => String(valueItem || "").trim()).filter(Boolean)
+        : undefined,
     }));
   }
 
@@ -1333,6 +1338,9 @@ function getFinalFieldListItems(block: any, previewCaseData: PreviewCaseData | n
         key: item.fieldKey,
         label: item.fieldLabel || item.fieldKey,
         value: item.value,
+        ...(Array.isArray(item.valueItems) && item.valueItems.length > 1
+          ? { valueItems: item.valueItems }
+          : {}),
       }));
   }
 
@@ -1340,6 +1348,9 @@ function getFinalFieldListItems(block: any, previewCaseData: PreviewCaseData | n
     key: item.fieldKey,
     label: item.fieldLabel || item.fieldKey,
     value: item.value,
+    ...(Array.isArray(item.valueItems) && item.valueItems.length > 1
+      ? { valueItems: item.valueItems }
+      : {}),
   }));
 }
 
@@ -2056,6 +2067,9 @@ function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
           cleanWorkflowDynamicText(item.id) ||
           cleanWorkflowDynamicText(item.key) ||
           `dynamic-field-${index + 1}`;
+        const valueItems = Array.isArray(item.valueItems)
+          ? translateWorkflowDynamicValueItems(item.valueItems)
+          : translateWorkflowDynamicValueItems(item.value);
 
         return {
           id,
@@ -2070,6 +2084,7 @@ function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
             item.value !== undefined
               ? cleanWorkflowDynamicText(item.value)
               : "",
+          valueItems,
           visible: item.visible !== false,
         };
       })
@@ -2088,6 +2103,9 @@ function getDynamicFieldCardsForBlock(block: any, previewCase: any) {
         key: id,
         label: cleanWorkflowDynamicText(item.label),
         value: cleanWorkflowDynamicText(item.value),
+        valueItems: Array.isArray(item.valueItems)
+          ? item.valueItems.map((valueItem: unknown) => cleanWorkflowDynamicText(valueItem)).filter(Boolean)
+          : [],
         visible: true,
       };
     })
@@ -2283,11 +2301,12 @@ function DesignBlock({
 
         {dynamicFieldItems.length ? (
           <div className={getOfficialDetailsGridClass(designId)}>
-            {dynamicFieldItems.map(({ id, label, value }: any, index: number) => (
+            {dynamicFieldItems.map(({ id, label, value, valueItems }: any, index: number) => (
               <MetaCard
                 key={`${id}-${index}`}
                 label={label}
                 value={value || "غير متوفر"}
+                valueItems={valueItems}
                 labelFontSize={getBlockSetting(block, "fieldLabelFontSize")}
                 valueFontSize={getBlockSetting(block, "fieldValueFontSize")}
               />
@@ -2311,11 +2330,12 @@ function DesignBlock({
 
         {values.length ? (
           <div className={getOfficialDetailsGridClass(designId)}>
-            {values.map((item) => (
+            {values.map((item: any) => (
               <MetaCard
-                key={item.key || item.label}
-                label={item.label}
+                key={item.key || item.label || item.fieldKey || item.fieldLabel}
+                label={item.label || item.fieldLabel}
                 value={item.value || "غير متوفر"}
+                valueItems={item.valueItems}
                 labelFontSize={getBlockSetting(block, "fieldLabelFontSize")}
                 valueFontSize={getBlockSetting(block, "fieldValueFontSize")}
               />
@@ -2688,11 +2708,45 @@ function AutoEvidencePages({
   );
 }
 
-function MetaCard({ label, value, labelFontSize, valueFontSize }: { label: string; value: string; labelFontSize?: string; valueFontSize?: string }) {
+function MetaCard({
+  label,
+  value,
+  valueItems,
+  labelFontSize,
+  valueFontSize,
+}: {
+  label: string;
+  value: string;
+  valueItems?: string[];
+  labelFontSize?: string;
+  valueFontSize?: string;
+}) {
+  const items = Array.isArray(valueItems)
+    ? Array.from(
+        new Set(
+          valueItems
+            .map((item) => cleanWorkflowDynamicText(item))
+            .filter(Boolean)
+        )
+      )
+    : [];
+
   return (
     <div className="rounded-2xl border border-slate-100 bg-white px-3 py-2">
       <p className={[getReportFontSizeClass(labelFontSize, "text-[10px]"), "font-black text-slate-400"].join(" ")}>{label}</p>
-      <p className={["mt-1", getReportFontSizeClass(valueFontSize, "text-xs"), "font-black text-slate-800"].join(" ")}>{value}</p>
+
+      {items.length > 1 ? (
+        <ul className={["mt-2 space-y-1.5", getReportFontSizeClass(valueFontSize, "text-xs"), "font-black leading-6 text-slate-800"].join(" ")} dir="rtl">
+          {items.map((item, index) => (
+            <li key={`${label}-${item}-${index}`} className="flex items-start gap-2">
+              <span className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={["mt-1", getReportFontSizeClass(valueFontSize, "text-xs"), "font-black text-slate-800"].join(" ")}>{value}</p>
+      )}
     </div>
   );
 }
@@ -3215,6 +3269,7 @@ type WorkflowDynamicFieldCard = {
   key: string;
   label: string;
   value: string;
+  valueItems?: string[];
 };
 
 const WORKFLOW_DYNAMIC_FIELD_LABELS: Record<string, string> = {
@@ -3316,6 +3371,7 @@ function translateWorkflowDynamicValue(value: unknown): string {
       translateWorkflowDynamicValue(record.name) ||
       translateWorkflowDynamicValue(record.value) ||
       translateWorkflowDynamicValue(record.key) ||
+      translateWorkflowDynamicValue(record.id) ||
       ""
     );
   }
@@ -3335,6 +3391,20 @@ function translateWorkflowDynamicValue(value: unknown): string {
   return text;
 }
 
+function translateWorkflowDynamicValueItems(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .map((item) => translateWorkflowDynamicValue(item))
+        .filter(Boolean)
+    )
+  );
+}
+
 function getWorkflowDynamicFieldCards(previewCase: any): WorkflowDynamicFieldCard[] {
   return (previewCase?.values || [])
     .map((item: any, index: number) => {
@@ -3344,11 +3414,15 @@ function getWorkflowDynamicFieldCards(previewCase: any): WorkflowDynamicFieldCar
         item.fieldLabel || `حقل ${index + 1}`,
       );
       const value = translateWorkflowDynamicValue(item.value);
+      const valueItems = Array.isArray(item.valueItems)
+        ? translateWorkflowDynamicValueItems(item.valueItems)
+        : translateWorkflowDynamicValueItems(item.value);
 
       return {
         key: key || label || `workflow-field-${index + 1}`,
         label,
         value,
+        valueItems,
       };
     })
     .filter((item: any) => item.label && item.value);

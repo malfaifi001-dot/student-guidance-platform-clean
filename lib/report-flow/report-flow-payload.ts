@@ -319,10 +319,98 @@ export function buildReportFlowContext(
   };
 }
 
+function splitPreparedValueParts(value: string) {
+  return value
+    .split(/\s*(?:،|,|؛|\r?\n)\s*/g)
+    .map((item) => cleanText(item))
+    .filter(Boolean);
+}
+
+function normalizePreparedComparisonText(value: string) {
+  return cleanText(value)
+    .replace(/\s+/g, " ")
+    .replace(/[،,؛]/g, "|")
+    .toLowerCase();
+}
+
+function translateSourceFieldValue(
+  value: string | string[],
+  key: string,
+  label: string,
+  languageMode: ReportLanguageMode,
+) {
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      applyReportLanguageModeToFieldValue(item, languageMode, key, label),
+    );
+  }
+
+  return applyReportLanguageModeToFieldValue(value, languageMode, key, label);
+}
+
+function resolvePreparedFieldValue(
+  originalField: SmartReportField | undefined,
+  field: ReportFlowPrepareField,
+  languageMode: ReportLanguageMode,
+) {
+  const preparedValue = cleanText(field.value);
+  const originalLabel = field.originalLabel || field.label;
+  const originalValue = originalField?.value;
+
+  if (Array.isArray(originalValue)) {
+    const originalItems = originalValue
+      .map((item) => displayValue(item))
+      .filter(Boolean);
+
+    if (!originalItems.length) {
+      return preparedValue;
+    }
+
+    const preparedParts = splitPreparedValueParts(preparedValue);
+    const originalJoined = originalItems.join("، ");
+    const isTechnicalPreparedList =
+      preparedParts.length > 0 &&
+      preparedParts.every((item) => isEnglishTechnicalText(item));
+    const matchesOriginalText =
+      normalizePreparedComparisonText(preparedValue) ===
+      normalizePreparedComparisonText(originalJoined);
+
+    if (preparedValue && (isTechnicalPreparedList || matchesOriginalText)) {
+      return translateSourceFieldValue(
+        originalItems.length > 1 ? originalItems : originalItems[0] || "",
+        field.key,
+        originalLabel,
+        languageMode,
+      );
+    }
+
+    return preparedValue;
+  }
+
+  const originalDisplay = displayValue(originalValue);
+
+  if (
+    preparedValue &&
+    isEnglishTechnicalText(preparedValue) &&
+    originalDisplay &&
+    !isEnglishTechnicalText(originalDisplay)
+  ) {
+    return translateSourceFieldValue(
+      originalDisplay,
+      field.key,
+      originalLabel,
+      languageMode,
+    );
+  }
+
+  return preparedValue;
+}
+
 function applyFields(
   sourceFields: SmartReportField[],
   preparation: ReportFlowPreparation,
   source: ReportFlowFieldSource,
+  languageMode: ReportLanguageMode,
 ): SmartReportField[] {
   const selectedIds = new Set(preparation.selectedFieldIds);
 
@@ -340,7 +428,7 @@ function applyFields(
         }),
         key: field.key,
         label: field.label,
-        value: field.value,
+        value: resolvePreparedFieldValue(original, field, languageMode),
       } as SmartReportField;
     });
 }
@@ -349,17 +437,24 @@ export function applyReportFlowPreparationToPayload(
   payload: SmartReportPayload,
   preparation: ReportFlowPreparation,
 ): SmartReportPayload {
+  const languageMode = normalizeReportLanguageMode(preparation.languageMode);
   const primaryFields = applyFields(
     payload.primaryFields,
     preparation,
     "primary",
+    languageMode,
   );
 
-  const detailFields = applyFields(payload.detailFields, preparation, "detail");
+  const detailFields = applyFields(
+    payload.detailFields,
+    preparation,
+    "detail",
+    languageMode,
+  );
 
   return {
     ...payload,
-    languageMode: normalizeReportLanguageMode(preparation.languageMode),
+    languageMode,
     primaryFields,
     detailFields,
     narrative: {

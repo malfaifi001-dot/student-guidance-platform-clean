@@ -196,6 +196,183 @@ function shouldHideValue(item: WorkflowValueLike) {
   );
 }
 
+type WorkflowReportValueOptionLike = {
+  id?: unknown;
+  key?: unknown;
+  label?: unknown;
+  value?: unknown;
+  name?: unknown;
+};
+
+function cleanWorkflowReportValueText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function uniqueWorkflowReportItems(items: string[]) {
+  return Array.from(
+    new Set(
+      items
+        .map((item) => cleanWorkflowReportValueText(item))
+        .filter(Boolean)
+    )
+  );
+}
+
+function getWorkflowReportOptionLabels(item: WorkflowValueLike) {
+  const source = item as any;
+  const field = source.field || {};
+  const options = Array.isArray(field.options)
+    ? (field.options as WorkflowReportValueOptionLike[])
+    : [];
+  const labels = new Map<string, string>();
+
+  for (const option of options) {
+    const label =
+      cleanWorkflowReportValueText(option.label) ||
+      cleanWorkflowReportValueText(option.name) ||
+      cleanWorkflowReportValueText(option.value) ||
+      cleanWorkflowReportValueText(option.key) ||
+      cleanWorkflowReportValueText(option.id);
+
+    if (!label) {
+      continue;
+    }
+
+    for (const key of [option.value, option.key, option.id, option.label, option.name]) {
+      const cleanKey = cleanWorkflowReportValueText(key);
+
+      if (cleanKey) {
+        labels.set(cleanKey, label);
+      }
+    }
+  }
+
+  return labels;
+}
+
+function getWorkflowReportFieldType(item: WorkflowValueLike) {
+  const source = item as any;
+  return cleanWorkflowReportValueText(source.field?.type).toLowerCase();
+}
+
+function isMultiChoiceWorkflowField(item: WorkflowValueLike) {
+  const type = getWorkflowReportFieldType(item);
+
+  return (
+    type.includes("multi") ||
+    type.includes("multiple") ||
+    type.includes("checkbox") ||
+    type.includes("checklist")
+  );
+}
+
+function collectWorkflowReportArrayValue(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  const record = value as Record<string, unknown>;
+  const arrayKeys = [
+    "values",
+    "value",
+    "selected",
+    "selectedValues",
+    "selectedOptions",
+    "items",
+    "options",
+    "answers",
+  ];
+
+  for (const key of arrayKeys) {
+    const candidate = record[key];
+
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+}
+
+function resolveWorkflowReportItemLabel(
+  value: unknown,
+  optionLabels: Map<string, string>
+): string {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "نعم" : "لا";
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => resolveWorkflowReportItemLabel(item, optionLabels))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return (
+      resolveWorkflowReportItemLabel(record.label, optionLabels) ||
+      resolveWorkflowReportItemLabel(record.name, optionLabels) ||
+      resolveWorkflowReportItemLabel(record.value, optionLabels) ||
+      resolveWorkflowReportItemLabel(record.key, optionLabels) ||
+      resolveWorkflowReportItemLabel(record.id, optionLabels)
+    );
+  }
+
+  const text = cleanWorkflowReportValueText(value);
+
+  return optionLabels.get(text) || text;
+}
+
+function splitMultiDisplayValue(displayValue: string) {
+  return uniqueWorkflowReportItems(
+    String(displayValue || "")
+      .split(/\s*(?:،|,|؛|\r?\n)\s*/g)
+      .map((item) => item.trim())
+  );
+}
+
+function getWorkflowDisplayValueItems(
+  item: WorkflowValueLike,
+  displayValue: string
+) {
+  const source = item as any;
+  const optionLabels = getWorkflowReportOptionLabels(item);
+
+  const rawItems =
+    collectWorkflowReportArrayValue(source.jsonValue).length > 0
+      ? collectWorkflowReportArrayValue(source.jsonValue)
+      : collectWorkflowReportArrayValue(source.value);
+
+  const directItems = uniqueWorkflowReportItems(
+    rawItems.map((value) => resolveWorkflowReportItemLabel(value, optionLabels))
+  );
+
+  if (directItems.length > 1) {
+    return directItems;
+  }
+
+  if (isMultiChoiceWorkflowField(item)) {
+    const displayItems = splitMultiDisplayValue(displayValue);
+
+    if (displayItems.length > 1) {
+      return displayItems;
+    }
+  }
+
+  return [];
+}
+
 function buildLocalizedValues(caseEntry: any) {
   const fieldMap = buildFieldMap(caseEntry);
 
@@ -209,11 +386,13 @@ function buildLocalizedValues(caseEntry: any) {
       const fieldKey = getWorkflowFieldKey(item);
       const fieldLabel = getWorkflowFieldLabel(item, index);
       const displayValue = formatWorkflowDisplayValue(item, normalizedValues);
+      const valueItems = getWorkflowDisplayValueItems(item, displayValue);
 
       return {
         fieldKey,
         fieldLabel,
-        value: displayValue || "â€”",
+        value: displayValue || "—",
+        ...(valueItems.length > 1 ? { valueItems } : {}),
       };
     });
 }

@@ -115,8 +115,36 @@ type ReportTwoDynamicField = {
   key: string;
   label: string;
   value: string;
+  valueItems?: string[];
   visible: boolean;
 };
+
+function getReportTwoDynamicFieldBaseId(
+  field: Partial<Pick<ReportTwoDynamicField, "id" | "key" | "label">>,
+  index: number,
+) {
+  return (
+    cleanText(field.id) ||
+    cleanText(field.key) ||
+    cleanText(field.label) ||
+    `dynamic-field-${index + 1}`
+  );
+}
+
+function ensureUniqueReportTwoDynamicFieldIds(fields: ReportTwoDynamicField[]) {
+  const seen = new Map<string, number>();
+
+  return fields.map((field, index) => {
+    const baseId = getReportTwoDynamicFieldBaseId(field, index);
+    const count = seen.get(baseId) || 0;
+    seen.set(baseId, count + 1);
+
+    return {
+      ...field,
+      id: count === 0 ? baseId : `${baseId}__${count + 1}`,
+    };
+  });
+}
 
 type ReportTwoTableSettings = {
   highlightHeader: boolean;
@@ -1033,12 +1061,20 @@ function getPreviewCase(payload: SmartReportPayload) {
         cleanText(field.name) ||
         cleanText(field.id) ||
         `field-${index + 1}`;
+      const valueItems = getReportTwoReadableFieldValueItems(field);
+      const value =
+        valueItems.length > 1
+          ? valueItems.join("، ")
+          : getReportTwoReadableFieldValue(field);
 
       return {
         fieldKey,
         fieldLabel: getReportTwoReadableFieldLabel(field, index),
-        value: getReportTwoReadableFieldValue(field),
-        rawValue: cleanText(field.value),
+        value,
+        ...(valueItems.length > 1 ? { valueItems } : {}),
+        rawValue: Array.isArray(field.value)
+          ? field.value.map((item: unknown) => cleanText(item)).filter(Boolean).join("، ")
+          : cleanText(field.value),
       };
     }),
     evidences: collectEvidences(payload),
@@ -1445,9 +1481,7 @@ function normalizeReportTwoBlockForRuntime(
       ...block,
       sourceBlockId: block.id,
       kind: "dynamic-fields" as StudioBlockKind,
-      dynamicFields: block.dynamicFields?.length
-        ? block.dynamicFields
-        : getReportTwoDynamicFieldsFromPreviewCase(previewCase),
+      dynamicFields: getDynamicFieldsForBlock(block, previewCase),
     };
   }
 
@@ -1847,7 +1881,38 @@ function getReportTwoReadableFieldLabel(field: any, index: number) {
   return key;
 }
 
+function uniqueReportTwoValueItems(items: string[]) {
+  return Array.from(
+    new Set(items.map((item) => cleanText(item)).filter(Boolean)),
+  );
+}
+
+function getReportTwoReadableFieldValueItems(field: any) {
+  const directArrays = [
+    field.valueItems,
+    field.values,
+    field.items,
+    field.selectedValues,
+    field.selectedOptions,
+    Array.isArray(field.value) ? field.value : null,
+  ].filter(Array.isArray) as unknown[][];
+
+  const items = uniqueReportTwoValueItems(
+    directArrays.flatMap((entries) =>
+      entries.map((entry) => getReportTwoDisplayText(entry)).filter(Boolean),
+    ),
+  );
+
+  return items.length > 1 ? items : [];
+}
+
 function getReportTwoReadableFieldValue(field: any) {
+  const readableItems = getReportTwoReadableFieldValueItems(field);
+
+  if (readableItems.length > 1) {
+    return readableItems.join("، ");
+  }
+
   const explicitCandidates = [
     field.displayValue,
     field.formattedValue,
@@ -1885,21 +1950,27 @@ function getReportTwoReadableFieldValue(field: any) {
 function getReportTwoDynamicFieldsFromPreviewCase(
   previewCase: ReturnType<typeof getPreviewCase>,
 ): ReportTwoDynamicField[] {
-  return (previewCase.values || [])
+  const fields = (previewCase.values || [])
     .map((item: any, index: number) => {
       const key = cleanText(item.fieldKey) || `workflow-field-${index + 1}`;
       const label = cleanText(item.fieldLabel) || key || `حقل ${index + 1}`;
       const value = cleanText(item.value);
+      const valueItems = Array.isArray(item.valueItems)
+        ? uniqueReportTwoValueItems(item.valueItems)
+        : [];
 
       return {
         id: key || `workflow-field-${index + 1}`,
         key,
         label,
         value,
-        visible: Boolean(label && value),
+        ...(valueItems.length > 1 ? { valueItems } : {}),
+        visible: Boolean(label && (value || valueItems.length)),
       };
     })
-    .filter((item) => item.label && item.value);
+    .filter((item) => item.label && (item.value || item.valueItems?.length));
+
+  return ensureUniqueReportTwoDynamicFieldIds(fields);
 }
 
 function getDynamicFieldsForBlock(
@@ -1924,7 +1995,7 @@ function getDynamicFieldsForBlock(
     });
   });
 
-  return block.dynamicFields.map((field, index) => {
+  const fields = block.dynamicFields.map((field, index) => {
     const source =
       sourceByKey.get(getReportTwoLookupKey(field.key)) ||
       sourceByKey.get(getReportTwoLookupKey(field.id)) ||
@@ -1932,15 +2003,44 @@ function getDynamicFieldsForBlock(
       sourceFields[index];
 
     const key = field.key || source?.key || `dynamic-field-${index + 1}`;
+    const configuredValue = cleanText(field.value);
+    const configuredValueItems = Array.isArray(field.valueItems)
+      ? uniqueReportTwoValueItems(field.valueItems)
+      : [];
+    const sourceValue = cleanText(source?.value);
+    const sourceValueItems = Array.isArray(source?.valueItems)
+      ? uniqueReportTwoValueItems(source.valueItems)
+      : [];
+    const matchesSourceValue =
+      Boolean(configuredValue && sourceValue) &&
+      getReportTwoLookupKey(configuredValue) === getReportTwoLookupKey(sourceValue);
+    const shouldUseSourceValueItems =
+      sourceValueItems.length > 1 &&
+      ((configuredValueItems.length > 0 &&
+        configuredValueItems.every((item) => isReportTwoTechnicalValue(item))) ||
+        (configuredValueItems.length === 0 &&
+          (!configuredValue ||
+            isReportTwoTechnicalValue(configuredValue) ||
+            matchesSourceValue)));
+    const valueItems = shouldUseSourceValueItems
+      ? sourceValueItems
+      : configuredValueItems;
+    const value =
+      configuredValue && !shouldUseSourceValueItems
+        ? configuredValue
+        : sourceValue || getReportTwoFieldValue(field.value) || configuredValue;
 
     return {
       id: field.id || source?.id || `dynamic-field-${index + 1}`,
       key,
       label: field.label ?? cleanText(source?.label) ?? getReportTwoFieldLabel(field.key, field.label) ?? key,
-      value: field.value ?? cleanText(source?.value) ?? getReportTwoFieldValue(field.value) ?? cleanText(field.value),
+      value,
+      ...(valueItems.length > 1 ? { valueItems } : {}),
       visible: field.visible !== false,
     };
   });
+
+  return ensureUniqueReportTwoDynamicFieldIds(fields);
 }
 function getReportTwoTableSettings(
   settings?: Record<string, any>,
@@ -5009,9 +5109,9 @@ export function ReportTwoStudioRuntime({
                     </div>
 
                     <div className="mt-3 max-h-[520px] space-y-3 overflow-y-auto pr-1">
-                      {getDynamicFieldsForBlock(selectedBlock, previewCase).map((field) => (
+                      {getDynamicFieldsForBlock(selectedBlock, previewCase).map((field, index) => (
                         <article
-                          key={field.id}
+                          key={`${selectedBlock.id}-${field.id}-${index}`}
                           className={[
                             "rounded-2xl border p-3 transition",
                             field.visible
