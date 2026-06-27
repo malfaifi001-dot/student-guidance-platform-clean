@@ -1308,9 +1308,123 @@ function getReportTwoTextLineCount(content: string) {
   return Math.max(hardLines, Math.ceil(text.length / 68), 1);
 }
 
+function getReportTwoDynamicFieldsColumns(designId?: ReportDesignId) {
+  if (
+    designId === "ministry-form" ||
+    designId === "modern-official" ||
+    designId === "report-official-archive"
+  ) {
+    return 3;
+  }
+
+  return 2;
+}
+
+function getReportTwoEstimatedTextLines(text: string, charsPerLine: number) {
+  const value = cleanText(text);
+
+  if (!value) {
+    return 1;
+  }
+
+  return value
+    .split(/\n+/)
+    .filter(Boolean)
+    .reduce((count, line) => count + Math.max(Math.ceil(line.length / charsPerLine), 1), 0);
+}
+
+function getReportTwoDynamicFieldCardHeightScore(field: ReportTwoDynamicField) {
+  const labelLines = getReportTwoEstimatedTextLines(field.label, 18);
+  const valueItems = Array.isArray(field.valueItems)
+    ? uniqueReportTwoValueItems(field.valueItems)
+    : [];
+  const valueLines =
+    valueItems.length > 1
+      ? valueItems.reduce(
+          (count, item) => count + getReportTwoEstimatedTextLines(item, 22),
+          0,
+        )
+      : getReportTwoEstimatedTextLines(
+          valueItems[0] || cleanText(field.value) || "غير متوفر",
+          24,
+        );
+
+  const baseScore = 13;
+  const labelScore = labelLines * 3.5;
+  const valueScore = valueItems.length > 1 ? valueLines * 4.8 + 4 : valueLines * 5.4;
+
+  return Math.max(baseScore + labelScore + valueScore, 22);
+}
+
+function getReportTwoDynamicFieldRows(
+  block: StudioBlock,
+  previewCase: ReturnType<typeof getPreviewCase>,
+  designId?: ReportDesignId,
+) {
+  const fields = getDynamicFieldsForBlock(block, previewCase).filter(
+    (field) => field.visible !== false,
+  );
+  const columns = getReportTwoDynamicFieldsColumns(designId);
+  const rows: ReportTwoDynamicField[][] = [];
+
+  for (let index = 0; index < fields.length; index += columns) {
+    rows.push(fields.slice(index, index + columns));
+  }
+
+  return rows;
+}
+
+function getReportTwoDynamicFieldsChunkHeightScore(
+  block: StudioBlock,
+  rows: ReportTwoDynamicField[][],
+) {
+  const titleScore =
+    block.showTitle === false || !cleanText(block.title)
+      ? 0
+      : 12;
+  const shellScore = block.variant === "plain" ? 4 : 8;
+
+  if (!rows.length) {
+    return titleScore + shellScore + 16;
+  }
+
+  const rowsScore = rows.reduce((total, row, rowIndex) => {
+    const rowHeight = row.reduce(
+      (maxScore, field) => Math.max(maxScore, getReportTwoDynamicFieldCardHeightScore(field)),
+      0,
+    );
+
+    return total + rowHeight + (rowIndex > 0 ? 4 : 0);
+  }, 0);
+
+  return titleScore + shellScore + rowsScore;
+}
+
+function createReportTwoDynamicFieldsChunkBlock(
+  block: StudioBlock,
+  rows: ReportTwoDynamicField[][],
+  chunkIndex: number,
+) {
+  const sourceBlockId = cleanText((block as any).sourceBlockId) || block.id;
+
+  return {
+    ...block,
+    id: chunkIndex === 0 ? block.id : `${sourceBlockId}-auto-dynamic-${chunkIndex + 1}`,
+    title:
+      chunkIndex === 0
+        ? block.title
+        : `${block.title || "التفاصيل"} - تكملة`,
+    showTitle: chunkIndex === 0 ? block.showTitle : false,
+    dynamicFields: rows.flat(),
+    reportTwoVirtualBlock: chunkIndex > 0,
+    sourceBlockId,
+  } as StudioBlock;
+}
+
 function getReportTwoBlockHeightScore(
   block: StudioBlock,
   previewCase: ReturnType<typeof getPreviewCase>,
+  designId?: ReportDesignId,
 ) {
   if (isReportTwoSignatureBlock(block) || (block as any)?.placement === "bottom") {
     return 0;
@@ -1323,11 +1437,10 @@ function getReportTwoBlockHeightScore(
   if (block.kind === "plain-text") return 24;
 
   if (block.kind === "dynamic-fields") {
-    const fields = getDynamicFieldsForBlock(block, previewCase);
-    const visibleFields = fields.filter((field) => field.visible !== false);
-    const count = Math.max(visibleFields.length, 1);
-
-    return 24 + Math.ceil(count / 3) * 11;
+    return getReportTwoDynamicFieldsChunkHeightScore(
+      block,
+      getReportTwoDynamicFieldRows(block, previewCase, designId),
+    );
   }
 
   if (block.kind === "section-text" || block.kind === "multi-paragraph") {
@@ -1431,6 +1544,7 @@ function splitReportTwoTextBySafeSize(content: string) {
 function splitReportTwoBlockForPagination(
   block: StudioBlock,
   previewCase: ReturnType<typeof getPreviewCase>,
+  designId?: ReportDesignId,
 ) {
   if (!isReportTwoSplittableTextBlock(block)) {
     return [block];
@@ -1442,7 +1556,7 @@ function splitReportTwoBlockForPagination(
     return [block];
   }
 
-  const score = getReportTwoBlockHeightScore(block, previewCase);
+  const score = getReportTwoBlockHeightScore(block, previewCase, designId);
 
   if (score <= REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE) {
     return [block];
@@ -1509,6 +1623,7 @@ function buildReportTwoRuntimeTemplate(
   previewCase: ReturnType<typeof getPreviewCase>,
 ): StudioTemplate {
   const runtimePages: StudioPage[] = [];
+  const designId = template.designTemplateId;
 
   template.pages.forEach((sourcePage) => {
     let pageNumber = 1;
@@ -1540,7 +1655,7 @@ function buildReportTwoRuntimeTemplate(
     }
 
     function placeBlock(block: StudioBlock) {
-      const blockScore = getReportTwoBlockHeightScore(block, previewCase);
+      const blockScore = getReportTwoBlockHeightScore(block, previewCase, designId);
       const pageSafeHeightScore =
         block.kind === "evidence-gallery"
           ? REPORT_TWO_EVIDENCE_SAFE_HEIGHT_SCORE
@@ -1597,15 +1712,79 @@ function buildReportTwoRuntimeTemplate(
       }
     }
 
+    function placeDynamicFieldsBlock(block: StudioBlock) {
+      const rows = getReportTwoDynamicFieldRows(block, previewCase, designId);
+
+      if (!rows.length) {
+        placeBlock(block);
+        return;
+      }
+
+      let rowIndex = 0;
+      let chunkIndex = 0;
+
+      while (rowIndex < rows.length) {
+        const pageSafeHeightScore = REPORT_TWO_PAGE_SAFE_HEIGHT_SCORE;
+        const remainingScore = Math.max(pageSafeHeightScore - usedScore, 0);
+        const chunkRows: ReportTwoDynamicField[][] = [];
+
+        while (rowIndex < rows.length) {
+          const candidateRows = [...chunkRows, rows[rowIndex]];
+          const candidateBlock = createReportTwoDynamicFieldsChunkBlock(
+            block,
+            candidateRows,
+            chunkIndex,
+          );
+          const candidateScore = getReportTwoDynamicFieldsChunkHeightScore(
+            candidateBlock,
+            candidateRows,
+          );
+          const canFitCurrentPage =
+            candidateScore <= remainingScore ||
+            (currentPage.blocks.length === 0 &&
+              chunkRows.length === 0 &&
+              candidateRows.length === 1);
+
+          if (!canFitCurrentPage && chunkRows.length === 0) {
+            pushCurrentPage();
+            startNextPage();
+            break;
+          }
+
+          if (!canFitCurrentPage) {
+            break;
+          }
+
+          chunkRows.push(rows[rowIndex]);
+          rowIndex += 1;
+        }
+
+        if (!chunkRows.length) {
+          continue;
+        }
+
+        placeBlock(
+          createReportTwoDynamicFieldsChunkBlock(block, chunkRows, chunkIndex),
+        );
+        chunkIndex += 1;
+      }
+    }
+
     sourcePage.blocks.forEach((originalBlock) => {
       const normalizedBlock = normalizeReportTwoBlockForRuntime(
         originalBlock,
         previewCase,
       );
 
+      if (normalizedBlock.kind === "dynamic-fields") {
+        placeDynamicFieldsBlock(normalizedBlock);
+        return;
+      }
+
       const runtimeBlocks = splitReportTwoBlockForPagination(
         normalizedBlock,
         previewCase,
+        designId,
       );
 
       runtimeBlocks.forEach((block) => placeBlock(block));
