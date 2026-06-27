@@ -21,8 +21,10 @@ type PrintDocumentSnapshot = {
 
 export function ReportTwoPrintDocument({
   snapshot,
+  autoPrint = false,
 }: {
   snapshot: PrintDocumentSnapshot;
+  autoPrint?: boolean;
 }) {
   const template = snapshot.template || { pages: [] };
   const pages = Array.isArray(template.pages) ? template.pages : [];
@@ -42,6 +44,10 @@ export function ReportTwoPrintDocument({
   );
 
   useEffect(() => {
+    if (!autoPrint) {
+      return;
+    }
+
     let cancelled = false;
 
     (async () => {
@@ -75,7 +81,7 @@ export function ReportTwoPrintDocument({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [autoPrint]);
 
   return (
     <main className="report-two-print-document" dir="rtl">

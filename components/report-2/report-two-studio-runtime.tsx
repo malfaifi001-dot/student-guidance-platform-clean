@@ -3016,6 +3016,20 @@ export function ReportTwoStudioRuntime({
 
   function closePopup() { setPopup(null); }
   function closeReportTwoActionModal() { setReportTwoActionModal(null); }
+  function openReportTwoPrintPreview(previewUrl: string) {
+    const popup = window.open(previewUrl, "_blank", "noopener,noreferrer");
+
+    setReportTwoActionModal({
+      title: "معاينة الطباعة",
+      message: popup
+        ? "تم فتح معاينة الطباعة في نافذة جديدة. ستبقى هذه الصفحة كما هي، ويمكنك استخدام الرابط أدناه لإعادة فتح المعاينة عند الحاجة."
+        : "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة في نافذة جديدة.",
+      linkHref: previewUrl,
+      linkLabel: "فتح معاينة الطباعة",
+    });
+
+    return popup;
+  }
 
   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
   const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
@@ -3766,15 +3780,7 @@ export function ReportTwoStudioRuntime({
               "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم \"طباعة\" أو \"حفظ كملف PDF\" من متصفحك.",
           });
 
-          const fallbackPreviewWindow = window.open(
-            json.previewUrl,
-            "_blank",
-            "noopener,noreferrer",
-          );
-
-          if (!fallbackPreviewWindow) {
-            window.location.href = json.previewUrl;
-          }
+          openReportTwoPrintPreview(json.previewUrl);
 
           return "preview-fallback" as const;
 
@@ -3792,7 +3798,7 @@ export function ReportTwoStudioRuntime({
           );
 
           if (!previewWindow) {
-            window.location.href = json.previewUrl;
+            openReportTwoPrintPreview(json.previewUrl);
           }
 
           return "preview-fallback" as const;
@@ -3885,7 +3891,7 @@ export function ReportTwoStudioRuntime({
           );
 
           if (!previewWindow) {
-            window.location.href = json.previewUrl;
+            openReportTwoPrintPreview(json.previewUrl);
           }
 
           return;

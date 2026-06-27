@@ -21,7 +21,7 @@ export function ReportTwoPdfExportPreview({
   printMode?: boolean;
 }) {
   if (printMode) {
-    return <ReportTwoPrintDocument snapshot={snapshot} />;
+    return <ReportTwoPrintDocument snapshot={snapshot} autoPrint />;
   }
 
   const template = snapshot.template || {
