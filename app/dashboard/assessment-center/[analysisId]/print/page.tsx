@@ -66,52 +66,45 @@ export default async function AssessmentAnalysisPrintPage({
         body {
           color-scheme: light !important;
           background: #ffffff !important;
-          margin: 0;
-          padding: 0;
-          width: 100%;
-          min-height: 100%;
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          min-height: 100% !important;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
 
         .assessment-print-shell {
-          min-height: 100vh;
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          width: 100vw;
+          height: 100vh;
+          overflow: hidden;
+          background: #ffffff;
         }
 
         @media print {
-          body * {
-            visibility: hidden;
-          }
-
-          .assessment-print-shell,
-          .assessment-print-shell * {
-            visibility: visible;
-          }
-
           html,
           body {
-            margin: 0 !important;
-            padding: 0 !important;
             width: 297mm !important;
             height: 210mm !important;
-            margin: 0 !important;
-            background: #ffffff !important;
+            min-width: 297mm !important;
+            min-height: 210mm !important;
             overflow: hidden !important;
-          }
-
-          .no-print {
-            display: none !important;
           }
 
           .assessment-print-shell {
-            margin: 0 !important;
-            padding: 0 !important;
+            position: fixed !important;
+            inset: 0 !important;
             width: 297mm !important;
             height: 210mm !important;
+            min-width: 297mm !important;
             min-height: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
             overflow: hidden !important;
             background: #ffffff !important;
-            display: block !important;
           }
         }
       `}</style>
