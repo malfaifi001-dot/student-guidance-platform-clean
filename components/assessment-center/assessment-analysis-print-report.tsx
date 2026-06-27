@@ -5,6 +5,15 @@ type Props = {
   schoolProfile?: Record<string, unknown> | null;
 };
 
+const SOURCE_WIDTH = 1600;
+const SOURCE_HEIGHT = 900;
+const A4_LANDSCAPE_WIDTH_MM = 297;
+const A4_LANDSCAPE_HEIGHT_MM = 210;
+const SOURCE_LAYOUT_WIDTH_MM = 423.33418;
+const SOURCE_LAYOUT_HEIGHT_MM = 238.125;
+const SCALE_X = A4_LANDSCAPE_WIDTH_MM / SOURCE_LAYOUT_WIDTH_MM;
+const SCALE_Y = A4_LANDSCAPE_HEIGHT_MM / SOURCE_LAYOUT_HEIGHT_MM;
+
 function extractSection(html: string, pattern: RegExp) {
   const match = html.match(pattern);
   return match?.[1]?.trim() || "";
@@ -44,19 +53,35 @@ export function AssessmentAnalysisPrintReport({
         }
 
         .assessment-print-page {
-          width: 1600px;
-          height: 900px;
+          width: 297mm;
+          height: 210mm;
           margin: 0 auto;
           background: #ffffff;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .assessment-print-stage {
+          width: ${SOURCE_WIDTH}px;
+          height: ${SOURCE_HEIGHT}px;
+          transform-origin: top center;
+          transform: scale(${SCALE_X}, ${SCALE_Y});
+          position: absolute;
+          top: 0;
+          left: 50%;
+          margin-left: -${SOURCE_WIDTH / 2}px;
         }
 
         .assessment-print-page .sheet {
-          margin: 0 auto !important;
+          margin: 0 !important;
           box-shadow: none !important;
         }
       `}</style>
 
-      <div dangerouslySetInnerHTML={{ __html: bodyContent }} />
+      <div
+        className="assessment-print-stage"
+        dangerouslySetInnerHTML={{ __html: bodyContent }}
+      />
     </section>
   );
 }

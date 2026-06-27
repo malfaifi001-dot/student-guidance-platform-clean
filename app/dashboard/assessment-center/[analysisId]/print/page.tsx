@@ -54,7 +54,7 @@ export default async function AssessmentAnalysisPrintPage({
     : null;
 
   return (
-    <main className="assessment-print-route" dir="rtl">
+    <main className="assessment-print-shell" dir="rtl">
       <style>{`
         @page {
           size: A4 landscape;
@@ -66,22 +66,30 @@ export default async function AssessmentAnalysisPrintPage({
         body {
           color-scheme: light !important;
           background: #ffffff !important;
+          margin: 0;
+          padding: 0;
           width: 100%;
           min-height: 100%;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
 
-        .assessment-print-route {
-          position: fixed;
-          inset: 0;
-          z-index: 2147483647;
-          overflow: auto;
+        .assessment-print-shell {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #e5e7eb;
+          padding: 12px;
+        }
+
+        .assessment-print-frame {
+          width: 297mm;
+          height: 210mm;
+          overflow: hidden;
           background: #ffffff;
-          padding: 16px;
-        }
-
-        .assessment-print-canvas {
-          width: 1600px;
-          margin: 0 auto;
+          box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+          flex: 0 0 auto;
         }
 
         @media print {
@@ -89,56 +97,57 @@ export default async function AssessmentAnalysisPrintPage({
             visibility: hidden;
           }
 
-          .assessment-print-route,
-          .assessment-print-route * {
+          .assessment-print-shell,
+          .assessment-print-shell * {
             visibility: visible;
           }
 
           html,
           body {
-            width: 297mm;
-            min-height: 210mm;
             margin: 0 !important;
             padding: 0 !important;
+            width: 297mm !important;
+            height: 210mm !important;
+            margin: 0 !important;
             background: #ffffff !important;
+            overflow: hidden !important;
           }
 
           .no-print {
             display: none !important;
           }
 
-          .assessment-print-route {
-            position: absolute !important;
-            inset: 0 !important;
+          .assessment-print-shell {
+            margin: 0 !important;
             padding: 0 !important;
-            overflow: visible !important;
+            width: 297mm !important;
+            height: 210mm !important;
+            min-height: 210mm !important;
+            overflow: hidden !important;
             background: #ffffff !important;
+            display: block !important;
           }
 
-          .assessment-print-canvas {
-            width: 1600px !important;
+          .assessment-print-frame {
+            width: 297mm !important;
+            height: 210mm !important;
             margin: 0 !important;
+            box-shadow: none !important;
           }
 
           .assessment-print-page {
             width: 297mm !important;
-            min-height: 210mm !important;
             height: 210mm !important;
             margin: 0 !important;
             box-shadow: none !important;
-            overflow: hidden !important;
-          }
-
-          .assessment-print-page .sheet {
-            transform: scale(0.7016) !important;
-            transform-origin: top right !important;
+            transform-origin: top center !important;
           }
         }
       `}</style>
 
       {printMode ? <AssessmentAnalysisPrintController /> : null}
 
-      <div className="assessment-print-canvas">
+      <div className="assessment-print-frame">
         <AssessmentAnalysisPrintReport
           analysis={analysis as unknown as Record<string, unknown>}
           schoolProfile={schoolProfile as unknown as Record<string, unknown> | null}
