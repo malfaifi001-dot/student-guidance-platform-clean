@@ -8,6 +8,8 @@ import {
   type ReportDesignId,
   type ReportHeaderSettings,
 } from "@/components/report-engine/design-renderers/report-design-renderer";
+import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
+import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
 import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
@@ -3013,27 +3015,20 @@ export function ReportTwoStudioRuntime({
     linkHref?: string;
     linkLabel?: string;
   } | null>(null);
+  const {
+    status: printExportStatus,
+    modal: printExportModal,
+    runPrintExport,
+    openFallbackPrintUrl,
+    closeModal: closePrintExportModal,
+  } = usePrintExportAction();
 
   function closePopup() { setPopup(null); }
   function closeReportTwoActionModal() { setReportTwoActionModal(null); }
-  function openReportTwoPrintPreview(previewUrl: string) {
-    const popup = window.open(previewUrl, "_blank", "noopener,noreferrer");
-
-    setReportTwoActionModal({
-      title: "معاينة الطباعة",
-      message: popup
-        ? "تم فتح معاينة الطباعة في نافذة جديدة. ستبقى هذه الصفحة كما هي، ويمكنك استخدام الرابط أدناه لإعادة فتح المعاينة عند الحاجة."
-        : "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة في نافذة جديدة.",
-      linkHref: previewUrl,
-      linkLabel: "فتح معاينة الطباعة",
-    });
-
-    return popup;
-  }
 
   const reportTwoPreviewExportRef = useRef<HTMLElement | null>(null);
   const reportTwoPdfStackExportRef = useRef<HTMLElement | null>(null);
-  const [reportTwoPdfExporting, setReportTwoPdfExporting] = useState(false);
+  const reportTwoPdfExporting = printExportStatus === "loading";
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
 
@@ -3367,8 +3362,8 @@ export function ReportTwoStudioRuntime({
         (previewCase as any)?.title ||
           (previewCase as any)?.caseTitle ||
           (preparedPayload as any)?.caseInfo?.title ||
-          "ØªÙ‚Ø±ÙŠØ± Ù…Ø¹ØªÙ…Ø¯",
-      ) || "ØªÙ‚Ø±ÙŠØ± Ù…Ø¹ØªÙ…Ø¯"
+          "تقرير معتمد",
+      ) || "تقرير معتمد"
     );
   }
 
@@ -3507,8 +3502,8 @@ export function ReportTwoStudioRuntime({
     if (!signedVisiblePreviewTemplate.pages.length) {
       setPopup({
         type: "alert",
-        title: "Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
-        message: "Ù„Ø§ ØªÙˆØ¬Ø¯ ØµÙØ­Ø§Øª Ø¬Ø§Ù‡Ø²Ø© Ù„Ù„Ø§Ø¹ØªÙ…Ø§Ø¯.",
+        title: "اعتماد التقرير",
+        message: "لا توجد صفحات جاهزة للاعتماد.",
       });
       return null;
     }
@@ -3526,8 +3521,8 @@ export function ReportTwoStudioRuntime({
     if (!snapshotHtml.trim()) {
       setPopup({
         type: "alert",
-        title: "Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
-        message: "ØªØ¹Ø°Ø± Ø§Ù„ØªÙ‚Ø§Ø· Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ø­Ø§Ù„ÙŠØ© Ù„Ù„Ø§Ø¹ØªÙ…Ø§Ø¯.",
+        title: "اعتماد التقرير",
+        message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
       });
       return null;
     }
@@ -3598,8 +3593,8 @@ export function ReportTwoStudioRuntime({
       if (showSuccessPopup) {
         setPopup({
           type: "alert",
-          title: "ØªÙ… Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
-          message: "ØªÙ… Ø­ÙØ¸ Ù†Ø³Ø®Ø© Ø«Ø§Ø¨ØªØ© Ù…Ù† Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙÙŠ Ø£Ø±Ø´ÙŠÙ Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ù…Ø¹ØªÙ…Ø¯Ø©.",
+          title: "تم اعتماد التقرير",
+          message: "تم حفظ نسخة ثابتة من التقرير في أرشيف التقارير المعتمدة.",
         });
       }
 
@@ -3613,8 +3608,8 @@ export function ReportTwoStudioRuntime({
       return null;
       setPopup({
         type: "alert",
-        title: "Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
-        message: "ØªØ¹Ø°Ø± Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„ØªÙ‚Ø±ÙŠØ±. Ø­Ø§ÙˆÙ„ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.",
+        title: "اعتماد التقرير",
+        message: "تعذر اعتماد التقرير. حاول مرة أخرى.",
       });
       return null;
     } finally {
@@ -3736,87 +3731,28 @@ export function ReportTwoStudioRuntime({
       return null;
     }
 
-    if (!visiblePreviewTemplate.pages.length) {
-      setPopup({
-        type: "alert",
-        title: "ØªØµØ¯ÙŠØ± PDF",
-        message: "Ù„Ø§ ØªÙˆØ¬Ø¯ ØµÙØ­Ø§Øª Ø¬Ø§Ù‡Ø²Ø© Ù„Ù„ØªØµØ¯ÙŠØ±.",
-      });
-      return null;
-    }
-
-    setReportTwoPdfExporting(true);
-
     try {
       const fileName = options?.fileName || getReportTwoPdfFileName();
-
-      const response = await fetch(
-        `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fileName,
-            snapshot: options?.snapshot || buildReportTwoPdfExportSnapshot(),
-          }),
+      const result = await runPrintExport({
+        exportUrl: `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+        fileName,
+        method: "POST",
+        body: {
+          fileName,
+          snapshot: options?.snapshot || buildReportTwoPdfExportSnapshot(),
         },
-      );
+        blockedTitle: "معاينة الطباعة",
+        blockedMessage:
+          "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة في نافذة جديدة.",
+        errorTitle: "تصدير PDF",
+        errorMessage: "تعذر تصدير التقرير. حاول مرة أخرى.",
+      });
 
-      if (!response.ok) {
-        throw new Error("PDF_EXPORT_FAILED");
-      }
-
-      const contentType = response.headers.get("content-type") || "";
-
-      if (contentType.includes("application/json")) {
-        const json = await response.json();
-
-        if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
-          setReportTwoActionModal({
-            title: "تصدير PDF",
-            message:
-              "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم \"طباعة\" أو \"حفظ كملف PDF\" من متصفحك.",
-          });
-
-          openReportTwoPrintPreview(json.previewUrl);
-
-          return "preview-fallback" as const;
-
-          setPopup({
-            type: "alert",
-            title: "ØªØµØ¯ÙŠØ± PDF",
-            message:
-              "ØªÙ… ÙØªØ­ Ù†Ø§ÙØ°Ø© Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ù…Ø¹ Ø®ÙŠØ§Ø± Ø§Ù„Ø·Ø¨Ø§Ø¹Ø©. Ø§Ø³ØªØ®Ø¯Ù… 'Ø·Ø¨Ø§Ø¹Ø©' Ø£Ùˆ 'Ø­ÙØ¸ ÙƒÙ€ PDF' Ù…Ù† Ù…ØªØµÙØ­Ùƒ.",
-          });
-
-          const previewWindow = window.open(
-            json.previewUrl,
-            "_blank",
-            "noopener,noreferrer",
-          );
-
-          if (!previewWindow) {
-            openReportTwoPrintPreview(json.previewUrl);
-          }
-
-          return "preview-fallback" as const;
-        }
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      window.URL.revokeObjectURL(url);
-      return "downloaded" as const;
+      return result === "downloaded"
+        ? ("downloaded" as const)
+        : result === "opened" || result === "blocked"
+          ? ("preview-fallback" as const)
+          : null;
     } catch (error) {
       console.error(error);
       setReportTwoActionModal({
@@ -3824,101 +3760,11 @@ export function ReportTwoStudioRuntime({
         message: "تعذر تصدير التقرير. حاول مرة أخرى.",
       });
       return null;
-      setPopup({
-        type: "alert",
-        title: "ØªØµØ¯ÙŠØ± PDF",
-        message: "ØªØ¹Ø°Ø± ØªØµØ¯ÙŠØ± Ø§Ù„ØªÙ‚Ø±ÙŠØ±. Ø­Ø§ÙˆÙ„ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.",
-      });
-      return null;
-    } finally {
-      setReportTwoPdfExporting(false);
     }
   }
 
   async function exportReportTwoPdf() {
     await exportReportTwoPdfInternal();
-    return;
-
-    if (!visiblePreviewTemplate.pages.length) {
-      setPopup({
-        type: "alert",
-        title: "تصدير PDF",
-        message: "لا توجد صفحات جاهزة للتصدير.",
-      });
-      return;
-    }
-
-    setReportTwoPdfExporting(true);
-
-    try {
-      const fileName = getReportTwoPdfFileName();
-
-      const response = await fetch(
-        `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fileName,
-            snapshot: buildReportTwoPdfExportSnapshot(),
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("PDF_EXPORT_FAILED");
-      }
-
-      const contentType = response.headers.get("content-type") || "";
-
-      if (contentType.includes("application/json")) {
-        const json = await response.json();
-
-        if (json.fallback === "PRINT_PREVIEW" && json.previewUrl) {
-          setPopup({
-            type: "alert",
-            title: "تصدير PDF",
-            message:
-              "تم فتح نافذة المعاينة مع خيار الطباعة. استخدم 'طباعة' أو 'حفظ كـ PDF' من متصفحك.",
-          });
-
-          const previewWindow = window.open(
-            json.previewUrl,
-            "_blank",
-            "noopener,noreferrer",
-          );
-
-          if (!previewWindow) {
-            openReportTwoPrintPreview(json.previewUrl);
-          }
-
-          return;
-        }
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error(error);
-      setPopup({
-        type: "alert",
-        title: "تصدير PDF",
-        message: "تعذر تصدير التقرير. حاول مرة أخرى.",
-      });
-    } finally {
-      setReportTwoPdfExporting(false);
-    }
   }
 
   async function saveAndDownloadReportTwoSnapshot() {
@@ -3949,8 +3795,8 @@ export function ReportTwoStudioRuntime({
 
       setPopup({
         type: "alert",
-        title: "Ø­ÙØ¸ ÙˆØªØ­Ù…ÙŠÙ„ Ø§Ù„ØªÙ‚Ø±ÙŠØ±",
-        message: "ØªÙ… Ø­ÙØ¸ Ù†Ø³Ø®Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙˆØ¨Ø¯Ø£ ØªÙ†Ø²ÙŠÙ„ Ù…Ù„Ù PDF.",
+        title: "حفظ وتحميل التقرير",
+        message: "تم حفظ نسخة التقرير وبدأ تنزيل ملف PDF.",
       });
     }
   }
@@ -6167,6 +6013,12 @@ export function ReportTwoStudioRuntime({
           </section>
         </div>
       ) : null}
+
+      <PrintExportPopCard
+        modal={printExportModal}
+        onClose={closePrintExportModal}
+        onOpenFallback={openFallbackPrintUrl}
+      />
 
       {popup ? (
         <div
