@@ -39,8 +39,6 @@ type QuestionAnalysis = {
   textSamples: string[];
 };
 
-const chartPalette = ["#07a869", "#3d7eb9", "#0da9a6", "#ef5548", "#c1b489"];
-
 function escapeHtml(value: unknown) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -104,19 +102,13 @@ function isNumericQuestion(type: string) {
 function formatGregorianDate(value: Date | string | null | undefined) {
   const date = value ? new Date(value) : new Date();
 
-  if (Number.isNaN(date.getTime())) {
-    return new Intl.DateTimeFormat("ar-EG-u-ca-gregory", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
-  }
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
 
   return new Intl.DateTimeFormat("ar-EG-u-ca-gregory", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(date);
+  }).format(safeDate);
 }
 
 function formatNumber(value: number | null | undefined, digits = 1, fallback = "غير متوفر") {
@@ -325,7 +317,7 @@ function injectPrintScript(html: string) {
   const printScript = `
 <script>
 window.addEventListener("load", () => {
-  window.setTimeout(() => window.print(), 450);
+  window.setTimeout(() => window.print(), 500);
 });
 </script>`;
 
@@ -387,7 +379,7 @@ function getImprovementQuestion(questions: QuestionAnalysis[]) {
   return questions.slice().sort((first, second) => first.answerRate - second.answerRate)[0] || null;
 }
 
-function metricIcon(type: string) {
+function iconSvg(type: "responses" | "questions" | "completion" | "average" | "target" | "alert" | "school" | "report" | "audience" | "status" | "date" | "privacy") {
   const icons: Record<string, string> = {
     responses:
       '<svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>',
@@ -401,13 +393,6 @@ function metricIcon(type: string) {
       '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><path d="M22 2 12 12"/></svg>',
     alert:
       '<svg viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
-  };
-
-  return icons[type] || icons.questions;
-}
-
-function infoIcon(type: string) {
-  const icons: Record<string, string> = {
     school:
       '<svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M4 10 12 4l8 6"/><path d="M6 10v11"/><path d="M18 10v11"/><path d="M10 21v-6h4v6"/></svg>',
     report:
@@ -420,49 +405,39 @@ function infoIcon(type: string) {
       '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>',
     privacy:
       '<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-    response:
-      '<svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>',
-    questions:
-      '<svg viewBox="0 0 24 24"><path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',
   };
 
-  return icons[type] || icons.report;
+  return icons[type];
 }
 
-function metricCard(type: string, tone: "green" | "blue" | "turq" | "red", value: string, label: string) {
-  return `
-    <div class="metric-card ${tone}">
-      <div class="metric-icon">${metricIcon(type)}</div>
-      <div class="metric-number">${escapeHtml(value)}</div>
-      <div class="metric-label">${escapeHtml(label)}</div>
-    </div>`;
-}
-
-function infoItem(type: string, label: string, value: string) {
+function infoItem(type: Parameters<typeof iconSvg>[0], label: string, value: string) {
   return `
     <div class="info-item">
-      <div class="info-icon">${infoIcon(type)}</div>
-      <div>
-        <div class="info-label">${escapeHtml(label)}:</div>
+      <div class="info-icon">${iconSvg(type)}</div>
+      <div class="info-copy">
+        <div class="info-label">${escapeHtml(label)}</div>
         <div class="info-value">${escapeHtml(value)}</div>
       </div>
     </div>`;
 }
 
-function summaryLine(icon: string, text: string) {
+function metricCard(type: Parameters<typeof iconSvg>[0], tone: "green" | "blue" | "turq" | "red", value: string, label: string) {
   return `
-    <div class="summary-line">
-      <div class="summary-icon">${icon}</div>
-      <div class="summary-text">${text}</div>
+    <div class="metric-card ${tone}">
+      <div class="metric-icon">${iconSvg(type)}</div>
+      <div class="metric-number">${escapeHtml(value)}</div>
+      <div class="metric-label">${escapeHtml(label)}</div>
     </div>`;
 }
 
 function questionRow(question: QuestionAnalysis, index: number) {
+  const sortedOption = question.optionCounts.slice().sort((first, second) => second.percentage - first.percentage)[0];
+
   const value =
     question.average !== null
       ? `${formatNumber(question.average, 2)} متوسط`
-      : question.optionCounts.length
-        ? `${formatPercent(question.optionCounts.slice().sort((a, b) => b.percentage - a.percentage)[0]?.percentage || 0)} أعلى اختيار`
+      : sortedOption
+        ? `${formatPercent(sortedOption.percentage)} أعلى اختيار`
         : `${formatPercent(question.answerRate)} معدل`;
 
   return `
@@ -473,6 +448,14 @@ function questionRow(question: QuestionAnalysis, index: number) {
       <td>${escapeHtml(String(question.answeredCount))}</td>
       <td>${escapeHtml(value)}</td>
     </tr>`;
+}
+
+function insightLine(icon: string, text: string) {
+  return `
+    <div class="insight-line">
+      <div class="insight-icon">${icon}</div>
+      <div class="insight-text">${escapeHtml(text)}</div>
+    </div>`;
 }
 
 function buildInsightLines({
@@ -520,7 +503,6 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
 
   const allQuestions = buildQuestionAnalysis(survey);
   const questions = getVisibleQuestions(allQuestions, requestedQuestionIds);
-
   const totalResponses = survey.responses.length;
   const totalQuestions = survey.questions.length;
 
@@ -537,14 +519,15 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   const completionRate = totalResponses ? Math.round((completedRequiredResponses / totalResponses) * 100) : 0;
   const averageAnswerRate = average(questions.map((question) => question.answerRate)) ?? 0;
   const numericAverage = average(questions.map((question) => question.average ?? NaN).filter(Number.isFinite));
-
-  const strongest = getStrongestQuestion(questions);
   const improvement = getImprovementQuestion(questions);
   const topChoice = pickTopChoice(questions);
+  const positiveRate = topChoice?.percentage ?? averageAnswerRate;
 
   const profile = survey.schoolAccount.profile;
   const schoolName = profile?.schoolName || survey.schoolAccount.name || "غير متوفر";
   const reportDate = formatGregorianDate(new Date());
+  const audienceLabel =
+    surveyAudienceLabels[survey.audienceType as keyof typeof surveyAudienceLabels] || survey.audienceType;
 
   const insightLines = buildInsightLines({
     totalResponses,
@@ -554,12 +537,12 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   });
 
   const donutRate = Math.max(0, Math.min(completionRate, 100));
-  const positiveRate = topChoice?.percentage ?? averageAnswerRate;
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(survey.title)}</title>
 <style>
   @font-face { font-family:'Cairo'; src:local('Cairo'); }
@@ -568,417 +551,353 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     --green:#07a869;
     --blue:#3d7eb9;
     --turq:#0da9a6;
-    --navy:#15445a;
-    --gold:#c1b489;
-    --gray:#c2c1c1;
+    --navy:#081f47;
     --line:#d9e2e8;
     --red:#ef5548;
-    --soft-red:#fb6a5c;
+    --paper:#ffffff;
+    --screen:#edf2f6;
   }
 
-  *{box-sizing:border-box}
+  @page { size: A4 landscape; margin: 0; }
 
-  html,body{
+  *{ box-sizing:border-box; }
+
+  html{
+    width:100%;
+    min-height:100%;
     margin:0;
-    width:1600px;
-    height:1131px;
-    overflow:hidden;
-    background:#e9eef1;
-    font-family:'Cairo',Tahoma,Arial,sans-serif;
+    padding:0;
+    background:var(--screen);
+  }
+
+  body{
+    width:100%;
+    min-height:100vh;
+    margin:0;
+    padding:0;
+    overflow:auto;
+    background:var(--screen);
     color:#09254b;
+    font-family:'Cairo', Tahoma, Arial, sans-serif;
+    direction:rtl;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
   }
 
   .sheet{
-    width:1600px;
-    height:1131px;
+    width:297mm;
+    height:210mm;
     margin:0 auto;
-    background:#fff;
-    position:relative;
     overflow:hidden;
-    padding:34px 78px 36px;
+    position:relative;
+    background:var(--paper);
+    padding:11mm 11mm 6mm;
     isolation:isolate;
   }
 
-  @page{size:A4 landscape;margin:0}
-
-  @media print{
-    html,body{
-      margin:0;
-      width:1600px;
-      height:1131px;
-      overflow:hidden;
-      background:white;
-      -webkit-print-color-adjust:exact;
-      print-color-adjust:exact;
-    }
-    .sheet{
-      margin:0;
-      box-shadow:none;
-      width:1600px;
-      height:1131px;
-      overflow:hidden;
-      page-break-after:avoid;
-      -webkit-print-color-adjust:exact;
-      print-color-adjust:exact;
-    }
-  }
-
-  .bottom-dots{
+  .corner-dots{
     position:absolute;
-    bottom:2px;
     left:0;
-    width:320px;
-    height:78px;
-    opacity:.75;
+    bottom:0;
+    width:31mm;
+    height:11mm;
+    opacity:.72;
     z-index:0;
   }
 
-  .brand{
-    position:absolute;
-    top:38px;
-    right:72px;
-    width:330px;
-    height:130px;
-    z-index:50;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-  }
-
-  .brand img{
-    width:310px;
-    max-height:122px;
-    object-fit:contain;
-    display:block;
-  }
-
+  .brand,
   .vision-brand{
     position:absolute;
-    top:36px;
-    left:74px;
-    width:310px;
-    height:135px;
-    z-index:55;
+    top:8.5mm;
+    width:33mm;
+    height:17mm;
     display:flex;
     align-items:center;
     justify-content:center;
     overflow:hidden;
+    z-index:2;
   }
 
+  .brand{ right:11mm; }
+  .vision-brand{ left:11mm; }
+
+  .brand img,
   .vision-brand img{
-    width:300px;
-    max-height:125px;
+    width:100%;
+    height:100%;
     object-fit:contain;
     display:block;
   }
 
-  .header{
+  .report-header{
     position:relative;
-    z-index:2;
+    z-index:1;
+    min-height:23mm;
+    padding:0 42mm;
     text-align:center;
-    padding-top:1px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
   }
 
-  .title{
+  .report-title{
     margin:0;
-    font-size:52px;
-    line-height:1.16;
+    color:var(--navy);
+    font-size:8mm;
+    line-height:1.15;
     font-weight:900;
-    letter-spacing:-1px;
-    color:#081f47;
+    letter-spacing:-.15mm;
+    white-space:nowrap;
   }
 
-  .subtitle{
-    margin:8px 0 0;
+  .report-subtitle{
+    margin:2mm 0 0;
     color:#078b80;
-    font-size:28px;
+    font-size:3.45mm;
+    line-height:1.35;
     font-weight:800;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
 
   .info-panel{
     position:relative;
-    z-index:2;
-    margin-top:38px;
-    border:2px solid #d3dce4;
-    border-radius:12px;
-    min-height:139px;
-    padding:10px 22px;
+    z-index:1;
+    margin-top:4mm;
+    height:31mm;
+    border:.45mm solid #d3dce4;
+    border-radius:3mm;
+    background:rgba(255,255,255,.98);
     display:grid;
     grid-template-columns:repeat(4,1fr);
-    grid-auto-rows:58px;
-    align-items:center;
-    background:rgba(255,255,255,.96);
-    box-shadow:0 1px 3px rgba(13,38,76,.04) inset;
-  }
-
-  .info-item{
-    height:48px;
-    display:grid;
-    grid-template-columns:58px 1fr;
-    gap:12px;
-    align-items:center;
-    padding:0 14px;
-    border-left:1px solid #e2e7ec;
+    grid-template-rows:repeat(2,1fr);
     overflow:hidden;
   }
 
-  .info-item:nth-child(4n){border-left:0}
-  .info-item:nth-child(-n+4){border-bottom:1px solid #dde6ec;padding-bottom:8px}
+  .info-item{
+    min-width:0;
+    display:grid;
+    grid-template-columns:8mm 1fr;
+    gap:1.8mm;
+    align-items:center;
+    padding:1.8mm 2.3mm;
+    border-left:.25mm solid #e2e7ec;
+    border-bottom:.25mm solid #e2e7ec;
+  }
 
-  .info-icon{
-    width:40px;
-    height:40px;
+  .info-item:nth-child(4n){ border-left:0; }
+  .info-item:nth-child(n+5){ border-bottom:0; }
+
+  .info-icon,
+  .metric-icon,
+  .insight-icon{
+    color:var(--turq);
     display:flex;
     align-items:center;
     justify-content:center;
-    color:var(--turq);
-    flex-shrink:0;
   }
 
   .info-icon svg{
-    width:38px;
-    height:38px;
+    width:6.5mm;
+    height:6.5mm;
+  }
+
+  .metric-icon svg{
+    width:6.6mm;
+    height:6.6mm;
+  }
+
+  .insight-icon svg{
+    width:5.5mm;
+    height:5.5mm;
+  }
+
+  svg{
     stroke:currentColor;
     fill:none;
-    stroke-width:2.25;
+    stroke-width:2.1;
     stroke-linecap:round;
     stroke-linejoin:round;
   }
 
+  .info-copy{ min-width:0; }
+
   .info-label{
-    color:#081f47;
-    font-size:17px;
+    color:var(--navy);
+    font-size:2.45mm;
     font-weight:900;
     line-height:1.2;
-    margin-bottom:4px;
+    margin-bottom:.5mm;
     white-space:nowrap;
   }
 
   .info-value{
     color:#0b3d73;
-    font-size:16px;
+    font-size:2.35mm;
     font-weight:700;
-    line-height:1.22;
+    line-height:1.25;
+    height:5.9mm;
+    overflow:hidden;
     display:-webkit-box;
     -webkit-line-clamp:2;
     -webkit-box-orient:vertical;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    max-height:2.45em;
   }
 
   .metrics{
     position:relative;
-    z-index:2;
-    margin-top:14px;
+    z-index:1;
+    margin-top:3.2mm;
+    height:25mm;
     display:grid;
     grid-template-columns:repeat(6,1fr);
-    gap:12px;
+    gap:2mm;
   }
 
   .metric-card{
-    height:150px;
-    border:2px solid #d8e1e8;
-    border-radius:12px;
+    min-width:0;
+    border:.4mm solid #d8e1e8;
+    border-radius:3mm;
     background:#fff;
-    box-shadow:0 4px 11px rgba(4,31,67,.055);
+    box-shadow:0 .8mm 2mm rgba(4,31,67,.05);
+    padding:2mm 1.2mm 1.6mm;
     display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:flex-start;
-    padding:13px 4px 9px;
     position:relative;
+    overflow:hidden;
   }
 
-  .metric-card:after{
+  .metric-card::after{
     content:"";
     position:absolute;
-    bottom:-2px;
-    left:50%;
-    transform:translateX(-50%);
-    width:22px;
-    height:4px;
-    border-radius:20px;
+    width:7mm;
+    height:.9mm;
+    left:calc(50% - 3.5mm);
+    bottom:0;
+    border-radius:999px;
     background:var(--blue);
   }
 
-  .metric-card.green:after{background:var(--green)}
-  .metric-card.turq:after{background:var(--turq)}
-  .metric-card.red:after{background:var(--red)}
+  .metric-card.green::after{ background:var(--green); }
+  .metric-card.turq::after{ background:var(--turq); }
+  .metric-card.red::after{ background:var(--red); }
 
-  .metric-icon{height:47px;color:var(--blue);margin-bottom:3px}
-  .metric-card.green .metric-icon{color:var(--green)}
-  .metric-card.turq .metric-icon{color:var(--turq)}
-  .metric-card.red .metric-icon{color:var(--red)}
+  .metric-card.green .metric-icon,
+  .metric-card.green .metric-number{ color:var(--green); }
 
-  .metric-icon svg{
-    width:46px;
-    height:46px;
-    stroke:currentColor;
-    fill:none;
-    stroke-width:2;
-    stroke-linecap:round;
-    stroke-linejoin:round;
-  }
+  .metric-card.turq .metric-icon,
+  .metric-card.turq .metric-number{ color:var(--turq); }
+
+  .metric-card.red .metric-icon,
+  .metric-card.red .metric-number{ color:var(--red); }
 
   .metric-number{
-    font-size:30px;
-    font-weight:900;
-    line-height:1.2;
+    margin-top:.8mm;
+    min-height:6mm;
     color:#116eae;
-    letter-spacing:-.6px;
-    min-height:38px;
+    font-size:4.7mm;
+    line-height:1;
+    font-weight:900;
+    text-align:center;
     display:flex;
     align-items:center;
+    justify-content:center;
   }
 
-  .metric-card.green .metric-number{color:#07885c}
-  .metric-card.turq .metric-number{color:#079a97}
-  .metric-card.red .metric-number{color:#e84a3d}
-
   .metric-label{
+    margin-top:.9mm;
     color:#0c2854;
     font-weight:800;
-    font-size:15px;
-    text-align:center;
+    font-size:2.25mm;
     line-height:1.25;
-    margin-top:4px;
-    white-space:nowrap;
+    text-align:center;
+    height:5.7mm;
+    overflow:hidden;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
   }
 
   .content-grid{
     position:relative;
-    z-index:2;
-    margin-top:30px;
+    z-index:1;
+    margin-top:4.3mm;
+    height:86mm;
     display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:18px;
-    direction:rtl;
+    grid-template-columns:1.1fr .9fr;
+    gap:3mm;
   }
 
   .panel{
+    min-width:0;
     position:relative;
-    border:2px solid #0d8293;
-    border-radius:10px;
-    min-height:262px;
+    border:.45mm solid #0d8293;
+    border-radius:3mm;
     background:#fff;
-    padding:42px 22px 18px;
-    direction:rtl;
+    padding:8.4mm 4mm 3.4mm;
+    overflow:visible;
   }
 
-  .panel .tab{
+  .panel-title{
     position:absolute;
-    top:-17px;
-    right:142px;
-    left:142px;
-    height:36px;
+    top:-3.2mm;
+    right:26mm;
+    left:26mm;
+    height:7.4mm;
     border-radius:999px;
     background:linear-gradient(90deg,#064f89,#088e84);
     color:#fff;
+    font-size:2.65mm;
+    font-weight:900;
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:12px;
-    font-weight:800;
-    font-size:17px;
-    box-shadow:0 5px 12px rgba(0,94,122,.24);
+    gap:1.6mm;
+    overflow:hidden;
+    white-space:nowrap;
   }
 
-  .panel .tab svg{
-    width:24px;
-    height:24px;
+  .panel-title svg{
+    width:4.1mm;
+    height:4.1mm;
     stroke:#fff;
-    fill:none;
-    stroke-width:2;
   }
-
-  .summary-lines{
-    display:flex;
-    flex-direction:column;
-    gap:0;
-  }
-
-  .summary-line{
-    min-height:68px;
-    display:grid;
-    grid-template-columns:46px 1fr;
-    gap:16px;
-    align-items:center;
-    border-bottom:1px solid #dce7ee;
-    padding:8px 0;
-  }
-
-  .summary-line:last-child{border-bottom:0}
-
-  .summary-icon{
-    color:var(--turq);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-
-  .summary-icon svg{
-    width:34px;
-    height:34px;
-    stroke:currentColor;
-    fill:none;
-    stroke-width:2;
-    stroke-linecap:round;
-    stroke-linejoin:round;
-  }
-
-  .summary-text{
-    font-size:19px;
-    line-height:1.85;
-    color:#0d2b59;
-    font-weight:700;
-  }
-
-  .summary-text b{color:var(--turq);font-weight:900}
-  .summary-text .green{color:#07885c;font-weight:900}
-  .summary-text .blue{color:#0c6bab;font-weight:900}
-  .summary-text .red{color:#df4e43;font-weight:900}
 
   .survey-grid{
-    display:grid;
-    grid-template-columns:245px 1fr;
-    gap:22px;
-    align-items:center;
-    direction:ltr;
+    height:100%;
+    display:block;
+    direction:rtl;
   }
 
   .donut-wrap{
-    width:240px;
-    height:205px;
-    position:relative;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    display:none;
   }
 
   .donut{
-    width:186px;
-    height:186px;
+    width:26mm;
+    height:26mm;
     border-radius:50%;
-    position:relative;
     background:conic-gradient(var(--green) 0 ${donutRate}%, #e8eef2 ${donutRate}% 100%);
-    box-shadow:0 2px 6px rgba(0,0,0,.12);
+    position:relative;
+    box-shadow:0 .5mm 1.8mm rgba(0,0,0,.1);
   }
 
-  .donut:before{
+  .donut::before{
     content:"";
     position:absolute;
-    inset:45px;
+    inset:6.3mm;
     border-radius:50%;
     background:#fff;
-    box-shadow:inset 0 0 9px rgba(18,57,88,.14);
+    box-shadow:inset 0 0 2mm rgba(18,57,88,.12);
   }
 
   .donut-center{
     position:absolute;
-    width:94px;
-    height:94px;
+    width:13mm;
+    height:13mm;
     border-radius:50%;
     background:#fff;
     display:flex;
@@ -991,49 +910,128 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   }
 
   .donut-center strong{
-    font-size:31px;
+    font-size:3.8mm;
     line-height:1;
   }
 
   .donut-center span{
-    margin-top:4px;
-    font-size:13px;
+    margin-top:.5mm;
+    font-size:1.9mm;
     color:#52677d;
   }
 
   .question-table{
-    direction:rtl;
     width:100%;
     border-collapse:collapse;
-    font-size:14px;
+    table-layout:fixed;
+    direction:rtl;
+    font-size:2.55mm;
   }
 
   .question-table th{
     color:#0d2857;
     font-weight:900;
     text-align:right;
-    padding:6px 8px;
-    border-bottom:1px solid #dce5eb;
+    padding:1.4mm 1.1mm;
+    border-bottom:.3mm solid #dce5eb;
+    white-space:nowrap;
   }
 
   .question-table td{
-    padding:6px 8px;
-    border-bottom:1px solid #e7edf2;
-    font-weight:800;
     color:#0e2b58;
+    font-weight:800;
+    padding:1.35mm 1.1mm;
+    border-bottom:.25mm solid #e7edf2;
     vertical-align:middle;
+    height:9.6mm;
+    overflow:hidden;
   }
 
-  .question-table td:not(.question-text){
-    text-align:center;
-    white-space:nowrap;
-  }
+  .question-table th:nth-child(1),
+  .question-table td:nth-child(1){ width:6%; text-align:center; }
+
+  .question-table th:nth-child(2),
+  .question-table td:nth-child(2){ width:58%; }
+
+  .question-table th:nth-child(3),
+  .question-table td:nth-child(3){ width:14%; text-align:center; }
+
+  .question-table th:nth-child(4),
+  .question-table td:nth-child(4){ width:7%; text-align:center; }
+
+  .question-table th:nth-child(5),
+  .question-table td:nth-child(5){ width:15%; text-align:center; }
 
   .question-text{
-    max-width:260px;
+    white-space:normal;
     overflow:hidden;
-    white-space:nowrap;
-    text-overflow:ellipsis;
+    text-overflow:clip;
+    line-height:1.45;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+  }
+
+  .insights{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+  }
+
+  .insight-line{
+    min-height:25mm;
+    display:grid;
+    grid-template-columns:7.5mm 1fr;
+    gap:2mm;
+    align-items:center;
+    padding:3mm 0;
+    border-bottom:.28mm solid #dce7ee;
+    overflow:hidden;
+  }
+
+  .insight-line:last-child{
+    border-bottom:0;
+  }
+
+  .insight-text{
+    color:#0d2b59;
+    font-size:3.05mm;
+    line-height:1.65;
+    font-weight:700;
+    max-height:18mm;
+    overflow:hidden;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+  }
+
+  @media print {
+    html,
+    body{
+      width:297mm !important;
+      height:210mm !important;
+      min-height:210mm !important;
+      margin:0 !important;
+      padding:0 !important;
+      overflow:hidden !important;
+      background:#fff !important;
+      display:block !important;
+      -webkit-print-color-adjust:exact !important;
+      print-color-adjust:exact !important;
+    }
+
+    .sheet{
+      width:297mm !important;
+      height:210mm !important;
+      margin:0 !important;
+      overflow:hidden !important;
+      box-shadow:none !important;
+      page-break-after:avoid;
+      break-after:avoid-page;
+      -webkit-print-color-adjust:exact !important;
+      print-color-adjust:exact !important;
+    }
   }
 </style>
 </head>
@@ -1051,7 +1049,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
         : ""
     }
 
-    <svg class="bottom-dots" viewBox="0 0 320 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg class="corner-dots" viewBox="0 0 320 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs><linearGradient id="gb" x1="0" x2="1"><stop stop-color="#3d7eb9"/><stop offset="1" stop-color="#07a869"/></linearGradient></defs>
       <g fill="url(#gb)">
         <circle cx="8" cy="8" r="6"/><circle cx="30" cy="13" r="5" opacity=".8"/><circle cx="52" cy="18" r="5" opacity=".75"/><circle cx="76" cy="22" r="4" opacity=".7"/><circle cx="102" cy="27" r="4" opacity=".6"/><circle cx="130" cy="32" r="3" opacity=".55"/>
@@ -1060,18 +1058,18 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
       </g>
     </svg>
 
-    <header class="header">
-      <h1 class="title">تقرير تحليل الاستبيان</h1>
-      <div class="subtitle">قراءة إحصائية تربوية لآراء المستفيدين ومؤشرات التحسين</div>
+    <header class="report-header">
+      <h1 class="report-title">تقرير تحليل الاستبيان</h1>
+      <div class="report-subtitle">قراءة إحصائية تربوية لآراء المستفيدين ومؤشرات التحسين</div>
     </header>
 
     <section class="info-panel">
       ${infoItem("school", "المدرسة", schoolName)}
       ${infoItem("report", "اسم الاستبيان", survey.title)}
-      ${infoItem("audience", "الفئة المستهدفة", surveyAudienceLabels[survey.audienceType] || survey.audienceType)}
+      ${infoItem("audience", "الفئة المستهدفة", audienceLabel)}
       ${infoItem("status", "حالة الاستبيان", statusLabel(survey.status))}
       ${infoItem("privacy", "نوع الاستجابة", survey.isAnonymous ? "مجهول الهوية" : "بيانات المستجيب اختيارية")}
-      ${infoItem("response", "عدد الردود", `${totalResponses} رد`)}
+      ${infoItem("responses", "عدد الردود", `${totalResponses} رد`)}
       ${infoItem("questions", "الأسئلة المختارة", `${questions.length} من ${totalQuestions}`)}
       ${infoItem("date", "تاريخ التقرير", reportDate)}
     </section>
@@ -1087,7 +1085,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
 
     <section class="content-grid">
       <article class="panel">
-        <div class="tab">لوحة المحاور المختارة</div>
+        <div class="panel-title">لوحة المحاور المختارة</div>
 
         <div class="survey-grid">
           <div class="donut-wrap">
@@ -1116,12 +1114,12 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
       </article>
 
       <article class="panel">
-        <div class="tab">${metricIcon("report")} خلاصة تنفيذية</div>
+        <div class="panel-title">${iconSvg("report")} خلاصة تنفيذية</div>
 
-        <div class="summary-lines">
-          ${summaryLine(metricIcon("responses"), `<span class="blue">${escapeHtml(insightLines[0] || "")}</span>`)}
-          ${summaryLine(metricIcon("completion"), `<span class="green">${escapeHtml(insightLines[1] || "")}</span>`)}
-          ${summaryLine(metricIcon("target"), `${escapeHtml(insightLines[2] || "")}`)}
+        <div class="insights">
+          ${insightLine(iconSvg("responses"), insightLines[0] || "")}
+          ${insightLine(iconSvg("completion"), insightLines[1] || "")}
+          ${insightLine(iconSvg("target"), insightLines[2] || "")}
         </div>
       </article>
     </section>
@@ -1136,14 +1134,23 @@ export async function GET(request: Request, context: RouteContext) {
 
   if (error) return error;
 
-  const requestedQuestionIds = getRequestedQuestionIds(request);
-  const html = await buildPdfHtml(survey!, requestedQuestionIds);
-  const responseHtml = shouldAutoPrint(request) ? injectPrintScript(html) : html;
+  try {
+    const requestedQuestionIds = getRequestedQuestionIds(request);
+    const html = await buildPdfHtml(survey!, requestedQuestionIds);
+    const responseHtml = shouldAutoPrint(request) ? injectPrintScript(html) : html;
 
-  return new NextResponse(responseHtml, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
+    return new NextResponse(responseHtml, {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("SURVEY_ANALYSIS_PRINT_EXPORT_ERROR", error);
+
+    return NextResponse.json(
+      { error: "تعذر فتح تقرير الاستبيان للطباعة." },
+      { status: 500 },
+    );
+  }
 }
