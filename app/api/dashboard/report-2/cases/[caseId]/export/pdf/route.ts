@@ -8,6 +8,8 @@ import {
   REPORT_ATTACHED_CERTIFICATES_FIELD_KEY,
   renderLinkedCertificatesAttachmentHtml,
 } from "@/lib/certificates/report-certificate-attachments";
+import { renderLinkedAssessmentAttachmentsHtml } from "@/lib/report-2/report-linked-assessment-attachments";
+import { renderLinkedSurveyAttachmentsHtml } from "@/lib/report-2/report-linked-survey-attachments";
 
 export const runtime = "nodejs";
 
@@ -227,6 +229,20 @@ export async function POST(request: Request, context: RouteContext) {
         current.user.officialName || current.user.name || "المستخدم",
     },
   );
+  const linkedAssessmentsHtml = await renderLinkedAssessmentAttachmentsHtml(
+    caseId,
+    {
+      baseUrl: origin,
+    },
+  );
+  const linkedSurveysHtml = await renderLinkedSurveyAttachmentsHtml(
+    caseId,
+    {
+      baseUrl: origin,
+      cookie: request.headers.get("cookie") || "",
+    },
+  );
+  const linkedAttachmentsHtml = `${linkedCertificatesHtml}${linkedAssessmentsHtml}${linkedSurveysHtml}`;
 
   await fs.mkdir(snapshotDir, {
     recursive: true,
@@ -448,10 +464,57 @@ export async function POST(request: Request, context: RouteContext) {
         return pages.length;
       },
       {
-        attachmentHtml: linkedCertificatesHtml,
+        attachmentHtml: linkedAttachmentsHtml,
         privateFieldKey: REPORT_ATTACHED_CERTIFICATES_FIELD_KEY,
       },
     );
+
+    await page
+      .waitForFunction(
+        () => {
+          const frames = Array.from(
+            document.querySelectorAll<HTMLIFrameElement>(
+              "iframe[data-report-linked-assessment-frame='1']",
+            ),
+          );
+
+          return frames.every((frame) => {
+            try {
+              return frame.contentDocument?.readyState === "complete";
+            } catch {
+              return true;
+            }
+          });
+        },
+        {
+          timeout: 10000,
+        },
+      )
+      .catch(() => null);
+
+    await page
+      .evaluate(async () => {
+        const frames = Array.from(
+          document.querySelectorAll<HTMLIFrameElement>(
+            "iframe[data-report-linked-assessment-frame='1']",
+          ),
+        );
+
+        await Promise.all(
+          frames.map(async (frame) => {
+            try {
+              const fonts = (frame.contentDocument as any)?.fonts;
+
+              if (fonts?.ready) {
+                await fonts.ready;
+              }
+            } catch {
+              /* ignore cross-frame/font readiness failures */
+            }
+          }),
+        );
+      })
+      .catch(() => null);
 
     if (!pageCount) {
       return NextResponse.json(

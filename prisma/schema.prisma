@@ -1660,6 +1660,8 @@ model IssuedCertificate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  certificateAttachments CertificateAttachment[]
+
   @@index([schoolAccountId])
   @@index([createdById])
   @@index([templateId])
@@ -1667,6 +1669,25 @@ model IssuedCertificate {
   @@index([recipientStudentId])
   @@index([sourceType, sourceId])
   @@index([status])
+}
+model CertificateAttachment {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  targetType      String @db.VarChar(60)
+  targetId        String
+  certificateId   String
+  sortOrder       Int    @default(0)
+  createdById     String?
+
+  certificate IssuedCertificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, targetType, targetId, certificateId], map: "CertificateAttachment_scope_certificate_key")
+  @@index([schoolAccountId, targetType, targetId], map: "CertificateAttachment_target_idx")
+  @@index([certificateId], map: "CertificateAttachment_certificate_idx")
+  @@index([createdById], map: "CertificateAttachment_createdBy_idx")
 }
 
 model CustomReportTemplate {
@@ -1705,4 +1726,23 @@ model CustomReportEntry {
   @@index([createdById])
   @@index([templateId])
   @@index([status])
+}
+model DashboardResourceLink {
+  id              String @id @default(cuid())
+  schoolAccountId String
+  sourceType      String @db.VarChar(60)
+  sourceId        String
+  targetType      String @db.VarChar(60)
+  targetId        String
+  sortOrder       Int    @default(0)
+  createdById     String?
+  metadataJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, sourceType, sourceId, targetType, targetId], map: "DashboardResourceLink_scope_target_key")
+  @@index([schoolAccountId, sourceType, sourceId], map: "DashboardResourceLink_source_idx")
+  @@index([schoolAccountId, targetType, targetId], map: "DashboardResourceLink_target_idx")
+  @@index([createdById], map: "DashboardResourceLink_createdBy_idx")
 }

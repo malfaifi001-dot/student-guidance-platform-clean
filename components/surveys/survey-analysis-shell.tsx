@@ -266,108 +266,20 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
 
   return (
     <div className="space-y-6" dir="rtl">
-      {Array.isArray((analysis as any)?.recommendations) && (analysis as any).recommendations.length > 0 ? (
-        <details className="group rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-6">
-            <div>
-              <p className="text-sm font-bold text-sky-700 dark:text-sky-400">قراءة ذكية للنتائج</p>
-              <h2 className="mt-1 text-xl font-bold text-slate-950">
-                توصيات ومؤشرات سريعة
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                {(analysis as any).recommendations.length} توصية
-              </span>
-
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-lg font-bold text-slate-500 transition group-open:rotate-180">
-                ˅
-              </span>
-            </div>
-          </summary>
-
-          <div className="border-t border-slate-100 px-6 pb-6">
-            <div className="mt-5 grid gap-3 lg:grid-cols-2">
-              {(analysis as any).recommendations.map((item: any, index: number) => {
-                const toneClass =
-                  item.tone === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : item.tone === "danger"
-                      ? "border-rose-200 bg-rose-50 text-rose-800"
-                      : item.tone === "warning"
-                        ? "border-amber-200 bg-amber-50 text-amber-800"
-                        : "border-sky-200 bg-sky-50 text-sky-800";
-
-                const badgeClass =
-                  item.tone === "success"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : item.tone === "danger"
-                      ? "bg-rose-100 text-rose-800"
-                      : item.tone === "warning"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-sky-100 text-sky-800";
-
-                const badgeLabel =
-                  item.tone === "success"
-                    ? "إيجابي"
-                    : item.tone === "danger"
-                      ? "عاجل"
-                      : item.tone === "warning"
-                        ? "تنبيه"
-                        : "معلومة";
-
-                return (
-                  <article key={`${item.title}-${index}`} className={`rounded-3xl border p-4 ${toneClass}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-bold">{item.title}</h3>
-                      <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${badgeClass}`}>
-                        {badgeLabel}
-                      </span>
-                    </div>
-
-                    <p className="mt-2 text-sm leading-7 opacity-90">{item.description}</p>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        </details>
-      ) : null}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-sky-800 via-cyan-700 to-sky-500 p-8 text-white shadow-xl">
+        <div className="grid gap-6 xl:grid-cols-[1fr_auto] xl:items-center">
           <div>
-            <Link href={boardPath} className="text-sm font-bold text-sky-700 dark:text-sky-400">
-              العودة إلى مركز الاستبيانات
-            </Link>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                {statusLabel(analysis.survey.status)}
-              </span>
-              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
-                {surveyAudienceLabels[analysis.survey.audienceType] || analysis.survey.audienceType}
-              </span>
-              {analysis.survey.isAnonymous ? (
-                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-                  مجهول الهوية
-                </span>
-              ) : null}
-            </div>
-
-            <h1 className="mt-3 text-2xl font-bold text-slate-950">{analysis.survey.title}</h1>
-
-            {analysis.survey.description ? (
-              <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">{analysis.survey.description}</p>
-            ) : null}
+            <h1 className="text-4xl font-black leading-tight">
+              {analysis.survey.title}
+            </h1>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 xl:justify-end">
             <button
               type="button"
               onClick={openSurveyPdf}
               disabled={printExportStatus === "loading"}
-              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-sky-400"
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {printExportStatus === "loading" ? "جاري تجهيز PDF..." : "تصدير PDF"}
             </button>
@@ -375,7 +287,7 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
             <button
               type="button"
               onClick={exportSurveyExcel}
-              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
+              className="rounded-2xl border border-white/25 bg-white/15 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20"
             >
               تصدير Excel
             </button>
@@ -383,29 +295,42 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
             <button
               type="button"
               onClick={copySurveyLink}
-              className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-900"
             >
               نسخ رابط الاستبيان
             </button>
           </div>
         </div>
       </section>
-
       {feedback ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
           {feedback}
         </div>
       ) : null}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-sm font-bold text-sky-700 dark:text-sky-400">تجهيز التقرير الرسمي</p>
-            <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">اختر البيانات التي ستظهر في PDF</h2>
-</div>
 
-          <div className="flex flex-wrap gap-2">
-<button
+      <details className="group rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-6">
+          <div>
+            <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">
+              اختر البيانات التي ستظهر في PDF
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="rounded-full bg-sky-50 px-4 py-2 text-sm font-black text-sky-700 ring-1 ring-sky-100">
+              {selectedReportQuestionIds.length} محدد
+            </span>
+
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-lg font-black text-slate-500 transition group-open:rotate-180">
+              ˅
+            </span>
+          </div>
+        </summary>
+
+        <div className="border-t border-slate-100 p-6">
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
               type="button"
               onClick={selectAllReportQuestions}
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
@@ -421,59 +346,58 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
               إلغاء التحديد
             </button>
           </div>
-        </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {analysis.questions.map((question, index) => {
-            const checked = selectedReportQuestionIds.includes(question.id);
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {analysis.questions.map((question, index) => {
+              const checked = selectedReportQuestionIds.includes(question.id);
 
-            return (
-              <button
-                key={question.id}
-                type="button"
-                onClick={() => toggleReportQuestion(question.id)}
-                className={[
-                  "rounded-2xl border p-4 text-right transition",
-                  checked
-                    ? "border-sky-300 bg-sky-50"
-                    : "border-slate-200 bg-white hover:border-sky-200 hover:bg-slate-50",
-                ].join(" ")}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-black text-slate-400">س{index + 1} · {questionTypeLabel(question.type)}</p>
-                    <h3 className="mt-1 line-clamp-2 text-sm font-black leading-6 text-slate-950">
-                      {question.label}
-                    </h3>
+              return (
+                <button
+                  key={question.id}
+                  type="button"
+                  onClick={() => toggleReportQuestion(question.id)}
+                  className={[
+                    "rounded-2xl border p-4 text-right transition",
+                    checked
+                      ? "border-sky-300 bg-sky-50"
+                      : "border-slate-200 bg-white hover:border-sky-200 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-slate-400">س{index + 1} · {questionTypeLabel(question.type)}</p>
+                      <h3 className="mt-1 line-clamp-2 text-sm font-black leading-6 text-slate-950">
+                        {question.label}
+                      </h3>
+                    </div>
+
+                    <span
+                      className={[
+                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-black",
+                        checked
+                          ? "border-sky-700 bg-sky-700 text-white"
+                          : "border-slate-300 bg-white text-slate-300",
+                      ].join(" ")}
+                    >
+                      ✓
+                    </span>
                   </div>
 
-                  <span
-                    className={[
-                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-black",
-                      checked
-                        ? "border-sky-700 bg-sky-700 text-white"
-                        : "border-slate-300 bg-white text-slate-300",
-                    ].join(" ")}
-                  >
-                    ✓
-                  </span>
-                </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-slate-500">
+                    <span>{question.answeredCount} إجابة</span>
+                    <span>{question.answerRate}% معدل</span>
+                    {question.average !== null ? <span>متوسط {question.average}</span> : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-                <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-slate-500">
-                  <span>{question.answeredCount} إجابة</span>
-                  <span>{question.answerRate}% معدل</span>
-                  {question.average !== null ? <span>متوسط {question.average}</span> : null}
-                </div>
-              </button>
-            );
-          })}
+          <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+            المحدد الآن: {selectedReportQuestionIds.length} سؤال · الحد الأعلى للتقرير الرسمي صفحة واحدة: 10 أسئلة.
+          </div>
         </div>
-
-        <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
-          المحدد الآن: {selectedReportQuestionIds.length} سؤال · الحد الأعلى للتقرير الرسمي صفحة واحدة: 10 أسئلة.
-        </div>
-      </section>
-
+      </details>
       <section className="grid gap-4 md:grid-cols-4">
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">عدد الردود</p>

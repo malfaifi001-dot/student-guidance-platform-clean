@@ -5,6 +5,7 @@ import {
   FileSpreadsheet,
   Lightbulb,
   UsersRound,
+  Link2,
 } from "lucide-react";
 import type {
   AssessmentAnalysisSummary,
@@ -106,6 +107,14 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
             analysisId={analysis.id}
             analysisTitle={analysis.title}
           />
+
+          <Link
+            href="/dashboard/assessment-center/report-linking"
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-4 py-2 text-sm font-black text-cyan-50 transition hover:bg-white/20"
+          >
+            <Link2 className="h-4 w-4" />
+            ربط التقارير
+          </Link>
         </div>
 
         <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
