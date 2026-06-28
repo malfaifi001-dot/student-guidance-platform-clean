@@ -1,0 +1,2429 @@
+SURVEY PRINT EXPORT REVIEW DUMP
+Generated: 06/28/2026 12:45:53
+
+===== git status =====
+ M app/api/dashboard/surveys/[surveyId]/export/pdf/route.ts
+ M components/surveys/survey-analysis-shell.tsx
+
+
+===== git diff --stat =====
+ .../surveys/[surveyId]/export/pdf/route.ts         | 90 ++++++---------------
+ components/surveys/survey-analysis-shell.tsx       | 93 +++++++---------------
+ 2 files changed, 54 insertions(+), 129 deletions(-)
+
+
+===== git diff target files =====
+diff --git a/app/api/dashboard/surveys/[surveyId]/export/pdf/route.ts b/app/api/dashboard/surveys/[surveyId]/export/pdf/route.ts
+index 287bfb9..afdf40b 100644
+--- a/app/api/dashboard/surveys/[surveyId]/export/pdf/route.ts
++++ b/app/api/dashboard/surveys/[surveyId]/export/pdf/route.ts
+@@ -1,7 +1,6 @@
+ import { readFile } from "node:fs/promises";
+ import { extname, join } from "node:path";
+ import { NextResponse } from "next/server";
+-import puppeteer from "puppeteer";
+ import { getCurrentSessionUser } from "@/lib/auth/current-user";
+ import { prisma } from "@/lib/prisma";
+ import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+@@ -317,6 +316,22 @@ function getRequestedQuestionIds(request: Request) {
+     .filter(Boolean);
+ }
+ 
++function shouldAutoPrint(request: Request) {
++  const url = new URL(request.url);
++  return url.searchParams.get("print") === "1";
++}
++
++function injectPrintScript(html: string) {
++  const printScript = `
++<script>
++window.addEventListener("load", () => {
++  window.setTimeout(() => window.print(), 450);
++});
++</script>`;
++
++  return html.includes("</body>") ? html.replace("</body>", `${printScript}\n</body>`) : `${html}${printScript}`;
++}
++
+ function getVisibleQuestions(allQuestions: QuestionAnalysis[], requestedQuestionIds: string[]) {
+   if (!requestedQuestionIds.length) {
+     return allQuestions.slice(0, Math.min(allQuestions.length, 10));
+@@ -1106,69 +1121,12 @@ export async function GET(request: Request, context: RouteContext) {
+ 
+   const requestedQuestionIds = getRequestedQuestionIds(request);
+   const html = await buildPdfHtml(survey!, requestedQuestionIds);
++  const responseHtml = shouldAutoPrint(request) ? injectPrintScript(html) : html;
+ 
+-  let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
+-
+-  try {
+-    browser = await puppeteer.launch({
+-      headless: true,
+-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+-    });
+-
+-    const page = await browser.newPage();
+-
+-    await page.setViewport({
+-      width: 1600,
+-      height: 900,
+-      deviceScaleFactor: 1,
+-    });
+-
+-    await page.setContent(html, {
+-      waitUntil: "load",
+-    });
+-
+-    const pdfBuffer = await page.pdf({
+-      printBackground: true,
+-      preferCSSPageSize: true,
+-      margin: {
+-        top: "0",
+-        right: "0",
+-        bottom: "0",
+-        left: "0",
+-      },
+-    });
+-
+-    const safeTitle =
+-      survey!.title
+-        .replace(/[\\/:*?"<>|]/g, " ")
+-        .replace(/\s+/g, " ")
+-        .trim()
+-        .slice(0, 80) || "╪º╪│╪¬╪¿┘è╪º┘å";
+-
+-    const fallbackFileName = `survey-${survey!.id}.pdf`;
+-    const encodedFileName = encodeURIComponent(`${safeTitle}.pdf`);
+-
+-    const pdfArrayBuffer = pdfBuffer.buffer.slice(
+-      pdfBuffer.byteOffset,
+-      pdfBuffer.byteOffset + pdfBuffer.byteLength,
+-    ) as ArrayBuffer;
+-
+-    return new NextResponse(pdfArrayBuffer, {
+-      headers: {
+-        "Content-Type": "application/pdf",
+-        "Content-Disposition": `attachment; filename="${fallbackFileName}"; filename*=UTF-8''${encodedFileName}`,
+-      },
+-    });
+-  } catch (error) {
+-    console.error("SURVEY_ANALYSIS_PDF_EXPORT_ERROR", error);
+-
+-    return NextResponse.json(
+-      { error: "╪¬╪╣╪░╪▒ ╪¬╪╡╪»┘è╪▒ ╪¬┘é╪▒┘è╪▒ ╪º┘ä╪º╪│╪¬╪¿┘è╪º┘å PDF." },
+-      { status: 500 },
+-    );
+-  } finally {
+-    if (browser) {
+-      await browser.close().catch(() => undefined);
+-    }
+-  }
+-}
+\ No newline at end of file
++  return new NextResponse(responseHtml, {
++    headers: {
++      "Content-Type": "text/html; charset=utf-8",
++      "Cache-Control": "no-store",
++    },
++  });
++}
+diff --git a/components/surveys/survey-analysis-shell.tsx b/components/surveys/survey-analysis-shell.tsx
+index 7c5b9f9..df8895d 100644
+--- a/components/surveys/survey-analysis-shell.tsx
++++ b/components/surveys/survey-analysis-shell.tsx
+@@ -2,6 +2,8 @@
+ 
+ import { useEffect, useMemo, useState } from "react";
+ import Link from "next/link";
++import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
++import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+ import {
+   Bar,
+   BarChart,
+@@ -100,29 +102,19 @@ function isNumericQuestion(type: string) {
+   return type === "RATING" || type === "SCALE" || type === "NUMBER";
+ }
+ 
+-function getDownloadFileName(contentDisposition: string | null, fallback: string) {
+-  const encodedMatch = contentDisposition?.match(/filename\*=UTF-8''([^;]+)/i);
+-
+-  if (encodedMatch?.[1]) {
+-    try {
+-      return decodeURIComponent(encodedMatch[1].trim());
+-    } catch {
+-      return encodedMatch[1].trim();
+-    }
+-  }
+-
+-  const plainMatch = contentDisposition?.match(/filename="?([^";]+)"?/i);
+-
+-  return plainMatch?.[1]?.trim() || fallback;
+-}
+-
+ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShellProps) {
+   const [analysis, setAnalysis] = useState<SurveyAnalysis | null>(null);
+   const [isLoading, setIsLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
+   const [feedback, setFeedback] = useState<string | null>(null);
+   const [selectedReportQuestionIds, setSelectedReportQuestionIds] = useState<string[]>([]);
+-  const [isPdfExporting, setIsPdfExporting] = useState(false);
++  const {
++    status: printExportStatus,
++    modal: printExportModal,
++    runPrintExport,
++    openFallbackPrintUrl,
++    closeModal,
++  } = usePrintExportAction();
+ 
+   const numericQuestions = useMemo(
+     () => analysis?.questions.filter((question) => question.average !== null) || [],
+@@ -229,57 +221,26 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
+       return;
+     }
+ 
+-    if (isPdfExporting) {
++    if (printExportStatus === "loading") {
+       return;
+     }
+ 
+     const params = new URLSearchParams();
+     params.set("questionIds", selectedReportQuestionIds.join(","));
+ 
+-    const fallbackTitle =
+-      `${analysis?.survey.title || "╪¬┘é╪▒┘è╪▒ ╪º┘ä╪º╪│╪¬╪¿┘è╪º┘å"}`
+-        .replace(/[\\/:*?"<>|]/g, " ")
+-        .replace(/\s+/g, " ")
+-        .trim() || "╪¬┘é╪▒┘è╪▒ ╪º┘ä╪º╪│╪¬╪¿┘è╪º┘å";
+-
+-    setIsPdfExporting(true);
+-    setFeedback("╪¼╪º╪▒┘è ╪¬╪¼┘ç┘è╪▓ ┘à┘ä┘ü PDF...");
+-
+-    try {
+-      const response = await fetch(`/api/dashboard/surveys/${surveyId}/export/pdf?${params.toString()}`, {
+-        cache: "no-store",
+-      });
+-
+-      if (!response.ok) {
+-        const data = await response.json().catch(() => null);
+-        throw new Error(data?.error || "╪¬╪╣╪░╪▒ ╪¬╪╡╪»┘è╪▒ ╪¬┘é╪▒┘è╪▒ ╪º┘ä╪º╪│╪¬╪¿┘è╪º┘å PDF.");
+-      }
++    const reportUrl = `/api/dashboard/surveys/${surveyId}/export/pdf?${params.toString()}`;
++    const result = await runPrintExport({
++      exportUrl: reportUrl,
++      printUrl: reportUrl,
++      blockedTitle: "┘à╪╣╪º┘è┘å╪⌐ ╪╖╪¿╪º╪╣╪⌐ ╪¬┘é╪▒┘è╪▒ ╪º┘ä╪º╪│╪¬╪¿┘è╪º┘å",
++      blockedMessage:
++        "╪¬┘à ╪¡╪╕╪▒ ┘ü╪¬╪¡ ┘à╪╣╪º┘è┘å╪⌐ ╪º┘ä╪╖╪¿╪º╪╣╪⌐ ╪¬┘ä┘é╪º╪ª┘è┘ï╪º. ╪º╪│╪¬╪«╪»┘à ╪º┘ä╪▓╪▒ ╪ú╪»┘å╪º┘ç ┘ä┘ü╪¬╪¡ ╪¬┘é╪▒┘è╪▒ ╪º┘ä╪º╪│╪¬╪¿┘è╪º┘å ┘ü┘è ╪¬╪¿┘ê┘è╪¿ ╪¼╪»┘è╪».",
++      errorTitle: "╪¬╪╡╪»┘è╪▒ PDF",
++      errorMessage: "╪¬╪╣╪░╪▒ ┘ü╪¬╪¡ ╪¬┘é╪▒┘è╪▒ ╪º┘ä╪º╪│╪¬╪¿┘è╪º┘å ┘ä┘ä╪╖╪¿╪º╪╣╪⌐. ╪¡╪º┘ê┘ä ┘à╪▒╪⌐ ╪ú╪«╪▒┘ë.",
++    });
+ 
+-      const blob = await response.blob();
+-      const fileName = getDownloadFileName(
+-        response.headers.get("Content-Disposition"),
+-        `${fallbackTitle}.pdf`,
+-      );
+-
+-      const downloadUrl = URL.createObjectURL(blob);
+-      const link = document.createElement("a");
+-
+-      link.href = downloadUrl;
+-      link.download = fileName;
+-      document.body.appendChild(link);
+-      link.click();
+-      link.remove();
+-
+-      window.setTimeout(() => {
+-        URL.revokeObjectURL(downloadUrl);
+-      }, 1000);
+-
+-      setFeedback("╪¬┘à ╪¬╪¼┘ç┘è╪▓ ┘à┘ä┘ü PDF ┘ê╪¿╪»╪ú ╪º┘ä╪¬┘å╪▓┘è┘ä.");
+-    } catch (error) {
+-      console.error("SURVEY_PDF_CLIENT_EXPORT_ERROR", error);
+-      setFeedback(error instanceof Error ? error.message : "╪¬╪╣╪░╪▒ ╪¬╪╡╪»┘è╪▒ ╪¬┘é╪▒┘è╪▒ ╪º┘ä╪º╪│╪¬╪¿┘è╪º┘å PDF.");
+-    } finally {
+-      setIsPdfExporting(false);
++    if (result === "opened") {
++      setFeedback("╪¬┘à ┘ü╪¬╪¡ ╪¬┘é╪▒┘è╪▒ PDF ┘ü┘è ╪¬╪¿┘ê┘è╪¿ ╪¼╪»┘è╪». ╪º╪«╪¬╪▒ ╪¡┘ü╪╕ ┘â┘Ç PDF ┘à┘å ┘å╪º┘ü╪░╪⌐ ╪º┘ä╪╖╪¿╪º╪╣╪⌐.");
+     }
+   }
+ 
+@@ -405,10 +366,10 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
+             <button
+               type="button"
+               onClick={openSurveyPdf}
+-              disabled={isPdfExporting}
++              disabled={printExportStatus === "loading"}
+               className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-sky-400"
+             >
+-              {isPdfExporting ? "╪¼╪º╪▒┘è ╪¬╪¼┘ç┘è╪▓ PDF..." : "╪¬╪╡╪»┘è╪▒ PDF"}
++              {printExportStatus === "loading" ? "╪¼╪º╪▒┘è ╪¬╪¼┘ç┘è╪▓ PDF..." : "╪¬╪╡╪»┘è╪▒ PDF"}
+             </button>
+ 
+             <button
+@@ -747,6 +708,12 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
+           })}
+         </div>
+       </section>
++
++      <PrintExportPopCard
++        modal={printExportModal}
++        onClose={closeModal}
++        onOpenFallback={openFallbackPrintUrl}
++      />
+     </div>
+   );
+ }
+
+
+============================================================
+FILE: components\surveys\survey-analysis-shell.tsx
+============================================================
+1: "use client";
+2: 
+3: import { useEffect, useMemo, useState } from "react";
+4: import Link from "next/link";
+5: import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
+6: import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+7: import {
+8:   Bar,
+9:   BarChart,
+10:   CartesianGrid,
+11:   Cell,
+12:   Legend,
+13:   Pie,
+14:   PieChart,
+15:   ResponsiveContainer,
+16:   Tooltip,
+17:   XAxis,
+18:   YAxis,
+19: } from "recharts";
+20: import { surveyAudienceLabels } from "@/lib/surveys/survey-config";
+21: 
+22: type OptionCount = {
+23:   label: string;
+24:   count: number;
+25:   percentage: number;
+26: };
+27: 
+28: type TextSample = {
+29:   value: string;
+30:   submittedAt: string;
+31: };
+32: 
+33: type AnalysisQuestion = {
+34:   id: string;
+35:   label: string;
+36:   type: string;
+37:   isRequired: boolean;
+38:   totalResponses: number;
+39:   answeredCount: number;
+40:   emptyCount: number;
+41:   answerRate: number;
+42:   average: number | null;
+43:   min: number | null;
+44:   max: number | null;
+45:   optionCounts: OptionCount[];
+46:   textSamples: TextSample[];
+47: };
+48: 
+49: type SurveyAnalysis = {
+50:   survey: {
+51:     id: string;
+52:     title: string;
+53:     description?: string | null;
+54:     status: string;
+55:     token: string;
+56:     audienceType: string;
+57:     isAnonymous: boolean;
+58:     publishedAt?: string | null;
+59:   };
+60:   totals: {
+61:     questions: number;
+62:     responses: number;
+63:     completedRequiredResponses: number;
+64:     completionRate: number;
+65:   };
+66:   questions: AnalysisQuestion[];
+67: };
+68: 
+69: type SurveyAnalysisShellProps = {
+70:   surveyId: string;
+71:   boardPath: string;
+72: };
+73: 
+74: const chartColors = ["#0284c7", "#059669", "#f59e0b", "#e11d48", "#7c3aed", "#0f172a", "#0891b2"];
+75: 
+76: function statusLabel(status: string) {
+77:   if (status === "DRAFT") return "مسودة";
+78:   if (status === "PUBLISHED") return "منشور";
+79:   if (status === "CLOSED") return "مغلق";
+80:   if (status === "ARCHIVED") return "مؤرشف";
+81:   return status;
+82: }
+83: 
+84: function questionTypeLabel(type: string) {
+85:   if (type === "TEXT") return "إجابة قصيرة";
+86:   if (type === "TEXTAREA") return "إجابة طويلة";
+87:   if (type === "SINGLE_CHOICE") return "اختيار واحد";
+88:   if (type === "MULTIPLE_CHOICE") return "اختيارات متعددة";
+89:   if (type === "YES_NO") return "نعم / لا";
+90:   if (type === "RATING") return "تقييم";
+91:   if (type === "SCALE") return "مقياس رقمي";
+92:   if (type === "NUMBER") return "رقم";
+93:   if (type === "DATE") return "تاريخ";
+94:   return type;
+95: }
+96: 
+97: function isChoiceQuestion(type: string) {
+98:   return type === "YES_NO" || type === "SINGLE_CHOICE" || type === "MULTIPLE_CHOICE";
+99: }
+100: 
+101: function isNumericQuestion(type: string) {
+102:   return type === "RATING" || type === "SCALE" || type === "NUMBER";
+103: }
+104: 
+105: export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShellProps) {
+106:   const [analysis, setAnalysis] = useState<SurveyAnalysis | null>(null);
+107:   const [isLoading, setIsLoading] = useState(true);
+108:   const [error, setError] = useState<string | null>(null);
+109:   const [feedback, setFeedback] = useState<string | null>(null);
+110:   const [selectedReportQuestionIds, setSelectedReportQuestionIds] = useState<string[]>([]);
+111:   const {
+112:     status: printExportStatus,
+113:     modal: printExportModal,
+114:     runPrintExport,
+115:     openFallbackPrintUrl,
+116:     closeModal,
+117:   } = usePrintExportAction();
+118: 
+119:   const numericQuestions = useMemo(
+120:     () => analysis?.questions.filter((question) => question.average !== null) || [],
+121:     [analysis],
+122:   );
+123: 
+124:   const choiceQuestions = useMemo(
+125:     () =>
+126:       analysis?.questions.filter(
+127:         (question) => isChoiceQuestion(question.type) && question.optionCounts.some((option) => option.count > 0),
+128:       ) || [],
+129:     [analysis],
+130:   );
+131: 
+132:   async function loadAnalysis() {
+133:     setIsLoading(true);
+134:     setError(null);
+135: 
+136:     const response = await fetch(`/api/dashboard/surveys/${surveyId}/analysis`, {
+137:       cache: "no-store",
+138:     });
+139: 
+140:     const data = await response.json().catch(() => null);
+141: 
+142:     setIsLoading(false);
+143: 
+144:     if (!response.ok) {
+145:       setError(data?.error || "تعذر تحميل تحليل الاستبيان.");
+146:       return;
+147:     }
+148: 
+149:     setAnalysis(data);
+150:   }
+151: 
+152:   useEffect(() => {
+153:     loadAnalysis();
+154:   }, [surveyId]);
+155: 
+156:   useEffect(() => {
+157:     if (!analysis?.questions.length) return;
+158: 
+159:     setSelectedReportQuestionIds((previous) => {
+160:       const validIds = new Set(analysis.questions.map((question) => question.id));
+161:       const keptIds = previous.filter((questionId) => validIds.has(questionId));
+162: 
+163:       if (keptIds.length) {
+164:         return keptIds;
+165:       }
+166: 
+167:       return analysis.questions
+168:         .slice(0, Math.min(analysis.questions.length, 6))
+169:         .map((question) => question.id);
+170:     });
+171:   }, [analysis]);
+172: 
+173:   async function copySurveyLink() {
+174:     if (!analysis?.survey.token) return;
+175: 
+176:     const url = `${window.location.origin}/survey/${analysis.survey.token}`;
+177:     await navigator.clipboard.writeText(url);
+178:     setFeedback("تم نسخ رابط الاستبيان.");
+179:   }
+180: 
+181:   function exportSurveyExcel() {
+182:     window.location.href = `/api/dashboard/surveys/${surveyId}/export`;
+183:   }
+184: 
+185:   function toggleReportQuestion(questionId: string) {
+186:     setSelectedReportQuestionIds((previous) => {
+187:       if (previous.includes(questionId)) {
+188:         return previous.filter((item) => item !== questionId);
+189:       }
+190: 
+191:       if (previous.length >= 10) {
+192:         setFeedback("التقرير الرسمي صفحة واحدة، لذلك اختر 10 أسئلة كحد أقصى.");
+193:         return previous;
+194:       }
+195: 
+196:       return [...previous, questionId];
+197:     });
+198:   }
+199: 
+200:   function selectAllReportQuestions() {
+201:     if (!analysis?.questions.length) return;
+202: 
+203:     setSelectedReportQuestionIds(
+204:       analysis.questions
+205:         .slice(0, Math.min(analysis.questions.length, 10))
+206:         .map((question) => question.id),
+207:     );
+208: 
+209:     if (analysis.questions.length > 10) {
+210:       setFeedback("تم اختيار أول 10 أسئلة فقط لأن التقرير صفحة واحدة.");
+211:     }
+212:   }
+213: 
+214:   function clearReportQuestions() {
+215:     setSelectedReportQuestionIds([]);
+216:   }
+217: 
+218:   async function openSurveyPdf() {
+219:     if (!selectedReportQuestionIds.length) {
+220:       setFeedback("اختر سؤالًا واحدًا على الأقل قبل تصدير PDF.");
+221:       return;
+222:     }
+223: 
+224:     if (printExportStatus === "loading") {
+225:       return;
+226:     }
+227: 
+228:     const params = new URLSearchParams();
+229:     params.set("questionIds", selectedReportQuestionIds.join(","));
+230: 
+231:     const reportUrl = `/api/dashboard/surveys/${surveyId}/export/pdf?${params.toString()}`;
+232:     const result = await runPrintExport({
+233:       exportUrl: reportUrl,
+234:       printUrl: reportUrl,
+235:       blockedTitle: "معاينة طباعة تقرير الاستبيان",
+236:       blockedMessage:
+237:         "تم حظر فتح معاينة الطباعة تلقائيًا. استخدم الزر أدناه لفتح تقرير الاستبيان في تبويب جديد.",
+238:       errorTitle: "تصدير PDF",
+239:       errorMessage: "تعذر فتح تقرير الاستبيان للطباعة. حاول مرة أخرى.",
+240:     });
+241: 
+242:     if (result === "opened") {
+243:       setFeedback("تم فتح تقرير PDF في تبويب جديد. اختر حفظ كـ PDF من نافذة الطباعة.");
+244:     }
+245:   }
+246: 
+247:   if (isLoading) {
+248:     return (
+249:       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+250:         جاري تحميل تحليل الاستبيان...
+251:       </div>
+252:     );
+253:   }
+254: 
+255:   if (error) {
+256:     return (
+257:       <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 text-sm font-semibold text-rose-700">
+258:         {error}
+259:       </div>
+260:     );
+261:   }
+262: 
+263:   if (!analysis) {
+264:     return null;
+265:   }
+266: 
+267:   return (
+268:     <div className="space-y-6" dir="rtl">
+269:       {Array.isArray((analysis as any)?.recommendations) && (analysis as any).recommendations.length > 0 ? (
+270:         <details className="group rounded-3xl border border-slate-200 bg-white shadow-sm">
+271:           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-6">
+272:             <div>
+273:               <p className="text-sm font-bold text-sky-700 dark:text-sky-400">قراءة ذكية للنتائج</p>
+274:               <h2 className="mt-1 text-xl font-bold text-slate-950">
+275:                 توصيات ومؤشرات سريعة
+276:               </h2>
+277:             </div>
+278: 
+279:             <div className="flex items-center gap-3">
+280:               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+281:                 {(analysis as any).recommendations.length} توصية
+282:               </span>
+283: 
+284:               <span className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-lg font-bold text-slate-500 transition group-open:rotate-180">
+285:                 ˅
+286:               </span>
+287:             </div>
+288:           </summary>
+289: 
+290:           <div className="border-t border-slate-100 px-6 pb-6">
+291:             <div className="mt-5 grid gap-3 lg:grid-cols-2">
+292:               {(analysis as any).recommendations.map((item: any, index: number) => {
+293:                 const toneClass =
+294:                   item.tone === "success"
+295:                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+296:                     : item.tone === "danger"
+297:                       ? "border-rose-200 bg-rose-50 text-rose-800"
+298:                       : item.tone === "warning"
+299:                         ? "border-amber-200 bg-amber-50 text-amber-800"
+300:                         : "border-sky-200 bg-sky-50 text-sky-800";
+301: 
+302:                 const badgeClass =
+303:                   item.tone === "success"
+304:                     ? "bg-emerald-100 text-emerald-800"
+305:                     : item.tone === "danger"
+306:                       ? "bg-rose-100 text-rose-800"
+307:                       : item.tone === "warning"
+308:                         ? "bg-amber-100 text-amber-800"
+309:                         : "bg-sky-100 text-sky-800";
+310: 
+311:                 const badgeLabel =
+312:                   item.tone === "success"
+313:                     ? "إيجابي"
+314:                     : item.tone === "danger"
+315:                       ? "عاجل"
+316:                       : item.tone === "warning"
+317:                         ? "تنبيه"
+318:                         : "معلومة";
+319: 
+320:                 return (
+321:                   <article key={`${item.title}-${index}`} className={`rounded-3xl border p-4 ${toneClass}`}>
+322:                     <div className="flex items-start justify-between gap-3">
+323:                       <h3 className="font-bold">{item.title}</h3>
+324:                       <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${badgeClass}`}>
+325:                         {badgeLabel}
+326:                       </span>
+327:                     </div>
+328: 
+329:                     <p className="mt-2 text-sm leading-7 opacity-90">{item.description}</p>
+330:                   </article>
+331:                 );
+332:               })}
+333:             </div>
+334:           </div>
+335:         </details>
+336:       ) : null}
+337:       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+338:         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+339:           <div>
+340:             <Link href={boardPath} className="text-sm font-bold text-sky-700 dark:text-sky-400">
+341:               العودة إلى مركز الاستبيانات
+342:             </Link>
+343: 
+344:             <div className="mt-4 flex flex-wrap gap-2">
+345:               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+346:                 {statusLabel(analysis.survey.status)}
+347:               </span>
+348:               <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+349:                 {surveyAudienceLabels[analysis.survey.audienceType] || analysis.survey.audienceType}
+350:               </span>
+351:               {analysis.survey.isAnonymous ? (
+352:                 <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+353:                   مجهول الهوية
+354:                 </span>
+355:               ) : null}
+356:             </div>
+357: 
+358:             <h1 className="mt-3 text-2xl font-bold text-slate-950">{analysis.survey.title}</h1>
+359: 
+360:             {analysis.survey.description ? (
+361:               <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">{analysis.survey.description}</p>
+362:             ) : null}
+363:           </div>
+364: 
+365:           <div className="flex flex-wrap gap-2">
+366:             <button
+367:               type="button"
+368:               onClick={openSurveyPdf}
+369:               disabled={printExportStatus === "loading"}
+370:               className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-sky-400"
+371:             >
+372:               {printExportStatus === "loading" ? "جاري تجهيز PDF..." : "تصدير PDF"}
+373:             </button>
+374: 
+375:             <button
+376:               type="button"
+377:               onClick={exportSurveyExcel}
+378:               className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
+379:             >
+380:               تصدير Excel
+381:             </button>
+382: 
+383:             <button
+384:               type="button"
+385:               onClick={copySurveyLink}
+386:               className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+387:             >
+388:               نسخ رابط الاستبيان
+389:             </button>
+390:           </div>
+391:         </div>
+392:       </section>
+393: 
+394:       {feedback ? (
+395:         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+396:           {feedback}
+397:         </div>
+398:       ) : null}
+399: 
+400:       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+401:         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+402:           <div>
+403:             <p className="text-sm font-bold text-sky-700 dark:text-sky-400">تجهيز التقرير الرسمي</p>
+404:             <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-slate-100">اختر البيانات التي ستظهر في PDF</h2>
+405: </div>
+406: 
+407:           <div className="flex flex-wrap gap-2">
+408: <button
+409:               type="button"
+410:               onClick={selectAllReportQuestions}
+411:               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+412:             >
+413:               أول 10 أسئلة
+414:             </button>
+415: 
+416:             <button
+417:               type="button"
+418:               onClick={clearReportQuestions}
+419:               className="rounded-2xl border border-rose-200 px-4 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-50"
+420:             >
+421:               إلغاء التحديد
+422:             </button>
+423:           </div>
+424:         </div>
+425: 
+426:         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+427:           {analysis.questions.map((question, index) => {
+428:             const checked = selectedReportQuestionIds.includes(question.id);
+429: 
+430:             return (
+431:               <button
+432:                 key={question.id}
+433:                 type="button"
+434:                 onClick={() => toggleReportQuestion(question.id)}
+435:                 className={[
+436:                   "rounded-2xl border p-4 text-right transition",
+437:                   checked
+438:                     ? "border-sky-300 bg-sky-50"
+439:                     : "border-slate-200 bg-white hover:border-sky-200 hover:bg-slate-50",
+440:                 ].join(" ")}
+441:               >
+442:                 <div className="flex items-start justify-between gap-3">
+443:                   <div className="min-w-0">
+444:                     <p className="text-xs font-black text-slate-400">س{index + 1} · {questionTypeLabel(question.type)}</p>
+445:                     <h3 className="mt-1 line-clamp-2 text-sm font-black leading-6 text-slate-950">
+446:                       {question.label}
+447:                     </h3>
+448:                   </div>
+449: 
+450:                   <span
+451:                     className={[
+452:                       "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-black",
+453:                       checked
+454:                         ? "border-sky-700 bg-sky-700 text-white"
+455:                         : "border-slate-300 bg-white text-slate-300",
+456:                     ].join(" ")}
+457:                   >
+458:                     ✓
+459:                   </span>
+460:                 </div>
+461: 
+462:                 <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-slate-500">
+463:                   <span>{question.answeredCount} إجابة</span>
+464:                   <span>{question.answerRate}% معدل</span>
+465:                   {question.average !== null ? <span>متوسط {question.average}</span> : null}
+466:                 </div>
+467:               </button>
+468:             );
+469:           })}
+470:         </div>
+471: 
+472:         <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+473:           المحدد الآن: {selectedReportQuestionIds.length} سؤال · الحد الأعلى للتقرير الرسمي صفحة واحدة: 10 أسئلة.
+474:         </div>
+475:       </section>
+476: 
+477:       <section className="grid gap-4 md:grid-cols-4">
+478:         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+479:           <p className="text-sm text-slate-500">عدد الردود</p>
+480:           <p className="mt-2 text-3xl font-bold text-slate-950">{analysis.totals.responses}</p>
+481:         </div>
+482: 
+483:         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+484:           <p className="text-sm text-slate-500">عدد الأسئلة</p>
+485:           <p className="mt-2 text-3xl font-bold text-slate-950">{analysis.totals.questions}</p>
+486:         </div>
+487: 
+488:         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+489:           <p className="text-sm text-slate-500">اكتمال الأسئلة المطلوبة</p>
+490:           <p className="mt-2 text-3xl font-bold text-emerald-700">{analysis.totals.completionRate}%</p>
+491:         </div>
+492: 
+493:         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+494:           <p className="text-sm text-slate-500">أسئلة قابلة للرسم</p>
+495:           <p className="mt-2 text-3xl font-bold text-sky-700">{numericQuestions.length + choiceQuestions.length}</p>
+496:         </div>
+497:       </section>
+498: 
+499:       <section className="grid gap-4 xl:grid-cols-2">
+500:         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+501:           <h2 className="text-lg font-bold text-slate-950">متوسط الأسئلة الرقمية</h2>
+502:           <p className="mt-1 text-sm text-slate-500">يعرض متوسط التقييم والمقاييس الرقمية داخل الاستبيان.</p>
+503: 
+504:           <div className="mt-5 h-80">
+505:             {numericQuestions.length ? (
+506:               <ResponsiveContainer width="100%" height="100%">
+507:                 <BarChart data={numericQuestions.map((question) => ({ name: question.label, المتوسط: question.average || 0 }))}>
+508:                   <CartesianGrid strokeDasharray="3 3" />
+509:                   <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} height={80} />
+510:                   <YAxis />
+511:                   <Tooltip />
+512:                   <Legend />
+513:                   <Bar dataKey="المتوسط" fill="#0284c7" radius={[8, 8, 0, 0]} />
+514:                 </BarChart>
+515:               </ResponsiveContainer>
+516:             ) : (
+517:               <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-slate-300 text-sm text-slate-500">
+518:                 لا توجد أسئلة رقمية قابلة للرسم.
+519:               </div>
+520:             )}
+521:           </div>
+522:         </div>
+523: 
+524:         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+525:           <h2 className="text-lg font-bold text-slate-950">ملخص توزيع أول سؤال اختيارات</h2>
+526:           <p className="mt-1 text-sm text-slate-500">يعرض Pie Chart لأول سؤال اختيارات لديه ردود.</p>
+527: 
+528:           <div className="mt-5 h-80">
+529:             {choiceQuestions.length ? (
+530:               <ResponsiveContainer width="100%" height="100%">
+531:                 <PieChart>
+532:                   <Tooltip />
+533:                   <Legend />
+534:                   <Pie
+535:                     data={choiceQuestions[0].optionCounts.filter((option) => option.count > 0)}
+536:                     dataKey="count"
+537:                     nameKey="label"
+538:                     innerRadius={55}
+539:                     outerRadius={105}
+540:                     paddingAngle={3}
+541:                     label
+542:                   >
+543:                     {choiceQuestions[0].optionCounts
+544:                       .filter((option) => option.count > 0)
+545:                       .map((option, index) => (
+546:                         <Cell key={option.label} fill={chartColors[index % chartColors.length]} />
+547:                       ))}
+548:                   </Pie>
+549:                 </PieChart>
+550:               </ResponsiveContainer>
+551:             ) : (
+552:               <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-slate-300 text-sm text-slate-500">
+553:                 لا توجد أسئلة اختيارات لديها ردود.
+554:               </div>
+555:             )}
+556:           </div>
+557:         </div>
+558:       </section>
+559: 
+560:       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+561:         <h2 className="text-lg font-bold text-slate-950">تحليل الأسئلة</h2>
+562:         <p className="mt-1 text-sm text-slate-500">
+563:           يعرض هذا القسم القيم المستخرجة من كل سؤال حسب نوعه.
+564:         </p>
+565: 
+566:         <div className="mt-5 space-y-4">
+567:           {analysis.questions.map((question, index) => {
+568:             const choiceData = question.optionCounts.filter((option) => option.count > 0);
+569:             const numericData =
+570:               question.average !== null
+571:                 ? [
+572:                     { name: "أقل قيمة", value: question.min || 0 },
+573:                     { name: "المتوسط", value: question.average || 0 },
+574:                     { name: "أعلى قيمة", value: question.max || 0 },
+575:                   ]
+576:                 : [];
+577: 
+578:             return (
+579:               <article key={question.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+580:                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+581:                   <div>
+582:                     <div className="flex flex-wrap gap-2">
+583:                       <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700">
+584:                         السؤال {index + 1}
+585:                       </span>
+586:                       <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-sky-700">
+587:                         {questionTypeLabel(question.type)}
+588:                       </span>
+589:                       {question.isRequired ? (
+590:                         <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
+591:                           مطلوب
+592:                         </span>
+593:                       ) : null}
+594:                     </div>
+595: 
+596:                     <h3 className="mt-3 font-bold text-slate-950">{question.label}</h3>
+597:                   </div>
+598: 
+599:                   <div className="grid grid-cols-3 gap-2 text-center">
+600:                     <div className="rounded-2xl bg-white p-3">
+601:                       <p className="text-lg font-bold text-slate-950">{question.answeredCount}</p>
+602:                       <p className="mt-1 text-xs text-slate-500">إجابة</p>
+603:                     </div>
+604:                     <div className="rounded-2xl bg-white p-3">
+605:                       <p className="text-lg font-bold text-slate-950">{question.emptyCount}</p>
+606:                       <p className="mt-1 text-xs text-slate-500">فارغ</p>
+607:                     </div>
+608:                     <div className="rounded-2xl bg-white p-3">
+609:                       <p className="text-lg font-bold text-sky-700">{question.answerRate}%</p>
+610:                       <p className="mt-1 text-xs text-slate-500">معدل الإجابة</p>
+611:                     </div>
+612:                   </div>
+613:                 </div>
+614: 
+615:                 {question.average !== null ? (
+616:                   <div className="mt-4 grid gap-3 md:grid-cols-3">
+617:                     <div className="rounded-2xl bg-white p-4">
+618:                       <p className="text-xs text-slate-500">المتوسط</p>
+619:                       <p className="mt-1 text-2xl font-bold text-slate-950">{question.average}</p>
+620:                     </div>
+621:                     <div className="rounded-2xl bg-white p-4">
+622:                       <p className="text-xs text-slate-500">أقل قيمة</p>
+623:                       <p className="mt-1 text-2xl font-bold text-slate-950">{question.min}</p>
+624:                     </div>
+625:                     <div className="rounded-2xl bg-white p-4">
+626:                       <p className="text-xs text-slate-500">أعلى قيمة</p>
+627:                       <p className="mt-1 text-2xl font-bold text-slate-950">{question.max}</p>
+628:                     </div>
+629:                   </div>
+630:                 ) : null}
+631: 
+632:                 {isNumericQuestion(question.type) && numericData.length ? (
+633:                   <div className="mt-4 rounded-3xl bg-white p-4">
+634:                     <p className="mb-3 text-sm font-bold text-slate-800">رسم القيم الرقمية</p>
+635:                     <div className="h-64">
+636:                       <ResponsiveContainer width="100%" height="100%">
+637:                         <BarChart data={numericData}>
+638:                           <CartesianGrid strokeDasharray="3 3" />
+639:                           <XAxis dataKey="name" />
+640:                           <YAxis />
+641:                           <Tooltip />
+642:                           <Bar dataKey="value" fill="#059669" radius={[8, 8, 0, 0]} />
+643:                         </BarChart>
+644:                       </ResponsiveContainer>
+645:                     </div>
+646:                   </div>
+647:                 ) : null}
+648: 
+649:                 {choiceData.length > 0 ? (
+650:                   <div className="mt-4 grid gap-4 xl:grid-cols-2">
+651:                     <div className="rounded-3xl bg-white p-4">
+652:                       <p className="mb-3 text-sm font-bold text-slate-800">Pie Chart</p>
+653:                       <div className="h-64">
+654:                         <ResponsiveContainer width="100%" height="100%">
+655:                           <PieChart>
+656:                             <Tooltip />
+657:                             <Legend />
+658:                             <Pie
+659:                               data={choiceData}
+660:                               dataKey="count"
+661:                               nameKey="label"
+662:                               innerRadius={45}
+663:                               outerRadius={90}
+664:                               paddingAngle={3}
+665:                               label
+666:                             >
+667:                               {choiceData.map((option, optionIndex) => (
+668:                                 <Cell key={option.label} fill={chartColors[optionIndex % chartColors.length]} />
+669:                               ))}
+670:                             </Pie>
+671:                           </PieChart>
+672:                         </ResponsiveContainer>
+673:                       </div>
+674:                     </div>
+675: 
+676:                     <div className="rounded-3xl bg-white p-4">
+677:                       <p className="mb-3 text-sm font-bold text-slate-800">Bar Chart</p>
+678:                       <div className="h-64">
+679:                         <ResponsiveContainer width="100%" height="100%">
+680:                           <BarChart data={choiceData}>
+681:                             <CartesianGrid strokeDasharray="3 3" />
+682:                             <XAxis dataKey="label" />
+683:                             <YAxis />
+684:                             <Tooltip />
+685:                             <Bar dataKey="count" fill="#0284c7" radius={[8, 8, 0, 0]} />
+686:                           </BarChart>
+687:                         </ResponsiveContainer>
+688:                       </div>
+689:                     </div>
+690:                   </div>
+691:                 ) : null}
+692: 
+693:                 {question.textSamples.length > 0 ? (
+694:                   <div className="mt-4 space-y-2">
+695:                     <p className="text-sm font-bold text-slate-800">عينات من الإجابات النصية</p>
+696:                     {question.textSamples.map((sample, sampleIndex) => (
+697:                       <div
+698:                         key={`${question.id}-${sampleIndex}`}
+699:                         className="rounded-2xl bg-white p-4 text-sm leading-7 text-slate-700"
+700:                       >
+701:                         {sample.value}
+702:                       </div>
+703:                     ))}
+704:                   </div>
+705:                 ) : null}
+706:               </article>
+707:             );
+708:           })}
+709:         </div>
+710:       </section>
+711: 
+712:       <PrintExportPopCard
+713:         modal={printExportModal}
+714:         onClose={closeModal}
+715:         onOpenFallback={openFallbackPrintUrl}
+716:       />
+717:     </div>
+718:   );
+719: }
+
+============================================================
+FILE: app\api\dashboard\surveys\[surveyId]\export\pdf\route.ts
+============================================================
+1: import { readFile } from "node:fs/promises";
+2: import { extname, join } from "node:path";
+3: import { NextResponse } from "next/server";
+4: import { getCurrentSessionUser } from "@/lib/auth/current-user";
+5: import { prisma } from "@/lib/prisma";
+6: import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
+7: import { surveyAudienceLabels } from "@/lib/surveys/survey-config";
+8: 
+9: export const runtime = "nodejs";
+10: export const dynamic = "force-dynamic";
+11: 
+12: type RouteContext = {
+13:   params: Promise<{
+14:     surveyId: string;
+15:   }>;
+16: };
+17: 
+18: type AnswerLike = {
+19:   value: string | null;
+20:   jsonValue: unknown;
+21: };
+22: 
+23: type QuestionAnalysis = {
+24:   id: string;
+25:   label: string;
+26:   type: string;
+27:   isRequired: boolean;
+28:   answeredCount: number;
+29:   emptyCount: number;
+30:   answerRate: number;
+31:   average: number | null;
+32:   min: number | null;
+33:   max: number | null;
+34:   optionCounts: Array<{
+35:     label: string;
+36:     count: number;
+37:     percentage: number;
+38:   }>;
+39:   textSamples: string[];
+40: };
+41: 
+42: const chartPalette = ["#07a869", "#3d7eb9", "#0da9a6", "#ef5548", "#c1b489"];
+43: 
+44: function escapeHtml(value: unknown) {
+45:   return String(value ?? "")
+46:     .replaceAll("&", "&amp;")
+47:     .replaceAll("<", "&lt;")
+48:     .replaceAll(">", "&gt;")
+49:     .replaceAll('"', "&quot;")
+50:     .replaceAll("'", "&#039;");
+51: }
+52: 
+53: function statusLabel(status: string) {
+54:   if (status === "DRAFT") return "مسودة";
+55:   if (status === "PUBLISHED") return "منشور";
+56:   if (status === "CLOSED") return "مغلق";
+57:   if (status === "ARCHIVED") return "مؤرشف";
+58:   return status;
+59: }
+60: 
+61: function questionTypeLabel(type: string) {
+62:   if (type === "TEXT") return "إجابة قصيرة";
+63:   if (type === "TEXTAREA") return "إجابة طويلة";
+64:   if (type === "SINGLE_CHOICE") return "اختيار واحد";
+65:   if (type === "MULTIPLE_CHOICE") return "اختيارات متعددة";
+66:   if (type === "YES_NO") return "نعم / لا";
+67:   if (type === "RATING") return "تقييم";
+68:   if (type === "SCALE") return "مقياس رقمي";
+69:   if (type === "NUMBER") return "رقم";
+70:   if (type === "DATE") return "تاريخ";
+71:   return type;
+72: }
+73: 
+74: function answerToText(answer: AnswerLike | undefined) {
+75:   if (!answer) return "";
+76: 
+77:   if (Array.isArray(answer.jsonValue)) {
+78:     return answer.jsonValue
+79:       .map((item) => String(item || "").trim())
+80:       .filter(Boolean)
+81:       .join("، ");
+82:   }
+83: 
+84:   if (answer.jsonValue !== null && answer.jsonValue !== undefined) {
+85:     return String(answer.jsonValue);
+86:   }
+87: 
+88:   return answer.value || "";
+89: }
+90: 
+91: function answerToNumber(answer: AnswerLike | undefined) {
+92:   const numberValue = Number(answerToText(answer));
+93:   return Number.isFinite(numberValue) ? numberValue : null;
+94: }
+95: 
+96: function isChoiceQuestion(type: string) {
+97:   return type === "YES_NO" || type === "SINGLE_CHOICE" || type === "MULTIPLE_CHOICE";
+98: }
+99: 
+100: function isNumericQuestion(type: string) {
+101:   return type === "RATING" || type === "SCALE" || type === "NUMBER";
+102: }
+103: 
+104: function formatGregorianDate(value: Date | string | null | undefined) {
+105:   const date = value ? new Date(value) : new Date();
+106: 
+107:   if (Number.isNaN(date.getTime())) {
+108:     return new Intl.DateTimeFormat("ar-EG-u-ca-gregory", {
+109:       year: "numeric",
+110:       month: "2-digit",
+111:       day: "2-digit",
+112:     }).format(new Date());
+113:   }
+114: 
+115:   return new Intl.DateTimeFormat("ar-EG-u-ca-gregory", {
+116:     year: "numeric",
+117:     month: "2-digit",
+118:     day: "2-digit",
+119:   }).format(date);
+120: }
+121: 
+122: function formatNumber(value: number | null | undefined, digits = 1, fallback = "غير متوفر") {
+123:   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+124: 
+125:   return value.toLocaleString("en-US", {
+126:     maximumFractionDigits: digits,
+127:     minimumFractionDigits: 0,
+128:   });
+129: }
+130: 
+131: function formatPercent(value: number | null | undefined, digits = 0, fallback = "غير متوفر") {
+132:   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+133:   return `${formatNumber(value, digits)}%`;
+134: }
+135: 
+136: async function readPublicImageDataUri(publicPath: string) {
+137:   const normalizedPath = publicPath.replace(/^\/+/, "").replace(/^public\//, "");
+138:   const absolutePath = join(process.cwd(), "public", normalizedPath);
+139: 
+140:   try {
+141:     const buffer = await readFile(absolutePath);
+142:     const extension = extname(absolutePath).toLowerCase();
+143: 
+144:     const mime =
+145:       extension === ".svg"
+146:         ? "image/svg+xml"
+147:         : extension === ".jpg" || extension === ".jpeg"
+148:           ? "image/jpeg"
+149:           : "image/png";
+150: 
+151:     return `data:${mime};base64,${buffer.toString("base64")}`;
+152:   } catch {
+153:     return "";
+154:   }
+155: }
+156: 
+157: async function getSurveyForPdf(surveyId: string) {
+158:   return prisma.survey.findUnique({
+159:     where: {
+160:       id: surveyId,
+161:     },
+162:     include: {
+163:       schoolAccount: {
+164:         include: {
+165:           profile: true,
+166:         },
+167:       },
+168:       questions: {
+169:         orderBy: {
+170:           order: "asc",
+171:         },
+172:         include: {
+173:           options: {
+174:             orderBy: {
+175:               order: "asc",
+176:             },
+177:           },
+178:         },
+179:       },
+180:       responses: {
+181:         orderBy: {
+182:           submittedAt: "asc",
+183:         },
+184:         include: {
+185:           answers: true,
+186:         },
+187:       },
+188:     },
+189:   });
+190: }
+191: 
+192: type SurveyForPdf = NonNullable<Awaited<ReturnType<typeof getSurveyForPdf>>>;
+193: 
+194: function buildQuestionAnalysis(survey: SurveyForPdf): QuestionAnalysis[] {
+195:   const totalResponses = survey.responses.length;
+196: 
+197:   return survey.questions.map((question) => {
+198:     const responseAnswers = survey.responses.map((response) =>
+199:       response.answers.find((answer) => answer.questionId === question.id),
+200:     );
+201: 
+202:     const answeredAnswers = responseAnswers.filter((answer) => answerToText(answer).trim());
+203:     const numericValues = responseAnswers
+204:       .map((answer) => answerToNumber(answer))
+205:       .filter((value): value is number => value !== null);
+206: 
+207:     const optionLabels =
+208:       question.type === "YES_NO"
+209:         ? ["نعم", "لا"]
+210:         : question.options.map((option) => option.label);
+211: 
+212:     const optionCounts = isChoiceQuestion(question.type)
+213:       ? optionLabels.map((label) => {
+214:           const count = responseAnswers.filter((answer) => {
+215:             const values = answerToText(answer)
+216:               .split("،")
+217:               .map((item) => item.trim())
+218:               .filter(Boolean);
+219: 
+220:             return values.includes(label);
+221:           }).length;
+222: 
+223:           return {
+224:             label,
+225:             count,
+226:             percentage: answeredAnswers.length ? Math.round((count / answeredAnswers.length) * 100) : 0,
+227:           };
+228:         })
+229:       : [];
+230: 
+231:     const textSamples =
+232:       question.type === "TEXT" || question.type === "TEXTAREA"
+233:         ? responseAnswers
+234:             .map((answer) => answerToText(answer).trim())
+235:             .filter(Boolean)
+236:             .slice(0, 2)
+237:         : [];
+238: 
+239:     return {
+240:       id: question.id,
+241:       label: question.label,
+242:       type: question.type,
+243:       isRequired: question.isRequired,
+244:       answeredCount: answeredAnswers.length,
+245:       emptyCount: Math.max(totalResponses - answeredAnswers.length, 0),
+246:       answerRate: totalResponses ? Math.round((answeredAnswers.length / totalResponses) * 100) : 0,
+247:       average:
+248:         isNumericQuestion(question.type) && numericValues.length
+249:           ? Number((numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length).toFixed(2))
+250:           : null,
+251:       min: numericValues.length ? Math.min(...numericValues) : null,
+252:       max: numericValues.length ? Math.max(...numericValues) : null,
+253:       optionCounts,
+254:       textSamples,
+255:     };
+256:   });
+257: }
+258: 
+259: async function requirePdfAccess(surveyId: string) {
+260:   const current = await getCurrentSessionUser();
+261: 
+262:   if (!current?.user) {
+263:     return {
+264:       survey: null,
+265:       error: NextResponse.json({ error: "يجب تسجيل الدخول أولًا." }, { status: 401 }),
+266:     };
+267:   }
+268: 
+269:   if (current.user.role !== "ADMIN") {
+270:     if (!current.user.schoolAccountId) {
+271:       return {
+272:         survey: null,
+273:         error: NextResponse.json({ error: "حسابك غير مرتبط بمدرسة." }, { status: 403 }),
+274:       };
+275:     }
+276: 
+277:     const overview = await getSchoolSubscriptionOverview(current.user.schoolAccountId);
+278: 
+279:     if (!overview.usable) {
+280:       return {
+281:         survey: null,
+282:         error: NextResponse.json({ error: "حسابك يحتاج تفعيلًا للاستمرار." }, { status: 402 }),
+283:       };
+284:     }
+285:   }
+286: 
+287:   const survey = await getSurveyForPdf(surveyId);
+288: 
+289:   if (!survey) {
+290:     return {
+291:       survey: null,
+292:       error: NextResponse.json({ error: "الاستبيان غير موجود." }, { status: 404 }),
+293:     };
+294:   }
+295: 
+296:   if (current.user.role !== "ADMIN" && survey.schoolAccountId !== current.user.schoolAccountId) {
+297:     return {
+298:       survey: null,
+299:       error: NextResponse.json({ error: "لا تملك صلاحية الوصول لهذا الاستبيان." }, { status: 403 }),
+300:     };
+301:   }
+302: 
+303:   return {
+304:     survey,
+305:     error: null,
+306:   };
+307: }
+308: 
+309: function getRequestedQuestionIds(request: Request) {
+310:   const url = new URL(request.url);
+311:   const rawValue = url.searchParams.get("questionIds") || "";
+312: 
+313:   return rawValue
+314:     .split(",")
+315:     .map((item) => item.trim())
+316:     .filter(Boolean);
+317: }
+318: 
+319: function shouldAutoPrint(request: Request) {
+320:   const url = new URL(request.url);
+321:   return url.searchParams.get("print") === "1";
+322: }
+323: 
+324: function injectPrintScript(html: string) {
+325:   const printScript = `
+326: <script>
+327: window.addEventListener("load", () => {
+328:   window.setTimeout(() => window.print(), 450);
+329: });
+330: </script>`;
+331: 
+332:   return html.includes("</body>") ? html.replace("</body>", `${printScript}\n</body>`) : `${html}${printScript}`;
+333: }
+334: 
+335: function getVisibleQuestions(allQuestions: QuestionAnalysis[], requestedQuestionIds: string[]) {
+336:   if (!requestedQuestionIds.length) {
+337:     return allQuestions.slice(0, Math.min(allQuestions.length, 10));
+338:   }
+339: 
+340:   const requestedSet = new Set(requestedQuestionIds);
+341:   const selected = allQuestions.filter((question) => requestedSet.has(question.id));
+342: 
+343:   if (!selected.length) {
+344:     return allQuestions.slice(0, Math.min(allQuestions.length, 10));
+345:   }
+346: 
+347:   return selected.slice(0, 10);
+348: }
+349: 
+350: function average(values: number[]) {
+351:   const clean = values.filter((value) => Number.isFinite(value));
+352:   if (!clean.length) return null;
+353:   return clean.reduce((sum, value) => sum + value, 0) / clean.length;
+354: }
+355: 
+356: function pickTopChoice(questions: QuestionAnalysis[]) {
+357:   return questions
+358:     .flatMap((question) =>
+359:       question.optionCounts.map((option) => ({
+360:         question: question.label,
+361:         label: option.label,
+362:         count: option.count,
+363:         percentage: option.percentage,
+364:       })),
+365:     )
+366:     .filter((item) => item.count > 0)
+367:     .sort((first, second) => second.percentage - first.percentage)[0];
+368: }
+369: 
+370: function getStrongestQuestion(questions: QuestionAnalysis[]) {
+371:   const numeric = questions
+372:     .filter((question) => question.average !== null)
+373:     .sort((first, second) => Number(second.average) - Number(first.average))[0];
+374: 
+375:   if (numeric) return numeric;
+376: 
+377:   return questions.slice().sort((first, second) => second.answerRate - first.answerRate)[0] || null;
+378: }
+379: 
+380: function getImprovementQuestion(questions: QuestionAnalysis[]) {
+381:   const numeric = questions
+382:     .filter((question) => question.average !== null)
+383:     .sort((first, second) => Number(first.average) - Number(second.average))[0];
+384: 
+385:   if (numeric) return numeric;
+386: 
+387:   return questions.slice().sort((first, second) => first.answerRate - second.answerRate)[0] || null;
+388: }
+389: 
+390: function metricIcon(type: string) {
+391:   const icons: Record<string, string> = {
+392:     responses:
+393:       '<svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>',
+394:     questions:
+395:       '<svg viewBox="0 0 24 24"><path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',
+396:     completion:
+397:       '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/><circle cx="12" cy="12" r="10"/></svg>',
+398:     average:
+399:       '<svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><path d="M19 9h-4"/><path d="M19 9v4"/></svg>',
+400:     target:
+401:       '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><path d="M22 2 12 12"/></svg>',
+402:     alert:
+403:       '<svg viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+404:   };
+405: 
+406:   return icons[type] || icons.questions;
+407: }
+408: 
+409: function infoIcon(type: string) {
+410:   const icons: Record<string, string> = {
+411:     school:
+412:       '<svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M4 10 12 4l8 6"/><path d="M6 10v11"/><path d="M18 10v11"/><path d="M10 21v-6h4v6"/></svg>',
+413:     report:
+414:       '<svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>',
+415:     audience:
+416:       '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>',
+417:     status:
+418:       '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/><circle cx="12" cy="12" r="10"/></svg>',
+419:     date:
+420:       '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>',
+421:     privacy:
+422:       '<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+423:     response:
+424:       '<svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>',
+425:     questions:
+426:       '<svg viewBox="0 0 24 24"><path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',
+427:   };
+428: 
+429:   return icons[type] || icons.report;
+430: }
+431: 
+432: function metricCard(type: string, tone: "green" | "blue" | "turq" | "red", value: string, label: string) {
+433:   return `
+434:     <div class="metric-card ${tone}">
+435:       <div class="metric-icon">${metricIcon(type)}</div>
+436:       <div class="metric-number">${escapeHtml(value)}</div>
+437:       <div class="metric-label">${escapeHtml(label)}</div>
+438:     </div>`;
+439: }
+440: 
+441: function infoItem(type: string, label: string, value: string) {
+442:   return `
+443:     <div class="info-item">
+444:       <div class="info-icon">${infoIcon(type)}</div>
+445:       <div>
+446:         <div class="info-label">${escapeHtml(label)}:</div>
+447:         <div class="info-value">${escapeHtml(value)}</div>
+448:       </div>
+449:     </div>`;
+450: }
+451: 
+452: function summaryLine(icon: string, text: string) {
+453:   return `
+454:     <div class="summary-line">
+455:       <div class="summary-icon">${icon}</div>
+456:       <div class="summary-text">${text}</div>
+457:     </div>`;
+458: }
+459: 
+460: function questionRow(question: QuestionAnalysis, index: number) {
+461:   const value =
+462:     question.average !== null
+463:       ? `${formatNumber(question.average, 2)} متوسط`
+464:       : question.optionCounts.length
+465:         ? `${formatPercent(question.optionCounts.slice().sort((a, b) => b.percentage - a.percentage)[0]?.percentage || 0)} أعلى اختيار`
+466:         : `${formatPercent(question.answerRate)} معدل`;
+467: 
+468:   return `
+469:     <tr>
+470:       <td>س${index + 1}</td>
+471:       <td class="question-text">${escapeHtml(question.label)}</td>
+472:       <td>${escapeHtml(questionTypeLabel(question.type))}</td>
+473:       <td>${escapeHtml(String(question.answeredCount))}</td>
+474:       <td>${escapeHtml(value)}</td>
+475:     </tr>`;
+476: }
+477: 
+478: function buildInsightLines({
+479:   totalResponses,
+480:   totalQuestions,
+481:   completionRate,
+482:   selectedQuestions,
+483: }: {
+484:   totalResponses: number;
+485:   totalQuestions: number;
+486:   completionRate: number;
+487:   selectedQuestions: QuestionAnalysis[];
+488: }) {
+489:   if (!totalResponses) {
+490:     return [
+491:       "لم تُسجّل ردود حتى الآن، وسيتم تحديث التقرير بعد استقبال المشاركات.",
+492:       "يمكن نشر رابط الاستبيان ومتابعة المؤشرات بعد وصول الردود الأولى.",
+493:       "لا توجد توصيات تحليلية كافية قبل توفر بيانات الاستجابة.",
+494:     ];
+495:   }
+496: 
+497:   const averageAnswerRate = average(selectedQuestions.map((question) => question.answerRate)) ?? 0;
+498:   const strongest = getStrongestQuestion(selectedQuestions);
+499:   const improvement = getImprovementQuestion(selectedQuestions);
+500:   const topChoice = pickTopChoice(selectedQuestions);
+501: 
+502:   return [
+503:     `تم تحليل ${selectedQuestions.length} محورًا مختارًا من أصل ${totalQuestions} سؤالًا، بناءً على ${totalResponses} ردًا.`,
+504:     `بلغت نسبة اكتمال الأسئلة المطلوبة ${formatPercent(completionRate)}، وبلغ متوسط معدل الإجابة للأسئلة المختارة ${formatPercent(averageAnswerRate)}.`,
+505:     strongest
+506:       ? `أقوى مؤشر ظاهر: ${strongest.label} ${strongest.average !== null ? `بمتوسط ${strongest.average}` : `بمعدل إجابة ${strongest.answerRate}%`}.`
+507:       : "لا يظهر مؤشر قوي كافٍ في البيانات الحالية.",
+508:     improvement
+509:       ? `أبرز فرصة تحسين: ${improvement.label} ${improvement.average !== null ? `بمتوسط ${improvement.average}` : `بمعدل إجابة ${improvement.answerRate}%`}.`
+510:       : "لا تظهر فرصة تحسين محددة في البيانات الحالية.",
+511:     topChoice
+512:       ? `أقوى اتجاه في الاختيارات: ${topChoice.label} بنسبة ${topChoice.percentage}%.`
+513:       : "الأسئلة النصية أو الرقمية تحتاج قراءة نوعية داعمة بجانب المؤشرات.",
+514:   ].slice(0, 3);
+515: }
+516: 
+517: async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]) {
+518:   const moeLogoDataUri = await readPublicImageDataUri("/uploads/school-logos/MOE.png");
+519:   const visionLogoDataUri = await readPublicImageDataUri("/uploads/school-logos/VISION2030.png");
+520: 
+521:   const allQuestions = buildQuestionAnalysis(survey);
+522:   const questions = getVisibleQuestions(allQuestions, requestedQuestionIds);
+523: 
+524:   const totalResponses = survey.responses.length;
+525:   const totalQuestions = survey.questions.length;
+526: 
+527:   const requiredQuestions = survey.questions.filter((question) => question.isRequired);
+528:   const completedRequiredResponses = survey.responses.filter((response) => {
+529:     if (!requiredQuestions.length) return true;
+530: 
+531:     return requiredQuestions.every((question) => {
+532:       const answer = response.answers.find((item) => item.questionId === question.id);
+533:       return Boolean(answerToText(answer).trim());
+534:     });
+535:   }).length;
+536: 
+537:   const completionRate = totalResponses ? Math.round((completedRequiredResponses / totalResponses) * 100) : 0;
+538:   const averageAnswerRate = average(questions.map((question) => question.answerRate)) ?? 0;
+539:   const numericAverage = average(questions.map((question) => question.average ?? NaN).filter(Number.isFinite));
+540: 
+541:   const strongest = getStrongestQuestion(questions);
+542:   const improvement = getImprovementQuestion(questions);
+543:   const topChoice = pickTopChoice(questions);
+544: 
+545:   const profile = survey.schoolAccount.profile;
+546:   const schoolName = profile?.schoolName || survey.schoolAccount.name || "غير متوفر";
+547:   const reportDate = formatGregorianDate(new Date());
+548: 
+549:   const insightLines = buildInsightLines({
+550:     totalResponses,
+551:     totalQuestions,
+552:     completionRate,
+553:     selectedQuestions: questions,
+554:   });
+555: 
+556:   const donutRate = Math.max(0, Math.min(completionRate, 100));
+557:   const positiveRate = topChoice?.percentage ?? averageAnswerRate;
+558: 
+559:   return `<!DOCTYPE html>
+560: <html lang="ar" dir="rtl">
+561: <head>
+562: <meta charset="UTF-8" />
+563: <title>${escapeHtml(survey.title)}</title>
+564: <style>
+565:   @font-face { font-family:'Cairo'; src:local('Cairo'); }
+566: 
+567:   :root{
+568:     --green:#07a869;
+569:     --blue:#3d7eb9;
+570:     --turq:#0da9a6;
+571:     --navy:#15445a;
+572:     --gold:#c1b489;
+573:     --gray:#c2c1c1;
+574:     --line:#d9e2e8;
+575:     --red:#ef5548;
+576:     --soft-red:#fb6a5c;
+577:   }
+578: 
+579:   *{box-sizing:border-box}
+580: 
+581:   html,body{
+582:     margin:0;
+583:     width:1600px;
+584:     height:900px;
+585:     overflow:hidden;
+586:     background:#e9eef1;
+587:     font-family:'Cairo',Tahoma,Arial,sans-serif;
+588:     color:#09254b;
+589:   }
+590: 
+591:   .sheet{
+592:     width:1600px;
+593:     height:900px;
+594:     margin:0 auto;
+595:     background:#fff;
+596:     position:relative;
+597:     overflow:hidden;
+598:     padding:34px 78px 36px;
+599:     isolation:isolate;
+600:   }
+601: 
+602:   @page{size:16.6667in 9.375in;margin:0}
+603: 
+604:   @media print{
+605:     html,body{background:white;width:1600px;height:900px;overflow:hidden}
+606:     .sheet{margin:0;box-shadow:none;width:1600px;height:900px;page-break-after:avoid}
+607:   }
+608: 
+609:   .bottom-dots{
+610:     position:absolute;
+611:     bottom:2px;
+612:     left:0;
+613:     width:320px;
+614:     height:78px;
+615:     opacity:.75;
+616:     z-index:0;
+617:   }
+618: 
+619:   .brand{
+620:     position:absolute;
+621:     top:38px;
+622:     right:72px;
+623:     width:330px;
+624:     height:130px;
+625:     z-index:50;
+626:     display:flex;
+627:     align-items:center;
+628:     justify-content:center;
+629:     overflow:hidden;
+630:   }
+631: 
+632:   .brand img{
+633:     width:310px;
+634:     max-height:122px;
+635:     object-fit:contain;
+636:     display:block;
+637:   }
+638: 
+639:   .vision-brand{
+640:     position:absolute;
+641:     top:36px;
+642:     left:74px;
+643:     width:310px;
+644:     height:135px;
+645:     z-index:55;
+646:     display:flex;
+647:     align-items:center;
+648:     justify-content:center;
+649:     overflow:hidden;
+650:   }
+651: 
+652:   .vision-brand img{
+653:     width:300px;
+654:     max-height:125px;
+655:     object-fit:contain;
+656:     display:block;
+657:   }
+658: 
+659:   .header{
+660:     position:relative;
+661:     z-index:2;
+662:     text-align:center;
+663:     padding-top:1px;
+664:   }
+665: 
+666:   .title{
+667:     margin:0;
+668:     font-size:52px;
+669:     line-height:1.16;
+670:     font-weight:900;
+671:     letter-spacing:-1px;
+672:     color:#081f47;
+673:   }
+674: 
+675:   .subtitle{
+676:     margin:8px 0 0;
+677:     color:#078b80;
+678:     font-size:28px;
+679:     font-weight:800;
+680:   }
+681: 
+682:   .info-panel{
+683:     position:relative;
+684:     z-index:2;
+685:     margin-top:38px;
+686:     border:2px solid #d3dce4;
+687:     border-radius:12px;
+688:     min-height:139px;
+689:     padding:10px 22px;
+690:     display:grid;
+691:     grid-template-columns:repeat(4,1fr);
+692:     grid-auto-rows:58px;
+693:     align-items:center;
+694:     background:rgba(255,255,255,.96);
+695:     box-shadow:0 1px 3px rgba(13,38,76,.04) inset;
+696:   }
+697: 
+698:   .info-item{
+699:     height:48px;
+700:     display:grid;
+701:     grid-template-columns:58px 1fr;
+702:     gap:12px;
+703:     align-items:center;
+704:     padding:0 14px;
+705:     border-left:1px solid #e2e7ec;
+706:     overflow:hidden;
+707:   }
+708: 
+709:   .info-item:nth-child(4n){border-left:0}
+710:   .info-item:nth-child(-n+4){border-bottom:1px solid #dde6ec;padding-bottom:8px}
+711: 
+712:   .info-icon{
+713:     width:40px;
+714:     height:40px;
+715:     display:flex;
+716:     align-items:center;
+717:     justify-content:center;
+718:     color:var(--turq);
+719:     flex-shrink:0;
+720:   }
+721: 
+722:   .info-icon svg{
+723:     width:38px;
+724:     height:38px;
+725:     stroke:currentColor;
+726:     fill:none;
+727:     stroke-width:2.25;
+728:     stroke-linecap:round;
+729:     stroke-linejoin:round;
+730:   }
+731: 
+732:   .info-label{
+733:     color:#081f47;
+734:     font-size:17px;
+735:     font-weight:900;
+736:     line-height:1.2;
+737:     margin-bottom:4px;
+738:     white-space:nowrap;
+739:   }
+740: 
+741:   .info-value{
+742:     color:#0b3d73;
+743:     font-size:16px;
+744:     font-weight:700;
+745:     line-height:1.22;
+746:     display:-webkit-box;
+747:     -webkit-line-clamp:2;
+748:     -webkit-box-orient:vertical;
+749:     overflow:hidden;
+750:     text-overflow:ellipsis;
+751:     max-height:2.45em;
+752:   }
+753: 
+754:   .metrics{
+755:     position:relative;
+756:     z-index:2;
+757:     margin-top:14px;
+758:     display:grid;
+759:     grid-template-columns:repeat(6,1fr);
+760:     gap:12px;
+761:   }
+762: 
+763:   .metric-card{
+764:     height:150px;
+765:     border:2px solid #d8e1e8;
+766:     border-radius:12px;
+767:     background:#fff;
+768:     box-shadow:0 4px 11px rgba(4,31,67,.055);
+769:     display:flex;
+770:     flex-direction:column;
+771:     align-items:center;
+772:     justify-content:flex-start;
+773:     padding:13px 4px 9px;
+774:     position:relative;
+775:   }
+776: 
+777:   .metric-card:after{
+778:     content:"";
+779:     position:absolute;
+780:     bottom:-2px;
+781:     left:50%;
+782:     transform:translateX(-50%);
+783:     width:22px;
+784:     height:4px;
+785:     border-radius:20px;
+786:     background:var(--blue);
+787:   }
+788: 
+789:   .metric-card.green:after{background:var(--green)}
+790:   .metric-card.turq:after{background:var(--turq)}
+791:   .metric-card.red:after{background:var(--red)}
+792: 
+793:   .metric-icon{height:47px;color:var(--blue);margin-bottom:3px}
+794:   .metric-card.green .metric-icon{color:var(--green)}
+795:   .metric-card.turq .metric-icon{color:var(--turq)}
+796:   .metric-card.red .metric-icon{color:var(--red)}
+797: 
+798:   .metric-icon svg{
+799:     width:46px;
+800:     height:46px;
+801:     stroke:currentColor;
+802:     fill:none;
+803:     stroke-width:2;
+804:     stroke-linecap:round;
+805:     stroke-linejoin:round;
+806:   }
+807: 
+808:   .metric-number{
+809:     font-size:30px;
+810:     font-weight:900;
+811:     line-height:1.2;
+812:     color:#116eae;
+813:     letter-spacing:-.6px;
+814:     min-height:38px;
+815:     display:flex;
+816:     align-items:center;
+817:   }
+818: 
+819:   .metric-card.green .metric-number{color:#07885c}
+820:   .metric-card.turq .metric-number{color:#079a97}
+821:   .metric-card.red .metric-number{color:#e84a3d}
+822: 
+823:   .metric-label{
+824:     color:#0c2854;
+825:     font-weight:800;
+826:     font-size:15px;
+827:     text-align:center;
+828:     line-height:1.25;
+829:     margin-top:4px;
+830:     white-space:nowrap;
+831:   }
+832: 
+833:   .content-grid{
+834:     position:relative;
+835:     z-index:2;
+836:     margin-top:30px;
+837:     display:grid;
+838:     grid-template-columns:1fr 1fr;
+839:     gap:18px;
+840:     direction:rtl;
+841:   }
+842: 
+843:   .panel{
+844:     position:relative;
+845:     border:2px solid #0d8293;
+846:     border-radius:10px;
+847:     min-height:262px;
+848:     background:#fff;
+849:     padding:42px 22px 18px;
+850:     direction:rtl;
+851:   }
+852: 
+853:   .panel .tab{
+854:     position:absolute;
+855:     top:-17px;
+856:     right:142px;
+857:     left:142px;
+858:     height:36px;
+859:     border-radius:999px;
+860:     background:linear-gradient(90deg,#064f89,#088e84);
+861:     color:#fff;
+862:     display:flex;
+863:     align-items:center;
+864:     justify-content:center;
+865:     gap:12px;
+866:     font-weight:800;
+867:     font-size:17px;
+868:     box-shadow:0 5px 12px rgba(0,94,122,.24);
+869:   }
+870: 
+871:   .panel .tab svg{
+872:     width:24px;
+873:     height:24px;
+874:     stroke:#fff;
+875:     fill:none;
+876:     stroke-width:2;
+877:   }
+878: 
+879:   .summary-lines{
+880:     display:flex;
+881:     flex-direction:column;
+882:     gap:0;
+883:   }
+884: 
+885:   .summary-line{
+886:     min-height:68px;
+887:     display:grid;
+888:     grid-template-columns:46px 1fr;
+889:     gap:16px;
+890:     align-items:center;
+891:     border-bottom:1px solid #dce7ee;
+892:     padding:8px 0;
+893:   }
+894: 
+895:   .summary-line:last-child{border-bottom:0}
+896: 
+897:   .summary-icon{
+898:     color:var(--turq);
+899:     display:flex;
+900:     align-items:center;
+901:     justify-content:center;
+902:   }
+903: 
+904:   .summary-icon svg{
+905:     width:34px;
+906:     height:34px;
+907:     stroke:currentColor;
+908:     fill:none;
+909:     stroke-width:2;
+910:     stroke-linecap:round;
+911:     stroke-linejoin:round;
+912:   }
+913: 
+914:   .summary-text{
+915:     font-size:19px;
+916:     line-height:1.85;
+917:     color:#0d2b59;
+918:     font-weight:700;
+919:   }
+920: 
+921:   .summary-text b{color:var(--turq);font-weight:900}
+922:   .summary-text .green{color:#07885c;font-weight:900}
+923:   .summary-text .blue{color:#0c6bab;font-weight:900}
+924:   .summary-text .red{color:#df4e43;font-weight:900}
+925: 
+926:   .survey-grid{
+927:     display:grid;
+928:     grid-template-columns:245px 1fr;
+929:     gap:22px;
+930:     align-items:center;
+931:     direction:ltr;
+932:   }
+933: 
+934:   .donut-wrap{
+935:     width:240px;
+936:     height:205px;
+937:     position:relative;
+938:     display:flex;
+939:     align-items:center;
+940:     justify-content:center;
+941:   }
+942: 
+943:   .donut{
+944:     width:186px;
+945:     height:186px;
+946:     border-radius:50%;
+947:     position:relative;
+948:     background:conic-gradient(var(--green) 0 ${donutRate}%, #e8eef2 ${donutRate}% 100%);
+949:     box-shadow:0 2px 6px rgba(0,0,0,.12);
+950:   }
+951: 
+952:   .donut:before{
+953:     content:"";
+954:     position:absolute;
+955:     inset:45px;
+956:     border-radius:50%;
+957:     background:#fff;
+958:     box-shadow:inset 0 0 9px rgba(18,57,88,.14);
+959:   }
+960: 
+961:   .donut-center{
+962:     position:absolute;
+963:     width:94px;
+964:     height:94px;
+965:     border-radius:50%;
+966:     background:#fff;
+967:     display:flex;
+968:     flex-direction:column;
+969:     align-items:center;
+970:     justify-content:center;
+971:     color:#092c5a;
+972:     font-weight:900;
+973:     text-align:center;
+974:   }
+975: 
+976:   .donut-center strong{
+977:     font-size:31px;
+978:     line-height:1;
+979:   }
+980: 
+981:   .donut-center span{
+982:     margin-top:4px;
+983:     font-size:13px;
+984:     color:#52677d;
+985:   }
+986: 
+987:   .question-table{
+988:     direction:rtl;
+989:     width:100%;
+990:     border-collapse:collapse;
+991:     font-size:14px;
+992:   }
+993: 
+994:   .question-table th{
+995:     color:#0d2857;
+996:     font-weight:900;
+997:     text-align:right;
+998:     padding:6px 8px;
+999:     border-bottom:1px solid #dce5eb;
+1000:   }
+1001: 
+1002:   .question-table td{
+1003:     padding:6px 8px;
+1004:     border-bottom:1px solid #e7edf2;
+1005:     font-weight:800;
+1006:     color:#0e2b58;
+1007:     vertical-align:middle;
+1008:   }
+1009: 
+1010:   .question-table td:not(.question-text){
+1011:     text-align:center;
+1012:     white-space:nowrap;
+1013:   }
+1014: 
+1015:   .question-text{
+1016:     max-width:260px;
+1017:     overflow:hidden;
+1018:     white-space:nowrap;
+1019:     text-overflow:ellipsis;
+1020:   }
+1021: </style>
+1022: </head>
+1023: <body>
+1024:   <main class="sheet">
+1025:     ${
+1026:       visionLogoDataUri
+1027:         ? `<section class="vision-brand" aria-label="شعار رؤية السعودية 2030"><img src="${visionLogoDataUri}" alt="" /></section>`
+1028:         : ""
+1029:     }
+1030: 
+1031:     ${
+1032:       moeLogoDataUri
+1033:         ? `<section class="brand" aria-label="شعار وزارة التعليم"><img src="${moeLogoDataUri}" alt="" /></section>`
+1034:         : ""
+1035:     }
+1036: 
+1037:     <svg class="bottom-dots" viewBox="0 0 320 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+1038:       <defs><linearGradient id="gb" x1="0" x2="1"><stop stop-color="#3d7eb9"/><stop offset="1" stop-color="#07a869"/></linearGradient></defs>
+1039:       <g fill="url(#gb)">
+1040:         <circle cx="8" cy="8" r="6"/><circle cx="30" cy="13" r="5" opacity=".8"/><circle cx="52" cy="18" r="5" opacity=".75"/><circle cx="76" cy="22" r="4" opacity=".7"/><circle cx="102" cy="27" r="4" opacity=".6"/><circle cx="130" cy="32" r="3" opacity=".55"/>
+1041:         <circle cx="8" cy="37" r="5" opacity=".8"/><circle cx="32" cy="42" r="5" opacity=".75"/><circle cx="58" cy="48" r="4" opacity=".7"/><circle cx="88" cy="52" r="4" opacity=".65"/><circle cx="120" cy="56" r="3" opacity=".6"/><circle cx="152" cy="60" r="3" opacity=".55"/>
+1042:         <circle cx="5" cy="66" r="4" opacity=".7"/><circle cx="34" cy="68" r="4" opacity=".65"/><circle cx="65" cy="70" r="3" opacity=".6"/><circle cx="98" cy="72" r="3" opacity=".55"/><circle cx="133" cy="73" r="2.8" opacity=".5"/>
+1043:       </g>
+1044:     </svg>
+1045: 
+1046:     <header class="header">
+1047:       <h1 class="title">تقرير تحليل الاستبيان</h1>
+1048:       <div class="subtitle">قراءة إحصائية تربوية لآراء المستفيدين ومؤشرات التحسين</div>
+1049:     </header>
+1050: 
+1051:     <section class="info-panel">
+1052:       ${infoItem("school", "المدرسة", schoolName)}
+1053:       ${infoItem("report", "اسم الاستبيان", survey.title)}
+1054:       ${infoItem("audience", "الفئة المستهدفة", surveyAudienceLabels[survey.audienceType] || survey.audienceType)}
+1055:       ${infoItem("status", "حالة الاستبيان", statusLabel(survey.status))}
+1056:       ${infoItem("privacy", "نوع الاستجابة", survey.isAnonymous ? "مجهول الهوية" : "بيانات المستجيب اختيارية")}
+1057:       ${infoItem("response", "عدد الردود", `${totalResponses} رد`)}
+1058:       ${infoItem("questions", "الأسئلة المختارة", `${questions.length} من ${totalQuestions}`)}
+1059:       ${infoItem("date", "تاريخ التقرير", reportDate)}
+1060:     </section>
+1061: 
+1062:     <section class="metrics">
+1063:       ${metricCard("responses", "green", String(totalResponses), "عدد الردود")}
+1064:       ${metricCard("questions", "blue", String(questions.length), "محاور مختارة")}
+1065:       ${metricCard("completion", "green", formatPercent(completionRate), "اكتمال المطلوب")}
+1066:       ${metricCard("average", "turq", formatPercent(averageAnswerRate), "معدل الإجابة")}
+1067:       ${metricCard("target", "turq", numericAverage !== null ? formatNumber(numericAverage, 2) : formatPercent(positiveRate), "أقوى مؤشر")}
+1068:       ${metricCard("alert", improvement ? "red" : "blue", improvement ? "1" : "0", "فرصة تحسين")}
+1069:     </section>
+1070: 
+1071:     <section class="content-grid">
+1072:       <article class="panel">
+1073:         <div class="tab">لوحة المحاور المختارة</div>
+1074: 
+1075:         <div class="survey-grid">
+1076:           <div class="donut-wrap">
+1077:             <div class="donut"></div>
+1078:             <div class="donut-center">
+1079:               <strong>${escapeHtml(formatPercent(completionRate))}</strong>
+1080:               <span>اكتمال</span>
+1081:             </div>
+1082:           </div>
+1083: 
+1084:           <table class="question-table">
+1085:             <thead>
+1086:               <tr>
+1087:                 <th>م</th>
+1088:                 <th>المحور</th>
+1089:                 <th>النوع</th>
+1090:                 <th>إجابة</th>
+1091:                 <th>المؤشر</th>
+1092:               </tr>
+1093:             </thead>
+1094:             <tbody>
+1095:               ${questions.map((question, index) => questionRow(question, index)).join("")}
+1096:             </tbody>
+1097:           </table>
+1098:         </div>
+1099:       </article>
+1100: 
+1101:       <article class="panel">
+1102:         <div class="tab">${metricIcon("report")} خلاصة تنفيذية</div>
+1103: 
+1104:         <div class="summary-lines">
+1105:           ${summaryLine(metricIcon("responses"), `<span class="blue">${escapeHtml(insightLines[0] || "")}</span>`)}
+1106:           ${summaryLine(metricIcon("completion"), `<span class="green">${escapeHtml(insightLines[1] || "")}</span>`)}
+1107:           ${summaryLine(metricIcon("target"), `${escapeHtml(insightLines[2] || "")}`)}
+1108:         </div>
+1109:       </article>
+1110:     </section>
+1111:   </main>
+1112: </body>
+1113: </html>`;
+1114: }
+1115: 
+1116: export async function GET(request: Request, context: RouteContext) {
+1117:   const { surveyId } = await context.params;
+1118:   const { survey, error } = await requirePdfAccess(surveyId);
+1119: 
+1120:   if (error) return error;
+1121: 
+1122:   const requestedQuestionIds = getRequestedQuestionIds(request);
+1123:   const html = await buildPdfHtml(survey!, requestedQuestionIds);
+1124:   const responseHtml = shouldAutoPrint(request) ? injectPrintScript(html) : html;
+1125: 
+1126:   return new NextResponse(responseHtml, {
+1127:     headers: {
+1128:       "Content-Type": "text/html; charset=utf-8",
+1129:       "Cache-Control": "no-store",
+1130:     },
+1131:   });
+1132: }
+
+============================================================
+FILE: components\print-export\use-print-export-action.ts
+============================================================
+1: "use client";
+2: 
+3: import { useCallback, useState } from "react";
+4: import {
+5:   buildPrintUrl,
+6:   downloadBlobAsFile,
+7: } from "@/lib/print-export/print-export-download";
+8: import type {
+9:   PrintExportActionOptions,
+10:   PrintExportFallback,
+11:   PrintExportModal,
+12:   PrintExportRunResult,
+13:   PrintExportStatus,
+14: } from "@/lib/print-export/print-export-types";
+15: 
+16: function getPrintExportFallbackUrl(
+17:   payload: unknown,
+18:   explicitPrintUrl?: string,
+19: ): string {
+20:   if (explicitPrintUrl) {
+21:     return explicitPrintUrl;
+22:   }
+23: 
+24:   if (!payload || typeof payload !== "object") {
+25:     return "";
+26:   }
+27: 
+28:   const record = payload as Record<string, unknown>;
+29:   const directCandidates = [
+30:     record.previewUrl,
+31:     record.printUrl,
+32:     record.fallbackUrl,
+33:   ];
+34: 
+35:   for (const candidate of directCandidates) {
+36:     if (typeof candidate === "string" && candidate.trim()) {
+37:       return candidate;
+38:     }
+39:   }
+40: 
+41:   if (
+42:     record.fallback === "PRINT_PREVIEW" &&
+43:     typeof record.previewUrl === "string" &&
+44:     record.previewUrl.trim()
+45:   ) {
+46:     return record.previewUrl;
+47:   }
+48: 
+49:   return "";
+50: }
+51: 
+52: function buildRequestBody(body: unknown) {
+53:   if (body === undefined) {
+54:     return undefined;
+55:   }
+56: 
+57:   if (body instanceof FormData) {
+58:     return body;
+59:   }
+60: 
+61:   return JSON.stringify(body);
+62: }
+63: 
+64: export function usePrintExportAction() {
+65:   const [status, setStatus] = useState<PrintExportStatus>("idle");
+66:   const [modal, setModal] = useState<PrintExportModal | null>(null);
+67: 
+68:   const closeModal = useCallback(() => {
+69:     setModal(null);
+70:     setStatus("idle");
+71:   }, []);
+72: 
+73:   const openFallbackPrintUrl = useCallback(
+74:     (fallback?: PrintExportFallback | null): PrintExportRunResult => {
+75:       const targetUrl = buildPrintUrl(fallback?.printUrl || "");
+76: 
+77:       if (!targetUrl) {
+78:         setStatus("error");
+79:         setModal({
+80:           status: "error",
+81:           title: fallback?.title || "معاينة الطباعة",
+82:           message:
+83:             fallback?.message ||
+84:             "تعذر فتح معاينة الطباعة. حاول مرة أخرى.",
+85:         });
+86:         return "error";
+87:       }
+88: 
+89:       const popup = window.open(targetUrl, "_blank", "noopener,noreferrer");
+90: 
+91:       if (!popup) {
+92:         setStatus("blocked");
+93:         setModal({
+94:           status: "blocked",
+95:           title: fallback?.title || "معاينة الطباعة",
+96:           message:
+97:             fallback?.message ||
+98:             "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة.",
+99:           fallback: {
+100:             printUrl: targetUrl,
+101:             title: fallback?.title,
+102:             message: fallback?.message,
+103:           },
+104:         });
+105:         return "blocked";
+106:       }
+107: 
+108:       setStatus("success");
+109:       return "opened";
+110:     },
+111:     [],
+112:   );
+113: 
+114:   const runPrintExport = useCallback(
+115:     async (options: PrintExportActionOptions): Promise<PrintExportRunResult> => {
+116:       setStatus("loading");
+117:       setModal(null);
+118: 
+119:       const fallbackMeta = {
+120:         title: options.blockedTitle || "معاينة الطباعة",
+121:         message:
+122:           options.blockedMessage ||
+123:           "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة.",
+124:       };
+125: 
+126:       try {
+127:         if (options.exportUrl) {
+128:           const requestBody = buildRequestBody(options.body);
+129:           const response = await fetch(options.exportUrl, {
+130:             method: options.method || (requestBody ? "POST" : "GET"),
+131:             headers:
+132:               requestBody && !(requestBody instanceof FormData)
+133:                 ? { "Content-Type": "application/json" }
+134:                 : undefined,
+135:             body: requestBody,
+136:           });
+137: 
+138:           const contentType = response.headers.get("content-type") || "";
+139: 
+140:           if (response.ok && contentType.includes("application/pdf")) {
+141:             const blob = await response.blob();
+142:             await downloadBlobAsFile(blob, options.fileName || "report.pdf");
+143:             setStatus("success");
+144: 
+145:             if (options.successTitle || options.successMessage) {
+146:               setModal({
+147:                 status: "success",
+148:                 title: options.successTitle || "تم تنزيل الملف",
+149:                 message:
+150:                   options.successMessage ||
+151:                   "تم تنزيل الملف بنجاح.",
+152:               });
+153:             }
+154: 
+155:             return "downloaded";
+156:           }
+157: 
+158:           let payload: unknown = null;
+159: 
+160:           try {
+161:             payload = await response.json();
+162:           } catch {
+163:             payload = null;
+164:           }
+165: 
+166:           const fallbackUrl = getPrintExportFallbackUrl(
+167:             payload,
+168:             options.printUrl,
+169:           );
+170: 
+171:           if (fallbackUrl) {
+172:             return openFallbackPrintUrl({
+173:               printUrl: fallbackUrl,
+174:               title: fallbackMeta.title,
+175:               message: fallbackMeta.message,
+176:             });
+177:           }
+178: 
+179:           if (!response.ok) {
+180:             throw new Error("PRINT_EXPORT_REQUEST_FAILED");
+181:           }
+182:         }
+183: 
+184:         if (options.printUrl) {
+185:           return openFallbackPrintUrl({
+186:             printUrl: options.printUrl,
+187:             title: fallbackMeta.title,
+188:             message: fallbackMeta.message,
+189:           });
+190:         }
+191: 
+192:         throw new Error("PRINT_EXPORT_NO_FALLBACK");
+193:       } catch {
+194:         setStatus("error");
+195:         setModal({
+196:           status: "error",
+197:           title: options.errorTitle || "تعذر التصدير",
+198:           message:
+199:             options.errorMessage ||
+200:             "تعذر تنفيذ عملية التصدير أو فتح معاينة الطباعة. حاول مرة أخرى.",
+201:         });
+202:         return "error";
+203:       }
+204:     },
+205:     [openFallbackPrintUrl],
+206:   );
+207: 
+208:   return {
+209:     status,
+210:     modal,
+211:     runPrintExport,
+212:     openFallbackPrintUrl,
+213:     closeModal,
+214:   };
+215: }
+
+============================================================
+FILE: components\print-export\print-export-pop-card.tsx
+============================================================
+1: "use client";
+2: 
+3: import type {
+4:   PrintExportFallback,
+5:   PrintExportModal,
+6: } from "@/lib/print-export/print-export-types";
+7: 
+8: export function PrintExportPopCard({
+9:   modal,
+10:   onClose,
+11:   onOpenFallback,
+12: }: {
+13:   modal: PrintExportModal | null;
+14:   onClose: () => void;
+15:   onOpenFallback: (fallback?: PrintExportFallback | null) => void;
+16: }) {
+17:   if (!modal) {
+18:     return null;
+19:   }
+20: 
+21:   const accentClass =
+22:     modal.status === "success"
+23:       ? "bg-emerald-700 hover:bg-emerald-800"
+24:       : modal.status === "blocked"
+25:         ? "bg-sky-700 hover:bg-sky-800"
+26:         : modal.status === "loading"
+27:           ? "bg-amber-600 hover:bg-amber-700"
+28:           : "bg-red-700 hover:bg-red-800";
+29: 
+30:   return (
+31:     <div
+32:       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+33:       dir="rtl"
+34:     >
+35:       <section className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+36:         <header className="border-b border-slate-100 px-6 py-5">
+37:           <h2 className="text-xl font-black text-slate-950">{modal.title}</h2>
+38:           <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+39:             {modal.message}
+40:           </p>
+41: 
+42:           {modal.status === "blocked" && modal.fallback?.printUrl ? (
+43:             <button
+44:               type="button"
+45:               onClick={() => onOpenFallback(modal.fallback)}
+46:               className="mt-4 inline-flex rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
+47:             >
+48:               فتح معاينة الطباعة
+49:             </button>
+50:           ) : null}
+51:         </header>
+52: 
+53:         <footer className="flex justify-end px-6 py-4">
+54:           <button
+55:             type="button"
+56:             onClick={onClose}
+57:             className={[
+58:               "rounded-2xl px-5 py-2 text-xs font-black text-white transition",
+59:               accentClass,
+60:             ].join(" ")}
+61:           >
+62:             حسنًا
+63:           </button>
+64:         </footer>
+65:       </section>
+66:     </div>
+67:   );
+68: }
+
+===== puppeteer scan =====

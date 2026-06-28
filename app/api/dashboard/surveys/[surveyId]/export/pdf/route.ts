@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { NextResponse } from "next/server";
-import puppeteer from "puppeteer";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
 import { getSchoolSubscriptionOverview } from "@/lib/subscription/subscription-service";
@@ -315,6 +314,22 @@ function getRequestedQuestionIds(request: Request) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function shouldAutoPrint(request: Request) {
+  const url = new URL(request.url);
+  return url.searchParams.get("print") === "1";
+}
+
+function injectPrintScript(html: string) {
+  const printScript = `
+<script>
+window.addEventListener("load", () => {
+  window.setTimeout(() => window.print(), 450);
+});
+</script>`;
+
+  return html.includes("</body>") ? html.replace("</body>", `${printScript}\n</body>`) : `${html}${printScript}`;
 }
 
 function getVisibleQuestions(allQuestions: QuestionAnalysis[], requestedQuestionIds: string[]) {
@@ -1106,69 +1121,12 @@ export async function GET(request: Request, context: RouteContext) {
 
   const requestedQuestionIds = getRequestedQuestionIds(request);
   const html = await buildPdfHtml(survey!, requestedQuestionIds);
+  const responseHtml = shouldAutoPrint(request) ? injectPrintScript(html) : html;
 
-  let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
-
-  try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-
-    const page = await browser.newPage();
-
-    await page.setViewport({
-      width: 1600,
-      height: 900,
-      deviceScaleFactor: 1,
-    });
-
-    await page.setContent(html, {
-      waitUntil: "load",
-    });
-
-    const pdfBuffer = await page.pdf({
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: {
-        top: "0",
-        right: "0",
-        bottom: "0",
-        left: "0",
-      },
-    });
-
-    const safeTitle =
-      survey!.title
-        .replace(/[\\/:*?"<>|]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 80) || "استبيان";
-
-    const fallbackFileName = `survey-${survey!.id}.pdf`;
-    const encodedFileName = encodeURIComponent(`${safeTitle}.pdf`);
-
-    const pdfArrayBuffer = pdfBuffer.buffer.slice(
-      pdfBuffer.byteOffset,
-      pdfBuffer.byteOffset + pdfBuffer.byteLength,
-    ) as ArrayBuffer;
-
-    return new NextResponse(pdfArrayBuffer, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${fallbackFileName}"; filename*=UTF-8''${encodedFileName}`,
-      },
-    });
-  } catch (error) {
-    console.error("SURVEY_ANALYSIS_PDF_EXPORT_ERROR", error);
-
-    return NextResponse.json(
-      { error: "تعذر تصدير تقرير الاستبيان PDF." },
-      { status: 500 },
-    );
-  } finally {
-    if (browser) {
-      await browser.close().catch(() => undefined);
-    }
-  }
+  return new NextResponse(responseHtml, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 }
