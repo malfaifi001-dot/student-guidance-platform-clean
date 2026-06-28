@@ -8,14 +8,8 @@ type Props = {
   analysisTitle: string;
 };
 
-function buildPdfFileName(title: string) {
-  const trimmed = title.trim();
-  return `${trimmed || "assessment-analysis"}.pdf`;
-}
-
 export function AssessmentAnalysisExportActions({
   analysisId,
-  analysisTitle,
 }: Props) {
   const {
     status,
@@ -26,6 +20,19 @@ export function AssessmentAnalysisExportActions({
   } = usePrintExportAction();
 
   const isLoading = status === "loading";
+
+  async function openAssessmentPdf() {
+    if (isLoading) return;
+
+    await runPrintExport({
+      printUrl: `/api/dashboard/assessment-center/${analysisId}/export?format=pdf&print=1`,
+      blockedTitle: "معاينة طباعة تقرير التحليل",
+      blockedMessage:
+        "تم حظر فتح معاينة الطباعة تلقائيًا. استخدم الزر أدناه لفتح تقرير التحليل في تبويب جديد.",
+      errorTitle: "تصدير PDF",
+      errorMessage: "تعذر فتح تقرير التحليل للطباعة. حاول مرة أخرى.",
+    });
+  }
 
   return (
     <>
@@ -40,20 +47,11 @@ export function AssessmentAnalysisExportActions({
         type="button"
         disabled={isLoading}
         onClick={() => {
-          void runPrintExport({
-            exportUrl: `/api/dashboard/assessment-center/${analysisId}/export?format=pdf`,
-            printUrl: `/dashboard/assessment-center/${analysisId}/print`,
-            fileName: buildPdfFileName(analysisTitle),
-            blockedTitle: "معاينة الطباعة",
-            blockedMessage:
-              "تم حظر فتح نافذة المعاينة تلقائياً. استخدم الزر أدناه لفتح معاينة الطباعة في نافذة جديدة.",
-            errorTitle: "تصدير PDF",
-            errorMessage: "تعذر تصدير تحليل الاختبارات. حاول مرة أخرى.",
-          });
+          void openAssessmentPdf();
         }}
         className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/15 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isLoading ? "جاري تجهيز PDF..." : "PDF"}
+        {isLoading ? "جاري فتح PDF..." : "PDF"}
       </button>
 
       <PrintExportPopCard

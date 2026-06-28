@@ -600,15 +600,6 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     isolation:isolate;
   }
 
-  .corner-dots{
-    position:absolute;
-    left:0;
-    bottom:0;
-    width:31mm;
-    height:11mm;
-    opacity:.72;
-    z-index:0;
-  }
 
   .brand,
   .vision-brand{
@@ -1059,16 +1050,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
         : ""
     }
 
-    <svg class="corner-dots" viewBox="0 0 320 78" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs><linearGradient id="gb" x1="0" x2="1"><stop stop-color="#3d7eb9"/><stop offset="1" stop-color="#07a869"/></linearGradient></defs>
-      <g fill="url(#gb)">
-        <circle cx="8" cy="8" r="6"/><circle cx="30" cy="13" r="5" opacity=".8"/><circle cx="52" cy="18" r="5" opacity=".75"/><circle cx="76" cy="22" r="4" opacity=".7"/><circle cx="102" cy="27" r="4" opacity=".6"/><circle cx="130" cy="32" r="3" opacity=".55"/>
-        <circle cx="8" cy="37" r="5" opacity=".8"/><circle cx="32" cy="42" r="5" opacity=".75"/><circle cx="58" cy="48" r="4" opacity=".7"/><circle cx="88" cy="52" r="4" opacity=".65"/><circle cx="120" cy="56" r="3" opacity=".6"/><circle cx="152" cy="60" r="3" opacity=".55"/>
-        <circle cx="5" cy="66" r="4" opacity=".7"/><circle cx="34" cy="68" r="4" opacity=".65"/><circle cx="65" cy="70" r="3" opacity=".6"/><circle cx="98" cy="72" r="3" opacity=".55"/><circle cx="133" cy="73" r="2.8" opacity=".5"/>
-      </g>
-    </svg>
-
-    <header class="report-header">
+<header class="report-header">
       <h1 class="report-title">تقرير تحليل الاستبيان</h1>
       <div class="report-subtitle">قراءة إحصائية تربوية لآراء المستفيدين ومؤشرات التحسين</div>
     </header>

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-import puppeteer from "puppeteer";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
@@ -59,6 +58,30 @@ function toArrayBuffer(buffer: Buffer) {
     buffer.byteOffset,
     buffer.byteOffset + buffer.byteLength
   ) as ArrayBuffer;
+}
+
+function shouldAutoPrint(request: Request) {
+  const url = new URL(request.url);
+  return url.searchParams.get("print") === "1";
+}
+
+function injectPrintScript(html: string) {
+  const printScript = `
+<script>
+window.addEventListener("load", async () => {
+  try {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  } catch {}
+
+  window.setTimeout(() => window.print(), 500);
+});
+</script>`;
+
+  return html.includes("</body>")
+    ? html.replace("</body>", `${printScript}\n</body>`)
+    : `${html}${printScript}`;
 }
 
 function buildExcelBuffer({
@@ -577,54 +600,32 @@ export async function GET(request: Request, context: RouteContext) {
   const fileBaseName = safeFileName(analysis.title || "assessment-analysis");
 
   if (format === "pdf") {
-    const schoolProfile = await prisma.schoolProfile
-      .findFirst({
-        where: {
-          schoolAccountId: auth.schoolAccountId,
-        },
-      })
-      .catch(() => null);
+    const schoolProfile = analysis.schoolAccountId
+      ? await prisma.schoolProfile
+          .findFirst({
+            where: {
+              schoolAccountId: analysis.schoolAccountId,
+            },
+          })
+          .catch(() => null)
+      : null;
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    const html = buildAssessmentPdfHtml({
+      analysis,
+      summary,
+      rows,
+      schoolProfile,
     });
 
-    try {
-      const page = await browser.newPage();
+    const responseHtml = shouldAutoPrint(request) ? injectPrintScript(html) : html;
 
-      await page.setContent(
-        buildAssessmentPdfHtml({ analysis, summary, rows, schoolProfile }),
-        { waitUntil: "load" }
-      );
-
-      await page.emulateMediaType("screen");
-
-      const pdf = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: {
-          top: "0",
-          right: "0",
-          bottom: "0",
-          left: "0",
-        },
-        preferCSSPageSize: true,
-      });
-
-      const pdfBuffer = Buffer.from(pdf);
-
-      return new Response(toArrayBuffer(pdfBuffer), {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": buildAttachmentContentDisposition(fileBaseName, "pdf"),
-        },
-      });
-    } finally {
-      await browser.close();
-    }
+    return new NextResponse(responseHtml, {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
   }
-
   const excelBuffer = buildExcelBuffer({
     analysis,
     summary,
