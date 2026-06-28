@@ -22,6 +22,16 @@ function isSafeToken(value: string) {
   return /^[a-zA-Z0-9-]+$/.test(value);
 }
 
+function getLinkedAttachmentsHtml(snapshot: unknown) {
+  if (!snapshot || typeof snapshot !== "object") {
+    return "";
+  }
+
+  const value = (snapshot as Record<string, unknown>).__linkedAttachmentsHtml;
+
+  return typeof value === "string" ? value : "";
+}
+
 async function readSnapshot(token: string) {
   if (!isSafeToken(token)) return null;
 
@@ -47,7 +57,20 @@ export default async function ReportTwoExportPreviewPage({
     notFound();
   }
 
+  const linkedAttachmentsHtml = getLinkedAttachmentsHtml(snapshot);
+
   return (
-    <ReportTwoPdfExportPreview snapshot={snapshot} printMode={print === "1"} />
+    <>
+      <ReportTwoPdfExportPreview snapshot={snapshot} printMode={print === "1"} />
+
+      {linkedAttachmentsHtml.trim() ? (
+        <section
+          data-report-linked-attachments="1"
+          dangerouslySetInnerHTML={{
+            __html: linkedAttachmentsHtml,
+          }}
+        />
+      ) : null}
+    </>
   );
 }
