@@ -558,7 +558,11 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     --screen:#edf2f6;
   }
 
-  @page { size: A4 landscape; margin: 0; }
+  @page {
+    size: A4 landscape;
+    margin: 0;
+    page-orientation: upright;
+  }
 
   *{ box-sizing:border-box; }
 
@@ -1007,6 +1011,12 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   }
 
   @media print {
+    @page {
+      size: A4 landscape;
+      margin: 0;
+      page-orientation: upright;
+    }
+
     html,
     body{
       width:297mm !important;
