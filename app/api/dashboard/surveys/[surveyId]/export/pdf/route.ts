@@ -578,9 +578,9 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     width:100%;
     min-height:100vh;
     margin:0;
-    padding:0;
+    padding:28px;
     overflow:auto;
-    background:var(--screen);
+    background:#eef2f6;
     color:#09254b;
     font-family:'Cairo', Tahoma, Arial, sans-serif;
     direction:rtl;
@@ -589,14 +589,27 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     align-items:flex-start;
   }
 
+  .print-frame{
+    width:297mm;
+    height:210mm;
+    position:relative;
+    overflow:hidden;
+    background:#fff;
+    margin:0 auto;
+    box-shadow:0 18px 48px rgba(15,23,42,.16);
+    border:1px solid rgba(148,163,184,.35);
+  }
+
   .sheet{
     width:297mm;
     height:210mm;
-    margin:0 auto;
+    margin:0;
     overflow:hidden;
-    position:relative;
+    position:absolute;
+    top:0;
+    right:0;
     background:var(--paper);
-    padding:11mm 11mm 6mm;
+    padding:8mm 14mm 7mm;
     isolation:isolate;
   }
 
@@ -605,8 +618,8 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .vision-brand{
     position:absolute;
     top:8.5mm;
-    width:33mm;
-    height:17mm;
+    width:42mm;
+    height:24mm;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -614,8 +627,8 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     z-index:2;
   }
 
-  .brand{ right:11mm; }
-  .vision-brand{ left:11mm; }
+  .brand{ right:17mm; }
+  .vision-brand{ left:17mm; }
 
   .brand img,
   .vision-brand img{
@@ -628,8 +641,8 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .report-header{
     position:relative;
     z-index:1;
-    min-height:23mm;
-    padding:0 42mm;
+    min-height:33mm;
+    padding:0 48mm;
     text-align:center;
     display:flex;
     flex-direction:column;
@@ -639,18 +652,18 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .report-title{
     margin:0;
     color:var(--navy);
-    font-size:8mm;
-    line-height:1.15;
+    font-size:11.2mm;
+    line-height:1.12;
     font-weight:900;
-    letter-spacing:-.15mm;
+    letter-spacing:-.25mm;
     white-space:nowrap;
   }
 
   .report-subtitle{
     margin:2mm 0 0;
     color:#078b80;
-    font-size:3.45mm;
-    line-height:1.35;
+    font-size:4.8mm;
+    line-height:1.3;
     font-weight:800;
     white-space:nowrap;
     overflow:hidden;
@@ -660,7 +673,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .info-panel{
     position:relative;
     z-index:1;
-    margin-top:4mm;
+    margin-top:2mm;
     height:31mm;
     border:.45mm solid #d3dce4;
     border-radius:3mm;
@@ -721,7 +734,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
 
   .info-label{
     color:var(--navy);
-    font-size:2.45mm;
+    font-size:2.75mm;
     font-weight:900;
     line-height:1.2;
     margin-bottom:.5mm;
@@ -730,7 +743,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
 
   .info-value{
     color:#0b3d73;
-    font-size:2.35mm;
+    font-size:2.6mm;
     font-weight:700;
     line-height:1.25;
     height:5.9mm;
@@ -744,7 +757,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     position:relative;
     z-index:1;
     margin-top:3.2mm;
-    height:25mm;
+    height:28mm;
     display:grid;
     grid-template-columns:repeat(6,1fr);
     gap:2mm;
@@ -793,7 +806,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     margin-top:.8mm;
     min-height:6mm;
     color:#116eae;
-    font-size:4.7mm;
+    font-size:5.35mm;
     line-height:1;
     font-weight:900;
     text-align:center;
@@ -806,7 +819,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     margin-top:.9mm;
     color:#0c2854;
     font-weight:800;
-    font-size:2.25mm;
+    font-size:2.5mm;
     line-height:1.25;
     text-align:center;
     height:5.7mm;
@@ -1012,24 +1025,44 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     body{
       width:297mm !important;
       height:210mm !important;
+      min-width:297mm !important;
       min-height:210mm !important;
       margin:0 !important;
       padding:0 !important;
       overflow:hidden !important;
-      background:#fff !important;
+      background:#ffffff !important;
       display:block !important;
       -webkit-print-color-adjust:exact !important;
       print-color-adjust:exact !important;
     }
 
+    .print-frame{
+      width:297mm !important;
+      height:210mm !important;
+      margin:0 !important;
+      padding:0 !important;
+      overflow:hidden !important;
+      position:relative !important;
+      page-break-after:avoid !important;
+      break-after:avoid-page !important;
+      page-break-inside:avoid !important;
+      break-inside:avoid-page !important;
+      box-shadow:none !important;
+      border:0 !important;
+      background:#ffffff !important;
+    }
+
     .sheet{
+      position:absolute !important;
+      top:0 !important;
+      right:0 !important;
       width:297mm !important;
       height:210mm !important;
       margin:0 !important;
       overflow:hidden !important;
       box-shadow:none !important;
-      page-break-after:avoid;
-      break-after:avoid-page;
+      page-break-after:avoid !important;
+      break-after:avoid-page !important;
       -webkit-print-color-adjust:exact !important;
       print-color-adjust:exact !important;
     }
@@ -1037,6 +1070,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
 </style>
 </head>
 <body>
+  <div class="print-frame">
   <main class="sheet">
     ${
       visionLogoDataUri
@@ -1116,6 +1150,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
       </article>
     </section>
   </main>
+  </div>
 </body>
 </html>`;
 }
