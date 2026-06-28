@@ -609,7 +609,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     top:0;
     right:0;
     background:var(--paper);
-    padding:8mm 14mm 7mm;
+    padding:8mm 16mm 7mm;
     isolation:isolate;
   }
 
@@ -617,7 +617,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .brand,
   .vision-brand{
     position:absolute;
-    top:8.5mm;
+    top:8.3mm;
     width:42mm;
     height:24mm;
     display:flex;
@@ -627,8 +627,8 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     z-index:2;
   }
 
-  .brand{ right:17mm; }
-  .vision-brand{ left:17mm; }
+  .brand{ right:18mm; }
+  .vision-brand{ left:18mm; }
 
   .brand img,
   .vision-brand img{
@@ -642,7 +642,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     position:relative;
     z-index:1;
     min-height:33mm;
-    padding:0 48mm;
+    padding:0 50mm;
     text-align:center;
     display:flex;
     flex-direction:column;
@@ -651,8 +651,8 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
 
   .report-title{
     margin:0;
-    color:var(--navy);
-    font-size:11.2mm;
+    color:#081f47;
+    font-size:11.3mm;
     line-height:1.12;
     font-weight:900;
     letter-spacing:-.25mm;
@@ -660,7 +660,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   }
 
   .report-subtitle{
-    margin:2mm 0 0;
+    margin:1.8mm 0 0;
     color:#078b80;
     font-size:4.8mm;
     line-height:1.3;
@@ -673,8 +673,8 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .info-panel{
     position:relative;
     z-index:1;
-    margin-top:2mm;
-    height:31mm;
+    margin-top:1.5mm;
+    height:30mm;
     border:.45mm solid #d3dce4;
     border-radius:3mm;
     background:rgba(255,255,255,.98);
@@ -687,10 +687,10 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .info-item{
     min-width:0;
     display:grid;
-    grid-template-columns:8mm 1fr;
+    grid-template-columns:8.5mm 1fr;
     gap:1.8mm;
     align-items:center;
-    padding:1.8mm 2.3mm;
+    padding:1.7mm 2.4mm;
     border-left:.25mm solid #e2e7ec;
     border-bottom:.25mm solid #e2e7ec;
   }
@@ -733,20 +733,20 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .info-copy{ min-width:0; }
 
   .info-label{
-    color:var(--navy);
-    font-size:2.75mm;
+    color:#081f47;
+    font-size:2.65mm;
     font-weight:900;
     line-height:1.2;
-    margin-bottom:.5mm;
+    margin-bottom:.45mm;
     white-space:nowrap;
   }
 
   .info-value{
     color:#0b3d73;
-    font-size:2.6mm;
+    font-size:2.55mm;
     font-weight:700;
-    line-height:1.25;
-    height:5.9mm;
+    line-height:1.22;
+    height:6.2mm;
     overflow:hidden;
     display:-webkit-box;
     -webkit-line-clamp:2;
@@ -760,16 +760,16 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     height:28mm;
     display:grid;
     grid-template-columns:repeat(6,1fr);
-    gap:2mm;
+    gap:2.8mm;
   }
 
   .metric-card{
     min-width:0;
-    border:.4mm solid #d8e1e8;
+    border:.42mm solid #d8e1e8;
     border-radius:3mm;
     background:#fff;
-    box-shadow:0 .8mm 2mm rgba(4,31,67,.05);
-    padding:2mm 1.2mm 1.6mm;
+    box-shadow:0 .9mm 2.2mm rgba(4,31,67,.055);
+    padding:2.4mm 1.2mm 1.7mm;
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -804,7 +804,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
 
   .metric-number{
     margin-top:.8mm;
-    min-height:6mm;
+    min-height:6.5mm;
     color:#116eae;
     font-size:5.35mm;
     line-height:1;
@@ -816,13 +816,13 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   }
 
   .metric-label{
-    margin-top:.9mm;
+    margin-top:.85mm;
     color:#0c2854;
     font-weight:800;
     font-size:2.5mm;
     line-height:1.25;
     text-align:center;
-    height:5.7mm;
+    height:5.8mm;
     overflow:hidden;
     display:-webkit-box;
     -webkit-line-clamp:2;
@@ -832,33 +832,33 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .content-grid{
     position:relative;
     z-index:1;
-    margin-top:4.3mm;
-    height:86mm;
+    margin-top:8mm;
+    height:84mm;
     display:grid;
-    grid-template-columns:1.1fr .9fr;
-    gap:3mm;
+    grid-template-columns:1fr 1fr;
+    gap:3.5mm;
   }
 
   .panel{
     min-width:0;
     position:relative;
-    border:.45mm solid #0d8293;
+    border:.48mm solid #0d8293;
     border-radius:3mm;
     background:#fff;
-    padding:8.4mm 4mm 3.4mm;
+    padding:9.8mm 4mm 3.5mm;
     overflow:visible;
   }
 
   .panel-title{
     position:absolute;
-    top:-3.2mm;
+    top:-3.8mm;
     right:26mm;
     left:26mm;
-    height:7.4mm;
+    height:7.8mm;
     border-radius:999px;
     background:linear-gradient(90deg,#064f89,#088e84);
     color:#fff;
-    font-size:2.65mm;
+    font-size:2.95mm;
     font-weight:900;
     display:flex;
     align-items:center;
@@ -866,6 +866,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     gap:1.6mm;
     overflow:hidden;
     white-space:nowrap;
+    box-shadow:0 1.2mm 3mm rgba(0,94,122,.22);
   }
 
   .panel-title svg{
@@ -940,7 +941,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     color:#0d2857;
     font-weight:900;
     text-align:right;
-    padding:1.4mm 1.1mm;
+    padding:1.3mm 1.1mm;
     border-bottom:.3mm solid #dce5eb;
     white-space:nowrap;
   }
@@ -948,10 +949,10 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .question-table td{
     color:#0e2b58;
     font-weight:800;
-    padding:1.35mm 1.1mm;
+    padding:1.25mm 1.1mm;
     border-bottom:.25mm solid #e7edf2;
     vertical-align:middle;
-    height:9.6mm;
+    height:8.9mm;
     overflow:hidden;
   }
 
@@ -974,7 +975,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     white-space:normal;
     overflow:hidden;
     text-overflow:clip;
-    line-height:1.45;
+    line-height:1.42;
     display:-webkit-box;
     -webkit-line-clamp:3;
     -webkit-box-orient:vertical;
@@ -988,12 +989,12 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   }
 
   .insight-line{
-    min-height:25mm;
+    min-height:22.5mm;
     display:grid;
-    grid-template-columns:7.5mm 1fr;
+    grid-template-columns:8mm 1fr;
     gap:2mm;
     align-items:center;
-    padding:3mm 0;
+    padding:2.3mm 0;
     border-bottom:.28mm solid #dce7ee;
     overflow:hidden;
   }
@@ -1005,9 +1006,9 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   .insight-text{
     color:#0d2b59;
     font-size:3.05mm;
-    line-height:1.65;
-    font-weight:700;
-    max-height:18mm;
+    line-height:1.62;
+    font-weight:800;
+    max-height:17.5mm;
     overflow:hidden;
     display:-webkit-box;
     -webkit-line-clamp:3;
