@@ -248,7 +248,12 @@ export async function POST(request: Request, context: RouteContext) {
     recursive: true,
   });
 
-  await fs.writeFile(snapshotPath, JSON.stringify(snapshot), "utf8");
+  const exportSnapshot = {
+    ...snapshot,
+    __linkedAttachmentsHtml: linkedAttachmentsHtml,
+  };
+
+  await fs.writeFile(snapshotPath, JSON.stringify(exportSnapshot), "utf8");
 
   cleanupStaleSnapshots().catch(() => null);
 
