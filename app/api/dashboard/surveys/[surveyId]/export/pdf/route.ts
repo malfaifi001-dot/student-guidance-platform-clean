@@ -581,7 +581,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
   html,body{
     margin:0;
     width:1600px;
-    height:900px;
+    height:1131px;
     overflow:hidden;
     background:#e9eef1;
     font-family:'Cairo',Tahoma,Arial,sans-serif;
@@ -590,7 +590,7 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
 
   .sheet{
     width:1600px;
-    height:900px;
+    height:1131px;
     margin:0 auto;
     background:#fff;
     position:relative;
@@ -599,11 +599,28 @@ async function buildPdfHtml(survey: SurveyForPdf, requestedQuestionIds: string[]
     isolation:isolate;
   }
 
-  @page{size:16.6667in 9.375in;margin:0}
+  @page{size:A4 landscape;margin:0}
 
   @media print{
-    html,body{background:white;width:1600px;height:900px;overflow:hidden}
-    .sheet{margin:0;box-shadow:none;width:1600px;height:900px;page-break-after:avoid}
+    html,body{
+      margin:0;
+      width:1600px;
+      height:1131px;
+      overflow:hidden;
+      background:white;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    .sheet{
+      margin:0;
+      box-shadow:none;
+      width:1600px;
+      height:1131px;
+      overflow:hidden;
+      page-break-after:avoid;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
   }
 
   .bottom-dots{
