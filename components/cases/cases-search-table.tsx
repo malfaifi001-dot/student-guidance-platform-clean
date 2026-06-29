@@ -69,6 +69,12 @@ const STATUS_STYLES: Record<string, string> = {
   ARCHIVED: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
 };
 
+const CASES_FILTER_INPUT_CLASS =
+  "h-11 w-full rounded-[1.35rem] border border-slate-200 bg-slate-50 pr-12 pl-4 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50";
+
+const CASES_FILTER_SELECT_CLASS =
+  "h-11 min-w-[138px] rounded-[1.35rem] border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-500 outline-none transition hover:border-sky-200 hover:bg-slate-50 hover:text-slate-700 focus:border-sky-300 focus:ring-4 focus:ring-sky-50";
+
 function normalizeText(value: string) {
   return value
     .toLowerCase()
@@ -254,22 +260,22 @@ export function CasesSearchTable({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+      <section className="rounded-[1.75rem] border border-slate-200 bg-white/95 p-3 shadow-sm">
+        <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="ابحث باسم الطالب أو الحالة أو الخدمة..."
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pr-12 pl-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+              className={CASES_FILTER_INPUT_CLASS}
             />
           </div>
 
           <select
             value={selectedService}
             onChange={(event) => setSelectedService(event.target.value)}
-            className="min-w-[150px] rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 outline-none focus:border-sky-400"
+            className={CASES_FILTER_SELECT_CLASS}
           >
             <option value="all">كل الخدمات</option>
             {services.map((service) => (
@@ -282,7 +288,7 @@ export function CasesSearchTable({
           <select
             value={selectedStatus}
             onChange={(event) => setSelectedStatus(event.target.value)}
-            className="min-w-[150px] rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 outline-none focus:border-sky-400"
+            className={CASES_FILTER_SELECT_CLASS}
           >
             <option value="all">كل الحالات</option>
             <option value="DRAFT">مسودة</option>
@@ -294,7 +300,7 @@ export function CasesSearchTable({
           <select
             value={selectedReportState}
             onChange={(event) => setSelectedReportState(event.target.value)}
-            className="min-w-[150px] rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 outline-none focus:border-sky-400"
+            className={CASES_FILTER_SELECT_CLASS}
           >
             <option value="all">كل التقارير</option>
             <option value="hasReport">لها تقرير</option>
@@ -329,28 +335,95 @@ export function CasesSearchTable({
 function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
   const displayStatus = getDisplayStatus(caseItem);
   const reportAction = getReportAction(caseItem);
+  const isFollowUpLocked = Boolean(caseItem.reportTwoSnapshotId);
+
+  const baseIconButtonClass =
+    "grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700";
+
+  const disabledIconButtonClass =
+    "grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-slate-100 text-slate-300 shadow-sm";
+
+  const reportIconButtonClass = reportAction
+    ? [
+        "grid h-10 w-10 place-items-center rounded-full text-white shadow-sm transition",
+        reportAction.label === "عرض التقرير"
+          ? "bg-emerald-700 hover:bg-emerald-800"
+          : "bg-sky-700 hover:bg-sky-800",
+      ].join(" ")
+    : disabledIconButtonClass;
 
   return (
     <article className="flex h-full flex-col rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          className={[
-            "rounded-full px-3 py-1 text-xs font-black",
-            displayStatus.className,
-          ].join(" ")}
-        >
-          {displayStatus.label}
-        </span>
-
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
-          {caseItem.service.name}
-        </span>
-
-        {reportAction && reportAction.label === "عرض التقرير" ? (
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
-            لها تقرير
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={[
+              "rounded-full px-3 py-1 text-xs font-black",
+              displayStatus.className,
+            ].join(" ")}
+          >
+            {displayStatus.label}
           </span>
-        ) : null}
+
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+            {caseItem.service.name}
+          </span>
+
+          {reportAction && reportAction.label === "عرض التقرير" ? (
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+              لها تقرير
+            </span>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2" dir="ltr">
+          <Link
+            href={`/dashboard/cases/${caseItem.id}`}
+            aria-label="عرض الحالة"
+            title="عرض الحالة"
+            className={baseIconButtonClass}
+          >
+            <Eye className="h-4 w-4" />
+          </Link>
+
+          {isFollowUpLocked ? (
+            <span
+              aria-label="المتابعة مقفلة بعد التقرير"
+              title="المتابعة مقفلة بعد التقرير"
+              className={disabledIconButtonClass}
+            >
+              <PencilLine className="h-4 w-4" />
+            </span>
+          ) : (
+            <Link
+              href={`/dashboard/cases/${caseItem.id}/edit`}
+              aria-label="متابعة الحالة"
+              title="متابعة الحالة"
+              className={baseIconButtonClass}
+            >
+              <PencilLine className="h-4 w-4" />
+            </Link>
+          )}
+
+          {reportAction ? (
+            <Link
+              href={reportAction.href}
+              aria-label={reportAction.label}
+              title={reportAction.label}
+              className={reportIconButtonClass}
+            >
+              <FileText className="h-4 w-4" />
+            </Link>
+          ) : (
+            <span
+              aria-label="لا يوجد تقرير جاهز"
+              title="لا يوجد تقرير جاهز"
+              className={reportIconButtonClass}
+            >
+              <FileText className="h-4 w-4" />
+            </span>
+          )}
+        </div>
       </div>
 
       <h2 className="mt-3 text-lg font-black leading-8 text-slate-950">
@@ -376,43 +449,6 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
 
       <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-2 text-xs font-black text-slate-600">
         الإجراء التالي: {getNextActionText(caseItem)}
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-        <Link
-          href={`/dashboard/cases/${caseItem.id}`}
-          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50"
-        >
-          <Eye className="h-4 w-4" />
-          عرض
-        </Link>
-
-        {caseItem.reportTwoSnapshotId ? (
-          <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-500">
-            المتابعة مقفلة بعد التقرير
-          </span>
-        ) : (
-          <Link
-            href={`/dashboard/cases/${caseItem.id}/edit`}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-slate-50"
-          >
-            <PencilLine className="h-4 w-4" />
-            متابعة
-          </Link>
-        )}
-
-        {reportAction ? (
-          <Link
-            href={reportAction.href}
-            className={[
-              "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-black transition",
-              reportAction.className,
-            ].join(" ")}
-          >
-            <FileText className="h-4 w-4" />
-            {reportAction.label}
-          </Link>
-        ) : null}
       </div>
     </article>
   );

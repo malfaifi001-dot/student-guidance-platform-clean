@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Download, Eye } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
 
@@ -204,14 +205,39 @@ export function ReportTwoArchiveClient({
               key={snapshot.id}
               className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-black leading-8 text-slate-950 dark:text-white">
-                  {snapshot.reportTitle}
-                </h2>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-800">
+                    معتمد
+                  </span>
 
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-800">
-                  معتمد
-                </span>
+                  <h2 className="mt-3 text-lg font-black leading-8 text-slate-950 dark:text-white">
+                    {snapshot.reportTitle}
+                  </h2>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2" dir="ltr">
+                  <Link
+                    href={`/dashboard/report-2/snapshots/${snapshot.id}/preview`}
+                    aria-label="معاينة التقرير"
+                    title="معاينة التقرير"
+                    className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Link>
+
+                  <ReportTwoPdfDownloadButton
+                    snapshot={{
+                      caseEntryId: snapshot.caseEntryId,
+                      reportTitle: snapshot.reportTitle,
+                      snapshotTemplateJson: snapshot.snapshotTemplateJson,
+                      snapshotPagesJson: snapshot.snapshotPagesJson,
+                    }}
+                    className="grid h-10 w-10 place-items-center rounded-full bg-sky-700 text-white shadow-sm transition hover:bg-sky-800 disabled:opacity-60 dark:bg-sky-600 dark:hover:bg-sky-700"
+                  >
+                    <Download className="h-4 w-4" />
+                  </ReportTwoPdfDownloadButton>
+                </div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
@@ -249,24 +275,7 @@ export function ReportTwoArchiveClient({
                 </div>
               </dl>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  href={`/dashboard/report-2/snapshots/${snapshot.id}/preview`}
-                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-700"
-                >
-                  معاينة التقرير
-                </Link>
 
-                <ReportTwoPdfDownloadButton
-                  snapshot={{
-                    caseEntryId: snapshot.caseEntryId,
-                    reportTitle: snapshot.reportTitle,
-                    snapshotTemplateJson: snapshot.snapshotTemplateJson,
-                    snapshotPagesJson: snapshot.snapshotPagesJson,
-                  }}
-                  className="inline-flex items-center justify-center rounded-2xl bg-sky-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-sky-800 disabled:opacity-60 dark:bg-sky-600 dark:hover:bg-sky-700"
-                />
-              </div>
             </article>
           ))}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 
 type SnapshotInfo = {
   caseEntryId: string;
@@ -13,6 +13,7 @@ type PdfDownloadButtonProps = {
   snapshot: SnapshotInfo;
   className?: string;
   label?: string;
+  children?: ReactNode;
 };
 
 function formatFileName(value: string) {
@@ -48,6 +49,7 @@ export function ReportTwoPdfDownloadButton({
   snapshot,
   className = "",
   label,
+  children,
 }: PdfDownloadButtonProps) {
   const [loading, setLoading] = useState(false);
   const [fallbackState, setFallbackState] = useState<{
@@ -161,7 +163,7 @@ export function ReportTwoPdfDownloadButton({
         disabled={loading}
         className={className}
       >
-        {loading ? "... جارٍ التحميل" : label || "تحميل PDF"}
+        {children ? (loading ? "..." : children) : loading ? "... جارٍ التحميل" : label || "تحميل PDF"}
       </button>
 
       {fallbackState ? (
