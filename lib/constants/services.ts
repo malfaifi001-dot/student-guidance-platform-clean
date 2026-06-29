@@ -3,6 +3,7 @@ import {
   ACTIVITY_PROGRAM_PARENT_SERVICE,
   ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
 } from "@/lib/activity-programs/activity-program-catalog";
+import { TEACHER_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
 
 export type AppService = {
   slug: string;
@@ -14,6 +15,7 @@ export type AppService = {
 
 export const workflowServices: AppService[] = [
   ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+  ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES,
   {
     slug: "teacher-report-issuance",
     title: "إصدار تقرير",

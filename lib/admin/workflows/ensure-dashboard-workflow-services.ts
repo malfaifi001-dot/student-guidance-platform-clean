@@ -1,7 +1,12 @@
 import { ServiceStatus} from "@prisma/client";
 
 import { workflowUploadServices } from "@/lib/constants/services";
+import { TEACHER_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
 import { prisma } from "@/lib/prisma";
+
+const TEACHER_PERFORMANCE_WORKFLOW_SERVICE_SLUGS = new Set(
+  TEACHER_PERFORMANCE_WORKFLOW_SERVICES.map((service) => service.slug),
+);
 
 type DashboardWorkflowServiceConfig = {
   slug: string;
@@ -54,6 +59,10 @@ export function isWorkflowUploadEligibleService(
   const title = normalizeArabicText(service.title);
 
   if (slug === "teacher-report-issuance") {
+    return service.kind === "workflow";
+  }
+
+  if (TEACHER_PERFORMANCE_WORKFLOW_SERVICE_SLUGS.has(slug)) {
     return service.kind === "workflow";
   }
 

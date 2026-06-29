@@ -31,6 +31,7 @@ export const OFFICIAL_WORKSPACE_ROUTES = {
   assessmentCenter: "/dashboard/assessment-center",
   certificates: "/dashboard/certificates",
   teacherReportIssuance: "/dashboard/teacher/report-issuance",
+  teacherPerformanceJobDuties: "/dashboard/teacher/job_duties_performance",
   counselorHome: "/dashboard",
   activityLeaderHome: "/dashboard/activity-leader",
   activityLeaderPrograms: "/dashboard/activity-leader/programs",

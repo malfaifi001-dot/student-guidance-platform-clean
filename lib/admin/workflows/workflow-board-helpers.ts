@@ -13,7 +13,19 @@ export const BOARDS: BoardDef[] = [
 ];
 
 export function classifyServiceSlug(slug: string): string {
-  if (slug === "teacher-report-issuance" || slug.startsWith("teacher-")) {
+  if (
+    slug === "teacher-report-issuance" ||
+    slug.startsWith("teacher-") ||
+    slug.endsWith("_performance") ||
+    slug.includes("_interaction") ||
+    slug.includes("_diversity") ||
+    slug.includes("_improvement") ||
+    slug.includes("_preparation") ||
+    slug.includes("_technology") ||
+    slug.includes("_environment") ||
+    slug.includes("_management") ||
+    slug.includes("_analysis")
+  ) {
     return "teacher";
   }
 

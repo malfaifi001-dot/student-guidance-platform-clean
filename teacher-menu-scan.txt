@@ -1,3 +1,131 @@
+Teacher menu scan
+Generated: 06/29/2026 22:33:14
+
+Git status:
+ M components/layout/dashboard-sidebar.tsx
+ M lib/admin/workflows/ensure-dashboard-workflow-services.ts
+ M lib/admin/workflows/workflow-board-helpers.ts
+ M lib/constants/services.ts
+ M lib/workspace/workspace-modules.ts
+?? app/dashboard/teacher/assessment_methods_diversity/
+?? app/dashboard/teacher/classroom_management/
+?? app/dashboard/teacher/job_duties_performance/
+?? app/dashboard/teacher/learner_results_analysis/
+?? app/dashboard/teacher/learner_results_improvement/
+?? app/dashboard/teacher/learning_environment/
+?? app/dashboard/teacher/learning_plan_preparation/
+?? app/dashboard/teacher/learning_technology_tools/
+?? app/dashboard/teacher/parents_interaction/
+?? app/dashboard/teacher/professional_community_interaction/
+?? app/dashboard/teacher/teaching_strategies_diversity/
+?? components/teacher-performance/
+?? lib/teacher-performance/
+?? public/uploads/evidence/cmqteo0mo0004l4no8kut149v-20126f4b-d2ae-4eee-b544-839a046bbefa.png
+?? public/uploads/evidence/cmqteo0mo0004l4no8kut149v-2fae779c-b090-44f1-9c2c-e07289a1926d.png
+?? public/uploads/evidence/cmqteo0mo0004l4no8kut149v-3459b780-9f84-4ea4-b0e6-1b9d653c74c3.jpg
+?? public/uploads/evidence/cmqteo0mo0004l4no8kut149v-e263fc96-183e-4460-b60f-a7c5aa705589.jpg
+?? teacher-report-vs-performance-debug.txt
+
+
+===== Teacher-related routes =====
+app\api\dashboard\activity-leader\teacher-assignments\[assignmentId]\review\route.ts
+app\api\dashboard\activity-leader\teacher-assignments\route.ts
+app\api\teacher\activity-assignment\[token]\submit\route.ts
+app\api\teacher\activity-assignment\[token]\upload\route.ts
+app\dashboard\activity-leader\teacher-assignments\page.tsx
+app\dashboard\teacher\assessment-center\page.tsx
+app\dashboard\teacher\assessment_methods_diversity\new\page.tsx
+app\dashboard\teacher\assessment_methods_diversity\page.tsx
+app\dashboard\teacher\assignments\page.tsx
+app\dashboard\teacher\calendar\page.tsx
+app\dashboard\teacher\certificates\page.tsx
+app\dashboard\teacher\classroom_management\new\page.tsx
+app\dashboard\teacher\classroom_management\page.tsx
+app\dashboard\teacher\evidence\page.tsx
+app\dashboard\teacher\family-community\page.tsx
+app\dashboard\teacher\job_duties_performance\new\page.tsx
+app\dashboard\teacher\job_duties_performance\page.tsx
+app\dashboard\teacher\learner_results_analysis\new\page.tsx
+app\dashboard\teacher\learner_results_analysis\page.tsx
+app\dashboard\teacher\learner_results_improvement\new\page.tsx
+app\dashboard\teacher\learner_results_improvement\page.tsx
+app\dashboard\teacher\learning_environment\new\page.tsx
+app\dashboard\teacher\learning_environment\page.tsx
+app\dashboard\teacher\learning_plan_preparation\new\page.tsx
+app\dashboard\teacher\learning_plan_preparation\page.tsx
+app\dashboard\teacher\learning_technology_tools\new\page.tsx
+app\dashboard\teacher\learning_technology_tools\page.tsx
+app\dashboard\teacher\parents_interaction\new\page.tsx
+app\dashboard\teacher\parents_interaction\page.tsx
+app\dashboard\teacher\portfolio\page.tsx
+app\dashboard\teacher\professional_community_interaction\new\page.tsx
+app\dashboard\teacher\professional_community_interaction\page.tsx
+app\dashboard\teacher\report-issuance\new\page.tsx
+app\dashboard\teacher\report-issuance\layout.tsx
+app\dashboard\teacher\report-issuance\page.tsx
+app\dashboard\teacher\report-workflow\page.tsx
+app\dashboard\teacher\student-data\page.tsx
+app\dashboard\teacher\surveys\page.tsx
+app\dashboard\teacher\teaching_strategies_diversity\new\page.tsx
+app\dashboard\teacher\teaching_strategies_diversity\page.tsx
+app\dashboard\teacher\layout.tsx
+app\dashboard\teacher\page.tsx
+app\teacher\activity-assignment\[token]\page.tsx
+app\teacher\login\page.tsx
+
+===== Menu-related search =====
+
+===== FILE: app\dashboard\layout.tsx =====
+import type { ReactNode } from "react";
+import type { Viewport } from "next";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboarding-reminder";
+import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
+import { DashboardNavigationRefresh } from "@/components/layout/dashboard-navigation-refresh";
+import { requireDashboardUser } from "@/lib/auth/require-auth";
+
+export const viewport: Viewport = {
+  width: 1280,
+  initialScale: 1,
+};
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const current = await requireDashboardUser();
+
+  return (
+    <div
+      dir="rtl"
+      className="h-screen overflow-x-auto overflow-y-hidden bg-[#f5f8fc] text-slate-900 transition-colors dark:bg-[#050816] dark:text-slate-100"
+    >
+      <div className="flex h-screen min-w-[1180px]">
+        <DashboardSidebar user={current.user} />
+
+        <main className="h-screen min-w-0 flex-1 overflow-y-auto text-[15.5px] leading-relaxed">
+          <DashboardHeader user={current.user} />
+
+          <DashboardOnboardingReminder
+            onboardingCompleted={current.user.onboardingCompleted}
+            onboardingSkippedAt={current.user.onboardingSkippedAt}
+          />
+
+          <CalendarLoginPopup />
+
+          <div className="mx-auto w-full max-w-[1680px] px-3 py-4 md:px-4 xl:px-5">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+
+===== FILE: components\layout\dashboard-sidebar.tsx =====
 "use client";
 
 import Link from "next/link";
@@ -176,26 +304,23 @@ const activityLeaderAccountLinks: SidebarLinkItem[] = [
 const teacherServiceLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home },
   { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
-  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "إصدار تقرير", href: OFFICIAL_WORKSPACE_ROUTES.teacherReportIssuance, icon: FilePlus2, shortLabel: "تقرير" },
   { label: "التقويم والتنبيهات", href: "/dashboard/teacher/calendar", icon: CalendarDays },
+  { label: "تكليفاتي", href: "/dashboard/teacher/assignments", icon: ClipboardList, shortLabel: "تكليفاتي" },
+  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal, shortLabel: "شهادات" },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
   { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
-];
-
-const teacherPerformanceLinks: SidebarLinkItem[] = [
-  ...TEACHER_PERFORMANCE_SERVICES.map((service) => ({
-    label: service.title,
-    href: service.href,
-    icon: ClipboardList,
-    shortLabel: service.shortTitle,
-  })),
+  { label: "رفع الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
   { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
 ];
 
-const teacherAdditionalLinks: SidebarLinkItem[] = [
-  { label: "رفع الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
-  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
-  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
-];
+const teacherPerformanceLinks: SidebarLinkItem[] = TEACHER_PERFORMANCE_SERVICES.map((service) => ({
+  label: service.title,
+  href: service.href,
+  icon: ClipboardList,
+  shortLabel: service.shortTitle,
+}));
 
 const teacherAccountLinks: SidebarLinkItem[] = [
   { label: "الباقات", href: "/dashboard/subscription", icon: WalletCards },
@@ -630,7 +755,7 @@ function TeacherSidebar({
           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
-        <SidebarSection title="مساحة المعلم" collapsed={collapsed}>
+        <SidebarSection title="خدمات المعلم" collapsed={collapsed}>
           {teacherServiceLinks.map((item) => (
             <SidebarLink
               key={item.href}
@@ -640,22 +765,6 @@ function TeacherSidebar({
             />
           ))}
         </SidebarSection>
-
-        <SidebarDropdown
-          title="تقييم أداء المعلم"
-          defaultOpen={teacherPerformanceLinks.some((item) => isActivePath(pathname, item.href))}
-          collapsed={collapsed}
-        >
-          {teacherPerformanceLinks.map((item) => (
-            <SidebarLink
-              key={item.href}
-              item={item}
-              active={isActivePath(pathname, item.href)}
-              compact
-              collapsed={collapsed}
-            />
-          ))}
-        </SidebarDropdown>
 
         <SidebarDropdown
           title="مركز التحليل والاختبارات"
@@ -678,11 +787,11 @@ function TeacherSidebar({
         </SidebarDropdown>
 
         <SidebarDropdown
-          title="خدمات إضافية"
-          defaultOpen={hasActive(pathname, teacherAdditionalLinks)}
+          title="تقييم أداء المعلم"
+          defaultOpen={teacherPerformanceLinks.some((item) => isActivePath(pathname, item.href))}
           collapsed={collapsed}
         >
-          {teacherAdditionalLinks.map((item) => (
+          {teacherPerformanceLinks.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}
@@ -692,7 +801,6 @@ function TeacherSidebar({
             />
           ))}
         </SidebarDropdown>
-
         <SidebarDropdown
           title="الحساب والباقات"
           defaultOpen={
@@ -953,3 +1061,639 @@ function SidebarLink({
     </Link>
   );
 }
+
+
+===== FILE: components\layout\dashboard-header.tsx =====
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { ThemeToggleButton } from "@/components/theme/theme-toggle-button";
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  UserRound,
+  WalletCards,
+} from "lucide-react";
+
+type DashboardHeaderProps = {
+  user?: {
+    name?: string | null;
+    officialName?: string | null;
+    gender?: string | null;
+    jobTitle?: string | null;
+    role?: string | null;
+    schoolAccount?: {
+      name?: string | null;
+      profile?: {
+        schoolName?: string | null;
+        logoUrl?: string | null;
+      } | null;
+    } | null;
+  } | null;
+};
+
+export function DashboardHeader({ user }: DashboardHeaderProps) {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+
+  const isActivityLeader =
+    user?.role === "ACTIVITY_LEADER" ||
+    pathname.startsWith("/dashboard/activity-leader");
+
+  const isTeacher =
+    user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
+
+  const displayName = user?.officialName || user?.name || "حسابي";
+
+  const avatar =
+    user?.schoolAccount?.profile?.logoUrl ||
+    (user?.gender === "FEMALE"
+      ? "/uploads/VD/girl.png"
+      : "/uploads/VD/boy.png");
+
+  const roleText = isAdmin
+    ? "مدير النظام"
+    : user?.jobTitle ||
+      (isActivityLeader
+        ? user?.gender === "FEMALE"
+          ? "رائدة النشاط"
+          : "رائد النشاط"
+        : isTeacher
+          ? user?.gender === "FEMALE"
+            ? "معلمة"
+            : "معلم"
+          : user?.gender === "FEMALE"
+            ? "موجهة طلابية"
+            : "موجه طلابي");
+
+  const searchPlaceholder = isAdmin
+    ? "ابحث عن حساب، باقة، طلب تفعيل، Workflow..."
+    : isActivityLeader
+      ? "ابحث عن برنامج، فعالية، مشاركة أو تقرير نشاط..."
+      : isTeacher
+        ? "ابحث في مساحة المعلم..."
+        : "ابحث عن طالب، خدمة، حالة أو تقرير...";
+
+  const headerBadgeText = isAdmin
+    ? "Admin Center"
+    : isActivityLeader
+      ? "رياضة النشاط"
+      : isTeacher
+        ? "مساحة المعلم"
+        : "";
+
+  async function logout() {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    window.location.href = "/login";
+  }
+
+  return (
+    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7faff]/85 px-4 py-2.5 backdrop-blur-xl dark:border-slate-800 dark:bg-[#070b18]/88">
+      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4">
+        <div className="hidden min-w-[360px] max-w-2xl flex-1 lg:block">
+          <div className="relative">
+            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <input
+              suppressHydrationWarning
+              type="search"
+              placeholder={searchPlaceholder}
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-12 text-[15px] font-bold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-200 focus:ring-4 focus:ring-sky-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-sky-500/50 dark:focus:ring-sky-500/10"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center gap-2 lg:flex-none">
+          {headerBadgeText ? (
+            <div
+              className={[
+                "hidden items-center gap-2 rounded-2xl border bg-white px-4 py-2 text-[13px] font-black shadow-sm md:flex dark:border-slate-800 dark:bg-slate-950",
+                isAdmin
+                  ? "border-slate-200 text-slate-700 dark:text-slate-200"
+                  : "border-slate-200 text-slate-500 dark:text-slate-300",
+              ].join(" ")}
+            >
+              {isAdmin ? (
+                <ShieldCheck className="h-4 w-4 text-slate-900 dark:text-white" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-sky-500" />
+              )}
+              {headerBadgeText}
+            </div>
+          ) : null}
+
+          <ThemeToggleButton />
+
+          <button
+            type="button"
+            className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-sky-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-sky-300"
+            aria-label="الإشعارات"
+          >
+            <Bell className="h-5 w-5" />
+            <span className="absolute -left-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">
+              4
+            </span>
+          </button>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((value) => !value)}
+              className="group flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm shadow-slate-200/60 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/70 hover:shadow-lg hover:shadow-sky-100 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 dark:hover:border-sky-500/40 dark:hover:bg-slate-900 dark:hover:shadow-black/40"
+            >
+              <div className="h-8 w-8 overflow-hidden rounded-xl bg-sky-50 ring-2 ring-transparent transition group-hover:ring-sky-200 dark:bg-sky-500/10 dark:group-hover:ring-sky-400/30">
+                {avatar ? (
+                  <img
+                    src={avatar}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserRound className="h-5 w-5" />
+                )}
+              </div>
+
+              <div className="hidden max-w-[140px] text-right sm:block">
+                <p className="truncate text-[13px] font-black text-slate-900 dark:text-white">
+                  {displayName}
+                </p>
+                <p className="truncate text-[12px] font-bold text-slate-400 dark:text-slate-500">
+                  {roleText}
+                </p>
+              </div>
+
+              <ChevronDown
+                className={[
+                  "h-4 w-4 text-slate-400 transition dark:text-slate-500",
+                  menuOpen ? "rotate-180" : "",
+                ].join(" ")}
+              />
+            </button>
+
+            {menuOpen ? (
+              <div className="absolute left-0 top-14 z-50 w-72 overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/95 p-2 text-right shadow-2xl shadow-slate-300/60 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/40">
+                <div className="border-b border-slate-100 px-3 py-3 dark:border-slate-800">
+                  <p className="truncate text-sm font-black text-slate-950 dark:text-white">
+                    {displayName}
+                  </p>
+                  <p className="mt-1 truncate text-xs font-bold text-slate-400 dark:text-slate-500">
+                    {roleText}
+                  </p>
+                </div>
+
+                <div className="py-2">
+                  <HeaderMenuLink
+                    href="/dashboard/account"
+                    icon={<UserRound className="h-4 w-4" />}
+                    label={isAdmin ? "حساب الأدمن" : "حسابي والجلسات"}
+                  />
+
+                  {!isAdmin ? (
+                    <HeaderMenuLink
+                      href="/dashboard/subscription"
+                      icon={<WalletCards className="h-4 w-4" />}
+                      label="الباقات"
+                    />
+                  ) : null}
+                </div>
+
+                <div className="border-t border-slate-100 pt-2 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="flex w-full items-center gap-2 rounded-2xl px-3 py-2.5 text-right text-xs font-bold text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-200"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    تسجيل الخروج
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function HeaderMenuLink({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-black text-slate-600 transition hover:bg-sky-50 hover:text-sky-700 dark:text-slate-300 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
+    >
+      <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-50 text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+        {icon}
+      </span>
+      {label}
+    </Link>
+  );
+}
+
+
+===== NOT FOUND: components\layout\mobile-sidebar.tsx =====
+
+===== NOT FOUND: components\layout\sidebar-menu.tsx =====
+
+===== FILE: lib\security\permissions.ts =====
+import type { UserRole } from "./roles";
+
+export const PERMISSIONS = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "workflows:read",
+  "workflows:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "cases:close",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+  "subscription:manage",
+  "admin:manage",
+] as const;
+
+export type Permission = (typeof PERMISSIONS)[number];
+
+const COUNSELOR_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+];
+
+const ACTIVITY_LEADER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "subscription:read",
+];
+
+const TEACHER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "subscription:read",
+];
+
+const STAFF_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "cases:read",
+  "evidence:read",
+  "reports:read",
+  "results-analysis:read",
+  "subscription:read",
+];
+
+const SCHOOL_OWNER_PERMISSIONS: Permission[] = [
+  ...COUNSELOR_PERMISSIONS,
+  "workflows:read",
+  "subscription:manage",
+];
+
+const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  ADMIN: [...PERMISSIONS],
+  COUNSELOR: COUNSELOR_PERMISSIONS,
+  ACTIVITY_LEADER: ACTIVITY_LEADER_PERMISSIONS,
+  TEACHER: TEACHER_PERMISSIONS,
+  SCHOOL_OWNER: SCHOOL_OWNER_PERMISSIONS,
+  STAFF: STAFF_PERMISSIONS,
+};
+
+export function hasPermission(role: UserRole, permission: Permission) {
+  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+export function getRolePermissions(role: UserRole) {
+  return ROLE_PERMISSIONS[role] ?? [];
+}
+
+
+===== FILE: lib\auth\current-user.ts =====
+import { cookies, headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "@/lib/auth/session";
+
+export async function getCurrentSessionUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const sessionPayload = verifySessionToken(token);
+
+  if (!sessionPayload) {
+    return null;
+  }
+
+  const session = await prisma.userSession.findUnique({
+    where: {
+      tokenId: sessionPayload.tokenId,
+    },
+    include: {
+      user: {
+        include: {
+          schoolAccount: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!session || !session.isActive || session.revokedAt) {
+    return null;
+  }
+
+  if (session.expiresAt.getTime() < Date.now()) {
+    await prisma.userSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+      },
+    });
+
+    return null;
+  }
+
+  await prisma.userSession.update({
+    where: {
+      id: session.id,
+    },
+    data: {
+      lastSeenAt: new Date(),
+    },
+  });
+
+  return {
+    session,
+    user: session.user,
+  };
+}
+
+export async function getRequestDeviceInfo() {
+  const headerStore = await headers();
+
+  return {
+    userAgent: headerStore.get("user-agent") || null,
+    ipAddress:
+      headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headerStore.get("x-real-ip") ||
+      null,
+  };
+}
+
+
+===== FILE: lib\auth\require-auth.ts =====
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export async function requireDashboardUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    redirect("/login");
+  }
+
+  return current;
+}
+
+export async function requireCompletedOnboarding() {
+  const current = await requireDashboardUser();
+
+  if (!current.user.onboardingCompleted) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return current;
+}
+
+
+===== FILE: lib\constants\services.ts =====
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+import {
+  ACTIVITY_PROGRAM_PARENT_SERVICE,
+  ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+} from "@/lib/activity-programs/activity-program-catalog";
+import { TEACHER_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+
+export type AppService = {
+  slug: string;
+  title: string;
+  description: string;
+  href: string;
+  kind: "workflow" | "standalone" | "admin";
+};
+
+export const workflowServices: AppService[] = [
+  ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+  ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES,
+  {
+    slug: "teacher-report-issuance",
+    title: "إصدار تقرير",
+    description: "خدمة للمعلم لإصدار تقرير عبر نموذج Workflow منشور من الأدمن.",
+    href: "/dashboard/teacher/report-issuance",
+    kind: "workflow",
+  },
+  {
+    slug: "guidance-programs",
+    title: "البرامج الإرشادية",
+    description: "إدارة البرامج الإرشادية وخطط التنفيذ.",
+    href: "/dashboard/guidance-programs",
+    kind: "workflow",
+  },
+  {
+    slug: "student-follow-up",
+    title: "متابعة الطلاب",
+    description: "متابعة الطلاب والحالات الطلابية.",
+    href: "/dashboard/student-follow-up",
+    kind: "workflow",
+  },
+  {
+    slug: "committees-meetings",
+    title: "اللجان والاجتماعات",
+    description: "إدارة محاضر اللجان والاجتماعات والتوصيات.",
+    href: "/dashboard/committees-meetings",
+    kind: "workflow",
+  },
+  {
+    slug: "family-school-communication",
+    title: "التواصل بين الأسرة والمدرسة",
+    description: "توثيق التواصل بين الأسرة والمدرسة.",
+    href: "/dashboard/family-school-communication",
+    kind: "workflow",
+  },
+  {
+    slug: "student-guidance-services",
+    title: "الخدمات الإرشادية المقدمة للطلاب",
+    description: "إدارة الخدمات الإرشادية المقدمة للطلاب.",
+    href: "/dashboard/student-guidance-services",
+    kind: "workflow",
+  },
+];
+
+export const smartInterventionWorkflowServices: AppService[] = [
+  {
+    slug: "smart-student-support",
+    title: "تدخل فردي ذكي",
+    description: "Workflow مستقل للتدخلات الفردية الناتجة من مركز التحليل.",
+    href: "/dashboard/smart-student-support",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-student-excellence",
+    title: "تعزيز وتميز ذكي",
+    description: "Workflow مستقل لرعاية الطلاب المتميزين وتعزيزهم.",
+    href: "/dashboard/smart-student-excellence",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-student-group-custom",
+    title: "خطة جماعية مخصصة",
+    description: "Workflow مستقل لخطة جماعية يحدد المستخدم طلابها يدويًا.",
+    href: "/dashboard/smart-student-group-custom",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-student-group-subject",
+    title: "خطة جماعية حسب مادة",
+    description: "Workflow مستقل لمجموعة طلاب لديهم ضعف مشترك في مادة.",
+    href: "/dashboard/smart-student-group-subject",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-classroom-support",
+    title: "خطة فصل ذكية",
+    description: "Workflow مستقل للتدخلات الصفية على مستوى الفصل.",
+    href: "/dashboard/smart-classroom-support",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-grade-support",
+    title: "خطة صف دراسي ذكية",
+    description: "Workflow مستقل للتدخلات على مستوى الصف الدراسي.",
+    href: "/dashboard/smart-grade-support",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-subject-support",
+    title: "تدخل علاجي لمادة",
+    description: "Workflow مستقل للتدخلات العلاجية على مستوى المادة.",
+    href: "/dashboard/smart-subject-support",
+    kind: "workflow",
+  },
+];
+
+export const SMART_INTERVENTION_SERVICE_SLUGS = smartInterventionWorkflowServices.map(
+  (service) => service.slug,
+);
+
+export const SMART_INTERVENTION_TARGET_SERVICE_SLUG_BY_TYPE: Record<string, string> = {
+  STUDENT_SUPPORT: "smart-student-support",
+  STUDENT_EXCELLENCE: "smart-student-excellence",
+  STUDENT_GROUP_CUSTOM: "smart-student-group-custom",
+  STUDENT_GROUP_SUBJECT: "smart-student-group-subject",
+  CLASSROOM_SUPPORT: "smart-classroom-support",
+  GRADE_SUPPORT: "smart-grade-support",
+  SUBJECT_SUPPORT: "smart-subject-support",
+};
+
+export const workflowUploadServices: AppService[] = [
+  ...workflowServices,
+  ...smartInterventionWorkflowServices,
+];
+
+export const standaloneServices: AppService[] = [
+  ACTIVITY_PROGRAM_PARENT_SERVICE,
+  {
+    slug: "comprehensive-reference",
+    title: "المرجع الشامل للموجه الطلابي",
+    description: "مرجع شامل للموجه الطلابي لمتابعة بيانات الطلاب وسجلاتهم.",
+    href: "/dashboard/comprehensive-reference",
+    kind: "standalone",
+  },
+  {
+    slug: "surveys",
+    title: "الاستبيانات",
+    description: "إنشاء الاستبيانات ونشرها وتحليل ردود المستفيدين.",
+    href: OFFICIAL_WORKSPACE_ROUTES.surveys,
+    kind: "standalone",
+  },
+  {
+    slug: "results-analysis",
+    title: "تحليل النتائج",
+    description: "رفع وتحليل نتائج الطلاب.",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    kind: "standalone",
+  },
+  {
+    slug: "assessment-center",
+    title: "مركز التحليل والاختبارات",
+    description: "تحليل نتائج الطلاب والاختبارات، وربطها بالتدخلات والخطط الذكية.",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    kind: "standalone",
+  },
+  {
+    slug: "reports",
+    title: "التقارير",
+    description: "إنشاء ومعاينة واعتماد التقارير.",
+    href: OFFICIAL_WORKSPACE_ROUTES.reports,
+    kind: "standalone",
+  },
+  {
+    slug: "custom-report",
+    title: "التقرير المخصص",
+    description: "إنشاء تقارير مخصصة ومرنة حسب احتياج المدرسة.",
+    href: "/dashboard/custom-report",
+    kind: "standalone",
+  },
+];
+
+export const dashboardServices = [
+  ...workflowServices,
+  ...standaloneServices,
+];
