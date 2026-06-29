@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BarChart3, MoreVertical, Send, Share2 } from "lucide-react";
 import {
   surveyAudienceLabels,
   type SurveyBoardRole,
@@ -99,6 +100,7 @@ export function SurveyCenterShell({
   boardPath,
 }: SurveyCenterShellProps) {
   const router = useRouter();
+  const loadRequestIdRef = useRef(0);
   const [surveys, setSurveys] = useState<SurveyListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -122,32 +124,79 @@ export function SurveyCenterShell({
   }, [surveys]);
 
   async function loadSurveys() {
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
+
     setIsLoading(true);
     setError(null);
 
-    const params = new URLSearchParams({
-      ownerRole,
-      boardPath,
-    });
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(`/api/dashboard/surveys?${params.toString()}`, {
-      cache: "no-store",
-    });
+    try {
+      const params = new URLSearchParams({
+        ownerRole,
+        boardPath,
+      });
 
-    const data = await response.json().catch(() => null);
+      const response = await fetch(`/api/dashboard/surveys?${params.toString()}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
 
-    setIsLoading(false);
+      const data = await response.json().catch(() => null);
 
-    if (!response.ok) {
-      setError(data?.error || "تعذر تحميل الاستبيانات.");
-      return;
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      if (!response.ok) {
+        setError(data?.error || "تعذر تحميل الاستبيانات.");
+        setSurveys([]);
+        return;
+      }
+
+      setSurveys(Array.isArray(data?.surveys) ? data.surveys : []);
+    } catch {
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      setError("تعذر تحميل الاستبيانات.");
+      setSurveys([]);
+    } finally {
+      window.clearTimeout(timeoutId);
+
+      if (loadRequestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
-
-    setSurveys(data?.surveys || []);
   }
 
   useEffect(() => {
-    loadSurveys();
+    void loadSurveys();
+  }, [ownerRole, boardPath]);
+
+  useEffect(() => {
+    function refreshOnReturn() {
+      void loadSurveys();
+    }
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") {
+        void loadSurveys();
+      }
+    }
+
+    window.addEventListener("pageshow", refreshOnReturn);
+    window.addEventListener("dashboard:navigation-refresh", refreshOnReturn);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.removeEventListener("pageshow", refreshOnReturn);
+      window.removeEventListener("dashboard:navigation-refresh", refreshOnReturn);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [ownerRole, boardPath]);
 
   function resetCreateForm() {
@@ -369,8 +418,108 @@ export function SurveyCenterShell({
           {surveys.map((survey) => (
             <article
               key={survey.id}
-              className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 shadow-sm"
+              className="relative rounded-[2rem] border border-slate-200 bg-slate-50 p-5 shadow-sm"
             >
+              <div className="absolute left-5 top-5 z-20 flex items-center gap-1.5">
+                {survey.status === "DRAFT" ? (
+                  <button
+                    type="button"
+                    onClick={() => void updateSurveyStatus(survey.id, "publish")}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:border-emerald-300 focus-visible:bg-emerald-50 focus-visible:outline-none"
+                    title="نشر"
+                    aria-label="نشر"
+                  >
+                    <Send className="h-4.5 w-4.5" />
+                  </button>
+                ) : null}
+
+                <a
+                  href={`${boardPath}/${survey.id}/analysis`}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-sky-700 transition hover:border-sky-200 hover:bg-sky-50 focus-visible:border-sky-300 focus-visible:bg-sky-50 focus-visible:outline-none"
+                  title="تحليل"
+                  aria-label="تحليل"
+                >
+                  <BarChart3 className="h-4.5 w-4.5" />
+                </a>
+
+                <a
+                  href={`${boardPath}/${survey.id}/share`}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:border-emerald-300 focus-visible:bg-emerald-50 focus-visible:outline-none"
+                  title="مشاركة"
+                  aria-label="مشاركة"
+                >
+                  <Share2 className="h-4.5 w-4.5" />
+                </a>
+
+                <div className="group relative">
+                  <button
+                    type="button"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:border-slate-300 focus-visible:bg-slate-50 focus-visible:outline-none"
+                    title="المزيد"
+                    aria-label="المزيد"
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                  </button>
+
+                  <div className="pointer-events-none invisible absolute left-0 top-12 z-30 w-44 translate-y-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 text-right opacity-0 shadow-xl transition-all duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                    <a
+                      href={`${boardPath}/${survey.id}/responses`}
+                      className="block rounded-xl px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                    >
+                      الردود
+                    </a>
+
+                    {survey.status === "DRAFT" ? (
+                      <a
+                        href={`${boardPath}/${survey.id}/edit`}
+                        className="block rounded-xl px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                      >
+                        تعديل
+                      </a>
+                    ) : null}
+
+                    {survey.status === "PUBLISHED" ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => void copySurveyLink(survey.token)}
+                          className="block w-full rounded-xl px-3 py-2 text-right text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                        >
+                          نسخ الرابط
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => void updateSurveyStatus(survey.id, "close")}
+                          className="block w-full rounded-xl px-3 py-2 text-right text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                        >
+                          إغلاق
+                        </button>
+                      </>
+                    ) : null}
+
+                    {survey.status !== "ARCHIVED" ? (
+                      <button
+                        type="button"
+                        onClick={() => void updateSurveyStatus(survey.id, "archive")}
+                        className="block w-full rounded-xl px-3 py-2 text-right text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                      >
+                        أرشفة
+                      </button>
+                    ) : null}
+
+                    {survey.status === "DRAFT" ? (
+                      <button
+                        type="button"
+                        onClick={() => void deleteSurvey(survey.id)}
+                        className="block w-full rounded-xl px-3 py-2 text-right text-xs font-black text-rose-700 transition hover:bg-rose-50"
+                      >
+                        حذف
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap gap-2">
@@ -409,91 +558,6 @@ export function SurveyCenterShell({
                 <span>{survey._count?.responses || 0} رد</span>
               </div>
 
-              <div className="mt-5 border-t border-slate-200 pt-4">
-                <div className="flex flex-wrap gap-2">
-                  <a
-                    href={`${boardPath}/${survey.id}/analysis`}
-                    className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-xs font-black text-sky-700 transition hover:bg-sky-100"
-                  >
-                    تحليل
-                  </a>
-
-                  <a
-                    href={`${boardPath}/${survey.id}/responses`}
-                    className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-xs font-black text-indigo-700 transition hover:bg-indigo-100"
-                  >
-                    الردود
-                  </a>
-
-                  <a
-                    href={`${boardPath}/${survey.id}/share`}
-                    className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
-                  >
-                    مشاركة
-                  </a>
-
-                  {survey.status === "DRAFT" ? (
-                    <a
-                      href={`${boardPath}/${survey.id}/edit`}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-                    >
-                      تعديل
-                    </a>
-                  ) : null}
-
-                  {survey.status === "PUBLISHED" ? (
-                    <button
-                      type="button"
-                      onClick={() => copySurveyLink(survey.token)}
-                      className="rounded-2xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white transition hover:bg-slate-800"
-                    >
-                      نسخ الرابط
-                    </button>
-                  ) : null}
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {survey.status === "DRAFT" ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => updateSurveyStatus(survey.id, "publish")}
-                        className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white transition hover:bg-emerald-800"
-                      >
-                        نشر
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => deleteSurvey(survey.id)}
-                        className="rounded-2xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-black text-rose-700 transition hover:bg-rose-50"
-                      >
-                        حذف
-                      </button>
-                    </>
-                  ) : null}
-
-                  {survey.status === "PUBLISHED" ? (
-                    <button
-                      type="button"
-                      onClick={() => updateSurveyStatus(survey.id, "close")}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-                    >
-                      إغلاق
-                    </button>
-                  ) : null}
-
-                  {survey.status !== "ARCHIVED" ? (
-                    <button
-                      type="button"
-                      onClick={() => updateSurveyStatus(survey.id, "archive")}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-                    >
-                      أرشفة
-                    </button>
-                  ) : null}
-                </div>
-              </div>
             </article>
           ))}
         </div>

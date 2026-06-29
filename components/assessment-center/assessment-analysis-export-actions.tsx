@@ -1,7 +1,6 @@
 "use client";
 
-import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
-import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+import { ChevronDown, Link2 } from "lucide-react";
 
 type Props = {
   analysisId: string;
@@ -11,54 +10,33 @@ type Props = {
 export function AssessmentAnalysisExportActions({
   analysisId,
 }: Props) {
-  const {
-    status,
-    modal,
-    runPrintExport,
-    openFallbackPrintUrl,
-    closeModal,
-  } = usePrintExportAction();
-
-  const isLoading = status === "loading";
-
-  async function openAssessmentPdf() {
-    if (isLoading) return;
-
-    await runPrintExport({
-      printUrl: `/api/dashboard/assessment-center/${analysisId}/export?format=pdf&print=1`,
-      blockedTitle: "معاينة طباعة تقرير التحليل",
-      blockedMessage:
-        "تم حظر فتح معاينة الطباعة تلقائيًا. استخدم الزر أدناه لفتح تقرير التحليل في تبويب جديد.",
-      errorTitle: "تصدير PDF",
-      errorMessage: "تعذر فتح تقرير التحليل للطباعة. حاول مرة أخرى.",
-    });
-  }
-
   return (
     <>
       <a
-        href={`/api/dashboard/assessment-center/${analysisId}/export?format=excel`}
-        className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-700 transition hover:bg-cyan-50"
+        href={`/api/dashboard/assessment-center/${analysisId}/export?format=pdf&print=1`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex h-10 min-w-[82px] items-center justify-center gap-1.5 rounded-full bg-white px-4 text-sm font-black text-sky-800 shadow-sm transition hover:bg-sky-50"
       >
-        Excel
+        <span>PDF</span>
+        <ChevronDown className="h-3.5 w-3.5 opacity-80" />
       </a>
 
-      <button
-        type="button"
-        disabled={isLoading}
-        onClick={() => {
-          void openAssessmentPdf();
-        }}
-        className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/15 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+      <a
+        href={`/api/dashboard/assessment-center/${analysisId}/export?format=excel`}
+        className="inline-flex h-10 min-w-[92px] items-center justify-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-4 text-sm font-black text-white shadow-sm transition hover:bg-white/20"
       >
-        {isLoading ? "جاري فتح PDF..." : "PDF"}
-      </button>
+        <span>Excel</span>
+        <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+      </a>
 
-      <PrintExportPopCard
-        modal={modal}
-        onClose={closeModal}
-        onOpenFallback={openFallbackPrintUrl}
-      />
+      <a
+        href="/dashboard/assessment-center/report-linking"
+        className="inline-flex h-10 min-w-[132px] items-center justify-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 text-sm font-black text-white shadow-sm transition hover:bg-white/20"
+      >
+        <span>ربط التقارير</span>
+        <Link2 className="h-3.5 w-3.5 opacity-90" />
+      </a>
     </>
   );
 }

@@ -1,127 +1,62 @@
-"use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Link2, BarChart3, CheckCircle2, ListChecks, MessageCircle } from "lucide-react";
-import Link from "next/link";
-import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
-import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+============================================================
+components\assessment-center\assessment-analysis-detail.tsx
+============================================================
+
+---- MATCH ----
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { surveyAudienceLabels } from "@/lib/surveys/survey-config";
+  BarChart3,
+  FileSpreadsheet,
+  Lightbulb,
+  UsersRound,
+} from "lucide-react";
+import type {
+  AssessmentAnalysisSummary,
+  AssessmentResultRow,
+} from "@/lib/assessment-center/assessment-center-types";
+import { AssessmentAnalysisReadingPanel } from "./assessment-analysis-reading-panel";
+import { AssessmentAnalysisExportActions } from "./assessment-analysis-export-actions";
 
-type OptionCount = {
-  label: string;
-  count: number;
-  percentage: number;
-};
-
-type TextSample = {
-  value: string;
-  submittedAt: string;
-};
-
-type AnalysisQuestion = {
-  id: string;
-  label: string;
-  type: string;
-  isRequired: boolean;
-  totalResponses: number;
-  answeredCount: number;
-  emptyCount: number;
-  answerRate: number;
-  average: number | null;
-  min: number | null;
-  max: number | null;
-  optionCounts: OptionCount[];
-  textSamples: TextSample[];
-};
-
-type SurveyAnalysis = {
-  survey: {
+type Props = {
+  analysis: {
     id: string;
     title: string;
-    description?: string | null;
-    status: string;
-    token: string;
-    audienceType: string;
-    isAnonymous: boolean;
-    publishedAt?: string | null;
+    sourceFile?: string | null;
+    totalStudents: number;
+    totalRows: number;
+    totalSubjects: number;
+    averagePercentage?: number | null;
+    createdAt: Date;
+    summaryJson?: unknown;
+    rowsJson?: unknown;
   };
-  totals: {
-    questions: number;
-    responses: number;
-    completedRequiredResponses: number;
-    completionRate: number;
-  };
-  questions: AnalysisQuestion[];
 };
 
-type SurveyAnalysisShellProps = {
-  surveyId: string;
-  boardPath: string;
-};
-
-const chartColors = ["#0284c7", "#059669", "#f59e0b", "#e11d48", "#7c3aed", "#0f172a", "#0891b2"];
-
-function statusLabel(status: string) {
-  if (status === "DRAFT") return "مسودة";
-  if (status === "PUBLISHED") return "منشور";
-  if (status === "CLOSED") return "مغلق";
-  if (status === "ARCHIVED") return "مؤرشف";
-  return status;
+function asSummary(value: unknown): AssessmentAnalysisSummary | null {
+  if (!value || typeof value !== "object") return null;
+  return value as AssessmentAnalysisSummary;
 }
 
-function questionTypeLabel(type: string) {
-  if (type === "TEXT") return "إجابة قصيرة";
-  if (type === "TEXTAREA") return "إجابة طويلة";
-  if (type === "SINGLE_CHOICE") return "اختيار واحد";
-  if (type === "MULTIPLE_CHOICE") return "اختيارات متعددة";
-  if (type === "YES_NO") return "نعم / لا";
-  if (type === "RATING") return "تقييم";
-  if (type === "SCALE") return "مقياس رقمي";
-  if (type === "NUMBER") return "رقم";
-  if (type === "DATE") return "تاريخ";
-  return type;
+function asRows(value: unknown): AssessmentResultRow[] {
+  if (!Array.isArray(value)) return [];
+  return value as AssessmentResultRow[];
 }
 
-function isChoiceQuestion(type: string) {
-  return type === "YES_NO" || type === "SINGLE_CHOICE" || type === "MULTIPLE_CHOICE";
-}
-
-function isNumericQuestion(type: string) {
-  return type === "RATING" || type === "SCALE" || type === "NUMBER";
-}
-
-function SurveyMetricCard({
+function MetricCard({
   label,
   value,
   icon: Icon,
-  valueClassName = "text-slate-950",
 }: {
   label: string;
   value: number | string;
-  icon: typeof MessageCircle;
-  valueClassName?: string;
+  icon: typeof UsersRound;
 }) {
   return (
     <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[8px] font-black leading-4 text-slate-400">{label}</p>
-          <p className={["mt-2 text-[28px] font-black leading-tight", valueClassName].join(" ")}>
-            {value}
-          </p>
+          <p className="text-sm font-black text-slate-400">{label}</p>
+          <p className="mt-3 text-4xl font-black text-slate-950">{value}</p>
         </div>
 
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-50 text-cyan-600">
@@ -131,111 +66,78 @@ function SurveyMetricCard({
     </article>
   );
 }
-export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShellProps) {
-  const [analysis, setAnalysis] = useState<SurveyAnalysis | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [selectedReportQuestionIds, setSelectedReportQuestionIds] = useState<string[]>([]);
-  const {
-    status: printExportStatus,
-    modal: printExportModal,
-    runPrintExport,
-    openFallbackPrintUrl,
-    closeModal,
-  } = usePrintExportAction();
 
-  const numericQuestions = useMemo(
-    () => analysis?.questions.filter((question) => question.average !== null) || [],
-    [analysis],
+export function AssessmentAnalysisDetail({ analysis }: Props) {
+  const summary = asSummary(analysis.summaryJson);
+  const rows = asRows(analysis.rowsJson);
+
+  const kpis = [
+    {
+      label: "الطلاب",
+      value: analysis.totalStudents,
+      icon: UsersRound,
+    },
+    {
+      label: "المواد",
+      value: analysis.totalSubjects,
+      icon: FileSpreadsheet,
+    },
+    {
+      label: "المتوسط",
+      value: `${Math.round(Number(analysis.averagePercentage || 0))}%`,
+      icon: BarChart3,
+    },
+    {
+      label: "يحتاجون متابعة",
+      value: summary?.riskStudentsCount || 0,
+      icon: Lightbulb,
+    },
+  ];
+
+  return (
+    <main className="space-y-8">
+      <section className="rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-700 p-8 text-white shadow-2xl">        <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <h1 className="text-4xl font-black leading-tight md:text-5xl">
+            {analysis.title}
+          </h1>
+
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <AssessmentAnalysisExportActions
+              analysisId={analysis.id}
+              analysisTitle={analysis.title}
+            />
+          </div>
+        </div>
+
+        <p className="mt-4 text-sm font-bold leading-7 text-cyan-50/90">
+          {analysis.sourceFile || "ملف غير محدد"} •{" "}
+          {analysis.createdAt.toLocaleDateString("ar-SA")}
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((item) => (
+          <MetricCard
+            key={item.label}
+            label={item.label}
+            value={item.value}
+            icon={item.icon}
+          />
+        ))}
+      </section>
+
+      <AssessmentAnalysisReadingPanel rows={rows} summary={summary} />
+    </main>
   );
+}
 
-  const choiceQuestions = useMemo(
-    () =>
-      analysis?.questions.filter(
-        (question) => isChoiceQuestion(question.type) && question.optionCounts.some((option) => option.count > 0),
-      ) || [],
-    [analysis],
-  );
 
-  async function loadAnalysis() {
-    setIsLoading(true);
-    setError(null);
+============================================================
+components\surveys\survey-analysis-shell.tsx
+============================================================
 
-    const response = await fetch(`/api/dashboard/surveys/${surveyId}/analysis`, {
-      cache: "no-store",
-    });
-
-    const data = await response.json().catch(() => null);
-
-    setIsLoading(false);
-
-    if (!response.ok) {
-      setError(data?.error || "تعذر تحميل تحليل الاستبيان.");
-      return;
-    }
-
-    setAnalysis(data);
-  }
-
-  useEffect(() => {
-    loadAnalysis();
-  }, [surveyId]);
-
-  useEffect(() => {
-    if (!analysis?.questions.length) return;
-
-    setSelectedReportQuestionIds((previous) => {
-      const validIds = new Set(analysis.questions.map((question) => question.id));
-      const keptIds = previous.filter((questionId) => validIds.has(questionId));
-
-      if (keptIds.length) {
-        return keptIds;
-      }
-
-      return analysis.questions
-        .slice(0, Math.min(analysis.questions.length, 6))
-        .map((question) => question.id);
-    });
-  }, [analysis]);
-
-  async function copySurveyLink() {
-    if (!analysis?.survey.token) return;
-
-    const url = `${window.location.origin}/survey/${analysis.survey.token}`;
-    await navigator.clipboard.writeText(url);
-    setFeedback("تم نسخ رابط الاستبيان.");
-  }
-
-  function exportSurveyExcel() {
-    window.location.href = `/api/dashboard/surveys/${surveyId}/export`;
-  }
-
-  function toggleReportQuestion(questionId: string) {
-    setSelectedReportQuestionIds((previous) => {
-      if (previous.includes(questionId)) {
-        return previous.filter((item) => item !== questionId);
-      }
-
-      if (previous.length >= 10) {
-        setFeedback("التقرير الرسمي صفحة واحدة، لذلك اختر 10 أسئلة كحد أقصى.");
-        return previous;
-      }
-
-      return [...previous, questionId];
-    });
-  }
-
-  function selectAllReportQuestions() {
-    if (!analysis?.questions.length) return;
-
-    setSelectedReportQuestionIds(
-      analysis.questions
-        .slice(0, Math.min(analysis.questions.length, 10))
-        .map((question) => question.id),
-    );
-
-    if (analysis.questions.length > 10) {
+---- MATCH ----
+.questions.length > 10) {
       setFeedback("تم اختيار أول 10 أسئلة فقط لأن التقرير صفحة واحدة.");
     }
   }
@@ -353,7 +255,10 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
               {selectedReportQuestionIds.length} محدد
             </span>
 
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-lg font-black text-slate-500 transition group-open:rotate-180">
+            <s
+
+---- MATCH ----
+pan className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-lg font-black text-slate-500 transition group-open:rotate-180">
               ˅
             </span>
           </div>
@@ -429,34 +334,32 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
           </div>
         </div>
       </details>
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SurveyMetricCard
-          label="عدد الردود"
-          value={analysis.totals.responses}
-          icon={MessageCircle}
-        />
+      <section className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">عدد الردود</p>
+          <p className="mt-2 text-3xl font-bold text-slate-950">{analysis.totals.responses}</p>
+        </div
 
-        <SurveyMetricCard
-          label="عدد الأسئلة"
-          value={analysis.totals.questions}
-          icon={ListChecks}
-        />
+---- MATCH ----
+>
 
-        <SurveyMetricCard
-          label="اكتمال الأسئلة المطلوبة"
-          value={`${analysis.totals.completionRate}%`}
-          icon={CheckCircle2}
-          valueClassName="text-emerald-700"
-        />
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">عدد الأسئلة</p>
+          <p className="mt-2 text-3xl font-bold text-slate-950">{analysis.totals.questions}</p>
+        </div>
 
-        <SurveyMetricCard
-          label="أسئلة قابلة للرسم"
-          value={numericQuestions.length + choiceQuestions.length}
-          icon={BarChart3}
-          valueClassName="text-sky-700"
-        />
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">اكتمال الأسئلة المطلوبة</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-700">{analysis.totals.completionRate}%</p>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">أسئلة قابلة للرسم</p>
+          <p className="mt-2 text-3xl font-bold text-sky-700">{numericQuestions.length + choiceQuestions.length}</p>
+        </div>
       </section>
-<section className="grid gap-4 xl:grid-cols-2">
+
+      <section className="grid gap-4 xl:grid-cols-2">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <h2 className="text-lg font-bold text-slate-950">متوسط الأسئلة الرقمية</h2>
           <p className="mt-1 text-sm text-slate-500">يعرض متوسط التقييم والمقاييس الرقمية داخل الاستبيان.</p>
@@ -527,7 +430,10 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
           {analysis.questions.map((question, index) => {
             const choiceData = question.optionCounts.filter((option) => option.count > 0);
             const numericData =
-              question.average !== null
+              question.average
+
+---- MATCH ----
+ !== null
                 ? [
                     { name: "أقل قيمة", value: question.min || 0 },
                     { name: "المتوسط", value: question.average || 0 },
@@ -578,7 +484,10 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
                       <p className="text-xs text-slate-500">المتوسط</p>
                       <p className="mt-1 text-2xl font-bold text-slate-950">{question.average}</p>
                     </div>
-                    <div className="rounded-2xl bg-white p-4">
+                    <div className="rounded
+
+---- MATCH ----
+-2xl bg-white p-4">
                       <p className="text-xs text-slate-500">أقل قيمة</p>
                       <p className="mt-1 text-2xl font-bold text-slate-950">{question.min}</p>
                     </div>
@@ -660,20 +569,4 @@ export function SurveyAnalysisShell({ surveyId, boardPath }: SurveyAnalysisShell
                       >
                         {sample.value}
                       </div>
-                    ))}
-                  </div>
-                ) : null}
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <PrintExportPopCard
-        modal={printExportModal}
-        onClose={closeModal}
-        onOpenFallback={openFallbackPrintUrl}
-      />
-    </div>
-  );
-}
+        

@@ -1,11 +1,8 @@
-import Link from "next/link";
 import {
-  ArrowRight,
   BarChart3,
   FileSpreadsheet,
   Lightbulb,
   UsersRound,
-  Link2,
 } from "lucide-react";
 import type {
   AssessmentAnalysisSummary,
@@ -52,8 +49,8 @@ function MetricCard({
     <article className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-black text-slate-400">{label}</p>
-          <p className="mt-3 text-4xl font-black text-slate-950">{value}</p>
+          <p className="text-[8px] font-black leading-4 text-slate-400">{label}</p>
+          <p className="mt-2 text-[28px] font-black leading-tight text-slate-950">{value}</p>
         </div>
 
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-50 text-cyan-600">
@@ -93,33 +90,18 @@ export function AssessmentAnalysisDetail({ analysis }: Props) {
 
   return (
     <main className="space-y-8">
-      <section className="rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-700 p-8 text-white shadow-2xl">
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/dashboard/assessment-center"
-            className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-black text-cyan-50"
-          >
-            <ArrowRight className="h-4 w-4" />
-            العودة
-          </Link>
+      <section className="rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-700 p-8 text-white shadow-2xl">        <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <h1 className="text-4xl font-black leading-tight md:text-5xl">
+            {analysis.title}
+          </h1>
 
-          <AssessmentAnalysisExportActions
-            analysisId={analysis.id}
-            analysisTitle={analysis.title}
-          />
-
-          <Link
-            href="/dashboard/assessment-center/report-linking"
-            className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-4 py-2 text-sm font-black text-cyan-50 transition hover:bg-white/20"
-          >
-            <Link2 className="h-4 w-4" />
-            ربط التقارير
-          </Link>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <AssessmentAnalysisExportActions
+              analysisId={analysis.id}
+              analysisTitle={analysis.title}
+            />
+          </div>
         </div>
-
-        <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
-          {analysis.title}
-        </h1>
 
         <p className="mt-4 text-sm font-bold leading-7 text-cyan-50/90">
           {analysis.sourceFile || "ملف غير محدد"} •{" "}

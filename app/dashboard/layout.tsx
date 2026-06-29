@@ -4,6 +4,7 @@ import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { DashboardOnboardingReminder } from "@/components/auth/dashboard-onboarding-reminder";
 import { CalendarLoginPopup } from "@/components/calendar/calendar-login-popup";
+import { DashboardNavigationRefresh } from "@/components/layout/dashboard-navigation-refresh";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 
 export const viewport: Viewport = {

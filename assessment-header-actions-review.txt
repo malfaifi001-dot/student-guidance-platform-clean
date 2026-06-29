@@ -1,0 +1,192 @@
+
+============================================================
+components\assessment-center\assessment-analysis-export-actions.tsx
+============================================================
+
+---- MATCH ----
+"use client";
+
+import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
+import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+
+type Props = {
+  analysisId: string;
+  analysisTitle: string;
+};
+
+export function AssessmentAnalysisExportActions({
+  analysisId,
+}: Props) {
+  const {
+    status,
+    modal,
+    runPrintExport,
+    openFallbackPrintUrl,
+    closeModal,
+  } = usePrintExportAction();
+
+  const isLoading = status === "loading";
+
+  async function openAssessmentPdf() {
+    if (isLoading) return;
+
+    await runPrintExport({
+      printUrl: `/api/dashboard/assessment-center/${analysisId}/export?format=pdf&print=1`,
+      blockedTitle: "معاينة طباعة تقرير التحليل",
+      blockedMessage:
+        "تم حظر فتح معاينة الطباعة تلقائيًا. استخدم الزر أدناه لفتح تقرير التحليل في تبويب جديد.",
+      errorTitle: "تصدير PDF",
+      errorMessage: "تعذر فتح تقرير التحليل للطباعة. حاول مرة أخرى.",
+    });
+  }
+
+  return (
+    <>
+      <a
+        href={`/api/dashboard/assessment-center/${analysisId}/export?format=excel`}
+        className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-black text-cyan-700 transition hover:bg-cyan-50"
+      >
+        Excel
+      </a>
+
+      <button
+        type="button"
+        disabled={isLoading}
+        onClick={() => {
+          void openAssessmentPdf();
+        }}
+        className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/15 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isLoading ? "جاري فتح PDF..." : "PDF"}
+      </button>
+
+      <PrintExportPopCard
+        modal={modal}
+        onClose={closeModal}
+        onOpenFallback={openFallbackPrintUrl}
+      />
+    </>
+  );
+}
+
+============================================================
+components\assessment-center\assessment-analysis-reading-panel.tsx
+============================================================
+NO MATCH
+
+============================================================
+components\assessment-center\assessment-center-dashboard.tsx
+============================================================
+
+---- MATCH ----
+-white/20 bg-white/15 px-6 py-3 text-sm font-black text-white transition hover:bg-white/20"
+            >
+              التحليلات السابقة
+              <FileText className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-50 text-cyan-700">
+            <BrainCircuit className="h-5 w-5" />
+          </div>
+
+          <div>
+            <p className="text-sm font-black text-cyan-600">الخطوات</p>
+            <h2 className="text-2xl font-black text-slate-950">
+              مسار العمل
+            </h2>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <StepCard title="١. ارفع ملف Excel" />
+          <StepCard title="٢. راجع النتائج" />
+          <StepCard title="٣. اربط الطلاب" />
+          <StepCard title="٤. أنشئ خطة أو تقرير" />
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="التحليلات"
+          value={String(totalCount)}
+          icon={BarChart3}
+        />
+        <StatCard
+          label="يحتاجون متابعة"
+          value={String(riskStudentsCount)}
+          icon={AlertTriangle}
+        />
+        <StatCard
+          label="يحتاجون دعم"
+          value={String(needsSupportStudentsCount)}
+          icon={UsersRound}
+        />
+        <StatCard
+          label="متوسط آخر تحليل"
+          value={latestAnalysis ? formatAverage(latestAnalysis.averagePercentage) : "0%"}
+          icon={CheckCircle2}
+        />
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-black text-cyan-600">ابدأ من هنا</p>
+            <h2 className="mt-1 text-2xl font-black text-slate-950">
+              الإجراء التا
+
+============================================================
+components\assessment-center\assessment-analyses-list.tsx
+============================================================
+
+---- MATCH ----
+ فتح
+                <ArrowUpLeft className="h-4 w-4" />
+              </Link>
+
+              <Link
+                href={`/dashboard/assessment-center/compare?first=${analysis.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                <GitCompareArrows className="h-4 w-4" />
+                مقارنة
+              </Link>
+
+              <a
+                href={`/api/dashboard/assessment-center/${analysis.id}/export?format=excel`}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Excel
+              </a>
+
+              <a
+                href={`/api/dashboard/assessment-center/${analysis.id}/export?format=pdf`}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-xs font-black text-sky-700 transition hover:bg-sky-100"
+              >
+                <FileText className="h-4 w-4" />
+                PDF
+              </a>
+
+              <DeleteAssessmentAnalysisButton
+                analysisId={analysis.id}
+                title={analysis.title}
+              />
+            </div>
+          </article>
+        );
+      })}
+    </section>
+  );
+}
+
+
+============================================================
+app\dashboard\assessment-center\[analysisId]\page.tsx
+============================================================
+NO MATCH
