@@ -91,11 +91,7 @@ export async function AiReportServiceHome({
         where: {
           serviceId: service.id,
           createdById: userId,
-          ...(schoolAccountId
-            ? {
-                schoolAccountId,
-              }
-            : {}),
+          ...(schoolAccountId ? { schoolAccountId } : {}),
         },
         orderBy: {
           updatedAt: "desc",
@@ -152,13 +148,23 @@ export async function AiReportServiceHome({
             </p>
           </div>
 
-          <Link
-            href="/dashboard/ai-report/new"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
-          >
-            <Plus className="h-4 w-4" />
-            إنشاء تقرير مخصص
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/dashboard/ai-report/new"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-sky-800 transition hover:bg-sky-50"
+            >
+              <Plus className="h-4 w-4" />
+              إنشاء تقرير مخصص
+            </Link>
+
+            <Link
+              href="/dashboard/custom-report"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-black text-white transition hover:bg-white/20"
+            >
+              <ClipboardList className="h-4 w-4" />
+              القوالب المحفوظة
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -198,17 +204,27 @@ export async function AiReportServiceHome({
             </h2>
 
             <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-              اختر التقرير المطلوب. التفاصيل تظهر فقط عند الحاجة.
+              اختر التقرير المطلوب أو ابدأ تقريرًا جديدًا من نفس الواجهة.
             </p>
           </div>
 
-          <Link
-            href="/dashboard/ai-report/new"
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-            إنشاء تقرير مخصص
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/dashboard/custom-report"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              <ClipboardList className="h-4 w-4" />
+              القوالب المحفوظة
+            </Link>
+
+            <Link
+              href="/dashboard/ai-report/new"
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              إنشاء تقرير مخصص
+            </Link>
+          </div>
         </div>
 
         {cases.length ? (
@@ -308,13 +324,23 @@ export async function AiReportServiceHome({
               للمتابعة.
             </p>
 
-            <Link
-              href="/dashboard/ai-report/new"
-              className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
-            >
-              <Plus className="h-4 w-4" />
-              إنشاء تقرير مخصص
-            </Link>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/dashboard/ai-report/new"
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+              >
+                <Plus className="h-4 w-4" />
+                إنشاء تقرير مخصص
+              </Link>
+
+              <Link
+                href="/dashboard/custom-report"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                <ClipboardList className="h-4 w-4" />
+                القوالب المحفوظة
+              </Link>
+            </div>
           </div>
         )}
       </section>

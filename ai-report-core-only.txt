@@ -1,0 +1,3043 @@
+============================================================
+FILE: components\ai-report\ai-report-workspace.tsx
+============================================================
+Size: 43243 bytes
+LastWriteTime: 06/30/2026 10:57:25
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, PencilLine, Plus, Sparkles, Trash2, X } from "lucide-react";
+
+import type { DynamicFormRendererSaveHandler } from "@/components/workflow/dynamic-form-renderer";
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import {
+  buildAiReportInitialValues,
+  buildAiReportRuntimeWorkflow,
+  buildAiReportSubmissionValues,
+  normalizeAiReportSchema,
+  type AiReportSchema,
+} from "@/lib/ai-report/ai-report-runtime-adapter";
+import { sanitizeAiReportSchema } from "@/lib/ai-report/ai-report-text-sanitizer";
+import type {
+  CustomReportField,
+  CustomReportFieldType,
+  CustomReportOption,
+} from "@/lib/custom-report/custom-report-types";
+
+type ClarificationQuestion = {
+  id: string;
+  label: string;
+  placeholder?: string;
+  type: "text" | "textarea" | "select";
+  options?: Array<{
+    label: string;
+    value: string;
+  }>;
+};
+
+type AnalysisSnapshot = {
+  confidence: number;
+  reportIntent: string;
+  reportFamily: string;
+  reasoningSummary: string;
+  missingContext: string[];
+  coreFieldHints: string[];
+};
+
+type SuggestResponse = {
+  success: boolean;
+  error?: string;
+  needsClarification?: boolean;
+  confidence?: number;
+  reportIntent?: string;
+  reportFamily?: string;
+  reasoningSummary?: string;
+  missingContext?: string[];
+  coreFieldHints?: string[];
+  questions?: ClarificationQuestion[];
+  schema?: AiReportSchema;
+};
+
+type SaveResult = {
+  redirectTo?: string;
+  error?: string;
+};
+
+type FieldOptionsResponse = {
+  success: boolean;
+  error?: string;
+  options?: CustomReportOption[];
+};
+
+type FieldEditorDraft = {
+  id: string;
+  key: string;
+  label: string;
+  type: CustomReportFieldType;
+  options: CustomReportOption[];
+  isNew: boolean;
+};
+
+const LOADING_STATUSES = [
+  "فهم الوصف",
+  "مطابقة بنك القيم",
+  "بناء النموذج",
+] as const;
+
+const SUGGEST_FOR_ME_VALUE = "اقترح لي";
+const AI_REPORT_SECTION_TITLE = "بيانات التقرير المخصص";
+const FIELD_EDITOR_TYPE_OPTIONS: Array<{
+  value: "textarea" | "multi_select" | "date";
+  label: string;
+}> = [
+  { value: "textarea", label: "نص" },
+  { value: "multi_select", label: "خيار متعدد" },
+  { value: "date", label: "تاريخ" },
+];
+
+function buildAnalysisSnapshot(data: SuggestResponse): AnalysisSnapshot {
+  return {
+    confidence:
+      typeof data.confidence === "number" && Number.isFinite(data.confidence)
+        ? data.confidence
+        : 0.6,
+    reportIntent: data.reportIntent || "تقرير مخصص",
+    reportFamily: data.reportFamily || "تقرير تعليمي مخصص",
+    reasoningSummary: data.reasoningSummary || "",
+    missingContext: Array.isArray(data.missingContext) ? data.missingContext : [],
+    coreFieldHints: Array.isArray(data.coreFieldHints) ? data.coreFieldHints : [],
+  };
+}
+
+function buildClarificationAnswerState(
+  questions: ClarificationQuestion[],
+  previous: Record<string, string>,
+) {
+  return Object.fromEntries(
+    questions.map((question) => [question.id, previous[question.id] || ""]),
+  );
+}
+
+function buildClarificationSubmissionAnswers(
+  questions: ClarificationQuestion[],
+  answers: Record<string, string>,
+) {
+  return Object.fromEntries(
+    questions.map((question) => {
+      const answer = (answers[question.id] || "").trim();
+      return [question.id, answer || SUGGEST_FOR_ME_VALUE];
+    }),
+  );
+}
+
+function createDraftId() {
+  return `draft_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeFieldLabel(label: string, fallback: string) {
+  const nextLabel = label.trim();
+  return nextLabel || fallback;
+}
+
+function normalizeFieldKeyCandidate(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function buildUniqueFieldKey(
+  label: string,
+  usedKeys: Set<string>,
+  fallbackIndex: number,
+) {
+  const baseKey =
+    normalizeFieldKeyCandidate(label) || `custom_field_${fallbackIndex + 1}`;
+  let nextKey = baseKey;
+  let suffix = 2;
+
+  while (usedKeys.has(nextKey)) {
+    nextKey = `${baseKey}_${suffix}`;
+    suffix += 1;
+  }
+
+  usedKeys.add(nextKey);
+  return nextKey;
+}
+
+function normalizeOptionValue(label: string, index: number) {
+  const normalized = normalizeFieldKeyCandidate(label);
+  return normalized || `option_${index + 1}`;
+}
+
+function dedupeOptions(options: CustomReportOption[]) {
+  const seen = new Set<string>();
+
+  return options.filter((option) => {
+    const label = option.label.trim();
+    const value = option.value.trim();
+
+    if (!label || !value) {
+      return false;
+    }
+
+    const dedupeKey = `${label.toLowerCase()}::${value.toLowerCase()}`;
+
+    if (seen.has(dedupeKey)) {
+      return false;
+    }
+
+    seen.add(dedupeKey);
+    return true;
+  });
+}
+
+function optionLinesToOptions(value: string) {
+  return dedupeOptions(
+    value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((label, index) => ({
+        label,
+        value: label === "أخرى" ? "other" : normalizeOptionValue(label, index),
+      })),
+  );
+}
+
+function optionsToLines(options: CustomReportOption[]) {
+  return options.map((option) => option.label).join("\n");
+}
+
+function fieldTypeLabel(type: CustomReportFieldType) {
+  switch (type) {
+    case "text":
+    case "textarea":
+      return "نص";
+    case "multi_select":
+      return "خيار متعدد";
+    case "date":
+      return "تاريخ";
+    case "select":
+      return "قائمة اختيار";
+    case "number":
+      return "رقم";
+    case "radio":
+      return "اختيار واحد";
+    case "checkbox":
+      return "مربع اختيار";
+    default:
+      return "حقل";
+  }
+}
+
+function buildFieldEditorDrafts(schema: AiReportSchema) {
+  const fields = schema.sections[0]?.fields ?? [];
+
+  return fields.map((field) => ({
+    id: createDraftId(),
+    key: field.key,
+    label: field.label,
+    type: field.type,
+    options: dedupeOptions((field.options ?? []).map((option) => ({ ...option }))),
+    isNew: false,
+  }));
+}
+
+function buildSchemaFromEditorDrafts(
+  schema: AiReportSchema,
+  drafts: FieldEditorDraft[],
+): AiReportSchema {
+  const usedKeys = new Set<string>();
+  const existingSection = schema.sections[0];
+  const nextFields: CustomReportField[] = drafts.map((draft, index) => {
+    const normalizedLabel = normalizeFieldLabel(draft.label, `حقل إضافي ${index + 1}`);
+    const nextKey = draft.isNew
+      ? buildUniqueFieldKey(normalizedLabel, usedKeys, index)
+      : buildUniqueFieldKey(draft.key || normalizedLabel, usedKeys, index);
+    const nextOptions =
+      draft.type === "multi_select" ? dedupeOptions(draft.options).slice(0, 8) : [];
+
+    return {
+      key: nextKey,
+      label: normalizedLabel,
+      type: draft.type,
+      required: false,
+      placeholder:
+        draft.type === "date"
+          ? ""
+          : draft.type === "text"
+            ? `أدخل ${normalizedLabel}`
+            : `اكتب ${normalizedLabel}`,
+      helpText:
+        draft.type === "multi_select"
+          ? "يمكن اختيار أكثر من قيمة عند الحاجة."
+          : "",
+      reportLabel: normalizedLabel,
+      showInReport: true,
+      order: index + 1,
+      options: nextOptions,
+    };
+  });
+
+  return {
+    ...schema,
+    title: schema.title || AI_REPORT_SECTION_TITLE,
+    sections: [
+      {
+        id: existingSection?.id || "ai_report_section_1",
+        title: existingSection?.title || AI_REPORT_SECTION_TITLE,
+        description: schema.description || existingSection?.description || undefined,
+        order: 1,
+        fields: nextFields,
+      },
+    ],
+  };
+}
+
+function createNewDraftField(): FieldEditorDraft {
+  return {
+    id: createDraftId(),
+    key: "",
+    label: "",
+    type: "textarea",
+    options: [],
+    isNew: true,
+  };
+}
+
+export function AiReportWorkspace() {
+  const router = useRouter();
+
+  function goBackToAiReportHome() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/dashboard/ai-report");
+  }
+
+  const [prompt, setPrompt] = useState("");
+  const [schema, setSchema] = useState<AiReportSchema | null>(null);
+  const [savedTemplateId, setSavedTemplateId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [error, setError] = useState("");
+  const [runtimeRevision, setRuntimeRevision] = useState(0);
+  const [clarificationQuestions, setClarificationQuestions] = useState<
+    ClarificationQuestion[]
+  >([]);
+  const [clarificationAnswers, setClarificationAnswers] = useState<
+    Record<string, string>
+  >({});
+  const [previousAnalysis, setPreviousAnalysis] =
+    useState<AnalysisSnapshot | null>(null);
+  const [fieldEditorOpen, setFieldEditorOpen] = useState(false);
+  const [fieldEditorDrafts, setFieldEditorDrafts] = useState<FieldEditorDraft[]>([]);
+  const [fieldEditorError, setFieldEditorError] = useState("");
+  const [suggestingFieldId, setSuggestingFieldId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loading) {
+      setSeconds(0);
+      return;
+    }
+
+    setSeconds(1);
+
+    const timer = window.setInterval(() => {
+      setSeconds((current) => current + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [loading]);
+
+  const runtimeWorkflow = useMemo(() => {
+    return schema ? buildAiReportRuntimeWorkflow(schema) : null;
+  }, [schema]);
+
+  const initialValues = useMemo(() => {
+    return schema ? buildAiReportInitialValues(schema) : undefined;
+  }, [schema]);
+
+  const loadingStatus =
+    LOADING_STATUSES[
+      Math.min(LOADING_STATUSES.length - 1, Math.floor(Math.max(seconds - 1, 0) / 2))
+    ];
+  const isClarificationStage = clarificationQuestions.length > 0;
+
+  function resetClarificationStage() {
+    setClarificationQuestions([]);
+    setClarificationAnswers({});
+    setPreviousAnalysis(null);
+    setError("");
+  }
+
+  function openFieldEditor() {
+    if (!schema) {
+      return;
+    }
+
+    setFieldEditorDrafts(buildFieldEditorDrafts(normalizeAiReportSchema(schema)));
+    setFieldEditorError("");
+    setFieldEditorOpen(true);
+  }
+
+  function closeFieldEditor() {
+    if (suggestingFieldId) {
+      return;
+    }
+
+    setFieldEditorOpen(false);
+    setFieldEditorDrafts([]);
+    setFieldEditorError("");
+  }
+
+  function updateDraftField(
+    draftId: string,
+    patch: Partial<FieldEditorDraft>,
+  ) {
+    setFieldEditorDrafts((current) =>
+      current.map((draft) => {
+        if (draft.id !== draftId) {
+          return draft;
+        }
+
+        const nextType = patch.type ?? draft.type;
+
+        return {
+          ...draft,
+          ...patch,
+          type: nextType,
+          options: nextType === "multi_select" ? patch.options ?? draft.options : [],
+        };
+      }),
+    );
+  }
+
+  function addDraftField() {
+    setFieldEditorDrafts((current) => [...current, createNewDraftField()]);
+  }
+
+  function removeDraftField(draftId: string) {
+    setFieldEditorDrafts((current) =>
+      current.filter((draft) => draft.id !== draftId),
+    );
+  }
+
+  async function suggestFieldOptions(draftId: string) {
+    if (!schema) {
+      return;
+    }
+
+    const draft = fieldEditorDrafts.find((item) => item.id === draftId);
+
+    if (!draft) {
+      return;
+    }
+
+    const fieldLabel = draft.label.trim();
+
+    if (!fieldLabel) {
+      setFieldEditorError("اكتب اسم الحقل أولًا قبل اقتراح الخيارات.");
+      return;
+    }
+
+    setFieldEditorError("");
+    setSuggestingFieldId(draftId);
+
+    try {
+      const response = await fetch("/api/dashboard/ai-report/field-options", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          schema: buildSchemaFromEditorDrafts(schema, fieldEditorDrafts),
+          fieldLabel,
+          fieldType: "multi_select",
+        }),
+      });
+
+      const data = (await response.json()) as FieldOptionsResponse;
+
+      if (!response.ok || !data.success || !Array.isArray(data.options)) {
+        throw new Error(data.error || "تعذر اقتراح خيارات هذا الحقل.");
+      }
+
+      updateDraftField(draftId, {
+        options: dedupeOptions(data.options).slice(0, 8),
+      });
+    } catch (suggestError) {
+      setFieldEditorError(
+        suggestError instanceof Error
+          ? suggestError.message
+          : "تعذر اقتراح خيارات هذا الحقل.",
+      );
+    } finally {
+      setSuggestingFieldId(null);
+    }
+  }
+
+  function applyFieldEditorChanges() {
+    if (!schema) {
+      return;
+    }
+
+    if (!fieldEditorDrafts.length) {
+      setFieldEditorError("أضف حقلًا واحدًا على الأقل قبل تطبيق التعديلات.");
+      return;
+    }
+
+    const nextSchema = normalizeAiReportSchema(
+      sanitizeAiReportSchema(buildSchemaFromEditorDrafts(schema, fieldEditorDrafts)),
+    );
+
+    setSchema(nextSchema);
+    setRuntimeRevision((current) => current + 1);
+    setFieldEditorError("");
+    setFieldEditorOpen(false);
+    setFieldEditorDrafts([]);
+  }
+
+  async function persistTemplateBestEffort(nextSchema: AiReportSchema) {
+    try {
+      const response = await fetch(
+        savedTemplateId
+          ? `/api/dashboard/custom-report/templates/${savedTemplateId}`
+          : "/api/dashboard/custom-report/templates",
+        {
+          method: savedTemplateId ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(
+            savedTemplateId
+              ? { schema: nextSchema }
+              : {
+                  prompt,
+                  schema: nextSchema,
+                  source: "AI",
+                },
+          ),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Template request failed");
+      }
+
+      const data = (await response.json().catch(() => null)) as
+        | { template?: { id?: string } }
+        | null;
+      const templateId = data?.template?.id;
+
+      if (templateId) {
+        setSavedTemplateId(templateId);
+      }
+    } catch (templateError) {
+      console.error("AI_REPORT_TEMPLATE_SAVE_FAILED", templateError);
+    }
+  }
+
+  async function generateReport() {
+    const trimmedPrompt = prompt.trim();
+
+    if (trimmedPrompt.length < 3) {
+      setError("اكتب وصفًا مختصرًا للتقرير حتى يتمكن النظام من مساعدتك.");
+      return;
+    }
+
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const nextClarificationAnswers = isClarificationStage
+        ? buildClarificationSubmissionAnswers(
+            clarificationQuestions,
+            clarificationAnswers,
+          )
+        : undefined;
+
+      const response = await fetch("/api/dashboard/ai-report/suggest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: trimmedPrompt,
+          clarificationAnswers: nextClarificationAnswers,
+          previousAnalysis,
+        }),
+      });
+
+      const data = (await response.json()) as SuggestResponse;
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر توليد التقرير المخصص.");
+      }
+
+      const nextAnalysis = buildAnalysisSnapshot(data);
+      setPreviousAnalysis(nextAnalysis);
+
+      if (data.needsClarification) {
+        const nextQuestions = Array.isArray(data.questions) ? data.questions : [];
+
+        if (!nextQuestions.length) {
+          throw new Error("نحتاج وصفًا أوضح قليلًا حتى نتمكن من بناء الحقول المناسبة.");
+        }
+
+        setClarificationQuestions(nextQuestions);
+        setClarificationAnswers((current) =>
+          buildClarificationAnswerState(nextQuestions, current),
+        );
+        return;
+      }
+
+      if (!data.schema) {
+        throw new Error("تعذر تجهيز نموذج التقرير المخصص.");
+      }
+
+      setSchema(normalizeAiReportSchema(sanitizeAiReportSchema(data.schema)));
+      setSavedTemplateId(null);
+      setRuntimeRevision((current) => current + 1);
+      setClarificationQuestions([]);
+      setClarificationAnswers({});
+      setModalOpen(false);
+    } catch (generationError) {
+      setError(
+        generationError instanceof Error
+          ? generationError.message
+          : "تعذر توليد التقرير المخصص.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleSave: DynamicFormRendererSaveHandler = async ({
+    type,
+    values,
+  }) => {
+    if (!schema) {
+      throw new Error("ولّد التقرير أولًا قبل الحفظ.");
+    }
+
+    const normalizedSchema = normalizeAiReportSchema(
+      sanitizeAiReportSchema(schema),
+    );
+
+    const response = await fetch("/api/dashboard/custom-report/entries", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        schema: normalizedSchema,
+        values: buildAiReportSubmissionValues(normalizedSchema, values),
+        status: type === "submit" ? "SUBMITTED" : "DRAFT",
+      }),
+    });
+
+    const data = (await response.json()) as SaveResult;
+
+    if (!response.ok || !data.redirectTo) {
+      throw new Error(data.error || "تعذر حفظ التقرير.");
+    }
+
+    setSchema(normalizedSchema);
+    await persistTemplateBestEffort(normalizedSchema);
+
+    return {
+      redirectTo: data.redirectTo,
+      feedbackTitle: type === "submit" ? "تم إرسال التقرير" : "تم حفظ المسودة",
+      feedbackMessage:
+        type === "submit"
+          ? "تم حفظ التقرير وإرساله بنجاح."
+          : "تم حفظ التقرير كمسودة بنجاح.",
+    };
+  };
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      {modalOpen ? (
+        <AiReportPromptModal
+          prompt={prompt}
+          loading={loading}
+          seconds={seconds}
+          loadingStatus={loadingStatus}
+          error={error}
+          clarificationQuestions={clarificationQuestions}
+          clarificationAnswers={clarificationAnswers}
+          previousAnalysis={previousAnalysis}
+          onPromptChange={setPrompt}
+          onClarificationAnswerChange={(questionId, value) => {
+            setClarificationAnswers((current) => ({
+              ...current,
+              [questionId]: value,
+            }));
+          }}
+          onBackToPrompt={resetClarificationStage}
+          onGenerate={generateReport}
+          onExit={goBackToAiReportHome}
+        />
+      ) : null}
+
+      {fieldEditorOpen && schema ? (
+        <AiReportFieldEditorModal
+          drafts={fieldEditorDrafts}
+          error={fieldEditorError}
+          suggestingFieldId={suggestingFieldId}
+          onClose={closeFieldEditor}
+          onLabelChange={(draftId, value) =>
+            updateDraftField(draftId, { label: value })
+          }
+          onTypeChange={(draftId, value) =>
+            updateDraftField(draftId, {
+              type: value,
+              options: value === "multi_select" ? [] : [],
+            })
+          }
+          onOptionsChange={(draftId, value) =>
+            updateDraftField(draftId, { options: optionLinesToOptions(value) })
+          }
+          onDelete={removeDraftField}
+          onAddField={addDraftField}
+          onSuggestOptions={suggestFieldOptions}
+          onApply={applyFieldEditorChanges}
+        />
+      ) : null}
+
+      {runtimeWorkflow && schema && initialValues ? (
+        <>
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-black text-sky-700">قبل الحفظ أو الإرسال</p>
+                <h1 className="mt-1 text-2xl font-black text-slate-950">
+                  راجع الحقول أو عدّلها عند الحاجة
+                </h1>
+                <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
+                  التعديل هنا يغيّر مخطط التقرير فقط، بينما يبقى النموذج النهائي هو
+                  نفس واجهة Workflow الرسمية.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={openFieldEditor}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-100"
+              >
+                <PencilLine className="h-4 w-4" />
+                تعديل الحقول
+              </button>
+            </div>
+          </section>
+
+          <DynamicFormRenderer
+            key={`ai-report-runtime-${runtimeRevision}`}
+            workflow={runtimeWorkflow}
+            serviceId="custom-report"
+            requiresStudent={false}
+            title={schema.title}
+            initialValues={initialValues}
+            onSave={handleSave}
+          />
+        </>
+      ) : (
+        <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+            <Sparkles className="h-8 w-8" />
+          </div>
+
+          <h1 className="mt-5 text-3xl font-black text-slate-950">
+            ابدأ بوصف التقرير المطلوب
+          </h1>
+
+          <p className="mx-auto mt-3 max-w-2xl text-sm font-bold leading-7 text-slate-500">
+            بعد توليد النموذج سيظهر لك نفس Workflow الرسمي المستخدم في خدمات تقييم
+            الأداء، مع خطوة واحدة فقط وواجهة الإدخال المعتادة.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+          >
+            <Sparkles className="h-4 w-4" />
+            إنشاء حقول التقرير
+          </button>
+        </section>
+      )}
+    </main>
+  );
+}
+
+function AiReportPromptModal({
+  prompt,
+  loading,
+  seconds,
+  loadingStatus,
+  error,
+  clarificationQuestions,
+  clarificationAnswers,
+  previousAnalysis,
+  onPromptChange,
+  onClarificationAnswerChange,
+  onBackToPrompt,
+  onGenerate,
+  onExit,
+}: {
+  prompt: string;
+  loading: boolean;
+  seconds: number;
+  loadingStatus: string;
+  error: string;
+  clarificationQuestions: ClarificationQuestion[];
+  clarificationAnswers: Record<string, string>;
+  previousAnalysis: AnalysisSnapshot | null;
+  onPromptChange: (value: string) => void;
+  onClarificationAnswerChange: (questionId: string, value: string) => void;
+  onBackToPrompt: () => void;
+  onGenerate: () => void;
+  onExit: () => void;
+}) {
+  const isClarificationStage = clarificationQuestions.length > 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      dir="rtl"
+    >
+      <section className="w-full max-w-3xl overflow-hidden rounded-[2.5rem] bg-white shadow-2xl">
+        <div className="bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-6 text-white">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-2">
+              <p className="text-xs font-black tracking-[0.18em] text-sky-100">
+                AI REPORT WORKFLOW
+              </p>
+
+              <h2 className="text-3xl font-black">
+                {isClarificationStage
+                  ? "نحتاج توضيح بسيط"
+                  : "صف التقرير الذي تريد إنشاءه"}
+              </h2>
+
+              <p className="max-w-2xl text-sm font-bold leading-7 text-sky-50">
+                {isClarificationStage
+                  ? "سنستخدم هذا التوضيح لبناء حقول أقرب لطبيعة التقرير داخل الواجهة الرسمية."
+                  : "اكتب وصفًا عمليًا للتقرير، وسيقوم المساعد ببناء نموذج مناسب من خلال بنك المعرفة ثم عرضه داخل Workflow الرسمي."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onExit}
+              disabled={loading}
+              className="rounded-full bg-white/10 p-2 text-white ring-1 ring-white/10 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="إغلاق"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-6 p-6">
+          {loading ? (
+            <div className="rounded-[2rem] border border-sky-100 bg-sky-50/70 p-6">
+              <div className="flex flex-col items-center justify-center gap-4 text-center">
+                <div className="grid h-28 w-28 place-items-center rounded-full border border-sky-200 bg-white text-sky-700 shadow-sm">
+                  <div>
+                    <p className="text-4xl font-black">{seconds}</p>
+                    <p className="text-[11px] font-black text-sky-500">ثانية</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    جاري التجهيز
+                  </div>
+
+                  <p className="text-sm font-black text-slate-900">{loadingStatus}</p>
+                  <p className="text-xs font-bold text-slate-500">
+                    نفهم الطلب ونطابقه مع بنك القيم قبل بناء النموذج.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {!isClarificationStage ? (
+            <div className="space-y-3">
+              <label className="text-sm font-black text-slate-900">
+                وصف التقرير
+              </label>
+
+              <textarea
+                value={prompt}
+                onChange={(event) => onPromptChange(event.target.value)}
+                rows={6}
+                placeholder="مثال: أريد تقريرًا عن نتائج نهاية الوحدة يتضمن مستوى الإتقان، أبرز الفجوات، الإجراءات المنفذة، والتوصيات العلاجية."
+                className="w-full rounded-[1.75rem] border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+              />
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black text-slate-400">الوصف الحالي</p>
+                    <p className="mt-2 text-sm font-bold leading-7 text-slate-700">
+                      {prompt}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={onBackToPrompt}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100"
+                  >
+                    تعديل الوصف
+                  </button>
+                </div>
+
+                {previousAnalysis ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                      {previousAnalysis.reportFamily}
+                    </span>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                      ثقة {Math.round(previousAnalysis.confidence * 100)}%
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-4">
+                {clarificationQuestions.map((question) => (
+                  <ClarificationField
+                    key={question.id}
+                    question={question}
+                    value={clarificationAnswers[question.id] || ""}
+                    onChange={(value) =>
+                      onClarificationAnswerChange(question.id, value)
+                    }
+                  />
+                ))}
+              </div>
+
+              <p className="text-xs font-bold text-slate-400">
+                الإجابات اختيارية. اترك أي خانة فارغة وسيقترحها النظام.
+              </p>
+            </div>
+          )}
+
+          {error ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-bold text-slate-400">
+              {isClarificationStage
+                ? "التوضيح المختصر يكفي. لا حاجة لشرح طويل."
+                : "اكتب الهدف الطبيعي للتقرير، وسيتكفل النظام باقتراح الحقول الأقرب له."}
+            </p>
+
+            <button
+              type="button"
+              onClick={onGenerate}
+              disabled={loading}
+              className="inline-flex min-w-[180px] items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {loading
+                ? "جاري التجهيز"
+                : isClarificationStage
+                  ? "متابعة إنشاء الحقول"
+                  : "إنشاء حقول التقرير"}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ClarificationField({
+  question,
+  value,
+  onChange,
+}: {
+  question: ClarificationQuestion;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  if (question.type === "textarea") {
+    return (
+      <label className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-black text-slate-900">{question.label}</span>
+          <button
+            type="button"
+            onClick={() => onChange(SUGGEST_FOR_ME_VALUE)}
+            className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
+          >
+            اقترح لي
+          </button>
+        </div>
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          rows={4}
+          placeholder={question.placeholder}
+          className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+        />
+      </label>
+    );
+  }
+
+  if (question.type === "select" && question.options?.length) {
+    return (
+      <label className="space-y-2">
+        <span className="text-sm font-black text-slate-900">{question.label}</span>
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+        >
+          <option value="">اختر</option>
+          {question.options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  return (
+    <label className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-black text-slate-900">{question.label}</span>
+        <button
+          type="button"
+          onClick={() => onChange(SUGGEST_FOR_ME_VALUE)}
+          className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
+        >
+          اقترح لي
+        </button>
+      </div>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={question.placeholder}
+        className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+      />
+    </label>
+  );
+}
+
+function AiReportFieldEditorModal({
+  drafts,
+  error,
+  suggestingFieldId,
+  onClose,
+  onLabelChange,
+  onTypeChange,
+  onOptionsChange,
+  onDelete,
+  onAddField,
+  onSuggestOptions,
+  onApply,
+}: {
+  drafts: FieldEditorDraft[];
+  error: string;
+  suggestingFieldId: string | null;
+  onClose: () => void;
+  onLabelChange: (draftId: string, value: string) => void;
+  onTypeChange: (draftId: string, value: "textarea" | "multi_select" | "date") => void;
+  onOptionsChange: (draftId: string, value: string) => void;
+  onDelete: (draftId: string) => void;
+  onAddField: () => void;
+  onSuggestOptions: (draftId: string) => void;
+  onApply: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[85] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      dir="rtl"
+    >
+      <section className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-2xl">
+        <div className="border-b border-slate-200 px-6 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black tracking-[0.16em] text-sky-700">
+                FIELD EDITOR
+              </p>
+              <h2 className="mt-2 text-3xl font-black text-slate-950">
+                تعديل الحقول
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm font-bold leading-7 text-slate-500">
+                يمكنك إعادة تسمية الحقول، حذف ما لا تحتاجه، أو إضافة حقل جديد قبل
+                الحفظ. الشواهد تبقى مدعومة من Workflow الرسمي وليست حقلًا عاديًا.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={Boolean(suggestingFieldId)}
+              className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="إغلاق محرر الحقول"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          {drafts.map((draft) => {
+            const isSuggesting = suggestingFieldId === draft.id;
+
+            return (
+              <article
+                key={draft.id}
+                className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <label className="block">
+                      <span className="text-sm font-black text-slate-900">
+                        اسم الحقل
+                      </span>
+                      <input
+                        value={draft.label}
+                        onChange={(event) =>
+                          onLabelChange(draft.id, event.target.value)
+                        }
+                        placeholder="مثال: مؤشرات تحقق الهدف"
+                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                      />
+                    </label>
+
+                    {draft.isNew ? (
+                      <label className="block">
+                        <span className="text-sm font-black text-slate-900">
+                          نوع الحقل
+                        </span>
+                        <select
+                          value={draft.type}
+                          onChange={(event) =>
+                            onTypeChange(
+                              draft.id,
+                              event.target.value as "textarea" | "multi_select" | "date",
+                            )
+                          }
+                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                        >
+                          {FIELD_EDITOR_TYPE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : (
+                      <div className="inline-flex w-fit items-center rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                        {fieldTypeLabel(draft.type)}
+                      </div>
+                    )}
+
+                    {draft.type === "multi_select" ? (
+                      <div className="space-y-3">
+                        <label className="block">
+                          <span className="text-sm font-black text-slate-900">
+                            خيارات الحقل
+                          </span>
+                          <textarea
+                            value={optionsToLines(draft.options)}
+                            onChange={(event) =>
+                              onOptionsChange(draft.id, event.target.value)
+                            }
+                            rows={5}
+                            placeholder="اكتب كل خيار في سطر مستقل"
+                            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                          />
+                        </label>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => onSuggestOptions(draft.id)}
+                            disabled={isSuggesting}
+                            className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-black text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isSuggesting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-4 w-4" />
+                            )}
+                            اقترح خيارات
+                          </button>
+
+                          <p className="text-xs font-bold text-slate-400">
+                            عند الاقتراح سيعيد النظام 4 إلى 8 خيارات قابلة للتعديل.
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onDelete(draft.id)}
+                    className="inline-flex items-center gap-2 self-start rounded-2xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 transition hover:bg-rose-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    حذف
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={onAddField}
+            className="inline-flex items-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            <Plus className="h-4 w-4" />
+            إضافة حقل جديد
+          </button>
+
+          {error ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+              {error}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs font-bold text-slate-400">
+            بعد تطبيق التعديلات سيُعاد تحميل النموذج الرسمي بالحقول الجديدة.
+          </p>
+
+          <div className="flex flex-wrap justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={Boolean(suggestingFieldId)}
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              إلغاء
+            </button>
+
+            <button
+              type="button"
+              onClick={onApply}
+              className="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              تطبيق التعديلات
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
+
+
+============================================================
+FILE: app\api\dashboard\ai-report\suggest\route.ts
+============================================================
+Size: 37463 bytes
+LastWriteTime: 06/30/2026 09:31:14
+
+import { NextResponse } from "next/server";
+
+import { callDeepSeekChat } from "@/lib/ai/deepseek-client";
+import {
+  findRelevantAiReportKnowledge,
+  normalizeAiReportArabicText,
+} from "@/lib/ai-report/ai-report-knowledge-retriever";
+import { normalizeAiReportSchema } from "@/lib/ai-report/ai-report-runtime-adapter";
+import {
+  sanitizeAiReportSchema,
+  sanitizeAiReportText,
+} from "@/lib/ai-report/ai-report-text-sanitizer";
+import { requireCustomReportContext } from "@/lib/custom-report/custom-report-auth";
+import { extractJsonObject } from "@/lib/custom-report/custom-report-normalizer";
+import {
+  generateCustomReportSchema,
+  type CustomReportGenerationContext,
+} from "@/lib/custom-report/custom-report-ai-generator";
+import type { CustomReportSchema } from "@/lib/custom-report/custom-report-types";
+
+type ClarificationQuestionType = "text" | "textarea" | "select";
+
+type ClarificationQuestion = {
+  id: string;
+  label: string;
+  placeholder?: string;
+  type: ClarificationQuestionType;
+  options?: Array<{
+    label: string;
+    value: string;
+  }>;
+};
+
+type IntentAnalysis = {
+  confidence: number;
+  reportIntent: string;
+  reportFamily: string;
+  reasoningSummary: string;
+  missingContext: string[];
+  coreFieldHints: string[];
+  needsClarification: boolean;
+  questions: ClarificationQuestion[];
+};
+
+const SUGGESTIVE_ANSWER_MARKERS = [
+  "اقترح",
+  "اقترح لي",
+  "اختر",
+  "اختر أنت",
+  "اختر انت",
+  "حدد",
+  "حدد لي",
+  "أعطني خيارات",
+  "اعطني خيارات",
+  "أعطني اقتراح",
+  "اعطني اقتراح",
+  "انت حدد",
+  "أنت حدد",
+  "ما أعرف",
+  "ما اعرف",
+  "غير متأكد",
+  "غير متاكد",
+  "لست متأكدًا",
+  "لست متاكدا",
+  "ما أدري",
+  "ما ادري",
+  "مدري",
+];
+
+const EVIDENCE_TEXT_MARKERS = [
+  "الشواهد",
+  "شواهد",
+  "المرفقات",
+  "مرفقات",
+  "رفع ملف",
+  "رفع ملفات",
+  "رفع صورة",
+  "رفع صور",
+  "evidence",
+  "attachment",
+  "attachments",
+  "file upload",
+  "image upload",
+];
+
+const CLARIFICATION_QUESTION_OPTION_HINTS: Array<{
+  matchers: string[];
+  options: Array<{ label: string; value: string }>;
+}> = [
+  {
+    matchers: ["نطاق التقرير", "نوع التقرير", "ما نطاق التقرير"],
+    options: [
+      { label: "درس", value: "lesson" },
+      { label: "وحدة دراسية", value: "unit" },
+      { label: "اجتماع أو جلسة", value: "meeting_session" },
+      { label: "نتائج أو تحليل", value: "results_analysis" },
+      { label: "خطة أو تنفيذ", value: "plan_execution" },
+      { label: "نشاط أو مبادرة", value: "activity_initiative" },
+    ],
+  },
+  {
+    matchers: ["استراتيجية", "نوع الاستراتيجية", "استراتيجية التعليم النشط"],
+    options: [
+      { label: "التعلم التعاوني", value: "cooperative_learning" },
+      { label: "التعلم بالمشروعات", value: "project_based_learning" },
+      { label: "العصف الذهني", value: "brainstorming" },
+      { label: "فكر زاوج شارك", value: "think_pair_share" },
+      { label: "حل المشكلات", value: "problem_solving" },
+      { label: "التعلم بالاكتشاف", value: "discovery_learning" },
+    ],
+  },
+  {
+    matchers: ["الفئة", "الفئة المستهدفة", "لمن", "عن من"],
+    options: [
+      { label: "الطلاب", value: "students" },
+      { label: "المعلمون", value: "teachers" },
+      { label: "أولياء الأمور", value: "guardians" },
+      { label: "تنفيذ الدرس", value: "lesson_execution" },
+      { label: "نتائج الطلاب", value: "student_results" },
+      { label: "بيئة التعلم", value: "learning_environment" },
+    ],
+  },
+];
+
+function cleanText(value: unknown) {
+  return typeof value === "string" ? sanitizeAiReportText(value) : "";
+}
+
+function normalizeClarificationAnswerValue(value: unknown) {
+  const text = cleanText(value);
+  return text || "اقترح لي";
+}
+
+function isSuggestiveAnswer(value: string): boolean {
+  const normalized = normalizeAiReportArabicText(value);
+
+  if (!normalized) {
+    return false;
+  }
+
+  return SUGGESTIVE_ANSWER_MARKERS.some((marker) => {
+    const normalizedMarker = normalizeAiReportArabicText(marker);
+    return (
+      normalized === normalizedMarker ||
+      normalized.includes(normalizedMarker) ||
+      normalizedMarker.includes(normalized)
+    );
+  });
+}
+
+function normalizeList(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+
+  return value
+    .map((item) => sanitizeAiReportText(item))
+    .filter(Boolean)
+    .filter((item) => {
+      if (seen.has(item)) {
+        return false;
+      }
+
+      seen.add(item);
+      return true;
+    })
+    .slice(0, 30);
+}
+
+function normalizeSnakeCase(value: string, fallback: string) {
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return normalized || fallback;
+}
+
+function clampConfidence(value: unknown, fallback = 0.58) {
+  const numberValue =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : Number.NaN;
+
+  if (!Number.isFinite(numberValue)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(1, numberValue));
+}
+
+function normalizeStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+
+  return value
+    .map((item) => sanitizeAiReportText(item))
+    .filter(Boolean)
+    .filter((item) => {
+      if (seen.has(item)) {
+        return false;
+      }
+
+      seen.add(item);
+      return true;
+    })
+    .slice(0, 8);
+}
+
+function normalizeClarificationAnswers(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .map(([key, answer]) => [
+        normalizeSnakeCase(key, "question"),
+        normalizeClarificationAnswerValue(answer),
+      ])
+      .filter(([key]) => Boolean(key)),
+  );
+}
+
+function buildClarificationQuestionOptions(label: string) {
+  const normalizedLabel = normalizeAiReportArabicText(label);
+  const match = CLARIFICATION_QUESTION_OPTION_HINTS.find((item) =>
+    item.matchers.some((matcher) =>
+      normalizedLabel.includes(normalizeAiReportArabicText(matcher)),
+    ),
+  );
+
+  return match?.options ?? [];
+}
+
+function normalizeClarificationQuestion(
+  value: unknown,
+  index: number,
+): ClarificationQuestion | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const label = cleanText(record.label);
+
+  if (!label) {
+    return null;
+  }
+
+  const type = String(record.type || "text").trim().toLowerCase();
+  const rawOptions = Array.isArray(record.options)
+    ? (record.options
+        .map((option, optionIndex) => {
+          if (!option || typeof option !== "object") {
+            return null;
+          }
+
+          const optionRecord = option as Record<string, unknown>;
+          const optionLabel = cleanText(optionRecord.label);
+          const optionValue = cleanText(optionRecord.value);
+
+          if (!optionLabel || !optionValue) {
+            return null;
+          }
+
+          return {
+            label: optionLabel,
+            value: optionValue || `option_${optionIndex + 1}`,
+          };
+        })
+        .filter(Boolean) as ClarificationQuestion["options"])
+    : undefined;
+  const hintedOptions = buildClarificationQuestionOptions(label);
+  const options =
+    rawOptions && rawOptions.length >= 4
+      ? rawOptions.slice(0, 8)
+      : hintedOptions.length >= 4
+        ? hintedOptions
+        : rawOptions;
+  const normalizedType: ClarificationQuestionType =
+    options && options.length >= 4
+      ? "select"
+      : type === "textarea" || type === "select"
+        ? type
+        : "text";
+
+  return {
+    id: normalizeSnakeCase(
+      cleanText(record.id),
+      `clarification_question_${index + 1}`,
+    ),
+    label,
+    placeholder: cleanText(record.placeholder),
+    type: normalizedType,
+    options,
+  };
+}
+
+function inferReportFamily(prompt: string, knowledge: ReturnType<typeof findRelevantAiReportKnowledge>) {
+  const topReport = knowledge.topReports[0];
+
+  if (topReport?.reportCategory) {
+    return sanitizeAiReportText(topReport.reportCategory);
+  }
+
+  const text = cleanText(prompt);
+
+  if (text.includes("تحليل") || text.includes("نتائج")) {
+    return "تقرير تحليل نتائج";
+  }
+
+  if (text.includes("اجتماع") || text.includes("جلسة") || text.includes("لقاء")) {
+    return "تقرير اجتماع أو جلسة";
+  }
+
+  if (text.includes("خطة")) {
+    return "تقرير خطة أو تنفيذ";
+  }
+
+  if (text.includes("درس") || text.includes("وحدة")) {
+    return "تقرير درس أو وحدة";
+  }
+
+  return "تقرير تعليمي مخصص";
+}
+
+function buildKnowledgeSummary(knowledge: ReturnType<typeof findRelevantAiReportKnowledge>) {
+  const topReports = knowledge.topReports.slice(0, 8);
+  const fieldHints = Array.from(
+    new Set(
+      knowledge.items
+        .map((item) => sanitizeAiReportText(item.fieldLabel))
+        .filter(Boolean),
+    ),
+  ).slice(0, 18);
+  const optionHints = Array.from(
+    new Set(
+      knowledge.items
+        .map((item) => sanitizeAiReportText(item.optionLabel))
+        .filter(Boolean),
+    ),
+  ).slice(0, 24);
+
+  return {
+    topReportsBlock:
+      topReports
+        .map((report, index) =>
+          [
+            `${index + 1}.`,
+            `الاسم: ${sanitizeAiReportText(report.reportName)}`,
+            `الفئة: ${sanitizeAiReportText(report.reportCategory) || "غير محددة"}`,
+            `العنصر: ${sanitizeAiReportText(report.performanceElement) || "غير محدد"}`,
+            `الدرجة: ${report.score}`,
+          ].join(" | "),
+        )
+        .join("\n") || "لا توجد تقارير مرجعية كافية.",
+    fieldHintsBlock:
+      fieldHints.map((field, index) => `${index + 1}. ${field}`).join("\n") ||
+      "لا توجد مؤشرات حقول كافية.",
+    optionHintsBlock:
+      optionHints.map((option, index) => `${index + 1}. ${option}`).join("\n") ||
+      "لا توجد قيم مرشحة كافية.",
+    fieldHints,
+  };
+}
+
+function buildProfileContext(user: unknown) {
+  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : {};
+  const stages = normalizeList(record.teachingStages);
+  const specialties = normalizeList(record.teachingSpecialties);
+  const subjects = normalizeList(record.teachingSubjects);
+
+  const lines = [
+    stages.length
+      ? `- المراحل التعليمية في ملف المستخدم: ${stages.join("، ")}`
+      : "",
+    specialties.length
+      ? `- التخصصات في ملف المستخدم: ${specialties.join("، ")}`
+      : "",
+    subjects.length
+      ? `- المواد في ملف المستخدم: ${subjects.join("، ")}`
+      : "",
+  ].filter(Boolean);
+
+  return {
+    stages,
+    specialties,
+    subjects,
+    block: lines.join("\n") || "لا توجد بيانات إضافية في ملف المستخدم.",
+  };
+}
+
+function buildCombinedPrompt(prompt: string, clarificationAnswers: Record<string, string>) {
+  const answers = Object.entries(clarificationAnswers)
+    .map(([key, value]) =>
+      !value.trim() || isSuggestiveAnswer(value)
+        ? `- ${key}: المعلم طلب من النظام اقتراح القيمة المناسبة لهذا السؤال.`
+        : `- ${key}: ${value}`,
+    )
+    .join("\n");
+
+  if (!answers) {
+    return prompt;
+  }
+
+  return `${prompt}\n\nإجابات التوضيح:\n${answers}`;
+}
+
+function isEvidenceLikeLabel(value: string) {
+  const normalized = normalizeAiReportArabicText(value);
+  return EVIDENCE_TEXT_MARKERS.some((marker) =>
+    normalized.includes(normalizeAiReportArabicText(marker)),
+  );
+}
+
+function buildFallbackClarificationQuestions(
+  analysis: Pick<IntentAnalysis, "missingContext" | "reportFamily">,
+  lowConfidence: boolean,
+) {
+  const questions: ClarificationQuestion[] = [];
+  const missing = new Set(analysis.missingContext);
+
+  const pushQuestion = (question: ClarificationQuestion) => {
+    if (questions.some((item) => item.id === question.id)) {
+      return;
+    }
+
+    questions.push(question);
+  };
+
+  if (missing.has("scope") || lowConfidence) {
+    pushQuestion({
+      id: "report_scope",
+      label: "ما نطاق التقرير؟",
+      placeholder: "مثال: درس، وحدة، اجتماع، نتائج، خطة...",
+      type: "select",
+      options: buildClarificationQuestionOptions("ما نطاق التقرير؟"),
+    });
+  }
+
+  if (missing.has("focus") || lowConfidence) {
+    pushQuestion({
+      id: "report_focus",
+      label: "ما أهم المحاور التي يجب أن يغطيها التقرير؟",
+      placeholder: "مثال: التنفيذ، النتائج، الفجوات، التوصيات...",
+      type: "textarea",
+    });
+  }
+
+  if (missing.has("timeframe") || lowConfidence) {
+    pushQuestion({
+      id: "report_context",
+      label: "ما المناسبة أو الفترة المرتبطة بالتقرير؟",
+      placeholder: "مثال: نهاية وحدة، لقاء مهني، زيارة صفية...",
+      type: "text",
+    });
+  }
+
+  if (missing.has("audience") || questions.length < 2) {
+    pushQuestion({
+      id: "report_audience",
+      label: "لمن أو عن من يدور التقرير؟",
+      placeholder: "مثال: الطلاب، المعلمون، أولياء الأمور، تنفيذ نشاط...",
+      type: "text",
+    });
+  }
+
+  if (questions.length < 2) {
+    pushQuestion({
+      id: "report_goal",
+      label: "ما النتيجة التي تريد إبرازها في التقرير؟",
+      placeholder: `مثال: خلاصة ${analysis.reportFamily || "التقرير"} أو توصياته الرئيسة`,
+      type: "text",
+    });
+  }
+
+  return questions.slice(0, lowConfidence ? 3 : 4);
+}
+
+function buildFallbackIntentAnalysis({
+  prompt,
+  knowledge,
+}: {
+  prompt: string;
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>;
+}): IntentAnalysis {
+  const normalizedPrompt = cleanText(prompt);
+  const tokens = normalizedPrompt.split(/\s+/).filter(Boolean);
+  const hasScopeWord =
+    /درس|وحدة|خطة|تقييم|تقويم|تحليل|نتائج|اجتماع|جلسة|لقاء|نشاط|مبادرة|أولياء|طلاب|تعلم|بيئة|تقنية|زيارة|متابعة|توصية/i.test(
+      normalizedPrompt,
+    );
+  const hasFocusWord =
+    /يتضمن|يشمل|محور|فجوات|توصيات|تنفيذ|أثر|مستوى|خلاصة|ملخص|تحسين|مستهدف|مؤشر/i.test(
+      normalizedPrompt,
+    );
+  const hasTimeWord =
+    /اليوم|الأسبوع|الفصل|الوحدة|الحصة|العام|الفترة|اللقاء|الاجتماع|البرنامج|النشاط|الدرس/i.test(
+      normalizedPrompt,
+    );
+  const topScore = knowledge.topReports[0]?.score ?? 0;
+
+  let confidence = 0.34;
+
+  if (normalizedPrompt.length >= 24) confidence += 0.16;
+  if (tokens.length >= 5) confidence += 0.12;
+  if (hasScopeWord) confidence += 0.14;
+  if (hasFocusWord) confidence += 0.12;
+  if (knowledge.topReports.length > 0) confidence += 0.08;
+  if (knowledge.items.length >= 15) confidence += 0.08;
+  if (topScore >= 24) confidence += 0.06;
+  if (normalizedPrompt.length < 14) confidence -= 0.14;
+  if (!hasScopeWord) confidence -= 0.1;
+  if (!hasFocusWord) confidence -= 0.08;
+
+  const finalConfidence = Math.max(0.2, Math.min(0.9, confidence));
+  const reportFamily = inferReportFamily(prompt, knowledge);
+  const missingContext = [
+    !hasScopeWord ? "scope" : "",
+    !hasFocusWord ? "focus" : "",
+    !hasTimeWord ? "timeframe" : "",
+    !/طلاب|معلمين|أولياء|مجتمع|إدارة|صف|فصل|مادة|وحدة|نشاط/i.test(normalizedPrompt)
+      ? "audience"
+      : "",
+  ].filter(Boolean);
+  const needsClarification = finalConfidence < 0.75;
+
+  const coreFieldHints = Array.from(
+    new Set(
+      knowledge.items
+        .map((item) => sanitizeAiReportText(item.fieldLabel))
+        .filter(Boolean),
+    ),
+  ).slice(0, 8);
+
+  return {
+    confidence: finalConfidence,
+    reportIntent: normalizedPrompt || "إنشاء تقرير مخصص",
+    reportFamily,
+    reasoningSummary:
+      finalConfidence >= 0.75
+        ? "وصف التقرير واضح بدرجة كافية ويمكن توليد نموذج عملي مباشر."
+        : "الوصف يحتاج بعض التحديد حتى تظهر الحقول الأقرب لطبيعة التقرير.",
+    missingContext,
+    coreFieldHints,
+    needsClarification,
+    questions: buildFallbackClarificationQuestions(
+      { missingContext, reportFamily },
+      finalConfidence < 0.45,
+    ),
+  };
+}
+
+function normalizeIntentAnalysis(
+  value: unknown,
+  fallback: IntentAnalysis,
+): IntentAnalysis {
+  const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const confidence = clampConfidence(record.confidence, fallback.confidence);
+  const reportIntent = cleanText(record.reportIntent) || fallback.reportIntent;
+  const reportFamily = cleanText(record.reportFamily) || fallback.reportFamily;
+  const reasoningSummary =
+    cleanText(record.reasoningSummary) || fallback.reasoningSummary;
+  const missingContext = normalizeStringArray(record.missingContext);
+  const coreFieldHints = normalizeStringArray(record.coreFieldHints).slice(0, 10);
+  const derivedNeedsClarification = confidence < 0.75;
+  const needsClarification =
+    confidence >= 0.75
+      ? false
+      : typeof record.needsClarification === "boolean"
+        ? record.needsClarification || derivedNeedsClarification
+        : derivedNeedsClarification;
+  const normalizedQuestions = Array.isArray(record.questions)
+    ? record.questions
+        .map((question, index) => normalizeClarificationQuestion(question, index))
+        .filter(Boolean) as ClarificationQuestion[]
+    : [];
+
+  const questions =
+    needsClarification && normalizedQuestions.length
+      ? normalizedQuestions.slice(0, confidence < 0.45 ? 3 : 4)
+      : needsClarification
+        ? buildFallbackClarificationQuestions(
+            {
+              missingContext: missingContext.length
+                ? missingContext
+                : fallback.missingContext,
+              reportFamily,
+            },
+            confidence < 0.45,
+          )
+        : [];
+
+  return {
+    confidence,
+    reportIntent,
+    reportFamily,
+    reasoningSummary,
+    missingContext: missingContext.length ? missingContext : fallback.missingContext,
+    coreFieldHints: coreFieldHints.length ? coreFieldHints : fallback.coreFieldHints,
+    needsClarification,
+    questions,
+  };
+}
+
+function resolveAnalysisForGeneration({
+  previousAnalysis,
+  fallback,
+}: {
+  previousAnalysis: unknown;
+  fallback: IntentAnalysis;
+}) {
+  if (!previousAnalysis || typeof previousAnalysis !== "object") {
+    return {
+      ...fallback,
+      needsClarification: false,
+      questions: [],
+    };
+  }
+
+  const record = previousAnalysis as Record<string, unknown>;
+
+  return {
+    ...fallback,
+    confidence: clampConfidence(record.confidence, fallback.confidence),
+    reportIntent: cleanText(record.reportIntent) || fallback.reportIntent,
+    reportFamily: cleanText(record.reportFamily) || fallback.reportFamily,
+    reasoningSummary:
+      cleanText(record.reasoningSummary) || fallback.reasoningSummary,
+    missingContext: normalizeStringArray(record.missingContext).length
+      ? normalizeStringArray(record.missingContext)
+      : fallback.missingContext,
+    coreFieldHints: normalizeStringArray(record.coreFieldHints).length
+      ? normalizeStringArray(record.coreFieldHints)
+      : fallback.coreFieldHints,
+    needsClarification: false,
+    questions: [],
+  };
+}
+
+async function analyzeIntent({
+  prompt,
+  effectivePrompt,
+  previousAnalysis,
+  knowledge,
+  profileContext,
+}: {
+  prompt: string;
+  effectivePrompt: string;
+  previousAnalysis: unknown;
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>;
+  profileContext: ReturnType<typeof buildProfileContext>;
+}) {
+  const fallback = buildFallbackIntentAnalysis({
+    prompt: effectivePrompt,
+    knowledge,
+  });
+  const knowledgeSummary = buildKnowledgeSummary(knowledge);
+  const previousAnalysisBlock =
+    previousAnalysis && typeof previousAnalysis === "object"
+      ? JSON.stringify(previousAnalysis, null, 2)
+      : "لا يوجد تحليل سابق.";
+
+  try {
+    const content = await callDeepSeekChat({
+      temperature: 0.1,
+      maxTokens: 900,
+      messages: [
+        {
+          role: "system",
+          content: [
+            "أنت محلل نية لإنشاء تقارير تعليمية داخل منصة مدرسية.",
+            "اعتمد على وصف المستخدم وبنك المعرفة المرشح لفهم نوع التقرير وبنيته الطبيعية.",
+            "الوصف إشارة نية، وليس قائمة حقول حرفية.",
+            "استخدم بنك المعرفة كمرجع أساسي للمصطلحات والأنماط، لكن لا تنسخ كل ما فيه ولا تضف حقولًا غير مرتبطة بالنية.",
+            "إذا كان الوصف واضحًا فلا تطلب توضيحًا.",
+            "إذا احتاج التوضيح فاجعل الأسئلة قصيرة وعملية وصديقة للمعلم.",
+            "فضّل أسئلة التوضيح من النوع select عندما تكون الخيارات الطبيعية معروفة ويمكن حصرها في 4 إلى 8 خيارات.",
+            "استخدم text أو textarea فقط عندما تكون الإجابة المفتوحة أنسب فعلًا.",
+            "أعد JSON فقط وبالمفاتيح المطلوبة دون أي شرح إضافي.",
+          ].join("\n"),
+        },
+        {
+          role: "user",
+          content: `
+الوصف الأصلي:
+${prompt}
+
+الوصف بعد دمج أي توضيحات:
+${effectivePrompt}
+
+تحليل سابق - إن وجد:
+${previousAnalysisBlock}
+
+سياق ملف المستخدم:
+${profileContext.block}
+
+أقرب التقارير من بنك المعرفة:
+${knowledgeSummary.topReportsBlock}
+
+أبرز الحقول المرشحة:
+${knowledgeSummary.fieldHintsBlock}
+
+أبرز القيم المرشحة:
+${knowledgeSummary.optionHintsBlock}
+
+المطلوب:
+1. استنتج نية التقرير العامة.
+2. استنتج عائلة التقرير الأقرب.
+3. حدد هل الوصف واضح بما يكفي لتوليد نموذج مباشرة.
+4. إن احتاج توضيحًا، اسأل 2 إلى 4 أسئلة قصيرة فقط.
+5. لا تطلب معلومات يمكن استنتاجها بوضوح من الوصف أو بنك المعرفة.
+
+أعد JSON فقط بهذا الشكل:
+{
+  "confidence": 0.0,
+  "reportIntent": "وصف مختصر للنية",
+  "reportFamily": "العائلة الأقرب",
+  "reasoningSummary": "سبب مختصر",
+  "missingContext": ["scope", "focus"],
+  "coreFieldHints": ["حقل 1", "حقل 2"],
+  "needsClarification": false,
+  "questions": [
+    {
+      "id": "report_scope",
+      "label": "ما نطاق التقرير؟",
+      "placeholder": "مثال: درس، وحدة، اجتماع، نتائج...",
+      "type": "text"
+    }
+  ]
+}
+
+قواعد الثقة:
+- إذا كانت الثقة 0.75 أو أكثر فالأصل ألا تطلب توضيحًا.
+- إذا كانت الثقة بين 0.45 و0.75 فاسأل 2 إلى 4 أسئلة قصيرة.
+- إذا كانت الثقة أقل من 0.45 فاطلب وصفًا أوضح بأسئلة إرشادية قصيرة.
+          `.trim(),
+        },
+      ],
+    });
+
+    return normalizeIntentAnalysis(extractJsonObject(content), fallback);
+  } catch {
+    return fallback;
+  }
+}
+
+function buildSchemaPrompt({
+  prompt,
+  clarificationAnswers,
+  hasClarificationRound,
+  analysis,
+  knowledge,
+  profileContext,
+}: {
+  prompt: string;
+  clarificationAnswers: Record<string, string>;
+  hasClarificationRound: boolean;
+  analysis: IntentAnalysis;
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>;
+  profileContext: ReturnType<typeof buildProfileContext>;
+}) {
+  const knowledgeSummary = buildKnowledgeSummary(knowledge);
+  const clarificationBlock = Object.keys(clarificationAnswers).length
+    ? Object.entries(clarificationAnswers)
+        .map(([key, value]) =>
+          !value.trim() || isSuggestiveAnswer(value)
+            ? `- ${key}: المعلم طلب من النظام اقتراح القيمة المناسبة لهذا السؤال.`
+            : `- ${key}: ${value}`,
+        )
+        .join("\n")
+    : "لا توجد إجابات توضيح إضافية.";
+  const topFieldHints =
+    analysis.coreFieldHints.length > 0
+      ? analysis.coreFieldHints.map((item, index) => `${index + 1}. ${item}`).join("\n")
+      : "لا توجد تلميحات حاسمة إضافية.";
+
+  return `
+الوصف الأساسي للمستخدم:
+${prompt}
+
+إجابات التوضيح - إن وجدت:
+${clarificationBlock}
+
+تحليل النية:
+- نية التقرير: ${analysis.reportIntent}
+- عائلة التقرير: ${analysis.reportFamily}
+- ملخص الاستدلال: ${analysis.reasoningSummary}
+
+تلميحات الحقول الأساسية:
+${topFieldHints}
+
+سياق ملف المستخدم:
+${profileContext.block}
+
+أقرب التقارير في بنك المعرفة:
+${knowledgeSummary.topReportsBlock}
+
+الحقول المرشحة من بنك المعرفة:
+${knowledgeSummary.fieldHintsBlock}
+
+القيم والخيارات المرشحة من بنك المعرفة:
+${knowledgeSummary.optionHintsBlock}
+
+تعليمات صارمة:
+- أنشئ نموذج تقرير عمليًا ومناسبًا للمعلمين داخل المنصة.
+- أنشئ قسمًا واحدًا فقط بعنوان "بيانات التقرير المخصص".
+- اجعل النموذج في خطوة واحدة فقط.
+- اجعل عدد الحقول بين 6 و14 بحسب تعقيد التقرير.
+- جميع الحقول اختيارية بالكامل. required=false دائمًا.
+- أي حقل من النوع select أو multi_select أو radio يجب أن يحتوي على 4 إلى 8 خيارات مفيدة ومرتبطة بالحقل نفسه.
+- فضّل بناء الخيارات من قيم بنك المعرفة المرشحة أولًا.
+- إذا لم تكفِ قيم بنك المعرفة، يمكنك إضافة خيارات تعليمية منطقية خاصة بالحقل نفسه، وليست عامة أو سطحية.
+- لا تترك أي حقل select أو multi_select أو radio بدون خيارات.
+- إذا لم تستطع توليد 4 خيارات ذات معنى على الأقل، فحوّل الحقل إلى textarea بدل select.
+- لا تتجاوز 8 خيارات لأي حقل اختياري.
+- لا تنشئ أي حقل شواهد أو مرفقات أو رفع ملفات أو صور.
+- لا تنشئ الحقل "الشواهد المقترحة" ولا أي حقل بالمعنى نفسه.
+- الشواهد مدعومة في المنصة بشكل منفصل، لذلك لا تمثلها داخل الـ schema.
+- لا تنشئ حقولًا غير مرتبطة بعائلة التقرير أو بنيته الطبيعية.
+- لا تفرض المادة أو الصف أو الحضور أو التوقيع إلا إذا كانت النية تستدعيها بوضوح.
+- استخدم select أو multi_select أو radio فقط عندما تكون الخيارات مفيدة ومسنودة من المرشحات أو بالاستدلال التعليمي الواضح.
+- إذا احتجت خيارًا مفتوحًا فأضف "أخرى" مرة واحدة فقط بقيمة other.
+- استخدم text وtextarea وdate وnumber وselect وmulti_select فقط عند الحاجة الطبيعية.
+- استخدم أسماء عربية واضحة للحقول، ومفاتيح english_snake_case.
+- ${hasClarificationRound ? "بعد مرحلة التوضيح ممنوع طلب توضيح إضافي. يجب توليد نموذج عملي بأفضل استنتاج." : "إذا ظهرت حاجة حقيقية للتوضيح فهي تُعالج قبل هذه المرحلة."}
+- اجعل المخرجات JSON فقط.
+  `.trim();
+}
+
+function countSchemaFields(schema: CustomReportSchema) {
+  return schema.sections.reduce(
+    (total, section) => total + section.fields.length,
+    0,
+  );
+}
+
+function buildFallbackOptions(
+  label: string,
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>,
+) {
+  const normalizedLabel = normalizeAiReportArabicText(label);
+  const options = Array.from(
+    new Set(
+      knowledge.items
+        .filter((item) => {
+          const itemLabel = normalizeAiReportArabicText(item.fieldLabel);
+          return (
+            itemLabel === normalizedLabel ||
+            itemLabel.includes(normalizedLabel) ||
+            normalizedLabel.includes(itemLabel)
+          );
+        })
+        .map((item) => sanitizeAiReportText(item.optionLabel))
+        .filter(Boolean)
+        .filter((option) => !isEvidenceLikeLabel(option)),
+    ),
+  ).slice(0, 5);
+
+  return options.map((option, index) => ({
+    label: option,
+    value: normalizeSnakeCase(option, `option_${index + 1}`),
+  }));
+}
+
+function pickFallbackFieldKey(label: string, index: number) {
+  const normalizedLabel = normalizeAiReportArabicText(label);
+
+  if (normalizedLabel.includes("تاريخ")) return "report_date";
+  if (normalizedLabel.includes("عنوان") || normalizedLabel.includes("اسم")) {
+    return "report_subject";
+  }
+  if (normalizedLabel.includes("هدف")) return "report_goal";
+  if (normalizedLabel.includes("تنفيذ") || normalizedLabel.includes("اجراء")) {
+    return "implemented_actions";
+  }
+  if (
+    normalizedLabel.includes("نتائج") ||
+    normalizedLabel.includes("مخرجات") ||
+    normalizedLabel.includes("اثر")
+  ) {
+    return "results_summary";
+  }
+  if (
+    normalizedLabel.includes("فجوات") ||
+    normalizedLabel.includes("تحديات") ||
+    normalizedLabel.includes("معوقات")
+  ) {
+    return "gaps_or_challenges";
+  }
+  if (normalizedLabel.includes("توصيات")) return "recommendations";
+  if (normalizedLabel.includes("ملاحظات")) return "additional_notes";
+
+  return `custom_field_${index + 1}`;
+}
+
+function pickFallbackFieldType(label: string, options: Array<{ label: string; value: string }>) {
+  const normalizedLabel = normalizeAiReportArabicText(label);
+
+  if (
+    normalizedLabel.includes("تاريخ") ||
+    normalizedLabel.includes("موعد") ||
+    normalizedLabel.includes("يوم")
+  ) {
+    return "date" as const;
+  }
+
+  if (
+    normalizedLabel.includes("نسبة") ||
+    normalizedLabel.includes("عدد") ||
+    normalizedLabel.includes("درجة") ||
+    normalizedLabel.includes("متوسط")
+  ) {
+    return "number" as const;
+  }
+
+  if (
+    options.length >= 4 &&
+    /محاور|محور|مجالات|اجراءات|إجراءات|توصيات|اسباب|أسباب|أهداف|اهداف/.test(label)
+  ) {
+    return "multi_select" as const;
+  }
+
+  if (options.length >= 4) {
+    return "select" as const;
+  }
+
+  if (
+    /وصف|ملخص|خلاصة|نتائج|توصيات|ملاحظات|إجراءات|تنفيذ|فجوات|تحديات|مقترحات/.test(
+      label,
+    )
+  ) {
+    return "textarea" as const;
+  }
+
+  return "text" as const;
+}
+
+function buildHeuristicFallbackSchema({
+  prompt,
+  analysis,
+  knowledge,
+}: {
+  prompt: string;
+  analysis: IntentAnalysis;
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>;
+}): CustomReportSchema {
+  const candidateLabels = Array.from(
+    new Set(
+      knowledge.items
+        .map((item) => sanitizeAiReportText(item.fieldLabel))
+        .filter(Boolean)
+        .filter((label) => !isEvidenceLikeLabel(label)),
+    ),
+  ).slice(0, 8);
+
+  const genericLabels = [
+    "موضوع التقرير",
+    "الهدف من التقرير",
+    "تاريخ التقرير",
+    "وصف التنفيذ أو الحدث",
+    "أبرز النتائج أو المخرجات",
+    "التحديات أو الفجوات",
+    "التوصيات",
+    "ملاحظات إضافية",
+  ];
+
+  const mergedLabels = Array.from(
+    new Set([...candidateLabels, ...genericLabels]),
+  ).slice(0, 8);
+
+  return {
+    title:
+      sanitizeAiReportText(analysis.reportIntent) ||
+      `تقرير ${sanitizeAiReportText(analysis.reportFamily) || "مخصص"}`,
+    description: prompt,
+    version: 1,
+    sections: [
+      {
+        id: "ai_report_section_1",
+        title: "بيانات التقرير المخصص",
+        description: analysis.reasoningSummary || "",
+        order: 1,
+        fields: (() => {
+          const usedKeys = new Set<string>();
+
+          return mergedLabels.map((label, index) => {
+            const options = buildFallbackOptions(label, knowledge);
+            const type = pickFallbackFieldType(label, options);
+            const baseKey = pickFallbackFieldKey(label, index);
+            let key = baseKey;
+
+            while (usedKeys.has(key)) {
+              key = `${baseKey}_${usedKeys.size + 1}`;
+            }
+
+            usedKeys.add(key);
+
+            return {
+              key,
+              label,
+              type,
+              required: false,
+              placeholder:
+                type === "textarea"
+                  ? `اكتب ${label} هنا`
+                  : type === "date"
+                    ? ""
+                    : `أدخل ${label}`,
+              helpText: "",
+              reportLabel: label,
+              showInReport: true,
+              order: index + 1,
+              options:
+                type === "select" || type === "multi_select" ? options : [],
+            };
+          });
+        })(),
+      },
+    ],
+  };
+}
+
+function buildGenerationContext(
+  prompt: string,
+  profileContext: ReturnType<typeof buildProfileContext>,
+): CustomReportGenerationContext {
+  return {
+    mode: "create",
+    previousPrompt: prompt,
+    stages: profileContext.stages,
+    specialties: profileContext.specialties,
+    subjects: profileContext.subjects,
+  };
+}
+
+export async function POST(request: Request) {
+  const authContext = await requireCustomReportContext();
+
+  if (!authContext.ok) {
+    return NextResponse.json(
+      { success: false, error: authContext.message },
+      { status: authContext.status },
+    );
+  }
+
+  const body = await request.json().catch(() => null);
+  const prompt = cleanText(body?.prompt);
+
+  if (prompt.length < 3) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "اكتب وصفًا مختصرًا للتقرير حتى يتمكن النظام من مساعدتك.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const clarificationAnswers = normalizeClarificationAnswers(
+    body?.clarificationAnswers,
+  );
+  const previousAnalysis = body?.previousAnalysis;
+  const hasClarificationRound =
+    Object.keys(clarificationAnswers).length > 0 || Boolean(previousAnalysis);
+  const effectivePrompt = buildCombinedPrompt(prompt, clarificationAnswers);
+  const knowledge = findRelevantAiReportKnowledge({
+    prompt: effectivePrompt,
+    limit: 150,
+  });
+  const profileContext = buildProfileContext(authContext.user);
+  const analysis = hasClarificationRound
+    ? resolveAnalysisForGeneration({
+        previousAnalysis,
+        fallback: buildFallbackIntentAnalysis({
+          prompt: effectivePrompt,
+          knowledge,
+        }),
+      })
+    : await analyzeIntent({
+        prompt,
+        effectivePrompt,
+        previousAnalysis,
+        knowledge,
+        profileContext,
+      });
+
+  if (!hasClarificationRound && analysis.needsClarification) {
+    return NextResponse.json({
+      success: true,
+      needsClarification: true,
+      confidence: analysis.confidence,
+      reportIntent: analysis.reportIntent,
+      reportFamily: analysis.reportFamily,
+      reasoningSummary: analysis.reasoningSummary,
+      missingContext: analysis.missingContext,
+      coreFieldHints: analysis.coreFieldHints,
+      questions: analysis.questions,
+    });
+  }
+
+  const guidedPrompt = buildSchemaPrompt({
+    prompt,
+    clarificationAnswers,
+    hasClarificationRound,
+    analysis,
+    knowledge,
+    profileContext,
+  });
+
+  const result = await generateCustomReportSchema(
+    guidedPrompt,
+    buildGenerationContext(effectivePrompt, profileContext),
+  );
+  const nextSchema =
+    result.source === "FALLBACK" || countSchemaFields(result.schema) < 4
+      ? buildHeuristicFallbackSchema({
+          prompt,
+          analysis,
+          knowledge,
+        })
+      : result.schema;
+  const sanitizedSchema = normalizeAiReportSchema(
+    sanitizeAiReportSchema(nextSchema),
+  );
+
+  return NextResponse.json({
+    success: true,
+    needsClarification: false,
+    confidence: analysis.confidence,
+    reportIntent: analysis.reportIntent,
+    reportFamily: analysis.reportFamily,
+    reasoningSummary: analysis.reasoningSummary,
+    missingContext: analysis.missingContext,
+    coreFieldHints: analysis.coreFieldHints,
+    schema: sanitizedSchema,
+  });
+}
+
+
+
+
+============================================================
+FILE: lib\ai-report\ai-report-knowledge-types.ts
+============================================================
+Size: 1429 bytes
+LastWriteTime: 06/29/2026 23:49:15
+
+export type AiReportKnowledgeSourceType = "value_bank" | "manual_field";
+
+export type AiReportKnowledgeItem = {
+  id: string;
+  sourceType: AiReportKnowledgeSourceType;
+  reportSlug: string;
+  reportName: string;
+  performanceElement: string;
+  reportCategory: string;
+  templatePattern: string;
+  category: string;
+  fieldKey: string;
+  fieldLabel: string;
+  inputType: string;
+  optionLabel: string;
+  sourcePage?: string;
+  searchableText: string;
+  keywords: string[];
+};
+
+export type AiReportKnowledgeReport = {
+  batchId?: string;
+  reportSlug: string;
+  reportName: string;
+  performanceElement: string;
+  reportCategory: string;
+  templatePattern: string;
+  keywords: string[];
+};
+
+export type AiReportKnowledgeBank = {
+  schemaVersion: number;
+  generatedAt: string;
+  sourceFile: string;
+  counts: {
+    reports: number;
+    valueRows: number;
+    manualRows: number;
+    items: number;
+    coverage: number;
+  };
+  reports: AiReportKnowledgeReport[];
+  items: AiReportKnowledgeItem[];
+  coverage: unknown[];
+};
+
+export type AiReportKnowledgeMatch = AiReportKnowledgeItem & {
+  score: number;
+  matchedTerms: string[];
+};
+
+export type AiReportKnowledgeReportMatch = AiReportKnowledgeReport & {
+  score: number;
+  matchedItemsCount: number;
+};
+
+export type AiReportKnowledgeSearchResult = {
+  prompt: string;
+  normalizedPrompt: string;
+  topReports: AiReportKnowledgeReportMatch[];
+  items: AiReportKnowledgeMatch[];
+};
+
+
+
+============================================================
+FILE: lib\ai-report\ai-report-knowledge-retriever.ts
+============================================================
+Size: 6535 bytes
+LastWriteTime: 06/29/2026 23:49:16
+
+import fs from "node:fs";
+import path from "node:path";
+
+import type {
+  AiReportKnowledgeBank,
+  AiReportKnowledgeItem,
+  AiReportKnowledgeMatch,
+  AiReportKnowledgeReportMatch,
+  AiReportKnowledgeSearchResult,
+} from "@/lib/ai-report/ai-report-knowledge-types";
+
+const KNOWLEDGE_BANK_PATH = path.join(
+  process.cwd(),
+  "data",
+  "ai-report",
+  "generated",
+  "teacher-performance-knowledge-bank.json",
+);
+
+let cachedBank: AiReportKnowledgeBank | null = null;
+
+const DOMAIN_SYNONYMS: Record<string, string[]> = {
+  "نهاية وحدة": [
+    "وحدة دراسية",
+    "ختام الوحدة",
+    "تقويم ختامي",
+    "نواتج التعلم",
+    "تحقق الاهداف",
+    "مستوى الاتقان",
+    "تحليل نتائج",
+    "خطة علاجية",
+    "توصيات",
+  ],
+  "نهايه وحده": [
+    "وحدة دراسية",
+    "ختام الوحدة",
+    "تقويم ختامي",
+    "نواتج التعلم",
+    "تحقق الاهداف",
+    "مستوى الاتقان",
+    "تحليل نتائج",
+    "خطة علاجية",
+    "توصيات",
+  ],
+  "درس": [
+    "خطة درس",
+    "تنفيذ درس",
+    "استراتيجيات التدريس",
+    "التهيئة",
+    "التقويم",
+  ],
+  "تقنية": [
+    "تقنيات التعلم",
+    "وسائل التعلم",
+    "منصة تعليمية",
+    "تعلم رقمي",
+    "ادوات رقمية",
+  ],
+  "تقويم": [
+    "تقويم قبلي",
+    "تقويم تكويني",
+    "تقويم ختامي",
+    "تقويم ادائي",
+    "روبرك",
+  ],
+  "ادارة صفية": [
+    "قواعد الصف",
+    "تنظيم السلوك",
+    "ادارة وقت الحصة",
+    "الانضباط الايجابي",
+  ],
+};
+
+export function normalizeAiReportArabicText(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[^\p{L}\p{N}\s_-]/gu, " ")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenize(value: string) {
+  return normalizeAiReportArabicText(value)
+    .split(" ")
+    .map((item) => item.trim())
+    .filter((item) => item.length >= 3);
+}
+
+function expandPromptTerms(prompt: string) {
+  const normalizedPrompt = normalizeAiReportArabicText(prompt);
+  const terms = new Set<string>();
+
+  for (const token of tokenize(normalizedPrompt)) {
+    terms.add(token);
+  }
+
+  for (const [key, values] of Object.entries(DOMAIN_SYNONYMS)) {
+    const normalizedKey = normalizeAiReportArabicText(key);
+
+    if (normalizedPrompt.includes(normalizedKey)) {
+      terms.add(normalizedKey);
+
+      for (const value of values) {
+        terms.add(normalizeAiReportArabicText(value));
+        for (const token of tokenize(value)) {
+          terms.add(token);
+        }
+      }
+    }
+  }
+
+  return Array.from(terms).filter(Boolean);
+}
+
+function getKnowledgeBank(): AiReportKnowledgeBank {
+  if (cachedBank) return cachedBank;
+
+  if (!fs.existsSync(KNOWLEDGE_BANK_PATH)) {
+    throw new Error(
+      `AI report knowledge bank is missing. Run: node scripts/build-ai-report-knowledge-bank.mjs`,
+    );
+  }
+
+  const raw = fs.readFileSync(KNOWLEDGE_BANK_PATH, "utf8");
+  cachedBank = JSON.parse(raw) as AiReportKnowledgeBank;
+
+  return cachedBank;
+}
+
+function scoreKnowledgeItem(item: AiReportKnowledgeItem, terms: string[]) {
+  const searchable = item.searchableText || "";
+  const reportName = normalizeAiReportArabicText(item.reportName);
+  const performanceElement = normalizeAiReportArabicText(item.performanceElement);
+  const fieldLabel = normalizeAiReportArabicText(item.fieldLabel);
+  const optionLabel = normalizeAiReportArabicText(item.optionLabel);
+  const category = normalizeAiReportArabicText(item.category);
+  const keywords = (item.keywords || []).map(normalizeAiReportArabicText);
+
+  let score = 0;
+  const matchedTerms = new Set<string>();
+
+  for (const term of terms) {
+    if (!term) continue;
+
+    if (optionLabel.includes(term)) {
+      score += 12;
+      matchedTerms.add(term);
+    }
+
+    if (fieldLabel.includes(term)) {
+      score += 9;
+      matchedTerms.add(term);
+    }
+
+    if (reportName.includes(term)) {
+      score += 8;
+      matchedTerms.add(term);
+    }
+
+    if (performanceElement.includes(term)) {
+      score += 6;
+      matchedTerms.add(term);
+    }
+
+    if (category.includes(term)) {
+      score += 4;
+      matchedTerms.add(term);
+    }
+
+    if (keywords.some((keyword) => keyword.includes(term) || term.includes(keyword))) {
+      score += 4;
+      matchedTerms.add(term);
+    }
+
+    if (searchable.includes(term)) {
+      score += 2;
+      matchedTerms.add(term);
+    }
+  }
+
+  if (item.sourceType === "value_bank") {
+    score += 1;
+  }
+
+  return {
+    score,
+    matchedTerms: Array.from(matchedTerms),
+  };
+}
+
+function buildReportMatches(items: AiReportKnowledgeMatch[]) {
+  const reportMap = new Map<string, AiReportKnowledgeReportMatch>();
+
+  for (const item of items) {
+    const existing = reportMap.get(item.reportSlug);
+
+    if (!existing) {
+      reportMap.set(item.reportSlug, {
+        reportSlug: item.reportSlug,
+        reportName: item.reportName,
+        performanceElement: item.performanceElement,
+        reportCategory: item.reportCategory,
+        templatePattern: item.templatePattern,
+        keywords: [],
+        score: item.score,
+        matchedItemsCount: 1,
+      });
+      continue;
+    }
+
+    existing.score += item.score;
+    existing.matchedItemsCount += 1;
+  }
+
+  return Array.from(reportMap.values())
+    .sort((a, b) => b.score - a.score || b.matchedItemsCount - a.matchedItemsCount)
+    .slice(0, 12);
+}
+
+export function findRelevantAiReportKnowledge({
+  prompt,
+  limit = 140,
+}: {
+  prompt: string;
+  limit?: number;
+}): AiReportKnowledgeSearchResult {
+  const bank = getKnowledgeBank();
+  const normalizedPrompt = normalizeAiReportArabicText(prompt);
+  const terms = expandPromptTerms(prompt);
+
+  const items = bank.items
+    .map((item) => {
+      const result = scoreKnowledgeItem(item, terms);
+
+      return {
+        ...item,
+        score: result.score,
+        matchedTerms: result.matchedTerms,
+      };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.optionLabel.localeCompare(b.optionLabel, "ar");
+    })
+    .slice(0, limit);
+
+  return {
+    prompt,
+    normalizedPrompt,
+    topReports: buildReportMatches(items),
+    items,
+  };
+}
+
+
+
+============================================================
+FILE: scripts\build-ai-report-knowledge-bank.mjs
+============================================================
+Size: 6747 bytes
+LastWriteTime: 06/29/2026 23:47:58
+
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import xlsx from "xlsx";
+
+const root = process.cwd();
+
+const sourcePath = path.join(
+  root,
+  "data",
+  "ai-report",
+  "source",
+  "teacher_performance_value_bank_master_batch09_final.xlsx",
+);
+
+const outputPath = path.join(
+  root,
+  "data",
+  "ai-report",
+  "generated",
+  "teacher-performance-knowledge-bank.json",
+);
+
+function normalizeArabic(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[^\p{L}\p{N}\s_-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function slugify(value) {
+  return normalizeArabic(value)
+    .replace(/\s+/g, "-")
+    .replace(/_+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function readSheet(workbook, sheetName) {
+  const sheet = workbook.Sheets[sheetName];
+
+  if (!sheet) {
+    return [];
+  }
+
+  return xlsx.utils.sheet_to_json(sheet, {
+    defval: "",
+    raw: false,
+  });
+}
+
+function cleanText(value) {
+  return String(value ?? "").trim();
+}
+
+function makeStableId(parts) {
+  const base = parts.map(cleanText).filter(Boolean).join("|");
+  const hash = crypto.createHash("sha1").update(base).digest("hex").slice(0, 10);
+  const readable = slugify(parts[0] || "item").slice(0, 48) || "item";
+
+  return `${readable}-${hash}`;
+}
+
+function keywordsFromParts(parts) {
+  const text = parts.map(cleanText).filter(Boolean).join(" ");
+  const normalized = normalizeArabic(text);
+
+  const words = normalized
+    .split(" ")
+    .map((item) => item.trim())
+    .filter((item) => item.length >= 3);
+
+  const phrases = parts
+    .map(cleanText)
+    .filter((item) => item.length >= 3)
+    .map(normalizeArabic);
+
+  return Array.from(new Set([...phrases, ...words])).slice(0, 40);
+}
+
+if (!fs.existsSync(sourcePath)) {
+  throw new Error(`Source Excel not found: ${sourcePath}`);
+}
+
+let xlsxModuleOk = true;
+
+const workbook = xlsx.readFile(sourcePath, {
+  cellDates: false,
+  cellFormula: false,
+  cellHTML: false,
+  cellStyles: false,
+});
+
+const reportsRows = readSheet(workbook, "Reports");
+const valueRows = readSheet(workbook, "ValueBank");
+const manualRows = readSheet(workbook, "ManualFields");
+const coverageRows = readSheet(workbook, "Coverage");
+
+const reportsBySlug = new Map();
+
+const reports = reportsRows
+  .map((row) => {
+    const reportSlug = cleanText(row.report_slug);
+    const reportName = cleanText(row.report_name);
+
+    if (!reportSlug || !reportName) return null;
+
+    return {
+      batchId: cleanText(row.batch_id),
+      reportSlug,
+      reportName,
+      performanceElement: cleanText(row.performance_element),
+      reportCategory: cleanText(row.report_category),
+      templatePattern: cleanText(row.template_pattern),
+      keywords: keywordsFromParts([
+        reportName,
+        reportSlug,
+        row.performance_element,
+        row.report_category,
+        row.template_pattern,
+      ]),
+    };
+  })
+  .filter(Boolean);
+
+for (const report of reports) {
+  reportsBySlug.set(report.reportSlug, report);
+}
+
+function makeKnowledgeItem(row, sourceType, index) {
+  const reportSlug = cleanText(row.report_slug);
+  const report = reportsBySlug.get(reportSlug);
+
+  const fieldKey = cleanText(row.field_key);
+  const fieldLabel = cleanText(row.field_label);
+  const inputType = cleanText(row.input_type);
+  const optionLabel = cleanText(row.option_label);
+  const sourcePage = cleanText(row.source_page);
+
+  if (!reportSlug || !fieldLabel || !optionLabel) {
+    return null;
+  }
+
+  const category =
+    fieldKey === "manual"
+      ? "manual"
+      : fieldKey || inputType || "value";
+
+  return {
+    id: makeStableId([
+      reportSlug,
+      fieldKey,
+      fieldLabel,
+      inputType,
+      optionLabel,
+      sourceType,
+      String(index),
+    ]),
+    sourceType,
+    reportSlug,
+    reportName: report?.reportName || reportSlug,
+    performanceElement: report?.performanceElement || "",
+    reportCategory: report?.reportCategory || "",
+    templatePattern: report?.templatePattern || "",
+    category,
+    fieldKey,
+    fieldLabel,
+    inputType,
+    optionLabel,
+    sourcePage,
+    searchableText: normalizeArabic(
+      [
+        report?.reportName,
+        reportSlug,
+        report?.performanceElement,
+        report?.reportCategory,
+        report?.templatePattern,
+        fieldKey,
+        fieldLabel,
+        inputType,
+        optionLabel,
+        sourcePage,
+      ].join(" "),
+    ),
+    keywords: keywordsFromParts([
+      report?.reportName,
+      reportSlug,
+      report?.performanceElement,
+      report?.reportCategory,
+      report?.templatePattern,
+      fieldKey,
+      fieldLabel,
+      inputType,
+      optionLabel,
+      sourcePage,
+    ]),
+  };
+}
+
+const valueItems = valueRows
+  .map((row, index) => makeKnowledgeItem(row, "value_bank", index + 1))
+  .filter(Boolean);
+
+const manualItems = manualRows
+  .map((row, index) => makeKnowledgeItem(row, "manual_field", index + 1))
+  .filter(Boolean);
+
+const seen = new Set();
+const items = [];
+
+for (const item of [...valueItems, ...manualItems]) {
+  const duplicateKey = [
+    item.reportSlug,
+    item.fieldKey,
+    item.fieldLabel,
+    item.inputType,
+    item.optionLabel,
+  ].join("|");
+
+  if (seen.has(duplicateKey)) continue;
+
+  seen.add(duplicateKey);
+  items.push(item);
+}
+
+const coverage = coverageRows
+  .map((row) => ({
+    reportSlug: cleanText(row.report_slug),
+    totalValues: Number(row.total_values || 0),
+    manual: Number(row.manual || 0),
+    tools: Number(row.tools || 0),
+    grouping: Number(row.grouping || 0),
+    roles: Number(row.roles || 0),
+    objectives: Number(row.objectives || 0),
+    executionSteps: Number(row.execution_steps || 0),
+    evaluationItems: Number(row.evaluation_items || 0),
+    challenges: Number(row.challenges || 0),
+    recommendations: Number(row.recommendations || 0),
+    evidence: Number(row.evidence || 0),
+    resultsOrOther: Number(row.results_or_other || 0),
+  }))
+  .filter((row) => row.reportSlug);
+
+const bank = {
+  schemaVersion: 1,
+  generatedAt: new Date().toISOString(),
+  sourceFile: "teacher_performance_value_bank_master_batch09_final.xlsx",
+  counts: {
+    reports: reports.length,
+    valueRows: valueRows.length,
+    manualRows: manualRows.length,
+    items: items.length,
+    coverage: coverage.length,
+  },
+  reports,
+  items,
+  coverage,
+};
+
+fs.writeFileSync(outputPath, `${JSON.stringify(bank, null, 2)}\n`, "utf8");
+
+console.log("AI report knowledge bank generated.");
+console.log(`Reports: ${bank.counts.reports}`);
+console.log(`Value rows: ${bank.counts.valueRows}`);
+console.log(`Manual rows: ${bank.counts.manualRows}`);
+console.log(`Unique items: ${bank.counts.items}`);
+console.log(`Output: ${outputPath}`);
+
+

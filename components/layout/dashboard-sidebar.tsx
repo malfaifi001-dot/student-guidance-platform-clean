@@ -188,6 +188,7 @@ const teacherPerformanceLinks: SidebarLinkItem[] = [
     shortLabel: service.shortTitle,
   })),
   { label: "تقرير مخصص", href: "/dashboard/ai-report", icon: Sparkles, shortLabel: "مخصص" },
+  { label: "التقرير الذكي التجريبي", href: "/dashboard/teacher/ai-report2", icon: BrainCircuit, shortLabel: "تجريبي" },
   { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
 ];
 

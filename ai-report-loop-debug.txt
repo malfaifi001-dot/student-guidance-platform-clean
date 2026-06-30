@@ -1,0 +1,3830 @@
+AI Report Loop Debug
+Generated: 06/30/2026 09:16:24
+
+===== Git Status =====
+ M app/api/dashboard/ai-report/suggest/route.ts
+ M components/ai-report/ai-report-workspace.tsx
+ M lib/ai-report/ai-report-runtime-adapter.ts
+?? ai-report-current-code-review.txt
+
+
+===== Focus Search =====
+
+  components\ai-report\ai-report-workspace.tsx:27:};
+  components\ai-report\ai-report-workspace.tsx:28:
+  components\ai-report\ai-report-workspace.tsx:29:type AnalysisSnapshot = {
+> components\ai-report\ai-report-workspace.tsx:30:  confidence: number;
+  components\ai-report\ai-report-workspace.tsx:31:  reportIntent: string;
+  components\ai-report\ai-report-workspace.tsx:32:  reportFamily: string;
+  components\ai-report\ai-report-workspace.tsx:33:  reasoningSummary: string;
+  components\ai-report\ai-report-workspace.tsx:34:  missingContext: string[];
+  components\ai-report\ai-report-workspace.tsx:35:  coreFieldHints: string[];
+  components\ai-report\ai-report-workspace.tsx:36:};
+  components\ai-report\ai-report-workspace.tsx:37:
+  components\ai-report\ai-report-workspace.tsx:38:type SuggestResponse = {
+  components\ai-report\ai-report-workspace.tsx:39:  success: boolean;
+  components\ai-report\ai-report-workspace.tsx:40:  error?: string;
+> components\ai-report\ai-report-workspace.tsx:41:  needsClarification?: boolean;
+> components\ai-report\ai-report-workspace.tsx:42:  confidence?: number;
+  components\ai-report\ai-report-workspace.tsx:43:  reportIntent?: string;
+  components\ai-report\ai-report-workspace.tsx:44:  reportFamily?: string;
+  components\ai-report\ai-report-workspace.tsx:45:  reasoningSummary?: string;
+  components\ai-report\ai-report-workspace.tsx:46:  missingContext?: string[];
+  components\ai-report\ai-report-workspace.tsx:47:  coreFieldHints?: string[];
+> components\ai-report\ai-report-workspace.tsx:48:  questions?: ClarificationQuestion[];
+  components\ai-report\ai-report-workspace.tsx:49:  schema?: AiReportSchema;
+  components\ai-report\ai-report-workspace.tsx:50:};
+  components\ai-report\ai-report-workspace.tsx:51:
+  components\ai-report\ai-report-workspace.tsx:52:type SaveResult = {
+  components\ai-report\ai-report-workspace.tsx:53:  redirectTo?: string;
+  components\ai-report\ai-report-workspace.tsx:54:  error?: string;
+  components\ai-report\ai-report-workspace.tsx:55:};
+  components\ai-report\ai-report-workspace.tsx:56:
+  components\ai-report\ai-report-workspace.tsx:61:] as const;
+  components\ai-report\ai-report-workspace.tsx:62:
+  components\ai-report\ai-report-workspace.tsx:63:function buildAnalysisSnapshot(data: SuggestResponse): 
+AnalysisSnapshot {
+> components\ai-report\ai-report-workspace.tsx:64:  return {
+> components\ai-report\ai-report-workspace.tsx:65:    confidence:
+> components\ai-report\ai-report-workspace.tsx:66:      typeof data.confidence === "number" && 
+Number.isFinite(data.confidence)
+> components\ai-report\ai-report-workspace.tsx:67:        ? data.confidence
+  components\ai-report\ai-report-workspace.tsx:68:        : 0.6,
+  components\ai-report\ai-report-workspace.tsx:69:    reportIntent: data.reportIntent || "تقرير مخصص",
+  components\ai-report\ai-report-workspace.tsx:70:    reportFamily: data.reportFamily || "تقرير تعليمي 
+مخصص",
+  components\ai-report\ai-report-workspace.tsx:71:    reasoningSummary: data.reasoningSummary || "",
+  components\ai-report\ai-report-workspace.tsx:72:    missingContext: Array.isArray(data.missingContext) 
+? data.missingContext : [],
+  components\ai-report\ai-report-workspace.tsx:73:    coreFieldHints: Array.isArray(data.coreFieldHints) 
+? data.coreFieldHints : [],
+  components\ai-report\ai-report-workspace.tsx:74:  };
+  components\ai-report\ai-report-workspace.tsx:75:}
+  components\ai-report\ai-report-workspace.tsx:76:
+> components\ai-report\ai-report-workspace.tsx:77:function buildClarificationAnswerState(
+> components\ai-report\ai-report-workspace.tsx:78:  questions: ClarificationQuestion[],
+  components\ai-report\ai-report-workspace.tsx:79:  previous: Record<string, string>,
+  components\ai-report\ai-report-workspace.tsx:80:) {
+> components\ai-report\ai-report-workspace.tsx:81:  return Object.fromEntries(
+> components\ai-report\ai-report-workspace.tsx:82:    questions.map((question) => [question.id, 
+previous[question.id] || ""]),
+  components\ai-report\ai-report-workspace.tsx:83:  );
+  components\ai-report\ai-report-workspace.tsx:84:}
+  components\ai-report\ai-report-workspace.tsx:85:
+  components\ai-report\ai-report-workspace.tsx:86:export function AiReportWorkspace() {
+  components\ai-report\ai-report-workspace.tsx:87:  const router = useRouter();
+  components\ai-report\ai-report-workspace.tsx:88:
+  components\ai-report\ai-report-workspace.tsx:89:  function goBackToAiReportHome() {
+  components\ai-report\ai-report-workspace.tsx:90:    if (typeof window !== "undefined" && 
+window.history.length > 1) {
+  components\ai-report\ai-report-workspace.tsx:91:      router.back();
+> components\ai-report\ai-report-workspace.tsx:92:      return;
+  components\ai-report\ai-report-workspace.tsx:93:    }
+  components\ai-report\ai-report-workspace.tsx:94:
+  components\ai-report\ai-report-workspace.tsx:95:    router.push("/dashboard/ai-report");
+  components\ai-report\ai-report-workspace.tsx:96:  }
+  components\ai-report\ai-report-workspace.tsx:97:
+  components\ai-report\ai-report-workspace.tsx:98:  const [prompt, setPrompt] = useState("");
+> components\ai-report\ai-report-workspace.tsx:99:  const [schema, setSchema] = useState<AiReportSchema 
+| null>(null);
+  components\ai-report\ai-report-workspace.tsx:100:  const [modalOpen, setModalOpen] = useState(true);
+  components\ai-report\ai-report-workspace.tsx:101:  const [loading, setLoading] = useState(false);
+  components\ai-report\ai-report-workspace.tsx:102:  const [seconds, setSeconds] = useState(0);
+  components\ai-report\ai-report-workspace.tsx:103:  const [error, setError] = useState("");
+  components\ai-report\ai-report-workspace.tsx:104:  const [runtimeRevision, setRuntimeRevision] = 
+useState(0);
+> components\ai-report\ai-report-workspace.tsx:105:  const [clarificationQuestions, 
+setClarificationQuestions] = useState<
+  components\ai-report\ai-report-workspace.tsx:106:    ClarificationQuestion[]
+  components\ai-report\ai-report-workspace.tsx:107:  >([]);
+> components\ai-report\ai-report-workspace.tsx:108:  const [clarificationAnswers, 
+setClarificationAnswers] = useState<
+  components\ai-report\ai-report-workspace.tsx:109:    Record<string, string>
+  components\ai-report\ai-report-workspace.tsx:110:  >({});
+> components\ai-report\ai-report-workspace.tsx:111:  const [previousAnalysis, setPreviousAnalysis] =
+  components\ai-report\ai-report-workspace.tsx:112:    useState<AnalysisSnapshot | null>(null);
+  components\ai-report\ai-report-workspace.tsx:113:
+  components\ai-report\ai-report-workspace.tsx:114:  useEffect(() => {
+  components\ai-report\ai-report-workspace.tsx:115:    if (!loading) {
+  components\ai-report\ai-report-workspace.tsx:116:      setSeconds(0);
+> components\ai-report\ai-report-workspace.tsx:117:      return;
+  components\ai-report\ai-report-workspace.tsx:118:    }
+  components\ai-report\ai-report-workspace.tsx:119:
+  components\ai-report\ai-report-workspace.tsx:120:    setSeconds(1);
+  components\ai-report\ai-report-workspace.tsx:121:
+  components\ai-report\ai-report-workspace.tsx:122:    const timer = window.setInterval(() => {
+  components\ai-report\ai-report-workspace.tsx:123:      setSeconds((current) => current + 1);
+  components\ai-report\ai-report-workspace.tsx:124:    }, 1000);
+  components\ai-report\ai-report-workspace.tsx:125:
+> components\ai-report\ai-report-workspace.tsx:126:    return () => window.clearInterval(timer);
+  components\ai-report\ai-report-workspace.tsx:127:  }, [loading]);
+  components\ai-report\ai-report-workspace.tsx:128:
+  components\ai-report\ai-report-workspace.tsx:129:  const runtimeWorkflow = useMemo(() => {
+> components\ai-report\ai-report-workspace.tsx:130:    return schema ? 
+buildAiReportRuntimeWorkflow(schema) : null;
+  components\ai-report\ai-report-workspace.tsx:131:  }, [schema]);
+  components\ai-report\ai-report-workspace.tsx:132:
+  components\ai-report\ai-report-workspace.tsx:133:  const initialValues = useMemo(() => {
+> components\ai-report\ai-report-workspace.tsx:134:    return schema ? 
+buildAiReportInitialValues(schema) : undefined;
+  components\ai-report\ai-report-workspace.tsx:135:  }, [schema]);
+  components\ai-report\ai-report-workspace.tsx:136:
+  components\ai-report\ai-report-workspace.tsx:137:  const loadingStatus =
+  components\ai-report\ai-report-workspace.tsx:138:    LOADING_STATUSES[
+  components\ai-report\ai-report-workspace.tsx:139:      Math.min(LOADING_STATUSES.length - 1, 
+Math.floor(Math.max(seconds - 1, 0) / 2))
+  components\ai-report\ai-report-workspace.tsx:140:    ];
+> components\ai-report\ai-report-workspace.tsx:141:  const isClarificationStage = 
+clarificationQuestions.length > 0;
+  components\ai-report\ai-report-workspace.tsx:142:
+  components\ai-report\ai-report-workspace.tsx:143:  function resetClarificationStage() {
+> components\ai-report\ai-report-workspace.tsx:144:    setClarificationQuestions([]);
+> components\ai-report\ai-report-workspace.tsx:145:    setClarificationAnswers({});
+> components\ai-report\ai-report-workspace.tsx:146:    setPreviousAnalysis(null);
+  components\ai-report\ai-report-workspace.tsx:147:    setError("");
+  components\ai-report\ai-report-workspace.tsx:148:  }
+  components\ai-report\ai-report-workspace.tsx:149:
+> components\ai-report\ai-report-workspace.tsx:150:  async function generateReport() {
+  components\ai-report\ai-report-workspace.tsx:151:    const trimmedPrompt = prompt.trim();
+  components\ai-report\ai-report-workspace.tsx:152:
+  components\ai-report\ai-report-workspace.tsx:153:    if (trimmedPrompt.length < 10) {
+  components\ai-report\ai-report-workspace.tsx:154:      setError("اكتب وصفًا أوضح للتقرير لا يقل عن 10 
+أحرف.");
+> components\ai-report\ai-report-workspace.tsx:155:      return;
+  components\ai-report\ai-report-workspace.tsx:156:    }
+  components\ai-report\ai-report-workspace.tsx:157:
+  components\ai-report\ai-report-workspace.tsx:158:    if (loading) {
+> components\ai-report\ai-report-workspace.tsx:159:      return;
+  components\ai-report\ai-report-workspace.tsx:160:    }
+  components\ai-report\ai-report-workspace.tsx:161:
+> components\ai-report\ai-report-workspace.tsx:162:    if (isClarificationStage) {
+> components\ai-report\ai-report-workspace.tsx:163:      const hasEmptyAnswer = 
+clarificationQuestions.some(
+> components\ai-report\ai-report-workspace.tsx:164:        (question) => 
+!(clarificationAnswers[question.id] || "").trim(),
+  components\ai-report\ai-report-workspace.tsx:165:      );
+  components\ai-report\ai-report-workspace.tsx:166:
+> components\ai-report\ai-report-workspace.tsx:167:      if (hasEmptyAnswer) {
+  components\ai-report\ai-report-workspace.tsx:168:        setError("أكمل التوضيح المطلوب قبل متابعة 
+إنشاء الحقول.");
+> components\ai-report\ai-report-workspace.tsx:169:        return;
+  components\ai-report\ai-report-workspace.tsx:170:      }
+  components\ai-report\ai-report-workspace.tsx:171:    }
+  components\ai-report\ai-report-workspace.tsx:172:
+  components\ai-report\ai-report-workspace.tsx:173:    setLoading(true);
+  components\ai-report\ai-report-workspace.tsx:174:    setError("");
+  components\ai-report\ai-report-workspace.tsx:175:
+  components\ai-report\ai-report-workspace.tsx:176:    try {
+  components\ai-report\ai-report-workspace.tsx:177:      const response = await 
+fetch("/api/dashboard/ai-report/suggest", {
+  components\ai-report\ai-report-workspace.tsx:181:        },
+  components\ai-report\ai-report-workspace.tsx:182:        body: JSON.stringify({
+  components\ai-report\ai-report-workspace.tsx:183:          prompt: trimmedPrompt,
+> components\ai-report\ai-report-workspace.tsx:184:          clarificationAnswers: isClarificationStage 
+? clarificationAnswers : undefined,
+> components\ai-report\ai-report-workspace.tsx:185:          previousAnalysis,
+  components\ai-report\ai-report-workspace.tsx:186:        }),
+  components\ai-report\ai-report-workspace.tsx:187:      });
+  components\ai-report\ai-report-workspace.tsx:188:
+  components\ai-report\ai-report-workspace.tsx:189:      const data = (await response.json()) as 
+SuggestResponse;
+  components\ai-report\ai-report-workspace.tsx:190:
+  components\ai-report\ai-report-workspace.tsx:191:      if (!response.ok || !data.success) {
+  components\ai-report\ai-report-workspace.tsx:192:        throw new Error(data.error || "تعذر توليد 
+التقرير المخصص.");
+  components\ai-report\ai-report-workspace.tsx:193:      }
+  components\ai-report\ai-report-workspace.tsx:194:
+  components\ai-report\ai-report-workspace.tsx:195:      const nextAnalysis = 
+buildAnalysisSnapshot(data);
+> components\ai-report\ai-report-workspace.tsx:196:      setPreviousAnalysis(nextAnalysis);
+  components\ai-report\ai-report-workspace.tsx:197:
+> components\ai-report\ai-report-workspace.tsx:198:      if (data.needsClarification) {
+> components\ai-report\ai-report-workspace.tsx:199:        const nextQuestions = 
+Array.isArray(data.questions) ? data.questions : [];
+  components\ai-report\ai-report-workspace.tsx:200:
+> components\ai-report\ai-report-workspace.tsx:201:        if (!nextQuestions.length) {
+  components\ai-report\ai-report-workspace.tsx:202:          throw new Error("نحتاج وصفًا أوضح قليلًا 
+حتى نتمكن من بناء الحقول المناسبة.");
+  components\ai-report\ai-report-workspace.tsx:203:        }
+  components\ai-report\ai-report-workspace.tsx:204:
+> components\ai-report\ai-report-workspace.tsx:205:        setClarificationQuestions(nextQuestions);
+> components\ai-report\ai-report-workspace.tsx:206:        setClarificationAnswers((current) =>
+> components\ai-report\ai-report-workspace.tsx:207:          
+buildClarificationAnswerState(nextQuestions, current),
+  components\ai-report\ai-report-workspace.tsx:208:        );
+> components\ai-report\ai-report-workspace.tsx:209:        return;
+  components\ai-report\ai-report-workspace.tsx:210:      }
+  components\ai-report\ai-report-workspace.tsx:211:
+  components\ai-report\ai-report-workspace.tsx:212:      if (!data.schema) {
+  components\ai-report\ai-report-workspace.tsx:213:        throw new Error("تعذر تجهيز نموذج التقرير 
+المخصص.");
+  components\ai-report\ai-report-workspace.tsx:214:      }
+  components\ai-report\ai-report-workspace.tsx:215:
+> components\ai-report\ai-report-workspace.tsx:216:      
+setSchema(normalizeAiReportSchema(sanitizeAiReportSchema(data.schema)));
+  components\ai-report\ai-report-workspace.tsx:217:      setRuntimeRevision((current) => current + 1);
+> components\ai-report\ai-report-workspace.tsx:218:      setClarificationQuestions([]);
+> components\ai-report\ai-report-workspace.tsx:219:      setClarificationAnswers({});
+  components\ai-report\ai-report-workspace.tsx:220:      setModalOpen(false);
+  components\ai-report\ai-report-workspace.tsx:221:    } catch (err) {
+  components\ai-report\ai-report-workspace.tsx:222:      setError(err instanceof Error ? err.message : 
+"تعذر توليد التقرير المخصص.");
+  components\ai-report\ai-report-workspace.tsx:223:    } finally {
+  components\ai-report\ai-report-workspace.tsx:224:      setLoading(false);
+  components\ai-report\ai-report-workspace.tsx:225:    }
+  components\ai-report\ai-report-workspace.tsx:226:  }
+  components\ai-report\ai-report-workspace.tsx:227:
+  components\ai-report\ai-report-workspace.tsx:255:      throw new Error(data.error || "تعذر حفظ 
+التقرير.");
+  components\ai-report\ai-report-workspace.tsx:256:    }
+  components\ai-report\ai-report-workspace.tsx:257:
+> components\ai-report\ai-report-workspace.tsx:258:    return {
+  components\ai-report\ai-report-workspace.tsx:259:      redirectTo: data.redirectTo,
+  components\ai-report\ai-report-workspace.tsx:260:      feedbackTitle: type === "submit" ? "تم إرسال 
+التقرير" : "تم حفظ المسودة",
+  components\ai-report\ai-report-workspace.tsx:261:      feedbackMessage:
+  components\ai-report\ai-report-workspace.tsx:262:        type === "submit"
+  components\ai-report\ai-report-workspace.tsx:263:          ? "تم حفظ التقرير وإرساله بنجاح."
+  components\ai-report\ai-report-workspace.tsx:264:          : "تم حفظ التقرير كمسودة بنجاح.",
+  components\ai-report\ai-report-workspace.tsx:265:    };
+  components\ai-report\ai-report-workspace.tsx:266:  };
+  components\ai-report\ai-report-workspace.tsx:267:
+> components\ai-report\ai-report-workspace.tsx:268:  return (
+  components\ai-report\ai-report-workspace.tsx:269:    <main className="space-y-6" dir="rtl">
+  components\ai-report\ai-report-workspace.tsx:270:      {modalOpen ? (
+  components\ai-report\ai-report-workspace.tsx:271:        <AiReportPromptModal
+  components\ai-report\ai-report-workspace.tsx:272:          prompt={prompt}
+  components\ai-report\ai-report-workspace.tsx:273:          loading={loading}
+  components\ai-report\ai-report-workspace.tsx:274:          seconds={seconds}
+  components\ai-report\ai-report-workspace.tsx:275:          loadingStatus={loadingStatus}
+  components\ai-report\ai-report-workspace.tsx:276:          error={error}
+> components\ai-report\ai-report-workspace.tsx:277:          
+clarificationQuestions={clarificationQuestions}
+> components\ai-report\ai-report-workspace.tsx:278:          clarificationAnswers={clarificationAnswers}
+> components\ai-report\ai-report-workspace.tsx:279:          previousAnalysis={previousAnalysis}
+  components\ai-report\ai-report-workspace.tsx:280:          onPromptChange={setPrompt}
+  components\ai-report\ai-report-workspace.tsx:281:          onClarificationAnswerChange={(questionId, 
+value) => {
+> components\ai-report\ai-report-workspace.tsx:282:            setClarificationAnswers((current) => ({
+  components\ai-report\ai-report-workspace.tsx:283:              ...current,
+  components\ai-report\ai-report-workspace.tsx:284:              [questionId]: value,
+  components\ai-report\ai-report-workspace.tsx:285:            }));
+  components\ai-report\ai-report-workspace.tsx:286:          }}
+  components\ai-report\ai-report-workspace.tsx:287:          onBackToPrompt={resetClarificationStage}
+> components\ai-report\ai-report-workspace.tsx:288:          onGenerate={generateReport}
+  components\ai-report\ai-report-workspace.tsx:289:          onExit={goBackToAiReportHome}
+  components\ai-report\ai-report-workspace.tsx:290:        />
+  components\ai-report\ai-report-workspace.tsx:291:      ) : null}
+  components\ai-report\ai-report-workspace.tsx:292:
+  components\ai-report\ai-report-workspace.tsx:293:      {runtimeWorkflow && schema && initialValues ? (
+  components\ai-report\ai-report-workspace.tsx:294:        <DynamicFormRenderer
+  components\ai-report\ai-report-workspace.tsx:295:          key={`ai-report-runtime-${runtimeRevision}`}
+  components\ai-report\ai-report-workspace.tsx:296:          workflow={runtimeWorkflow}
+  components\ai-report\ai-report-workspace.tsx:335:  seconds,
+  components\ai-report\ai-report-workspace.tsx:336:  loadingStatus,
+  components\ai-report\ai-report-workspace.tsx:337:  error,
+> components\ai-report\ai-report-workspace.tsx:338:  clarificationQuestions,
+> components\ai-report\ai-report-workspace.tsx:339:  clarificationAnswers,
+> components\ai-report\ai-report-workspace.tsx:340:  previousAnalysis,
+  components\ai-report\ai-report-workspace.tsx:341:  onPromptChange,
+  components\ai-report\ai-report-workspace.tsx:342:  onClarificationAnswerChange,
+  components\ai-report\ai-report-workspace.tsx:343:  onBackToPrompt,
+  components\ai-report\ai-report-workspace.tsx:344:  onGenerate,
+  components\ai-report\ai-report-workspace.tsx:345:  onExit,
+  components\ai-report\ai-report-workspace.tsx:346:}: {
+  components\ai-report\ai-report-workspace.tsx:347:  prompt: string;
+  components\ai-report\ai-report-workspace.tsx:348:  loading: boolean;
+  components\ai-report\ai-report-workspace.tsx:349:  seconds: number;
+  components\ai-report\ai-report-workspace.tsx:350:  loadingStatus: string;
+  components\ai-report\ai-report-workspace.tsx:351:  error: string;
+> components\ai-report\ai-report-workspace.tsx:352:  clarificationQuestions: ClarificationQuestion[];
+> components\ai-report\ai-report-workspace.tsx:353:  clarificationAnswers: Record<string, string>;
+> components\ai-report\ai-report-workspace.tsx:354:  previousAnalysis: AnalysisSnapshot | null;
+  components\ai-report\ai-report-workspace.tsx:355:  onPromptChange: (value: string) => void;
+  components\ai-report\ai-report-workspace.tsx:356:  onClarificationAnswerChange: (questionId: string, 
+value: string) => void;
+  components\ai-report\ai-report-workspace.tsx:357:  onBackToPrompt: () => void;
+  components\ai-report\ai-report-workspace.tsx:358:  onGenerate: () => void;
+  components\ai-report\ai-report-workspace.tsx:359:  onExit: () => void;
+  components\ai-report\ai-report-workspace.tsx:360:}) {
+> components\ai-report\ai-report-workspace.tsx:361:  const isClarificationStage = 
+clarificationQuestions.length > 0;
+  components\ai-report\ai-report-workspace.tsx:362:
+> components\ai-report\ai-report-workspace.tsx:363:  return (
+  components\ai-report\ai-report-workspace.tsx:364:    <div
+> components\ai-report\ai-report-workspace.tsx:365:      className="fixed inset-0 z-[80] flex 
+items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+  components\ai-report\ai-report-workspace.tsx:366:      dir="rtl"
+  components\ai-report\ai-report-workspace.tsx:367:    >
+  components\ai-report\ai-report-workspace.tsx:368:      <section className="w-full max-w-3xl 
+overflow-hidden rounded-[2.5rem] bg-white shadow-2xl">
+  components\ai-report\ai-report-workspace.tsx:369:        <div className="bg-gradient-to-br 
+from-slate-950 via-sky-900 to-cyan-700 p-6 text-white">
+  components\ai-report\ai-report-workspace.tsx:370:          <div className="flex items-start 
+justify-between gap-4">
+  components\ai-report\ai-report-workspace.tsx:371:            <div className="space-y-2">
+  components\ai-report\ai-report-workspace.tsx:372:              <p className="text-xs font-black 
+tracking-[0.18em] text-sky-100">
+  components\ai-report\ai-report-workspace.tsx:373:                AI REPORT WORKFLOW
+  components\ai-report\ai-report-workspace.tsx:374:              </p>
+  components\ai-report\ai-report-workspace.tsx:375:
+  components\ai-report\ai-report-workspace.tsx:376:              <h2 className="text-3xl font-black">
+> components\ai-report\ai-report-workspace.tsx:377:                {isClarificationStage
+  components\ai-report\ai-report-workspace.tsx:378:                  ? "نحتاج توضيح بسيط"
+  components\ai-report\ai-report-workspace.tsx:379:                  : "صف التقرير الذي تريد إنشاءه"}
+  components\ai-report\ai-report-workspace.tsx:380:              </h2>
+  components\ai-report\ai-report-workspace.tsx:381:
+  components\ai-report\ai-report-workspace.tsx:382:              <p className="max-w-2xl text-sm 
+font-bold leading-7 text-sky-50">
+> components\ai-report\ai-report-workspace.tsx:383:                {isClarificationStage
+  components\ai-report\ai-report-workspace.tsx:384:                  ? "سنستخدم هذا التوضيح لبناء حقول 
+أقرب لطبيعة التقرير داخل الواجهة الرسمية."
+  components\ai-report\ai-report-workspace.tsx:385:                  : "اكتب وصفًا عمليًا للتقرير، 
+وسيقوم المساعد ببناء نموذج مناسب من خلال بنك المعرفة ثم عرضه داخل Workflow الرسمي."}
+  components\ai-report\ai-report-workspace.tsx:386:              </p>
+  components\ai-report\ai-report-workspace.tsx:387:            </div>
+  components\ai-report\ai-report-workspace.tsx:388:
+  components\ai-report\ai-report-workspace.tsx:389:            <button
+  components\ai-report\ai-report-workspace.tsx:390:              type="button"
+  components\ai-report\ai-report-workspace.tsx:391:              onClick={onExit}
+  components\ai-report\ai-report-workspace.tsx:424:            </div>
+  components\ai-report\ai-report-workspace.tsx:425:          ) : null}
+  components\ai-report\ai-report-workspace.tsx:426:
+> components\ai-report\ai-report-workspace.tsx:427:          {!isClarificationStage ? (
+  components\ai-report\ai-report-workspace.tsx:428:            <div className="space-y-3">
+  components\ai-report\ai-report-workspace.tsx:429:              <label className="text-sm font-black 
+text-slate-900">
+  components\ai-report\ai-report-workspace.tsx:430:                وصف التقرير
+  components\ai-report\ai-report-workspace.tsx:431:              </label>
+  components\ai-report\ai-report-workspace.tsx:432:
+  components\ai-report\ai-report-workspace.tsx:433:              <textarea
+  components\ai-report\ai-report-workspace.tsx:434:                value={prompt}
+  components\ai-report\ai-report-workspace.tsx:435:                onChange={(event) => 
+onPromptChange(event.target.value)}
+  components\ai-report\ai-report-workspace.tsx:458:                  </button>
+  components\ai-report\ai-report-workspace.tsx:459:                </div>
+  components\ai-report\ai-report-workspace.tsx:460:
+> components\ai-report\ai-report-workspace.tsx:461:                {previousAnalysis ? (
+  components\ai-report\ai-report-workspace.tsx:462:                  <div className="mt-4 flex flex-wrap 
+gap-2">
+  components\ai-report\ai-report-workspace.tsx:463:                    <span className="rounded-full 
+bg-white px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+> components\ai-report\ai-report-workspace.tsx:464:                      {previousAnalysis.reportFamily}
+  components\ai-report\ai-report-workspace.tsx:465:                    </span>
+  components\ai-report\ai-report-workspace.tsx:466:                    <span className="rounded-full 
+bg-white px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+> components\ai-report\ai-report-workspace.tsx:467:                      ثقة 
+{Math.round(previousAnalysis.confidence * 100)}%
+  components\ai-report\ai-report-workspace.tsx:468:                    </span>
+  components\ai-report\ai-report-workspace.tsx:469:                  </div>
+  components\ai-report\ai-report-workspace.tsx:470:                ) : null}
+  components\ai-report\ai-report-workspace.tsx:471:              </div>
+  components\ai-report\ai-report-workspace.tsx:472:
+  components\ai-report\ai-report-workspace.tsx:473:              <div className="grid gap-4">
+> components\ai-report\ai-report-workspace.tsx:474:                
+{clarificationQuestions.map((question) => (
+  components\ai-report\ai-report-workspace.tsx:475:                  <ClarificationField
+  components\ai-report\ai-report-workspace.tsx:476:                    key={question.id}
+  components\ai-report\ai-report-workspace.tsx:477:                    question={question}
+> components\ai-report\ai-report-workspace.tsx:478:                    
+value={clarificationAnswers[question.id] || ""}
+  components\ai-report\ai-report-workspace.tsx:479:                    onChange={(value) =>
+  components\ai-report\ai-report-workspace.tsx:480:                      
+onClarificationAnswerChange(question.id, value)
+  components\ai-report\ai-report-workspace.tsx:481:                    }
+  components\ai-report\ai-report-workspace.tsx:482:                  />
+  components\ai-report\ai-report-workspace.tsx:483:                ))}
+  components\ai-report\ai-report-workspace.tsx:484:              </div>
+  components\ai-report\ai-report-workspace.tsx:485:            </div>
+  components\ai-report\ai-report-workspace.tsx:486:          )}
+  components\ai-report\ai-report-workspace.tsx:493:
+  components\ai-report\ai-report-workspace.tsx:494:          <div className="flex flex-col-reverse gap-3 
+sm:flex-row sm:items-center sm:justify-between">
+  components\ai-report\ai-report-workspace.tsx:495:            <p className="text-xs font-bold 
+text-slate-400">
+> components\ai-report\ai-report-workspace.tsx:496:              {isClarificationStage
+  components\ai-report\ai-report-workspace.tsx:497:                ? "التوضيح المختصر يكفي. لا حاجة لشرح 
+طويل."
+  components\ai-report\ai-report-workspace.tsx:498:                : "اكتب الهدف الطبيعي للتقرير، 
+وسيتكفل النظام باقتراح الحقول الأقرب له."}
+  components\ai-report\ai-report-workspace.tsx:499:            </p>
+  components\ai-report\ai-report-workspace.tsx:500:
+  components\ai-report\ai-report-workspace.tsx:501:            <button
+  components\ai-report\ai-report-workspace.tsx:502:              type="button"
+  components\ai-report\ai-report-workspace.tsx:503:              onClick={onGenerate}
+  components\ai-report\ai-report-workspace.tsx:504:              disabled={loading}
+  components\ai-report\ai-report-workspace.tsx:507:              {loading ? <Loader2 className="h-4 w-4 
+animate-spin" /> : <Sparkles className="h-4 w-4" />}
+  components\ai-report\ai-report-workspace.tsx:508:              {loading
+  components\ai-report\ai-report-workspace.tsx:509:                ? "جاري التجهيز"
+> components\ai-report\ai-report-workspace.tsx:510:                : isClarificationStage
+  components\ai-report\ai-report-workspace.tsx:511:                  ? "متابعة إنشاء الحقول"
+  components\ai-report\ai-report-workspace.tsx:512:                  : "إنشاء حقول التقرير"}
+  components\ai-report\ai-report-workspace.tsx:513:            </button>
+  components\ai-report\ai-report-workspace.tsx:514:          </div>
+  components\ai-report\ai-report-workspace.tsx:515:        </div>
+  components\ai-report\ai-report-workspace.tsx:516:      </section>
+  components\ai-report\ai-report-workspace.tsx:517:    </div>
+  components\ai-report\ai-report-workspace.tsx:518:  );
+  components\ai-report\ai-report-workspace.tsx:528:  onChange: (value: string) => void;
+  components\ai-report\ai-report-workspace.tsx:529:}) {
+  components\ai-report\ai-report-workspace.tsx:530:  if (question.type === "textarea") {
+> components\ai-report\ai-report-workspace.tsx:531:    return (
+  components\ai-report\ai-report-workspace.tsx:532:      <label className="space-y-2">
+  components\ai-report\ai-report-workspace.tsx:533:        <div className="flex items-center 
+justify-between gap-3">
+  components\ai-report\ai-report-workspace.tsx:534:          <span className="text-sm font-black 
+text-slate-900">{question.label}</span>
+  components\ai-report\ai-report-workspace.tsx:535:          <button
+  components\ai-report\ai-report-workspace.tsx:536:            type="button"
+> components\ai-report\ai-report-workspace.tsx:537:            onClick={() => onChange("اقترح لي")}
+  components\ai-report\ai-report-workspace.tsx:538:            className="rounded-full bg-sky-50 px-3 
+py-1 text-[11px] font-black text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
+  components\ai-report\ai-report-workspace.tsx:539:          >
+> components\ai-report\ai-report-workspace.tsx:540:            اقترح لي
+  components\ai-report\ai-report-workspace.tsx:541:          </button>
+  components\ai-report\ai-report-workspace.tsx:542:        </div>
+  components\ai-report\ai-report-workspace.tsx:543:        <textarea
+  components\ai-report\ai-report-workspace.tsx:544:          value={value}
+  components\ai-report\ai-report-workspace.tsx:545:          onChange={(event) => 
+onChange(event.target.value)}
+  components\ai-report\ai-report-workspace.tsx:546:          rows={4}
+  components\ai-report\ai-report-workspace.tsx:547:          placeholder={question.placeholder}
+  components\ai-report\ai-report-workspace.tsx:548:          className="w-full rounded-[1.5rem] border 
+border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition 
+focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+  components\ai-report\ai-report-workspace.tsx:552:  }
+  components\ai-report\ai-report-workspace.tsx:553:
+  components\ai-report\ai-report-workspace.tsx:554:  if (question.type === "select" && 
+question.options?.length) {
+> components\ai-report\ai-report-workspace.tsx:555:    return (
+  components\ai-report\ai-report-workspace.tsx:556:      <label className="space-y-2">
+  components\ai-report\ai-report-workspace.tsx:557:        <span className="text-sm font-black 
+text-slate-900">{question.label}</span>
+  components\ai-report\ai-report-workspace.tsx:558:        <select
+  components\ai-report\ai-report-workspace.tsx:559:          value={value}
+  components\ai-report\ai-report-workspace.tsx:560:          onChange={(event) => 
+onChange(event.target.value)}
+  components\ai-report\ai-report-workspace.tsx:561:          className="w-full rounded-[1.5rem] border 
+border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition 
+focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+  components\ai-report\ai-report-workspace.tsx:562:        >
+  components\ai-report\ai-report-workspace.tsx:563:          <option value="">اختر</option>
+  components\ai-report\ai-report-workspace.tsx:571:    );
+  components\ai-report\ai-report-workspace.tsx:572:  }
+  components\ai-report\ai-report-workspace.tsx:573:
+> components\ai-report\ai-report-workspace.tsx:574:  return (
+  components\ai-report\ai-report-workspace.tsx:575:    <label className="space-y-2">
+  components\ai-report\ai-report-workspace.tsx:576:      <div className="flex items-center 
+justify-between gap-3">
+  components\ai-report\ai-report-workspace.tsx:577:        <span className="text-sm font-black 
+text-slate-900">{question.label}</span>
+  components\ai-report\ai-report-workspace.tsx:578:        <button
+  components\ai-report\ai-report-workspace.tsx:579:          type="button"
+> components\ai-report\ai-report-workspace.tsx:580:          onClick={() => onChange("اقترح لي")}
+  components\ai-report\ai-report-workspace.tsx:581:          className="rounded-full bg-sky-50 px-3 py-1 
+text-[11px] font-black text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
+  components\ai-report\ai-report-workspace.tsx:582:        >
+> components\ai-report\ai-report-workspace.tsx:583:          اقترح لي
+  components\ai-report\ai-report-workspace.tsx:584:        </button>
+  components\ai-report\ai-report-workspace.tsx:585:      </div>
+  components\ai-report\ai-report-workspace.tsx:586:      <input
+  components\ai-report\ai-report-workspace.tsx:587:        value={value}
+  components\ai-report\ai-report-workspace.tsx:588:        onChange={(event) => 
+onChange(event.target.value)}
+  components\ai-report\ai-report-workspace.tsx:589:        placeholder={question.placeholder}
+  components\ai-report\ai-report-workspace.tsx:590:        className="w-full rounded-[1.5rem] border 
+border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition 
+focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+  components\ai-report\ai-report-workspace.tsx:591:      />
+  app\api\dashboard\ai-report\suggest\route.ts:32:};
+  app\api\dashboard\ai-report\suggest\route.ts:33:
+  app\api\dashboard\ai-report\suggest\route.ts:34:type IntentAnalysis = {
+> app\api\dashboard\ai-report\suggest\route.ts:35:  confidence: number;
+  app\api\dashboard\ai-report\suggest\route.ts:36:  reportIntent: string;
+  app\api\dashboard\ai-report\suggest\route.ts:37:  reportFamily: string;
+  app\api\dashboard\ai-report\suggest\route.ts:38:  reasoningSummary: string;
+  app\api\dashboard\ai-report\suggest\route.ts:39:  missingContext: string[];
+  app\api\dashboard\ai-report\suggest\route.ts:40:  coreFieldHints: string[];
+> app\api\dashboard\ai-report\suggest\route.ts:41:  needsClarification: boolean;
+> app\api\dashboard\ai-report\suggest\route.ts:42:  questions: ClarificationQuestion[];
+  app\api\dashboard\ai-report\suggest\route.ts:43:};
+  app\api\dashboard\ai-report\suggest\route.ts:44:
+  app\api\dashboard\ai-report\suggest\route.ts:45:const SUGGESTIVE_ANSWER_MARKERS = [
+> app\api\dashboard\ai-report\suggest\route.ts:46:  "اقترح",
+> app\api\dashboard\ai-report\suggest\route.ts:47:  "اقترح لي",
+  app\api\dashboard\ai-report\suggest\route.ts:48:  "اختر",
+  app\api\dashboard\ai-report\suggest\route.ts:49:  "اختر أنت",
+  app\api\dashboard\ai-report\suggest\route.ts:50:  "اختر انت",
+  app\api\dashboard\ai-report\suggest\route.ts:51:  "حدد",
+  app\api\dashboard\ai-report\suggest\route.ts:52:  "حدد لي",
+  app\api\dashboard\ai-report\suggest\route.ts:53:  "أعطني خيارات",
+  app\api\dashboard\ai-report\suggest\route.ts:54:  "اعطني خيارات",
+  app\api\dashboard\ai-report\suggest\route.ts:55:  "أعطني اقتراح",
+  app\api\dashboard\ai-report\suggest\route.ts:123:];
+  app\api\dashboard\ai-report\suggest\route.ts:124:
+  app\api\dashboard\ai-report\suggest\route.ts:125:function cleanText(value: unknown) {
+> app\api\dashboard\ai-report\suggest\route.ts:126:  return typeof value === "string" ? 
+sanitizeAiReportText(value) : "";
+  app\api\dashboard\ai-report\suggest\route.ts:127:}
+  app\api\dashboard\ai-report\suggest\route.ts:128:
+> app\api\dashboard\ai-report\suggest\route.ts:129:function isSuggestiveAnswer(value: string): boolean {
+  app\api\dashboard\ai-report\suggest\route.ts:130:  const normalized = 
+normalizeAiReportArabicText(value);
+  app\api\dashboard\ai-report\suggest\route.ts:131:
+  app\api\dashboard\ai-report\suggest\route.ts:132:  if (!normalized) {
+> app\api\dashboard\ai-report\suggest\route.ts:133:    return false;
+  app\api\dashboard\ai-report\suggest\route.ts:134:  }
+  app\api\dashboard\ai-report\suggest\route.ts:135:
+> app\api\dashboard\ai-report\suggest\route.ts:136:  return SUGGESTIVE_ANSWER_MARKERS.some((marker) => {
+  app\api\dashboard\ai-report\suggest\route.ts:137:    const normalizedMarker = 
+normalizeAiReportArabicText(marker);
+> app\api\dashboard\ai-report\suggest\route.ts:138:    return (
+  app\api\dashboard\ai-report\suggest\route.ts:139:      normalized === normalizedMarker ||
+  app\api\dashboard\ai-report\suggest\route.ts:140:      normalized.includes(normalizedMarker) ||
+  app\api\dashboard\ai-report\suggest\route.ts:141:      normalizedMarker.includes(normalized)
+  app\api\dashboard\ai-report\suggest\route.ts:142:    );
+  app\api\dashboard\ai-report\suggest\route.ts:143:  });
+  app\api\dashboard\ai-report\suggest\route.ts:144:}
+  app\api\dashboard\ai-report\suggest\route.ts:145:
+  app\api\dashboard\ai-report\suggest\route.ts:146:function normalizeList(value: unknown) {
+  app\api\dashboard\ai-report\suggest\route.ts:147:  if (!Array.isArray(value)) {
+> app\api\dashboard\ai-report\suggest\route.ts:148:    return [];
+  app\api\dashboard\ai-report\suggest\route.ts:149:  }
+  app\api\dashboard\ai-report\suggest\route.ts:150:
+  app\api\dashboard\ai-report\suggest\route.ts:151:  const seen = new Set<string>();
+  app\api\dashboard\ai-report\suggest\route.ts:152:
+> app\api\dashboard\ai-report\suggest\route.ts:153:  return value
+  app\api\dashboard\ai-report\suggest\route.ts:154:    .map((item) => sanitizeAiReportText(item))
+  app\api\dashboard\ai-report\suggest\route.ts:155:    .filter(Boolean)
+  app\api\dashboard\ai-report\suggest\route.ts:156:    .filter((item) => {
+  app\api\dashboard\ai-report\suggest\route.ts:157:      if (seen.has(item)) {
+> app\api\dashboard\ai-report\suggest\route.ts:158:        return false;
+  app\api\dashboard\ai-report\suggest\route.ts:159:      }
+  app\api\dashboard\ai-report\suggest\route.ts:160:
+  app\api\dashboard\ai-report\suggest\route.ts:161:      seen.add(item);
+> app\api\dashboard\ai-report\suggest\route.ts:162:      return true;
+  app\api\dashboard\ai-report\suggest\route.ts:163:    })
+  app\api\dashboard\ai-report\suggest\route.ts:164:    .slice(0, 30);
+  app\api\dashboard\ai-report\suggest\route.ts:165:}
+  app\api\dashboard\ai-report\suggest\route.ts:166:
+  app\api\dashboard\ai-report\suggest\route.ts:167:function normalizeSnakeCase(value: string, fallback: 
+string) {
+  app\api\dashboard\ai-report\suggest\route.ts:168:  const normalized = value
+  app\api\dashboard\ai-report\suggest\route.ts:169:    .toLowerCase()
+  app\api\dashboard\ai-report\suggest\route.ts:170:    .replace(/[^a-z0-9_]+/g, "_")
+  app\api\dashboard\ai-report\suggest\route.ts:171:    .replace(/^_+|_+$/g, "");
+  app\api\dashboard\ai-report\suggest\route.ts:172:
+> app\api\dashboard\ai-report\suggest\route.ts:173:  return normalized || fallback;
+  app\api\dashboard\ai-report\suggest\route.ts:174:}
+  app\api\dashboard\ai-report\suggest\route.ts:175:
+> app\api\dashboard\ai-report\suggest\route.ts:176:function clampConfidence(value: unknown, fallback = 
+0.58) {
+  app\api\dashboard\ai-report\suggest\route.ts:177:  const numberValue =
+  app\api\dashboard\ai-report\suggest\route.ts:178:    typeof value === "number"
+  app\api\dashboard\ai-report\suggest\route.ts:179:      ? value
+  app\api\dashboard\ai-report\suggest\route.ts:180:      : typeof value === "string"
+  app\api\dashboard\ai-report\suggest\route.ts:181:        ? Number(value)
+  app\api\dashboard\ai-report\suggest\route.ts:182:        : Number.NaN;
+  app\api\dashboard\ai-report\suggest\route.ts:183:
+  app\api\dashboard\ai-report\suggest\route.ts:184:  if (!Number.isFinite(numberValue)) {
+> app\api\dashboard\ai-report\suggest\route.ts:185:    return fallback;
+  app\api\dashboard\ai-report\suggest\route.ts:186:  }
+  app\api\dashboard\ai-report\suggest\route.ts:187:
+> app\api\dashboard\ai-report\suggest\route.ts:188:  return Math.max(0, Math.min(1, numberValue));
+  app\api\dashboard\ai-report\suggest\route.ts:189:}
+  app\api\dashboard\ai-report\suggest\route.ts:190:
+  app\api\dashboard\ai-report\suggest\route.ts:191:function normalizeStringArray(value: unknown) {
+  app\api\dashboard\ai-report\suggest\route.ts:192:  if (!Array.isArray(value)) {
+> app\api\dashboard\ai-report\suggest\route.ts:193:    return [];
+  app\api\dashboard\ai-report\suggest\route.ts:194:  }
+  app\api\dashboard\ai-report\suggest\route.ts:195:
+  app\api\dashboard\ai-report\suggest\route.ts:196:  const seen = new Set<string>();
+  app\api\dashboard\ai-report\suggest\route.ts:197:
+> app\api\dashboard\ai-report\suggest\route.ts:198:  return value
+  app\api\dashboard\ai-report\suggest\route.ts:199:    .map((item) => sanitizeAiReportText(item))
+  app\api\dashboard\ai-report\suggest\route.ts:200:    .filter(Boolean)
+  app\api\dashboard\ai-report\suggest\route.ts:201:    .filter((item) => {
+  app\api\dashboard\ai-report\suggest\route.ts:202:      if (seen.has(item)) {
+> app\api\dashboard\ai-report\suggest\route.ts:203:        return false;
+  app\api\dashboard\ai-report\suggest\route.ts:204:      }
+  app\api\dashboard\ai-report\suggest\route.ts:205:
+  app\api\dashboard\ai-report\suggest\route.ts:206:      seen.add(item);
+> app\api\dashboard\ai-report\suggest\route.ts:207:      return true;
+  app\api\dashboard\ai-report\suggest\route.ts:208:    })
+  app\api\dashboard\ai-report\suggest\route.ts:209:    .slice(0, 8);
+  app\api\dashboard\ai-report\suggest\route.ts:210:}
+  app\api\dashboard\ai-report\suggest\route.ts:211:
+> app\api\dashboard\ai-report\suggest\route.ts:212:function normalizeClarificationAnswers(value: 
+unknown) {
+  app\api\dashboard\ai-report\suggest\route.ts:213:  if (!value || typeof value !== "object") {
+> app\api\dashboard\ai-report\suggest\route.ts:214:    return {};
+  app\api\dashboard\ai-report\suggest\route.ts:215:  }
+  app\api\dashboard\ai-report\suggest\route.ts:216:
+> app\api\dashboard\ai-report\suggest\route.ts:217:  return Object.fromEntries(
+  app\api\dashboard\ai-report\suggest\route.ts:218:    Object.entries(value as Record<string, unknown>)
+  app\api\dashboard\ai-report\suggest\route.ts:219:      .map(([key, answer]) => 
+[normalizeSnakeCase(key, "question"), cleanText(answer)])
+  app\api\dashboard\ai-report\suggest\route.ts:220:      .filter(([, answer]) => answer),
+  app\api\dashboard\ai-report\suggest\route.ts:221:  );
+  app\api\dashboard\ai-report\suggest\route.ts:222:}
+  app\api\dashboard\ai-report\suggest\route.ts:223:
+  app\api\dashboard\ai-report\suggest\route.ts:224:function buildClarificationQuestionOptions(label: 
+string) {
+  app\api\dashboard\ai-report\suggest\route.ts:225:  const normalizedLabel = 
+normalizeAiReportArabicText(label);
+  app\api\dashboard\ai-report\suggest\route.ts:229:    ),
+  app\api\dashboard\ai-report\suggest\route.ts:230:  );
+  app\api\dashboard\ai-report\suggest\route.ts:231:
+> app\api\dashboard\ai-report\suggest\route.ts:232:  return match?.options ?? [];
+  app\api\dashboard\ai-report\suggest\route.ts:233:}
+  app\api\dashboard\ai-report\suggest\route.ts:234:
+  app\api\dashboard\ai-report\suggest\route.ts:235:function normalizeClarificationQuestion(
+  app\api\dashboard\ai-report\suggest\route.ts:236:  value: unknown,
+  app\api\dashboard\ai-report\suggest\route.ts:237:  index: number,
+  app\api\dashboard\ai-report\suggest\route.ts:238:): ClarificationQuestion | null {
+  app\api\dashboard\ai-report\suggest\route.ts:239:  if (!value || typeof value !== "object") {
+> app\api\dashboard\ai-report\suggest\route.ts:240:    return null;
+  app\api\dashboard\ai-report\suggest\route.ts:241:  }
+  app\api\dashboard\ai-report\suggest\route.ts:242:
+  app\api\dashboard\ai-report\suggest\route.ts:243:  const record = value as Record<string, unknown>;
+  app\api\dashboard\ai-report\suggest\route.ts:244:  const label = cleanText(record.label);
+  app\api\dashboard\ai-report\suggest\route.ts:245:
+  app\api\dashboard\ai-report\suggest\route.ts:246:  if (!label) {
+> app\api\dashboard\ai-report\suggest\route.ts:247:    return null;
+  app\api\dashboard\ai-report\suggest\route.ts:248:  }
+  app\api\dashboard\ai-report\suggest\route.ts:249:
+  app\api\dashboard\ai-report\suggest\route.ts:250:  const type = String(record.type || 
+"text").trim().toLowerCase();
+  app\api\dashboard\ai-report\suggest\route.ts:251:  const rawOptions = Array.isArray(record.options)
+  app\api\dashboard\ai-report\suggest\route.ts:252:    ? (record.options
+  app\api\dashboard\ai-report\suggest\route.ts:253:        .map((option, optionIndex) => {
+  app\api\dashboard\ai-report\suggest\route.ts:254:          if (!option || typeof option !== "object") {
+> app\api\dashboard\ai-report\suggest\route.ts:255:            return null;
+  app\api\dashboard\ai-report\suggest\route.ts:256:          }
+  app\api\dashboard\ai-report\suggest\route.ts:257:
+  app\api\dashboard\ai-report\suggest\route.ts:258:          const optionRecord = option as 
+Record<string, unknown>;
+  app\api\dashboard\ai-report\suggest\route.ts:259:          const optionLabel = 
+cleanText(optionRecord.label);
+  app\api\dashboard\ai-report\suggest\route.ts:260:          const optionValue = 
+cleanText(optionRecord.value);
+  app\api\dashboard\ai-report\suggest\route.ts:261:
+  app\api\dashboard\ai-report\suggest\route.ts:262:          if (!optionLabel || !optionValue) {
+> app\api\dashboard\ai-report\suggest\route.ts:263:            return null;
+  app\api\dashboard\ai-report\suggest\route.ts:264:          }
+  app\api\dashboard\ai-report\suggest\route.ts:265:
+> app\api\dashboard\ai-report\suggest\route.ts:266:          return {
+  app\api\dashboard\ai-report\suggest\route.ts:267:            label: optionLabel,
+  app\api\dashboard\ai-report\suggest\route.ts:268:            value: optionValue || 
+`option_${optionIndex + 1}`,
+  app\api\dashboard\ai-report\suggest\route.ts:269:          };
+  app\api\dashboard\ai-report\suggest\route.ts:270:        })
+  app\api\dashboard\ai-report\suggest\route.ts:271:        .filter(Boolean) as 
+ClarificationQuestion["options"])
+  app\api\dashboard\ai-report\suggest\route.ts:272:    : undefined;
+  app\api\dashboard\ai-report\suggest\route.ts:273:  const hintedOptions = 
+buildClarificationQuestionOptions(label);
+  app\api\dashboard\ai-report\suggest\route.ts:274:  const options =
+  app\api\dashboard\ai-report\suggest\route.ts:284:        ? type
+  app\api\dashboard\ai-report\suggest\route.ts:285:        : "text";
+  app\api\dashboard\ai-report\suggest\route.ts:286:
+> app\api\dashboard\ai-report\suggest\route.ts:287:  return {
+  app\api\dashboard\ai-report\suggest\route.ts:288:    id: normalizeSnakeCase(
+  app\api\dashboard\ai-report\suggest\route.ts:289:      cleanText(record.id),
+  app\api\dashboard\ai-report\suggest\route.ts:290:      `clarification_question_${index + 1}`,
+  app\api\dashboard\ai-report\suggest\route.ts:291:    ),
+  app\api\dashboard\ai-report\suggest\route.ts:292:    label,
+  app\api\dashboard\ai-report\suggest\route.ts:293:    placeholder: cleanText(record.placeholder),
+  app\api\dashboard\ai-report\suggest\route.ts:294:    type: normalizedType,
+  app\api\dashboard\ai-report\suggest\route.ts:295:    options,
+  app\api\dashboard\ai-report\suggest\route.ts:296:  };
+  app\api\dashboard\ai-report\suggest\route.ts:297:}
+  app\api\dashboard\ai-report\suggest\route.ts:298:
+> app\api\dashboard\ai-report\suggest\route.ts:299:function inferReportFamily(prompt: string, knowledge: 
+ReturnType<typeof findRelevantAiReportKnowledge>) {
+  app\api\dashboard\ai-report\suggest\route.ts:300:  const topReport = knowledge.topReports[0];
+  app\api\dashboard\ai-report\suggest\route.ts:301:
+  app\api\dashboard\ai-report\suggest\route.ts:302:  if (topReport?.reportCategory) {
+> app\api\dashboard\ai-report\suggest\route.ts:303:    return 
+sanitizeAiReportText(topReport.reportCategory);
+  app\api\dashboard\ai-report\suggest\route.ts:304:  }
+  app\api\dashboard\ai-report\suggest\route.ts:305:
+  app\api\dashboard\ai-report\suggest\route.ts:306:  const text = cleanText(prompt);
+  app\api\dashboard\ai-report\suggest\route.ts:307:
+  app\api\dashboard\ai-report\suggest\route.ts:308:  if (text.includes("تحليل") || 
+text.includes("نتائج")) {
+> app\api\dashboard\ai-report\suggest\route.ts:309:    return "تقرير تحليل نتائج";
+  app\api\dashboard\ai-report\suggest\route.ts:310:  }
+  app\api\dashboard\ai-report\suggest\route.ts:311:
+  app\api\dashboard\ai-report\suggest\route.ts:312:  if (text.includes("اجتماع") || 
+text.includes("جلسة") || text.includes("لقاء")) {
+> app\api\dashboard\ai-report\suggest\route.ts:313:    return "تقرير اجتماع أو جلسة";
+  app\api\dashboard\ai-report\suggest\route.ts:314:  }
+  app\api\dashboard\ai-report\suggest\route.ts:315:
+  app\api\dashboard\ai-report\suggest\route.ts:316:  if (text.includes("خطة")) {
+> app\api\dashboard\ai-report\suggest\route.ts:317:    return "تقرير خطة أو تنفيذ";
+  app\api\dashboard\ai-report\suggest\route.ts:318:  }
+  app\api\dashboard\ai-report\suggest\route.ts:319:
+  app\api\dashboard\ai-report\suggest\route.ts:320:  if (text.includes("درس") || text.includes("وحدة")) {
+> app\api\dashboard\ai-report\suggest\route.ts:321:    return "تقرير درس أو وحدة";
+  app\api\dashboard\ai-report\suggest\route.ts:322:  }
+  app\api\dashboard\ai-report\suggest\route.ts:323:
+> app\api\dashboard\ai-report\suggest\route.ts:324:  return "تقرير تعليمي مخصص";
+  app\api\dashboard\ai-report\suggest\route.ts:325:}
+  app\api\dashboard\ai-report\suggest\route.ts:326:
+> app\api\dashboard\ai-report\suggest\route.ts:327:function buildKnowledgeSummary(knowledge: 
+ReturnType<typeof findRelevantAiReportKnowledge>) {
+  app\api\dashboard\ai-report\suggest\route.ts:328:  const topReports = knowledge.topReports.slice(0, 8);
+  app\api\dashboard\ai-report\suggest\route.ts:329:  const fieldHints = Array.from(
+  app\api\dashboard\ai-report\suggest\route.ts:330:    new Set(
+  app\api\dashboard\ai-report\suggest\route.ts:331:      knowledge.items
+  app\api\dashboard\ai-report\suggest\route.ts:332:        .map((item) => 
+sanitizeAiReportText(item.fieldLabel))
+  app\api\dashboard\ai-report\suggest\route.ts:333:        .filter(Boolean),
+  app\api\dashboard\ai-report\suggest\route.ts:334:    ),
+  app\api\dashboard\ai-report\suggest\route.ts:335:  ).slice(0, 18);
+  app\api\dashboard\ai-report\suggest\route.ts:341:    ),
+  app\api\dashboard\ai-report\suggest\route.ts:342:  ).slice(0, 24);
+  app\api\dashboard\ai-report\suggest\route.ts:343:
+> app\api\dashboard\ai-report\suggest\route.ts:344:  return {
+  app\api\dashboard\ai-report\suggest\route.ts:345:    topReportsBlock:
+  app\api\dashboard\ai-report\suggest\route.ts:346:      topReports
+  app\api\dashboard\ai-report\suggest\route.ts:347:        .map((report, index) =>
+  app\api\dashboard\ai-report\suggest\route.ts:348:          [
+  app\api\dashboard\ai-report\suggest\route.ts:349:            `${index + 1}.`,
+  app\api\dashboard\ai-report\suggest\route.ts:350:            `الاسم: 
+${sanitizeAiReportText(report.reportName)}`,
+  app\api\dashboard\ai-report\suggest\route.ts:351:            `الفئة: 
+${sanitizeAiReportText(report.reportCategory) || "غير محددة"}`,
+  app\api\dashboard\ai-report\suggest\route.ts:352:            `العنصر: 
+${sanitizeAiReportText(report.performanceElement) || "غير محدد"}`,
+  app\api\dashboard\ai-report\suggest\route.ts:382:      : "",
+  app\api\dashboard\ai-report\suggest\route.ts:383:  ].filter(Boolean);
+  app\api\dashboard\ai-report\suggest\route.ts:384:
+> app\api\dashboard\ai-report\suggest\route.ts:385:  return {
+  app\api\dashboard\ai-report\suggest\route.ts:386:    stages,
+  app\api\dashboard\ai-report\suggest\route.ts:387:    specialties,
+  app\api\dashboard\ai-report\suggest\route.ts:388:    subjects,
+  app\api\dashboard\ai-report\suggest\route.ts:389:    block: lines.join("\n") || "لا توجد بيانات إضافية 
+في ملف المستخدم.",
+  app\api\dashboard\ai-report\suggest\route.ts:390:  };
+  app\api\dashboard\ai-report\suggest\route.ts:391:}
+  app\api\dashboard\ai-report\suggest\route.ts:392:
+> app\api\dashboard\ai-report\suggest\route.ts:393:function buildCombinedPrompt(prompt: string, 
+clarificationAnswers: Record<string, string>) {
+> app\api\dashboard\ai-report\suggest\route.ts:394:  const answers = Object.entries(clarificationAnswers)
+  app\api\dashboard\ai-report\suggest\route.ts:395:    .map(([key, value]) =>
+> app\api\dashboard\ai-report\suggest\route.ts:396:      isSuggestiveAnswer(value)
+  app\api\dashboard\ai-report\suggest\route.ts:397:        ? `- ${key}: المعلم طلب من النظام اقتراح 
+القيمة المناسبة لهذا السؤال.`
+  app\api\dashboard\ai-report\suggest\route.ts:398:        : `- ${key}: ${value}`,
+  app\api\dashboard\ai-report\suggest\route.ts:399:    )
+  app\api\dashboard\ai-report\suggest\route.ts:400:    .join("\n");
+  app\api\dashboard\ai-report\suggest\route.ts:401:
+  app\api\dashboard\ai-report\suggest\route.ts:402:  if (!answers) {
+> app\api\dashboard\ai-report\suggest\route.ts:403:    return prompt;
+  app\api\dashboard\ai-report\suggest\route.ts:404:  }
+  app\api\dashboard\ai-report\suggest\route.ts:405:
+> app\api\dashboard\ai-report\suggest\route.ts:406:  return `${prompt}\n\nإجابات التوضيح:\n${answers}`;
+  app\api\dashboard\ai-report\suggest\route.ts:407:}
+  app\api\dashboard\ai-report\suggest\route.ts:408:
+  app\api\dashboard\ai-report\suggest\route.ts:409:function isEvidenceLikeLabel(value: string) {
+  app\api\dashboard\ai-report\suggest\route.ts:410:  const normalized = 
+normalizeAiReportArabicText(value);
+> app\api\dashboard\ai-report\suggest\route.ts:411:  return EVIDENCE_TEXT_MARKERS.some((marker) =>
+  app\api\dashboard\ai-report\suggest\route.ts:412:    
+normalized.includes(normalizeAiReportArabicText(marker)),
+  app\api\dashboard\ai-report\suggest\route.ts:413:  );
+  app\api\dashboard\ai-report\suggest\route.ts:414:}
+  app\api\dashboard\ai-report\suggest\route.ts:415:
+> app\api\dashboard\ai-report\suggest\route.ts:416:function buildFallbackClarificationQuestions(
+  app\api\dashboard\ai-report\suggest\route.ts:417:  analysis: Pick<IntentAnalysis, "missingContext" | 
+"reportFamily">,
+> app\api\dashboard\ai-report\suggest\route.ts:418:  lowConfidence: boolean,
+  app\api\dashboard\ai-report\suggest\route.ts:419:) {
+> app\api\dashboard\ai-report\suggest\route.ts:420:  const questions: ClarificationQuestion[] = [];
+  app\api\dashboard\ai-report\suggest\route.ts:421:  const missing = new Set(analysis.missingContext);
+  app\api\dashboard\ai-report\suggest\route.ts:422:
+  app\api\dashboard\ai-report\suggest\route.ts:423:  const pushQuestion = (question: 
+ClarificationQuestion) => {
+> app\api\dashboard\ai-report\suggest\route.ts:424:    if (questions.some((item) => item.id === 
+question.id)) {
+> app\api\dashboard\ai-report\suggest\route.ts:425:      return;
+  app\api\dashboard\ai-report\suggest\route.ts:426:    }
+  app\api\dashboard\ai-report\suggest\route.ts:427:
+> app\api\dashboard\ai-report\suggest\route.ts:428:    questions.push(question);
+  app\api\dashboard\ai-report\suggest\route.ts:429:  };
+  app\api\dashboard\ai-report\suggest\route.ts:430:
+> app\api\dashboard\ai-report\suggest\route.ts:431:  if (missing.has("scope") || lowConfidence) {
+  app\api\dashboard\ai-report\suggest\route.ts:432:    pushQuestion({
+  app\api\dashboard\ai-report\suggest\route.ts:433:      id: "report_scope",
+  app\api\dashboard\ai-report\suggest\route.ts:434:      label: "ما نطاق التقرير؟",
+  app\api\dashboard\ai-report\suggest\route.ts:435:      placeholder: "مثال: درس، وحدة، اجتماع، نتائج، 
+خطة...",
+  app\api\dashboard\ai-report\suggest\route.ts:436:      type: "select",
+  app\api\dashboard\ai-report\suggest\route.ts:437:      options: buildClarificationQuestionOptions("ما 
+نطاق التقرير؟"),
+  app\api\dashboard\ai-report\suggest\route.ts:438:    });
+  app\api\dashboard\ai-report\suggest\route.ts:439:  }
+  app\api\dashboard\ai-report\suggest\route.ts:440:
+> app\api\dashboard\ai-report\suggest\route.ts:441:  if (missing.has("focus") || lowConfidence) {
+  app\api\dashboard\ai-report\suggest\route.ts:442:    pushQuestion({
+  app\api\dashboard\ai-report\suggest\route.ts:443:      id: "report_focus",
+  app\api\dashboard\ai-report\suggest\route.ts:444:      label: "ما أهم المحاور التي يجب أن يغطيها 
+التقرير؟",
+  app\api\dashboard\ai-report\suggest\route.ts:445:      placeholder: "مثال: التنفيذ، النتائج، الفجوات، 
+التوصيات...",
+  app\api\dashboard\ai-report\suggest\route.ts:446:      type: "textarea",
+  app\api\dashboard\ai-report\suggest\route.ts:447:    });
+  app\api\dashboard\ai-report\suggest\route.ts:448:  }
+  app\api\dashboard\ai-report\suggest\route.ts:449:
+> app\api\dashboard\ai-report\suggest\route.ts:450:  if (missing.has("timeframe") || lowConfidence) {
+  app\api\dashboard\ai-report\suggest\route.ts:451:    pushQuestion({
+  app\api\dashboard\ai-report\suggest\route.ts:452:      id: "report_context",
+  app\api\dashboard\ai-report\suggest\route.ts:453:      label: "ما المناسبة أو الفترة المرتبطة 
+بالتقرير؟",
+  app\api\dashboard\ai-report\suggest\route.ts:454:      placeholder: "مثال: نهاية وحدة، لقاء مهني، 
+زيارة صفية...",
+  app\api\dashboard\ai-report\suggest\route.ts:455:      type: "text",
+  app\api\dashboard\ai-report\suggest\route.ts:456:    });
+  app\api\dashboard\ai-report\suggest\route.ts:457:  }
+  app\api\dashboard\ai-report\suggest\route.ts:458:
+> app\api\dashboard\ai-report\suggest\route.ts:459:  if (missing.has("audience") || questions.length < 
+2) {
+  app\api\dashboard\ai-report\suggest\route.ts:460:    pushQuestion({
+  app\api\dashboard\ai-report\suggest\route.ts:461:      id: "report_audience",
+  app\api\dashboard\ai-report\suggest\route.ts:462:      label: "لمن أو عن من يدور التقرير؟",
+  app\api\dashboard\ai-report\suggest\route.ts:463:      placeholder: "مثال: الطلاب، المعلمون، أولياء 
+الأمور، تنفيذ نشاط...",
+  app\api\dashboard\ai-report\suggest\route.ts:464:      type: "text",
+  app\api\dashboard\ai-report\suggest\route.ts:465:    });
+  app\api\dashboard\ai-report\suggest\route.ts:466:  }
+  app\api\dashboard\ai-report\suggest\route.ts:467:
+> app\api\dashboard\ai-report\suggest\route.ts:468:  if (questions.length < 2) {
+  app\api\dashboard\ai-report\suggest\route.ts:469:    pushQuestion({
+  app\api\dashboard\ai-report\suggest\route.ts:470:      id: "report_goal",
+  app\api\dashboard\ai-report\suggest\route.ts:471:      label: "ما النتيجة التي تريد إبرازها في 
+التقرير؟",
+  app\api\dashboard\ai-report\suggest\route.ts:472:      placeholder: `مثال: خلاصة 
+${analysis.reportFamily || "التقرير"} أو توصياته الرئيسة`,
+  app\api\dashboard\ai-report\suggest\route.ts:473:      type: "text",
+  app\api\dashboard\ai-report\suggest\route.ts:474:    });
+  app\api\dashboard\ai-report\suggest\route.ts:475:  }
+  app\api\dashboard\ai-report\suggest\route.ts:476:
+> app\api\dashboard\ai-report\suggest\route.ts:477:  return questions.slice(0, lowConfidence ? 3 : 4);
+  app\api\dashboard\ai-report\suggest\route.ts:478:}
+  app\api\dashboard\ai-report\suggest\route.ts:479:
+  app\api\dashboard\ai-report\suggest\route.ts:480:function buildFallbackIntentAnalysis({
+  app\api\dashboard\ai-report\suggest\route.ts:481:  prompt,
+  app\api\dashboard\ai-report\suggest\route.ts:482:  knowledge,
+  app\api\dashboard\ai-report\suggest\route.ts:483:}: {
+  app\api\dashboard\ai-report\suggest\route.ts:484:  prompt: string;
+> app\api\dashboard\ai-report\suggest\route.ts:485:  knowledge: ReturnType<typeof 
+findRelevantAiReportKnowledge>;
+  app\api\dashboard\ai-report\suggest\route.ts:486:}): IntentAnalysis {
+  app\api\dashboard\ai-report\suggest\route.ts:487:  const normalizedPrompt = cleanText(prompt);
+  app\api\dashboard\ai-report\suggest\route.ts:488:  const tokens = 
+normalizedPrompt.split(/\s+/).filter(Boolean);
+  app\api\dashboard\ai-report\suggest\route.ts:489:  const hasScopeWord =
+  app\api\dashboard\ai-report\suggest\route.ts:490:    /درس|وحدة|خطة|تقييم|تقويم|تحليل|نتائج|اجتماع|جلسة|
+لقاء|نشاط|مبادرة|أولياء|طلاب|تعلم|بيئة|تقنية|زيارة|متابعة|توصية/i.test(
+  app\api\dashboard\ai-report\suggest\route.ts:491:      normalizedPrompt,
+  app\api\dashboard\ai-report\suggest\route.ts:492:    );
+  app\api\dashboard\ai-report\suggest\route.ts:493:  const hasFocusWord =
+  app\api\dashboard\ai-report\suggest\route.ts:500:    );
+  app\api\dashboard\ai-report\suggest\route.ts:501:  const topScore = knowledge.topReports[0]?.score ?? 
+0;
+  app\api\dashboard\ai-report\suggest\route.ts:502:
+> app\api\dashboard\ai-report\suggest\route.ts:503:  let confidence = 0.34;
+  app\api\dashboard\ai-report\suggest\route.ts:504:
+> app\api\dashboard\ai-report\suggest\route.ts:505:  if (normalizedPrompt.length >= 24) confidence += 
+0.16;
+> app\api\dashboard\ai-report\suggest\route.ts:506:  if (tokens.length >= 5) confidence += 0.12;
+> app\api\dashboard\ai-report\suggest\route.ts:507:  if (hasScopeWord) confidence += 0.14;
+> app\api\dashboard\ai-report\suggest\route.ts:508:  if (hasFocusWord) confidence += 0.12;
+> app\api\dashboard\ai-report\suggest\route.ts:509:  if (knowledge.topReports.length > 0) confidence += 
+0.08;
+> app\api\dashboard\ai-report\suggest\route.ts:510:  if (knowledge.items.length >= 15) confidence += 
+0.08;
+> app\api\dashboard\ai-report\suggest\route.ts:511:  if (topScore >= 24) confidence += 0.06;
+> app\api\dashboard\ai-report\suggest\route.ts:512:  if (normalizedPrompt.length < 14) confidence -= 
+0.14;
+> app\api\dashboard\ai-report\suggest\route.ts:513:  if (!hasScopeWord) confidence -= 0.1;
+> app\api\dashboard\ai-report\suggest\route.ts:514:  if (!hasFocusWord) confidence -= 0.08;
+  app\api\dashboard\ai-report\suggest\route.ts:515:
+> app\api\dashboard\ai-report\suggest\route.ts:516:  const finalConfidence = Math.max(0.2, Math.min(0.9, 
+confidence));
+  app\api\dashboard\ai-report\suggest\route.ts:517:  const reportFamily = inferReportFamily(prompt, 
+knowledge);
+  app\api\dashboard\ai-report\suggest\route.ts:518:  const missingContext = [
+  app\api\dashboard\ai-report\suggest\route.ts:519:    !hasScopeWord ? "scope" : "",
+  app\api\dashboard\ai-report\suggest\route.ts:520:    !hasFocusWord ? "focus" : "",
+  app\api\dashboard\ai-report\suggest\route.ts:521:    !hasTimeWord ? "timeframe" : "",
+  app\api\dashboard\ai-report\suggest\route.ts:522:    
+!/طلاب|معلمين|أولياء|مجتمع|إدارة|صف|فصل|مادة|وحدة|نشاط/i.test(normalizedPrompt)
+  app\api\dashboard\ai-report\suggest\route.ts:523:      ? "audience"
+  app\api\dashboard\ai-report\suggest\route.ts:524:      : "",
+  app\api\dashboard\ai-report\suggest\route.ts:525:  ].filter(Boolean);
+> app\api\dashboard\ai-report\suggest\route.ts:526:  const needsClarification = finalConfidence < 0.75;
+  app\api\dashboard\ai-report\suggest\route.ts:527:
+  app\api\dashboard\ai-report\suggest\route.ts:528:  const coreFieldHints = Array.from(
+  app\api\dashboard\ai-report\suggest\route.ts:529:    new Set(
+  app\api\dashboard\ai-report\suggest\route.ts:530:      knowledge.items
+  app\api\dashboard\ai-report\suggest\route.ts:531:        .map((item) => 
+sanitizeAiReportText(item.fieldLabel))
+  app\api\dashboard\ai-report\suggest\route.ts:532:        .filter(Boolean),
+  app\api\dashboard\ai-report\suggest\route.ts:533:    ),
+  app\api\dashboard\ai-report\suggest\route.ts:534:  ).slice(0, 8);
+  app\api\dashboard\ai-report\suggest\route.ts:535:
+> app\api\dashboard\ai-report\suggest\route.ts:536:  return {
+> app\api\dashboard\ai-report\suggest\route.ts:537:    confidence: finalConfidence,
+  app\api\dashboard\ai-report\suggest\route.ts:538:    reportIntent: normalizedPrompt || "إنشاء تقرير 
+مخصص",
+  app\api\dashboard\ai-report\suggest\route.ts:539:    reportFamily,
+  app\api\dashboard\ai-report\suggest\route.ts:540:    reasoningSummary:
+> app\api\dashboard\ai-report\suggest\route.ts:541:      finalConfidence >= 0.75
+  app\api\dashboard\ai-report\suggest\route.ts:542:        ? "وصف التقرير واضح بدرجة كافية ويمكن توليد 
+نموذج عملي مباشر."
+  app\api\dashboard\ai-report\suggest\route.ts:543:        : "الوصف يحتاج بعض التحديد حتى تظهر الحقول 
+الأقرب لطبيعة التقرير.",
+  app\api\dashboard\ai-report\suggest\route.ts:544:    missingContext,
+  app\api\dashboard\ai-report\suggest\route.ts:545:    coreFieldHints,
+> app\api\dashboard\ai-report\suggest\route.ts:546:    needsClarification,
+> app\api\dashboard\ai-report\suggest\route.ts:547:    questions: buildFallbackClarificationQuestions(
+  app\api\dashboard\ai-report\suggest\route.ts:548:      { missingContext, reportFamily },
+> app\api\dashboard\ai-report\suggest\route.ts:549:      finalConfidence < 0.45,
+  app\api\dashboard\ai-report\suggest\route.ts:550:    ),
+  app\api\dashboard\ai-report\suggest\route.ts:551:  };
+  app\api\dashboard\ai-report\suggest\route.ts:552:}
+  app\api\dashboard\ai-report\suggest\route.ts:553:
+  app\api\dashboard\ai-report\suggest\route.ts:554:function normalizeIntentAnalysis(
+  app\api\dashboard\ai-report\suggest\route.ts:555:  value: unknown,
+  app\api\dashboard\ai-report\suggest\route.ts:556:  fallback: IntentAnalysis,
+  app\api\dashboard\ai-report\suggest\route.ts:557:): IntentAnalysis {
+  app\api\dashboard\ai-report\suggest\route.ts:558:  const record = value && typeof value === "object" ? 
+(value as Record<string, unknown>) : {};
+> app\api\dashboard\ai-report\suggest\route.ts:559:  const confidence = 
+clampConfidence(record.confidence, fallback.confidence);
+  app\api\dashboard\ai-report\suggest\route.ts:560:  const reportIntent = cleanText(record.reportIntent) 
+|| fallback.reportIntent;
+  app\api\dashboard\ai-report\suggest\route.ts:561:  const reportFamily = cleanText(record.reportFamily) 
+|| fallback.reportFamily;
+  app\api\dashboard\ai-report\suggest\route.ts:562:  const reasoningSummary =
+  app\api\dashboard\ai-report\suggest\route.ts:563:    cleanText(record.reasoningSummary) || 
+fallback.reasoningSummary;
+  app\api\dashboard\ai-report\suggest\route.ts:564:  const missingContext = 
+normalizeStringArray(record.missingContext);
+  app\api\dashboard\ai-report\suggest\route.ts:565:  const coreFieldHints = 
+normalizeStringArray(record.coreFieldHints).slice(0, 10);
+> app\api\dashboard\ai-report\suggest\route.ts:566:  const derivedNeedsClarification = confidence < 0.75;
+> app\api\dashboard\ai-report\suggest\route.ts:567:  const needsClarification =
+> app\api\dashboard\ai-report\suggest\route.ts:568:    confidence >= 0.75
+  app\api\dashboard\ai-report\suggest\route.ts:569:      ? false
+> app\api\dashboard\ai-report\suggest\route.ts:570:      : typeof record.needsClarification === "boolean"
+> app\api\dashboard\ai-report\suggest\route.ts:571:        ? record.needsClarification || 
+derivedNeedsClarification
+> app\api\dashboard\ai-report\suggest\route.ts:572:        : derivedNeedsClarification;
+> app\api\dashboard\ai-report\suggest\route.ts:573:  const normalizedQuestions = 
+Array.isArray(record.questions)
+> app\api\dashboard\ai-report\suggest\route.ts:574:    ? record.questions
+  app\api\dashboard\ai-report\suggest\route.ts:575:        .map((question, index) => 
+normalizeClarificationQuestion(question, index))
+  app\api\dashboard\ai-report\suggest\route.ts:576:        .filter(Boolean) as ClarificationQuestion[]
+  app\api\dashboard\ai-report\suggest\route.ts:577:    : [];
+  app\api\dashboard\ai-report\suggest\route.ts:578:
+> app\api\dashboard\ai-report\suggest\route.ts:579:  const questions =
+> app\api\dashboard\ai-report\suggest\route.ts:580:    needsClarification && normalizedQuestions.length
+> app\api\dashboard\ai-report\suggest\route.ts:581:      ? normalizedQuestions.slice(0, confidence < 
+0.45 ? 3 : 4)
+> app\api\dashboard\ai-report\suggest\route.ts:582:      : needsClarification
+> app\api\dashboard\ai-report\suggest\route.ts:583:        ? buildFallbackClarificationQuestions(
+  app\api\dashboard\ai-report\suggest\route.ts:584:            {
+  app\api\dashboard\ai-report\suggest\route.ts:585:              missingContext: missingContext.length
+  app\api\dashboard\ai-report\suggest\route.ts:586:                ? missingContext
+  app\api\dashboard\ai-report\suggest\route.ts:587:                : fallback.missingContext,
+  app\api\dashboard\ai-report\suggest\route.ts:588:              reportFamily,
+  app\api\dashboard\ai-report\suggest\route.ts:589:            },
+> app\api\dashboard\ai-report\suggest\route.ts:590:            confidence < 0.45,
+  app\api\dashboard\ai-report\suggest\route.ts:591:          )
+  app\api\dashboard\ai-report\suggest\route.ts:592:        : [];
+  app\api\dashboard\ai-report\suggest\route.ts:593:
+> app\api\dashboard\ai-report\suggest\route.ts:594:  return {
+> app\api\dashboard\ai-report\suggest\route.ts:595:    confidence,
+  app\api\dashboard\ai-report\suggest\route.ts:596:    reportIntent,
+  app\api\dashboard\ai-report\suggest\route.ts:597:    reportFamily,
+  app\api\dashboard\ai-report\suggest\route.ts:598:    reasoningSummary,
+  app\api\dashboard\ai-report\suggest\route.ts:599:    missingContext: missingContext.length ? 
+missingContext : fallback.missingContext,
+  app\api\dashboard\ai-report\suggest\route.ts:600:    coreFieldHints: coreFieldHints.length ? 
+coreFieldHints : fallback.coreFieldHints,
+> app\api\dashboard\ai-report\suggest\route.ts:601:    needsClarification,
+> app\api\dashboard\ai-report\suggest\route.ts:602:    questions,
+  app\api\dashboard\ai-report\suggest\route.ts:603:  };
+  app\api\dashboard\ai-report\suggest\route.ts:604:}
+  app\api\dashboard\ai-report\suggest\route.ts:605:
+  app\api\dashboard\ai-report\suggest\route.ts:606:async function analyzeIntent({
+  app\api\dashboard\ai-report\suggest\route.ts:607:  prompt,
+  app\api\dashboard\ai-report\suggest\route.ts:608:  effectivePrompt,
+> app\api\dashboard\ai-report\suggest\route.ts:609:  previousAnalysis,
+  app\api\dashboard\ai-report\suggest\route.ts:610:  knowledge,
+  app\api\dashboard\ai-report\suggest\route.ts:611:  profileContext,
+  app\api\dashboard\ai-report\suggest\route.ts:612:}: {
+  app\api\dashboard\ai-report\suggest\route.ts:613:  prompt: string;
+  app\api\dashboard\ai-report\suggest\route.ts:614:  effectivePrompt: string;
+> app\api\dashboard\ai-report\suggest\route.ts:615:  previousAnalysis: unknown;
+> app\api\dashboard\ai-report\suggest\route.ts:616:  knowledge: ReturnType<typeof 
+findRelevantAiReportKnowledge>;
+> app\api\dashboard\ai-report\suggest\route.ts:617:  profileContext: ReturnType<typeof 
+buildProfileContext>;
+  app\api\dashboard\ai-report\suggest\route.ts:618:}) {
+  app\api\dashboard\ai-report\suggest\route.ts:619:  const fallback = buildFallbackIntentAnalysis({
+  app\api\dashboard\ai-report\suggest\route.ts:620:    prompt: effectivePrompt,
+  app\api\dashboard\ai-report\suggest\route.ts:621:    knowledge,
+  app\api\dashboard\ai-report\suggest\route.ts:622:  });
+  app\api\dashboard\ai-report\suggest\route.ts:623:  const knowledgeSummary = 
+buildKnowledgeSummary(knowledge);
+> app\api\dashboard\ai-report\suggest\route.ts:624:  const previousAnalysisBlock =
+> app\api\dashboard\ai-report\suggest\route.ts:625:    previousAnalysis && typeof previousAnalysis === 
+"object"
+> app\api\dashboard\ai-report\suggest\route.ts:626:      ? JSON.stringify(previousAnalysis, null, 2)
+  app\api\dashboard\ai-report\suggest\route.ts:627:      : "لا يوجد تحليل سابق.";
+  app\api\dashboard\ai-report\suggest\route.ts:628:
+  app\api\dashboard\ai-report\suggest\route.ts:629:  try {
+  app\api\dashboard\ai-report\suggest\route.ts:630:    const content = await callDeepSeekChat({
+  app\api\dashboard\ai-report\suggest\route.ts:631:      temperature: 0.1,
+  app\api\dashboard\ai-report\suggest\route.ts:632:      maxTokens: 900,
+  app\api\dashboard\ai-report\suggest\route.ts:633:      messages: [
+  app\api\dashboard\ai-report\suggest\route.ts:634:        {
+  app\api\dashboard\ai-report\suggest\route.ts:655:${effectivePrompt}
+  app\api\dashboard\ai-report\suggest\route.ts:656:
+  app\api\dashboard\ai-report\suggest\route.ts:657:تحليل سابق - إن وجد:
+> app\api\dashboard\ai-report\suggest\route.ts:658:${previousAnalysisBlock}
+  app\api\dashboard\ai-report\suggest\route.ts:659:
+  app\api\dashboard\ai-report\suggest\route.ts:660:سياق ملف المستخدم:
+  app\api\dashboard\ai-report\suggest\route.ts:661:${profileContext.block}
+  app\api\dashboard\ai-report\suggest\route.ts:662:
+  app\api\dashboard\ai-report\suggest\route.ts:663:أقرب التقارير من بنك المعرفة:
+  app\api\dashboard\ai-report\suggest\route.ts:664:${knowledgeSummary.topReportsBlock}
+  app\api\dashboard\ai-report\suggest\route.ts:665:
+  app\api\dashboard\ai-report\suggest\route.ts:666:أبرز الحقول المرشحة:
+  app\api\dashboard\ai-report\suggest\route.ts:678:
+  app\api\dashboard\ai-report\suggest\route.ts:679:أعد JSON فقط بهذا الشكل:
+  app\api\dashboard\ai-report\suggest\route.ts:680:{
+> app\api\dashboard\ai-report\suggest\route.ts:681:  "confidence": 0.0,
+  app\api\dashboard\ai-report\suggest\route.ts:682:  "reportIntent": "وصف مختصر للنية",
+  app\api\dashboard\ai-report\suggest\route.ts:683:  "reportFamily": "العائلة الأقرب",
+  app\api\dashboard\ai-report\suggest\route.ts:684:  "reasoningSummary": "سبب مختصر",
+  app\api\dashboard\ai-report\suggest\route.ts:685:  "missingContext": ["scope", "focus"],
+  app\api\dashboard\ai-report\suggest\route.ts:686:  "coreFieldHints": ["حقل 1", "حقل 2"],
+> app\api\dashboard\ai-report\suggest\route.ts:687:  "needsClarification": false,
+> app\api\dashboard\ai-report\suggest\route.ts:688:  "questions": [
+  app\api\dashboard\ai-report\suggest\route.ts:689:    {
+  app\api\dashboard\ai-report\suggest\route.ts:690:      "id": "report_scope",
+  app\api\dashboard\ai-report\suggest\route.ts:691:      "label": "ما نطاق التقرير؟",
+  app\api\dashboard\ai-report\suggest\route.ts:692:      "placeholder": "مثال: درس، وحدة، اجتماع، 
+نتائج...",
+  app\api\dashboard\ai-report\suggest\route.ts:693:      "type": "text"
+  app\api\dashboard\ai-report\suggest\route.ts:694:    }
+  app\api\dashboard\ai-report\suggest\route.ts:695:  ]
+  app\api\dashboard\ai-report\suggest\route.ts:696:}
+  app\api\dashboard\ai-report\suggest\route.ts:697:
+  app\api\dashboard\ai-report\suggest\route.ts:698:قواعد الثقة:
+> app\api\dashboard\ai-report\suggest\route.ts:699:- إذا كانت الثقة 0.75 أو أكثر فالأصل ألا تطلب توضيحًا.
+> app\api\dashboard\ai-report\suggest\route.ts:700:- إذا كانت الثقة بين 0.45 و0.75 فاسأل 2 إلى 4 أسئلة 
+قصيرة.
+> app\api\dashboard\ai-report\suggest\route.ts:701:- إذا كانت الثقة أقل من 0.45 فاطلب وصفًا أوضح بأسئلة 
+إرشادية قصيرة.
+  app\api\dashboard\ai-report\suggest\route.ts:702:          `.trim(),
+  app\api\dashboard\ai-report\suggest\route.ts:703:        },
+  app\api\dashboard\ai-report\suggest\route.ts:704:      ],
+  app\api\dashboard\ai-report\suggest\route.ts:705:    });
+  app\api\dashboard\ai-report\suggest\route.ts:706:
+> app\api\dashboard\ai-report\suggest\route.ts:707:    return 
+normalizeIntentAnalysis(extractJsonObject(content), fallback);
+  app\api\dashboard\ai-report\suggest\route.ts:708:  } catch {
+> app\api\dashboard\ai-report\suggest\route.ts:709:    return fallback;
+  app\api\dashboard\ai-report\suggest\route.ts:710:  }
+  app\api\dashboard\ai-report\suggest\route.ts:711:}
+  app\api\dashboard\ai-report\suggest\route.ts:712:
+> app\api\dashboard\ai-report\suggest\route.ts:713:function buildSchemaPrompt({
+  app\api\dashboard\ai-report\suggest\route.ts:714:  prompt,
+> app\api\dashboard\ai-report\suggest\route.ts:715:  clarificationAnswers,
+  app\api\dashboard\ai-report\suggest\route.ts:716:  analysis,
+  app\api\dashboard\ai-report\suggest\route.ts:717:  knowledge,
+  app\api\dashboard\ai-report\suggest\route.ts:718:  profileContext,
+  app\api\dashboard\ai-report\suggest\route.ts:719:}: {
+  app\api\dashboard\ai-report\suggest\route.ts:720:  prompt: string;
+> app\api\dashboard\ai-report\suggest\route.ts:721:  clarificationAnswers: Record<string, string>;
+  app\api\dashboard\ai-report\suggest\route.ts:722:  analysis: IntentAnalysis;
+> app\api\dashboard\ai-report\suggest\route.ts:723:  knowledge: ReturnType<typeof 
+findRelevantAiReportKnowledge>;
+> app\api\dashboard\ai-report\suggest\route.ts:724:  profileContext: ReturnType<typeof 
+buildProfileContext>;
+  app\api\dashboard\ai-report\suggest\route.ts:725:}) {
+  app\api\dashboard\ai-report\suggest\route.ts:726:  const knowledgeSummary = 
+buildKnowledgeSummary(knowledge);
+> app\api\dashboard\ai-report\suggest\route.ts:727:  const clarificationBlock = 
+Object.keys(clarificationAnswers).length
+> app\api\dashboard\ai-report\suggest\route.ts:728:    ? Object.entries(clarificationAnswers)
+  app\api\dashboard\ai-report\suggest\route.ts:729:        .map(([key, value]) =>
+> app\api\dashboard\ai-report\suggest\route.ts:730:          isSuggestiveAnswer(value)
+  app\api\dashboard\ai-report\suggest\route.ts:731:            ? `- ${key}: المعلم طلب من النظام اقتراح 
+القيمة المناسبة لهذا السؤال.`
+  app\api\dashboard\ai-report\suggest\route.ts:732:            : `- ${key}: ${value}`,
+  app\api\dashboard\ai-report\suggest\route.ts:733:        )
+  app\api\dashboard\ai-report\suggest\route.ts:734:        .join("\n")
+  app\api\dashboard\ai-report\suggest\route.ts:735:    : "لا توجد إجابات توضيح إضافية.";
+  app\api\dashboard\ai-report\suggest\route.ts:736:  const topFieldHints =
+  app\api\dashboard\ai-report\suggest\route.ts:737:    analysis.coreFieldHints.length > 0
+  app\api\dashboard\ai-report\suggest\route.ts:738:      ? analysis.coreFieldHints.map((item, index) => 
+`${index + 1}. ${item}`).join("\n")
+  app\api\dashboard\ai-report\suggest\route.ts:739:      : "لا توجد تلميحات حاسمة إضافية.";
+  app\api\dashboard\ai-report\suggest\route.ts:740:
+> app\api\dashboard\ai-report\suggest\route.ts:741:  return `
+  app\api\dashboard\ai-report\suggest\route.ts:742:الوصف الأساسي للمستخدم:
+  app\api\dashboard\ai-report\suggest\route.ts:743:${prompt}
+  app\api\dashboard\ai-report\suggest\route.ts:744:
+  app\api\dashboard\ai-report\suggest\route.ts:745:إجابات التوضيح - إن وجدت:
+  app\api\dashboard\ai-report\suggest\route.ts:746:${clarificationBlock}
+  app\api\dashboard\ai-report\suggest\route.ts:747:
+  app\api\dashboard\ai-report\suggest\route.ts:748:تحليل النية:
+  app\api\dashboard\ai-report\suggest\route.ts:749:- نية التقرير: ${analysis.reportIntent}
+  app\api\dashboard\ai-report\suggest\route.ts:791:}
+  app\api\dashboard\ai-report\suggest\route.ts:792:
+  app\api\dashboard\ai-report\suggest\route.ts:793:function countSchemaFields(schema: 
+CustomReportSchema) {
+> app\api\dashboard\ai-report\suggest\route.ts:794:  return schema.sections.reduce(
+  app\api\dashboard\ai-report\suggest\route.ts:795:    (total, section) => total + section.fields.length,
+  app\api\dashboard\ai-report\suggest\route.ts:796:    0,
+  app\api\dashboard\ai-report\suggest\route.ts:797:  );
+  app\api\dashboard\ai-report\suggest\route.ts:798:}
+  app\api\dashboard\ai-report\suggest\route.ts:799:
+  app\api\dashboard\ai-report\suggest\route.ts:800:function buildFallbackOptions(
+  app\api\dashboard\ai-report\suggest\route.ts:801:  label: string,
+> app\api\dashboard\ai-report\suggest\route.ts:802:  knowledge: ReturnType<typeof 
+findRelevantAiReportKnowledge>,
+  app\api\dashboard\ai-report\suggest\route.ts:803:) {
+  app\api\dashboard\ai-report\suggest\route.ts:804:  const normalizedLabel = 
+normalizeAiReportArabicText(label);
+  app\api\dashboard\ai-report\suggest\route.ts:805:  const options = Array.from(
+  app\api\dashboard\ai-report\suggest\route.ts:806:    new Set(
+  app\api\dashboard\ai-report\suggest\route.ts:807:      knowledge.items
+  app\api\dashboard\ai-report\suggest\route.ts:808:        .filter((item) => {
+  app\api\dashboard\ai-report\suggest\route.ts:809:          const itemLabel = 
+normalizeAiReportArabicText(item.fieldLabel);
+> app\api\dashboard\ai-report\suggest\route.ts:810:          return (
+  app\api\dashboard\ai-report\suggest\route.ts:811:            itemLabel === normalizedLabel ||
+  app\api\dashboard\ai-report\suggest\route.ts:812:            itemLabel.includes(normalizedLabel) ||
+  app\api\dashboard\ai-report\suggest\route.ts:813:            normalizedLabel.includes(itemLabel)
+  app\api\dashboard\ai-report\suggest\route.ts:814:          );
+  app\api\dashboard\ai-report\suggest\route.ts:815:        })
+  app\api\dashboard\ai-report\suggest\route.ts:816:        .map((item) => 
+sanitizeAiReportText(item.optionLabel))
+  app\api\dashboard\ai-report\suggest\route.ts:817:        .filter(Boolean)
+  app\api\dashboard\ai-report\suggest\route.ts:818:        .filter((option) => 
+!isEvidenceLikeLabel(option)),
+  app\api\dashboard\ai-report\suggest\route.ts:819:    ),
+  app\api\dashboard\ai-report\suggest\route.ts:820:  ).slice(0, 5);
+  app\api\dashboard\ai-report\suggest\route.ts:821:
+> app\api\dashboard\ai-report\suggest\route.ts:822:  return options.map((option, index) => ({
+  app\api\dashboard\ai-report\suggest\route.ts:823:    label: option,
+  app\api\dashboard\ai-report\suggest\route.ts:824:    value: normalizeSnakeCase(option, `option_${index 
++ 1}`),
+  app\api\dashboard\ai-report\suggest\route.ts:825:  }));
+  app\api\dashboard\ai-report\suggest\route.ts:826:}
+  app\api\dashboard\ai-report\suggest\route.ts:827:
+  app\api\dashboard\ai-report\suggest\route.ts:828:function pickFallbackFieldKey(label: string, index: 
+number) {
+  app\api\dashboard\ai-report\suggest\route.ts:829:  const normalizedLabel = 
+normalizeAiReportArabicText(label);
+  app\api\dashboard\ai-report\suggest\route.ts:830:
+> app\api\dashboard\ai-report\suggest\route.ts:831:  if (normalizedLabel.includes("تاريخ")) return 
+"report_date";
+  app\api\dashboard\ai-report\suggest\route.ts:832:  if (normalizedLabel.includes("عنوان") || 
+normalizedLabel.includes("اسم")) {
+> app\api\dashboard\ai-report\suggest\route.ts:833:    return "report_subject";
+  app\api\dashboard\ai-report\suggest\route.ts:834:  }
+> app\api\dashboard\ai-report\suggest\route.ts:835:  if (normalizedLabel.includes("هدف")) return 
+"report_goal";
+  app\api\dashboard\ai-report\suggest\route.ts:836:  if (normalizedLabel.includes("تنفيذ") || 
+normalizedLabel.includes("اجراء")) {
+> app\api\dashboard\ai-report\suggest\route.ts:837:    return "implemented_actions";
+  app\api\dashboard\ai-report\suggest\route.ts:838:  }
+  app\api\dashboard\ai-report\suggest\route.ts:839:  if (
+  app\api\dashboard\ai-report\suggest\route.ts:840:    normalizedLabel.includes("نتائج") ||
+  app\api\dashboard\ai-report\suggest\route.ts:841:    normalizedLabel.includes("مخرجات") ||
+  app\api\dashboard\ai-report\suggest\route.ts:842:    normalizedLabel.includes("اثر")
+  app\api\dashboard\ai-report\suggest\route.ts:843:  ) {
+> app\api\dashboard\ai-report\suggest\route.ts:844:    return "results_summary";
+  app\api\dashboard\ai-report\suggest\route.ts:845:  }
+  app\api\dashboard\ai-report\suggest\route.ts:846:  if (
+  app\api\dashboard\ai-report\suggest\route.ts:847:    normalizedLabel.includes("فجوات") ||
+  app\api\dashboard\ai-report\suggest\route.ts:848:    normalizedLabel.includes("تحديات") ||
+  app\api\dashboard\ai-report\suggest\route.ts:849:    normalizedLabel.includes("معوقات")
+  app\api\dashboard\ai-report\suggest\route.ts:850:  ) {
+> app\api\dashboard\ai-report\suggest\route.ts:851:    return "gaps_or_challenges";
+  app\api\dashboard\ai-report\suggest\route.ts:852:  }
+> app\api\dashboard\ai-report\suggest\route.ts:853:  if (normalizedLabel.includes("توصيات")) return 
+"recommendations";
+> app\api\dashboard\ai-report\suggest\route.ts:854:  if (normalizedLabel.includes("ملاحظات")) return 
+"additional_notes";
+  app\api\dashboard\ai-report\suggest\route.ts:855:
+> app\api\dashboard\ai-report\suggest\route.ts:856:  return `custom_field_${index + 1}`;
+  app\api\dashboard\ai-report\suggest\route.ts:857:}
+  app\api\dashboard\ai-report\suggest\route.ts:858:
+  app\api\dashboard\ai-report\suggest\route.ts:859:function pickFallbackFieldType(label: string, 
+options: Array<{ label: string; value: string }>) {
+  app\api\dashboard\ai-report\suggest\route.ts:860:  const normalizedLabel = 
+normalizeAiReportArabicText(label);
+  app\api\dashboard\ai-report\suggest\route.ts:861:
+  app\api\dashboard\ai-report\suggest\route.ts:862:  if (
+  app\api\dashboard\ai-report\suggest\route.ts:863:    normalizedLabel.includes("تاريخ") ||
+  app\api\dashboard\ai-report\suggest\route.ts:864:    normalizedLabel.includes("موعد") ||
+  app\api\dashboard\ai-report\suggest\route.ts:865:    normalizedLabel.includes("يوم")
+  app\api\dashboard\ai-report\suggest\route.ts:866:  ) {
+> app\api\dashboard\ai-report\suggest\route.ts:867:    return "date" as const;
+  app\api\dashboard\ai-report\suggest\route.ts:868:  }
+  app\api\dashboard\ai-report\suggest\route.ts:869:
+  app\api\dashboard\ai-report\suggest\route.ts:870:  if (
+  app\api\dashboard\ai-report\suggest\route.ts:871:    normalizedLabel.includes("نسبة") ||
+  app\api\dashboard\ai-report\suggest\route.ts:872:    normalizedLabel.includes("عدد") ||
+  app\api\dashboard\ai-report\suggest\route.ts:873:    normalizedLabel.includes("درجة") ||
+  app\api\dashboard\ai-report\suggest\route.ts:874:    normalizedLabel.includes("متوسط")
+  app\api\dashboard\ai-report\suggest\route.ts:875:  ) {
+> app\api\dashboard\ai-report\suggest\route.ts:876:    return "number" as const;
+  app\api\dashboard\ai-report\suggest\route.ts:877:  }
+  app\api\dashboard\ai-report\suggest\route.ts:878:
+  app\api\dashboard\ai-report\suggest\route.ts:879:  if (
+  app\api\dashboard\ai-report\suggest\route.ts:880:    options.length >= 4 &&
+  app\api\dashboard\ai-report\suggest\route.ts:881:    
+/محاور|محور|مجالات|اجراءات|إجراءات|توصيات|اسباب|أسباب|أهداف|اهداف/.test(label)
+  app\api\dashboard\ai-report\suggest\route.ts:882:  ) {
+> app\api\dashboard\ai-report\suggest\route.ts:883:    return "multi_select" as const;
+  app\api\dashboard\ai-report\suggest\route.ts:884:  }
+  app\api\dashboard\ai-report\suggest\route.ts:885:
+  app\api\dashboard\ai-report\suggest\route.ts:886:  if (options.length >= 4) {
+> app\api\dashboard\ai-report\suggest\route.ts:887:    return "select" as const;
+  app\api\dashboard\ai-report\suggest\route.ts:888:  }
+  app\api\dashboard\ai-report\suggest\route.ts:889:
+  app\api\dashboard\ai-report\suggest\route.ts:890:  if (
+  app\api\dashboard\ai-report\suggest\route.ts:891:    
+/وصف|ملخص|خلاصة|نتائج|توصيات|ملاحظات|إجراءات|تنفيذ|فجوات|تحديات|مقترحات/.test(
+  app\api\dashboard\ai-report\suggest\route.ts:892:      label,
+  app\api\dashboard\ai-report\suggest\route.ts:893:    )
+  app\api\dashboard\ai-report\suggest\route.ts:894:  ) {
+> app\api\dashboard\ai-report\suggest\route.ts:895:    return "textarea" as const;
+  app\api\dashboard\ai-report\suggest\route.ts:896:  }
+  app\api\dashboard\ai-report\suggest\route.ts:897:
+> app\api\dashboard\ai-report\suggest\route.ts:898:  return "text" as const;
+  app\api\dashboard\ai-report\suggest\route.ts:899:}
+  app\api\dashboard\ai-report\suggest\route.ts:900:
+  app\api\dashboard\ai-report\suggest\route.ts:901:function buildHeuristicFallbackSchema({
+  app\api\dashboard\ai-report\suggest\route.ts:902:  prompt,
+  app\api\dashboard\ai-report\suggest\route.ts:903:  analysis,
+  app\api\dashboard\ai-report\suggest\route.ts:904:  knowledge,
+  app\api\dashboard\ai-report\suggest\route.ts:905:}: {
+  app\api\dashboard\ai-report\suggest\route.ts:906:  prompt: string;
+  app\api\dashboard\ai-report\suggest\route.ts:907:  analysis: IntentAnalysis;
+> app\api\dashboard\ai-report\suggest\route.ts:908:  knowledge: ReturnType<typeof 
+findRelevantAiReportKnowledge>;
+  app\api\dashboard\ai-report\suggest\route.ts:909:}): CustomReportSchema {
+  app\api\dashboard\ai-report\suggest\route.ts:910:  const candidateLabels = Array.from(
+  app\api\dashboard\ai-report\suggest\route.ts:911:    new Set(
+  app\api\dashboard\ai-report\suggest\route.ts:912:      knowledge.items
+  app\api\dashboard\ai-report\suggest\route.ts:913:        .map((item) => 
+sanitizeAiReportText(item.fieldLabel))
+  app\api\dashboard\ai-report\suggest\route.ts:914:        .filter(Boolean)
+  app\api\dashboard\ai-report\suggest\route.ts:915:        .filter((label) => 
+!isEvidenceLikeLabel(label)),
+  app\api\dashboard\ai-report\suggest\route.ts:916:    ),
+  app\api\dashboard\ai-report\suggest\route.ts:931:    new Set([...candidateLabels, ...genericLabels]),
+  app\api\dashboard\ai-report\suggest\route.ts:932:  ).slice(0, 8);
+  app\api\dashboard\ai-report\suggest\route.ts:933:
+> app\api\dashboard\ai-report\suggest\route.ts:934:  return {
+  app\api\dashboard\ai-report\suggest\route.ts:935:    title:
+  app\api\dashboard\ai-report\suggest\route.ts:936:      sanitizeAiReportText(analysis.reportIntent) ||
+  app\api\dashboard\ai-report\suggest\route.ts:937:      `تقرير 
+${sanitizeAiReportText(analysis.reportFamily) || "مخصص"}`,
+  app\api\dashboard\ai-report\suggest\route.ts:938:    description: prompt,
+  app\api\dashboard\ai-report\suggest\route.ts:939:    version: 1,
+  app\api\dashboard\ai-report\suggest\route.ts:940:    sections: [
+  app\api\dashboard\ai-report\suggest\route.ts:941:      {
+  app\api\dashboard\ai-report\suggest\route.ts:942:        id: "ai_report_section_1",
+  app\api\dashboard\ai-report\suggest\route.ts:946:        fields: (() => {
+  app\api\dashboard\ai-report\suggest\route.ts:947:          const usedKeys = new Set<string>();
+  app\api\dashboard\ai-report\suggest\route.ts:948:
+> app\api\dashboard\ai-report\suggest\route.ts:949:          return mergedLabels.map((label, index) => {
+  app\api\dashboard\ai-report\suggest\route.ts:950:            const options = 
+buildFallbackOptions(label, knowledge);
+  app\api\dashboard\ai-report\suggest\route.ts:951:            const type = pickFallbackFieldType(label, 
+options);
+  app\api\dashboard\ai-report\suggest\route.ts:952:            const baseKey = 
+pickFallbackFieldKey(label, index);
+  app\api\dashboard\ai-report\suggest\route.ts:953:            let key = baseKey;
+  app\api\dashboard\ai-report\suggest\route.ts:954:
+  app\api\dashboard\ai-report\suggest\route.ts:955:            while (usedKeys.has(key)) {
+  app\api\dashboard\ai-report\suggest\route.ts:956:              key = `${baseKey}_${usedKeys.size + 1}`;
+  app\api\dashboard\ai-report\suggest\route.ts:957:            }
+  app\api\dashboard\ai-report\suggest\route.ts:958:
+  app\api\dashboard\ai-report\suggest\route.ts:959:            usedKeys.add(key);
+  app\api\dashboard\ai-report\suggest\route.ts:960:
+> app\api\dashboard\ai-report\suggest\route.ts:961:            return {
+  app\api\dashboard\ai-report\suggest\route.ts:962:              key,
+  app\api\dashboard\ai-report\suggest\route.ts:963:              label,
+  app\api\dashboard\ai-report\suggest\route.ts:964:              type,
+  app\api\dashboard\ai-report\suggest\route.ts:965:              required: false,
+  app\api\dashboard\ai-report\suggest\route.ts:966:              placeholder:
+  app\api\dashboard\ai-report\suggest\route.ts:967:                type === "textarea"
+  app\api\dashboard\ai-report\suggest\route.ts:968:                  ? `اكتب ${label} هنا`
+  app\api\dashboard\ai-report\suggest\route.ts:969:                  : type === "date"
+  app\api\dashboard\ai-report\suggest\route.ts:985:
+  app\api\dashboard\ai-report\suggest\route.ts:986:function buildGenerationContext(
+  app\api\dashboard\ai-report\suggest\route.ts:987:  prompt: string,
+> app\api\dashboard\ai-report\suggest\route.ts:988:  profileContext: ReturnType<typeof 
+buildProfileContext>,
+  app\api\dashboard\ai-report\suggest\route.ts:989:): CustomReportGenerationContext {
+> app\api\dashboard\ai-report\suggest\route.ts:990:  return {
+  app\api\dashboard\ai-report\suggest\route.ts:991:    mode: "create",
+  app\api\dashboard\ai-report\suggest\route.ts:992:    previousPrompt: prompt,
+  app\api\dashboard\ai-report\suggest\route.ts:993:    stages: profileContext.stages,
+  app\api\dashboard\ai-report\suggest\route.ts:994:    specialties: profileContext.specialties,
+  app\api\dashboard\ai-report\suggest\route.ts:995:    subjects: profileContext.subjects,
+  app\api\dashboard\ai-report\suggest\route.ts:996:  };
+  app\api\dashboard\ai-report\suggest\route.ts:997:}
+  app\api\dashboard\ai-report\suggest\route.ts:998:
+  app\api\dashboard\ai-report\suggest\route.ts:1000:  const authContext = await 
+requireCustomReportContext();
+  app\api\dashboard\ai-report\suggest\route.ts:1001:
+  app\api\dashboard\ai-report\suggest\route.ts:1002:  if (!authContext.ok) {
+> app\api\dashboard\ai-report\suggest\route.ts:1003:    return NextResponse.json(
+  app\api\dashboard\ai-report\suggest\route.ts:1004:      { success: false, error: authContext.message },
+  app\api\dashboard\ai-report\suggest\route.ts:1005:      { status: authContext.status },
+  app\api\dashboard\ai-report\suggest\route.ts:1006:    );
+  app\api\dashboard\ai-report\suggest\route.ts:1007:  }
+  app\api\dashboard\ai-report\suggest\route.ts:1008:
+  app\api\dashboard\ai-report\suggest\route.ts:1009:  const body = await request.json().catch(() => 
+null);
+  app\api\dashboard\ai-report\suggest\route.ts:1010:  const prompt = cleanText(body?.prompt);
+  app\api\dashboard\ai-report\suggest\route.ts:1011:
+  app\api\dashboard\ai-report\suggest\route.ts:1012:  if (prompt.length < 10) {
+> app\api\dashboard\ai-report\suggest\route.ts:1013:    return NextResponse.json(
+  app\api\dashboard\ai-report\suggest\route.ts:1014:      {
+  app\api\dashboard\ai-report\suggest\route.ts:1015:        success: false,
+  app\api\dashboard\ai-report\suggest\route.ts:1016:        error: "اكتب وصفًا أوضح للتقرير لا يقل عن 10 
+أحرف.",
+  app\api\dashboard\ai-report\suggest\route.ts:1017:      },
+  app\api\dashboard\ai-report\suggest\route.ts:1018:      { status: 400 },
+  app\api\dashboard\ai-report\suggest\route.ts:1019:    );
+  app\api\dashboard\ai-report\suggest\route.ts:1020:  }
+  app\api\dashboard\ai-report\suggest\route.ts:1021:
+> app\api\dashboard\ai-report\suggest\route.ts:1022:  const clarificationAnswers = 
+normalizeClarificationAnswers(
+> app\api\dashboard\ai-report\suggest\route.ts:1023:    body?.clarificationAnswers,
+  app\api\dashboard\ai-report\suggest\route.ts:1024:  );
+> app\api\dashboard\ai-report\suggest\route.ts:1025:  const effectivePrompt = 
+buildCombinedPrompt(prompt, clarificationAnswers);
+  app\api\dashboard\ai-report\suggest\route.ts:1026:  const knowledge = findRelevantAiReportKnowledge({
+  app\api\dashboard\ai-report\suggest\route.ts:1027:    prompt: effectivePrompt,
+  app\api\dashboard\ai-report\suggest\route.ts:1028:    limit: 150,
+  app\api\dashboard\ai-report\suggest\route.ts:1029:  });
+  app\api\dashboard\ai-report\suggest\route.ts:1030:  const profileContext = 
+buildProfileContext(authContext.user);
+> app\api\dashboard\ai-report\suggest\route.ts:1031:  const previousAnalysis = body?.previousAnalysis;
+  app\api\dashboard\ai-report\suggest\route.ts:1032:
+  app\api\dashboard\ai-report\suggest\route.ts:1033:  const analysis = await analyzeIntent({
+  app\api\dashboard\ai-report\suggest\route.ts:1034:    prompt,
+  app\api\dashboard\ai-report\suggest\route.ts:1035:    effectivePrompt,
+> app\api\dashboard\ai-report\suggest\route.ts:1036:    previousAnalysis,
+  app\api\dashboard\ai-report\suggest\route.ts:1037:    knowledge,
+  app\api\dashboard\ai-report\suggest\route.ts:1038:    profileContext,
+  app\api\dashboard\ai-report\suggest\route.ts:1039:  });
+  app\api\dashboard\ai-report\suggest\route.ts:1040:
+> app\api\dashboard\ai-report\suggest\route.ts:1041:  if (analysis.needsClarification) {
+> app\api\dashboard\ai-report\suggest\route.ts:1042:    return NextResponse.json({
+  app\api\dashboard\ai-report\suggest\route.ts:1043:      success: true,
+> app\api\dashboard\ai-report\suggest\route.ts:1044:      needsClarification: true,
+> app\api\dashboard\ai-report\suggest\route.ts:1045:      confidence: analysis.confidence,
+  app\api\dashboard\ai-report\suggest\route.ts:1046:      reportIntent: analysis.reportIntent,
+  app\api\dashboard\ai-report\suggest\route.ts:1047:      reportFamily: analysis.reportFamily,
+  app\api\dashboard\ai-report\suggest\route.ts:1048:      reasoningSummary: analysis.reasoningSummary,
+  app\api\dashboard\ai-report\suggest\route.ts:1049:      missingContext: analysis.missingContext,
+  app\api\dashboard\ai-report\suggest\route.ts:1050:      coreFieldHints: analysis.coreFieldHints,
+> app\api\dashboard\ai-report\suggest\route.ts:1051:      questions: analysis.questions,
+  app\api\dashboard\ai-report\suggest\route.ts:1052:    });
+  app\api\dashboard\ai-report\suggest\route.ts:1053:  }
+  app\api\dashboard\ai-report\suggest\route.ts:1054:
+> app\api\dashboard\ai-report\suggest\route.ts:1055:  const guidedPrompt = buildSchemaPrompt({
+  app\api\dashboard\ai-report\suggest\route.ts:1056:    prompt,
+> app\api\dashboard\ai-report\suggest\route.ts:1057:    clarificationAnswers,
+  app\api\dashboard\ai-report\suggest\route.ts:1058:    analysis,
+  app\api\dashboard\ai-report\suggest\route.ts:1059:    knowledge,
+  app\api\dashboard\ai-report\suggest\route.ts:1060:    profileContext,
+  app\api\dashboard\ai-report\suggest\route.ts:1061:  });
+  app\api\dashboard\ai-report\suggest\route.ts:1062:
+  app\api\dashboard\ai-report\suggest\route.ts:1063:  const result = await generateCustomReportSchema(
+  app\api\dashboard\ai-report\suggest\route.ts:1064:    guidedPrompt,
+  app\api\dashboard\ai-report\suggest\route.ts:1065:    buildGenerationContext(effectivePrompt, 
+profileContext),
+  app\api\dashboard\ai-report\suggest\route.ts:1076:    sanitizeAiReportSchema(nextSchema),
+  app\api\dashboard\ai-report\suggest\route.ts:1077:  );
+  app\api\dashboard\ai-report\suggest\route.ts:1078:
+> app\api\dashboard\ai-report\suggest\route.ts:1079:  return NextResponse.json({
+  app\api\dashboard\ai-report\suggest\route.ts:1080:    success: true,
+> app\api\dashboard\ai-report\suggest\route.ts:1081:    needsClarification: false,
+> app\api\dashboard\ai-report\suggest\route.ts:1082:    confidence: analysis.confidence,
+  app\api\dashboard\ai-report\suggest\route.ts:1083:    reportIntent: analysis.reportIntent,
+  app\api\dashboard\ai-report\suggest\route.ts:1084:    reportFamily: analysis.reportFamily,
+  app\api\dashboard\ai-report\suggest\route.ts:1085:    reasoningSummary: analysis.reasoningSummary,
+  app\api\dashboard\ai-report\suggest\route.ts:1086:    missingContext: analysis.missingContext,
+  app\api\dashboard\ai-report\suggest\route.ts:1087:    coreFieldHints: analysis.coreFieldHints,
+  app\api\dashboard\ai-report\suggest\route.ts:1088:    schema: sanitizedSchema,
+  app\api\dashboard\ai-report\suggest\route.ts:1089:  });
+  app\api\dashboard\ai-report\suggest\route.ts:1090:}
+  lib\ai-report\ai-report-runtime-adapter.ts:126:  const signature = schema.sections
+  lib\ai-report\ai-report-runtime-adapter.ts:127:    .map((section) => {
+  lib\ai-report\ai-report-runtime-adapter.ts:128:      const fieldKeys = section.fields.map((field) => 
+field.key).join("-");
+> lib\ai-report\ai-report-runtime-adapter.ts:129:      return `${section.id}:${fieldKeys}`;
+  lib\ai-report\ai-report-runtime-adapter.ts:130:    })
+  lib\ai-report\ai-report-runtime-adapter.ts:131:    .join("|");
+  lib\ai-report\ai-report-runtime-adapter.ts:132:
+> lib\ai-report\ai-report-runtime-adapter.ts:133:  return `ai-report:${schema.title}:${signature}`;
+  lib\ai-report\ai-report-runtime-adapter.ts:134:}
+  lib\ai-report\ai-report-runtime-adapter.ts:135:
+  lib\ai-report\ai-report-runtime-adapter.ts:136:function normalizeSearchText(value: string) {
+> lib\ai-report\ai-report-runtime-adapter.ts:137:  return value
+  lib\ai-report\ai-report-runtime-adapter.ts:138:    .toLowerCase()
+  lib\ai-report\ai-report-runtime-adapter.ts:139:    .replace(/[أإآ]/g, "ا")
+  lib\ai-report\ai-report-runtime-adapter.ts:140:    .replace(/ى/g, "ي")
+  lib\ai-report\ai-report-runtime-adapter.ts:141:    .replace(/ة/g, "ه")
+  lib\ai-report\ai-report-runtime-adapter.ts:142:    .replace(/[^\p{L}\p{N}\s_-]/gu, " ")
+  lib\ai-report\ai-report-runtime-adapter.ts:143:    .replace(/\s+/g, " ")
+  lib\ai-report\ai-report-runtime-adapter.ts:144:    .trim();
+  lib\ai-report\ai-report-runtime-adapter.ts:145:}
+  lib\ai-report\ai-report-runtime-adapter.ts:146:
+  lib\ai-report\ai-report-runtime-adapter.ts:147:function hasOtherOption(field: CustomReportField) {
+> lib\ai-report\ai-report-runtime-adapter.ts:148:  return Boolean(field.options?.some((option) => 
+option.value === "other"));
+  lib\ai-report\ai-report-runtime-adapter.ts:149:}
+  lib\ai-report\ai-report-runtime-adapter.ts:150:
+  lib\ai-report\ai-report-runtime-adapter.ts:151:function isEvidenceLikeField(field: CustomReportField) {
+  lib\ai-report\ai-report-runtime-adapter.ts:152:  const text = normalizeSearchText(
+  lib\ai-report\ai-report-runtime-adapter.ts:153:    [
+  lib\ai-report\ai-report-runtime-adapter.ts:154:      field.key,
+  lib\ai-report\ai-report-runtime-adapter.ts:155:      field.label,
+  lib\ai-report\ai-report-runtime-adapter.ts:156:      field.helpText ?? "",
+  lib\ai-report\ai-report-runtime-adapter.ts:159:    ].join(" "),
+  lib\ai-report\ai-report-runtime-adapter.ts:160:  );
+  lib\ai-report\ai-report-runtime-adapter.ts:161:
+> lib\ai-report\ai-report-runtime-adapter.ts:162:  return EVIDENCE_KEYWORDS.some((keyword) =>
+  lib\ai-report\ai-report-runtime-adapter.ts:163:    text.includes(normalizeSearchText(keyword)),
+  lib\ai-report\ai-report-runtime-adapter.ts:164:  );
+  lib\ai-report\ai-report-runtime-adapter.ts:165:}
+  lib\ai-report\ai-report-runtime-adapter.ts:166:
+  lib\ai-report\ai-report-runtime-adapter.ts:167:function toRuntimeFieldType(type: 
+CustomReportFieldType) {
+> lib\ai-report\ai-report-runtime-adapter.ts:168:  return FIELD_TYPE_MAP[type] ?? "TEXT";
+  lib\ai-report\ai-report-runtime-adapter.ts:169:}
+  lib\ai-report\ai-report-runtime-adapter.ts:170:
+  lib\ai-report\ai-report-runtime-adapter.ts:171:function buildInitialFieldValue(field: 
+CustomReportField) {
+  lib\ai-report\ai-report-runtime-adapter.ts:172:  if (field.type === "multi_select") {
+> lib\ai-report\ai-report-runtime-adapter.ts:173:    return [];
+  lib\ai-report\ai-report-runtime-adapter.ts:174:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:175:
+  lib\ai-report\ai-report-runtime-adapter.ts:176:  if (field.type === "checkbox") {
+> lib\ai-report\ai-report-runtime-adapter.ts:177:    return field.options?.length ? [] : false;
+  lib\ai-report\ai-report-runtime-adapter.ts:178:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:179:
+> lib\ai-report\ai-report-runtime-adapter.ts:180:  return "";
+  lib\ai-report\ai-report-runtime-adapter.ts:181:}
+  lib\ai-report\ai-report-runtime-adapter.ts:182:
+  lib\ai-report\ai-report-runtime-adapter.ts:183:function normalizeOtherRuntimeValue(value: unknown) {
+  lib\ai-report\ai-report-runtime-adapter.ts:184:  if (value === "__OTHER__") {
+> lib\ai-report\ai-report-runtime-adapter.ts:185:    return "other";
+  lib\ai-report\ai-report-runtime-adapter.ts:186:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:187:
+  lib\ai-report\ai-report-runtime-adapter.ts:188:  if (Array.isArray(value)) {
+> lib\ai-report\ai-report-runtime-adapter.ts:189:    return value.map((item) => (item === "__OTHER__" ? 
+"other" : String(item)));
+  lib\ai-report\ai-report-runtime-adapter.ts:190:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:191:
+> lib\ai-report\ai-report-runtime-adapter.ts:192:  return value;
+  lib\ai-report\ai-report-runtime-adapter.ts:193:}
+  lib\ai-report\ai-report-runtime-adapter.ts:194:
+  lib\ai-report\ai-report-runtime-adapter.ts:195:function flattenAiReportFields(schema: AiReportSchema) {
+> lib\ai-report\ai-report-runtime-adapter.ts:196:  return schema.sections
+  lib\ai-report\ai-report-runtime-adapter.ts:197:    .flatMap((section) => section.fields)
+  lib\ai-report\ai-report-runtime-adapter.ts:198:    .filter((field) => !isEvidenceLikeField(field));
+  lib\ai-report\ai-report-runtime-adapter.ts:199:}
+  lib\ai-report\ai-report-runtime-adapter.ts:200:
+  lib\ai-report\ai-report-runtime-adapter.ts:201:function normalizeOptionLabel(label: unknown) {
+> lib\ai-report\ai-report-runtime-adapter.ts:202:  return String(label ?? "").trim();
+  lib\ai-report\ai-report-runtime-adapter.ts:203:}
+  lib\ai-report\ai-report-runtime-adapter.ts:204:
+  lib\ai-report\ai-report-runtime-adapter.ts:205:function normalizeOptionValue(value: unknown, 
+fallbackLabel: string, fallbackIndex: number) {
+  lib\ai-report\ai-report-runtime-adapter.ts:206:  const text = String(value ?? "").trim();
+  lib\ai-report\ai-report-runtime-adapter.ts:207:
+  lib\ai-report\ai-report-runtime-adapter.ts:208:  if (text) {
+> lib\ai-report\ai-report-runtime-adapter.ts:209:    return text;
+  lib\ai-report\ai-report-runtime-adapter.ts:210:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:211:
+> lib\ai-report\ai-report-runtime-adapter.ts:212:  return fallbackLabel
+  lib\ai-report\ai-report-runtime-adapter.ts:213:    .toLowerCase()
+  lib\ai-report\ai-report-runtime-adapter.ts:214:    .replace(/[^a-z0-9_]+/g, "_")
+  lib\ai-report\ai-report-runtime-adapter.ts:215:    .replace(/^_+|_+$/g, "") || `option_${fallbackIndex 
++ 1}`;
+  lib\ai-report\ai-report-runtime-adapter.ts:216:}
+  lib\ai-report\ai-report-runtime-adapter.ts:217:
+  lib\ai-report\ai-report-runtime-adapter.ts:218:function getFieldFallbackOptions(label: string) {
+  lib\ai-report\ai-report-runtime-adapter.ts:219:  const normalizedLabel = normalizeSearchText(label);
+  lib\ai-report\ai-report-runtime-adapter.ts:220:
+> lib\ai-report\ai-report-runtime-adapter.ts:221:  return (
+  lib\ai-report\ai-report-runtime-adapter.ts:222:    FIELD_OPTION_FALLBACKS.find((item) =>
+  lib\ai-report\ai-report-runtime-adapter.ts:223:      item.matchers.some((matcher) =>
+  lib\ai-report\ai-report-runtime-adapter.ts:224:        
+normalizedLabel.includes(normalizeSearchText(matcher)),
+  lib\ai-report\ai-report-runtime-adapter.ts:225:      ),
+  lib\ai-report\ai-report-runtime-adapter.ts:226:    )?.options ?? []
+  lib\ai-report\ai-report-runtime-adapter.ts:227:  );
+  lib\ai-report\ai-report-runtime-adapter.ts:228:}
+  lib\ai-report\ai-report-runtime-adapter.ts:229:
+  lib\ai-report\ai-report-runtime-adapter.ts:238:    const label = normalizeOptionLabel(option.label);
+  lib\ai-report\ai-report-runtime-adapter.ts:239:
+  lib\ai-report\ai-report-runtime-adapter.ts:240:    if (!label) {
+> lib\ai-report\ai-report-runtime-adapter.ts:241:      return;
+  lib\ai-report\ai-report-runtime-adapter.ts:242:    }
+  lib\ai-report\ai-report-runtime-adapter.ts:243:
+  lib\ai-report\ai-report-runtime-adapter.ts:244:    const normalizedLabel = normalizeSearchText(label);
+  lib\ai-report\ai-report-runtime-adapter.ts:245:    const value =
+  lib\ai-report\ai-report-runtime-adapter.ts:246:      normalizedLabel === "اخرى"
+  lib\ai-report\ai-report-runtime-adapter.ts:247:        ? "other"
+  lib\ai-report\ai-report-runtime-adapter.ts:248:        : normalizeOptionValue(option.value, label, 
+normalizedOptions.length);
+  lib\ai-report\ai-report-runtime-adapter.ts:249:    const dedupeKey = 
+`${normalizedLabel}::${value.toLowerCase()}`;
+  lib\ai-report\ai-report-runtime-adapter.ts:250:
+  lib\ai-report\ai-report-runtime-adapter.ts:251:    if (seen.has(dedupeKey)) {
+> lib\ai-report\ai-report-runtime-adapter.ts:252:      return;
+  lib\ai-report\ai-report-runtime-adapter.ts:253:    }
+  lib\ai-report\ai-report-runtime-adapter.ts:254:
+  lib\ai-report\ai-report-runtime-adapter.ts:255:    seen.add(dedupeKey);
+  lib\ai-report\ai-report-runtime-adapter.ts:256:    normalizedOptions.push({
+  lib\ai-report\ai-report-runtime-adapter.ts:257:      label: normalizedLabel === "اخرى" ? "أخرى" : 
+label,
+  lib\ai-report\ai-report-runtime-adapter.ts:258:      value,
+  lib\ai-report\ai-report-runtime-adapter.ts:259:      order: normalizedOptions.length + 1,
+  lib\ai-report\ai-report-runtime-adapter.ts:260:    });
+  lib\ai-report\ai-report-runtime-adapter.ts:265:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:266:
+  lib\ai-report\ai-report-runtime-adapter.ts:267:  if (normalizedOptions.length >= 4) {
+> lib\ai-report\ai-report-runtime-adapter.ts:268:    return normalizedOptions.slice(0, 8);
+  lib\ai-report\ai-report-runtime-adapter.ts:269:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:270:
+  lib\ai-report\ai-report-runtime-adapter.ts:271:  for (const option of 
+getFieldFallbackOptions(field.label)) {
+  lib\ai-report\ai-report-runtime-adapter.ts:272:    pushOption(option);
+  lib\ai-report\ai-report-runtime-adapter.ts:273:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:274:
+> lib\ai-report\ai-report-runtime-adapter.ts:275:  return normalizedOptions.slice(0, 8);
+  lib\ai-report\ai-report-runtime-adapter.ts:276:}
+  lib\ai-report\ai-report-runtime-adapter.ts:277:
+  lib\ai-report\ai-report-runtime-adapter.ts:278:function normalizeFieldForSingleStep(
+  lib\ai-report\ai-report-runtime-adapter.ts:279:  field: CustomReportField,
+  lib\ai-report\ai-report-runtime-adapter.ts:280:  index: number,
+  lib\ai-report\ai-report-runtime-adapter.ts:281:): CustomReportField {
+  lib\ai-report\ai-report-runtime-adapter.ts:282:  const hasExplicitOptions = (field.options ?? 
+[]).length > 0;
+  lib\ai-report\ai-report-runtime-adapter.ts:283:  const normalizedType =
+  lib\ai-report\ai-report-runtime-adapter.ts:290:      : field.options ?? [];
+  lib\ai-report\ai-report-runtime-adapter.ts:291:
+  lib\ai-report\ai-report-runtime-adapter.ts:292:  if (!SELECTABLE_FIELD_TYPES.has(normalizedType)) {
+> lib\ai-report\ai-report-runtime-adapter.ts:293:    return {
+  lib\ai-report\ai-report-runtime-adapter.ts:294:      ...field,
+  lib\ai-report\ai-report-runtime-adapter.ts:295:      type: normalizedType,
+  lib\ai-report\ai-report-runtime-adapter.ts:296:      required: false,
+  lib\ai-report\ai-report-runtime-adapter.ts:297:      order: index + 1,
+  lib\ai-report\ai-report-runtime-adapter.ts:298:      options: (sourceOptions ?? [])
+  lib\ai-report\ai-report-runtime-adapter.ts:299:        .map((option, optionIndex) => ({
+  lib\ai-report\ai-report-runtime-adapter.ts:300:          label: option.label,
+  lib\ai-report\ai-report-runtime-adapter.ts:301:          value: option.value,
+  lib\ai-report\ai-report-runtime-adapter.ts:308:  const normalizedOptions = 
+normalizeSelectableOptions(field, sourceOptions);
+  lib\ai-report\ai-report-runtime-adapter.ts:309:
+  lib\ai-report\ai-report-runtime-adapter.ts:310:  if (normalizedOptions.length < 4) {
+> lib\ai-report\ai-report-runtime-adapter.ts:311:    return {
+  lib\ai-report\ai-report-runtime-adapter.ts:312:      ...field,
+  lib\ai-report\ai-report-runtime-adapter.ts:313:      type: "textarea",
+  lib\ai-report\ai-report-runtime-adapter.ts:314:      required: false,
+  lib\ai-report\ai-report-runtime-adapter.ts:315:      order: index + 1,
+  lib\ai-report\ai-report-runtime-adapter.ts:316:      options: [],
+  lib\ai-report\ai-report-runtime-adapter.ts:317:    };
+  lib\ai-report\ai-report-runtime-adapter.ts:318:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:319:
+> lib\ai-report\ai-report-runtime-adapter.ts:320:  return {
+  lib\ai-report\ai-report-runtime-adapter.ts:321:    ...field,
+  lib\ai-report\ai-report-runtime-adapter.ts:322:    type: normalizedType,
+  lib\ai-report\ai-report-runtime-adapter.ts:323:    required: false,
+  lib\ai-report\ai-report-runtime-adapter.ts:324:    order: index + 1,
+  lib\ai-report\ai-report-runtime-adapter.ts:325:    options: normalizedOptions,
+  lib\ai-report\ai-report-runtime-adapter.ts:326:  };
+  lib\ai-report\ai-report-runtime-adapter.ts:327:}
+  lib\ai-report\ai-report-runtime-adapter.ts:328:
+  lib\ai-report\ai-report-runtime-adapter.ts:332:    normalizeFieldForSingleStep(field, index),
+  lib\ai-report\ai-report-runtime-adapter.ts:333:  );
+  lib\ai-report\ai-report-runtime-adapter.ts:334:
+> lib\ai-report\ai-report-runtime-adapter.ts:335:  return {
+  lib\ai-report\ai-report-runtime-adapter.ts:336:    ...sanitizedSchema,
+  lib\ai-report\ai-report-runtime-adapter.ts:337:    title: sanitizedSchema.title || 
+AI_REPORT_SINGLE_STEP_TITLE,
+  lib\ai-report\ai-report-runtime-adapter.ts:338:    description: sanitizedSchema.description,
+  lib\ai-report\ai-report-runtime-adapter.ts:339:    sections: [
+  lib\ai-report\ai-report-runtime-adapter.ts:340:      {
+  lib\ai-report\ai-report-runtime-adapter.ts:341:        id: "ai_report_section_1",
+  lib\ai-report\ai-report-runtime-adapter.ts:342:        title: AI_REPORT_SINGLE_STEP_TITLE,
+  lib\ai-report\ai-report-runtime-adapter.ts:343:        description: sanitizedSchema.description || 
+undefined,
+  lib\ai-report\ai-report-runtime-adapter.ts:354:  const normalizedSchema = 
+normalizeAiReportSchema(sanitizeAiReportSchema(schema));
+  lib\ai-report\ai-report-runtime-adapter.ts:355:  const fields = normalizedSchema.sections[0]?.fields 
+?? [];
+  lib\ai-report\ai-report-runtime-adapter.ts:356:
+> lib\ai-report\ai-report-runtime-adapter.ts:357:  return {
+  lib\ai-report\ai-report-runtime-adapter.ts:358:    id: buildWorkflowId(normalizedSchema),
+  lib\ai-report\ai-report-runtime-adapter.ts:359:    name: normalizedSchema.title,
+  lib\ai-report\ai-report-runtime-adapter.ts:360:    serviceSlug: AI_REPORT_SERVICE_SLUG,
+  lib\ai-report\ai-report-runtime-adapter.ts:361:    service: {
+  lib\ai-report\ai-report-runtime-adapter.ts:362:      slug: AI_REPORT_SERVICE_SLUG,
+  lib\ai-report\ai-report-runtime-adapter.ts:363:    },
+  lib\ai-report\ai-report-runtime-adapter.ts:364:    studentPickerMode: "DISABLED",
+  lib\ai-report\ai-report-runtime-adapter.ts:365:    evidenceMode: "ENABLED",
+  lib\ai-report\ai-report-runtime-adapter.ts:408:    }
+  lib\ai-report\ai-report-runtime-adapter.ts:409:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:410:
+> lib\ai-report\ai-report-runtime-adapter.ts:411:  return values;
+  lib\ai-report\ai-report-runtime-adapter.ts:412:}
+  lib\ai-report\ai-report-runtime-adapter.ts:413:
+  lib\ai-report\ai-report-runtime-adapter.ts:414:export function buildAiReportSubmissionValues(
+  lib\ai-report\ai-report-runtime-adapter.ts:415:  schema: AiReportSchema,
+  lib\ai-report\ai-report-runtime-adapter.ts:416:  values: RuntimeValues,
+  lib\ai-report\ai-report-runtime-adapter.ts:417:): CustomReportValues {
+  lib\ai-report\ai-report-runtime-adapter.ts:418:  const normalizedSchema = 
+normalizeAiReportSchema(sanitizeAiReportSchema(schema));
+  lib\ai-report\ai-report-runtime-adapter.ts:419:  const nextValues: CustomReportValues = {};
+  lib\ai-report\ai-report-runtime-adapter.ts:445:    }
+  lib\ai-report\ai-report-runtime-adapter.ts:446:  }
+  lib\ai-report\ai-report-runtime-adapter.ts:447:
+> lib\ai-report\ai-report-runtime-adapter.ts:448:  return nextValues;
+  lib\ai-report\ai-report-runtime-adapter.ts:449:}
+
+
+
+
+============================================================
+components\ai-report\ai-report-workspace.tsx
+============================================================
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, Sparkles, X } from "lucide-react";
+
+import type { DynamicFormRendererSaveHandler } from "@/components/workflow/dynamic-form-renderer";
+import { DynamicFormRenderer } from "@/components/workflow/dynamic-form-renderer";
+import {
+  buildAiReportInitialValues,
+  buildAiReportRuntimeWorkflow,
+  buildAiReportSubmissionValues,
+  normalizeAiReportSchema,
+  type AiReportSchema,
+} from "@/lib/ai-report/ai-report-runtime-adapter";
+import { sanitizeAiReportSchema } from "@/lib/ai-report/ai-report-text-sanitizer";
+
+type ClarificationQuestion = {
+  id: string;
+  label: string;
+  placeholder?: string;
+  type: "text" | "textarea" | "select";
+  options?: Array<{
+    label: string;
+    value: string;
+  }>;
+};
+
+type AnalysisSnapshot = {
+  confidence: number;
+  reportIntent: string;
+  reportFamily: string;
+  reasoningSummary: string;
+  missingContext: string[];
+  coreFieldHints: string[];
+};
+
+type SuggestResponse = {
+  success: boolean;
+  error?: string;
+  needsClarification?: boolean;
+  confidence?: number;
+  reportIntent?: string;
+  reportFamily?: string;
+  reasoningSummary?: string;
+  missingContext?: string[];
+  coreFieldHints?: string[];
+  questions?: ClarificationQuestion[];
+  schema?: AiReportSchema;
+};
+
+type SaveResult = {
+  redirectTo?: string;
+  error?: string;
+};
+
+const LOADING_STATUSES = [
+  "فهم الوصف",
+  "مطابقة بنك القيم",
+  "بناء النموذج",
+] as const;
+
+function buildAnalysisSnapshot(data: SuggestResponse): AnalysisSnapshot {
+  return {
+    confidence:
+      typeof data.confidence === "number" && Number.isFinite(data.confidence)
+        ? data.confidence
+        : 0.6,
+    reportIntent: data.reportIntent || "تقرير مخصص",
+    reportFamily: data.reportFamily || "تقرير تعليمي مخصص",
+    reasoningSummary: data.reasoningSummary || "",
+    missingContext: Array.isArray(data.missingContext) ? data.missingContext : [],
+    coreFieldHints: Array.isArray(data.coreFieldHints) ? data.coreFieldHints : [],
+  };
+}
+
+function buildClarificationAnswerState(
+  questions: ClarificationQuestion[],
+  previous: Record<string, string>,
+) {
+  return Object.fromEntries(
+    questions.map((question) => [question.id, previous[question.id] || ""]),
+  );
+}
+
+export function AiReportWorkspace() {
+  const router = useRouter();
+
+  function goBackToAiReportHome() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/dashboard/ai-report");
+  }
+
+  const [prompt, setPrompt] = useState("");
+  const [schema, setSchema] = useState<AiReportSchema | null>(null);
+  const [modalOpen, setModalOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [error, setError] = useState("");
+  const [runtimeRevision, setRuntimeRevision] = useState(0);
+  const [clarificationQuestions, setClarificationQuestions] = useState<
+    ClarificationQuestion[]
+  >([]);
+  const [clarificationAnswers, setClarificationAnswers] = useState<
+    Record<string, string>
+  >({});
+  const [previousAnalysis, setPreviousAnalysis] =
+    useState<AnalysisSnapshot | null>(null);
+
+  useEffect(() => {
+    if (!loading) {
+      setSeconds(0);
+      return;
+    }
+
+    setSeconds(1);
+
+    const timer = window.setInterval(() => {
+      setSeconds((current) => current + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [loading]);
+
+  const runtimeWorkflow = useMemo(() => {
+    return schema ? buildAiReportRuntimeWorkflow(schema) : null;
+  }, [schema]);
+
+  const initialValues = useMemo(() => {
+    return schema ? buildAiReportInitialValues(schema) : undefined;
+  }, [schema]);
+
+  const loadingStatus =
+    LOADING_STATUSES[
+      Math.min(LOADING_STATUSES.length - 1, Math.floor(Math.max(seconds - 1, 0) / 2))
+    ];
+  const isClarificationStage = clarificationQuestions.length > 0;
+
+  function resetClarificationStage() {
+    setClarificationQuestions([]);
+    setClarificationAnswers({});
+    setPreviousAnalysis(null);
+    setError("");
+  }
+
+  async function generateReport() {
+    const trimmedPrompt = prompt.trim();
+
+    if (trimmedPrompt.length < 10) {
+      setError("اكتب وصفًا أوضح للتقرير لا يقل عن 10 أحرف.");
+      return;
+    }
+
+    if (loading) {
+      return;
+    }
+
+    if (isClarificationStage) {
+      const hasEmptyAnswer = clarificationQuestions.some(
+        (question) => !(clarificationAnswers[question.id] || "").trim(),
+      );
+
+      if (hasEmptyAnswer) {
+        setError("أكمل التوضيح المطلوب قبل متابعة إنشاء الحقول.");
+        return;
+      }
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/dashboard/ai-report/suggest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: trimmedPrompt,
+          clarificationAnswers: isClarificationStage ? clarificationAnswers : undefined,
+          previousAnalysis,
+        }),
+      });
+
+      const data = (await response.json()) as SuggestResponse;
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر توليد التقرير المخصص.");
+      }
+
+      const nextAnalysis = buildAnalysisSnapshot(data);
+      setPreviousAnalysis(nextAnalysis);
+
+      if (data.needsClarification) {
+        const nextQuestions = Array.isArray(data.questions) ? data.questions : [];
+
+        if (!nextQuestions.length) {
+          throw new Error("نحتاج وصفًا أوضح قليلًا حتى نتمكن من بناء الحقول المناسبة.");
+        }
+
+        setClarificationQuestions(nextQuestions);
+        setClarificationAnswers((current) =>
+          buildClarificationAnswerState(nextQuestions, current),
+        );
+        return;
+      }
+
+      if (!data.schema) {
+        throw new Error("تعذر تجهيز نموذج التقرير المخصص.");
+      }
+
+      setSchema(normalizeAiReportSchema(sanitizeAiReportSchema(data.schema)));
+      setRuntimeRevision((current) => current + 1);
+      setClarificationQuestions([]);
+      setClarificationAnswers({});
+      setModalOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذر توليد التقرير المخصص.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleSave: DynamicFormRendererSaveHandler = async ({
+    type,
+    values,
+  }) => {
+    if (!schema) {
+      throw new Error("ولّد التقرير أولًا قبل الحفظ.");
+    }
+
+    const normalizedSchema = normalizeAiReportSchema(
+      sanitizeAiReportSchema(schema),
+    );
+
+    const response = await fetch("/api/dashboard/custom-report/entries", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        schema: normalizedSchema,
+        values: buildAiReportSubmissionValues(normalizedSchema, values),
+        status: type === "submit" ? "SUBMITTED" : "DRAFT",
+      }),
+    });
+
+    const data = (await response.json()) as SaveResult;
+
+    if (!response.ok || !data.redirectTo) {
+      throw new Error(data.error || "تعذر حفظ التقرير.");
+    }
+
+    return {
+      redirectTo: data.redirectTo,
+      feedbackTitle: type === "submit" ? "تم إرسال التقرير" : "تم حفظ المسودة",
+      feedbackMessage:
+        type === "submit"
+          ? "تم حفظ التقرير وإرساله بنجاح."
+          : "تم حفظ التقرير كمسودة بنجاح.",
+    };
+  };
+
+  return (
+    <main className="space-y-6" dir="rtl">
+      {modalOpen ? (
+        <AiReportPromptModal
+          prompt={prompt}
+          loading={loading}
+          seconds={seconds}
+          loadingStatus={loadingStatus}
+          error={error}
+          clarificationQuestions={clarificationQuestions}
+          clarificationAnswers={clarificationAnswers}
+          previousAnalysis={previousAnalysis}
+          onPromptChange={setPrompt}
+          onClarificationAnswerChange={(questionId, value) => {
+            setClarificationAnswers((current) => ({
+              ...current,
+              [questionId]: value,
+            }));
+          }}
+          onBackToPrompt={resetClarificationStage}
+          onGenerate={generateReport}
+          onExit={goBackToAiReportHome}
+        />
+      ) : null}
+
+      {runtimeWorkflow && schema && initialValues ? (
+        <DynamicFormRenderer
+          key={`ai-report-runtime-${runtimeRevision}`}
+          workflow={runtimeWorkflow}
+          serviceId="custom-report"
+          requiresStudent={false}
+          title={schema.title}
+          initialValues={initialValues}
+          onSave={handleSave}
+        />
+      ) : (
+        <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+            <Sparkles className="h-8 w-8" />
+          </div>
+
+          <h1 className="mt-5 text-3xl font-black text-slate-950">
+            ابدأ بوصف التقرير المطلوب
+          </h1>
+
+          <p className="mx-auto mt-3 max-w-2xl text-sm font-bold leading-7 text-slate-500">
+            بعد توليد النموذج سيظهر لك نفس Workflow الرسمي المستخدم في خدمات تقييم
+            الأداء، مع خطوة واحدة فقط وواجهة الإدخال المعتادة.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+          >
+            <Sparkles className="h-4 w-4" />
+            إنشاء حقول التقرير
+          </button>
+        </section>
+      )}
+    </main>
+  );
+}
+
+function AiReportPromptModal({
+  prompt,
+  loading,
+  seconds,
+  loadingStatus,
+  error,
+  clarificationQuestions,
+  clarificationAnswers,
+  previousAnalysis,
+  onPromptChange,
+  onClarificationAnswerChange,
+  onBackToPrompt,
+  onGenerate,
+  onExit,
+}: {
+  prompt: string;
+  loading: boolean;
+  seconds: number;
+  loadingStatus: string;
+  error: string;
+  clarificationQuestions: ClarificationQuestion[];
+  clarificationAnswers: Record<string, string>;
+  previousAnalysis: AnalysisSnapshot | null;
+  onPromptChange: (value: string) => void;
+  onClarificationAnswerChange: (questionId: string, value: string) => void;
+  onBackToPrompt: () => void;
+  onGenerate: () => void;
+  onExit: () => void;
+}) {
+  const isClarificationStage = clarificationQuestions.length > 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      dir="rtl"
+    >
+      <section className="w-full max-w-3xl overflow-hidden rounded-[2.5rem] bg-white shadow-2xl">
+        <div className="bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-6 text-white">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-2">
+              <p className="text-xs font-black tracking-[0.18em] text-sky-100">
+                AI REPORT WORKFLOW
+              </p>
+
+              <h2 className="text-3xl font-black">
+                {isClarificationStage
+                  ? "نحتاج توضيح بسيط"
+                  : "صف التقرير الذي تريد إنشاءه"}
+              </h2>
+
+              <p className="max-w-2xl text-sm font-bold leading-7 text-sky-50">
+                {isClarificationStage
+                  ? "سنستخدم هذا التوضيح لبناء حقول أقرب لطبيعة التقرير داخل الواجهة الرسمية."
+                  : "اكتب وصفًا عمليًا للتقرير، وسيقوم المساعد ببناء نموذج مناسب من خلال بنك المعرفة ثم عرضه داخل Workflow الرسمي."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onExit}
+              disabled={loading}
+              className="rounded-full bg-white/10 p-2 text-white ring-1 ring-white/10 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="إغلاق"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-6 p-6">
+          {loading ? (
+            <div className="rounded-[2rem] border border-sky-100 bg-sky-50/70 p-6">
+              <div className="flex flex-col items-center justify-center gap-4 text-center">
+                <div className="grid h-28 w-28 place-items-center rounded-full border border-sky-200 bg-white text-sky-700 shadow-sm">
+                  <div>
+                    <p className="text-4xl font-black">{seconds}</p>
+                    <p className="text-[11px] font-black text-sky-500">ثانية</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    جاري التجهيز
+                  </div>
+
+                  <p className="text-sm font-black text-slate-900">{loadingStatus}</p>
+                  <p className="text-xs font-bold text-slate-500">
+                    نفهم الطلب ونطابقه مع بنك القيم قبل بناء النموذج.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {!isClarificationStage ? (
+            <div className="space-y-3">
+              <label className="text-sm font-black text-slate-900">
+                وصف التقرير
+              </label>
+
+              <textarea
+                value={prompt}
+                onChange={(event) => onPromptChange(event.target.value)}
+                rows={6}
+                placeholder="مثال: أريد تقريرًا عن نتائج نهاية الوحدة يتضمن مستوى الإتقان، أبرز الفجوات، الإجراءات المنفذة، والتوصيات العلاجية."
+                className="w-full rounded-[1.75rem] border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+              />
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black text-slate-400">الوصف الحالي</p>
+                    <p className="mt-2 text-sm font-bold leading-7 text-slate-700">
+                      {prompt}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={onBackToPrompt}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100"
+                  >
+                    تعديل الوصف
+                  </button>
+                </div>
+
+                {previousAnalysis ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                      {previousAnalysis.reportFamily}
+                    </span>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                      ثقة {Math.round(previousAnalysis.confidence * 100)}%
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-4">
+                {clarificationQuestions.map((question) => (
+                  <ClarificationField
+                    key={question.id}
+                    question={question}
+                    value={clarificationAnswers[question.id] || ""}
+                    onChange={(value) =>
+                      onClarificationAnswerChange(question.id, value)
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {error ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-bold text-slate-400">
+              {isClarificationStage
+                ? "التوضيح المختصر يكفي. لا حاجة لشرح طويل."
+                : "اكتب الهدف الطبيعي للتقرير، وسيتكفل النظام باقتراح الحقول الأقرب له."}
+            </p>
+
+            <button
+              type="button"
+              onClick={onGenerate}
+              disabled={loading}
+              className="inline-flex min-w-[180px] items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {loading
+                ? "جاري التجهيز"
+                : isClarificationStage
+                  ? "متابعة إنشاء الحقول"
+                  : "إنشاء حقول التقرير"}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ClarificationField({
+  question,
+  value,
+  onChange,
+}: {
+  question: ClarificationQuestion;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  if (question.type === "textarea") {
+    return (
+      <label className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-black text-slate-900">{question.label}</span>
+          <button
+            type="button"
+            onClick={() => onChange("اقترح لي")}
+            className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
+          >
+            اقترح لي
+          </button>
+        </div>
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          rows={4}
+          placeholder={question.placeholder}
+          className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+        />
+      </label>
+    );
+  }
+
+  if (question.type === "select" && question.options?.length) {
+    return (
+      <label className="space-y-2">
+        <span className="text-sm font-black text-slate-900">{question.label}</span>
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+        >
+          <option value="">اختر</option>
+          {question.options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  return (
+    <label className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-black text-slate-900">{question.label}</span>
+        <button
+          type="button"
+          onClick={() => onChange("اقترح لي")}
+          className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
+        >
+          اقترح لي
+        </button>
+      </div>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={question.placeholder}
+        className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+      />
+    </label>
+  );
+}
+
+
+============================================================
+app\api\dashboard\ai-report\suggest\route.ts
+============================================================
+import { NextResponse } from "next/server";
+
+import { callDeepSeekChat } from "@/lib/ai/deepseek-client";
+import {
+  findRelevantAiReportKnowledge,
+  normalizeAiReportArabicText,
+} from "@/lib/ai-report/ai-report-knowledge-retriever";
+import { normalizeAiReportSchema } from "@/lib/ai-report/ai-report-runtime-adapter";
+import {
+  sanitizeAiReportSchema,
+  sanitizeAiReportText,
+} from "@/lib/ai-report/ai-report-text-sanitizer";
+import { requireCustomReportContext } from "@/lib/custom-report/custom-report-auth";
+import { extractJsonObject } from "@/lib/custom-report/custom-report-normalizer";
+import {
+  generateCustomReportSchema,
+  type CustomReportGenerationContext,
+} from "@/lib/custom-report/custom-report-ai-generator";
+import type { CustomReportSchema } from "@/lib/custom-report/custom-report-types";
+
+type ClarificationQuestionType = "text" | "textarea" | "select";
+
+type ClarificationQuestion = {
+  id: string;
+  label: string;
+  placeholder?: string;
+  type: ClarificationQuestionType;
+  options?: Array<{
+    label: string;
+    value: string;
+  }>;
+};
+
+type IntentAnalysis = {
+  confidence: number;
+  reportIntent: string;
+  reportFamily: string;
+  reasoningSummary: string;
+  missingContext: string[];
+  coreFieldHints: string[];
+  needsClarification: boolean;
+  questions: ClarificationQuestion[];
+};
+
+const SUGGESTIVE_ANSWER_MARKERS = [
+  "اقترح",
+  "اقترح لي",
+  "اختر",
+  "اختر أنت",
+  "اختر انت",
+  "حدد",
+  "حدد لي",
+  "أعطني خيارات",
+  "اعطني خيارات",
+  "أعطني اقتراح",
+  "اعطني اقتراح",
+  "انت حدد",
+  "أنت حدد",
+  "ما أعرف",
+  "ما اعرف",
+  "غير متأكد",
+  "غير متاكد",
+  "لست متأكدًا",
+  "لست متاكدا",
+  "ما أدري",
+  "ما ادري",
+  "مدري",
+];
+
+const EVIDENCE_TEXT_MARKERS = [
+  "الشواهد",
+  "شواهد",
+  "المرفقات",
+  "مرفقات",
+  "رفع ملف",
+  "رفع ملفات",
+  "رفع صورة",
+  "رفع صور",
+  "evidence",
+  "attachment",
+  "attachments",
+  "file upload",
+  "image upload",
+];
+
+const CLARIFICATION_QUESTION_OPTION_HINTS: Array<{
+  matchers: string[];
+  options: Array<{ label: string; value: string }>;
+}> = [
+  {
+    matchers: ["نطاق التقرير", "نوع التقرير", "ما نطاق التقرير"],
+    options: [
+      { label: "درس", value: "lesson" },
+      { label: "وحدة دراسية", value: "unit" },
+      { label: "اجتماع أو جلسة", value: "meeting_session" },
+      { label: "نتائج أو تحليل", value: "results_analysis" },
+      { label: "خطة أو تنفيذ", value: "plan_execution" },
+      { label: "نشاط أو مبادرة", value: "activity_initiative" },
+    ],
+  },
+  {
+    matchers: ["استراتيجية", "نوع الاستراتيجية", "استراتيجية التعليم النشط"],
+    options: [
+      { label: "التعلم التعاوني", value: "cooperative_learning" },
+      { label: "التعلم بالمشروعات", value: "project_based_learning" },
+      { label: "العصف الذهني", value: "brainstorming" },
+      { label: "فكر زاوج شارك", value: "think_pair_share" },
+      { label: "حل المشكلات", value: "problem_solving" },
+      { label: "التعلم بالاكتشاف", value: "discovery_learning" },
+    ],
+  },
+  {
+    matchers: ["الفئة", "الفئة المستهدفة", "لمن", "عن من"],
+    options: [
+      { label: "الطلاب", value: "students" },
+      { label: "المعلمون", value: "teachers" },
+      { label: "أولياء الأمور", value: "guardians" },
+      { label: "تنفيذ الدرس", value: "lesson_execution" },
+      { label: "نتائج الطلاب", value: "student_results" },
+      { label: "بيئة التعلم", value: "learning_environment" },
+    ],
+  },
+];
+
+function cleanText(value: unknown) {
+  return typeof value === "string" ? sanitizeAiReportText(value) : "";
+}
+
+function isSuggestiveAnswer(value: string): boolean {
+  const normalized = normalizeAiReportArabicText(value);
+
+  if (!normalized) {
+    return false;
+  }
+
+  return SUGGESTIVE_ANSWER_MARKERS.some((marker) => {
+    const normalizedMarker = normalizeAiReportArabicText(marker);
+    return (
+      normalized === normalizedMarker ||
+      normalized.includes(normalizedMarker) ||
+      normalizedMarker.includes(normalized)
+    );
+  });
+}
+
+function normalizeList(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+
+  return value
+    .map((item) => sanitizeAiReportText(item))
+    .filter(Boolean)
+    .filter((item) => {
+      if (seen.has(item)) {
+        return false;
+      }
+
+      seen.add(item);
+      return true;
+    })
+    .slice(0, 30);
+}
+
+function normalizeSnakeCase(value: string, fallback: string) {
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return normalized || fallback;
+}
+
+function clampConfidence(value: unknown, fallback = 0.58) {
+  const numberValue =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : Number.NaN;
+
+  if (!Number.isFinite(numberValue)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(1, numberValue));
+}
+
+function normalizeStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+
+  return value
+    .map((item) => sanitizeAiReportText(item))
+    .filter(Boolean)
+    .filter((item) => {
+      if (seen.has(item)) {
+        return false;
+      }
+
+      seen.add(item);
+      return true;
+    })
+    .slice(0, 8);
+}
+
+function normalizeClarificationAnswers(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .map(([key, answer]) => [normalizeSnakeCase(key, "question"), cleanText(answer)])
+      .filter(([, answer]) => answer),
+  );
+}
+
+function buildClarificationQuestionOptions(label: string) {
+  const normalizedLabel = normalizeAiReportArabicText(label);
+  const match = CLARIFICATION_QUESTION_OPTION_HINTS.find((item) =>
+    item.matchers.some((matcher) =>
+      normalizedLabel.includes(normalizeAiReportArabicText(matcher)),
+    ),
+  );
+
+  return match?.options ?? [];
+}
+
+function normalizeClarificationQuestion(
+  value: unknown,
+  index: number,
+): ClarificationQuestion | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const label = cleanText(record.label);
+
+  if (!label) {
+    return null;
+  }
+
+  const type = String(record.type || "text").trim().toLowerCase();
+  const rawOptions = Array.isArray(record.options)
+    ? (record.options
+        .map((option, optionIndex) => {
+          if (!option || typeof option !== "object") {
+            return null;
+          }
+
+          const optionRecord = option as Record<string, unknown>;
+          const optionLabel = cleanText(optionRecord.label);
+          const optionValue = cleanText(optionRecord.value);
+
+          if (!optionLabel || !optionValue) {
+            return null;
+          }
+
+          return {
+            label: optionLabel,
+            value: optionValue || `option_${optionIndex + 1}`,
+          };
+        })
+        .filter(Boolean) as ClarificationQuestion["options"])
+    : undefined;
+  const hintedOptions = buildClarificationQuestionOptions(label);
+  const options =
+    rawOptions && rawOptions.length >= 4
+      ? rawOptions.slice(0, 8)
+      : hintedOptions.length >= 4
+        ? hintedOptions
+        : rawOptions;
+  const normalizedType: ClarificationQuestionType =
+    options && options.length >= 4
+      ? "select"
+      : type === "textarea" || type === "select"
+        ? type
+        : "text";
+
+  return {
+    id: normalizeSnakeCase(
+      cleanText(record.id),
+      `clarification_question_${index + 1}`,
+    ),
+    label,
+    placeholder: cleanText(record.placeholder),
+    type: normalizedType,
+    options,
+  };
+}
+
+function inferReportFamily(prompt: string, knowledge: ReturnType<typeof findRelevantAiReportKnowledge>) {
+  const topReport = knowledge.topReports[0];
+
+  if (topReport?.reportCategory) {
+    return sanitizeAiReportText(topReport.reportCategory);
+  }
+
+  const text = cleanText(prompt);
+
+  if (text.includes("تحليل") || text.includes("نتائج")) {
+    return "تقرير تحليل نتائج";
+  }
+
+  if (text.includes("اجتماع") || text.includes("جلسة") || text.includes("لقاء")) {
+    return "تقرير اجتماع أو جلسة";
+  }
+
+  if (text.includes("خطة")) {
+    return "تقرير خطة أو تنفيذ";
+  }
+
+  if (text.includes("درس") || text.includes("وحدة")) {
+    return "تقرير درس أو وحدة";
+  }
+
+  return "تقرير تعليمي مخصص";
+}
+
+function buildKnowledgeSummary(knowledge: ReturnType<typeof findRelevantAiReportKnowledge>) {
+  const topReports = knowledge.topReports.slice(0, 8);
+  const fieldHints = Array.from(
+    new Set(
+      knowledge.items
+        .map((item) => sanitizeAiReportText(item.fieldLabel))
+        .filter(Boolean),
+    ),
+  ).slice(0, 18);
+  const optionHints = Array.from(
+    new Set(
+      knowledge.items
+        .map((item) => sanitizeAiReportText(item.optionLabel))
+        .filter(Boolean),
+    ),
+  ).slice(0, 24);
+
+  return {
+    topReportsBlock:
+      topReports
+        .map((report, index) =>
+          [
+            `${index + 1}.`,
+            `الاسم: ${sanitizeAiReportText(report.reportName)}`,
+            `الفئة: ${sanitizeAiReportText(report.reportCategory) || "غير محددة"}`,
+            `العنصر: ${sanitizeAiReportText(report.performanceElement) || "غير محدد"}`,
+            `الدرجة: ${report.score}`,
+          ].join(" | "),
+        )
+        .join("\n") || "لا توجد تقارير مرجعية كافية.",
+    fieldHintsBlock:
+      fieldHints.map((field, index) => `${index + 1}. ${field}`).join("\n") ||
+      "لا توجد مؤشرات حقول كافية.",
+    optionHintsBlock:
+      optionHints.map((option, index) => `${index + 1}. ${option}`).join("\n") ||
+      "لا توجد قيم مرشحة كافية.",
+    fieldHints,
+  };
+}
+
+function buildProfileContext(user: unknown) {
+  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : {};
+  const stages = normalizeList(record.teachingStages);
+  const specialties = normalizeList(record.teachingSpecialties);
+  const subjects = normalizeList(record.teachingSubjects);
+
+  const lines = [
+    stages.length
+      ? `- المراحل التعليمية في ملف المستخدم: ${stages.join("، ")}`
+      : "",
+    specialties.length
+      ? `- التخصصات في ملف المستخدم: ${specialties.join("، ")}`
+      : "",
+    subjects.length
+      ? `- المواد في ملف المستخدم: ${subjects.join("، ")}`
+      : "",
+  ].filter(Boolean);
+
+  return {
+    stages,
+    specialties,
+    subjects,
+    block: lines.join("\n") || "لا توجد بيانات إضافية في ملف المستخدم.",
+  };
+}
+
+function buildCombinedPrompt(prompt: string, clarificationAnswers: Record<string, string>) {
+  const answers = Object.entries(clarificationAnswers)
+    .map(([key, value]) =>
+      isSuggestiveAnswer(value)
+        ? `- ${key}: المعلم طلب من النظام اقتراح القيمة المناسبة لهذا السؤال.`
+        : `- ${key}: ${value}`,
+    )
+    .join("\n");
+
+  if (!answers) {
+    return prompt;
+  }
+
+  return `${prompt}\n\nإجابات التوضيح:\n${answers}`;
+}
+
+function isEvidenceLikeLabel(value: string) {
+  const normalized = normalizeAiReportArabicText(value);
+  return EVIDENCE_TEXT_MARKERS.some((marker) =>
+    normalized.includes(normalizeAiReportArabicText(marker)),
+  );
+}
+
+function buildFallbackClarificationQuestions(
+  analysis: Pick<IntentAnalysis, "missingContext" | "reportFamily">,
+  lowConfidence: boolean,
+) {
+  const questions: ClarificationQuestion[] = [];
+  const missing = new Set(analysis.missingContext);
+
+  const pushQuestion = (question: ClarificationQuestion) => {
+    if (questions.some((item) => item.id === question.id)) {
+      return;
+    }
+
+    questions.push(question);
+  };
+
+  if (missing.has("scope") || lowConfidence) {
+    pushQuestion({
+      id: "report_scope",
+      label: "ما نطاق التقرير؟",
+      placeholder: "مثال: درس، وحدة، اجتماع، نتائج، خطة...",
+      type: "select",
+      options: buildClarificationQuestionOptions("ما نطاق التقرير؟"),
+    });
+  }
+
+  if (missing.has("focus") || lowConfidence) {
+    pushQuestion({
+      id: "report_focus",
+      label: "ما أهم المحاور التي يجب أن يغطيها التقرير؟",
+      placeholder: "مثال: التنفيذ، النتائج، الفجوات، التوصيات...",
+      type: "textarea",
+    });
+  }
+
+  if (missing.has("timeframe") || lowConfidence) {
+    pushQuestion({
+      id: "report_context",
+      label: "ما المناسبة أو الفترة المرتبطة بالتقرير؟",
+      placeholder: "مثال: نهاية وحدة، لقاء مهني، زيارة صفية...",
+      type: "text",
+    });
+  }
+
+  if (missing.has("audience") || questions.length < 2) {
+    pushQuestion({
+      id: "report_audience",
+      label: "لمن أو عن من يدور التقرير؟",
+      placeholder: "مثال: الطلاب، المعلمون، أولياء الأمور، تنفيذ نشاط...",
+      type: "text",
+    });
+  }
+
+  if (questions.length < 2) {
+    pushQuestion({
+      id: "report_goal",
+      label: "ما النتيجة التي تريد إبرازها في التقرير؟",
+      placeholder: `مثال: خلاصة ${analysis.reportFamily || "التقرير"} أو توصياته الرئيسة`,
+      type: "text",
+    });
+  }
+
+  return questions.slice(0, lowConfidence ? 3 : 4);
+}
+
+function buildFallbackIntentAnalysis({
+  prompt,
+  knowledge,
+}: {
+  prompt: string;
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>;
+}): IntentAnalysis {
+  const normalizedPrompt = cleanText(prompt);
+  const tokens = normalizedPrompt.split(/\s+/).filter(Boolean);
+  const hasScopeWord =
+    /درس|وحدة|خطة|تقييم|تقويم|تحليل|نتائج|اجتماع|جلسة|لقاء|نشاط|مبادرة|أولياء|طلاب|تعلم|بيئة|تقنية|زيارة|متابعة|توصية/i.test(
+      normalizedPrompt,
+    );
+  const hasFocusWord =
+    /يتضمن|يشمل|محور|فجوات|توصيات|تنفيذ|أثر|مستوى|خلاصة|ملخص|تحسين|مستهدف|مؤشر/i.test(
+      normalizedPrompt,
+    );
+  const hasTimeWord =
+    /اليوم|الأسبوع|الفصل|الوحدة|الحصة|العام|الفترة|اللقاء|الاجتماع|البرنامج|النشاط|الدرس/i.test(
+      normalizedPrompt,
+    );
+  const topScore = knowledge.topReports[0]?.score ?? 0;
+
+  let confidence = 0.34;
+
+  if (normalizedPrompt.length >= 24) confidence += 0.16;
+  if (tokens.length >= 5) confidence += 0.12;
+  if (hasScopeWord) confidence += 0.14;
+  if (hasFocusWord) confidence += 0.12;
+  if (knowledge.topReports.length > 0) confidence += 0.08;
+  if (knowledge.items.length >= 15) confidence += 0.08;
+  if (topScore >= 24) confidence += 0.06;
+  if (normalizedPrompt.length < 14) confidence -= 0.14;
+  if (!hasScopeWord) confidence -= 0.1;
+  if (!hasFocusWord) confidence -= 0.08;
+
+  const finalConfidence = Math.max(0.2, Math.min(0.9, confidence));
+  const reportFamily = inferReportFamily(prompt, knowledge);
+  const missingContext = [
+    !hasScopeWord ? "scope" : "",
+    !hasFocusWord ? "focus" : "",
+    !hasTimeWord ? "timeframe" : "",
+    !/طلاب|معلمين|أولياء|مجتمع|إدارة|صف|فصل|مادة|وحدة|نشاط/i.test(normalizedPrompt)
+      ? "audience"
+      : "",
+  ].filter(Boolean);
+  const needsClarification = finalConfidence < 0.75;
+
+  const coreFieldHints = Array.from(
+    new Set(
+      knowledge.items
+        .map((item) => sanitizeAiReportText(item.fieldLabel))
+        .filter(Boolean),
+    ),
+  ).slice(0, 8);
+
+  return {
+    confidence: finalConfidence,
+    reportIntent: normalizedPrompt || "إنشاء تقرير مخصص",
+    reportFamily,
+    reasoningSummary:
+      finalConfidence >= 0.75
+        ? "وصف التقرير واضح بدرجة كافية ويمكن توليد نموذج عملي مباشر."
+        : "الوصف يحتاج بعض التحديد حتى تظهر الحقول الأقرب لطبيعة التقرير.",
+    missingContext,
+    coreFieldHints,
+    needsClarification,
+    questions: buildFallbackClarificationQuestions(
+      { missingContext, reportFamily },
+      finalConfidence < 0.45,
+    ),
+  };
+}
+
+function normalizeIntentAnalysis(
+  value: unknown,
+  fallback: IntentAnalysis,
+): IntentAnalysis {
+  const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const confidence = clampConfidence(record.confidence, fallback.confidence);
+  const reportIntent = cleanText(record.reportIntent) || fallback.reportIntent;
+  const reportFamily = cleanText(record.reportFamily) || fallback.reportFamily;
+  const reasoningSummary =
+    cleanText(record.reasoningSummary) || fallback.reasoningSummary;
+  const missingContext = normalizeStringArray(record.missingContext);
+  const coreFieldHints = normalizeStringArray(record.coreFieldHints).slice(0, 10);
+  const derivedNeedsClarification = confidence < 0.75;
+  const needsClarification =
+    confidence >= 0.75
+      ? false
+      : typeof record.needsClarification === "boolean"
+        ? record.needsClarification || derivedNeedsClarification
+        : derivedNeedsClarification;
+  const normalizedQuestions = Array.isArray(record.questions)
+    ? record.questions
+        .map((question, index) => normalizeClarificationQuestion(question, index))
+        .filter(Boolean) as ClarificationQuestion[]
+    : [];
+
+  const questions =
+    needsClarification && normalizedQuestions.length
+      ? normalizedQuestions.slice(0, confidence < 0.45 ? 3 : 4)
+      : needsClarification
+        ? buildFallbackClarificationQuestions(
+            {
+              missingContext: missingContext.length
+                ? missingContext
+                : fallback.missingContext,
+              reportFamily,
+            },
+            confidence < 0.45,
+          )
+        : [];
+
+  return {
+    confidence,
+    reportIntent,
+    reportFamily,
+    reasoningSummary,
+    missingContext: missingContext.length ? missingContext : fallback.missingContext,
+    coreFieldHints: coreFieldHints.length ? coreFieldHints : fallback.coreFieldHints,
+    needsClarification,
+    questions,
+  };
+}
+
+async function analyzeIntent({
+  prompt,
+  effectivePrompt,
+  previousAnalysis,
+  knowledge,
+  profileContext,
+}: {
+  prompt: string;
+  effectivePrompt: string;
+  previousAnalysis: unknown;
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>;
+  profileContext: ReturnType<typeof buildProfileContext>;
+}) {
+  const fallback = buildFallbackIntentAnalysis({
+    prompt: effectivePrompt,
+    knowledge,
+  });
+  const knowledgeSummary = buildKnowledgeSummary(knowledge);
+  const previousAnalysisBlock =
+    previousAnalysis && typeof previousAnalysis === "object"
+      ? JSON.stringify(previousAnalysis, null, 2)
+      : "لا يوجد تحليل سابق.";
+
+  try {
+    const content = await callDeepSeekChat({
+      temperature: 0.1,
+      maxTokens: 900,
+      messages: [
+        {
+          role: "system",
+          content: [
+            "أنت محلل نية لإنشاء تقارير تعليمية داخل منصة مدرسية.",
+            "اعتمد على وصف المستخدم وبنك المعرفة المرشح لفهم نوع التقرير وبنيته الطبيعية.",
+            "الوصف إشارة نية، وليس قائمة حقول حرفية.",
+            "استخدم بنك المعرفة كمرجع أساسي للمصطلحات والأنماط، لكن لا تنسخ كل ما فيه ولا تضف حقولًا غير مرتبطة بالنية.",
+            "إذا كان الوصف واضحًا فلا تطلب توضيحًا.",
+            "إذا احتاج التوضيح فاجعل الأسئلة قصيرة وعملية وصديقة للمعلم.",
+            "فضّل أسئلة التوضيح من النوع select عندما تكون الخيارات الطبيعية معروفة ويمكن حصرها في 4 إلى 8 خيارات.",
+            "استخدم text أو textarea فقط عندما تكون الإجابة المفتوحة أنسب فعلًا.",
+            "أعد JSON فقط وبالمفاتيح المطلوبة دون أي شرح إضافي.",
+          ].join("\n"),
+        },
+        {
+          role: "user",
+          content: `
+الوصف الأصلي:
+${prompt}
+
+الوصف بعد دمج أي توضيحات:
+${effectivePrompt}
+
+تحليل سابق - إن وجد:
+${previousAnalysisBlock}
+
+سياق ملف المستخدم:
+${profileContext.block}
+
+أقرب التقارير من بنك المعرفة:
+${knowledgeSummary.topReportsBlock}
+
+أبرز الحقول المرشحة:
+${knowledgeSummary.fieldHintsBlock}
+
+أبرز القيم المرشحة:
+${knowledgeSummary.optionHintsBlock}
+
+المطلوب:
+1. استنتج نية التقرير العامة.
+2. استنتج عائلة التقرير الأقرب.
+3. حدد هل الوصف واضح بما يكفي لتوليد نموذج مباشرة.
+4. إن احتاج توضيحًا، اسأل 2 إلى 4 أسئلة قصيرة فقط.
+5. لا تطلب معلومات يمكن استنتاجها بوضوح من الوصف أو بنك المعرفة.
+
+أعد JSON فقط بهذا الشكل:
+{
+  "confidence": 0.0,
+  "reportIntent": "وصف مختصر للنية",
+  "reportFamily": "العائلة الأقرب",
+  "reasoningSummary": "سبب مختصر",
+  "missingContext": ["scope", "focus"],
+  "coreFieldHints": ["حقل 1", "حقل 2"],
+  "needsClarification": false,
+  "questions": [
+    {
+      "id": "report_scope",
+      "label": "ما نطاق التقرير؟",
+      "placeholder": "مثال: درس، وحدة، اجتماع، نتائج...",
+      "type": "text"
+    }
+  ]
+}
+
+قواعد الثقة:
+- إذا كانت الثقة 0.75 أو أكثر فالأصل ألا تطلب توضيحًا.
+- إذا كانت الثقة بين 0.45 و0.75 فاسأل 2 إلى 4 أسئلة قصيرة.
+- إذا كانت الثقة أقل من 0.45 فاطلب وصفًا أوضح بأسئلة إرشادية قصيرة.
+          `.trim(),
+        },
+      ],
+    });
+
+    return normalizeIntentAnalysis(extractJsonObject(content), fallback);
+  } catch {
+    return fallback;
+  }
+}
+
+function buildSchemaPrompt({
+  prompt,
+  clarificationAnswers,
+  analysis,
+  knowledge,
+  profileContext,
+}: {
+  prompt: string;
+  clarificationAnswers: Record<string, string>;
+  analysis: IntentAnalysis;
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>;
+  profileContext: ReturnType<typeof buildProfileContext>;
+}) {
+  const knowledgeSummary = buildKnowledgeSummary(knowledge);
+  const clarificationBlock = Object.keys(clarificationAnswers).length
+    ? Object.entries(clarificationAnswers)
+        .map(([key, value]) =>
+          isSuggestiveAnswer(value)
+            ? `- ${key}: المعلم طلب من النظام اقتراح القيمة المناسبة لهذا السؤال.`
+            : `- ${key}: ${value}`,
+        )
+        .join("\n")
+    : "لا توجد إجابات توضيح إضافية.";
+  const topFieldHints =
+    analysis.coreFieldHints.length > 0
+      ? analysis.coreFieldHints.map((item, index) => `${index + 1}. ${item}`).join("\n")
+      : "لا توجد تلميحات حاسمة إضافية.";
+
+  return `
+الوصف الأساسي للمستخدم:
+${prompt}
+
+إجابات التوضيح - إن وجدت:
+${clarificationBlock}
+
+تحليل النية:
+- نية التقرير: ${analysis.reportIntent}
+- عائلة التقرير: ${analysis.reportFamily}
+- ملخص الاستدلال: ${analysis.reasoningSummary}
+
+تلميحات الحقول الأساسية:
+${topFieldHints}
+
+سياق ملف المستخدم:
+${profileContext.block}
+
+أقرب التقارير في بنك المعرفة:
+${knowledgeSummary.topReportsBlock}
+
+الحقول المرشحة من بنك المعرفة:
+${knowledgeSummary.fieldHintsBlock}
+
+القيم والخيارات المرشحة من بنك المعرفة:
+${knowledgeSummary.optionHintsBlock}
+
+تعليمات صارمة:
+- أنشئ نموذج تقرير عمليًا ومناسبًا للمعلمين داخل المنصة.
+- أنشئ قسمًا واحدًا فقط بعنوان "بيانات التقرير المخصص".
+- اجعل النموذج في خطوة واحدة فقط.
+- اجعل عدد الحقول بين 6 و14 بحسب تعقيد التقرير.
+- جميع الحقول اختيارية بالكامل. required=false دائمًا.
+- أي حقل من النوع select أو multi_select أو radio يجب أن يحتوي على 4 إلى 8 خيارات مفيدة ومرتبطة بالحقل نفسه.
+- فضّل بناء الخيارات من قيم بنك المعرفة المرشحة أولًا.
+- إذا لم تكفِ قيم بنك المعرفة، يمكنك إضافة خيارات تعليمية منطقية خاصة بالحقل نفسه، وليست عامة أو سطحية.
+- لا تترك أي حقل select أو multi_select أو radio بدون خيارات.
+- إذا لم تستطع توليد 4 خيارات ذات معنى على الأقل، فحوّل الحقل إلى textarea بدل select.
+- لا تتجاوز 8 خيارات لأي حقل اختياري.
+- لا تنشئ أي حقل شواهد أو مرفقات أو رفع ملفات أو صور.
+- لا تنشئ الحقل "الشواهد المقترحة" ولا أي حقل بالمعنى نفسه.
+- الشواهد مدعومة في المنصة بشكل منفصل، لذلك لا تمثلها داخل الـ schema.
+- لا تنشئ حقولًا غير مرتبطة بعائلة التقرير أو بنيته الطبيعية.
+- لا تفرض المادة أو الصف أو الحضور أو التوقيع إلا إذا كانت النية تستدعيها بوضوح.
+- استخدم select أو multi_select أو radio فقط عندما تكون الخيارات مفيدة ومسنودة من المرشحات أو بالاستدلال التعليمي الواضح.
+- إذا احتجت خيارًا مفتوحًا فأضف "أخرى" مرة واحدة فقط بقيمة other.
+- استخدم text وtextarea وdate وnumber وselect وmulti_select فقط عند الحاجة الطبيعية.
+- استخدم أسماء عربية واضحة للحقول، ومفاتيح english_snake_case.
+- اجعل المخرجات JSON فقط.
+  `.trim();
+}
+
+function countSchemaFields(schema: CustomReportSchema) {
+  return schema.sections.reduce(
+    (total, section) => total + section.fields.length,
+    0,
+  );
+}
+
+function buildFallbackOptions(
+  label: string,
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>,
+) {
+  const normalizedLabel = normalizeAiReportArabicText(label);
+  const options = Array.from(
+    new Set(
+      knowledge.items
+        .filter((item) => {
+          const itemLabel = normalizeAiReportArabicText(item.fieldLabel);
+          return (
+            itemLabel === normalizedLabel ||
+            itemLabel.includes(normalizedLabel) ||
+            normalizedLabel.includes(itemLabel)
+          );
+        })
+        .map((item) => sanitizeAiReportText(item.optionLabel))
+        .filter(Boolean)
+        .filter((option) => !isEvidenceLikeLabel(option)),
+    ),
+  ).slice(0, 5);
+
+  return options.map((option, index) => ({
+    label: option,
+    value: normalizeSnakeCase(option, `option_${index + 1}`),
+  }));
+}
+
+function pickFallbackFieldKey(label: string, index: number) {
+  const normalizedLabel = normalizeAiReportArabicText(label);
+
+  if (normalizedLabel.includes("تاريخ")) return "report_date";
+  if (normalizedLabel.includes("عنوان") || normalizedLabel.includes("اسم")) {
+    return "report_subject";
+  }
+  if (normalizedLabel.includes("هدف")) return "report_goal";
+  if (normalizedLabel.includes("تنفيذ") || normalizedLabel.includes("اجراء")) {
+    return "implemented_actions";
+  }
+  if (
+    normalizedLabel.includes("نتائج") ||
+    normalizedLabel.includes("مخرجات") ||
+    normalizedLabel.includes("اثر")
+  ) {
+    return "results_summary";
+  }
+  if (
+    normalizedLabel.includes("فجوات") ||
+    normalizedLabel.includes("تحديات") ||
+    normalizedLabel.includes("معوقات")
+  ) {
+    return "gaps_or_challenges";
+  }
+  if (normalizedLabel.includes("توصيات")) return "recommendations";
+  if (normalizedLabel.includes("ملاحظات")) return "additional_notes";
+
+  return `custom_field_${index + 1}`;
+}
+
+function pickFallbackFieldType(label: string, options: Array<{ label: string; value: string }>) {
+  const normalizedLabel = normalizeAiReportArabicText(label);
+
+  if (
+    normalizedLabel.includes("تاريخ") ||
+    normalizedLabel.includes("موعد") ||
+    normalizedLabel.includes("يوم")
+  ) {
+    return "date" as const;
+  }
+
+  if (
+    normalizedLabel.includes("نسبة") ||
+    normalizedLabel.includes("عدد") ||
+    normalizedLabel.includes("درجة") ||
+    normalizedLabel.includes("متوسط")
+  ) {
+    return "number" as const;
+  }
+
+  if (
+    options.length >= 4 &&
+    /محاور|محور|مجالات|اجراءات|إجراءات|توصيات|اسباب|أسباب|أهداف|اهداف/.test(label)
+  ) {
+    return "multi_select" as const;
+  }
+
+  if (options.length >= 4) {
+    return "select" as const;
+  }
+
+  if (
+    /وصف|ملخص|خلاصة|نتائج|توصيات|ملاحظات|إجراءات|تنفيذ|فجوات|تحديات|مقترحات/.test(
+      label,
+    )
+  ) {
+    return "textarea" as const;
+  }
+
+  return "text" as const;
+}
+
+function buildHeuristicFallbackSchema({
+  prompt,
+  analysis,
+  knowledge,
+}: {
+  prompt: string;
+  analysis: IntentAnalysis;
+  knowledge: ReturnType<typeof findRelevantAiReportKnowledge>;
+}): CustomReportSchema {
+  const candidateLabels = Array.from(
+    new Set(
+      knowledge.items
+        .map((item) => sanitizeAiReportText(item.fieldLabel))
+        .filter(Boolean)
+        .filter((label) => !isEvidenceLikeLabel(label)),
+    ),
+  ).slice(0, 8);
+
+  const genericLabels = [
+    "موضوع التقرير",
+    "الهدف من التقرير",
+    "تاريخ التقرير",
+    "وصف التنفيذ أو الحدث",
+    "أبرز النتائج أو المخرجات",
+    "التحديات أو الفجوات",
+    "التوصيات",
+    "ملاحظات إضافية",
+  ];
+
+  const mergedLabels = Array.from(
+    new Set([...candidateLabels, ...genericLabels]),
+  ).slice(0, 8);
+
+  return {
+    title:
+      sanitizeAiReportText(analysis.reportIntent) ||
+      `تقرير ${sanitizeAiReportText(analysis.reportFamily) || "مخصص"}`,
+    description: prompt,
+    version: 1,
+    sections: [
+      {
+        id: "ai_report_section_1",
+        title: "بيانات التقرير المخصص",
+        description: analysis.reasoningSummary || "",
+        order: 1,
+        fields: (() => {
+          const usedKeys = new Set<string>();
+
+          return mergedLabels.map((label, index) => {
+            const options = buildFallbackOptions(label, knowledge);
+            const type = pickFallbackFieldType(label, options);
+            const baseKey = pickFallbackFieldKey(label, index);
+            let key = baseKey;
+
+            while (usedKeys.has(key)) {
+              key = `${baseKey}_${usedKeys.size + 1}`;
+            }
+
+            usedKeys.add(key);
+
+            return {
+              key,
+              label,
+              type,
+              required: false,
+              placeholder:
+                type === "textarea"
+                  ? `اكتب ${label} هنا`
+                  : type === "date"
+                    ? ""
+                    : `أدخل ${label}`,
+              helpText: "",
+              reportLabel: label,
+              showInReport: true,
+              order: index + 1,
+              options:
+                type === "select" || type === "multi_select" ? options : [],
+            };
+          });
+        })(),
+      },
+    ],
+  };
+}
+
+function buildGenerationContext(
+  prompt: string,
+  profileContext: ReturnType<typeof buildProfileContext>,
+): CustomReportGenerationContext {
+  return {
+    mode: "create",
+    previousPrompt: prompt,
+    stages: profileContext.stages,
+    specialties: profileContext.specialties,
+    subjects: profileContext.subjects,
+  };
+}
+
+export async function POST(request: Request) {
+  const authContext = await requireCustomReportContext();
+
+  if (!authContext.ok) {
+    return NextResponse.json(
+      { success: false, error: authContext.message },
+      { status: authContext.status },
+    );
+  }
+
+  const body = await request.json().catch(() => null);
+  const prompt = cleanText(body?.prompt);
+
+  if (prompt.length < 10) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "اكتب وصفًا أوضح للتقرير لا يقل عن 10 أحرف.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const clarificationAnswers = normalizeClarificationAnswers(
+    body?.clarificationAnswers,
+  );
+  const effectivePrompt = buildCombinedPrompt(prompt, clarificationAnswers);
+  const knowledge = findRelevantAiReportKnowledge({
+    prompt: effectivePrompt,
+    limit: 150,
+  });
+  const profileContext = buildProfileContext(authContext.user);
+  const previousAnalysis = body?.previousAnalysis;
+
+  const analysis = await analyzeIntent({
+    prompt,
+    effectivePrompt,
+    previousAnalysis,
+    knowledge,
+    profileContext,
+  });
+
+  if (analysis.needsClarification) {
+    return NextResponse.json({
+      success: true,
+      needsClarification: true,
+      confidence: analysis.confidence,
+      reportIntent: analysis.reportIntent,
+      reportFamily: analysis.reportFamily,
+      reasoningSummary: analysis.reasoningSummary,
+      missingContext: analysis.missingContext,
+      coreFieldHints: analysis.coreFieldHints,
+      questions: analysis.questions,
+    });
+  }
+
+  const guidedPrompt = buildSchemaPrompt({
+    prompt,
+    clarificationAnswers,
+    analysis,
+    knowledge,
+    profileContext,
+  });
+
+  const result = await generateCustomReportSchema(
+    guidedPrompt,
+    buildGenerationContext(effectivePrompt, profileContext),
+  );
+  const nextSchema =
+    result.source === "FALLBACK" || countSchemaFields(result.schema) < 4
+      ? buildHeuristicFallbackSchema({
+          prompt,
+          analysis,
+          knowledge,
+        })
+      : result.schema;
+  const sanitizedSchema = normalizeAiReportSchema(
+    sanitizeAiReportSchema(nextSchema),
+  );
+
+  return NextResponse.json({
+    success: true,
+    needsClarification: false,
+    confidence: analysis.confidence,
+    reportIntent: analysis.reportIntent,
+    reportFamily: analysis.reportFamily,
+    reasoningSummary: analysis.reasoningSummary,
+    missingContext: analysis.missingContext,
+    coreFieldHints: analysis.coreFieldHints,
+    schema: sanitizedSchema,
+  });
+}
+
+
+============================================================
+lib\ai-report\ai-report-runtime-adapter.ts
+============================================================
+import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+import type { RuntimeWorkflow } from "@/engine/runtime/runtime-resolver";
+import type {
+  CustomReportField,
+  CustomReportFieldType,
+  CustomReportSchema,
+  CustomReportValues,
+} from "@/lib/custom-report/custom-report-types";
+import { sanitizeAiReportSchema } from "@/lib/ai-report/ai-report-text-sanitizer";
+
+export type AiReportSchema = CustomReportSchema;
+
+export type AiReportRuntimeWorkflow = RuntimeWorkflow & {
+  service: {
+    slug: string;
+  };
+};
+
+type CustomReportOptionLike = {
+  label: string;
+  value: string;
+  order?: number;
+};
+
+const AI_REPORT_SERVICE_SLUG = "custom-report";
+const AI_REPORT_SINGLE_STEP_TITLE = "بيانات التقرير المخصص";
+const SELECTABLE_FIELD_TYPES = new Set<CustomReportFieldType>([
+  "select",
+  "multi_select",
+  "radio",
+]);
+
+const BOOLEAN_CHOICE_OPTIONS = [
+  { label: "نعم", value: "yes" },
+  { label: "لا", value: "no" },
+];
+
+const FIELD_TYPE_MAP: Record<CustomReportFieldType, string> = {
+  text: "TEXT",
+  textarea: "TEXTAREA",
+  number: "NUMBER",
+  date: "DATE",
+  select: "SELECT",
+  multi_select: "MULTI_SELECT",
+  checkbox: "CHECKBOX",
+  radio: "RADIO",
+};
+
+const EVIDENCE_KEYWORDS = [
+  "الشواهد",
+  "شواهد",
+  "مساحه شاهد",
+  "مساحة شاهد",
+  "المرفقات",
+  "مرفقات",
+  "رفع ملف",
+  "رفع ملفات",
+  "رفع صوره",
+  "رفع صورة",
+  "file upload",
+  "image upload",
+  "attachments",
+  "attachment",
+  "evidence",
+  "proposed evidence",
+];
+
+const FIELD_OPTION_FALLBACKS: Array<{
+  matchers: string[];
+  options: Array<{ label: string; value: string }>;
+}> = [
+  {
+    matchers: ["طريقة التقييم", "اسلوب التقييم", "أداة التقييم", "اداة التقييم"],
+    options: [
+      { label: "اختبار قصير", value: "short_quiz" },
+      { label: "ملاحظة أداء", value: "performance_observation" },
+      { label: "مهمة أدائية", value: "performance_task" },
+      { label: "ورقة عمل", value: "worksheet" },
+      { label: "تقويم شفهي", value: "oral_assessment" },
+      { label: "بطاقة خروج", value: "exit_ticket" },
+    ],
+  },
+  {
+    matchers: ["مستوى الإتقان", "مستوى الاتقان", "الإتقان العام", "الاتقان العام"],
+    options: [
+      { label: "متقن بدرجة عالية", value: "high_mastery" },
+      { label: "متقن", value: "mastery" },
+      { label: "متقن جزئيًا", value: "partial_mastery" },
+      { label: "يحتاج دعمًا", value: "needs_support" },
+      { label: "يحتاج خطة علاجية", value: "needs_remedial_plan" },
+    ],
+  },
+  {
+    matchers: ["الأهداف التعليمية", "الاهداف التعليمية", "نواتج التعلم", "الأهداف", "الاهداف"],
+    options: [
+      { label: "قياس تحقق نواتج التعلم", value: "measure_learning_outcomes" },
+      { label: "تنمية مهارة محددة", value: "develop_specific_skill" },
+      { label: "معالجة فجوات تعلم", value: "address_learning_gaps" },
+      { label: "تعزيز المشاركة", value: "enhance_participation" },
+      { label: "تحسين مستوى الإتقان", value: "improve_mastery_level" },
+    ],
+  },
+  {
+    matchers: ["التوصيات", "توصيات"],
+    options: [
+      { label: "تنفيذ نشاط علاجي", value: "implement_remedial_activity" },
+      { label: "تقديم تغذية راجعة", value: "provide_feedback" },
+      { label: "إعادة شرح المهارة", value: "reteach_skill" },
+      { label: "متابعة التقدم", value: "monitor_progress" },
+      { label: "توظيف تقويم قصير", value: "use_short_assessment" },
+    ],
+  },
+  {
+    matchers: ["الإجراءات", "الاجراءات", "إجراءات", "اجراءات"],
+    options: [
+      { label: "تحديد مستوى الطلاب", value: "identify_student_levels" },
+      { label: "تنفيذ نشاط تطبيقي", value: "implement_applied_activity" },
+      { label: "تحليل النتائج", value: "analyze_results" },
+      { label: "تقديم دعم موجه", value: "provide_targeted_support" },
+      { label: "توثيق المخرجات", value: "document_outputs" },
+    ],
+  },
+];
+
+function buildWorkflowId(schema: AiReportSchema) {
+  const signature = schema.sections
+    .map((section) => {
+      const fieldKeys = section.fields.map((field) => field.key).join("-");
+      return `${section.id}:${fieldKeys}`;
+    })
+    .join("|");
+
+  return `ai-report:${schema.title}:${signature}`;
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[^\p{L}\p{N}\s_-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasOtherOption(field: CustomReportField) {
+  return Boolean(field.options?.some((option) => option.value === "other"));
+}
+
+function isEvidenceLikeField(field: CustomReportField) {
+  const text = normalizeSearchText(
+    [
+      field.key,
+      field.label,
+      field.helpText ?? "",
+      field.placeholder ?? "",
+      field.reportLabel ?? "",
+    ].join(" "),
+  );
+
+  return EVIDENCE_KEYWORDS.some((keyword) =>
+    text.includes(normalizeSearchText(keyword)),
+  );
+}
+
+function toRuntimeFieldType(type: CustomReportFieldType) {
+  return FIELD_TYPE_MAP[type] ?? "TEXT";
+}
+
+function buildInitialFieldValue(field: CustomReportField) {
+  if (field.type === "multi_select") {
+    return [];
+  }
+
+  if (field.type === "checkbox") {
+    return field.options?.length ? [] : false;
+  }
+
+  return "";
+}
+
+function normalizeOtherRuntimeValue(value: unknown) {
+  if (value === "__OTHER__") {
+    return "other";
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => (item === "__OTHER__" ? "other" : String(item)));
+  }
+
+  return value;
+}
+
+function flattenAiReportFields(schema: AiReportSchema) {
+  return schema.sections
+    .flatMap((section) => section.fields)
+    .filter((field) => !isEvidenceLikeField(field));
+}
+
+function normalizeOptionLabel(label: unknown) {
+  return String(label ?? "").trim();
+}
+
+function normalizeOptionValue(value: unknown, fallbackLabel: string, fallbackIndex: number) {
+  const text = String(value ?? "").trim();
+
+  if (text) {
+    return text;
+  }
+
+  return fallbackLabel
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "") || `option_${fallbackIndex + 1}`;
+}
+
+function getFieldFallbackOptions(label: string) {
+  const normalizedLabel = normalizeSearchText(label);
+
+  return (
+    FIELD_OPTION_FALLBACKS.find((item) =>
+      item.matchers.some((matcher) =>
+        normalizedLabel.includes(normalizeSearchText(matcher)),
+      ),
+    )?.options ?? []
+  );
+}
+
+function normalizeSelectableOptions(
+  field: CustomReportField,
+  incomingOptions: CustomReportOptionLike[],
+) {
+  const seen = new Set<string>();
+  const normalizedOptions: Array<{ label: string; value: string; order: number }> = [];
+
+  const pushOption = (option: CustomReportOptionLike) => {
+    const label = normalizeOptionLabel(option.label);
+
+    if (!label) {
+      return;
+    }
+
+    const normalizedLabel = normalizeSearchText(label);
+    const value =
+      normalizedLabel === "اخرى"
+        ? "other"
+        : normalizeOptionValue(option.value, label, normalizedOptions.length);
+    const dedupeKey = `${normalizedLabel}::${value.toLowerCase()}`;
+
+    if (seen.has(dedupeKey)) {
+      return;
+    }
+
+    seen.add(dedupeKey);
+    normalizedOptions.push({
+      label: normalizedLabel === "اخرى" ? "أخرى" : label,
+      value,
+      order: normalizedOptions.length + 1,
+    });
+  };
+
+  for (const option of incomingOptions) {
+    pushOption(option);
+  }
+
+  if (normalizedOptions.length >= 4) {
+    return normalizedOptions.slice(0, 8);
+  }
+
+  for (const option of getFieldFallbackOptions(field.label)) {
+    pushOption(option);
+  }
+
+  return normalizedOptions.slice(0, 8);
+}
+
+function normalizeFieldForSingleStep(
+  field: CustomReportField,
+  index: number,
+): CustomReportField {
+  const hasExplicitOptions = (field.options ?? []).length > 0;
+  const normalizedType =
+    field.type === "checkbox" && !hasExplicitOptions ? "radio" : field.type;
+  const sourceOptions =
+    normalizedType === "radio" &&
+    field.type === "checkbox" &&
+    !hasExplicitOptions
+      ? BOOLEAN_CHOICE_OPTIONS
+      : field.options ?? [];
+
+  if (!SELECTABLE_FIELD_TYPES.has(normalizedType)) {
+    return {
+      ...field,
+      type: normalizedType,
+      required: false,
+      order: index + 1,
+      options: (sourceOptions ?? [])
+        .map((option, optionIndex) => ({
+          label: option.label,
+          value: option.value,
+          order: optionIndex + 1,
+        }))
+        .slice(0, 8),
+    };
+  }
+
+  const normalizedOptions = normalizeSelectableOptions(field, sourceOptions);
+
+  if (normalizedOptions.length < 4) {
+    return {
+      ...field,
+      type: "textarea",
+      required: false,
+      order: index + 1,
+      options: [],
+    };
+  }
+
+  return {
+    ...field,
+    type: normalizedType,
+    required: false,
+    order: index + 1,
+    options: normalizedOptions,
+  };
+}
+
+export function normalizeAiReportSchema(schema: AiReportSchema): AiReportSchema {
+  const sanitizedSchema = sanitizeAiReportSchema(schema);
+  const flattenedFields = flattenAiReportFields(sanitizedSchema).map((field, index) =>
+    normalizeFieldForSingleStep(field, index),
+  );
+
+  return {
+    ...sanitizedSchema,
+    title: sanitizedSchema.title || AI_REPORT_SINGLE_STEP_TITLE,
+    description: sanitizedSchema.description,
+    sections: [
+      {
+        id: "ai_report_section_1",
+        title: AI_REPORT_SINGLE_STEP_TITLE,
+        description: sanitizedSchema.description || undefined,
+        order: 1,
+        fields: flattenedFields,
+      },
+    ],
+  };
+}
+
+export function buildAiReportRuntimeWorkflow(
+  schema: AiReportSchema,
+): AiReportRuntimeWorkflow {
+  const normalizedSchema = normalizeAiReportSchema(sanitizeAiReportSchema(schema));
+  const fields = normalizedSchema.sections[0]?.fields ?? [];
+
+  return {
+    id: buildWorkflowId(normalizedSchema),
+    name: normalizedSchema.title,
+    serviceSlug: AI_REPORT_SERVICE_SLUG,
+    service: {
+      slug: AI_REPORT_SERVICE_SLUG,
+    },
+    studentPickerMode: "DISABLED",
+    evidenceMode: "ENABLED",
+    steps: [
+      {
+        id: "ai-report-step-1",
+        title: AI_REPORT_SINGLE_STEP_TITLE,
+        description: normalizedSchema.description ?? null,
+        order: 1,
+        fields: fields.map((field, fieldIndex) => ({
+          id: `ai-report-field:step-1:${field.key}`,
+          key: field.key,
+          label: field.label,
+          type: toRuntimeFieldType(field.type),
+          placeholder: field.placeholder ?? null,
+          helpText: field.helpText ?? null,
+          isRequired: false,
+          order: fieldIndex + 1,
+          dependsOnFieldKey: null,
+          linkedToValue: null,
+          allowOther: hasOtherOption(field),
+          options: (field.options ?? [])
+            .filter((option) => option.value !== "other")
+            .map((option, optionIndex) => ({
+              id: `ai-report-option:step-1:${field.key}:${option.value}`,
+              label: option.label,
+              value: option.value,
+              order: optionIndex + 1,
+              linkedToValue: null,
+            })),
+        })),
+      },
+    ],
+  };
+}
+
+export function buildAiReportInitialValues(schema: AiReportSchema): RuntimeValues {
+  const normalizedSchema = normalizeAiReportSchema(sanitizeAiReportSchema(schema));
+  const values: RuntimeValues = {};
+
+  for (const field of normalizedSchema.sections[0]?.fields ?? []) {
+    values[field.key] = buildInitialFieldValue(field);
+
+    if (hasOtherOption(field)) {
+      values[`${field.key}__other`] = "";
+    }
+  }
+
+  return values;
+}
+
+export function buildAiReportSubmissionValues(
+  schema: AiReportSchema,
+  values: RuntimeValues,
+): CustomReportValues {
+  const normalizedSchema = normalizeAiReportSchema(sanitizeAiReportSchema(schema));
+  const nextValues: CustomReportValues = {};
+
+  for (const field of normalizedSchema.sections[0]?.fields ?? []) {
+    const normalizedValue = normalizeOtherRuntimeValue(values[field.key]);
+
+    if (
+      normalizedValue === undefined ||
+      normalizedValue === null ||
+      normalizedValue === ""
+    ) {
+      if (field.type === "checkbox" && !field.options?.length) {
+        nextValues[field.key] = Boolean(normalizedValue);
+      }
+    } else if (
+      Array.isArray(normalizedValue) ||
+      typeof normalizedValue === "string" ||
+      typeof normalizedValue === "number" ||
+      typeof normalizedValue === "boolean"
+    ) {
+      nextValues[field.key] = normalizedValue as CustomReportValues[string];
+    }
+
+    if (hasOtherOption(field)) {
+      const otherValue = values[`${field.key}__other`];
+      nextValues[`${field.key}__other`] =
+        typeof otherValue === "string" ? otherValue : null;
+    }
+  }
+
+  return nextValues;
+}
