@@ -178,8 +178,7 @@ const teacherServiceLinks: SidebarLinkItem[] = [
   { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
   { label: "التقويم والتنبيهات", href: "/dashboard/teacher/calendar", icon: CalendarDays },
-  { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
-];
+  ];
 
 const teacherPerformanceLinks: SidebarLinkItem[] = [
   ...TEACHER_PERFORMANCE_SERVICES.map((service) => ({
@@ -188,6 +187,7 @@ const teacherPerformanceLinks: SidebarLinkItem[] = [
     icon: ClipboardList,
     shortLabel: service.shortTitle,
   })),
+  { label: "تقرير مخصص", href: "/dashboard/ai-report", icon: Sparkles, shortLabel: "مخصص" },
   { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
 ];
 
@@ -265,6 +265,7 @@ const collapsedLabelByLabel: Record<string, string> = {
   "متابعة أنشطة المعلمين": "المعلمون",
   "التقارير": "التقارير",
   "تقرير خاص": "خاص",
+  "تقرير مخصص": "مخصص",
   "التقويم والتنبيهات": "التقويم",
 
   "البرامج الإرشادية": "البرامج",

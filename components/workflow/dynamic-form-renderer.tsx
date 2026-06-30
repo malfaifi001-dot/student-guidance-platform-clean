@@ -51,6 +51,30 @@ type SmartStudent = {
   guardianPhone?: string | null;
 };
 
+export type DynamicFormRendererSaveMode = "draft" | "submit";
+
+export type DynamicFormRendererSaveParams = {
+  type: DynamicFormRendererSaveMode;
+  workflow: RuntimeWorkflow;
+  serviceId: string;
+  title: string | null;
+  caseId?: string;
+  values: RuntimeValues;
+  evidenceItems: EvidenceItem[];
+  selectedStudents: SmartStudent[];
+  primarySelectedStudent: SmartStudent | null;
+};
+
+export type DynamicFormRendererSaveResult = {
+  redirectTo?: string;
+  feedbackTitle?: string;
+  feedbackMessage?: string;
+};
+
+export type DynamicFormRendererSaveHandler = (
+  params: DynamicFormRendererSaveParams,
+) => Promise<DynamicFormRendererSaveResult | void>;
+
 type Props = {
   workflow: RuntimeWorkflow;
   serviceId: string;
@@ -61,6 +85,7 @@ type Props = {
   initialEvidenceItems?: EvidenceItem[];
   previewMode?: boolean;
   caseDetailsBasePath?: string;
+  onSave?: DynamicFormRendererSaveHandler;
 };
 
 /**
@@ -418,6 +443,7 @@ export function DynamicFormRenderer({
   initialEvidenceItems,
   previewMode = false,
   caseDetailsBasePath = "/dashboard/cases",
+  onSave,
 }: Props) {
   const router = useRouter();
 
@@ -794,54 +820,77 @@ export function DynamicFormRenderer({
 
     try {
       setLoading(true);
-
-      const endpoint = caseId
-        ? `/api/dashboard/cases/${caseId}`
-        : type === "submit"
-          ? "/api/dashboard/cases/submit"
-          : "/api/dashboard/cases/save-draft";
-
-      const response = await fetch(endpoint, {
-        method: caseId ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          workflowId: workflow.id,
-          serviceId,
-          title: getSmartRuntimeCaseTitle({
-            workflow: normalizedWorkflow,
-            values,
-            fallbackTitle: title || workflow.name,
-          }),
-          studentId: primarySelectedStudent?.id ?? null,
-
-          values: {
-            ...values,
-            ...buildSelectedStudentsValues(selectedStudents),
-          },
-
-          status: type === "submit" ? "SUBMITTED" : "DRAFT",
-          evidenceItems: supportsEvidence ? evidenceItems : [],
-        }),
+      const nextValues = {
+        ...values,
+        ...buildSelectedStudentsValues(selectedStudents),
+      };
+      const fallbackTitle = getSmartRuntimeCaseTitle({
+        workflow: normalizedWorkflow,
+        values,
+        fallbackTitle: title || workflow.name,
       });
 
-      const data = await response.json();
+      let redirectTo: string | undefined;
+      let feedbackTitle =
+        type === "submit" ? "تم إرسال الحالة" : "تم حفظ المسودة";
+      let feedbackMessage = "تم حفظ البيانات بنجاح.";
 
-      if (!response.ok) {
-        throw new Error(data.error || "حدث خطأ أثناء حفظ الحالة.");
+      if (onSave) {
+        const result = await onSave({
+          type,
+          workflow: normalizedWorkflow,
+          serviceId,
+          title: fallbackTitle,
+          caseId,
+          values: nextValues,
+          evidenceItems: supportsEvidence ? evidenceItems : [],
+          selectedStudents,
+          primarySelectedStudent,
+        });
+
+        redirectTo = result?.redirectTo;
+        feedbackTitle = result?.feedbackTitle || feedbackTitle;
+        feedbackMessage = result?.feedbackMessage || feedbackMessage;
+      } else {
+        const endpoint = caseId
+          ? `/api/dashboard/cases/${caseId}`
+          : type === "submit"
+            ? "/api/dashboard/cases/submit"
+            : "/api/dashboard/cases/save-draft";
+
+        const response = await fetch(endpoint, {
+          method: caseId ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            workflowId: workflow.id,
+            serviceId,
+            title: fallbackTitle,
+            studentId: primarySelectedStudent?.id ?? null,
+            values: nextValues,
+            status: type === "submit" ? "SUBMITTED" : "DRAFT",
+            evidenceItems: supportsEvidence ? evidenceItems : [],
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "حدث خطأ أثناء حفظ الحالة.");
+        }
+
+        redirectTo = `${caseDetailsBasePath}/${data.caseId}`;
       }
 
-      showFeedback(
-        "success",
-        type === "submit" ? "تم إرسال الحالة" : "تم حفظ المسودة",
-        "تم حفظ البيانات بنجاح."
-      );
+      showFeedback("success", feedbackTitle, feedbackMessage);
 
-      setTimeout(() => {
-        router.push(`/dashboard/cases/${data.caseId}`);
-        router.refresh();
-      }, 700);
+      if (redirectTo) {
+        setTimeout(() => {
+          router.push(redirectTo);
+          router.refresh();
+        }, 700);
+      }
     } catch (error) {
       showFeedback(
         "error",
