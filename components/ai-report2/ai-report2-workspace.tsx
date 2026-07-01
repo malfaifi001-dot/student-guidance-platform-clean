@@ -21,6 +21,10 @@ import {
   type AiReportSchema,
 } from "@/lib/ai-report/ai-report-runtime-adapter";
 import { sanitizeAiReportSchema } from "@/lib/ai-report/ai-report-text-sanitizer";
+import {
+  TEACHER_PERFORMANCE_ELEMENT_OPTIONS,
+  type TeacherPerformanceElementScope,
+} from "@/lib/ai-report2/teacher-performance-elements";
 
 type AiReport2SelectedReport = {
   reportSlug: string;
@@ -38,6 +42,17 @@ type AiReport2SuggestResponse = {
   selectedReports?: AiReport2SelectedReport[];
   bankValuesUsed?: number;
   customValuesUsed?: number;
+  teacherIntent?: string;
+  performanceElement?: string;
+  performanceElementScope?: string;
+  satisfactionScore?: number;
+  teacherIntentAnalysis?: {
+    action?: string;
+    audience?: string;
+    purpose?: string;
+    selectedPerformanceElementLabel?: string;
+    resolvedPerformanceElementLabel?: string;
+  };
   schema?: AiReportSchema;
 };
 
@@ -65,6 +80,8 @@ export function AiReport2Workspace() {
   const [modalOpen, setModalOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [performanceElementScope, setPerformanceElementScope] =
+    useState<TeacherPerformanceElementScope>("auto");
 
   const [analysis, setAnalysis] = useState<{
     confidence: number;
@@ -73,6 +90,9 @@ export function AiReport2Workspace() {
     selectedReports: AiReport2SelectedReport[];
     bankValuesUsed: number;
     customValuesUsed: number;
+    teacherIntent: string;
+    performanceElement: string;
+    satisfactionScore: number | null;
   } | null>(null);
 
   const runtimeWorkflow = useMemo(() => {
@@ -106,6 +126,7 @@ export function AiReport2Workspace() {
         },
         body: JSON.stringify({
           prompt: trimmedPrompt,
+          performanceElementScope,
         }),
       });
 
@@ -136,6 +157,13 @@ export function AiReport2Workspace() {
           typeof data.bankValuesUsed === "number" ? data.bankValuesUsed : 0,
         customValuesUsed:
           typeof data.customValuesUsed === "number" ? data.customValuesUsed : 0,
+        teacherIntent: data.teacherIntent || "نية معلم عامة",
+        performanceElement:
+          data.performanceElement ||
+          data.teacherIntentAnalysis?.resolvedPerformanceElementLabel ||
+          "يحدد تلقائيًا",
+        satisfactionScore:
+          typeof data.satisfactionScore === "number" ? data.satisfactionScore : null,
       });
       setModalOpen(false);
     } catch (generationError) {
@@ -194,9 +222,11 @@ export function AiReport2Workspace() {
       {modalOpen ? (
         <AiReport2PromptModal
           prompt={prompt}
+          performanceElementScope={performanceElementScope}
           loading={loading}
           error={error}
           onPromptChange={setPrompt}
+          onPerformanceElementScopeChange={setPerformanceElementScope}
           onGenerate={generateReport}
           onExit={() => router.push("/dashboard/teacher/ai-report2")}
         />
@@ -216,7 +246,7 @@ export function AiReport2Workspace() {
                 </h1>
 
                 <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-                  النموذج الناتج مقنن وغير إلزامي، وعدد الحقول لا يتجاوز 10 حقول.
+                  النموذج الناتج مقنن وغير إلزامي، وعدد الحقول لا يتجاوز 7 خانات.
                 </p>
               </div>
 
@@ -226,6 +256,18 @@ export function AiReport2Workspace() {
                     <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
                       ثقة {formatPercent(analysis.confidence)}
                     </span>
+                    {analysis.performanceElement ? (
+                      <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 ring-1 ring-amber-100">
+                        عنصر الأداء: {analysis.performanceElement}
+                      </span>
+                    ) : null}
+
+                    {typeof analysis.satisfactionScore === "number" ? (
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                        ملاءمة {analysis.satisfactionScore}%
+                      </span>
+                    ) : null}
+
                     <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100">
                       من البنك: {analysis.bankValuesUsed}
                     </span>
@@ -312,16 +354,20 @@ export function AiReport2Workspace() {
 
 function AiReport2PromptModal({
   prompt,
+  performanceElementScope,
   loading,
   error,
   onPromptChange,
+  onPerformanceElementScopeChange,
   onGenerate,
   onExit,
 }: {
   prompt: string;
+  performanceElementScope: TeacherPerformanceElementScope;
   loading: boolean;
   error: string;
   onPromptChange: (value: string) => void;
+  onPerformanceElementScopeChange: (value: TeacherPerformanceElementScope) => void;
   onGenerate: () => void;
   onExit: () => void;
 }) {
@@ -390,6 +436,36 @@ function AiReport2PromptModal({
             ))}
           </div>
 
+          <div className="mt-5 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+            <label
+              htmlFor="ai-report2-performance-scope"
+              className="text-sm font-black text-slate-800"
+            >
+              اختر عنصر الأداء قبل الإرسال
+            </label>
+
+            <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+              هذا الاختيار يضيّق فهم DeepSeek ويجعل القيم أقرب لنية المعلم.
+            </p>
+
+            <select
+              id="ai-report2-performance-scope"
+              value={performanceElementScope}
+              onChange={(event) =>
+                onPerformanceElementScopeChange(
+                  event.target.value as TeacherPerformanceElementScope,
+                )
+              }
+              disabled={loading}
+              className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {TEACHER_PERFORMANCE_ELEMENT_OPTIONS.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
           {error ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
               {error}
