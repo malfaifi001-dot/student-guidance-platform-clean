@@ -179,6 +179,7 @@ export default async function RuntimeLabPage() {
             dependsOnFieldKey: field.dependsOnFieldKey,
             linkedToValue: field.linkedToValue,
             allowOther: field.allowOther,
+            isRepeater: field.isRepeater,
             options: field.options
               .sort((a, b) => a.order - b.order)
               .map((option) => ({

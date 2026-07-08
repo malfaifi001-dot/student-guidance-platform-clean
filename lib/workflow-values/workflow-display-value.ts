@@ -1,3 +1,5 @@
+import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+
 export type WorkflowOptionLike = {
   label?: string | null;
   value?: string | null;
@@ -23,11 +25,11 @@ export function getWorkflowFieldKey(item: WorkflowValueLike) {
 }
 
 export function getWorkflowFieldLabel(item: WorkflowValueLike, index?: number) {
-  return (
+  return repairPotentialUtf8Mojibake(
     item.field?.label ||
     item.field?.key ||
     item.fieldKey ||
-    (typeof index === "number" ? `قيمة رقم ${index + 1}` : "قيمة")
+    (typeof index === "number" ? `قيمة رقم ${index + 1}` : "قيمة"),
   );
 }
 
@@ -49,7 +51,9 @@ export function formatWorkflowDisplayValue(
 export function stringifyWorkflowRawValue(value: unknown): string {
   if (value === null || value === undefined) return "";
 
-  if (typeof value === "string") return value;
+  if (typeof value === "string") {
+    return repairPotentialUtf8Mojibake(value) || "";
+  }
 
   if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
@@ -146,10 +150,10 @@ function formatSingleChoice(
   );
 
   if (matchedOption?.label) {
-    return matchedOption.label;
+    return repairPotentialUtf8Mojibake(matchedOption.label) || matchedOption.label;
   }
 
-  return normalizedValue;
+  return repairPotentialUtf8Mojibake(normalizedValue) || normalizedValue;
 }
 
 function getOtherValueForField(

@@ -118,6 +118,7 @@ function buildWorkflowFromSnapshot(caseEntry: any): RuntimeWorkflow | null {
                 dependsOnFieldKey: field.dependsOnFieldKey ?? null,
                 linkedToValue: field.linkedToValue ?? null,
                 allowOther: safeBoolean(field.allowOther),
+                isRepeater: safeBoolean(field.isRepeater),
                 options: Array.isArray(field.options)
                   ? field.options.map((option: any, optionIndex: number) => ({
                       id: safeString(
@@ -172,6 +173,7 @@ function buildWorkflowFromDatabase(caseEntry: any): RuntimeWorkflow | null {
         dependsOnFieldKey: field.dependsOnFieldKey,
         linkedToValue: field.linkedToValue,
         allowOther: field.allowOther,
+        isRepeater: Boolean(field.isRepeater),
         options: field.options.map((option: any) => ({
           id: option.id,
           label: option.label,

@@ -10,6 +10,26 @@ function clean(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function isBadTeacherOption(value: string) {
+  const normalized = normalizeAiReportArabicText(value);
+  const wordCount = value.split(/\s+/).filter(Boolean).length;
+
+  return (
+    !normalized ||
+    wordCount > 14 ||
+    normalized.includes("قيمة مناسبة") ||
+    normalized.includes("يناسب سياق") ||
+    normalized.includes("مرتبطة بهدف") ||
+    normalized.includes("مرتبط بهدف") ||
+    normalized.includes("مرتبطة بالشواهد") ||
+    normalized.includes("مرتبط بالشواهد") ||
+    normalized.includes("مرتبطة بسياق") ||
+    normalized.includes("مرتبط بسياق") ||
+    normalized.includes("تحتاج الى تحديد") ||
+    normalized.includes("يحتاج الى توضيح")
+  );
+}
+
 function hasAny(label: string, words: string[]) {
   const normalized = normalizeAiReportArabicText(label);
 
@@ -34,7 +54,7 @@ export function normalizeTeacherOptions(
           ? clean((item as Record<string, unknown>).label)
           : "";
 
-    if (!label) {
+    if (!label || isBadTeacherOption(label)) {
       continue;
     }
 
@@ -87,14 +107,39 @@ export function classifyTeacherFieldType(
       "مدة",
       "ساعات",
       "دقائق",
-      "الحضور",
-      "الغياب",
-      "المستفيدين",
-      "المشاركين",
-      "المكرمين",
     ])
   ) {
     return "number" as CustomReportField["type"];
+  }
+
+  if (
+    hasAny(label, [
+      "اسم",
+      "عنوان",
+      "موضوع",
+      "وصف",
+      "مكان",
+      "جهة",
+      "مصدر",
+      "رابط",
+      "ملاحظة",
+      "المادة",
+      "الصف",
+      "اسم الاختبار",
+      "اسم الوحدة",
+      "اسم الخطة",
+      "اسم المنصة",
+      "اسم الأداة",
+      "اسم اداة",
+      "عنوان التكريم",
+      "عنوان الورشة",
+      "عنوان الإذاعة",
+      "عنوان الاذاعه",
+      "نوع المهمة",
+      "نوع التكليف",
+    ])
+  ) {
+    return "textarea" as CustomReportField["type"];
   }
 
   if (
@@ -111,11 +156,8 @@ export function classifyTeacherFieldType(
       "أثر",
       "نتائج",
       "مخرجات",
-      "تحديات",
-      "صعوبات",
-      "معوقات",
-      "توصيات",
-      "مقترحات",
+      "جوانب الضعف",
+      "مؤشرات",
       "استراتيجيات",
       "أدوات",
       "وسائل",
@@ -123,30 +165,18 @@ export function classifyTeacherFieldType(
       "أدوار",
       "الفئة",
       "المستهدفة",
+      "المستهدفون",
+      "المستهدفين",
+      "الأطراف",
+      "الاطراف",
       "طريقة",
       "محاور",
       "مستوى الالتزام",
+      "تفاعل",
+      "مشاركة",
     ])
   ) {
     return "multi_select" as CustomReportField["type"];
-  }
-
-  if (
-    hasAny(label, [
-      "اسم",
-      "عنوان",
-      "موضوع",
-      "وصف",
-      "مكان",
-      "جهة",
-      "مصدر",
-      "رابط",
-      "ملاحظة",
-      "المادة",
-      "الصف",
-    ])
-  ) {
-    return "textarea" as CustomReportField["type"];
   }
 
   if (existingOptionsCount > 0) {

@@ -21,6 +21,11 @@ import {
 } from "@/lib/ai-report2/teacher-schema-guard";
 import { judgeTeacherSchemaValues } from "@/lib/ai-report2/teacher-value-judge";
 import {
+  formatTeacherClarificationAnswers,
+  normalizeTeacherClarificationAnswers,
+} from "@/lib/ai-report2/teacher-clarification";
+import { polishTeacherSchemaSemantics } from "@/lib/ai-report2/teacher-semantic-polisher";
+import {
   classifyTeacherFieldType,
   normalizeTeacherOptions,
 } from "@/lib/ai-report2/teacher-field-rules";
@@ -352,11 +357,13 @@ async function buildDeepSeekLedSchema({
   knowledge,
   analysis,
   repairInstruction,
+  clarificationContext,
 }: {
   prompt: string;
   knowledge: AiReportKnowledgeSearchResult;
   analysis: TeacherIntentAnalysis;
   repairInstruction?: string;
+  clarificationContext?: string;
 }) {
   const knowledgeForModel = buildKnowledgeForModel({
     knowledge,
@@ -396,6 +403,9 @@ async function buildDeepSeekLedSchema({
 "- لا تنشئ حقول التحديات أو التوصيات أو المقترحات أو فرص التحسين.",
 "- ركز على أهم 7 خانات فقط تخدم نية المعلم مباشرة.",
           "- النموذج النهائي يجب أن يشعر المعلم أنه يطابق قصده بنسبة عالية.",
+          "- إجابات التوضيح ليست حقولًا جديدة؛ لا تنشئ حقلًا باسم السؤال، ولا تكرر حقلًا لأن الإجابة ذكرت نفس المعنى.",
+          "- إذا أجاب المعلم عن الفئة المستهدفة، استخدمها كخيارات داخل حقل الفئة فقط، ولا تضع قيم الغرض داخل الفئة.",
+          "- إذا أجاب المعلم عن الغرض، استخدمه في حقل الغرض فقط، ولا تضع أسماء أدوات أو فئات داخله.",
 "- رتّب الحقول مهنيًا: الحقل التعريفي الرئيسي أولًا، ثم السياق المهم مثل المادة والصف أو الأطراف، ثم التاريخ، ثم الفئة أو الغرض، ثم التنفيذ، ثم الأثر أو الشواهد.",
 "- الحقل التعريفي الرئيسي يجب أن يتغير حسب وصف المعلم: اسم المنصة، اسم الأداة، موضوع الدرس، اسم الاستراتيجية، اسم الاختبار، عنوان التكريم، اسم الفعالية، عنوان المبادرة، موضوع التواصل، عنوان الورشة، نوع المهمة، عنوان المنجز، اسم البرنامج، عنوان النشاط، أو عنوان التقرير.",
 "- لا تجعل مكان التنفيذ حقلًا أساسيًا إلا إذا كان الوصف يحتاجه بوضوح.",
@@ -449,8 +459,14 @@ async function buildDeepSeekLedSchema({
       {
         role: "user",
         content: [
-          "وصف المعلم:",
+          "وصف المعلم الأصلي:",
           prompt,
+          "",
+          clarificationContext ? "إجابات المعلم على أسئلة تضييق النية:" : "",
+          clarificationContext || "",
+          clarificationContext
+            ? "تعامل مع الإجابات كسياق تضييق فقط، وليست أسماء حقول مستقلة."
+            : "",
           "",
           "تحليل نية المعلم والسياق الضيق:",
           JSON.stringify(knowledgeForModel.teacherIntentAnalysis, null, 2),
@@ -494,10 +510,12 @@ async function buildBestSchema({
   prompt,
   knowledge,
   analysis,
+  clarificationContext,
 }: {
   prompt: string;
   knowledge: AiReportKnowledgeSearchResult;
   analysis: TeacherIntentAnalysis;
+  clarificationContext?: string;
 }) {
   let modelResult: AiReport2ModelResult | null = null;
   let schema: CustomReportSchema | null = null;
@@ -507,6 +525,7 @@ async function buildBestSchema({
       prompt,
       knowledge,
       analysis,
+      clarificationContext,
     });
 
     schema = normalizeFieldsToSchema({
@@ -545,6 +564,7 @@ async function buildBestSchema({
         prompt,
         knowledge,
         analysis,
+        clarificationContext,
         repairInstruction: buildTeacherRepairInstruction({
           score: quality.score,
           issues: quality.issues,
@@ -601,6 +621,12 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const prompt = cleanText(body?.prompt);
   const performanceElementScope = cleanText(body?.performanceElementScope);
+  const clarificationAnswers = normalizeTeacherClarificationAnswers(
+    body?.clarificationAnswers,
+  );
+  const clarificationContext = formatTeacherClarificationAnswers(
+    clarificationAnswers,
+  );
 
   if (prompt.length < 3) {
     return NextResponse.json(
@@ -628,6 +654,7 @@ export async function POST(request: Request) {
     prompt,
     knowledge,
     analysis,
+    clarificationContext,
   });
 
   const selectedReports =
@@ -645,8 +672,13 @@ export async function POST(request: Request) {
     analysis,
   });
 
+  const polishedSchema = polishTeacherSchemaSemantics({
+    schema: valueJudgment.schema,
+    analysis,
+  });
+
   const sanitizedSchema = normalizeAiReportSchema(
-    sanitizeAiReportSchema(valueJudgment.schema),
+    sanitizeAiReportSchema(polishedSchema),
   );
 
   const usage = countBankAndCustomUsage(sanitizedSchema);
@@ -683,6 +715,7 @@ export async function POST(request: Request) {
     valueJudgeApplied: valueJudgment.applied,
     valueJudgeSummary: valueJudgment.summary,
     rejectedValues: valueJudgment.rejectedValues,
+    clarificationAnswersApplied: clarificationAnswers.length,
     selectedReports,
     bankValuesUsed: usage.bankValuesUsed,
     customValuesUsed: usage.customValuesUsed,

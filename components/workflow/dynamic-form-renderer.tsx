@@ -13,6 +13,8 @@ import {
 } from "@/components/workflow/workflow-step-card";
 
 import { isCommitteeRowsValid } from "@/components/committees/committee-chain-repeater";
+import { SPECIAL_REPORT_FIXED_FIELD_KEYS } from "@/lib/special-report/catalog";
+import { SPECIAL_REPORT_SERVICE_SLUG } from "@/lib/special-report/types";
 
 import type {
   RuntimeField,
@@ -25,7 +27,7 @@ import {
   normalizeWorkflowStudentPickerMode,
 } from "@/lib/workflows/workflow-runtime-settings";
 
-type EvidenceItem = {
+export type EvidenceItem = {
   id: string;
   fileName: string;
   fileUrl: string;
@@ -86,6 +88,13 @@ type Props = {
   previewMode?: boolean;
   caseDetailsBasePath?: string;
   onSave?: DynamicFormRendererSaveHandler;
+  onValuesChange?: (values: RuntimeValues) => void;
+  onEvidenceItemsChange?: (items: EvidenceItem[]) => void;
+  onFieldLabelPersisted?: (field: {
+    id: string;
+    key: string;
+    label: string;
+  }) => void;
 };
 
 /**
@@ -444,6 +453,9 @@ export function DynamicFormRenderer({
   previewMode = false,
   caseDetailsBasePath = "/dashboard/cases",
   onSave,
+  onValuesChange,
+  onEvidenceItemsChange,
+  onFieldLabelPersisted,
 }: Props) {
   const router = useRouter();
 
@@ -518,6 +530,9 @@ export function DynamicFormRenderer({
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>(
     initialEvidenceItems ?? []
   );
+  const [fieldLabelOverrides, setFieldLabelOverrides] = useState<
+    Record<string, string>
+  >({});
 
   const [loading, setLoading] = useState(false);
 
@@ -531,17 +546,40 @@ export function DynamicFormRenderer({
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === steps.length - 1;
   const primarySelectedStudent = selectedStudents[0] ?? null;
+  const allowRuntimeFieldLabelEditing =
+    normalizedWorkflow.serviceSlug === SPECIAL_REPORT_SERVICE_SLUG;
+  const displayCurrentStep = currentStep
+    ? {
+        ...currentStep,
+        fields: currentStep.fields.map((field) => ({
+          ...field,
+          label: fieldLabelOverrides[field.id] ?? field.label,
+        })),
+      }
+    : null;
+
+  useEffect(() => {
+    setFieldLabelOverrides({});
+  }, [workflow.id]);
+
+  useEffect(() => {
+    onValuesChange?.(values);
+  }, [onValuesChange, values]);
+
+  useEffect(() => {
+    onEvidenceItemsChange?.(evidenceItems);
+  }, [evidenceItems, onEvidenceItemsChange]);
 
   const showEvidenceCard =
     supportsEvidence &&
-    (isEvidenceStep(currentStep) ||
+    (isEvidenceStep(displayCurrentStep) ||
       (workflowEvidenceMode === "ENABLED" &&
         !workflowHasEvidenceStep &&
         isLastStep));
 
   const showStudentPickerCard =
     needsStudent &&
-    (isStudentPickerStep(currentStep) ||
+    (isStudentPickerStep(displayCurrentStep) ||
       (!workflowHasStudentPickerStep && isFirstStep));
 
   const showStudentSummaryCard =
@@ -557,6 +595,52 @@ export function DynamicFormRenderer({
       type,
       title: titleText,
       message,
+    });
+  }
+
+  function isFieldLabelEditable(field: RuntimeField) {
+    if (!allowRuntimeFieldLabelEditing) {
+      return false;
+    }
+
+    return !SPECIAL_REPORT_FIXED_FIELD_KEYS.includes(
+      field.key as (typeof SPECIAL_REPORT_FIXED_FIELD_KEYS)[number]
+    );
+  }
+
+  async function handleFieldLabelUpdate(
+    fieldId: string,
+    fieldKey: string,
+    nextLabel: string
+  ) {
+    const response = await fetch(
+      `/api/dashboard/special-report/runtime/fields/${fieldId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          label: nextLabel,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "تعذر تحديث عنوان الحقل.");
+    }
+
+    setFieldLabelOverrides((current) => ({
+      ...current,
+      [fieldId]: nextLabel,
+    }));
+
+    onFieldLabelPersisted?.({
+      id: fieldId,
+      key: fieldKey,
+      label: nextLabel,
     });
   }
 
@@ -744,11 +828,11 @@ export function DynamicFormRenderer({
   function validateCurrentStep() {
     if (!validateStudentSelection()) return false;
 
-    if (!currentStep) return true;
+    if (!displayCurrentStep) return true;
 
     const isCommitteeChainCurrentStep =
       workflow.serviceSlug === "committees-meetings" &&
-      isCommitteeChainStep(currentStep);
+      isCommitteeChainStep(displayCurrentStep);
 
     if (
       isCommitteeChainCurrentStep &&
@@ -763,7 +847,7 @@ export function DynamicFormRenderer({
       return false;
     }
 
-    const visibleFields = currentStep.fields
+    const visibleFields = displayCurrentStep.fields
       .filter(shouldShowFieldInCurrentValues)
       .filter((field) =>
         isCommitteeChainCurrentStep
@@ -1001,12 +1085,16 @@ export function DynamicFormRenderer({
 
       <StepProgress currentStepIndex={currentStepIndex} steps={steps} />
 
-      <WorkflowStepCard
-        step={currentStep}
-        values={values}
-        serviceSlug={workflow.serviceSlug}
-        onChange={updateValue}
-      />
+      {displayCurrentStep ? (
+        <WorkflowStepCard
+          step={displayCurrentStep}
+          values={values}
+          serviceSlug={workflow.serviceSlug}
+          onChange={updateValue}
+          canEditFieldLabel={isFieldLabelEditable}
+          onUpdateFieldLabel={handleFieldLabelUpdate}
+        />
+      ) : null}
 
       {showEvidenceCard ? (
         <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">

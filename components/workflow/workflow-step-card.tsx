@@ -16,6 +16,12 @@ type WorkflowStepCardProps = {
   values: RuntimeValues;
   serviceSlug: string;
   onChange: (key: string, value: unknown) => void;
+  canEditFieldLabel?: (field: RuntimeField) => boolean;
+  onUpdateFieldLabel?: (
+    fieldId: string,
+    fieldKey: string,
+    label: string
+  ) => Promise<void> | void;
 };
 
 function normalizeText(value: string) {
@@ -89,6 +95,8 @@ export function WorkflowStepCard({
   values,
   serviceSlug,
   onChange,
+  canEditFieldLabel,
+  onUpdateFieldLabel,
 }: WorkflowStepCardProps) {
   const visibleFields = step.fields.filter((field) =>
     shouldShowField(field, values),
@@ -130,6 +138,8 @@ export function WorkflowStepCard({
               value={values[field.key]}
               values={values}
               onChange={(key, value) => onChange(key, value)}
+              canEditFieldLabel={canEditFieldLabel?.(field) ?? false}
+              onUpdateFieldLabel={onUpdateFieldLabel}
             />
           </div>
         ))}

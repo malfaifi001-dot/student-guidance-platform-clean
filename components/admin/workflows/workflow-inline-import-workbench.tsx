@@ -37,6 +37,7 @@ type ParsedField = {
   isRequired: boolean;
   order: number;
   allowOther: boolean;
+  isRepeater?: boolean;
   dependsOnFieldKey?: string | null;
   linkedToValue?: string | null;
   options: ParsedOption[];
@@ -157,6 +158,7 @@ function buildRuntimeWorkflow({
         isRequired: field.isRequired,
         order: field.order,
         allowOther: field.allowOther,
+        isRepeater: Boolean(field.isRepeater),
         dependsOnFieldKey: field.dependsOnFieldKey,
         linkedToValue: field.linkedToValue,
         options: field.options.map((option, optionIndex) => ({
@@ -253,6 +255,9 @@ function parseRowsToWorkflow({
         order: fieldOrder,
         allowOther: parseBoolean(
           readCell(row, ["allowOther", "Other", "يسمح أخرى"]),
+        ),
+        isRepeater: parseBoolean(
+          readCell(row, ["isRepeater", "repeater", "مكرر"]),
         ),
         dependsOnFieldKey:
           readCell(row, ["dependsOnFieldKey", "dependsOn", "يعتمد على"]) ||

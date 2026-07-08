@@ -6,6 +6,7 @@ import type {
 } from "@/lib/custom-report/custom-report-types";
 
 import type { TeacherIntentAnalysis } from "./teacher-intent-engine";
+import { getTeacherReportPatternLabels } from "./teacher-report-patterns";
 import {
   buildContextualTeacherOptions,
   classifyTeacherFieldType,
@@ -56,6 +57,113 @@ function isExcludedLowPriorityTeacherField(label: string) {
   );
 }
 
+function teacherLabelSlot(label: string) {
+  const normalized = normalizeAiReportArabicText(label);
+
+  if (normalized.includes("تاريخ") || normalized.includes("موعد")) {
+    return "date";
+  }
+
+  if (
+    normalized.includes("عدد") ||
+    normalized.includes("نسبة") ||
+    normalized.includes("مدة") ||
+    normalized.includes("درجة") ||
+    normalized.includes("درجات") ||
+    normalized.includes("معدل")
+  ) {
+    return "quantity";
+  }
+
+  if (normalized.includes("المادة") || normalized.includes("الصف")) {
+    return "subject_grade";
+  }
+
+  if (
+    normalized.includes("الفئة") ||
+    normalized.includes("المستهدفة") ||
+    normalized.includes("المستفيد")
+  ) {
+    return "audience";
+  }
+
+  if (
+    normalized.includes("هدف") ||
+    normalized.includes("اهداف") ||
+    normalized.includes("أهداف") ||
+    normalized.includes("الغرض") ||
+    normalized.includes("مبررات") ||
+    normalized.includes("سبب")
+  ) {
+    return "purpose";
+  }
+
+  if (
+    normalized.includes("الية") ||
+    normalized.includes("آلية") ||
+    normalized.includes("خطوات") ||
+    normalized.includes("اجراءات") ||
+    normalized.includes("إجراءات") ||
+    normalized.includes("تنفيذ") ||
+    normalized.includes("تطبيق") ||
+    normalized.includes("توظيف") ||
+    normalized.includes("استخدام")
+  ) {
+    return "implementation";
+  }
+
+  if (
+    normalized.includes("اثر") ||
+    normalized.includes("أثر") ||
+    normalized.includes("نتائج") ||
+    normalized.includes("مخرجات") ||
+    normalized.includes("مؤشرات")
+  ) {
+    return "impact";
+  }
+
+  if (
+    normalized.includes("شواهد") ||
+    normalized.includes("توثيق") ||
+    normalized.includes("ادلة") ||
+    normalized.includes("أدلة")
+  ) {
+    return "evidence";
+  }
+
+  if (
+    normalized.includes("اسم") ||
+    normalized.includes("عنوان") ||
+    normalized.includes("موضوع") ||
+    normalized.includes("نوع") ||
+    normalized.includes("اختبار") ||
+    normalized.includes("وحدة") ||
+    normalized.includes("خطة") ||
+    normalized.includes("منصة") ||
+    normalized.includes("أداة") ||
+    normalized.includes("اداة") ||
+    normalized.includes("تكريم") ||
+    normalized.includes("فعالية") ||
+    normalized.includes("ورشة") ||
+    normalized.includes("اذاعة") ||
+    normalized.includes("إذاعة")
+  ) {
+    return "identity";
+  }
+
+  return "other";
+}
+
+function isGenericTeacherTitle(label: string) {
+  const normalized = normalizeAiReportArabicText(label);
+
+  return (
+    normalized === "عنوان التقرير" ||
+    normalized === "اسم التقرير" ||
+    normalized.includes("عنوان التقرير")
+  );
+}
+
 function similarLabel(a: string, b: string) {
   const left = normalizeAiReportArabicText(a);
   const right = normalizeAiReportArabicText(b);
@@ -64,13 +172,52 @@ function similarLabel(a: string, b: string) {
     return false;
   }
 
+  if (left === right) {
+    return true;
+  }
+
+  const leftSlot = teacherLabelSlot(a);
+  const rightSlot = teacherLabelSlot(b);
+
+  if (leftSlot !== rightSlot) {
+    return false;
+  }
+
+  if (
+    leftSlot === "identity" &&
+    (isGenericTeacherTitle(a) || isGenericTeacherTitle(b)) &&
+    left !== right
+  ) {
+    return false;
+  }
+
   if (left.includes(right) || right.includes(left)) {
     return true;
   }
 
-  const leftTokens = left.split(/\s+/).filter((token) => token.length >= 3);
+  const ignoredTokens = new Set([
+    "اسم",
+    "عنوان",
+    "موضوع",
+    "نوع",
+    "تقرير",
+    "تنفيذ",
+    "الخطة",
+    "خطة",
+    "اختبار",
+    "الوحدة",
+    "وحدة",
+    "تواصل",
+  ]);
+
+  const leftTokens = left
+    .split(/\s+/)
+    .filter((token) => token.length >= 3 && !ignoredTokens.has(token));
+
   const rightTokens = new Set(
-    right.split(/\s+/).filter((token) => token.length >= 3),
+    right
+      .split(/\s+/)
+      .filter((token) => token.length >= 3 && !ignoredTokens.has(token)),
   );
 
   return leftTokens.some((token) => rightTokens.has(token));
@@ -79,6 +226,14 @@ function similarLabel(a: string, b: string) {
 function primaryIdentityLabel(analysis: TeacherIntentAnalysis) {
   const prompt = normalizeAiReportArabicText(analysis.prompt);
   const intentCode = analysis.primaryIntent.code;
+
+  if (prompt.includes("تقويم")) {
+    return "نوع أداة التقويم";
+  }
+
+  if (prompt.includes("حصة انتظار")) {
+    return "نوع المهمة أو التكليف";
+  }
 
   if (prompt.includes("منصة")) {
     return "اسم المنصة";
@@ -120,6 +275,10 @@ function primaryIdentityLabel(analysis: TeacherIntentAnalysis) {
     return "عنوان التكريم";
   }
 
+  if (intentCode === "LEARNING_ENVIRONMENT_SETUP") {
+    return "عنوان التهيئة الصفية";
+  }
+
   if (intentCode === "STUDENT_RECOGNITION") {
     return "عنوان التكريم";
   }
@@ -136,6 +295,10 @@ function primaryIdentityLabel(analysis: TeacherIntentAnalysis) {
     return "اسم الاستراتيجية";
   }
 
+  if (intentCode === "ASSESSMENT_PRACTICE") {
+    return "نوع أداة التقويم";
+  }
+
   if (intentCode === "RESULTS_ANALYSIS") {
     return "اسم الاختبار أو الوحدة";
   }
@@ -148,7 +311,8 @@ function primaryIdentityLabel(analysis: TeacherIntentAnalysis) {
     return "موضوع التواصل";
   }
 
-  if (intentCode === "TECHNOLOGY_USE") {
+  if (intentCode === "TECHNOLOGY_USE" ||
+    intentCode === "ASSESSMENT_PRACTICE") {
     return "اسم الأداة أو المنصة";
   }
 
@@ -194,7 +358,8 @@ function contextCoreLabels(analysis: TeacherIntentAnalysis) {
     intentCode === "TEACHING_STRATEGY" ||
     intentCode === "RESULTS_ANALYSIS" ||
     intentCode === "REMEDIAL_PLAN" ||
-    intentCode === "TECHNOLOGY_USE"
+    intentCode === "TECHNOLOGY_USE" ||
+    intentCode === "ASSESSMENT_PRACTICE"
   ) {
     labels.push("المادة والصف");
   }
@@ -482,10 +647,14 @@ function orderAndEnsureTeacherFields({
   const usedKeys = new Set(fields.map((field) => field.key));
   const nextFields = [...fields];
 
+  const patternLabels = getTeacherReportPatternLabels(analysis);
+
   const essentialLabels = [
     primaryIdentityLabel(analysis),
     ...contextCoreLabels(analysis),
     primaryDateLabel(analysis),
+    ...patternLabels,
+    ...analysis.primaryIntent.recommendedFields,
   ];
 
   for (const label of essentialLabels) {
@@ -538,7 +707,17 @@ function orderAndEnsureTeacherFields({
     uniqueFields.push(field);
   }
 
-  return uniqueFields
+  const primaryIdentity = primaryIdentityLabel(analysis);
+  const hasSpecificPrimaryIdentity = uniqueFields.some((field) =>
+    similarLabel(field.label, primaryIdentity),
+  );
+
+  const finalFields =
+    hasSpecificPrimaryIdentity && !isGenericTeacherTitle(primaryIdentity)
+      ? uniqueFields.filter((field) => !isGenericTeacherTitle(field.label))
+      : uniqueFields;
+
+  return finalFields
     .map((field, index) => ({
       field,
       index,
@@ -563,7 +742,10 @@ export function buildFallbackSchemaFromTeacherIntent({
 }): CustomReportSchema {
   const usedKeys = new Set<string>();
 
-  const fields = preferredTeacherFields(analysis.primaryIntent.recommendedFields)
+  const fields = preferredTeacherFields([
+    ...getTeacherReportPatternLabels(analysis),
+    ...analysis.primaryIntent.recommendedFields,
+  ])
     .map((label, index) =>
       fieldFromLabel({
         label,

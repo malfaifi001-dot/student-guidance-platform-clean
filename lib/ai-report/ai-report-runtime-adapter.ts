@@ -415,6 +415,7 @@ export function buildAiReportRuntimeWorkflow(
           dependsOnFieldKey: null,
           linkedToValue: null,
           allowOther: hasOtherOption(field),
+          isRepeater: false,
           options: (field.options ?? [])
             .filter((option) => option.value !== "other")
             .map((option, optionIndex) => ({

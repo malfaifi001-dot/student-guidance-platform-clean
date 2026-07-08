@@ -91,6 +91,10 @@ function inferSlots(prompt: string, intent: TeacherIntentBlueprint) {
     teacherAction = "تطبيق استراتيجية تدريس";
     teacherAudience = "طلاب الدرس أو الصف";
     teacherPurpose = "رفع جودة التعلم وتنويع الممارسة الصفية";
+  } else if (normalized.includes("تقويم")) {
+    teacherAction = "استخدام أسلوب أو أداة تقويم";
+    teacherAudience = "طلاب الصف أو المادة";
+    teacherPurpose = "قياس التعلم وتحسين جودة التغذية الراجعة";
   } else if (normalized.includes("منصة") || normalized.includes("تقنية")) {
     teacherAction = "توظيف تقنية تعليمية";
     teacherAudience = "طلاب الصف أو المادة";
@@ -123,7 +127,7 @@ export function analyzeTeacherIntent({
     const scopeScore =
       selectedPerformanceElement &&
       blueprint.defaultPerformanceElements.includes(selectedPerformanceElement.code)
-        ? 2
+        ? 5
         : 0;
 
     const score = keywordScore.score * 3 + scopeScore;

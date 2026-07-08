@@ -136,6 +136,7 @@ export default async function WorkflowPreviewPage({
         isRequired: field.isRequired,
         order: field.order,
         allowOther: field.allowOther,
+        isRepeater: field.isRepeater,
         dependsOnFieldKey: field.dependsOnFieldKey,
         linkedToValue: field.linkedToValue,
         options: field.options.map((option) => ({

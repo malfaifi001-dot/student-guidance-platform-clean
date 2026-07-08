@@ -35,6 +35,7 @@ function buildRuntimeWorkflow(caseEntry: any) {
             dependsOnFieldKey: field.dependsOnFieldKey,
             linkedToValue: field.linkedToValue,
             allowOther: field.allowOther,
+            isRepeater: Boolean(field.isRepeater),
             options: field.options
               .sort((a: any, b: any) => a.order - b.order)
               .map((option: any) => ({

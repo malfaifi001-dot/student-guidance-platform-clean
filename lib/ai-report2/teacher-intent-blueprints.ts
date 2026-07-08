@@ -13,6 +13,24 @@ export type TeacherIntentBlueprint = {
 
 export const TEACHER_INTENT_BLUEPRINTS: TeacherIntentBlueprint[] = [
   {
+    code: "LEARNING_ENVIRONMENT_SETUP",
+    label: "تهيئة بيئة صفية محفزة",
+    family: "LEARNING_ENVIRONMENT",
+    description: "توثيق تهيئة بيئة تعليمية أو صفية محفزة وآمنة وجاذبة للتعلم.",
+    keywords: ["بيئة صفية", "بيئة تعليمية", "تهيئة بيئة", "محفزة", "التعلم النشط", "ركن تعليمي", "تنظيم الصف"],
+    defaultPerformanceElements: ["learning_environment"],
+    recommendedFields: [
+      "عنوان التهيئة الصفية",
+      "الصف أو الفئة المستهدفة",
+      "تاريخ التنفيذ",
+      "أهداف التهيئة والتحفيز",
+      "إجراءات التهيئة",
+      "أثر التهيئة على التعلم",
+      "الشواهد والتوثيق",
+    ],
+    avoidUnlessExplicit: ["تكريم", "احتفالية", "مسابقة", "إذاعة"],
+  },
+  {
     code: "STUDENT_RECOGNITION",
     label: "تكريم أو تحفيز الطلاب",
     family: "EVENT_ACTIVITY",
@@ -90,6 +108,25 @@ export const TEACHER_INTENT_BLUEPRINTS: TeacherIntentBlueprint[] = [
       "أثر الاستراتيجية",
     ],
     avoidUnlessExplicit: ["احتفالية", "تواصل ولي أمر"],
+  },
+  {
+    code: "ASSESSMENT_PRACTICE",
+    label: "تنوع أساليب التقويم",
+    family: "ASSESSMENT_METHOD",
+    description: "توثيق استخدام أداة أو أسلوب تقويم متنوع داخل التعلم.",
+    keywords: ["تقويم", "أساليب التقويم", "تنوع التقويم", "أداة تقويم", "بطاقة خروج", "سلم تقدير", "ملاحظة صفية"],
+    defaultPerformanceElements: ["assessment_methods_diversity"],
+    recommendedFields: [
+      "نوع أداة التقويم",
+      "المادة والصف",
+      "تاريخ التنفيذ",
+      "الفئة المستهدفة",
+      "الغرض من التقويم",
+      "آلية التطبيق",
+      "أثر التقويم",
+      "الشواهد",
+    ],
+    avoidUnlessExplicit: ["احتفالية", "تكريم", "تواصل ولي أمر"],
   },
   {
     code: "RESULTS_ANALYSIS",

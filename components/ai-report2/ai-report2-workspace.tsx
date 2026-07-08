@@ -33,6 +33,35 @@ type AiReport2SelectedReport = {
   confidence?: number;
 };
 
+type ClarificationQuestionType = "single_select" | "multi_select" | "text";
+
+type ClarificationQuestion = {
+  id: string;
+  label: string;
+  type: ClarificationQuestionType;
+  required: boolean;
+  helpText?: string;
+  options?: Array<{
+    label: string;
+    value: string;
+  }>;
+};
+
+type ClarificationAnswer = {
+  id: string;
+  question: string;
+  type: ClarificationQuestionType;
+  value: string | string[];
+};
+
+type AiReport2ClarifyResponse = {
+  success: boolean;
+  error?: string;
+  teacherIntent?: string;
+  performanceElement?: string;
+  questions?: ClarificationQuestion[];
+};
+
 type AiReport2SuggestResponse = {
   success: boolean;
   error?: string;
@@ -46,6 +75,7 @@ type AiReport2SuggestResponse = {
   performanceElement?: string;
   performanceElementScope?: string;
   satisfactionScore?: number;
+  clarificationAnswersApplied?: number;
   teacherIntentAnalysis?: {
     action?: string;
     audience?: string;
@@ -61,9 +91,11 @@ type SaveResult = {
   error?: string;
 };
 
+type ClarificationAnswerState = Record<string, string | string[]>;
+
 const EXAMPLE_PROMPTS = [
   "تقرير عن تنوع استراتيجيات التدريس في درس تطبيقي.",
-  "تقرير عن تحليل نتائج المتعلمين في نهاية وحدة وبناء توصيات علاجية.",
+  "تقرير عن تحليل نتائج المتعلمين في نهاية وحدة وبناء إجراءات علاجية.",
   "تقرير عن استخدام التقنية في التعلم وقياس أثرها داخل الحصة.",
 ];
 
@@ -72,16 +104,30 @@ function formatPercent(value: unknown) {
   return `${Math.round(Math.max(0, Math.min(1, number)) * 100)}%`;
 }
 
+function hasAnswer(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return Boolean(value?.trim());
+}
+
 export function AiReport2Workspace() {
   const router = useRouter();
 
   const [prompt, setPrompt] = useState("");
   const [schema, setSchema] = useState<AiReportSchema | null>(null);
   const [modalOpen, setModalOpen] = useState(true);
+  const [modalStep, setModalStep] = useState<"prompt" | "clarify">("prompt");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [performanceElementScope, setPerformanceElementScope] =
     useState<TeacherPerformanceElementScope>("auto");
+  const [clarificationQuestions, setClarificationQuestions] = useState<
+    ClarificationQuestion[]
+  >([]);
+  const [clarificationAnswers, setClarificationAnswers] =
+    useState<ClarificationAnswerState>({});
 
   const [analysis, setAnalysis] = useState<{
     confidence: number;
@@ -93,6 +139,7 @@ export function AiReport2Workspace() {
     teacherIntent: string;
     performanceElement: string;
     satisfactionScore: number | null;
+    clarificationAnswersApplied: number;
   } | null>(null);
 
   const runtimeWorkflow = useMemo(() => {
@@ -103,7 +150,110 @@ export function AiReport2Workspace() {
     return schema ? buildAiReportInitialValues(schema) : undefined;
   }, [schema]);
 
-  async function generateReport() {
+  function updateClarificationAnswer(
+    question: ClarificationQuestion,
+    value: string,
+  ) {
+    setClarificationAnswers((current) => {
+      if (question.type === "multi_select") {
+        const currentValues = Array.isArray(current[question.id])
+          ? (current[question.id] as string[])
+          : [];
+
+        const exists = currentValues.includes(value);
+        const nextValues = exists
+          ? currentValues.filter((item) => item !== value)
+          : [...currentValues, value];
+
+        return {
+          ...current,
+          [question.id]: nextValues,
+        };
+      }
+
+      return {
+        ...current,
+        [question.id]: value,
+      };
+    });
+  }
+
+  function buildClarificationAnswersPayload(): ClarificationAnswer[] {
+    return clarificationQuestions
+      .map<ClarificationAnswer | null>((question) => {
+        const value = clarificationAnswers[question.id];
+
+        if (!hasAnswer(value)) {
+          return null;
+        }
+
+        return {
+          id: question.id,
+          question: question.label,
+          type: question.type,
+          value: value || "",
+        };
+      })
+      .filter((item): item is ClarificationAnswer => item !== null);
+  }
+
+  async function requestClarification() {
+    const trimmedPrompt = prompt.trim();
+
+    if (trimmedPrompt.length < 3) {
+      setError("اكتب وصفًا مختصرًا للتقرير المطلوب.");
+      return;
+    }
+
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/dashboard/ai-report2/clarify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: trimmedPrompt,
+          performanceElementScope,
+        }),
+      });
+
+      const data = (await response.json()) as AiReport2ClarifyResponse;
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر فهم التقرير.");
+      }
+
+      const questions = Array.isArray(data.questions) ? data.questions : [];
+
+      if (!questions.length) {
+        await generateReport([]);
+        return;
+      }
+
+      setClarificationQuestions(questions);
+      setClarificationAnswers({});
+      setModalStep("clarify");
+    } catch (clarifyError) {
+      setError(
+        clarifyError instanceof Error
+          ? clarifyError.message
+          : "تعذر فهم التقرير.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function generateReport(
+    answers: ClarificationAnswer[] = buildClarificationAnswersPayload(),
+  ) {
     const trimmedPrompt = prompt.trim();
 
     if (trimmedPrompt.length < 3) {
@@ -127,6 +277,7 @@ export function AiReport2Workspace() {
         body: JSON.stringify({
           prompt: trimmedPrompt,
           performanceElementScope,
+          clarificationAnswers: answers,
         }),
       });
 
@@ -164,6 +315,10 @@ export function AiReport2Workspace() {
           "يحدد تلقائيًا",
         satisfactionScore:
           typeof data.satisfactionScore === "number" ? data.satisfactionScore : null,
+        clarificationAnswersApplied:
+          typeof data.clarificationAnswersApplied === "number"
+            ? data.clarificationAnswersApplied
+            : answers.length,
       });
       setModalOpen(false);
     } catch (generationError) {
@@ -225,9 +380,16 @@ export function AiReport2Workspace() {
           performanceElementScope={performanceElementScope}
           loading={loading}
           error={error}
+          step={modalStep}
+          clarificationQuestions={clarificationQuestions}
+          clarificationAnswers={clarificationAnswers}
           onPromptChange={setPrompt}
           onPerformanceElementScopeChange={setPerformanceElementScope}
-          onGenerate={generateReport}
+          onRequestClarification={requestClarification}
+          onGenerate={() => generateReport()}
+          onSkipClarification={() => generateReport([])}
+          onBackToPrompt={() => setModalStep("prompt")}
+          onClarificationAnswerChange={updateClarificationAnswer}
           onExit={() => router.push("/dashboard/teacher/ai-report2")}
         />
       ) : null}
@@ -273,6 +435,9 @@ export function AiReport2Workspace() {
                     </span>
                     <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700 ring-1 ring-violet-100">
                       مخصص: {analysis.customValuesUsed}
+                    </span>
+                    <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700 ring-1 ring-cyan-100">
+                      إجابات التوضيح: {analysis.clarificationAnswersApplied}
                     </span>
                   </div>
                 </div>
@@ -334,13 +499,15 @@ export function AiReport2Workspace() {
           </h1>
 
           <p className="mx-auto mt-3 max-w-2xl text-sm font-bold leading-7 text-slate-500">
-            سيقود DeepSeek عملية الفهم والاختيار، ثم يعرض النموذج داخل Workflow
-            الرسمي للحفظ أو الإرسال.
+            سيقود DeepSeek عملية الفهم، ثم يسألك سؤالين إلى أربعة أسئلة لتضييق النية قبل بناء النموذج النهائي.
           </p>
 
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              setModalOpen(true);
+              setModalStep("prompt");
+            }}
             className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800"
           >
             <Sparkles className="h-4 w-4" />
@@ -357,18 +524,35 @@ function AiReport2PromptModal({
   performanceElementScope,
   loading,
   error,
+  step,
+  clarificationQuestions,
+  clarificationAnswers,
   onPromptChange,
   onPerformanceElementScopeChange,
+  onRequestClarification,
   onGenerate,
+  onSkipClarification,
+  onBackToPrompt,
+  onClarificationAnswerChange,
   onExit,
 }: {
   prompt: string;
   performanceElementScope: TeacherPerformanceElementScope;
   loading: boolean;
   error: string;
+  step: "prompt" | "clarify";
+  clarificationQuestions: ClarificationQuestion[];
+  clarificationAnswers: ClarificationAnswerState;
   onPromptChange: (value: string) => void;
   onPerformanceElementScopeChange: (value: TeacherPerformanceElementScope) => void;
+  onRequestClarification: () => void;
   onGenerate: () => void;
+  onSkipClarification: () => void;
+  onBackToPrompt: () => void;
+  onClarificationAnswerChange: (
+    question: ClarificationQuestion,
+    value: string,
+  ) => void;
   onExit: () => void;
 }) {
   return (
@@ -385,12 +569,15 @@ function AiReport2PromptModal({
               </p>
 
               <h2 className="mt-2 text-3xl font-black">
-                صف التقرير الذي في بالك
+                {step === "prompt"
+                  ? "صف التقرير الذي في بالك"
+                  : "ساعدنا بسؤالين لتقريب النموذج"}
               </h2>
 
               <p className="mt-3 max-w-2xl text-sm font-bold leading-7 text-sky-50">
-                اكتب وصفًا طبيعيًا. DeepSeek سيبحث داخل بنك تقييم أداء المعلم
-                ويختار الحقول الأقرب، مع حرية محدودة لإضافة قيم مناسبة عند الحاجة.
+                {step === "prompt"
+                  ? "اكتب وصفًا طبيعيًا. بعدها سيطرح النظام أسئلة قصيرة لتضييق نية التقرير قبل توليد النموذج."
+                  : "الإجابات اختيارية، لكنها تساعد على تضييق القيم والحقول وتقليل التوسع."}
               </p>
             </div>
 
@@ -406,98 +593,210 @@ function AiReport2PromptModal({
           </div>
         </div>
 
-        <div className="space-y-5 p-6">
-          <div className="space-y-3">
-            <label className="text-sm font-black text-slate-900">
-              وصف التقرير
-            </label>
+        {step === "prompt" ? (
+          <div className="space-y-5 p-6">
+            <div className="space-y-3">
+              <label className="text-sm font-black text-slate-900">
+                وصف التقرير
+              </label>
 
-            <textarea
-              value={prompt}
-              onChange={(event) => onPromptChange(event.target.value)}
-              rows={6}
-              placeholder="مثال: أريد تقريرًا عن تنوع استراتيجيات التدريس في درس تطبيقي مع شواهد وتوصيات."
-              className="w-full rounded-[1.75rem] border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            {EXAMPLE_PROMPTS.map((example) => (
-              <button
-                key={example}
-                type="button"
-                onClick={() => onPromptChange(example)}
-                disabled={loading}
-                className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right text-xs font-black text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-600" />
-                {example}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-5 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-            <label
-              htmlFor="ai-report2-performance-scope"
-              className="text-sm font-black text-slate-800"
-            >
-              اختر عنصر الأداء قبل الإرسال
-            </label>
-
-            <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
-              هذا الاختيار يضيّق فهم DeepSeek ويجعل القيم أقرب لنية المعلم.
-            </p>
-
-            <select
-              id="ai-report2-performance-scope"
-              value={performanceElementScope}
-              onChange={(event) =>
-                onPerformanceElementScopeChange(
-                  event.target.value as TeacherPerformanceElementScope,
-                )
-              }
-              disabled={loading}
-              className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {TEACHER_PERFORMANCE_ELEMENT_OPTIONS.map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          {error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
-              {error}
+              <textarea
+                value={prompt}
+                onChange={(event) => onPromptChange(event.target.value)}
+                rows={6}
+                placeholder="مثال: أريد تقريرًا عن استخدام بطاقة خروج لقياس فهم الطلاب في نهاية الدرس."
+                className="w-full rounded-[1.75rem] border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+              />
             </div>
-          ) : null}
 
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              onClick={onExit}
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <ArrowRight className="h-4 w-4" />
-              رجوع
-            </button>
+            <div className="grid gap-2">
+              {EXAMPLE_PROMPTS.map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => onPromptChange(example)}
+                  disabled={loading}
+                  className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right text-xs font-black text-slate-600 transition hover:bg-white hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-600" />
+                  {example}
+                </button>
+              ))}
+            </div>
 
-            <button
-              type="button"
-              onClick={onGenerate}
-              disabled={loading}
-              className="inline-flex min-w-[190px] items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              {loading ? "جاري التحليل" : "بناء النموذج"}
-            </button>
+            <div className="mt-5 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+              <label
+                htmlFor="ai-report2-performance-scope"
+                className="text-sm font-black text-slate-800"
+              >
+                اختر عنصر الأداء قبل الإرسال
+              </label>
+
+              <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                هذا الاختيار يضيّق فهم DeepSeek ويجعل القيم أقرب لنية المعلم.
+              </p>
+
+              <select
+                id="ai-report2-performance-scope"
+                value={performanceElementScope}
+                onChange={(event) =>
+                  onPerformanceElementScopeChange(
+                    event.target.value as TeacherPerformanceElementScope,
+                  )
+                }
+                disabled={loading}
+                className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {TEACHER_PERFORMANCE_ELEMENT_OPTIONS.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {error ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={onExit}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ArrowRight className="h-4 w-4" />
+                رجوع
+              </button>
+
+              <button
+                type="button"
+                onClick={onRequestClarification}
+                disabled={loading}
+                className="inline-flex min-w-[190px] items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {loading ? "جاري الفهم" : "فهم التقرير"}
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-5 p-6">
+            <div className="grid gap-4">
+              {clarificationQuestions.map((question, index) => (
+                <div
+                  key={question.id}
+                  className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4"
+                >
+                  <p className="text-xs font-black text-sky-700">
+                    سؤال {index + 1}
+                  </p>
+
+                  <h3 className="mt-1 text-sm font-black text-slate-900">
+                    {question.label}
+                  </h3>
+
+                  {question.helpText ? (
+                    <p className="mt-1 text-xs font-bold leading-6 text-slate-500">
+                      {question.helpText}
+                    </p>
+                  ) : null}
+
+                  {question.type === "text" ? (
+                    <input
+                      value={
+                        typeof clarificationAnswers[question.id] === "string"
+                          ? (clarificationAnswers[question.id] as string)
+                          : ""
+                      }
+                      onChange={(event) =>
+                        onClarificationAnswerChange(question, event.target.value)
+                      }
+                      placeholder="اكتب إجابة قصيرة"
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                    />
+                  ) : (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(question.options || []).map((option) => {
+                        const value = clarificationAnswers[question.id];
+                        const active = Array.isArray(value)
+                          ? value.includes(option.label)
+                          : value === option.label;
+
+                        return (
+                          <button
+                            key={`${question.id}-${option.value}-${option.label}`}
+                            type="button"
+                            onClick={() =>
+                              onClarificationAnswerChange(question, option.label)
+                            }
+                            className={
+                              active
+                                ? "rounded-full bg-sky-700 px-4 py-2 text-xs font-black text-white shadow-sm"
+                                : "rounded-full bg-white px-4 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200 transition hover:text-sky-700 hover:ring-sky-200"
+                            }
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {error ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={onBackToPrompt}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ArrowRight className="h-4 w-4" />
+                تعديل الوصف
+              </button>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={onSkipClarification}
+                  disabled={loading}
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  تخطي الأسئلة
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onGenerate}
+                  disabled={loading}
+                  className="inline-flex min-w-[190px] items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {loading ? "جاري البناء" : "توليد النموذج"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

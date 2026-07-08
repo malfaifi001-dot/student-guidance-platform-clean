@@ -208,6 +208,7 @@ async function buildWorkflowSnapshotForCase(workflowId?: string | null) {
         dependsOnFieldKey: field.dependsOnFieldKey,
         linkedToValue: field.linkedToValue,
         allowOther: field.allowOther,
+        isRepeater: field.isRepeater,
         options: field.options.map((option) => ({
           id: option.id,
           label: option.label,
@@ -430,6 +431,7 @@ export async function updateRuntimeCase({
     select: {
       id: true,
       schoolAccountId: true,
+      workflowId: true,
     },
   });
 
@@ -452,6 +454,9 @@ export async function updateRuntimeCase({
   );
   const serializedValues = serializeCaseValues(valuesWithStudentSnapshot);
   const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
+  const workflowSnapshot = await buildWorkflowSnapshotForCase(
+    existingCase.workflowId
+  );
 
   await prisma.caseValue.deleteMany({
     where: {
@@ -474,6 +479,7 @@ export async function updateRuntimeCase({
       studentId: studentId ? existingStudent?.id : null,
       status: status ? toCaseStatus(status) : undefined,
       submittedAt: status === "SUBMITTED" ? new Date() : undefined,
+      workflowSnapshot: workflowSnapshot || undefined,
 
       values: {
         create: serializedValues,

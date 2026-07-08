@@ -101,7 +101,15 @@ function isTechnicallyBadOption(value: string) {
     normalized.includes("بداية التنفيذ") ||
     normalized.includes("نهاية التنفيذ") ||
     normalized.includes("بطاقة تنفيذ برنامج") ||
-    normalized.includes("عدد حصص البرنامج")
+    normalized.includes("عدد حصص البرنامج") ||
+    normalized.includes("قيمة مناسبة") ||
+    normalized.includes("يناسب سياق") ||
+    normalized.includes("مرتبطة بهدف") ||
+    normalized.includes("مرتبط بهدف") ||
+    normalized.includes("مرتبطة بالشواهد") ||
+    normalized.includes("مرتبط بالشواهد") ||
+    normalized.includes("تحتاج الى تحديد") ||
+    normalized.includes("يحتاج الى توضيح")
   );
 }
 
@@ -282,14 +290,7 @@ function buildFallbackOptionsForField(label: string, analysis: TeacherIntentAnal
       "رابط أو ملف داعم",
     ];
   }
-
-  return [
-    "قيمة مناسبة لسياق التقرير",
-    "مرتبطة بهدف التقرير",
-    "مرتبطة بالشواهد المتاحة",
-    "مرتبطة بأثر التنفيذ",
-    "تحتاج إلى تحديد من المعلم",
-  ];
+  return [];
 }
 
 function mergeJudgedOptions({
@@ -365,6 +366,9 @@ export async function judgeTeacherSchemaValues({
             "اقبل فقط القيم القصيرة الواضحة التي يمكن للمعلم اختيارها.",
             "إذا أصبحت الخيارات قليلة، اقترح خيارات بديلة مناسبة للمعلم.",
             "لا تكرر الخيارات.",
+            "لا تستخدم قيمًا عامة مثل: قيمة مناسبة لسياق التقرير، مرتبطة بهدف التقرير، مرتبطة بالشواهد المتاحة.",
+            "الأفضل إرجاع 4 أو 5 قيم قوية بدل 8 قيم ضعيفة.",
+            "إذا لم توجد قيم مناسبة، اقترح قيمًا قصيرة ومباشرة من نية المعلم.",
             `الحد الأقصى ${MAX_OPTIONS_PER_FIELD} خيارات لكل حقل.`,
             "",
             "أعد JSON فقط بدون Markdown بهذا الشكل:",

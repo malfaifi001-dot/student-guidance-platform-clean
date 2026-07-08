@@ -20,6 +20,7 @@ export type RuntimeField = {
   dependsOnFieldKey?: string | null;
   linkedToValue?: string | null;
   allowOther: boolean;
+  isRepeater: boolean;
   defaultValue?: string | null;
   defaultJson?: unknown | null;
   autoSelectWhenLinked?: boolean;
@@ -125,6 +126,7 @@ export async function getRuntimeWorkflowByServiceSlug(
           isRequired: field.isRequired,
           order: field.order,
           allowOther: field.allowOther,
+          isRepeater: field.isRepeater,
           dependsOnFieldKey: field.dependsOnFieldKey,
           linkedToValue: field.linkedToValue,
           defaultValue: field.defaultValue,

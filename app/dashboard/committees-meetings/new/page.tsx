@@ -42,6 +42,7 @@ function buildRuntimeWorkflow(
         dependsOnFieldKey: field.dependsOnFieldKey,
         linkedToValue: field.linkedToValue,
         allowOther: field.allowOther,
+        isRepeater: Boolean(field.isRepeater),
         options: field.options.map((option: any) => ({
           id: option.id,
           label: option.label,
