@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html dir='rtl' lang='ar'>
+<head>
+<meta charset='UTF-8'>
+<title>الخطة الإجرائية للموجه الطلابي - توزيع إجراءات البرامج</title>
+<style>
+@page { size: A4 landscape; margin: 0.8cm; }
+body { direction: rtl; font-family: Tahoma, Arial, sans-serif; margin: 0; color: #24333b; background: #ffffff; font-size: 10.5pt; }
+.page { width: 27.7cm; min-height: 19.2cm; box-sizing: border-box; padding: 0.65cm 0.75cm; page-break-after: always; position: relative; background: #fff; }
+.cover { background: linear-gradient(135deg,#0c4f49 0%,#0f6b5c 58%,#143e57 100%); color:#fff; border: 8px solid #d3b36a; padding: 1.2cm; }
+.cover:before { content:''; position:absolute; top:0.45cm; right:0.45cm; bottom:0.45cm; left:0.45cm; border:1.5px solid rgba(255,255,255,.65); }
+.cover-box { margin:1.4cm auto 0; width:78%; text-align:center; padding:1.1cm; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.45); }
+.cover h1 { font-size:28pt; margin:0.5cm 0 0.2cm; }
+.cover h2 { font-size:18pt; margin:0.2cm; color:#f4df9f; }
+.cover h3 { font-size:14pt; margin:0.25cm; font-weight:normal; }
+.identity { margin:1.2cm auto 0; width:72%; border-collapse:collapse; background:#fff; color:#173f4f; }
+.identity td { border:1px solid #c5d4d6; padding:9px; font-size:12pt; }
+.identity .label { width:28%; font-weight:bold; background:#e8f2ef; }
+.topline { background:#0f6b5c; color:#fff; padding:8px 14px; font-weight:bold; font-size:14pt; border-right:7px solid #d3b36a; margin-bottom:10px; }
+h1.section { color:#0f6b5c; text-align:center; font-size:20pt; margin:4px 0 10px; }
+h2 { color:#173f5f; font-size:15pt; margin:8px 0; }
+h3 { color:#0f6b5c; font-size:12.5pt; margin:7px 0; }
+p { line-height:1.75; margin:5px 0; text-align:justify; }
+table { width:100%; border-collapse:collapse; table-layout:fixed; margin:6px 0 10px; }
+th { background:#173f5f; color:#fff; border:1px solid #9fb3bc; padding:6px 4px; font-weight:bold; text-align:center; }
+td { border:1px solid #b8c8ce; padding:5px 5px; vertical-align:middle; line-height:1.45; }
+.alt tr:nth-child(even) td { background:#f3f8f7; }
+.green th { background:#0f6b5c; }
+.gold th { background:#96743a; }
+.purple th { background:#654c7d; }
+.red th { background:#9b4040; }
+.note { background:#fff8df; border-right:5px solid #d3b36a; padding:8px 12px; margin:8px 0; }
+.fixed { background:#eef5f3; border:1px solid #bdd2cc; padding:7px 10px; margin-top:6px; font-size:9.5pt; }
+.week-head { width:100%; border-collapse:collapse; margin-bottom:8px; }
+.week-head td { border:none; }
+.week-title { background:#0f6b5c; color:#fff; font-size:17pt; font-weight:bold; padding:9px 14px; }
+.week-date { background:#e9f2ef; color:#173f5f; font-weight:bold; text-align:left; padding:9px 12px; }
+.theme { background:#f7f0dc; border-right:5px solid #d3b36a; padding:7px 12px; font-weight:bold; margin-bottom:7px; }
+.small { font-size:9pt; }
+.status { white-space:nowrap; text-align:center; }
+.footer { position:absolute; bottom:0.18cm; right:0.8cm; left:0.8cm; border-top:1px solid #d5dfdf; padding-top:3px; font-size:8pt; color:#6b7b80; text-align:center; }
+.badge { display:inline-block; padding:3px 8px; border-radius:10px; font-weight:bold; }
+.b-org { background:#dbeaf2; color:#174a66; }
+.b-prog { background:#dff2e8; color:#176442; }
+.b-case { background:#eee5f5; color:#5f3c78; }
+.b-exam { background:#f8e2e2; color:#8d3131; }
+.b-event { background:#fff0bd; color:#7b5b11; }
+ul { margin:5px 18px 5px 0; line-height:1.65; }
+</style>
+</head>
+<body>
+
+<section class='page cover'>
+  <div style='text-align:center;font-size:13pt;line-height:1.7;'>المملكة العربية السعودية<br>وزارة التعليم<br>الإدارة العامة للتعليم بـ ................................................</div>
+  <div class='cover-box'>
+    <div style='font-size:13pt;color:#f4df9f;'>الفصل الدراسي الأول</div>
+    <h1>الخطة الإجرائية للموجه الطلابي</h1>
+    <h2>للعام الدراسي 1448/1449هـ</h2>
+    <h3>نموذج توزيع إجراءات البرامج على أسابيع الفصل</h3>
+  </div>
+  <table class='identity'>
+    <tr><td class='label'>اسم الموجه الطلابي</td><td>....................................................................................</td></tr>
+    <tr><td class='label'>اسم المدرسة</td><td>....................................................................................</td></tr>
+    <tr><td class='label'>المرحلة الدراسية</td><td>☐ ابتدائية &nbsp;&nbsp;&nbsp; ☐ متوسطة &nbsp;&nbsp;&nbsp; ☐ ثانوية</td></tr>
+  </table>
+  <div style='text-align:center;margin-top:0.55cm;color:#f4df9f;font-size:12pt;'>خطة عملية مرنة • برامج موزعة • خدمات مستمرة • شواهد قابلة للقياس</div>
+</section>
+
+<section class='page'>
+<div class='topline'>مقدمة الخطة</div>
+<h1 class='section'>مقدمة</h1>
+<p>انطلاقًا من أهمية التوجيه الطلابي في دعم نمو الطلبة ورعايتهم تعليميًا ونفسيًا واجتماعيًا وسلوكيًا ومهنيًا، أُعدت هذه الخطة الإجرائية لتنظيم أعمال وبرامج وخدمات الموجه الطلابي خلال الفصل الدراسي الأول للعام الدراسي 1448/1449هـ. وتقوم الخطة على توزيع إجراءات البرامج على أسابيع الفصل، بحيث ينفذ من كل برنامج ما يتناسب مع الأولوية الزمنية واحتياج المدرسة، مع استكمال الإجراءات المتبقية في الفصل الدراسي الثاني.</p>
+<p>تجمع الخطة بين البرامج المخططة والخدمات المستمرة والتدخلات التي تنفذ عند ظهور الاحتياج، مع العناية بحصر الحالات ومتابعتها، والتواصل مع الأسرة ومنسوبي المدرسة، وتحليل نتائج الطلبة، وتقديم الدعم للمتأخرين دراسيًا، وتعزيز التفوق والسلوك الإيجابي، وتوثيق كل منجز بشاهد مناسب ونتيجة قابلة للمتابعة.</p>
+<table class='alt green'>
+<tr><th style='width:7%'>م</th><th>الأسس التي بُنيت عليها الخطة</th></tr>
+<tr><td>1</td><td>الالتزام بالتقويم الدراسي المعتمد وأيام الدوام والإجازات.</td></tr>
+<tr><td>2</td><td>تخصيص أسبوع العودة للأعمال التنظيمية والتعارف والاستعداد.</td></tr>
+<tr><td>3</td><td>تخصيص الأسبوع الأول للأسبوع التمهيدي والتهيئة الإرشادية.</td></tr>
+<tr><td>4</td><td>حصر الحالات في بداية الفصل وتحديد أولويات التدخل دون إفشاء بيانات الطلبة.</td></tr>
+<tr><td>5</td><td>توزيع إجراءات البرامج وعدم اشتراط تنفيذ البرنامج كاملًا في أسبوع واحد.</td></tr>
+<tr><td>6</td><td>استمرار الأعمال اليومية والأسبوعية بالتوازي مع البرامج المجدولة.</td></tr>
+<tr><td>7</td><td>تخصيص أسابيع للتهيئة للاختبارات وتحليل النتائج والمعالجة والتكريم.</td></tr>
+<tr><td>8</td><td>إدراج الأيام العالمية في تاريخها، وترحيلها لأول يوم دوام إذا وافقت إجازة.</td></tr>
+<tr><td>9</td><td>حماية المحتوى التفصيلي للبرامج؛ فتظهر الخطة الإجراء العام والشاهد فقط.</td></tr>
+<tr><td>10</td><td>ترحيل الإجراءات غير المنفذة إلى الفصل الثاني مع توضيح الحالة والسبب.</td></tr>
+</table>
+<div class='note'>هذه الخطة أداة تنظيم ومتابعة، وتظل قابلة للتعديل وفق المرحلة الدراسية واحتياج المدرسة والتعاميم والمستجدات الرسمية.</div>
+<div class='footer'>الخطة الإجرائية للموجه الطلابي • الفصل الدراسي الأول 1448/1449هـ</div>
+</section>
+
+<section class='page'>
+<div class='topline'>أهداف الخطة</div>
+<table class='alt'>
+<tr><th style='width:7%'>م</th><th>الهدف العام</th><th style='width:35%'>مؤشر تحقق مختصر</th></tr>
+<tr><td>1</td><td>تنظيم أعمال الموجه الطلابي وفق برنامج زمني واضح.</td><td>وجود خطة أسبوعية معتمدة ومحدثة.</td></tr>
+<tr><td>2</td><td>تقديم برامج وقائية وإنمائية وعلاجية وفق الاحتياج.</td><td>تنوع البرامج والخدمات المنفذة.</td></tr>
+<tr><td>3</td><td>مساعدة الطلبة على التكيف النفسي والاجتماعي والدراسي.</td><td>انخفاض حالات صعوبة التكيف وتحسن المتابعة.</td></tr>
+<tr><td>4</td><td>تعزيز السلوك الإيجابي والانضباط والمواظبة.</td><td>زيادة السلوكيات الإيجابية وانخفاض التكرار.</td></tr>
+<tr><td>5</td><td>رفع الدافعية وتحسين التحصيل الدراسي.</td><td>تقدم نتائج الطلبة المستهدفين.</td></tr>
+<tr><td>6</td><td>الاكتشاف المبكر للحالات وتقديم التدخل المناسب.</td><td>سرعة فتح المتابعة وتصنيف الأولوية.</td></tr>
+<tr><td>7</td><td>رعاية المتفوقين والمتحسنين والمتأخرين دراسيًا.</td><td>خطط دعم وتكريم موثقة.</td></tr>
+<tr><td>8</td><td>تعزيز التكامل بين الأسرة والمدرسة.</td><td>تواصل موثق واستجابة أسرية.</td></tr>
+<tr><td>9</td><td>تنمية المهارات النفسية والاجتماعية والمهنية.</td><td>مشاركة الطلبة وقياس استفادتهم.</td></tr>
+<tr><td>10</td><td>توثيق الأعمال والشواهد وقياس النتائج.</td><td>اكتمال ملف الإنجاز والتقرير الختامي.</td></tr>
+</table>
+<h2>مفتاح تصنيف الأعمال</h2>
+<table>
+<tr><th>التصنيف</th><th>اللون</th><th>أمثلة</th></tr>
+<tr><td><span class='badge b-org'>تنظيمي ولجان</span></td><td>أزرق</td><td>تشكيل اللجان، الاجتماعات، التخطيط والتنسيق.</td></tr>
+<tr><td><span class='badge b-prog'>برنامج إرشادي</span></td><td>أخضر</td><td>التوعية، النشاط، اللقاء، البرنامج الوقائي.</td></tr>
+<tr><td><span class='badge b-case'>خدمة ومتابعة</span></td><td>بنفسجي</td><td>جلسة فردية، دراسة حالة، تواصل أسري، إحالة.</td></tr>
+<tr><td><span class='badge b-exam'>اختبارات ونتائج</span></td><td>أحمر</td><td>التهيئة، التحليل، الخطط العلاجية، التكريم.</td></tr>
+<tr><td><span class='badge b-event'>مناسبة أو يوم عالمي</span></td><td>ذهبي</td><td>اليوم الوطني والأيام العالمية المناسبة للمدرسة.</td></tr>
+</table>
+<div class='footer'>الخطة الإجرائية للموجه الطلابي • أهداف ومؤشرات</div>
+</section>
+
+<section class='page'>
+<div class='topline'>الالتزامات المهنية والأخلاقية</div>
+<p>تُعرض الالتزامات الآتية بصياغة تشغيلية مستندة إلى الميثاق الأخلاقي للعمل الإرشادي وأدلة وزارة التعليم، ويُراعى تطبيقها في جميع البرامج والخدمات والسجلات.</p>
+<table class='alt purple'>
+<tr><th style='width:23%'>المجال</th><th>التزام الموجه الطلابي</th></tr>
+<tr><td>كرامة الطالب والتقبل</td><td>احترام الطالب وتقبله وعدم السخرية منه أو وصمه أو إصدار حكم مسبق على حالته.</td></tr>
+<tr><td>السرية وحماية البيانات</td><td>حفظ المعلومات والسجلات وعدم مشاركتها إلا مع ذوي الصلاحية وبالقدر الضروري.</td></tr>
+<tr><td>العدالة والفروق الفردية</td><td>تقديم الخدمة دون محاباة، ومراعاة قدرات الطلبة وخصائص نموهم وظروفهم.</td></tr>
+<tr><td>المصلحة الفضلى</td><td>تقديم سلامة الطالب ومصلحته النفسية والجسدية والتعليمية عند اتخاذ القرار.</td></tr>
+<tr><td>الدقة المهنية</td><td>التحقق من المعلومات والاعتماد على مصادر موثوقة قبل تصنيف الحالة أو التدخل.</td></tr>
+<tr><td>الحدود المهنية</td><td>المحافظة على العلاقة المهنية وعدم استغلال الطالب أو أسرته أو إقامة علاقة غير مناسبة.</td></tr>
+<tr><td>حدود الاختصاص</td><td>العمل ضمن الكفايات المهنية والإحالة إلى الجهة المختصة عند تجاوز الحالة للصلاحية أو الخبرة.</td></tr>
+<tr><td>التوثيق والمتابعة</td><td>توثيق العمل المهني بصورة دقيقة ومختصرة، ومتابعة أثر التدخل وعدم الاكتفاء بالإجراء الأول.</td></tr>
+<tr><td>التعاون</td><td>التنسيق مع الإدارة والمعلمين والأسرة والجهات ذات العلاقة دون الإخلال بالسرية.</td></tr>
+<tr><td>عدم تفويض المسؤولية</td><td>عدم تكليف غير المختص بأداء مسؤوليات الموجه الإرشادية نيابة عنه.</td></tr>
+<tr><td>سلامة الطالب</td><td>اتخاذ الإجراء العاجل عند وجود خطر، مع إبلاغ أصحاب الصلاحية وفق الأنظمة.</td></tr>
+<tr><td>القدوة والتطوير</td><td>الالتزام بالأمانة والانضباط وحسن التعامل، والمشاركة في التطوير المهني المستمر.</td></tr>
+</table>
+<div class='note'>تعمم آلية اكتشاف الحالات والإحالة على المعلمين، ولا تعمم أسماء الطلبة أو تفاصيل حالاتهم على جميع منسوبي المدرسة.</div>
+<div class='footer'>الخطة الإجرائية للموجه الطلابي • الالتزامات المهنية</div>
+</section>
+
+<section class='page'>
+<div class='topline'>أعمال الموجه الطلابي والتزاماته التشغيلية</div>
+<table class='green'>
+<tr><th style='width:15%'>التكرار</th><th>الأعمال والخدمات</th><th style='width:30%'>التوثيق المقترح</th></tr>
+<tr><td>يوميًا</td><td>استقبال الطلبة والاستماع إلى احتياجاتهم ومقابلة الحالات والإحالات الجديدة.</td><td>سجل الاستقبال والجلسات.</td></tr>
+<tr><td>يوميًا</td><td>استقبال أولياء الأمور والاتصالات والاستشارات والرد عليها.</td><td>سجل التواصل بين المدرسة والأسرة.</td></tr>
+<tr><td>يوميًا</td><td>متابعة الغياب والتأخر والاستئذان والحالات الطارئة.</td><td>سجل متابعة الطالب والمواظبة.</td></tr>
+<tr><td>يوميًا</td><td>تنفيذ الجلسات والخدمات المجدولة وتحديث السجلات والشواهد.</td><td>سجل الخدمة وملف الإنجاز.</td></tr>
+<tr><td>أسبوعيًا</td><td>مراجعة الحالات المفتوحة وتصنيف الإحالات وتحديد الأولويات.</td><td>كشف متابعة أسبوعي.</td></tr>
+<tr><td>أسبوعيًا</td><td>تنفيذ الإجراء المحدد من برامج الأسبوع والتنسيق مع المعلمين والإدارة.</td><td>تقرير تنفيذ أو محضر.</td></tr>
+<tr><td>أسبوعيًا</td><td>متابعة المتأخرين دراسيًا ومتكرري الغياب والتواصل مع أسرهم.</td><td>سجل متابعة وتواصل.</td></tr>
+<tr><td>عند الحاجة</td><td>إرشاد فردي، إرشاد جمعي، دراسة حالة، تدخل نفسي أو اجتماعي، أو إحالة مختصة.</td><td>النموذج الخاص بكل خدمة.</td></tr>
+<tr><td>فصليًا</td><td>تحليل النتائج وحصر المتفوقين والمتأخرين وإعداد خطط الدعم والتكريم.</td><td>تحليل نتائج وخطط علاجية.</td></tr>
+<tr><td>فصليًا</td><td>تقويم البرامج، إعداد التقرير الختامي، وحصر الأعمال المرحلة للفصل الثاني.</td><td>التقرير الختامي وملف الشواهد.</td></tr>
+</table>
+<h2>حالات الإجراء</h2>
+<table>
+<tr><th>مخطط</th><th>جارٍ التنفيذ</th><th>تم التنفيذ</th><th>تم جزئيًا</th><th>مرحل للفصل الثاني</th><th>لم ينفذ</th></tr>
+<tr><td>مدرج ولم يبدأ</td><td>بدأ ولم يكتمل</td><td>نفذ وله شاهد</td><td>نفذ جزء منه</td><td>يستكمل لاحقًا</td><td>مع بيان السبب</td></tr>
+</table>
+<div class='fixed'><b>الأعمال الثابتة في جميع الأسابيع:</b> استقبال الطلبة والأسر، استقبال الاتصالات، متابعة الحالات السابقة، متابعة المواظبة، تنفيذ الجلسات حسب الحاجة، المشاركة في اللقاءات، وتوثيق ما يستجد من أعمال وخدمات.</div>
+<div class='footer'>الخطة الإجرائية للموجه الطلابي • الأعمال الثابتة</div>
+</section>
+
+<section class='page'>
+<div class='topline'>ملخص توزيع الفصل الدراسي الأول</div>
+<table class='alt'>
+<tr><th style='width:13%'>الأسبوع</th><th style='width:23%'>الفترة</th><th>المحور الرئيس</th><th style='width:28%'>إجراءات البرامج الموزعة</th></tr>
+<tr><td>أسبوع العودة</td><td>3–7/3/1448هـ</td><td>التعارف واللجان والاستعداد</td><td>إعداد التهيئة والأسبوع التمهيدي</td></tr>
+<tr><td>الأول</td><td>10–14/3</td><td>الأسبوع التمهيدي</td><td>استقبال وتهيئة وملاحظة أولية</td></tr>
+<tr><td>الثاني</td><td>17–21/3</td><td>حصر الحالات وخصائص النمو</td><td>توعية المعلمين وآلية الإحالة</td></tr>
+<tr><td>الثالث</td><td>24–28/3</td><td>بدء التدخلات</td><td>قائمة المشكلات والتواصل الأسري</td></tr>
+<tr><td>الرابع</td><td>2–6/4</td><td>السلوك والانضباط</td><td>الإجراء الأول من تعزيز السلوك</td></tr>
+<tr><td>الخامس</td><td>9–13/4</td><td>القيم والمواطنة</td><td>الإجراء الثاني من تعزيز السلوك</td></tr>
+<tr><td>السادس</td><td>16–20/4</td><td>السلامة الرقمية</td><td>توعية الطلاب والأسر</td></tr>
+<tr><td>السابع</td><td>23–27/4</td><td>التهيئة للاختبارات</td><td>تنظيم الوقت وقلق الاختبار</td></tr>
+<tr><td>الثامن</td><td>30/4–4/5</td><td>تحليل النتائج</td><td>معالجة الضعف وتكريم المتفوقين</td></tr>
+<tr><td>التاسع</td><td>7–11/5</td><td>المهارات النفسية والاجتماعية</td><td>إدارة الانفعالات والعلاقات</td></tr>
+<tr><td>العاشر</td><td>14–18/5</td><td>خفض العنف والتنمر</td><td>التوعية وطرق الإبلاغ</td></tr>
+<tr><td>الحادي عشر</td><td>21–25/5</td><td>الدافعية والاختبارات</td><td>متابعة التحصيل والمواظبة</td></tr>
+<tr><td>الثاني عشر</td><td>28/5–2/6</td><td>تحليل النتائج الثاني</td><td>تحديث الخطط والتكريم</td></tr>
+<tr><td>الثالث عشر</td><td>5–9/6</td><td>الصحة والتسامح</td><td>مراجعة الحالات قبل الإجازة</td></tr>
+<tr><td>إجازة الخريف</td><td>12–16/6</td><td>إجازة رسمية</td><td>لا توجد أعمال مدرسية</td></tr>
+<tr><td>الرابع عشر</td><td>19–23/6</td><td>رعاية الفئات الخاصة</td><td>الصحة والدعم الاجتماعي</td></tr>
+<tr><td>الخامس عشر</td><td>26/6–1/7</td><td>المشاركة والتطوع</td><td>المجلس الطلابي والمبادرات</td></tr>
+<tr><td>السادس عشر</td><td>4–8/7</td><td>التوجيه المهني</td><td>الميول والمسارات والمهن</td></tr>
+<tr><td>السابع عشر</td><td>11–15/7</td><td>الاستعداد النهائي</td><td>خطة المذاكرة ودعم المتأخرين</td></tr>
+<tr><td>الثامن عشر</td><td>18–22/7</td><td>التهيئة المباشرة</td><td>تعليمات وجاهزية الحالات الخاصة</td></tr>
+<tr><td>التاسع عشر</td><td>25–29/7</td><td>الاختبارات وإغلاق الفصل</td><td>الدعم والتقرير الختامي</td></tr>
+</table>
+<div class='footer'>الخطة الإجرائية للموجه الطلابي • ملخص الفصل</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>أسبوع العودة</td><td class='week-date'>من الأحد 3/3/1448هـ (16/8/2026م) إلى الخميس 7/3/1448هـ (20/8/2026م)</td></tr></table>
+<div class='theme'>المحور: التعارف، تنظيم العمل، تشكيل اللجان، والاستعداد لبداية الدراسة.</div>
+<table>
+<tr><th style='width:14%'>اليوم والتاريخ</th><th style='width:12%'>التصنيف</th><th style='width:18%'>العمل</th><th>الإجراء المختصر</th><th style='width:16%'>الشاهد</th><th style='width:11%'>الحالة</th></tr>
+<tr><td>الأحد<br>3/3/1448هـ</td><td><span class='badge b-org'>تنظيمي</span></td><td><b>التعارف</b></td><td>التعارف مع الإدارة ومنسوبي المدرسة، والتعريف بدور الموجه، والتعرف على البيئة المدرسية والاحتياجات الأولية.</td><td>محضر أو سجل لقاء</td><td class='status'>☐ تم<br>☐ لم يتم</td></tr>
+<tr><td>الاثنين<br>4/3/1448هـ</td><td><span class='badge b-org'>لجان</span></td><td>لجنة التوجيه الطلابي</td><td>تحديد الأعضاء وإعداد قرار التشكيل وتوزيع المسؤوليات.</td><td>قرار التشكيل</td><td class='status'>☐ تم<br>☐ لم يتم</td></tr>
+<tr><td>الثلاثاء<br>5/3/1448هـ</td><td><span class='badge b-org'>لجان</span></td><td>لجنة الأسبوع التمهيدي</td><td>تشكيل اللجنة وتوزيع مهام الاستقبال والتنظيم والتوثيق.</td><td>قرار وخطابات تكليف</td><td class='status'>☐ تم<br>☐ لم يتم</td></tr>
+<tr><td>الأربعاء<br>6/3/1448هـ</td><td><span class='badge b-prog'>برنامج</span></td><td>إعداد التهيئة</td><td>إعداد الجدول العام ومواد الترحيب ونماذج الملاحظة الأولية.</td><td>الخطة المختصرة</td><td class='status'>☐ تم<br>☐ لم يتم</td></tr>
+<tr><td>الخميس<br>7/3/1448هـ</td><td><span class='badge b-org'>متابعة</span></td><td>مراجعة الجاهزية</td><td>التأكد من توزيع الأدوار وتوفر المواد والنماذج ومعالجة أوجه النقص.</td><td>قائمة تحقق</td><td class='status'>☐ تم<br>☐ لم يتم</td></tr>
+</table>
+<div class='fixed'><b>مؤشرات الأسبوع:</b> اكتمال التعارف المهني، تشكيل اللجنتين، توزيع المهام، إعداد الجدول، وجاهزية مواد ونماذج بداية الدراسة.</div>
+<div class='footer'>أسبوع العودة • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الأول</td><td class='week-date'>10–14/3/1448هـ • 23–27/8/2026م</td></tr></table>
+<div class='theme'>المحور: الأسبوع التمهيدي والتهيئة الإرشادية والنفسية.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 10/3</td><td><span class='badge b-prog'>برنامج</span></td><td>الاستقبال</td><td>استقبال الطلبة وأولياء الأمور والتعريف ببرنامج الأسبوع.</td><td>سجل حضور وصور</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 11/3</td><td><span class='badge b-prog'>برنامج</span></td><td>التعريف بالمدرسة</td><td>تعريف الطلبة بالمرافق والأنظمة والخدمات المساندة.</td><td>تقرير مختصر</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 12/3</td><td><span class='badge b-prog'>برنامج</span></td><td>التهيئة النفسية</td><td>نشاط مختصر لتعزيز الطمأنينة والاتجاه الإيجابي نحو المدرسة.</td><td>سجل النشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 13/3</td><td><span class='badge b-case'>متابعة</span></td><td>ملاحظة الطلبة</td><td>رصد مؤشرات صعوبة التكيف وتحديد من يحتاج متابعة.</td><td>نموذج الملاحظة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 14/3</td><td><span class='badge b-case'>تواصل</span></td><td>المتابعة الأولية</td><td>مراجعة الملاحظات والتواصل مع الأسرة عند الحاجة.</td><td>سجل التواصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>الإجراءات المستكملة لاحقًا:</b> متابعة حالات التكيف وقياس الأثر تُستمر خلال الأسابيع التالية ولا يعد البرنامج مغلقًا بانتهاء هذا الأسبوع.</div>
+<div class='footer'>الأسبوع الأول • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الثاني</td><td class='week-date'>17–21/3/1448هـ • 30/8–3/9/2026م</td></tr></table>
+<div class='theme'>المحور: حصر الحالات الطلابية، آلية الإحالة، وخصائص النمو.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 17/3</td><td><span class='badge b-org'>تنظيمي</span></td><td>آلية الحصر</td><td>تزويد المعلمين بمؤشرات الملاحظة وآلية الإحالة دون نشر أسماء الحالات.</td><td>تعميم أو رسالة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 18/3</td><td><span class='badge b-prog'>توعية</span></td><td>خصائص النمو</td><td>توعية المعلمين بخصائص المرحلة وأساليب التعامل التربوي.</td><td>كشف حضور</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 19/3</td><td><span class='badge b-case'>حالات</span></td><td>استقبال الإحالات</td><td>جمع الملاحظات وتصنيفها مبدئيًا إلى دراسية وسلوكية ونفسية واجتماعية وصحية ومادية.</td><td>سجل الإحالات</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 20/3</td><td><span class='badge b-case'>متابعة</span></td><td>تحديد الأولويات</td><td>تمييز الحالات العاجلة والحالات التي تحتاج متابعة دورية.</td><td>قائمة سرية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 21/3</td><td><span class='badge b-case'>خدمة</span></td><td>فتح المتابعات</td><td>فتح سجلات للحالات المعتمدة وتحديد موعد الإجراء الأول.</td><td>سجل متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='note'>تشارك معلومات كل حالة فقط مع الشخص المرتبط بخدمتها وبالقدر الضروري للمصلحة التعليمية.</div>
+<div class='footer'>الأسبوع الثاني • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الثالث</td><td class='week-date'>24–28/3/1448هـ • 6–10/9/2026م</td></tr></table>
+<div class='theme'>المحور: بدء التدخلات، قائمة المشكلات الطلابية، والتواصل مع الأسرة.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 24/3</td><td><span class='badge b-case'>جلسة</span></td><td>المقابلات الأولية</td><td>مقابلة الحالات ذات الأولوية وفهم الاحتياج من منظور الطالب.</td><td>سجل جلسة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 25/3</td><td><span class='badge b-case'>إرشاد</span></td><td>الإرشاد الفردي</td><td>تنفيذ جلسات للحالات المناسبة وتحديد هدف متابعة مختصر.</td><td>سجل فردي</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 26/3</td><td><span class='badge b-case'>إرشاد</span></td><td>الإرشاد الجمعي</td><td>تنفيذ توجيه لمجموعة لديها احتياج مشترك دون كشف بيانات فردية.</td><td>سجل جماعي</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 27/3</td><td><span class='badge b-case'>أسرة</span></td><td>التواصل الأسري</td><td>التواصل مع أسر الحالات التي يتطلب تدخلها مشاركة الأسرة.</td><td>سجل التواصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 28/3</td><td><span class='badge b-case'>متابعة</span></td><td>خطط المتابعة</td><td>تحديد الإجراء القادم وموعده ومسؤول المتابعة لكل حالة.</td><td>خطة مختصرة</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>يوم عالمي مدمج:</b> يمكن تفعيل اليوم الدولي لمحو الأمية يوم الثلاثاء 8 سبتمبر ضمن أنشطة الدافعية والقراءة حسب المرحلة.</div>
+<div class='footer'>الأسبوع الثالث • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الرابع</td><td class='week-date'>2–6/4/1448هـ • 13–17/9/2026م</td></tr></table>
+<div class='theme'>المحور: الإجراء الأول من برنامج تعزيز السلوك الإيجابي والانضباط.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 2/4</td><td><span class='badge b-prog'>برنامج</span></td><td>اختيار القيمة</td><td>اختيار قيمة سلوكية مناسبة لاحتياج المدرسة والإعلان عنها.</td><td>إعلان القيمة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 3/4</td><td><span class='badge b-prog'>توعية</span></td><td>تعريف الطلبة</td><td>توضيح السلوكيات الدالة على القيمة المختارة.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 4/4</td><td><span class='badge b-org'>تنسيق</span></td><td>دور المعلمين</td><td>التنسيق مع المعلمين لرصد السلوك الإيجابي وتعزيزه.</td><td>رسالة أو محضر</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 5/4</td><td><span class='badge b-case'>متابعة</span></td><td>الحالات السلوكية</td><td>مراجعة الحالات المتكررة وتحديد التدخل المناسب.</td><td>سجل متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 6/4</td><td><span class='badge b-prog'>تعزيز</span></td><td>نماذج إيجابية</td><td>حصر نماذج سلوكية إيجابية لتعزيزها لاحقًا.</td><td>قائمة أسماء</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>الإجراء التالي للبرنامج:</b> يستكمل تعزيز القيمة وقياس أثرها في الأسابيع الخامسة والثانية عشرة ونهاية الفصل.</div>
+<div class='footer'>الأسبوع الرابع • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الخامس</td><td class='week-date'>9–13/4/1448هـ • 20–24/9/2026م</td></tr></table>
+<div class='theme'>المحور: القيم والمواطنة والإجراء الثاني من تعزيز السلوك الإيجابي.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 9/4</td><td><span class='badge b-prog'>قيم</span></td><td>الانتماء والمسؤولية</td><td>توعية الطلبة بقيم الانتماء والمسؤولية والمحافظة على الممتلكات.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 10/4</td><td><span class='badge b-prog'>نشاط</span></td><td>المواطنة الإيجابية</td><td>نشاط مختصر يربط السلوك اليومي بخدمة المدرسة والوطن.</td><td>صور أو تقرير</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 11/4</td><td><span class='badge b-event'>مناسبة</span></td><td>اليوم الوطني</td><td>تفعيل المناسبة قبل الإجازة وفق برنامج المدرسة المعتمد.</td><td>تقرير المناسبة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 12/4</td><td><span class='badge b-event'>إجازة</span></td><td>إجازة اليوم الوطني</td><td>لا توجد أعمال مدرسية.</td><td>—</td><td class='status'>إجازة</td></tr>
+<tr><td>الخميس 13/4</td><td><span class='badge b-event'>إجازة</span></td><td>إجازة رسمية</td><td>لا توجد أعمال مدرسية.</td><td>—</td><td class='status'>إجازة</td></tr></table>
+<div class='fixed'><b>متابعة البرنامج:</b> توثق السلوكيات الإيجابية المرتبطة بالقيمة المختارة تمهيدًا للتعزيز والتكريم.</div>
+<div class='footer'>الأسبوع الخامس • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي السادس</td><td class='week-date'>16–20/4/1448هـ • 27/9–1/10/2026م</td></tr></table>
+<div class='theme'>المحور: الإجراء الأول من برنامج الاستخدام الآمن للإنترنت والألعاب الإلكترونية.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 16/4</td><td><span class='badge b-prog'>توعية</span></td><td>المخاطر الإلكترونية</td><td>تعريف الطلبة بأبرز المخاطر وطرق الوقاية.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 17/4</td><td><span class='badge b-prog'>مهارة</span></td><td>الخصوصية الرقمية</td><td>توضيح قواعد حماية البيانات والحسابات الشخصية.</td><td>سجل النشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 18/4</td><td><span class='badge b-prog'>توعية</span></td><td>تنظيم الألعاب</td><td>توعية بالاستخدام المتوازن وتنظيم الوقت.</td><td>نشرة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 19/4</td><td><span class='badge b-case'>أسرة</span></td><td>رسالة لأولياء الأمور</td><td>إرسال رسالة مختصرة عن المتابعة المنزلية الآمنة.</td><td>سجل الإرسال</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 20/4</td><td><span class='badge b-case'>رصد</span></td><td>حصر الاحتياج</td><td>استقبال الملاحظات التي تتطلب خدمة فردية أو أسرية.</td><td>سجل الحالات</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>إجراءات مؤجلة للفصل الثاني:</b> الأنشطة التطبيقية الموسعة وقياس الاستخدام الرقمي تنفذ وفق حاجة المدرسة.</div>
+<div class='footer'>الأسبوع السادس • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي السابع</td><td class='week-date'>23–27/4/1448هـ • 4–8/10/2026م</td></tr></table>
+<div class='theme'>المحور: التهيئة الإرشادية للاختبارات وتنمية الدافعية.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 23/4</td><td><span class='badge b-exam'>اختبارات</span></td><td>الاستعداد المبكر</td><td>توعية بأهمية البدء المبكر وتحديد الأولويات.</td><td>مادة إرشادية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 24/4</td><td><span class='badge b-event'>يوم عالمي</span></td><td>اليوم العالمي للمعلم</td><td>تفعيل قيمة احترام المعلم وتقدير دوره.</td><td>تقرير مختصر</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 25/4</td><td><span class='badge b-exam'>مهارة</span></td><td>تنظيم الوقت</td><td>إعداد نموذج مبسط لجدول المذاكرة.</td><td>نموذج جدول</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 26/4</td><td><span class='badge b-exam'>دعم</span></td><td>قلق الاختبارات</td><td>إرشادات عامة وحصر الحالات التي تحتاج جلسة فردية.</td><td>سجل توجيه</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 27/4</td><td><span class='badge b-case'>أسرة</span></td><td>دور الأسرة</td><td>إرسال إرشادات لدعم الطالب دون ضغط زائد.</td><td>سجل التواصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>الخدمة المستمرة:</b> تقديم جلسات فردية للطلبة ذوي القلق المرتفع ومتابعة المواظبة خلال فترة الاختبارات.</div>
+<div class='footer'>الأسبوع السابع • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الثامن</td><td class='week-date'>30/4–4/5/1448هـ • 11–15/10/2026م</td></tr></table>
+<div class='theme'>المحور: تحليل النتائج، معالجة الضعف الدراسي، وتكريم المتفوقين.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 30/4</td><td><span class='badge b-event'>يوم عالمي</span></td><td>الصحة النفسية</td><td>تفعيل اليوم المؤجل من السبت برسالة دعم وطلب مساعدة.</td><td>تقرير نشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 1/5</td><td><span class='badge b-exam'>تحليل</span></td><td>تحليل النتائج</td><td>تحديد مستويات الأداء والمواد ذات الضعف.</td><td>كشف تحليل</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 2/5</td><td><span class='badge b-exam'>حصر</span></td><td>المتأخرون دراسيًا</td><td>حصر الطلبة المحتاجين إلى دعم وتحديد الأولوية.</td><td>قائمة سرية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 3/5</td><td><span class='badge b-exam'>معالجة</span></td><td>خطة الدعم</td><td>التنسيق مع المعلمين والأسرة لوضع إجراءات مختصرة.</td><td>خطة متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 4/5</td><td><span class='badge b-exam'>تكريم</span></td><td>المتفوقون والمتحسنون</td><td>تكريم مناسب وتوثيق الإنجاز.</td><td>أسماء وصور</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>المتابعة:</b> تراجع خطط الدعم في الأسبوع الحادي عشر، ويعاد تحليل النتائج في الأسبوع الثاني عشر.</div>
+<div class='footer'>الأسبوع الثامن • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي التاسع</td><td class='week-date'>7–11/5/1448هـ • 18–22/10/2026م</td></tr></table>
+<div class='theme'>المحور: الإجراء الأول من برنامج تعزيز المهارات النفسية والاجتماعية.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 7/5</td><td><span class='badge b-event'>يوم عالمي</span></td><td>الغذاء الصحي</td><td>تفعيل اليوم المؤجل من الجمعة وربطه بالتركيز والنشاط.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 8/5</td><td><span class='badge b-prog'>مهارة</span></td><td>النوم الصحي</td><td>توعية بأثر النوم على المزاج والتحصيل.</td><td>سجل النشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 9/5</td><td><span class='badge b-prog'>مهارة</span></td><td>إدارة الانفعال</td><td>تدريب مبسط على التهدئة والتعبير المناسب.</td><td>تقرير</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 10/5</td><td><span class='badge b-prog'>اجتماعي</span></td><td>العلاقات الإيجابية</td><td>نشاط عن الاحترام والتواصل وحل الخلاف.</td><td>صور أو سجل</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 11/5</td><td><span class='badge b-case'>متابعة</span></td><td>الحالات النفسية والاجتماعية</td><td>متابعة الحالات القائمة وتحديد من يحتاج دعمًا إضافيًا.</td><td>سجل متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='footer'>الأسبوع التاسع • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي العاشر</td><td class='week-date'>14–18/5/1448هـ • 25–29/10/2026م</td></tr></table>
+<div class='theme'>المحور: الإجراء الأول من خفض العنف في المدارس والوقاية من التنمر.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 14/5</td><td><span class='badge b-prog'>توعية</span></td><td>مفهوم التنمر</td><td>تعريف الطلبة بالأشكال والآثار بصورة مناسبة للمرحلة.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 15/5</td><td><span class='badge b-prog'>وقاية</span></td><td>طرق الإبلاغ</td><td>توضيح قنوات طلب المساعدة والإبلاغ الآمن.</td><td>سجل النشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 16/5</td><td><span class='badge b-prog'>مهارة</span></td><td>حل النزاعات</td><td>توجيه مختصر حول الحوار وضبط الانفعال.</td><td>تقرير</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 17/5</td><td><span class='badge b-case'>حصر</span></td><td>الحالات المحتاجة</td><td>استقبال البلاغات والملاحظات وتحديد الأولوية بسرية.</td><td>سجل الحالات</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 18/5</td><td><span class='badge b-case'>أسرة</span></td><td>التوعية الأسرية</td><td>إرسال رسالة عن الوقاية والتعامل المبكر.</td><td>سجل التواصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>إجراءات البرنامج اللاحقة:</b> التدخل الفردي للحالات وقياس انخفاض التكرار يستمران ولا يظهر محتواهما التفصيلي في الخطة العامة.</div>
+<div class='footer'>الأسبوع العاشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الحادي عشر</td><td class='week-date'>21–25/5/1448هـ • 1–5/11/2026م</td></tr></table>
+<div class='theme'>المحور: الإجراء الثاني من تنمية الدافعية والتهيئة للاختبارات.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 21/5</td><td><span class='badge b-exam'>متابعة</span></td><td>الخطط العلاجية</td><td>مراجعة تقدم الطلبة المسجلين في خطط الدعم.</td><td>سجل متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 22/5</td><td><span class='badge b-exam'>مهارة</span></td><td>مهارات الاستذكار</td><td>توجيه حول المراجعة والتلخيص وتنظيم المهام.</td><td>مادة تدريبية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 23/5</td><td><span class='badge b-prog'>دافعية</span></td><td>التحفيز</td><td>نشاط تحفيزي للطلبة منخفضي الدافعية.</td><td>سجل النشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 24/5</td><td><span class='badge b-case'>مواظبة</span></td><td>الغياب والتحصيل</td><td>متابعة أثر الغياب والتأخر والتواصل مع الحالات ذات الأولوية.</td><td>سجل الحضور</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 25/5</td><td><span class='badge b-case'>أسرة</span></td><td>متابعة الأسرة</td><td>توعية الأسر بمتابعة الاستعداد والالتزام بالخطة.</td><td>سجل التواصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='footer'>الأسبوع الحادي عشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الثاني عشر</td><td class='week-date'>28/5–2/6/1448هـ • 8–12/11/2026م</td></tr></table>
+<div class='theme'>المحور: التحليل الثاني للنتائج، تحديث المعالجة، وتعزيز التفوق.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 28/5</td><td><span class='badge b-exam'>تحليل</span></td><td>النتائج الحالية</td><td>مقارنة الأداء بالتحليل السابق وتحديد مقدار التحسن.</td><td>تقرير تحليل</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 29/5</td><td><span class='badge b-exam'>حصر</span></td><td>المتحسنون وغير المتحسنين</td><td>تحديد الطلبة الذين يحتاجون استمرارًا أو تدخلًا إضافيًا.</td><td>قائمة متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 30/5</td><td><span class='badge b-exam'>معالجة</span></td><td>تحديث الخطط</td><td>تعديل إجراءات الدعم بالتنسيق مع المعلمين.</td><td>خطة محدثة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 1/6</td><td><span class='badge b-case'>أسرة</span></td><td>مناقشة النتائج</td><td>التواصل مع أسر الحالات ذات الأولوية.</td><td>سجل التواصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 2/6</td><td><span class='badge b-exam'>تكريم</span></td><td>التفوق والتحسن</td><td>تعزيز الطلبة المتفوقين والمتحسنين سلوكيًا ودراسيًا.</td><td>أسماء وصور</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>ربط البرامج:</b> يمثل التكريم إجراءً مستكملًا من تعزيز السلوك الإيجابي ورعاية التفوق.</div>
+<div class='footer'>الأسبوع الثاني عشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الثالث عشر</td><td class='week-date'>5–9/6/1448هـ • 15–19/11/2026م</td></tr></table>
+<div class='theme'>المحور: الصحة، التسامح، ومراجعة الحالات قبل إجازة الخريف.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 5/6</td><td><span class='badge b-event'>يوم عالمي</span></td><td>اليوم العالمي للسكري</td><td>تفعيل المناسبة المؤجلة برسالة توعوية عن الدعم المدرسي.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 6/6</td><td><span class='badge b-event'>يوم عالمي</span></td><td>اليوم الدولي للتسامح</td><td>نشاط عن الاحترام وقبول الاختلاف وحل الخلاف.</td><td>تقرير نشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 7/6</td><td><span class='badge b-case'>متابعة</span></td><td>الحالات المفتوحة</td><td>مراجعة الحالات التي تحتاج استمرارية أثناء وبعد الإجازة.</td><td>سجل متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 8/6</td><td><span class='badge b-case'>أسرة</span></td><td>رسائل المتابعة</td><td>إشعار الأسر بالإجراءات الضرورية دون إظهار بيانات في الخطة.</td><td>سجل التواصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 9/6</td><td><span class='badge b-org'>تنظيمي</span></td><td>تحديث السجلات</td><td>تحديد الأعمال التي تستأنف بعد الإجازة.</td><td>قائمة متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='footer'>الأسبوع الثالث عشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<div style='margin-top:3cm;text-align:center;'>
+<h1 class='section' style='font-size:30pt;'>إجازة الخريف</h1>
+<div style='display:inline-block;background:#f7f0dc;border:2px solid #d3b36a;padding:25px 70px;font-size:17pt;'>من الأحد 12/6/1448هـ الموافق 22/11/2026م<br>إلى الخميس 16/6/1448هـ الموافق 26/11/2026م</div>
+<p style='text-align:center;margin-top:25px;font-size:14pt;'>لا توجد أعمال مدرسية مجدولة. تُستأنف الأعمال في أول يوم دوام بعد الإجازة.</p>
+</div>
+<div class='footer'>إجازة الخريف • الفصل الدراسي الأول</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الرابع عشر</td><td class='week-date'>19–23/6/1448هـ • 29/11–3/12/2026م</td></tr></table>
+<div class='theme'>المحور: العودة من الإجازة، رعاية الفئات الخاصة، ودعم الاحتياجات.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 19/6</td><td><span class='badge b-event'>يوم عالمي</span></td><td>اليوم العالمي للطفل</td><td>تفعيل المناسبة المؤجلة لأول يوم دوام وربطها بحقوق الطالب ومسؤولياته.</td><td>تقرير نشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 20/6</td><td><span class='badge b-prog'>تهيئة</span></td><td>العودة للانتظام</td><td>توجيه الطلبة للعودة المنتظمة ومراجعة أهدافهم.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 21/6</td><td><span class='badge b-case'>حصر</span></td><td>الفئات الخاصة</td><td>مراجعة الاحتياجات الصحية والاجتماعية والنفسية والمادية.</td><td>سجل حصر</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 22/6</td><td><span class='badge b-case'>دعم</span></td><td>تحديد التدخل</td><td>تحديد نوع الدعم المناسب والجهة المشاركة في تقديمه.</td><td>خطة دعم</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 23/6</td><td><span class='badge b-event'>يوم عالمي</span></td><td>الأشخاص ذوو الإعاقة</td><td>توعية بالاحترام والدمج وتقديم المساندة المناسبة.</td><td>تقرير مختصر</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='footer'>الأسبوع الرابع عشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الخامس عشر</td><td class='week-date'>26/6–1/7/1448هـ • 6–10/12/2026م</td></tr></table>
+<div class='theme'>المحور: المجلس الطلابي، التطوع، والمشاركة المجتمعية.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 26/6</td><td><span class='badge b-event'>يوم عالمي</span></td><td>اليوم العالمي للتطوع</td><td>تفعيل المناسبة المؤجلة وربطها بالمبادرات الطلابية.</td><td>تقرير النشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 27/6</td><td><span class='badge b-prog'>مجلس</span></td><td>المشاركة الطلابية</td><td>تعريف الطلبة بقنوات المقترحات والمشاركة.</td><td>محضر أو سجل</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 28/6</td><td><span class='badge b-prog'>مبادرات</span></td><td>استقبال الأفكار</td><td>جمع أفكار مبادرات قابلة للتنفيذ واختيار المناسب.</td><td>قائمة أفكار</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 29/6</td><td><span class='badge b-prog'>قيم</span></td><td>المسؤولية المجتمعية</td><td>توعية بقيمة المبادرة وخدمة الآخرين.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 1/7</td><td><span class='badge b-event'>يوم عالمي</span></td><td>حقوق الإنسان</td><td>توعية بالحقوق والمسؤوليات في البيئة المدرسية.</td><td>تقرير نشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>إجراء مرحل:</b> متابعة المبادرة وقياس أثر المجلس يمكن استكمالهما في الفصل الثاني.</div>
+<div class='footer'>الأسبوع الخامس عشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي السادس عشر</td><td class='week-date'>4–8/7/1448هـ • 13–17/12/2026م</td></tr></table>
+<div class='theme'>المحور: الإجراء الأول من برنامج التوجيه التعليمي والمهني.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 4/7</td><td><span class='badge b-prog'>مهني</span></td><td>الميول والقدرات</td><td>توعية بأهمية التعرف على الميول والقدرات.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 5/7</td><td><span class='badge b-prog'>تعليمي</span></td><td>المسارات</td><td>تعريف الطلبة بالمرحلة أو المسارات التعليمية التالية.</td><td>سجل نشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 6/7</td><td><span class='badge b-prog'>مهني</span></td><td>المهن المستقبلية</td><td>عرض مختصر لمجالات مهنية متنوعة وفق المرحلة.</td><td>عرض أو نشرة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 7/7</td><td><span class='badge b-case'>إرشاد</span></td><td>مساعدة فردية</td><td>مقابلة الطلبة الذين يحتاجون مساندة في الاختيار.</td><td>سجل جلسة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 8/7</td><td><span class='badge b-case'>أسرة</span></td><td>دور الأسرة</td><td>مشاركة الأسرة برسالة عن دعم الاختيار الواقعي.</td><td>سجل التواصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>إجراءات مرحّلة:</b> الزيارات والمعارض والتطبيقات الموسعة تُستكمل في الفصل الثاني حسب المرحلة والإمكانات.</div>
+<div class='footer'>الأسبوع السادس عشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي السابع عشر</td><td class='week-date'>11–15/7/1448هـ • 20–24/12/2026م</td></tr></table>
+<div class='theme'>المحور: الاستعداد المبكر للاختبارات النهائية ودعم المتأخرين.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 11/7</td><td><span class='badge b-event'>يوم عالمي</span></td><td>اللغة العربية</td><td>تفعيل المناسبة المؤجلة وربطها بالقراءة والتعبير.</td><td>تقرير النشاط</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 12/7</td><td><span class='badge b-exam'>خطة</span></td><td>خطة المذاكرة</td><td>تدريب الطلبة على توزيع المراجعة قبل الاختبارات.</td><td>نموذج خطة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 13/7</td><td><span class='badge b-exam'>متابعة</span></td><td>المتأخرون دراسيًا</td><td>مراجعة تنفيذ الخطط العلاجية وتحديد الأولوية الأخيرة.</td><td>سجل متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 14/7</td><td><span class='badge b-case'>دعم</span></td><td>قلق الاختبارات</td><td>جلسات مختصرة للحالات المحتاجة.</td><td>سجل جلسات</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 15/7</td><td><span class='badge b-case'>أسرة</span></td><td>إرشادات منزلية</td><td>إرسال إرشادات تدعم الهدوء والنوم والمتابعة.</td><td>سجل الإرسال</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='footer'>الأسبوع السابع عشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي الثامن عشر</td><td class='week-date'>18–22/7/1448هـ • 27–31/12/2026م</td></tr></table>
+<div class='theme'>المحور: التهيئة المباشرة للاختبارات النهائية.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 18/7</td><td><span class='badge b-exam'>تعليمات</span></td><td>الانضباط</td><td>توعية بتعليمات الاختبارات والحضور المبكر.</td><td>مادة توعوية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 19/7</td><td><span class='badge b-exam'>صحة</span></td><td>النوم والتغذية</td><td>إرشادات صحية مباشرة قبل الاختبارات.</td><td>نشرة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 20/7</td><td><span class='badge b-exam'>مواظبة</span></td><td>الحضور المبكر</td><td>متابعة الطلبة الأكثر عرضة للغياب أو التأخر.</td><td>سجل متابعة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 21/7</td><td><span class='badge b-case'>حالات</span></td><td>الحالات الخاصة</td><td>مراجعة الترتيبات الصحية والنفسية والاحتياجات الضرورية.</td><td>قائمة سرية</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 22/7</td><td><span class='badge b-org'>تنسيق</span></td><td>الجاهزية النهائية</td><td>التنسيق مع لجنة الاختبارات ومراجعة قنوات الدعم.</td><td>محضر تنسيق</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='footer'>الأسبوع الثامن عشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<table class='week-head'><tr><td class='week-title'>الأسبوع الدراسي التاسع عشر</td><td class='week-date'>25–29/7/1448هـ • 3–7/1/2027م</td></tr></table>
+<div class='theme'>المحور: المساندة أثناء الاختبارات وإغلاق أعمال الفصل الأول.</div>
+<table><tr><th>اليوم</th><th>التصنيف</th><th>العمل</th><th>الإجراء المختصر</th><th>الشاهد</th><th>الحالة</th></tr>
+<tr><td>الأحد 25/7</td><td><span class='badge b-exam'>متابعة</span></td><td>الحضور</td><td>متابعة الغياب والتأخر أثناء الاختبارات.</td><td>سجل الحضور</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الاثنين 26/7</td><td><span class='badge b-case'>دعم</span></td><td>الحالات الطارئة</td><td>تقديم الدعم النفسي أو الصحي الأولي والتنسيق عند الحاجة.</td><td>سجل الحالة</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الثلاثاء 27/7</td><td><span class='badge b-case'>أسرة</span></td><td>التواصل</td><td>التواصل بشأن الغياب أو الحالات المؤثرة في أداء الاختبار.</td><td>سجل التواصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الأربعاء 28/7</td><td><span class='badge b-org'>توثيق</span></td><td>إغلاق السجلات</td><td>استكمال توثيق البرامج والخدمات والحالات والشواهد.</td><td>ملف الإنجاز</td><td class='status'>☐ تم ☐ لم يتم</td></tr>
+<tr><td>الخميس 29/7</td><td><span class='badge b-org'>تقرير</span></td><td>التقرير الختامي</td><td>إعداد ملخص الإنجاز وحصر الإجراءات المرحلة للفصل الثاني.</td><td>تقرير الفصل</td><td class='status'>☐ تم ☐ لم يتم</td></tr></table>
+<div class='fixed'><b>مخرجات نهاية الفصل:</b> تقرير الإنجاز، مؤشرات البرامج، قائمة الحالات المستمرة، والإجراءات التي تستكمل في الفصل الدراسي الثاني.</div>
+<div class='footer'>الأسبوع التاسع عشر • الخطة ذات الإجراءات الموزعة</div>
+</section>
+
+<section class='page'>
+<div class='topline'>سجل الأعمال المستجدة وملخص الإنجاز</div>
+<h2>الأعمال والخدمات المستجدة</h2>
+<table><tr><th style='width:7%'>م</th><th style='width:15%'>الأسبوع</th><th style='width:18%'>اليوم والتاريخ</th><th>العمل أو الخدمة</th><th style='width:22%'>الإجراء المتخذ</th><th style='width:15%'>الشاهد</th></tr>
+<tr><td>1</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>2</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>3</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>4</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>5</td><td></td><td></td><td></td><td></td><td></td></tr>
+</table>
+<h2>ملخص نهاية الفصل</h2>
+<table class='green'><tr><th>المؤشر</th><th style='width:18%'>المستهدف</th><th style='width:18%'>المتحقق</th><th style='width:28%'>ملاحظات</th></tr>
+<tr><td>عدد البرامج التي نُفذ منها إجراء واحد على الأقل</td><td></td><td></td><td></td></tr>
+<tr><td>عدد الخدمات الفردية والجمعية</td><td></td><td></td><td></td></tr>
+<tr><td>عدد حالات المتابعة التي ظهر فيها تحسن</td><td></td><td></td><td></td></tr>
+<tr><td>عدد مرات التواصل مع الأسرة</td><td></td><td></td><td></td></tr>
+<tr><td>عدد الشواهد المكتملة</td><td></td><td></td><td></td></tr>
+<tr><td>الإجراءات المرحلة للفصل الثاني</td><td></td><td></td><td></td></tr>
+</table>
+<div class='note'><b>اعتماد الخطة:</b> اسم الموجه الطلابي: .................................. التوقيع: .................... &nbsp;&nbsp;&nbsp; مدير المدرسة: .................................. التوقيع: ....................</div>
+<div class='footer'>نهاية الخطة • نموذج توزيع إجراءات البرامج</div>
+</section>
+
+</body>
+</html>
