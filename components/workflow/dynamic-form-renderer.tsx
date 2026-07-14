@@ -796,17 +796,7 @@ export function DynamicFormRenderer({
   }
 
   function validateStudentSelection() {
-    if (!needsStudent) return true;
-
-    if (selectedStudents.length > 0) return true;
-
-    showFeedback(
-      "warning",
-      "اختيار الطالب/الطالبة مطلوب",
-      "اختر الطالب/الطالبة أولًا قبل حفظ أو إرسال الحالة."
-    );
-
-    return false;
+    return true;
   }
 
   function shouldShowFieldInCurrentValues(field: RuntimeField) {
@@ -1054,7 +1044,7 @@ export function DynamicFormRenderer({
 
           {needsStudent ? (
             <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
-              يتطلب اختيار طالب/طالبة
+              اختيار الطالب/الطالبة اختياري
             </span>
           ) : null}
 
@@ -1413,7 +1403,7 @@ function SmartStudentPickerCard({
           </p>
 
           <h2 className="mt-2 text-2xl font-black text-slate-900">
-            اختر الطالب/الطالبة المرتبط بهذه الحالة
+            اختر الطالب/الطالبة المرتبط بهذه الحالة عند الحاجة
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-slate-600">
@@ -1507,7 +1497,7 @@ function SmartStudentPickerCard({
               </p>
 
               <p className="mt-2 text-xs leading-6 text-slate-500">
-                اختيار الطالب/الطالبة يساعد في التقارير والتصدير وتتبع الحالات.
+                اختيار الطالب/الطالبة اختياري، ويساعد عند الحاجة في التقارير والتصدير وتتبع الحالات.
               </p>
             </div>
           )}

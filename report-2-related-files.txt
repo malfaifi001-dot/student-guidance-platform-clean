@@ -1,0 +1,533 @@
+ملفات خدمة report-2 وصفحة prepare
+المسار: /dashboard/report-2/cases/[caseId]/prepare
+تاريخ الفحص: 2026-07-12 18:48:34
+
+===== app\api\dashboard\ai-report\suggest\route.ts =====
+Line 969: "وصف التنفيذ أو الحدث",
+
+===== app\api\dashboard\report\prepare\route.ts =====
+Line 4: return NextResponse.redirect(new URL("/api/dashboard/reports/prepare", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+
+===== app\api\dashboard\report-2\cases\[caseId]\approve\route.ts =====
+Line 4: import { createReportTwoSnapshot } from "@/lib/report-2/report-snapshot-service";
+Line 57: previewUrl: `/dashboard/report-2/snapshots/${result.snapshot.id}/preview`,
+Line 60: console.error("report-2 approval failed:", error);
+
+===== app\api\dashboard\report-2\cases\[caseId]\export\pdf\route.ts =====
+Line 11: import { renderLinkedAssessmentAttachmentsHtml } from "@/lib/report-2/report-linked-assessment-attachments";
+Line 12: import { renderLinkedSurveyAttachmentsHtml } from "@/lib/report-2/report-linked-survey-attachments";
+Line 28: return path.join(process.cwd(), ".tmp", "report-2-export");
+Line 220: const previewUrl = `${origin}/report-2-export-preview/${token}`;
+Line 560: "Report-2 PDF generation failed, falling back to print preview:",
+
+===== app\api\dashboard\report-2\snapshots\[snapshotId]\route.ts =====
+Line 4: import { getReportTwoSnapshotById } from "@/lib/report-2/report-snapshot-service";
+
+===== app\api\dashboard\report-2\snapshots\route.ts =====
+Line 4: import { listReportTwoSnapshots } from "@/lib/report-2/report-snapshot-service";
+
+===== app\api\dashboard\reports\case\[caseId]\execution-summary\route.ts =====
+Line 144: error: "تعذر توليد وصف التنفيذ.",
+
+===== app\api\dashboard\resource-links\route.ts =====
+Line 96: openUrl: `/dashboard/report-2/cases/${item.id}/studio`,
+
+===== app\dashboard\activity-leader\reports\activity-card\[caseId]\page.tsx =====
+Line 16: `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/prepare?variant=official-activity-card`,
+
+===== app\dashboard\cases\[caseId]\page.tsx =====
+Line 6: import { getLatestReportTwoSnapshotForCase } from "@/lib/report-2/report-snapshot-service";
+
+===== app\dashboard\cases\page.tsx =====
+Line 8: import { listLatestReportTwoSnapshotsForCases } from "@/lib/report-2/report-snapshot-service";
+
+===== app\dashboard\report\page.tsx =====
+Line 4: redirect("/dashboard/report-2");
+
+===== app\dashboard\report-2\cases\[caseId]\prepare\page.tsx =====
+Line 3: import { ReportPrepareFlow } from "@/components/report-flow/report-prepare-flow";
+Line 86: <ReportPrepareFlow
+Line 90: continueHref={`/dashboard/report-2/cases/${caseId}/studio?${new URLSearchParams({
+
+===== app\dashboard\report-2\cases\[caseId]\studio\page.tsx =====
+Line 3: import { ReportTwoStudioRuntime } from "@/components/report-2/report-two-studio-runtime";
+
+===== app\dashboard\report-2\page.tsx =====
+Line 1: import { ReportTwoHome } from "@/components/report-2/report-two-home";
+
+===== app\dashboard\report-2\snapshots\[snapshotId]\preview\page.tsx =====
+Line 4: import { ReportTwoSnapshotPreview } from "@/components/report-2/report-two-snapshot-preview";
+Line 5: import { ReportTwoSnapshotPrintController } from "@/components/report-2/report-two-snapshot-print-controller";
+Line 6: import { ReportTwoLinkedAssessmentAppendix } from "@/components/report-2/report-two-linked-assessment-appendix";
+Line 7: import { ReportTwoLinkedSurveyAppendix } from "@/components/report-2/report-two-linked-survey-appendix";
+Line 10: import { getLinkedSurveyHtmlItems } from "@/lib/report-2/report-linked-survey-attachments";
+Line 12: import { getReportTwoSnapshotById } from "@/lib/report-2/report-snapshot-service";
+
+===== app\dashboard\report-preview\page.tsx =====
+Line 4: redirect("/dashboard/report-2");
+
+===== app\dashboard\reports\cases\[caseId]\prepare\page.tsx =====
+Line 26: export default async function SmartReportPreparePage({
+
+===== app\dashboard\reports\page.tsx =====
+Line 4: redirect("/dashboard/report-2");
+
+===== app\dashboard\surveys\report-linking\page.tsx =====
+Line 9: subtitle="اختر تقريرًا أو حالة، ثم اربط استبيانًا واحدًا أو أكثر. ستظهر الاستبيانات المرتبطة في معاينة التقرير، وتلحق معه عند الطباعة أو تحميل PDF."
+Line 20: savedLinksSubtitle="يعرض التقارير المرتبطة باستبيان أو أكثر، وسيتم إلحاق الاستبيانات في معاينة التقرير وتحميل PDF."
+
+===== app\mobile\counselor\cases\[caseId]\page.tsx =====
+Line 7: import { getLatestReportTwoSnapshotForCase } from "@/lib/report-2/report-snapshot-service";
+
+===== app\mobile\counselor\report-2\cases\[caseId]\prepare\page.tsx =====
+Line 4: MobileReportPrepareFlow,
+Line 156: <MobileReportPrepareFlow
+
+===== app\mobile\counselor\report-2\cases\[caseId]\ready\page.tsx =====
+Line 7: import { getLatestReportTwoSnapshotForCase } from "@/lib/report-2/report-snapshot-service";
+Line 169: previewUrl: `/dashboard/report-2/snapshots/${encodeURIComponent(snapshot.id)}/preview`,
+
+===== app\mobile\counselor\report-2\cases\[caseId]\studio\page.tsx =====
+Line 7: import { getLatestReportTwoSnapshotForCase } from "@/lib/report-2/report-snapshot-service";
+Line 173: previewUrl: `/dashboard/report-2/snapshots/${encodeURIComponent(snapshot.id)}/preview`,
+
+===== app\report-2-export-preview\[token]\page.tsx =====
+Line 4: import { ReportTwoPdfExportPreview } from "@/components/report-2/report-two-pdf-export-preview";
+Line 18: return path.join(process.cwd(), ".tmp", "report-2-export");
+
+===== components\activity-programs\reports\activity-execution-card-report.tsx =====
+Line 191: title: "وصف التنفيذ",
+Line 284: title={block.title || "وصف التنفيذ"}
+
+===== components\cases\case-details-view.tsx =====
+Line 855: const prepareHref = `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/prepare`;
+Line 950: ? `/dashboard/report-2/snapshots/${reportTwoSnapshotId}/preview`
+Line 952: const primaryReportHref = reportTwoSnapshotHref || `/dashboard/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`;
+
+===== components\cases\cases-search-table.tsx =====
+Line 89: return `/dashboard/report-2/cases/${encodeURIComponent(caseItem.id)}/prepare`;
+Line 142: href: `/dashboard/report-2/snapshots/${caseItem.reportTwoSnapshotId}/preview`,
+
+===== components\cases\case-value-renderer.tsx =====
+
+===== components\certificates\certificate-report-linking-page.tsx =====
+Line 274: href={`/dashboard/report-2/cases/${selectedReport.id}/studio`}
+
+===== components\dashboard\creative-dashboard.tsx =====
+Line 52: href: "/dashboard/report-2",
+Line 279: href="/dashboard/report-2"
+Line 365: href="/dashboard/report-2"
+
+===== components\mobile\mobile-case-details.tsx =====
+Line 259: href={`/mobile/counselor/report-2/cases/${encodedCaseId}/prepare`}
+Line 269: href={`/dashboard/report-2/snapshots/${encodeURIComponent(reportTwoSnapshotId)}/preview`}
+Line 419: href={`/mobile/counselor/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`}
+
+===== components\mobile\mobile-report-a4-popup-preview.tsx =====
+Line 84: title: payload.narrative.title || "وصف التنفيذ",
+
+===== components\mobile\mobile-report-a4-preview.tsx =====
+Line 47: name: selectedTemplate?.name || payload.title || "معاينة التقرير",
+Line 78: title: payload.narrative.title || "وصف التنفيذ",
+Line 123: "معاينة التقرير",
+Line 141: "معاينة التقرير",
+
+===== components\mobile\mobile-report-a4-viewer-page.tsx =====
+Line 113: title: payload.narrative.title || "وصف التنفيذ",
+Line 371: return `/mobile/counselor/report-2/cases/${encodeURIComponent(caseId)}/ready?${params.toString()}`;
+Line 464: `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+
+===== components\mobile\mobile-report-prepare-flow.tsx =====
+Line 41: type MobileReportPrepareFlowProps = {
+Line 138: export function MobileReportPrepareFlow({
+Line 145: }: MobileReportPrepareFlowProps) {
+Line 253: "اختر حقلاً واحدًا على الأقل قبل توليد وصف التنفيذ.",
+Line 282: throw new Error(data?.error || "تعذر توليد وصف التنفيذ.");
+Line 294: "تم تحديث وصف التنفيذ",
+Line 296: ? "تم توليد وصف التنفيذ من الحقول المختارة."
+Line 305: : "يمكنك كتابة وصف التنفيذ يدويًا الآن.",
+Line 328: "وصف التنفيذ فارغ",
+Line 329: "أدخل وصف التنفيذ أو ولّده من الحقول المختارة قبل المتابعة.",
+Line 349: `/mobile/counselor/report-2/cases/${encodeURIComponent(caseId)}/ready?${query.toString()}`,
+Line 358: subtitle="راجع القالب والحقول ووصف التنفيذ قبل الانتقال إلى التقرير الجاهز للمراجعة."
+Line 492: title="وصف التنفيذ"
+Line 521: {generating ? "جارٍ التوليد..." : "توليد وصف التنفيذ"}
+Line 531: placeholder="اكتب وصف التنفيذ هنا"
+
+===== components\mobile\mobile-report-readable-preview.tsx =====
+Line 240: eyebrow="وصف التنفيذ"
+
+===== components\mobile\mobile-report-ready-page.tsx =====
+Line 123: افتح صفحة التحضير أولًا، ثم احفظ الحقول ووصف التنفيذ.
+Line 136: معاينة التقرير
+
+===== components\mobile\mobile-report-studio-entry.tsx =====
+Line 174: return `/mobile/counselor/report-2/cases/${encodeURIComponent(caseId)}/a4-preview?${params.toString()}`;
+Line 185: return `/mobile/counselor/report-2/cases/${encodeURIComponent(caseId)}/ready?${params.toString()}`;
+Line 196: return `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/studio?${params.toString()}`;
+Line 212: title: "وصف التنفيذ",
+Line 215: ? `${summaryWords} كلمة محفوظة في وصف التنفيذ`
+Line 216: : "أضف وصف التنفيذ من التبويب المخصص",
+Line 234: : "أكمل الحقول ووصف التنفيذ أولًا",
+Line 328: "وصف التنفيذ فارغ",
+Line 329: "أضف وصف التنفيذ قبل حفظ التعديلات.",
+Line 379: { id: "summary", label: "وصف التنفيذ", icon: "spark" },
+Line 406: هذه الصفحة مخصصة للتعديل السريع على الحقول ووصف التنفيذ. لمراجعة التقرير
+Line 553: عدّل عناصر التقرير من الجوال ثم احفظها في نفس تخزين report-flow المستخدم في المسار الكامل.
+Line 613: placeholder="اكتب وصف التنفيذ هنا"
+Line 620: سيتم حفظ وصف التنفيذ هنا ضمن نفس التحضير المقروء من dashboard
+Line 621: report-2.
+
+===== components\report-1\editor\report-one-editor.tsx =====
+Line 120: title: "وصف التنفيذ",
+
+===== components\report-1\report-one-home.tsx =====
+Line 18: router.push(`/dashboard/report-2/cases/${encodeURIComponent(cleanCaseId)}/prepare`);
+
+===== components\report-2\report-two-archive-client.tsx =====
+Line 6: import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
+Line 221: href={`/dashboard/report-2/snapshots/${snapshot.id}/preview`}
+Line 222: aria-label="معاينة التقرير"
+Line 223: title="معاينة التقرير"
+
+===== components\report-2\report-two-home.tsx =====
+Line 2: import { listReportTwoSnapshots } from "@/lib/report-2/report-snapshot-service";
+Line 3: import { ReportTwoArchiveClient } from "@/components/report-2/report-two-archive-client";
+
+===== components\report-2\report-two-linked-assessment-appendix.tsx =====
+
+===== components\report-2\report-two-linked-survey-appendix.tsx =====
+
+===== components\report-2\report-two-pdf-download-button.tsx =====
+Line 100: `/api/dashboard/report-2/cases/${encodeURIComponent(snapshot.caseEntryId)}/export/pdf`,
+
+===== components\report-2\report-two-pdf-export-preview.tsx =====
+Line 7: import { ReportTwoPrintDocument } from "@/components/report-2/report-two-print-document";
+Line 28: id: "report-2-export-empty",
+
+===== components\report-2\report-two-print-document.tsx =====
+
+===== components\report-2\report-two-snapshot-preview.tsx =====
+Line 1: import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
+
+===== components\report-2\report-two-snapshot-print-controller.tsx =====
+
+===== components\report-2\report-two-studio-runtime.tsx =====
+Line 299: return `report-2:saved-runtime-templates:${serviceSlug || "general"}`;
+Line 323: return "report-2:saved-runtime-templates:";
+Line 393: return `report-2:draft:${serviceSlug || "general"}:${caseId || "unknown"}`;
+Line 607: id: template?.id || "report-2-empty-template",
+Line 608: name: template?.name || "قالب report-2",
+Line 626: id: "report-2-fallback-page",
+Line 1628: description: "صفحة تكميلية أنشأها report-2 لحماية حدود A4.",
+Line 3396: return `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/studio?${params.toString()}`;
+Line 3414: return `/dashboard/report-2/cases/${encodeURIComponent(caseId)}/prepare${
+Line 3516: message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+Line 3525: message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+Line 3537: `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/approve`,
+Line 3578: `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+Line 3644: message: "تعذر التقاط معاينة التقرير الحالية للاعتماد.",
+Line 3656: `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/approve`,
+Line 3701: `/dashboard/report-2/snapshots/${result.snapshot?.id}/preview`,
+Line 3737: exportUrl: `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/export/pdf`,
+Line 4451: // استعادة مسودة report-2
+Line 4646: report-2
+Line 4886: معاينة التقرير
+
+===== components\report-engine\admin\admin-reports-center.tsx =====
+
+===== components\report-engine\appreciation-certificate-preview.tsx =====
+
+===== components\report-engine\design-renderers\report-design-gallery-preview.tsx =====
+
+===== components\report-engine\design-renderers\report-design-renderer.tsx =====
+
+===== components\report-engine\document-editor\report-add-block-menu.tsx =====
+
+===== components\report-engine\document-editor\report-block-frame.tsx =====
+Line 19: if (block.type === "NARRATIVE") return "وصف التنفيذ";
+
+===== components\report-engine\document-editor\report-document-editor.tsx =====
+
+===== components\report-engine\document-editor\report-final-preview-modal.tsx =====
+Line 210: <SectionTitle>{block.title || "وصف التنفيذ"}</SectionTitle>
+
+===== components\report-engine\document-editor\report-page-canvas.tsx =====
+Line 315: <SectionTitle>{block.title || "وصف التنفيذ"}</SectionTitle>
+Line 318: placeholder="عنوان وصف التنفيذ"
+Line 323: placeholder="اكتب وصف التنفيذ"
+
+===== components\report-engine\document-editor\report-page-tabs.tsx =====
+
+===== components\report-engine\document-editor\report-table-editor-modal.tsx =====
+
+===== components\report-engine\document-renderers\ministry-report-shell.tsx =====
+
+===== components\report-engine\guardian-summons-letter-preview.tsx =====
+
+===== components\report-engine\official-report-document.tsx =====
+
+===== components\report-engine\report-builder-pdf-renderer.tsx =====
+
+===== components\report-engine\report-document-renderer.tsx =====
+
+===== components\report-engine\report-field-selection-gate.tsx =====
+
+===== components\report-engine\report-print-button.tsx =====
+
+===== components\report-engine\report-template-admin-tools.tsx =====
+
+===== components\report-engine\report-template-command-center.tsx =====
+
+===== components\report-engine\report-template-library.tsx =====
+
+===== components\report-engine\report-template-live-preview.tsx =====
+
+===== components\report-engine\report-template-publish-tools.tsx =====
+
+===== components\report-engine\report-template-studio.tsx =====
+
+===== components\report-engine\saved-reports-list-page.tsx =====
+
+===== components\report-engine\saved-smart-report-preview-page.tsx =====
+
+===== components\report-engine\save-smart-report-button.tsx =====
+
+===== components\report-engine\smart-general-a4-report.tsx =====
+
+===== components\report-engine\smart-report-case-preview-page.tsx =====
+Line 1: import { ReportPrepareFlow } from "@/components/report-flow/report-prepare-flow";
+Line 20: <ReportPrepareFlow
+
+===== components\report-engine\smart-report-document-renderer.tsx =====
+
+===== components\report-engine\smart-report-variant-selector.tsx =====
+Line 32: href={`/dashboard/report-2/cases/${encodeURIComponent(caseId)}/prepare?variant=${variant.id}`}
+
+===== components\report-engine\text-library-block-settings-editor.tsx =====
+
+===== components\report-flow\report-prepare-flow.tsx =====
+Line 44: type ReportPrepareFlowProps = {
+Line 89: export function ReportPrepareFlow({
+Line 94: }: ReportPrepareFlowProps) {
+Line 183: setMessage("تم تحديث مرجع الطالب في الوصف. أعد توليد وصف التنفيذ إذا رغبت في صياغة جديدة.");
+Line 272: setMessage("اختر حقلًا واحدًا على الأقل قبل توليد وصف التنفيذ.");
+Line 279: options?.auto ? "جارٍ توليد وصف التنفيذ من بيانات الحالة..." : "",
+Line 307: throw new Error(data?.error || "تعذر توليد وصف التنفيذ.");
+Line 317: ? "تم تجهيز وصف التنفيذ من بيانات الحالة."
+Line 353: setMessage("انتظر حتى يكتمل تجهيز وصف التنفيذ ثم تابع.");
+Line 450: راجع عناصر التقرير قبل المعاينة
+Line 483: معاينة التقرير
+Line 500: عناصر التقرير
+Line 605: وصف التنفيذ
+Line 672: ? "إعادة توليد وصف التنفيذ"
+Line 673: : "توليد وصف التنفيذ"}
+Line 682: placeholder="اكتب أو ولّد وصف التنفيذ..."
+
+===== components\reports\new-report-case-picker.tsx =====
+Line 256: `/api/dashboard/reports/prepare?caseId=${encodeURIComponent(
+Line 362: href="/dashboard/report-2"
+
+===== components\reports\report-pdf-guidance-card.tsx =====
+Line 48: href="/dashboard/report-2"
+
+===== components\reports\report-preview-toolbar.tsx =====
+Line 155: href="/dashboard/report-2"
+
+===== data\ai-report\generated\teacher-performance-knowledge-bank.json =====
+Line 3730: "id": "unit-completion-report-2255ba4c5c",
+Line 3775: "id": "unit-completion-report-27f34b6d89",
+Line 20614: "id": "school-competition-report-2693bcd86c",
+Line 20659: "id": "school-competition-report-243ec929bd",
+Line 20958: "id": "school-competition-report-2395c17bf0",
+Line 21308: "id": "school-competition-report-2f53f9155a",
+Line 37510: "id": "field-visit-report-235de090b8",
+Line 40753: "id": "scientific-competition-report-220596eb42",
+Line 40913: "id": "scientific-competition-report-2f95369041",
+Line 41265: "id": "scientific-competition-report-20e05722f7",
+Line 42288: "id": "attendance-delay-report-29b90a4256",
+Line 42497: "id": "attendance-delay-report-21c7a925aa",
+Line 42706: "id": "attendance-delay-report-23b078582d",
+Line 43388: "id": "attendance-delay-report-2143eeb24c",
+Line 62586: "id": "parent-communication-report-2418df37fa",
+Line 62923: "id": "parent-communication-report-201abf022a",
+Line 63614: "id": "parent-communication-report-2d0f1e8ccb",
+Line 73240: "id": "school-broadcast-report-2ca0e98440",
+Line 74141: "id": "school-broadcast-report-22162f2fdb",
+Line 74563: "id": "school-broadcast-report-21db9b99fa",
+Line 75784: "id": "cleanliness-campaign-report-23e5ee3876",
+Line 76409: "id": "cleanliness-campaign-report-23fe7d5846",
+Line 76530: "id": "cleanliness-campaign-report-272c1d90ff",
+Line 77912: "id": "environmental-initiative-report-2524818862",
+Line 78980: "id": "environmental-initiative-report-28a884b938",
+Line 79823: "id": "model-lesson-report-2e98ca9858",
+Line 80079: "id": "model-lesson-report-220610b3cc",
+Line 80620: "id": "model-lesson-report-2feae3bbe2",
+Line 80907: "id": "model-lesson-report-2967237303",
+Line 81067: "id": "model-lesson-report-2d8d75a527",
+Line 82680: "id": "workshop-report-25afc80cf9",
+Line 82847: "id": "workshop-report-202e829dd0",
+Line 85223: "id": "career-day-report-20b5d86482",
+Line 85926: "id": "reading-week-report-29146ff73b",
+Line 86006: "id": "reading-week-report-2c1f3e38ec",
+Line 88682: "id": "safety-and-security-program-report-279b5a8f9b",
+Line 90332: "id": "weekly-school-report-2448b7358f",
+Line 122955: "id": "student-activity-report-262091e73d",
+Line 123151: "id": "student-activity-report-203a65ab77",
+Line 123307: "id": "student-activity-report-263dd1286d",
+Line 123424: "id": "student-activity-report-2908840d78",
+Line 124343: "id": "student-activity-report-2a9d9fdca6",
+Line 124382: "id": "student-activity-report-2d6689f0ee",
+Line 124465: "id": "student-guidance-report-23a539cbf1",
+Line 124717: "id": "student-guidance-report-2b5a607fe6",
+Line 124921: "id": "student-guidance-report-2883b71709",
+Line 125128: "id": "student-guidance-report-230a606004",
+Line 125299: "id": "student-guidance-report-295a05ed12",
+Line 125509: "id": "student-guidance-report-2181af8d19",
+Line 126462: "id": "student-guidance-report-2fc7fdc94c",
+Line 127604: "id": "subject-achievement-report-25a53e3a2a",
+Line 161436: "id": "nafes-general-readiness-report-2b11c244d4",
+Line 161614: "id": "nafes-general-readiness-report-2909d96143",
+Line 161837: "id": "nafes-general-readiness-report-24350e52fa",
+Line 162544: "id": "nafes-general-readiness-report-2566e5164d",
+Line 163219: "id": "nafes-general-readiness-report-22e397f5f2",
+Line 163264: "id": "nafes-general-readiness-report-20bb16cadb",
+Line 163355: "id": "nafes-general-readiness-report-22e815e1b9",
+
+===== lib\ai\execution-summary-generator.ts =====
+Line 131: "أنت مساعد لصياغة تقارير مدرسية عربية رسمية. أعد وصف التنفيذ فقط في جملة أو جملتين مكتملتين لا تتجاوز 40 كلمة، دون تعداد أو عناوين أو مقدمات.",
+
+===== lib\report-2\report-linked-assessment-attachments.ts =====
+
+===== lib\report-2\report-linked-survey-attachments.ts =====
+
+===== lib\report-2\report-snapshot-service.ts =====
+
+===== lib\report-engine\document-draft\report-document-a4-paginator.ts =====
+
+===== lib\report-engine\document-draft\report-document-adapter.ts =====
+Line 27: title: block.title || "وصف التنفيذ",
+Line 138: title: narrativeBlock.title || "وصف التنفيذ",
+
+===== lib\report-engine\document-draft\report-document-builder.ts =====
+Line 213: title: payload.narrative.title || "وصف التنفيذ",
+
+===== lib\report-engine\document-draft\report-document-operations.ts =====
+
+===== lib\report-engine\document-draft\report-document-serializer.ts =====
+Line 94: title: narrativeBlock.title || "وصف التنفيذ",
+
+===== lib\report-engine\document-draft\report-document-types.ts =====
+
+===== lib\report-engine\document-draft\report-document-utils.ts =====
+
+===== lib\report-engine\document-draft\report-draft-storage.ts =====
+
+===== lib\report-engine\document-draft\report-signature-policy.ts =====
+
+===== lib\report-engine\document-draft\report-table-utils.ts =====
+
+===== lib\report-engine\extra-official-template-presets.ts =====
+
+===== lib\report-engine\guardian-summons-template-runtime.ts =====
+
+===== lib\report-engine\report-access-scope.ts =====
+
+===== lib\report-engine\report-block-builder.ts =====
+Line 70: title: payload.narrative.title || "وصف التنفيذ",
+
+===== lib\report-engine\report-block-paginator.ts =====
+Line 262: title: narrativeBlock.title || payload.narrative.title || "وصف التنفيذ",
+
+===== lib\report-engine\report-block-types.ts =====
+
+===== lib\report-engine\report-builder-template-runtime.ts =====
+
+===== lib\report-engine\report-case-data-mapper.ts =====
+
+===== lib\report-engine\report-data-mapper.ts =====
+
+===== lib\report-engine\report-draft-merger.ts =====
+
+===== lib\report-engine\report-identity-runtime.ts =====
+
+===== lib\report-engine\report-language-mode.ts =====
+
+===== lib\report-engine\report-page-builder.ts =====
+
+===== lib\report-engine\report-private-fields.ts =====
+
+===== lib\report-engine\report-smart-text-engine.ts =====
+
+===== lib\report-engine\report-smart-text-library.ts =====
+
+===== lib\report-engine\report-snapshot.ts =====
+
+===== lib\report-engine\report-template-builder-presets.ts =====
+
+===== lib\report-engine\report-template-builder-types.ts =====
+
+===== lib\report-engine\report-template-portability.ts =====
+
+===== lib\report-engine\report-template-runtime-types.ts =====
+
+===== lib\report-engine\report-templates.ts =====
+
+===== lib\report-engine\report-template-validation.ts =====
+
+===== lib\report-engine\report-text-library.ts =====
+Line 31: narrativeTitle: "وصف التنفيذ",
+Line 39: narrativeTitle: "وصف التنفيذ",
+Line 47: narrativeTitle: "وصف التنفيذ",
+Line 62: narrativeTitle: "وصف التنفيذ",
+Line 70: narrativeTitle: "وصف التنفيذ",
+Line 78: narrativeTitle: "وصف التنفيذ",
+Line 93: narrativeTitle: "وصف التنفيذ",
+Line 101: narrativeTitle: "وصف التنفيذ",
+Line 109: narrativeTitle: "وصف التنفيذ",
+Line 124: narrativeTitle: "وصف التنفيذ",
+Line 132: narrativeTitle: "وصف التنفيذ",
+Line 140: narrativeTitle: "وصف التنفيذ",
+Line 148: narrativeTitle: "وصف التنفيذ",
+Line 156: narrativeTitle: "وصف التنفيذ",
+Line 171: narrativeTitle: "وصف التنفيذ",
+Line 179: narrativeTitle: "وصف التنفيذ",
+
+===== lib\report-engine\report-text-library-runtime.ts =====
+
+===== lib\report-engine\report-text-studio-presets.ts =====
+
+===== lib\report-engine\report-text-studio-presets.tscode =====
+
+===== lib\report-engine\report-text-studio-types.ts =====
+
+===== lib\report-engine\report-theme.ts =====
+
+===== lib\report-engine\report-types.ts =====
+
+===== lib\report-engine\report-variant-registry.ts =====
+
+===== lib\report-engine\sample-report-data.ts =====
+
+===== lib\report-engine\smart-report-defaults.ts =====
+Line 92: title: "وصف التنفيذ",
+
+===== lib\report-engine\smart-report-payload-builder.ts =====
+Line 1375: title: "وصف التنفيذ",
+
+===== lib\report-engine\smart-report-types.ts =====
+
+===== lib\report-flow\report-flow-payload.ts =====
+Line 205: function buildCustomReportPrepareFields(
+Line 251: return buildCustomReportPrepareFields(payload, languageMode);
+Line 464: title: payload.narrative.title || "وصف التنفيذ",
+
+===== lib\workspace\workspace-modules.ts =====
+Line 28: reports: "/dashboard/report-2",
+
+===== Git status =====
+ M components/account/account-profile-client.tsx
+ M components/admin/workflow-health/workflow-health-report.tsx
+ M next-env.d.ts
+ M prisma/schema.prisma
+?? prisma/migrations/20260709013128_widen_dynamic_field_labels_to_text/

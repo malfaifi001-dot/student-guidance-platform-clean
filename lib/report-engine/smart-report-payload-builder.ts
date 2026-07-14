@@ -260,6 +260,38 @@ function collectWorkflowSnapshotFieldLabels(snapshot: unknown) {
   return labels;
 }
 
+function collectActiveWorkflowFieldKeys(caseEntry: any) {
+  const keys = new Set<string>();
+
+  caseEntry.workflow?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      const key = cleanText(field?.key);
+
+      if (key) {
+        keys.add(key);
+      }
+    });
+  });
+
+  if (keys.size > 0) {
+    return keys;
+  }
+
+  const snapshotLabels = collectWorkflowSnapshotFieldLabels(
+    caseEntry.workflowSnapshot,
+  );
+
+  for (const key of snapshotLabels.keys()) {
+    const cleanKey = cleanText(key);
+
+    if (cleanKey) {
+      keys.add(cleanKey);
+    }
+  }
+
+  return keys;
+}
+
 function buildSmartReportFieldMap(
   caseEntry: any,
   snapshotLabels: Map<string, string>
@@ -268,11 +300,13 @@ function buildSmartReportFieldMap(
 
   caseEntry.workflow?.steps?.forEach((step: any) => {
     step.fields?.forEach((field: any) => {
-      if (!field?.key) return;
+      const key = cleanText(field?.key);
 
-      map.set(field.key, {
-        key: field.key,
-        label: field.label || snapshotLabels.get(field.key) || field.key,
+      if (!key) return;
+
+      map.set(key, {
+        key,
+        label: cleanText(field.label) || snapshotLabels.get(key) || key,
         type: field.type,
         options: field.options || [],
       });
@@ -501,32 +535,23 @@ function applyLanguageModeToSmartReportValue(
 }
 
 function buildReportFieldMap(caseEntry: any) {
+  const snapshotLabels = collectWorkflowSnapshotFieldLabels(
+    caseEntry.workflowSnapshot,
+  );
   const map = new Map<string, FieldLookupItem>();
 
   caseEntry.workflow?.steps?.forEach((step: any) => {
     step.fields?.forEach((field: any) => {
-      if (!field?.key) return;
+      const key = cleanText(field?.key);
 
-      map.set(field.key, {
-        key: field.key,
-        label: field.label,
+      if (!key) return;
+
+      map.set(key, {
+        key,
+        label: cleanText(field.label) || snapshotLabels.get(key) || key,
         type: field.type,
         options: field.options || [],
       });
-    });
-  });
-
-  caseEntry.values?.forEach((value: any) => {
-    const field = value.field;
-    const key = field?.key || value.fieldKey || "";
-
-    if (!key || map.has(key)) return;
-
-    map.set(key, {
-      key,
-      label: field?.label || key,
-      type: field?.type,
-      options: field?.options || [],
     });
   });
 
@@ -681,17 +706,30 @@ function resolveReportOptionDisplayValue(
 }
 
 function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
-  const snapshotLabels = collectWorkflowSnapshotFieldLabels(caseEntry.workflowSnapshot);
+  const snapshotLabels = collectWorkflowSnapshotFieldLabels(
+    caseEntry.workflowSnapshot,
+  );
+  const activeWorkflowFieldKeys = collectActiveWorkflowFieldKeys(caseEntry);
   const fieldMap = buildReportFieldMap(caseEntry);
+  const allowSnapshotFallback = fieldMap.size === 0;
 
   return (caseEntry.values || [])
     .map((item: any) => {
       const key = item.field?.key || item.fieldKey || "";
+
+      if (!key) {
+        return null;
+      }
+
+      if (!activeWorkflowFieldKeys.has(key)) {
+        return null;
+      }
+
       const label =
-        cleanText(item.field?.label) ||
         cleanText(fieldMap.get(key)?.label) ||
-        snapshotLabels.get(key) ||
-        item.fieldKey ||
+        (allowSnapshotFallback ? snapshotLabels.get(key) : "") ||
+        cleanText(item.field?.label) ||
+        key ||
         "حقل بدون اسم";
 
       const resolvedValue = resolveReportOptionDisplayValue(item, fieldMap);
@@ -710,7 +748,11 @@ function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
         importance: classifyField(key, label),
       };
     })
-    .filter((item: CaseValueItem) => {
+    .filter((item: CaseValueItem | null): item is CaseValueItem => {
+      if (!item) {
+        return false;
+      }
+
       return !isTechnicalField(item.key, item.label, item.value);
     });
 }
@@ -1230,25 +1272,13 @@ export async function buildSmartReportPayloadForCase({
     "غير محدد";
 
   const executionMethodText = executionMethodField?.value || "غير محدد";
-  const weekText = weekField?.value || "غير محدد";
 
   const evidence = normalizeEvidence(caseEntry);
-  const consumedKeys = isCustomReport
-    ? new Set<string>()
-    : new Set(
-        [
-          executionDateField?.key,
-          semesterField?.key,
-          executorField?.key,
-          targetGroupField?.key,
-          executionMethodField?.key,
-          weekField?.key,
-        ].filter(Boolean) as string[],
-      );
+  const primaryFields: SmartReportField[] = [];
 
-  const detailFields: SmartReportField[] = values
-    .filter((item) => (isCustomReport ? true : !consumedKeys.has(item.key)))
-    .map((item) => makeDetailField(item, languageMode));
+  const detailFields: SmartReportField[] = values.map((item) =>
+    makeDetailField(item, languageMode),
+  );
 
   const missingItems: string[] = [];
 
@@ -1321,45 +1351,7 @@ export async function buildSmartReportPayloadForCase({
           importance: "PRIMARY" as const,
           group: "حقول التقرير الخاص",
         }))
-      : [
-          makePrimaryField({
-            key: "execution_date",
-            label: "تاريخ التنفيذ / اليوم",
-            value: executionDateText,
-            languageMode,
-          }),
-          makePrimaryField({
-            key: "semester",
-            label: "الفصل الدراسي",
-            value: semesterText,
-            languageMode,
-          }),
-          makePrimaryField({
-            key: "executor",
-            label: "المعلم المنفذ",
-            value: executorText,
-            languageMode,
-            transformValue: false,
-          }),
-          makePrimaryField({
-            key: "target_group",
-            label: "الفئة المستهدفة",
-            value: targetGroupText,
-            languageMode,
-          }),
-          makePrimaryField({
-            key: "execution_method",
-            label: "طريقة التنفيذ",
-            value: executionMethodText,
-            languageMode,
-          }),
-          makePrimaryField({
-            key: "week",
-            label: "الأسبوع",
-            value: weekText,
-            languageMode,
-          }),
-        ],
+      : primaryFields,
     detailFields,
     narrative: isCustomReport
       ? {

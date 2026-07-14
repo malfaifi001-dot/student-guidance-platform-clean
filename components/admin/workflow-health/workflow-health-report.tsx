@@ -86,7 +86,7 @@ export function WorkflowHealthReport({ report }: WorkflowHealthReportProps) {
 
           <div className="space-y-2 text-sm leading-7 text-amber-700">
             {report.warnings.length > 0 ? (
-              report.warnings.map((item) => <p key={item}>• {item}</p>)
+              report.warnings.map((item, index) => <p key={`${item}-${index}`}>• {item}</p>)
             ) : (
               <p>لا توجد تحذيرات.</p>
             )}

@@ -1,0 +1,1543 @@
+===== lib\report-engine\smart-report-payload-builder.ts =====
+    1: import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+    2: import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+    3: import {
+    4:   applyReportLanguageModeToFieldValue,
+    5:   applyReportLanguageModeToText,
+    6:   getReportLanguageModeFromUserGender,
+    7: } from "@/lib/report-engine/report-language-mode";
+    8: import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
+    9: import type {
+   10:   SmartReportEvidenceItem,
+   11:   SmartReportField,
+   12:   SmartReportFieldImportance,
+   13:   SmartReportPayload,
+   14:   SmartReportSignature,
+   15:   SmartReportType,
+   16: } from "@/lib/report-engine/smart-report-types";
+   17: import { prisma } from "@/lib/prisma";
+   18: import {
+   19:   formatWorkflowDisplayValue,
+   20:   getWorkflowFieldKey,
+   21:   getWorkflowFieldLabel,
+   22:   type WorkflowValueLike,
+   23: } from "@/lib/workflow-values/workflow-display-value";
+   24: 
+   25: type CurrentUserLike = {
+   26:   user: {
+   27:     id: string;
+   28:     name: string;
+   29:     role: string;
+   30:     gender?: string | null;
+   31:     officialName?: string | null;
+   32:     jobTitle?: string | null;
+   33:     schoolAccountId?: string | null;
+   34:     schoolAccount?: {
+   35:       name?: string | null;
+   36:       profile?: {
+   37:         schoolName?: string | null;
+   38:         principalName?: string | null;
+   39:         principalSignatureUrl?: string | null;
+   40:         activityLeaderName?: string | null;
+   41:         activityLeaderSignatureUrl?: string | null;
+   42:         counselorSignatureUrl?: string | null;
+   43:         educationDepartment?: string | null;
+   44:         educationOffice?: string | null;
+   45:         academicYear?: string | null;
+   46:         currentSemester?: string | null;
+   47:         logoUrl?: string | null;
+   48:       } | null;
+   49:     } | null;
+   50:   };
+   51: };
+   52: 
+   53: type BuildSmartReportPayloadResult =
+   54:   | {
+   55:       ok: true;
+   56:       payload: SmartReportPayload;
+   57:       serviceSlug: string;
+   58:       caseEntryId: string;
+   59:     }
+   60:   | {
+   61:       ok: false;
+   62:       status: number;
+   63:       message: string;
+   64:     };
+   65: 
+   66: type CaseValueItem = {
+   67:   key: string;
+   68:   label: string;
+   69:   value: string;
+   70:   payloadValue?: string[];
+   71:   importance: SmartReportFieldImportance;
+   72: };
+   73: 
+   74: type FieldLookupItem = {
+   75:   key?: string | null;
+   76:   label?: string | null;
+   77:   type?: string | null;
+   78:   options?: Array<{
+   79:     label?: string | null;
+   80:     value?: string | null;
+   81:     key?: string | null;
+   82:     id?: string | null;
+   83:     name?: string | null;
+   84:     text?: string | null;
+   85:     title?: string | null;
+   86:   }> | null;
+   87: };
+   88: 
+   89: function cleanText(value: unknown) {
+   90:   return String(value ?? "").trim();
+   91: }
+   92: 
+   93: function normalizeArabicText(value: string) {
+   94:   return value
+   95:     .toLowerCase()
+   96:     .replace(/[أإآ]/g, "ا")
+   97:     .replace(/ى/g, "ي")
+   98:     .replace(/ة/g, "ه")
+   99:     .replace(/[_-]+/g, " ")
+  100:     .replace(/\s+/g, " ")
+  101:     .trim();
+  102: }
+  103: 
+  104: function stringifyValue(value: unknown): string {
+  105:   if (value === null || value === undefined) return "";
+  106: 
+  107:   if (
+  108:     typeof value === "string" ||
+  109:     typeof value === "number" ||
+  110:     typeof value === "boolean"
+  111:   ) {
+  112:     return String(value).trim();
+  113:   }
+  114: 
+  115:   if (Array.isArray(value)) {
+  116:     return value
+  117:       .map((item) => stringifyValue(item))
+  118:       .filter(Boolean)
+  119:       .join("، ");
+  120:   }
+  121: 
+  122:   if (typeof value === "object") {
+  123:     const record = value as Record<string, unknown>;
+  124: 
+  125:     for (const key of ["label", "name", "title", "value", "text"]) {
+  126:       const text = stringifyValue(record[key]);
+  127:       if (text) return text;
+  128:     }
+  129: 
+  130:     try {
+  131:       return JSON.stringify(value);
+  132:     } catch {
+  133:       return "";
+  134:     }
+  135:   }
+  136: 
+  137:   return "";
+  138: }
+  139: 
+  140: function formatDateOnly(value: Date | string | null | undefined) {
+  141:   if (!value) return "";
+  142: 
+  143:   try {
+  144:     const date = value instanceof Date ? value : new Date(value);
+  145: 
+  146:     if (Number.isNaN(date.getTime())) {
+  147:       return String(value);
+  148:     }
+  149: 
+  150:     return date.toISOString().slice(0, 10);
+  151:   } catch {
+  152:     return String(value);
+  153:   }
+  154: }
+  155: 
+  156: function formatDayName(value: Date | string | null | undefined) {
+  157:   if (!value) return "";
+  158: 
+  159:   try {
+  160:     const date = value instanceof Date ? value : new Date(value);
+  161: 
+  162:     if (Number.isNaN(date.getTime())) {
+  163:       return "";
+  164:     }
+  165: 
+  166:     return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
+  167:       weekday: "long",
+  168:     }).format(date);
+  169:   } catch {
+  170:     return "";
+  171:   }
+  172: }
+  173: 
+  174: function isTechnicalField(key: string, label: string, value: string) {
+  175:   const text = normalizeArabicText(`${key} ${label}`);
+  176: 
+  177:   return (
+  178:     !value ||
+  179:     text.includes("json") ||
+  180:     key.endsWith("_json") ||
+  181:     key.endsWith("__other") ||
+  182:     text.includes("metadata") ||
+  183:     text === "student" ||
+  184:     text === "guardian" ||
+  185:     text.includes("token") ||
+  186:     text.includes("signature url") ||
+  187:     text.includes("signed at")
+  188:   );
+  189: }
+  190: 
+  191: function classifyField(key: string, label: string): SmartReportFieldImportance {
+  192:   const text = normalizeArabicText(`${key} ${label}`);
+  193: 
+  194:   if (
+  195:     text.includes("وصف") ||
+  196:     text.includes("description") ||
+  197:     text.includes("ملخص") ||
+  198:     text.includes("summary") ||
+  199:     text.includes("نتيجه") ||
+  200:     text.includes("result") ||
+  201:     text.includes("توصيه")
+  202:   ) {
+  203:     return "NARRATIVE";
+  204:   }
+  205: 
+  206:   if (
+  207:     text.includes("شاهد") ||
+  208:     text.includes("مرفق") ||
+  209:     text.includes("evidence") ||
+  210:     text.includes("file") ||
+  211:     text.includes("image")
+  212:   ) {
+  213:     return "EVIDENCE_RELATED";
+  214:   }
+  215: 
+  216:   if (text.includes("signature") || text.includes("توقيع")) {
+  217:     return "SIGNATURE_RELATED";
+  218:   }
+  219: 
+  220:   return "DETAIL";
+  221: }
+  222: 
+  223: function collectWorkflowSnapshotFieldLabels(snapshot: unknown) {
+  224:   const labels = new Map<string, string>();
+  225: 
+  226:   let record: Record<string, unknown> | null = null;
+  227: 
+  228:   if (typeof snapshot === "string") {
+  229:     try {
+  230:       record = JSON.parse(snapshot) as Record<string, unknown>;
+  231:     } catch {
+  232:       record = null;
+  233:     }
+  234:   } else if (snapshot && typeof snapshot === "object") {
+  235:     record = snapshot as Record<string, unknown>;
+  236:   }
+  237: 
+  238:   const steps = Array.isArray(record?.steps) ? record.steps : [];
+  239: 
+  240:   for (const step of steps) {
+  241:     if (!step || typeof step !== "object") continue;
+  242: 
+  243:     const fields = Array.isArray((step as Record<string, unknown>).fields)
+  244:       ? ((step as Record<string, unknown>).fields as unknown[])
+  245:       : [];
+  246: 
+  247:     for (const field of fields) {
+  248:       if (!field || typeof field !== "object") continue;
+  249: 
+  250:       const fieldRecord = field as Record<string, unknown>;
+  251:       const key = cleanText(fieldRecord.key);
+  252:       const label = cleanText(fieldRecord.label);
+  253: 
+  254:       if (key && label) {
+  255:         labels.set(key, label);
+  256:       }
+  257:     }
+  258:   }
+  259: 
+  260:   return labels;
+  261: }
+  262: 
+  263: function buildSmartReportFieldMap(
+  264:   caseEntry: any,
+  265:   snapshotLabels: Map<string, string>
+  266: ) {
+  267:   const map = new Map<string, FieldLookupItem>();
+  268: 
+  269:   caseEntry.workflow?.steps?.forEach((step: any) => {
+  270:     step.fields?.forEach((field: any) => {
+  271:       if (!field?.key) return;
+  272: 
+  273:       map.set(field.key, {
+  274:         key: field.key,
+  275:         label: field.label || snapshotLabels.get(field.key) || field.key,
+  276:         type: field.type,
+  277:         options: field.options || [],
+  278:       });
+  279:     });
+  280:   });
+  281: 
+  282:   return map;
+  283: }
+  284: 
+  285: function normalizeSmartReportCaseValue(
+  286:   value: any,
+  287:   fieldMap: Map<string, FieldLookupItem>,
+  288:   snapshotLabels: Map<string, string>
+  289: ): WorkflowValueLike {
+  290:   const fieldKey = value.field?.key || value.fieldKey || "";
+  291:   const fieldFromWorkflow = fieldMap.get(fieldKey);
+  292: 
+  293:   return {
+  294:     id: value.id,
+  295:     fieldKey,
+  296:     value: value.value,
+  297:     jsonValue: value.jsonValue,
+  298:     field: value.field
+  299:       ? {
+  300:           key: value.field.key || fieldKey,
+  301:           label:
+  302:             value.field.label ||
+  303:             fieldFromWorkflow?.label ||
+  304:             snapshotLabels.get(fieldKey) ||
+  305:             fieldKey,
+  306:           type: value.field.type || fieldFromWorkflow?.type,
+  307:           options: value.field.options || fieldFromWorkflow?.options || [],
+  308:         }
+  309:       : fieldFromWorkflow
+  310:         ? fieldFromWorkflow
+  311:         : {
+  312:             key: fieldKey,
+  313:             label: snapshotLabels.get(fieldKey) || fieldKey,
+  314:             options: [],
+  315:           },
+  316:   };
+  317: }
+  318: 
+  319: function cleanSmartReportOptionText(value: unknown) {
+  320:   return String(value ?? "").trim();
+  321: }
+  322: 
+  323: function uniqueSmartReportItems(items: string[]) {
+  324:   return Array.from(
+  325:     new Set(
+  326:       items
+  327:         .map((item) => cleanSmartReportOptionText(item))
+  328:         .filter(Boolean)
+  329:     )
+  330:   );
+  331: }
+  332: 
+  333: function collectSmartReportArrayValue(value: unknown): unknown[] {
+  334:   if (Array.isArray(value)) {
+  335:     return value;
+  336:   }
+  337: 
+  338:   if (!value || typeof value !== "object") {
+  339:     return [];
+  340:   }
+  341: 
+  342:   const record = value as Record<string, unknown>;
+  343:   const arrayKeys = [
+  344:     "values",
+  345:     "value",
+  346:     "selected",
+  347:     "selectedValues",
+  348:     "selectedOptions",
+  349:     "items",
+  350:     "options",
+  351:     "answers",
+  352:   ];
+  353: 
+  354:   for (const key of arrayKeys) {
+  355:     const candidate = record[key];
+  356: 
+  357:     if (Array.isArray(candidate)) {
+  358:       return candidate;
+  359:     }
+  360:   }
+  361: 
+  362:   return [];
+  363: }
+  364: 
+  365: function getSmartReportOptionLabels(item: WorkflowValueLike) {
+  366:   const source = item as any;
+  367:   const options = Array.isArray(source.field?.options)
+  368:     ? source.field.options
+  369:     : [];
+  370: 
+  371:   const labels = new Map<string, string>();
+  372: 
+  373:   for (const option of options) {
+  374:     const label =
+  375:       cleanSmartReportOptionText(option.label) ||
+  376:       cleanSmartReportOptionText(option.name) ||
+  377:       cleanSmartReportOptionText(option.value) ||
+  378:       cleanSmartReportOptionText(option.key) ||
+  379:       cleanSmartReportOptionText(option.id);
+  380: 
+  381:     if (!label) {
+  382:       continue;
+  383:     }
+  384: 
+  385:     for (const key of [option.value, option.key, option.id, option.label, option.name]) {
+  386:       const cleanKey = cleanSmartReportOptionText(key);
+  387: 
+  388:       if (cleanKey) {
+  389:         labels.set(cleanKey, label);
+  390:       }
+  391:     }
+  392:   }
+  393: 
+  394:   return labels;
+  395: }
+  396: 
+  397: function resolveSmartReportItemLabel(
+  398:   value: unknown,
+  399:   optionLabels: Map<string, string>
+  400: ): string {
+  401:   if (value === null || value === undefined || value === "") {
+  402:     return "";
+  403:   }
+  404: 
+  405:   if (typeof value === "boolean") {
+  406:     return value ? "نعم" : "لا";
+  407:   }
+  408: 
+  409:   if (Array.isArray(value)) {
+  410:     return value
+  411:       .map((item) => resolveSmartReportItemLabel(item, optionLabels))
+  412:       .filter(Boolean)
+  413:       .join("، ");
+  414:   }
+  415: 
+  416:   if (typeof value === "object") {
+  417:     const record = value as Record<string, unknown>;
+  418: 
+  419:     return (
+  420:       resolveSmartReportItemLabel(record.label, optionLabels) ||
+  421:       resolveSmartReportItemLabel(record.name, optionLabels) ||
+  422:       resolveSmartReportItemLabel(record.value, optionLabels) ||
+  423:       resolveSmartReportItemLabel(record.key, optionLabels) ||
+  424:       resolveSmartReportItemLabel(record.id, optionLabels)
+  425:     );
+  426:   }
+  427: 
+  428:   const text = cleanSmartReportOptionText(value);
+  429: 
+  430:   return optionLabels.get(text) || text;
+  431: }
+  432: 
+  433: function splitSmartReportDisplayValue(displayValue: string) {
+  434:   return uniqueSmartReportItems(
+  435:     String(displayValue || "")
+  436:       .split(/\s*(?:،|,|؛|\r?\n)\s*/g)
+  437:       .map((item) => item.trim())
+  438:   );
+  439: }
+  440: 
+  441: function isSmartReportMultiValueField(item: WorkflowValueLike) {
+  442:   const type = String((item as any).field?.type || "").toLowerCase();
+  443: 
+  444:   return (
+  445:     type.includes("multi") ||
+  446:     type.includes("multiple") ||
+  447:     type.includes("checkbox") ||
+  448:     type.includes("checklist")
+  449:   );
+  450: }
+  451: 
+  452: function getSmartReportDisplayItems(
+  453:   item: WorkflowValueLike,
+  454:   displayValue: string
+  455: ) {
+  456:   const source = item as any;
+  457:   const optionLabels = getSmartReportOptionLabels(item);
+  458: 
+  459:   const rawItems =
+  460:     collectSmartReportArrayValue(source.jsonValue).length > 0
+  461:       ? collectSmartReportArrayValue(source.jsonValue)
+  462:       : collectSmartReportArrayValue(source.value);
+  463: 
+  464:   const directItems = uniqueSmartReportItems(
+  465:     rawItems.map((value) => resolveSmartReportItemLabel(value, optionLabels))
+  466:   );
+  467: 
+  468:   if (directItems.length > 1) {
+  469:     return directItems;
+  470:   }
+  471: 
+  472:   if (isSmartReportMultiValueField(item)) {
+  473:     const displayItems = splitSmartReportDisplayValue(displayValue);
+  474: 
+  475:     if (displayItems.length > 1) {
+  476:       return displayItems;
+  477:     }
+  478:   }
+  479: 
+  480:   return [];
+  481: }
+  482: 
+  483: function applyLanguageModeToSmartReportValue(
+  484:   value: string | string[] | undefined,
+  485:   languageMode: ReportLanguageMode,
+  486:   key: string,
+  487:   label: string
+  488: ) {
+  489:   if (Array.isArray(value)) {
+  490:     return value.map((item) =>
+  491:       applyReportLanguageModeToFieldValue(item, languageMode, key, label)
+  492:     );
+  493:   }
+  494: 
+  495:   return applyReportLanguageModeToFieldValue(
+  496:     value || "غير محدد",
+  497:     languageMode,
+  498:     key,
+  499:     label
+  500:   );
+  501: }
+  502: 
+  503: function buildReportFieldMap(caseEntry: any) {
+  504:   const map = new Map<string, FieldLookupItem>();
+  505: 
+  506:   caseEntry.workflow?.steps?.forEach((step: any) => {
+  507:     step.fields?.forEach((field: any) => {
+  508:       if (!field?.key) return;
+  509: 
+  510:       map.set(field.key, {
+  511:         key: field.key,
+  512:         label: field.label,
+  513:         type: field.type,
+  514:         options: field.options || [],
+  515:       });
+  516:     });
+  517:   });
+  518: 
+  519:   caseEntry.values?.forEach((value: any) => {
+  520:     const field = value.field;
+  521:     const key = field?.key || value.fieldKey || "";
+  522: 
+  523:     if (!key || map.has(key)) return;
+  524: 
+  525:     map.set(key, {
+  526:       key,
+  527:       label: field?.label || key,
+  528:       type: field?.type,
+  529:       options: field?.options || [],
+  530:     });
+  531:   });
+  532: 
+  533:   return map;
+  534: }
+  535: 
+  536: function cleanReportOptionText(value: unknown) {
+  537:   return String(value ?? "").trim();
+  538: }
+  539: 
+  540: function buildReportOptionLabelMap(field?: FieldLookupItem | null) {
+  541:   const labels = new Map<string, string>();
+  542:   const options = Array.isArray(field?.options) ? field?.options || [] : [];
+  543: 
+  544:   for (const option of options) {
+  545:     const label =
+  546:       cleanReportOptionText(option.label) ||
+  547:       cleanReportOptionText(option.name) ||
+  548:       cleanReportOptionText(option.text) ||
+  549:       cleanReportOptionText(option.title) ||
+  550:       cleanReportOptionText(option.value) ||
+  551:       cleanReportOptionText(option.key) ||
+  552:       cleanReportOptionText(option.id);
+  553: 
+  554:     if (!label) continue;
+  555: 
+  556:     for (const key of [
+  557:       option.value,
+  558:       option.key,
+  559:       option.id,
+  560:       option.label,
+  561:       option.name,
+  562:       option.text,
+  563:       option.title,
+  564:     ]) {
+  565:       const cleanKey = cleanReportOptionText(key);
+  566:       if (cleanKey) labels.set(cleanKey, label);
+  567:     }
+  568:   }
+  569: 
+  570:   return labels;
+  571: }
+  572: 
+  573: function getReportRawArrayValue(value: unknown): unknown[] {
+  574:   if (Array.isArray(value)) return value;
+  575: 
+  576:   if (!value || typeof value !== "object") return [];
+  577: 
+  578:   const record = value as Record<string, unknown>;
+  579:   const keys = [
+  580:     "values",
+  581:     "value",
+  582:     "selected",
+  583:     "selectedValues",
+  584:     "selectedOptions",
+  585:     "items",
+  586:     "options",
+  587:     "answers",
+  588:   ];
+  589: 
+  590:   for (const key of keys) {
+  591:     const candidate = record[key];
+  592: 
+  593:     if (Array.isArray(candidate)) return candidate;
+  594:   }
+  595: 
+  596:   return [];
+  597: }
+  598: 
+  599: function resolveReportOptionItemLabel(
+  600:   value: unknown,
+  601:   optionLabels: Map<string, string>
+  602: ): string {
+  603:   if (value === null || value === undefined || value === "") return "";
+  604: 
+  605:   if (typeof value === "boolean") return value ? "نعم" : "لا";
+  606: 
+  607:   if (Array.isArray(value)) {
+  608:     return value
+  609:       .map((item) => resolveReportOptionItemLabel(item, optionLabels))
+  610:       .filter(Boolean)
+  611:       .join("، ");
+  612:   }
+  613: 
+  614:   if (typeof value === "object") {
+  615:     const record = value as Record<string, unknown>;
+  616: 
+  617:     return (
+  618:       resolveReportOptionItemLabel(record.label, optionLabels) ||
+  619:       resolveReportOptionItemLabel(record.name, optionLabels) ||
+  620:       resolveReportOptionItemLabel(record.text, optionLabels) ||
+  621:       resolveReportOptionItemLabel(record.title, optionLabels) ||
+  622:       resolveReportOptionItemLabel(record.value, optionLabels) ||
+  623:       resolveReportOptionItemLabel(record.key, optionLabels) ||
+  624:       resolveReportOptionItemLabel(record.id, optionLabels)
+  625:     );
+  626:   }
+  627: 
+  628:   const text = cleanReportOptionText(value);
+  629:   return optionLabels.get(text) || text;
+  630: }
+  631: 
+  632: function uniqueReportOptionItems(items: string[]) {
+  633:   return Array.from(
+  634:     new Set(
+  635:       items
+  636:         .map((item) => cleanReportOptionText(item))
+  637:         .filter(Boolean)
+  638:     )
+  639:   );
+  640: }
+  641: 
+  642: function resolveReportOptionDisplayValue(
+  643:   caseValue: any,
+  644:   fieldMap: Map<string, FieldLookupItem>
+  645: ): string | string[] {
+  646:   const key = caseValue.field?.key || caseValue.fieldKey || "";
+  647:   const field = caseValue.field || fieldMap.get(key);
+  648:   const optionLabels = buildReportOptionLabelMap(field);
+  649:   const raw = caseValue.jsonValue ?? caseValue.value;
+  650: 
+  651:   const rawArray = getReportRawArrayValue(raw);
+  652: 
+  653:   if (rawArray.length) {
+  654:     const labels = uniqueReportOptionItems(
+  655:       rawArray.map((item) => resolveReportOptionItemLabel(item, optionLabels))
+  656:     );
+  657: 
+  658:     return labels.length > 1 ? labels : labels[0] || "";
+  659:   }
+  660: 
+  661:   if (typeof raw === "string") {
+  662:     const text = cleanReportOptionText(raw);
+  663: 
+  664:     if (optionLabels.has(text)) {
+  665:       return optionLabels.get(text) || text;
+  666:     }
+  667: 
+  668:     const parts = text
+  669:       .split(/\s*(?:،|,|؛|\r?\n)\s*/g)
+  670:       .map((item) => item.trim())
+  671:       .filter(Boolean);
+  672: 
+  673:     if (parts.length > 1 && parts.every((part) => optionLabels.has(part))) {
+  674:       return uniqueReportOptionItems(
+  675:         parts.map((part) => optionLabels.get(part) || part)
+  676:       );
+  677:     }
+  678:   }
+  679: 
+  680:   return resolveReportOptionItemLabel(raw, optionLabels) || stringifyValue(raw);
+  681: }
+  682: 
+  683: function normalizeCaseValues(caseEntry: any): CaseValueItem[] {
+  684:   const snapshotLabels = collectWorkflowSnapshotFieldLabels(caseEntry.workflowSnapshot);
+  685:   const fieldMap = buildReportFieldMap(caseEntry);
+  686: 
+  687:   return (caseEntry.values || [])
+  688:     .map((item: any) => {
+  689:       const key = item.field?.key || item.fieldKey || "";
+  690:       const label =
+  691:         cleanText(item.field?.label) ||
+  692:         cleanText(fieldMap.get(key)?.label) ||
+  693:         snapshotLabels.get(key) ||
+  694:         item.fieldKey ||
+  695:         "حقل بدون اسم";
+  696: 
+  697:       const resolvedValue = resolveReportOptionDisplayValue(item, fieldMap);
+  698:       const payloadValue = Array.isArray(resolvedValue)
+  699:         ? resolvedValue.filter(Boolean)
+  700:         : undefined;
+  701:       const value = Array.isArray(resolvedValue)
+  702:         ? resolvedValue.filter(Boolean).join("، ")
+  703:         : cleanText(resolvedValue);
+  704: 
+  705:       return {
+  706:         key,
+  707:         label,
+  708:         value,
+  709:         ...(payloadValue && payloadValue.length > 1 ? { payloadValue } : {}),
+  710:         importance: classifyField(key, label),
+  711:       };
+  712:     })
+  713:     .filter((item: CaseValueItem) => {
+  714:       return !isTechnicalField(item.key, item.label, item.value);
+  715:     });
+  716: }
+  717: 
+  718: function findByIntent(values: CaseValueItem[], intents: string[]) {
+  719:   const normalizedIntents = intents.map(normalizeArabicText);
+  720: 
+  721:   return (
+  722:     values.find((item) => {
+  723:       const text = normalizeArabicText(`${item.key} ${item.label}`);
+  724:       return normalizedIntents.some((intent) => text.includes(intent));
+  725:     }) || null
+  726:   );
+  727: }
+  728: 
+  729: function findTitle(caseEntry: any, values: CaseValueItem[]) {
+  730:   const fromCase = String(caseEntry.title || "").trim();
+  731: 
+  732:   if (fromCase && fromCase !== "بدون عنوان" && fromCase.length < 120) {
+  733:     return fromCase;
+  734:   }
+  735: 
+  736:   const titleField = findByIntent(values, [
+  737:     "activity title",
+  738:     "activity name",
+  739:     "program title",
+  740:     "program name",
+  741:     "عنوان النشاط",
+  742:     "اسم النشاط",
+  743:     "عنوان البرنامج",
+  744:     "اسم البرنامج",
+  745:     "الموضوع",
+  746:     "title",
+  747:   ]);
+  748: 
+  749:   return titleField?.value || caseEntry.service?.name || "تقرير حالة";
+  750: }
+  751: 
+  752: function buildReportType(serviceSlug: string): SmartReportType {
+  753:   if (serviceSlug === "custom-report") return "SUMMARY_REPORT";
+  754: 
+  755:   if (serviceSlug.startsWith("activity-programs")) return "ACTIVITY_REPORT";
+  756: 
+  757:   if (serviceSlug.includes("committees") || serviceSlug.includes("meetings")) {
+  758:     return "MEETING_REPORT";
+  759:   }
+  760: 
+  761:   if (serviceSlug.includes("family") || serviceSlug.includes("guardian")) {
+  762:     return "FAMILY_COMMUNICATION_REPORT";
+  763:   }
+  764: 
+  765:   if (serviceSlug.includes("follow")) return "STUDENT_FOLLOWUP_REPORT";
+  766: 
+  767:   return "GENERAL_CASE_REPORT";
+  768: }
+  769: 
+  770: function makePrimaryField({
+  771:   key,
+  772:   label,
+  773:   value,
+  774:   languageMode,
+  775:   transformValue = true,
+  776: }: {
+  777:   key: string;
+  778:   label: string;
+  779:   value: string;
+  780:   languageMode: ReportLanguageMode;
+  781:   transformValue?: boolean;
+  782: }): SmartReportField {
+  783:   return {
+  784:     key,
+  785:     label: applyReportLanguageModeToText(label, languageMode),
+  786:     value: transformValue
+  787:       ? applyReportLanguageModeToFieldValue(
+  788:           value || "غير محدد",
+  789:           languageMode,
+  790:           key,
+  791:           label,
+  792:         )
+  793:       : value || "غير محدد",
+  794:     importance: "PRIMARY",
+  795:   };
+  796: }
+  797: 
+  798: function makeDetailField(
+  799:   item: CaseValueItem,
+  800:   languageMode: ReportLanguageMode,
+  801: ): SmartReportField {
+  802:   const value = item.payloadValue && item.payloadValue.length > 1
+  803:     ? item.payloadValue.map((entry) =>
+  804:         applyReportLanguageModeToFieldValue(
+  805:           entry,
+  806:           languageMode,
+  807:           item.key,
+  808:           item.label,
+  809:         )
+  810:       )
+  811:     : applyReportLanguageModeToFieldValue(
+  812:         item.value || "غير محدد",
+  813:         languageMode,
+  814:         item.key,
+  815:         item.label,
+  816:       );
+  817: 
+  818:   return {
+  819:     key: item.key,
+  820:     label: applyReportLanguageModeToText(item.label, languageMode),
+  821:     value,
+  822:     importance: item.importance,
+  823:     group: item.importance === "NARRATIVE" ? "وصف وتفاصيل" : "تفاصيل الحالة",
+  824:   };
+  825: }
+  826: 
+  827: const SMART_REPORT_IMAGE_EVIDENCE_EXTENSION_PATTERN =
+  828:   /\.(png|jpe?g|webp|gif|avif)(?:[?#].*)?$/i;
+  829: 
+  830: function hasSmartReportImageEvidenceExtension(value: unknown) {
+  831:   const text = cleanText(value).replaceAll("\\", "/");
+  832: 
+  833:   if (!text) return false;
+  834: 
+  835:   return SMART_REPORT_IMAGE_EVIDENCE_EXTENSION_PATTERN.test(text);
+  836: }
+  837: 
+  838: function isImageEvidence(item: any) {
+  839:   const evidenceType = cleanText(item?.type).toUpperCase();
+  840:   const mimeType = cleanText(item?.mimeType).toLowerCase();
+  841: 
+  842:   if (evidenceType === "IMAGE") return true;
+  843:   if (mimeType.startsWith("image/")) return true;
+  844: 
+  845:   return [
+  846:     item?.fileUrl,
+  847:     item?.url,
+  848:     item?.imageUrl,
+  849:     item?.publicUrl,
+  850:     item?.fileName,
+  851:     item?.originalName,
+  852:     item?.name,
+  853:   ].some((value) => hasSmartReportImageEvidenceExtension(value));
+  854: }
+  855: 
+  856: function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
+  857:   const normalItems: SmartReportEvidenceItem[] = (caseEntry.evidences || [])
+  858:     .filter((item: any) => Boolean(item.fileUrl || item.url))
+  859:     .map((item: any) => ({
+  860:       id: item.id,
+  861:       title: item.fileName || item.note || "شاهد",
+  862:       caption: item.note || undefined,
+  863:       url: item.fileUrl || item.url || undefined,
+  864:       type: isImageEvidence(item) ? "IMAGE" : "FILE",
+  865:       ...(item.title ? { title: item.title } : {}),
+  866:       ...(item.caption ? { caption: item.caption } : {}),
+  867:     }));
+  868: 
+  869:   const caseEvidenceItems: SmartReportEvidenceItem[] = (
+  870:     caseEntry.caseEvidences || []
+  871:   )
+  872:     .filter((item: any) => Boolean(item.fileUrl || item.url))
+  873:     .map((item: any) => ({
+  874:       id: item.id,
+  875:       title: item.fileName || "شاهد",
+  876:       url: item.fileUrl || item.url,
+  877:       type: isImageEvidence(item) ? "IMAGE" : "FILE",
+  878:       ...(item.title ? { title: item.title } : {}),
+  879:       ...(item.caption || item.note
+  880:         ? { caption: item.caption || item.note }
+  881:         : {}),
+  882:     }));
+  883: 
+  884:   const assignmentEvidenceItems: SmartReportEvidenceItem[] = Array.isArray(
+  885:     caseEntry.activityAssignment?.submittedEvidenceItems,
+  886:   )
+  887:     ? caseEntry.activityAssignment.submittedEvidenceItems
+  888:         .filter((item: any) => Boolean(item?.fileUrl || item?.url))
+  929:   return (
+  930:     ACTIVITY_REPORT_SERVICE_SLUGS.has(slug) ||
+  931:     slug.startsWith("activity-programs/") ||
+  932:     slug.startsWith("activity-programs-")
+  933:   );
+  934: }
+  935: 
+  936: function buildSignatures(
+  937:   caseEntry: any,
+  938:   current: CurrentUserLike,
+  939:   languageMode: ReportLanguageMode,
+  940: ): SmartReportSignature[] {
+  941:   const profile = resolveSchoolProfileForReport(caseEntry, current);
+  942:   const serviceSlug = caseEntry.service?.slug || "";
+  943:   const isActivity = isActivityProgramReportService(serviceSlug);
+  944:   const transformTitle = (value: string) =>
+  945:     applyReportLanguageModeToText(value, languageMode);
+  946: 
+  947:   const signatures: SmartReportSignature[] = [];
+  948: 
+  949:   signatures.push({
+  950:     key: "principal",
+  951:     label: transformTitle("مدير المدرسة"),
+  952:     signerName: profile?.principalName || "مدير المدرسة",
+  953:     signerTitle: transformTitle("مدير المدرسة"),
+  954:     imageUrl: profile?.principalSignatureUrl || null,
+  955:     required: false,
+  956:   });
+  957: 
+  958:   if (isActivity) {
+  959:     signatures.push({
+  960:       key: "activity_leader",
+  961:       label: transformTitle("رائد النشاط"),
+  962:       signerName:
+  963:         profile?.activityLeaderName ||
+  964:         current.user.officialName ||
+  965:         current.user.name,
+  966:       signerTitle: transformTitle("رائد النشاط"),
+  967:       imageUrl: profile?.activityLeaderSignatureUrl || profile?.counselorSignatureUrl || null,
+  968:       required: true,
+  969:     });
+  970:   } else {
+  971:     signatures.push({
+  972:       key: "counselor",
+  973:       label: transformTitle("الموجه الطلابي"),
+  974:       signerName: current.user.officialName || current.user.name,
+  975:       signerTitle: current.user.jobTitle || transformTitle("الموجه الطلابي"),
+  976:       imageUrl: profile?.counselorSignatureUrl || profile?.activityLeaderSignatureUrl || null,
+  977:       required: true,
+  978:     });
+  979:   }
+  980: 
+  981:   if (caseEntry.activityAssignment?.teacherName) {
+  982:     signatures.push({
+  983:       key: "teacher",
+  984:       label: transformTitle("توقيع المعلم المنفذ"),
+  985:       signerName:
+  986:         caseEntry.activityAssignment.teacherSignedName ||
+  987:         caseEntry.activityAssignment.teacherName,
+  988:       signerTitle: transformTitle("المعلم المنفذ"),
+  989:       imageUrl: caseEntry.activityAssignment.teacherSignatureUrl || null,
+  990:       signedAt: caseEntry.activityAssignment.teacherSignedAt?.toISOString?.() || null,
+  991:       required: true,
+  992:     });
+  993:   }
+  994: 
+  995:   return signatures;
+  996: }
+  997: 
+  998: function buildNarrative({
+  999:   title,
+ 1000:   serviceName,
+ 1001:   semester,
+ 1002:   executor,
+ 1003:   executionDate,
+ 1004:   targetGroup,
+ 1005:   executionMethod,
+ 1006:   evidenceCount,
+ 1007:   languageMode,
+ 1008: }: {
+ 1009:   title: string;
+ 1010:   serviceName: string;
+ 1011:   semester: string;
+ 1012:   executor: string;
+ 1013:   executionDate: string;
+ 1014:   targetGroup: string;
+ 1015:   executionMethod: string;
+ 1016:   evidenceCount: number;
+ 1017:   languageMode: ReportLanguageMode;
+ 1018: }) {
+ 1019:   const executorRole = applyReportLanguageModeToText("المعلم المنفذ", languageMode);
+ 1020:   const safeTargetGroup = applyReportLanguageModeToFieldValue(
+ 1021:     targetGroup || "الفئة المستهدفة",
+ 1022:     languageMode,
+ 1023:     "target_group",
+ 1024:     "الفئة المستهدفة",
+ 1025:   );
+ 1026:   const safeExecutionMethod = applyReportLanguageModeToFieldValue(
+ 1027:     executionMethod || "غير محددة",
+ 1028:     languageMode,
+ 1029:     "execution_method",
+ 1030:     "طريقة التنفيذ",
+ 1031:   );
+ 1032: 
+ 1033:   return [
+ 1034:     `تم تنفيذ برنامج النشاط الطلابي «${title}» ضمن مجال ${serviceName}.`,
+ 1035:     `ونُفذ البرنامج خلال ${semester || "الفصل الدراسي المحدد"}، ${languageMode === "FEMALE" ? "وتولت التنفيذ" : "وتولى التنفيذ"} ${executorRole} ${executor || "غير محدد"}.`,
+ 1036:     `وكان تاريخ التنفيذ ${executionDate || "غير محدد"}.`,
+ 1037:     `واستهدف البرنامج ${safeTargetGroup}.`,
+ 1038:     `وجرى التنفيذ وفق آلية: ${safeExecutionMethod}.`,
+ 1039:     `وتم توثيق النشاط من خلال ${evidenceCount} شاهد/مرفق محفوظ في الحالة.`,
+ 1040:   ].join(" ");
+ 1041: }
+ 1042: 
+ 1043: export async function buildSmartReportPayloadForCase({
+ 1044:   caseId,
+ 1045:   current,
+ 1046: }: {
+ 1047:   caseId: string;
+ 1048:   current: CurrentUserLike;
+ 1049: }): Promise<BuildSmartReportPayloadResult> {
+ 1050:   if (!caseId) {
+ 1051:     return {
+ 1052:       ok: false,
+ 1053:       status: 400,
+ 1054:       message: "رقم الحالة مطلوب.",
+ 1055:     };
+ 1056:   }
+ 1057: 
+ 1058:   const isAdmin = current.user.role === "ADMIN";
+ 1059: 
+ 1060:   if (!isAdmin && !current.user.schoolAccountId) {
+ 1061:     return {
+ 1065:     };
+ 1066:   }
+ 1067: 
+ 1068:   const caseEntry = await prisma.caseEntry.findFirst({
+ 1069:     where: {
+ 1070:       id: caseId,
+ 1071:       ...buildCaseEntryReportWhereForUser(current.user),
+ 1072:     },
+ 1073:     include: {
+ 1074:       schoolAccount: {
+ 1075:         include: {
+ 1076:           profile: true,
+ 1077:         },
+ 1078:       },
+ 1079:       service: true,
+ 1080:       workflow: {
+ 1081:         include: {
+ 1082:           steps: {
+ 1083:             include: {
+ 1084:               fields: {
+ 1085:                 include: {
+ 1086:                   options: {
+ 1087:                     orderBy: {
+ 1088:                       order: "asc",
+ 1089:                     },
+ 1090:                   },
+ 1091:                 },
+ 1092:                 orderBy: {
+ 1093:                   order: "asc",
+ 1094:                 },
+ 1095:               },
+ 1096:             },
+ 1097:             orderBy: {
+ 1098:               order: "asc",
+ 1099:             },
+ 1100:           },
+ 1101:         },
+ 1102:       },
+ 1103:       student: {
+ 1104:         include: {
+ 1105:           guardian: true,
+ 1106:         },
+ 1107:       },
+ 1108:       createdBy: true,
+ 1109:       values: {
+ 1110:         include: {
+ 1111:           field: {
+ 1112:             include: {
+ 1113:               options: true,
+ 1114:             },
+ 1115:           },
+ 1116:         },
+ 1117:         orderBy: {
+ 1118:           createdAt: "asc",
+ 1119:         },
+ 1120:       },
+ 1121:       evidences: {
+ 1122:         orderBy: {
+ 1123:           createdAt: "asc",
+ 1124:         },
+ 1125:       },
+ 1126:       caseEvidences: {
+ 1127:         orderBy: {
+ 1128:           createdAt: "asc",
+ 1129:         },
+ 1130:       },
+ 1131:       activityAssignment: true,
+ 1132:     },
+ 1133:   });
+ 1134: 
+ 1135:   if (!caseEntry) {
+ 1136:     return {
+ 1137:       ok: false,
+ 1138:       status: 404,
+ 1139:       message: "لم يتم العثور على الحالة أو لا تملك صلاحية الوصول لها.",
+ 1140:     };
+ 1141:   }
+ 1142: 
+ 1143:   const languageMode = getReportLanguageModeFromUserGender(current.user.gender);
+ 1144:   const values = filterPrivateReportValues(normalizeCaseValues(caseEntry));
+ 1145:   const title = findTitle(caseEntry, values);
+ 1146:   const serviceSlug = caseEntry.service?.slug || "general";
+ 1147:   const isCustomReport = serviceSlug === "custom-report";
+ 1148:   const serviceName = caseEntry.service?.name || "خدمة";
+ 1149:   const reportType = buildReportType(serviceSlug);
+ 1150:   const profile = resolveSchoolProfileForReport(caseEntry, current);
+ 1151: 
+ 1152:   const executionDateField = findByIntent(values, [
+ 1153:     "execution date",
+ 1154:     "activity date",
+ 1155:     "meeting date",
+ 1156:     "gregorian date",
+ 1157:     "date",
+ 1158:     "تاريخ التنفيذ",
+ 1159:     "تاريخ",
+ 1160:     "اليوم",
+ 1161:   ]);
+ 1162: 
+ 1163:   const semesterField = findByIntent(values, [
+ 1164:     "semester",
+ 1165:     "term",
+ 1166:     "الفصل الدراسي",
+ 1167:     "الفصل",
+ 1168:   ]);
+ 1169: 
+ 1170:   const executorField = findByIntent(values, [
+ 1171:     "executor",
+ 1172:     "teacher",
+ 1173:     "activity leader",
+ 1174:     "assigned teacher",
+ 1175:     "المعلم المنفذ",
+ 1176:     "المعلم",
+ 1177:     "المنفذ",
+ 1178:     "رائد النشاط",
+ 1179:   ]);
+ 1180: 
+ 1181:   const targetGroupField = findByIntent(values, [
+ 1182:     "target group",
+ 1183:     "beneficiaries",
+ 1184:     "target",
+ 1185:     "الفئة المستهدفة",
+ 1186:     "المستفيدون",
+ 1187:     "الصف",
+ 1188:     "الفصول",
+ 1189:   ]);
+ 1190: 
+ 1191:   const executionMethodField = findByIntent(values, [
+ 1192:     "execution method",
+ 1193:     "method",
+ 1194:     "mechanism",
+ 1195:     "آلية التنفيذ",
+ 1196:     "الية التنفيذ",
+ 1197:     "طريقة التنفيذ",
+ 1198:   ]);
+ 1199: 
+ 1200:   const weekField = findByIntent(values, [
+ 1201:     "week",
+ 1202:     "school week",
+ 1203:     "الأسبوع",
+ 1204:     "اسبوع",
+ 1205:   ]);
+ 1206: 
+ 1207:   const dateText =
+ 1208:     executionDateField?.value ||
+ 1209:     formatDateOnly(caseEntry.submittedAt || caseEntry.createdAt);
+ 1210: 
+ 1211:   const dayText = formatDayName(executionDateField?.value || caseEntry.createdAt);
+ 1212:   const executionDateText = dayText ? `${dateText} - ${dayText}` : dateText;
+ 1213: 
+ 1214:   const semesterText =
+ 1215:     semesterField?.value ||
+ 1216:     profile?.currentSemester ||
+ 1217:     "الفصل الدراسي غير محدد";
+ 1218: 
+ 1219:   const executorText =
+ 1220:     executorField?.value ||
+ 1221:     caseEntry.activityAssignment?.teacherName ||
+ 1222:     current.user.officialName ||
+ 1223:     current.user.name ||
+ 1224:     "غير محدد";
+ 1225: 
+ 1226:   const targetGroupText =
+ 1227:     targetGroupField?.value ||
+ 1228:     caseEntry.student?.grade ||
+ 1229:     caseEntry.student?.stage ||
+ 1230:     "غير محدد";
+ 1231: 
+ 1232:   const executionMethodText = executionMethodField?.value || "غير محدد";
+ 1233:   const weekText = weekField?.value || "غير محدد";
+ 1234: 
+ 1235:   const evidence = normalizeEvidence(caseEntry);
+ 1236:   const consumedKeys = isCustomReport
+ 1237:     ? new Set<string>()
+ 1238:     : new Set(
+ 1239:         [
+ 1240:           executionDateField?.key,
+ 1241:           semesterField?.key,
+ 1242:           executorField?.key,
+ 1243:           targetGroupField?.key,
+ 1244:           executionMethodField?.key,
+ 1245:           weekField?.key,
+ 1246:         ].filter(Boolean) as string[],
+ 1247:       );
+ 1248: 
+ 1249:   const detailFields: SmartReportField[] = values
+ 1250:     .filter((item) => (isCustomReport ? true : !consumedKeys.has(item.key)))
+ 1251:     .map((item) => makeDetailField(item, languageMode));
+ 1252: 
+ 1253:   const missingItems: string[] = [];
+ 1254: 
+ 1255:   if (!isCustomReport) {
+ 1256:     if (!evidence.length) {
+ 1257:       missingItems.push("لا توجد شواهد مرفقة.");
+ 1258:     }
+ 1259: 
+ 1260:     if (!executorText || executorText === "غير محدد") {
+ 1261:       missingItems.push("اسم المنفذ غير محدد.");
+ 1262:     }
+ 1263:   }
+ 1264: 
+ 1265:   const percentage = Math.max(40, 100 - missingItems.length * 15);
+ 1266: 
+ 1267:   const payload: SmartReportPayload = {
+ 1268:     reportType,
+ 1269:     languageMode,
+ 1270:     title,
+ 1271:     identity: {
+ 1272:       ministryName: "وزارة التعليم",
+ 1273:       educationDepartment:
+ 1274:         profile?.educationDepartment || "الإدارة العامة للتعليم",
+ 1275:       educationOffice: profile?.educationOffice || "مكتب التعليم",
+ 1276:       schoolName:
+ 1277:         profile?.schoolName ||
+ 1278:         caseEntry.schoolAccount?.name ||
+ 1279:         current.user.schoolAccount?.name ||
+ 1280:         "اسم المدرسة",
+ 1281:       schoolLogoUrl: profile?.logoUrl || "/uploads/school-logos/MOE.png",
+ 1282:       academicYear: profile?.academicYear || "العام الدراسي",
+ 1283:       currentSemester: profile?.currentSemester || semesterText,
+ 1284:       counselorName: current.user.officialName || current.user.name || "",
+ 1303:     service: {
+ 1304:       slug: serviceSlug,
+ 1305:       name: serviceName,
+ 1306:     },
+ 1307:     student: caseEntry.student
+ 1308:       ? {
+ 1309:           name: caseEntry.student.fullName || undefined,
+ 1310:           nationalId: caseEntry.student.nationalId || undefined,
+ 1311:           grade: caseEntry.student.grade || undefined,
+ 1312:           classroom: caseEntry.student.classroom || undefined,
+ 1313:           stage: caseEntry.student.stage || undefined,
+ 1314:           guardianName: caseEntry.student.guardian?.name || undefined,
+ 1315:           guardianPhone: caseEntry.student.guardian?.phone || undefined,
+ 1316:         }
+ 1317:       : null,
+ 1318:     primaryFields: isCustomReport
+ 1319:       ? detailFields.map((field) => ({
+ 1320:           ...field,
+ 1321:           importance: "PRIMARY" as const,
+ 1322:           group: "حقول التقرير الخاص",
+ 1323:         }))
+ 1324:       : [
+ 1325:           makePrimaryField({
+ 1326:             key: "execution_date",
+ 1327:             label: "تاريخ التنفيذ / اليوم",
+ 1328:             value: executionDateText,
+ 1329:             languageMode,
+ 1330:           }),
+ 1331:           makePrimaryField({
+ 1332:             key: "semester",
+ 1333:             label: "الفصل الدراسي",
+ 1334:             value: semesterText,
+ 1335:             languageMode,
+ 1336:           }),
+ 1337:           makePrimaryField({
+ 1338:             key: "executor",
+ 1339:             label: "المعلم المنفذ",
+ 1340:             value: executorText,
+ 1341:             languageMode,
+ 1342:             transformValue: false,
+ 1343:           }),
+ 1344:           makePrimaryField({
+ 1345:             key: "target_group",
+ 1346:             label: "الفئة المستهدفة",
+ 1347:             value: targetGroupText,
+ 1348:             languageMode,
+ 1349:           }),
+ 1350:           makePrimaryField({
+ 1351:             key: "execution_method",
+ 1352:             label: "طريقة التنفيذ",
+ 1353:             value: executionMethodText,
+ 1354:             languageMode,
+ 1355:           }),
+ 1356:           makePrimaryField({
+ 1357:             key: "week",
+ 1358:             label: "الأسبوع",
+ 1359:             value: weekText,
+ 1360:             languageMode,
+ 1361:           }),
+ 1362:         ],
+ 1363:     detailFields,
+ 1364:     narrative: isCustomReport
+ 1365:       ? {
+ 1366:           title: "ملخص التقرير",
+ 1367:           body:
+ 1368:             detailFields.length > 0
+ 1369:               ? detailFields
+ 1370:                   .map((field) => `${field.label}: ${field.value || "غير محدد"}`)
+ 1371:                   .join("، ")
+ 1372:               : "تم إنشاء تقرير خاص من بيانات الحالة.",
+ 1373:         }
+ 1374:       : {
+ 1375:           title: "وصف التنفيذ",
+ 1376:           body: buildNarrative({
+ 1377:             title,
+ 1378:             serviceName,
+ 1379:             semester: semesterText,
+ 1380:             executor: executorText,
+ 1381:             executionDate: executionDateText,
+ 1382:             targetGroup: targetGroupText,
+ 1383:             executionMethod: executionMethodText,
+ 1384:             evidenceCount: evidence.length,
+ 1385:             languageMode,
+ 1386:           }),
+ 1387:         },
+ 1388:     evidence: {
+ 1389:       layout: "GRID_2X2",
+ 1390:       items: evidence,
+ 1391:     },
+ 1392:     signatures: buildSignatures(caseEntry, current, languageMode),
+ 1393:     readiness: {
+ 1394:       status: missingItems.length ? "NEEDS_REVIEW" : "READY",
+ 1395:       percentage,
+ 1396:       missingItems,
+ 1397:       notes: [],
+ 1398:     },
+ 1399:   };
+ 1400: 
+ 1401:   return {
+ 1402:     ok: true,
+ 1403:     payload,
+ 1404:     serviceSlug,
+ 1405:     caseEntryId: caseEntry.id,
+
+===== lib\report-engine\smart-report-types.ts =====
+   19:   | "TECHNICAL";
+   20: 
+   21: export type SmartReportReadinessStatus =
+   22:   | "READY"
+   23:   | "NEEDS_REVIEW"
+   24:   | "BLOCKED";
+   25: 
+   26: export type SmartReportEvidenceLayout =
+   27:   | "ONE_PER_PAGE"
+   28:   | "TWO_PER_PAGE"
+   29:   | "GRID_2X2"
+   30:   | "ATTACHMENT_LIST";
+   31: 
+   32: export type SmartReportField = {
+   33:   key: string;
+   34:   label: string;
+   35:   value: string | string[] | number | boolean | null;
+   36:   importance: SmartReportFieldImportance;
+   37:   group?: string;
+   38: };
+   39: 
+   40: export type SmartReportEvidenceItem = {
+   41:   id: string;
+   42:   title: string;
+   43:   url?: string;
+   44:   caption?: string;
+   45:   type?: "IMAGE" | "FILE";
+   46: };
+   47: 
+   48: export type SmartReportSignature = {
+   49:   key: string;
+   50:   label: string;
+   51:   signerName?: string | null;
+   52:   signerTitle?: string | null;
+   53:   signedAt?: string | null;
+   54:   imageUrl?: string | null;
+   55:   required?: boolean;
+   56: };
+   57: 
+   58: export type SmartReportIdentity = {
+   59:   ministryName?: string;
+   60:   educationDepartment?: string;
+   61:   educationOffice?: string;
+   62:   schoolName?: string;
+   63:   schoolLogoUrl?: string;
+   64:   academicYear?: string;
+   65:   currentSemester?: string;
+   66:   counselorName?: string;
+   67:   counselorSignatureUrl?: string;
+   68:   principalName?: string;
+   69:   principalSignatureUrl?: string;
+   70:   activityLeaderName?: string;
+   71:   activityLeaderSignatureUrl?: string;
+   72:   schoolLeaderName?: string;
+   73:   schoolLeaderSignatureUrl?: string;
+   74:   userName?: string;
+   75:   userSignatureUrl?: string;
+   76: };
+   77: 
+   78: export type SmartReportCaseInfo = {
+   79:   id: string;
+   80:   title: string;
+   81:   status?: string;
+   82:   createdAt?: string;
+   83:   issuedAt?: string;
+   84:   issuedBy?: string;
+   85: };
+  126:     highlightHeaderRow: boolean;
+  127:     highlightFirstColumn: boolean;
+  128:     repeatHeaderOnPageBreak: boolean;
+  129:     rounded: boolean;
+  130:     compact: boolean;
+  131:   };
+  132:   columns: Array<{
+  133:     id: string;
+  134:     title: string;
+  135:     width?: number;
+  136:   }>;
+  137:   rows: Array<{
+  138:     id: string;
+  139:     cells: Array<{
+  140:       id: string;
+  141:       value: string;
+  142:     }>;
+  143:   }>;
+  144: };
+  145: 
+  146: export type SmartReportCustomBlockZone =
+  147:   | "PAGE_TOP"
+  148:   | "BEFORE_EVIDENCE"
+  149:   | "AFTER_EVIDENCE"
+  150:   | "BEFORE_SIGNATURES";
+  151: 
+  152: export type SmartReportCustomBlock = {
+  153:   id: string;
+  154:   type: SmartReportCustomBlockType;
+  155:   title: string;
+  156:   body: string;
+  157:   table?: SmartReportCustomTableData;
+  158:   targetPageIndex?: number;
+  159:   targetZone?: SmartReportCustomBlockZone;
+  160:   order?: number;
+  161: };
+  162: 
+  163: export type SmartReportPayload = {
+  164:   reportType: SmartReportType;
+  165:   languageMode: ReportLanguageMode;
+  166:   title: string;
+  167:   identity: SmartReportIdentity;
+  168:   caseInfo: SmartReportCaseInfo;
+  169:   service: SmartReportServiceInfo;
+  170:   student?: SmartReportStudentInfo | null;
+  171:   primaryFields: SmartReportField[];
+  172:   detailFields: SmartReportField[];
+  173:   narrative: {
+  174:     title: string;
+  175:     body: string;
+  176:     visible?: boolean;
+  177:   };
+  178:   evidence: {
+  179:     layout: SmartReportEvidenceLayout;
+  180:     items: SmartReportEvidenceItem[];
+  181:   };
+  182:   signatures: SmartReportSignature[];
+  183:   readiness: SmartReportReadiness;
+  184:   evidenceConfig?: ReportEvidenceConfig;
+  185:   customBlocks?: SmartReportCustomBlock[];
+  186: };
+  187: 
+  188: export type ReportDraftAdjustments = {
+  189:   title?: string;
+  190:   narrative?: {
+  191:     title?: string;
+  192:     body?: string;
+  193:   };
+  194:   primaryFields?: Array<{
+  195:     key: string;
+  196:     value: string;
+  197:   }>;
+  198:   detailFields?: Array<{
+  199:     key: string;
+  200:     value: string;
+  201:   }>;
+  202:   caseInfo?: {
+  203:     issuedAt?: string;
+  204:     issuedBy?: string;
+  205:   };
+  206:   evidenceConfig?: ReportEvidenceConfig;
+  207:   customBlocks?: SmartReportCustomBlock[];
+  208: };
+
+===== lib\report-engine\report-private-fields.ts =====
+    1: export const REPORT_ATTACHED_CERTIFICATES_FIELD_KEY =
+    2:   "report_attached_certificate_ids";
+    3: 
+    4: const PRIVATE_REPORT_FIELD_KEYS = new Set([
+    5:   REPORT_ATTACHED_CERTIFICATES_FIELD_KEY,
+    6: ]);
+    7: 
+    8: export function isPrivateReportFieldKey(fieldKey: unknown) {
+    9:   return PRIVATE_REPORT_FIELD_KEYS.has(String(fieldKey || "").trim());
+   10: }
+   11: 
+   12: function getPossibleFieldKey(item: unknown) {
+   13:   if (!item || typeof item !== "object") {
+   14:     return "";
+   15:   }
+   16: 
+   17:   const record = item as Record<string, any>;
+   18: 
+   19:   return String(
+   20:     record.fieldKey ||
+   21:       record.key ||
+   22:       record.name ||
+   23:       record.id ||
+   24:       record.code ||
+   25:       record.slug ||
+   26:       record.field?.key ||
+   27:       record.field?.fieldKey ||
+   28:       record.dynamicField?.key ||
+   29:       record.dynamicField?.fieldKey ||
+   30:       "",
+   31:   ).trim();
+   32: }
+   33: 
+   34: export function filterPrivateReportValues<T>(values: T[] | null | undefined): T[] {
+   35:   if (!Array.isArray(values)) {
+   36:     return [];
+   37:   }
+   38: 
+   39:   return values.filter((item) => {
+   40:     const key = getPossibleFieldKey(item);
+   41: 
+   42:     return !isPrivateReportFieldKey(key);
+   43:   });
+   44: }

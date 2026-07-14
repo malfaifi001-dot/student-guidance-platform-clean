@@ -1,0 +1,1435 @@
+===== components\workflow\dynamic-form-renderer.tsx =====
+    9: import { SmartFeedbackModal } from "@/components/service-ui/smart-feedback-modal";
+   10: import {
+   11:   WorkflowStepCard,
+   12:   isCommitteeChainStep,
+   13: } from "@/components/workflow/workflow-step-card";
+   14: 
+   15: import { isCommitteeRowsValid } from "@/components/committees/committee-chain-repeater";
+   16: import { SPECIAL_REPORT_FIXED_FIELD_KEYS } from "@/lib/special-report/catalog";
+   17: import { SPECIAL_REPORT_SERVICE_SLUG } from "@/lib/special-report/types";
+   18: 
+   19: import type {
+   20:   RuntimeField,
+   21:   RuntimeStep,
+   22:   RuntimeWorkflow,
+   23: } from "@/engine/runtime/runtime-resolver";
+   24: import type { RuntimeValues } from "@/engine/runtime/field-dependency-engine";
+   25: import {
+   26:   normalizeWorkflowEvidenceMode,
+   27:   normalizeWorkflowStudentPickerMode,
+   28: } from "@/lib/workflows/workflow-runtime-settings";
+   29: 
+   30: export type EvidenceItem = {
+   31:   id: string;
+   32:   fileName: string;
+   33:   fileUrl: string;
+   34:   mimeType: string;
+   35:   size: number;
+   36: };
+   37: 
+   38: type FeedbackState = {
+   39:   open: boolean;
+   40:   type: "success" | "error" | "warning" | "info";
+   41:   title: string;
+   42:   message?: string;
+   43: };
+   44: 
+   45: type SmartStudent = {
+   46:   id: string;
+   47:   fullName: string;
+   48:   nationalId?: string | null;
+   49:   grade?: string | null;
+   50:   classroom?: string | null;
+   51:   stage?: string | null;
+   52:   guardianName?: string | null;
+   53:   guardianPhone?: string | null;
+   54: };
+   55: 
+   56: export type DynamicFormRendererSaveMode = "draft" | "submit";
+   57: 
+   58: export type DynamicFormRendererSaveParams = {
+   59:   type: DynamicFormRendererSaveMode;
+   60:   workflow: RuntimeWorkflow;
+   61:   serviceId: string;
+   62:   title: string | null;
+   63:   caseId?: string;
+   64:   values: RuntimeValues;
+   65:   evidenceItems: EvidenceItem[];
+   66:   selectedStudents: SmartStudent[];
+   67:   primarySelectedStudent: SmartStudent | null;
+   68: };
+   69: 
+   70: export type DynamicFormRendererSaveResult = {
+   71:   redirectTo?: string;
+   72:   feedbackTitle?: string;
+   73:   feedbackMessage?: string;
+   74: };
+   75: 
+   76: export type DynamicFormRendererSaveHandler = (
+   77:   params: DynamicFormRendererSaveParams,
+   78: ) => Promise<DynamicFormRendererSaveResult | void>;
+   79: 
+   80: type Props = {
+   81:   workflow: RuntimeWorkflow;
+   82:   serviceId: string;
+   83:   requiresStudent?: boolean;
+   84:   title?: string | null;
+   85:   caseId?: string;
+   86:   initialValues?: RuntimeValues;
+   87:   initialEvidenceItems?: EvidenceItem[];
+   88:   previewMode?: boolean;
+   89:   caseDetailsBasePath?: string;
+   90:   onSave?: DynamicFormRendererSaveHandler;
+   91:   onValuesChange?: (values: RuntimeValues) => void;
+   92:   onEvidenceItemsChange?: (items: EvidenceItem[]) => void;
+   93:   onFieldLabelPersisted?: (field: {
+   94:     id: string;
+   95:     key: string;
+   96:     label: string;
+   97:   }) => void;
+   98: };
+   99: 
+  100: /**
+  101:  * خدمات تسمح بالشواهد على مستوى النظام.
+  102:  * الظهور الفعلي للشواهد لا يكون هنا فقط؛ بل لازم تكون الخطوة الحالية خطوة شواهد.
+  103:  */
+  104: const SERVICES_WITH_EVIDENCE = new Set([
+  105:   "guidance-programs",
+  106:   "student-follow-up",
+  107:   "family-school-communication",
+  108:   "student-guidance-services",
+  109:   "committees-meetings",
+  110:   "activity-programs",
+  111: ]);
+  112: 
+  113: /**
+  114:  * خدمات تحتاج اختيار طالب/طالبة افتراضيًا.
+  115:  * يمكن تجاوزها من الصفحة عبر requiresStudent={false}.
+  116:  */
+  117: const SERVICES_REQUIRING_STUDENT = new Set([
+  118:   "student-follow-up",
+  119:   "family-school-communication",
+  120:   "student-guidance-services",
+  121: ]);
+  122: 
+  123: function normalizeRuntimeText(value: string) {
+  124:   return value
+  125:     .toLowerCase()
+  126:     .replace(/[أإآ]/g, "ا")
+  127:     .replace(/ى/g, "ي")
+  128:     .replace(/ة/g, "ه")
+  129:     .replace(/\s+/g, " ")
+  130:     .trim();
+  131: }
+  132: 
+  133: function stepSearchText(step?: RuntimeStep | null) {
+  134:   if (!step) return "";
+  135: 
+  136:   return normalizeRuntimeText(
+  137:     [
+  138:       step.title,
+  139:       step.description ?? "",
+  140:       ...step.fields.map((field) =>
+  141:         [
+  142:           field.key,
+  143:           field.label,
+  144:           field.type,
+  145:           field.placeholder ?? "",
+  146:           field.helpText ?? "",
+  147:         ].join(" ")
+  148:       ),
+  149:     ].join(" ")
+  150:   );
+  151: }
+  152: 
+  153: function isEvidenceField(field: RuntimeField) {
+  154:   const text = normalizeRuntimeText(
+  155:     [
+  181: 
+  182: function isEvidenceStep(step?: RuntimeStep | null) {
+  183:   if (!step) return false;
+  184: 
+  185:   const text = stepSearchText(step);
+  186: 
+  187:   return (
+  188:     step.fields.some(isEvidenceField) ||
+  189:     text.includes("evidence") ||
+  190:     text.includes("attachment") ||
+  191:     text.includes("attachments") ||
+  192:     text.includes("شواهد") ||
+  193:     text.includes("الشواهد") ||
+  194:     text.includes("مرفقات") ||
+  195:     text.includes("المرفقات")
+  196:   );
+  197: }
+  198: 
+  199: function isStudentPickerField(field: RuntimeField) {
+  200:   const text = normalizeRuntimeText(
+  201:     [field.key, field.label, field.type, field.helpText ?? ""].join(" ")
+  202:   );
+  203: 
+  204:   return (
+  205:     field.type === "STUDENT_PICKER" ||
+  206:     text.includes("student_picker") ||
+  207:     text.includes("student picker") ||
+  208:     text.includes("اختيار طالب") ||
+  209:     text.includes("اختيار الطالبه") ||
+  210:     text.includes("اختيار الطالبة") ||
+  211:     text.includes("الطالب المستهدف") ||
+  212:     text.includes("الطالبه المستهدفه") ||
+  213:     text.includes("الطالبة المستهدفة")
+  214:   );
+  215: }
+  216: 
+  217: function isStudentPickerStep(step?: RuntimeStep | null) {
+  218:   if (!step) return false;
+  219: 
+  220:   const text = stepSearchText(step);
+  221: 
+  222:   return (
+  223:     step.fields.some(isStudentPickerField) ||
+  224:     text.includes("student_picker") ||
+  225:     text.includes("student picker") ||
+  226:     text.includes("اختيار طالب") ||
+  227:     text.includes("اختيار الطالبة") ||
+  228:     text.includes("الطالب المستهدف")
+  229:   );
+  230: }
+  231: 
+  232: 
+  233: function isCommitteeChainRuntimeField(field: RuntimeField) {
+  234:   const text = normalizeRuntimeText(
+  235:     [
+  236:       field.key,
+  237:       field.label,
+  238:       field.type,
+  239:       field.placeholder ?? "",
+  240:       field.helpText ?? "",
+  241:     ].join(" ")
+  242:   );
+  243: 
+  244:   return (
+  245:     text.includes("agenda") ||
+  246:     text.includes("agendaitem") ||
+  247:     text.includes("committee_agenda") ||
+  248:     text.includes("جدول") ||
+  249:     text.includes("الاعمال") ||
+  250:     text.includes("discussion") ||
+  251:     text.includes("discussionaxis") ||
+  252:     text.includes("committee_discussion") ||
+  253:     text.includes("محور") ||
+  254:     text.includes("نقاش") ||
+  255:     text.includes("recommendation") ||
+  256:     text.includes("committee_recommendation") ||
+  257:     text.includes("توصي")
+  258:   );
+  259: }
+  260: 
+  261: const RUNTIME_SERVICE_LABELS: Record<string, string> = {
+  262:   "guidance-programs": "البرامج الإرشادية",
+  263:   "student-follow-up": "متابعة الطلاب",
+  264:   "family-school-communication": "التواصل بين الأسرة والمدرسة",
+  265:   "student-guidance-services": "الخدمات الإرشادية",
+  266:   "committees-meetings": "اللجان والاجتماعات",
+  267:   "activity-programs": "برامج النشاط",
+  268:   "activity-programs-citizenship-life": "برامج النشاط - المواطنة والحياة",
+  269:   "activity-programs-science-technology": "برامج النشاط - العلوم والتقنية",
+  270:   "activity-programs-culture-arts": "برامج النشاط - الثقافة والفنون",
+  271:   "activity-programs-sports-health": "برامج النشاط - الرياضة والصحة",
+  272:   "activity-programs-scouting": "برامج النشاط - النشاط الكشفي",
+  273:   "activity-programs-events-occasions": "برامج النشاط - الأيام والمناسبات",
+  274:   "activity-programs-non-class-periods": "برامج النشاط - الفترات اللاصفية",
+  275: };
+  276: 
+  277: const RUNTIME_CASE_TITLE_FALLBACK_LABELS: Record<string, string> = {
+  278:   positive_behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+  279:   behavior_discipline: "برنامج تعزيز السلوك الإيجابي والانضباط المدرسي",
+  280: };
+  281: 
+  282: function normalizeRuntimeCaseTitleText(value: string) {
+  283:   return value
+  284:     .toLowerCase()
+  285:     .replace(/[أإآ]/g, "ا")
+  286:     .replace(/ى/g, "ي")
+  287:     .replace(/ة/g, "ه")
+  288:     .replace(/\s+/g, " ")
+  289:     .trim();
+  290: }
+  291: 
+  292: function cleanRuntimeCaseTitle(value: unknown) {
+  293:   const text = String(value ?? "").trim();
+  294: 
+  295:   if (!text || text === "null" || text === "undefined" || text.length > 140) {
+  296:     return "";
+  297:   }
+  298: 
+  299:   return text;
+  300: }
+  414:         return candidate;
+  415:       }
+  416:     }
+  417:   }
+  418: 
+  419:   const cleanFallback = cleanRuntimeCaseTitle(fallbackTitle);
+  420: 
+  421:   if (cleanFallback && !isGenericRuntimeCaseTitle(cleanFallback)) {
+  422:     return cleanFallback;
+  423:   }
+  424: 
+  425:   return RUNTIME_SERVICE_LABELS[workflow.serviceSlug] || workflow.name || "حالة جديدة";
+  426: }
+  427: 
+  428: function hasEvidenceStep(workflow: RuntimeWorkflow) {
+  429:   return workflow.steps.some(isEvidenceStep);
+  430: }
+  431: 
+  432: function hasStudentPickerStep(workflow: RuntimeWorkflow) {
+  433:   return workflow.steps.some(isStudentPickerStep);
+  434: }
+  435: 
+  436: function isEmptyValue(value: unknown) {
+  437:   return (
+  438:     value === undefined ||
+  439:     value === null ||
+  440:     value === "" ||
+  441:     (Array.isArray(value) && value.length === 0)
+  442:   );
+  443: }
+  444: 
+  445: export function DynamicFormRenderer({
+  446:   workflow,
+  447:   serviceId,
+  448:   requiresStudent,
+  449:   title,
+  450:   caseId,
+  451:   initialValues,
+  452:   initialEvidenceItems,
+  453:   previewMode = false,
+  454:   caseDetailsBasePath = "/dashboard/cases",
+  455:   onSave,
+  456:   onValuesChange,
+  457:   onEvidenceItemsChange,
+  458:   onFieldLabelPersisted,
+  459: }: Props) {
+  460:   const router = useRouter();
+  461: 
+  462:   const steps = useMemo(() => {
+  463:     return [...workflow.steps]
+  464:       .sort((a, b) => a.order - b.order)
+  465:       .map((step) => ({
+  466:         ...step,
+  467:         fields: [...step.fields]
+  468:           .sort((a, b) => a.order - b.order)
+  469:           .map((field) => ({
+  470:             ...field,
+  471:             options: [...field.options].sort((a, b) => a.order - b.order),
+  472:           })),
+  473:       }));
+  474:   }, [workflow.steps]);
+  475: 
+  476:   const normalizedWorkflow: RuntimeWorkflow = useMemo(
+  477:     () => ({
+  478:       ...workflow,
+  479:       steps,
+  480:     }),
+  481:     [workflow, steps]
+  482:   );
+  483: 
+  484:   const workflowHasEvidenceStep = useMemo(
+  485:     () => hasEvidenceStep(normalizedWorkflow),
+  486:     [normalizedWorkflow]
+  487:   );
+  488: 
+  489:   const workflowHasStudentPickerStep = useMemo(
+  490:     () => hasStudentPickerStep(normalizedWorkflow),
+  491:     [normalizedWorkflow]
+  492:   );
+  493: 
+  494:   const workflowStudentPickerMode = normalizeWorkflowStudentPickerMode(
+  495:     (workflow as RuntimeWorkflow & { studentPickerMode?: unknown })
+  496:       .studentPickerMode,
+  497:   );
+  498:   const workflowEvidenceMode = normalizeWorkflowEvidenceMode(
+  499:     (workflow as RuntimeWorkflow & { evidenceMode?: unknown }).evidenceMode,
+  500:   );
+  501:   const serviceDefaultSupportsEvidence =
+  502:     SERVICES_WITH_EVIDENCE.has(workflow.serviceSlug) || workflowHasEvidenceStep;
+  503:   const supportsEvidence =
+  504:     workflowEvidenceMode === "ENABLED"
+  505:       ? true
+  506:       : workflowEvidenceMode === "DISABLED"
+  507:         ? false
+  508:         : serviceDefaultSupportsEvidence;
+  509: 
+  510:   const workflowStudentPickerDecision =
+  511:     workflowStudentPickerMode === "REQUIRED"
+  512:       ? true
+  513:       : workflowStudentPickerMode === "DISABLED"
+  514:         ? false
+  515:         : undefined;
+  516: 
+  517:   const needsStudent =
+  518:     workflowStudentPickerDecision ??
+  519:     requiresStudent ??
+  520:     SERVICES_REQUIRING_STUDENT.has(workflow.serviceSlug);
+  521: 
+  522:   // WORKFLOW_STUDENT_PICKER_MODE_RUNTIME_MARKER
+  523: 
+  524:   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  525:   const [values, setValues] = useState<RuntimeValues>(initialValues ?? {});
+  526:   const [selectedStudents, setSelectedStudents] = useState<SmartStudent[]>(
+  527:     () => extractInitialStudents(initialValues)
+  528:   );
+  529: 
+  530:   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>(
+  531:     initialEvidenceItems ?? []
+  532:   );
+  533:   const [fieldLabelOverrides, setFieldLabelOverrides] = useState<
+  534:     Record<string, string>
+  535:   >({});
+  536: 
+  537:   const [loading, setLoading] = useState(false);
+  538: 
+  539:   const [feedback, setFeedback] = useState<FeedbackState>({
+  540:     open: false,
+  541:     type: "info",
+  542:     title: "",
+  543:   });
+  544: 
+  545:   const currentStep = steps[currentStepIndex];
+  546:   const isFirstStep = currentStepIndex === 0;
+  547:   const isLastStep = currentStepIndex === steps.length - 1;
+  548:   const primarySelectedStudent = selectedStudents[0] ?? null;
+  549:   const allowRuntimeFieldLabelEditing =
+  550:     normalizedWorkflow.serviceSlug === SPECIAL_REPORT_SERVICE_SLUG;
+  551:   const displayCurrentStep = currentStep
+  552:     ? {
+  553:         ...currentStep,
+  554:         fields: currentStep.fields.map((field) => ({
+  555:           ...field,
+  556:           label: fieldLabelOverrides[field.id] ?? field.label,
+  557:         })),
+  558:       }
+  559:     : null;
+  560: 
+  561:   useEffect(() => {
+  562:     setFieldLabelOverrides({});
+  563:   }, [workflow.id]);
+  564: 
+  565:   useEffect(() => {
+  566:     onValuesChange?.(values);
+  567:   }, [onValuesChange, values]);
+  568: 
+  569:   useEffect(() => {
+  570:     onEvidenceItemsChange?.(evidenceItems);
+  571:   }, [evidenceItems, onEvidenceItemsChange]);
+  572: 
+  573:   const showEvidenceCard =
+  574:     supportsEvidence &&
+  575:     (isEvidenceStep(displayCurrentStep) ||
+  576:       (workflowEvidenceMode === "ENABLED" &&
+  577:         !workflowHasEvidenceStep &&
+  578:         isLastStep));
+  579: 
+  580:   const showStudentPickerCard =
+  581:     needsStudent &&
+  582:     (isStudentPickerStep(displayCurrentStep) ||
+  583:       (!workflowHasStudentPickerStep && isFirstStep));
+  584: 
+  585:   const showStudentSummaryCard =
+  586:     needsStudent && !showStudentPickerCard && selectedStudents.length > 0;
+  587: 
+  588:   function showFeedback(
+  589:     type: FeedbackState["type"],
+  590:     titleText: string,
+  591:     message?: string
+  592:   ) {
+  593:     setFeedback({
+  594:       open: true,
+  595:       type,
+  596:       title: titleText,
+  597:       message,
+  598:     });
+  599:   }
+  600: 
+  601:   function isFieldLabelEditable(field: RuntimeField) {
+  602:     if (!allowRuntimeFieldLabelEditing) {
+  603:       return false;
+  604:     }
+  605: 
+  606:     return !SPECIAL_REPORT_FIXED_FIELD_KEYS.includes(
+  607:       field.key as (typeof SPECIAL_REPORT_FIXED_FIELD_KEYS)[number]
+  608:     );
+  609:   }
+  610: 
+  611:   async function handleFieldLabelUpdate(
+  612:     fieldId: string,
+  613:     fieldKey: string,
+  614:     nextLabel: string
+  615:   ) {
+  616:     const response = await fetch(
+  617:       `/api/dashboard/special-report/runtime/fields/${fieldId}`,
+  618:       {
+  619:         method: "PATCH",
+  620:         headers: {
+  621:           "Content-Type": "application/json",
+  770:             }
+  771:           }
+  772:         }
+  773:       }
+  774: 
+  775:       for (const key of dependentKeys) {
+  776:         delete next[key];
+  777:         delete next[`${key}__other`];
+  778:       }
+  779: 
+  780:       if (dependentKeys.size === 0) {
+  781:         return next;
+  782:       }
+  783: 
+  784:       return applyAutoSelectedDefaults(next);
+  785:     });
+  786:   }
+  787: 
+  788:   function handleStudentsChanged(nextStudents: SmartStudent[]) {
+  789:     const normalizedStudents = dedupeSelectedStudents(nextStudents);
+  790:     setSelectedStudents(normalizedStudents);
+  791: 
+  792:     setValues((current) => ({
+  793:       ...current,
+  794:       ...buildSelectedStudentsValues(normalizedStudents),
+  795:     }));
+  796:   }
+  797: 
+  798:   function validateStudentSelection() {
+  799:     if (!needsStudent) return true;
+  800: 
+  801:     if (selectedStudents.length > 0) return true;
+  802: 
+  803:     showFeedback(
+  804:       "warning",
+  805:       "اختيار الطالب/الطالبة مطلوب",
+  806:       "اختر الطالب/الطالبة أولًا قبل حفظ أو إرسال الحالة."
+  807:     );
+  808: 
+  809:     return false;
+  810:   }
+  811: 
+  812:   function shouldShowFieldInCurrentValues(field: RuntimeField) {
+  813:     if (!field.dependsOnFieldKey) return true;
+  814: 
+  815:     const parentValue = values[field.dependsOnFieldKey];
+  816: 
+  817:     if (isEmptyValue(parentValue)) return false;
+  818: 
+  819:     if (!field.linkedToValue) return true;
+  820: 
+  821:     if (Array.isArray(parentValue)) {
+  822:       return parentValue.map(String).includes(String(field.linkedToValue));
+  823:     }
+  824: 
+  825:     return String(parentValue) === String(field.linkedToValue);
+  826:   }
+  827: 
+  828:   function validateCurrentStep() {
+  829:     if (!validateStudentSelection()) return false;
+  830: 
+  831:     if (!displayCurrentStep) return true;
+  832: 
+  833:     const isCommitteeChainCurrentStep =
+  834:       workflow.serviceSlug === "committees-meetings" &&
+  835:       isCommitteeChainStep(displayCurrentStep);
+  836: 
+  837:     if (
+  838:       isCommitteeChainCurrentStep &&
+  839:       !isCommitteeRowsValid(values.committee_items)
+  840:     ) {
+  841:       showFeedback(
+  842:         "warning",
+  843:         "جدول الاجتماع غير مكتمل",
+  844:         "أكمل صفًا واحدًا على الأقل: جدول الأعمال، محور النقاش، والتوصية."
+  845:       );
+  846: 
+  847:       return false;
+  848:     }
+  849: 
+  850:     const visibleFields = displayCurrentStep.fields
+  851:       .filter(shouldShowFieldInCurrentValues)
+  852:       .filter((field) =>
+  853:         isCommitteeChainCurrentStep
+  854:           ? !isCommitteeChainRuntimeField(field)
+  855:           : true
+  856:       );
+  857: 
+  858:     for (const field of visibleFields) {
+  859:       if (!field.isRequired) continue;
+  860: 
+  861:       const value = values[field.key];
+  862: 
+  863:       if (isEmptyValue(value)) {
+  864:         showFeedback(
+  865:           "warning",
+  866:           "حقل مطلوب",
+  867:           `يرجى تعبئة الحقل: ${field.label}`
+  868:         );
+  869: 
+  870:         return false;
+  871:       }
+  872: 
+  873:       if (value === "__OTHER__" && isEmptyValue(values[`${field.key}__other`])) {
+  874:         showFeedback(
+  875:           "warning",
+  876:           "تفصيل خيار أخرى مطلوب",
+  877:           `يرجى كتابة قيمة خيار أخرى في الحقل: ${field.label}`
+  878:         );
+  879: 
+  880:         return false;
+  881:       }
+  882: 
+  883:       if (
+  884:         Array.isArray(value) &&
+  885:         value.includes("__OTHER__") &&
+  886:         isEmptyValue(values[`${field.key}__other`])
+  887:       ) {
+  888:         showFeedback(
+  889:           "warning",
+  890:           "تفصيل خيار أخرى مطلوب",
+  891:           `يرجى كتابة قيمة خيار أخرى في الحقل: ${field.label}`
+  892:         );
+  893: 
+  894:         return false;
+  895:       }
+  896:     }
+  897: 
+  898:     return true;
+  899:   }
+  900: 
+  901:   async function handleSave(type: "draft" | "submit") {
+  902:     if (!validateStudentSelection()) return;
+  903:     if (type === "submit" && !validateCurrentStep()) return;
+  904: 
+  905:     try {
+  906:       setLoading(true);
+  907:       const nextValues = {
+  908:         ...values,
+  909:         ...buildSelectedStudentsValues(selectedStudents),
+  910:       };
+  911:       const fallbackTitle = getSmartRuntimeCaseTitle({
+  912:         workflow: normalizedWorkflow,
+  913:         values,
+  914:         fallbackTitle: title || workflow.name,
+  915:       });
+  916: 
+  917:       let redirectTo: string | undefined;
+  918:       let feedbackTitle =
+  919:         type === "submit" ? "تم إرسال الحالة" : "تم حفظ المسودة";
+  920:       let feedbackMessage = "تم حفظ البيانات بنجاح.";
+  921: 
+  922:       if (onSave) {
+  923:         const result = await onSave({
+  924:           type,
+  925:           workflow: normalizedWorkflow,
+  926:           serviceId,
+  927:           title: fallbackTitle,
+  928:           caseId,
+  929:           values: nextValues,
+  930:           evidenceItems: supportsEvidence ? evidenceItems : [],
+  931:           selectedStudents,
+  932:           primarySelectedStudent,
+  933:         });
+  934: 
+  935:         redirectTo = result?.redirectTo;
+  936:         feedbackTitle = result?.feedbackTitle || feedbackTitle;
+  937:         feedbackMessage = result?.feedbackMessage || feedbackMessage;
+  938:       } else {
+  939:         const endpoint = caseId
+  940:           ? `/api/dashboard/cases/${caseId}`
+  941:           : type === "submit"
+  942:             ? "/api/dashboard/cases/submit"
+  943:             : "/api/dashboard/cases/save-draft";
+  944: 
+  945:         const response = await fetch(endpoint, {
+  946:           method: caseId ? "PATCH" : "POST",
+  947:           headers: {
+  948:             "Content-Type": "application/json",
+  949:           },
+  950:           body: JSON.stringify({
+  951:             workflowId: workflow.id,
+  952:             serviceId,
+  953:             title: fallbackTitle,
+  954:             studentId: primarySelectedStudent?.id ?? null,
+  955:             values: nextValues,
+  956:             status: type === "submit" ? "SUBMITTED" : "DRAFT",
+  957:             evidenceItems: supportsEvidence ? evidenceItems : [],
+  958:           }),
+  959:         });
+  960: 
+  961:         const data = await response.json();
+  962: 
+  963:         if (!response.ok) {
+  964:           throw new Error(data.error || "حدث خطأ أثناء حفظ الحالة.");
+  965:         }
+  966: 
+  967:         redirectTo = `${caseDetailsBasePath}/${data.caseId}`;
+  968:       }
+  969: 
+  970:       showFeedback("success", feedbackTitle, feedbackMessage);
+  971: 
+  972:       if (redirectTo) {
+  973:         setTimeout(() => {
+  974:           router.push(redirectTo);
+  975:           router.refresh();
+  976:         }, 700);
+  977:       }
+  978:     } catch (error) {
+  979:       showFeedback(
+  980:         "error",
+  981:         "تعذر الحفظ",
+  982:         error instanceof Error ? error.message : "حدث خطأ غير متوقع."
+  983:       );
+  984:     } finally {
+  985:       setLoading(false);
+  986:     }
+  987:   }
+  988: 
+  989:   function goNext() {
+ 1037:         onOpenChange={(open) => setFeedback((current) => ({ ...current, open }))}
+ 1038:       />
+ 1039: 
+ 1040:       <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-cyan-700 p-10 text-white shadow-2xl">
+ 1041:         <p className="text-sm font-bold text-sky-100">Workflow Runtime</p>
+ 1042: 
+ 1043:         <h1 className="mt-4 text-4xl font-black">{title || workflow.name}</h1>
+ 1044: 
+ 1045:         <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-50">
+ 1046:           نموذج ديناميكي مبني على Workflow منشور. الحقول والخيارات والتبعيات
+ 1047:           تظهر حسب إعدادات الخدمة والبيانات المرفوعة من لوحة الأدمن.
+ 1048:         </p>
+ 1049: 
+ 1050:         <div className="mt-6 flex flex-wrap gap-3">
+ 1051:           <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+ 1052:             الخطوة {currentStepIndex + 1} من {steps.length}
+ 1053:           </span>
+ 1054: 
+ 1055:           {needsStudent ? (
+ 1056:             <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+ 1057:               يتطلب اختيار طالب/طالبة
+ 1058:             </span>
+ 1059:           ) : null}
+ 1060: 
+ 1061:           {supportsEvidence ? (
+ 1062:             <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
+ 1063:               يدعم الشواهد
+ 1064:             </span>
+ 1065:           ) : null}
+ 1066:         </div>
+ 1067:       </section>
+ 1068: 
+ 1069:       {showStudentPickerCard ? (
+ 1070:         <SmartStudentPickerCard
+ 1071:           selectedStudents={selectedStudents}
+ 1072:           onStudentsChange={handleStudentsChanged}
+ 1073:         />
+ 1074:       ) : null}
+ 1075: 
+ 1076:       {showStudentSummaryCard ? (
+ 1077:         <StudentContextSummary
+ 1078:           students={selectedStudents}
+ 1079:           onEdit={() => {
+ 1080:             const pickerIndex = steps.findIndex(isStudentPickerStep);
+ 1081:             setCurrentStepIndex(pickerIndex >= 0 ? pickerIndex : 0);
+ 1082:           }}
+ 1083:         />
+ 1084:       ) : null}
+ 1085: 
+ 1086:       <StepProgress currentStepIndex={currentStepIndex} steps={steps} />
+ 1087: 
+ 1088:       {displayCurrentStep ? (
+ 1089:         <WorkflowStepCard
+ 1090:           step={displayCurrentStep}
+ 1091:           values={values}
+ 1092:           serviceSlug={workflow.serviceSlug}
+ 1093:           onChange={updateValue}
+ 1094:           canEditFieldLabel={isFieldLabelEditable}
+ 1095:           onUpdateFieldLabel={handleFieldLabelUpdate}
+ 1096:         />
+ 1097:       ) : null}
+ 1098: 
+ 1099:       {showEvidenceCard ? (
+ 1100:         <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+ 1101:           <div className="mb-6">
+ 1102:             <p className="text-sm font-black text-sky-600">شواهد الحالة</p>
+ 1103: 
+ 1104:             <h2 className="mt-2 text-3xl font-black text-slate-900">
+ 1105:               الشواهد والمرفقات
+ 1106:             </h2>
+ 1107: 
+ 1108:             <p className="mt-2 text-sm leading-7 text-slate-500">
+ 1109:               أضف الصور أو الملفات الداعمة لهذه الحالة. تظهر هذه البطاقة فقط في
+ 1110:               خطوة الشواهد، ولا تظهر في باقي الخطوات.
+ 1111:             </p>
+ 1112:           </div>
+ 1113: 
+ 1114:           <EvidenceUploadCard onUploaded={handleEvidenceUploaded} />
+ 1115: 
+ 1154:           >
+ 1155:             {previewMode ? "معاينة فقط" : "حفظ مسودة"}
+ 1156:           </button>
+ 1157: 
+ 1158:           <button
+ 1159:             type="button"
+ 1160:             onClick={() => handleSave("submit")}
+ 1161:             disabled={loading}
+ 1162:             className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+ 1163:           >
+ 1164:             {previewMode ? "لا يتم الحفظ في المعاينة" : loading ? "جاري الحفظ..." : caseId ? "تحديث الحالة" : "إرسال"}
+ 1165:           </button>
+ 1166:         </div>
+ 1167:       </section>
+ 1168:     </main>
+ 1169:   );
+ 1170: }
+ 1171: 
+ 1172: function extractInitialStudent(
+ 1173:   initialValues: RuntimeValues | undefined
+ 1174: ): SmartStudent | null {
+ 1175:   const value = initialValues?.selectedStudent;
+ 1176: 
+ 1177:   if (!value || typeof value !== "object") {
+ 1178:     return null;
+ 1179:   }
+ 1180: 
+ 1181:   if (!("id" in value) || typeof value.id !== "string") {
+ 1182:     return null;
+ 1183:   }
+ 1184: 
+ 1185:   return {
+ 1186:     id: value.id,
+ 1187:     fullName:
+ 1188:       "fullName" in value && typeof value.fullName === "string"
+ 1189:         ? value.fullName
+ 1190:         : "طالب/طالبة",
+ 1191:     nationalId:
+ 1192:       "nationalId" in value && typeof value.nationalId === "string"
+ 1193:         ? value.nationalId
+ 1194:         : null,
+ 1195:     grade:
+ 1196:       "grade" in value && typeof value.grade === "string"
+ 1197:         ? value.grade
+ 1198:         : null,
+ 1199:     classroom:
+ 1200:       "classroom" in value && typeof value.classroom === "string"
+ 1201:         ? value.classroom
+ 1202:         : null,
+ 1203:     stage:
+ 1204:       "stage" in value && typeof value.stage === "string" ? value.stage : null,
+ 1205:     guardianName:
+ 1206:       "guardianName" in value && typeof value.guardianName === "string"
+ 1207:         ? value.guardianName
+ 1208:         : null,
+ 1209:     guardianPhone:
+ 1210:       "guardianPhone" in value && typeof value.guardianPhone === "string"
+ 1211:         ? value.guardianPhone
+ 1212:         : null,
+ 1213:   };
+ 1214: }
+ 1215: 
+ 1216: function serializeSelectedStudent(student: SmartStudent) {
+ 1217:   return {
+ 1218:     id: student.id,
+ 1219:     fullName: student.fullName,
+ 1220:     nationalId: student.nationalId,
+ 1221:     grade: student.grade,
+ 1222:     classroom: student.classroom,
+ 1223:     stage: student.stage,
+ 1224:     guardianName: student.guardianName,
+ 1225:     guardianPhone: student.guardianPhone,
+ 1226:   };
+ 1227: }
+ 1228: 
+ 1229: function dedupeSelectedStudents(students: SmartStudent[]) {
+ 1230:   const uniqueStudents = new Map<string, SmartStudent>();
+ 1231: 
+ 1232:   for (const student of students) {
+ 1233:     if (student.id && !uniqueStudents.has(student.id)) {
+ 1234:       uniqueStudents.set(student.id, student);
+ 1235:     }
+ 1236:   }
+ 1237: 
+ 1238:   return Array.from(uniqueStudents.values());
+ 1239: }
+ 1240: 
+ 1241: function buildSelectedStudentsValues(students: SmartStudent[]) {
+ 1242:   const normalizedStudents = dedupeSelectedStudents(students);
+ 1243:   const serializedStudents = normalizedStudents.map(serializeSelectedStudent);
+ 1244:   const primaryStudent = serializedStudents[0] ?? null;
+ 1245: 
+ 1246:   return {
+ 1247:     selectedStudent: primaryStudent,
+ 1248:     selected_students_count: serializedStudents.length,
+ 1249:     selected_students_names_text: serializedStudents.length
+ 1250:       ? serializedStudents.map((student) => student.fullName).join("، ")
+ 1251:       : null,
+ 1252:     selected_students_json: serializedStudents,
+ 1253:     primary_student_id: primaryStudent?.id ?? null,
+ 1254:   };
+ 1255: }
+ 1256: 
+ 1257: function extractInitialStudents(
+ 1258:   initialValues: RuntimeValues | undefined,
+ 1259: ): SmartStudent[] {
+ 1260:   const selectedStudentsJson = initialValues?.selected_students_json;
+ 1261: 
+ 1262:   if (Array.isArray(selectedStudentsJson)) {
+ 1263:     return dedupeSelectedStudents(
+ 1264:       selectedStudentsJson
+ 1265:         .map((item) => normalizeStudent(item))
+ 1266:         .filter((student): student is SmartStudent => Boolean(student)),
+ 1267:     );
+ 1268:   }
+ 1269: 
+ 1270:   const selectedStudent = extractInitialStudent(initialValues);
+ 1271: 
+ 1272:   return selectedStudent ? [selectedStudent] : [];
+ 1273: }
+ 1274: 
+ 1275: function getStudentSummaryLine(student: SmartStudent) {
+ 1276:   return (
+ 1277:     [
+ 1278:       student.stage,
+ 1279:       student.grade,
+ 1280:       student.classroom ? `فصل ${student.classroom}` : null,
+ 1281:     ]
+ 1282:       .filter(Boolean)
+ 1283:       .join(" - ") || "لا توجد بيانات صفية"
+ 1284:   );
+ 1285: }
+ 1286: 
+ 1287: function getSelectedStudentsPreview(students: SmartStudent[], maxPreview = 3) {
+ 1288:   const names = students.map((student) => student.fullName).filter(Boolean);
+ 1289: 
+ 1290:   if (names.length <= maxPreview) {
+ 1291:     return names.join("، ");
+ 1292:   }
+ 1293: 
+ 1294:   return `${names.slice(0, maxPreview).join("، ")} +${names.length - maxPreview}`;
+ 1295: }
+ 1296: 
+ 1297: function StepProgress({
+ 1298:   currentStepIndex,
+ 1299:   steps,
+ 1300: }: {
+ 1301:   currentStepIndex: number;
+ 1302:   steps: RuntimeStep[];
+ 1303: }) {
+ 1304:   return (
+ 1305:     <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+ 1306:       <div className="flex flex-wrap gap-2">
+ 1307:         {steps.map((step, index) => {
+ 1308:           const isActive = index === currentStepIndex;
+ 1309:           const isDone = index < currentStepIndex;
+ 1310: 
+ 1311:           return (
+ 1312:             <div
+ 1313:               key={step.id}
+ 1314:               className={[
+ 1315:                 "flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-black",
+ 1316:                 isActive
+ 1317:                   ? "border-sky-200 bg-sky-50 text-sky-700"
+ 1318:                   : isDone
+ 1319:                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+ 1320:                     : "border-slate-200 bg-slate-50 text-slate-500",
+ 1321:               ].join(" ")}
+ 1322:             >
+ 1323:               <span>{index + 1}</span>
+ 1324:               <span>{step.title}</span>
+ 1325:             </div>
+ 1326:           );
+ 1327:         })}
+ 1328:       </div>
+ 1329:     </section>
+ 1330:   );
+ 1331: }
+ 1332: 
+ 1333: function SmartStudentPickerCard({
+ 1334:   selectedStudents,
+ 1335:   onStudentsChange,
+ 1336: }: {
+ 1337:   selectedStudents: SmartStudent[];
+ 1338:   onStudentsChange: (students: SmartStudent[]) => void;
+ 1339: }) {
+ 1340:   const [query, setQuery] = useState("");
+ 1341:   const [students, setStudents] = useState<SmartStudent[]>([]);
+ 1342:   const [loading, setLoading] = useState(false);
+ 1343:   const selectedStudentIds = useMemo(
+ 1344:     () => new Set(selectedStudents.map((student) => student.id)),
+ 1345:     [selectedStudents],
+ 1346:   );
+ 1347: 
+ 1348:   function toggleStudentSelection(student: SmartStudent) {
+ 1349:     const alreadySelected = selectedStudentIds.has(student.id);
+ 1350: 
+ 1351:     const nextStudents = alreadySelected
+ 1352:       ? selectedStudents.filter((item) => item.id !== student.id)
+ 1353:       : [...selectedStudents, student];
+ 1354: 
+ 1355:     onStudentsChange(nextStudents);
+ 1356: 
+ 1357:     if (!alreadySelected) {
+ 1358:       setQuery("");
+ 1359:       setStudents([]);
+ 1360:     }
+ 1361:   }
+ 1362: 
+ 1363:   useEffect(() => {
+ 1364:     const trimmedQuery = query.trim();
+ 1365: 
+ 1366:     if (trimmedQuery.length < 2) {
+ 1367:       setStudents([]);
+ 1368:       return;
+ 1369:     }
+ 1370: 
+ 1371:     const controller = new AbortController();
+ 1372: 
+ 1373:     async function searchStudents() {
+ 1374:       try {
+ 1375:         setLoading(true);
+ 1376: 
+ 1377:         const response = await fetch(
+ 1378:           `/api/dashboard/students/search?q=${encodeURIComponent(trimmedQuery)}`,
+ 1379:           {
+ 1380:             signal: controller.signal,
+ 1381:           }
+ 1382:         );
+ 1383: 
+ 1384:         const data = await response.json();
+ 1385:         const normalizedStudents = normalizeStudentsResponse(data);
+ 1386: 
+ 1387:         setStudents(normalizedStudents);
+ 1388:       } catch (error) {
+ 1389:         if (error instanceof Error && error.name === "AbortError") {
+ 1390:           return;
+ 1391:         }
+ 1392: 
+ 1393:         setStudents([]);
+ 1394:       } finally {
+ 1395:         setLoading(false);
+ 1396:       }
+ 1397:     }
+ 1398: 
+ 1399:     const timer = window.setTimeout(searchStudents, 250);
+ 1400: 
+ 1401:     return () => {
+ 1402:       controller.abort();
+ 1403:       window.clearTimeout(timer);
+ 1404:     };
+ 1405:   }, [query]);
+ 1406: 
+ 1407:   return (
+ 1408:     <section className="rounded-[2rem] border border-sky-200 bg-sky-50/70 p-6 shadow-sm">
+ 1409:       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+ 1410:         <div>
+ 1411:           <p className="text-sm font-black text-sky-700">
+ 1412:             اختيار الطالب/الطالبة
+ 1413:           </p>
+ 1414: 
+ 1415:           <h2 className="mt-2 text-2xl font-black text-slate-900">
+ 1416:             اختر الطالب/الطالبة المرتبط بهذه الحالة
+ 1417:           </h2>
+ 1418: 
+ 1419:           <p className="mt-2 text-sm leading-7 text-slate-600">
+ 1420:             ابحث باسم الطالب/الطالبة أو رقم الهوية. بعد الاختيار سيتم ربط
+ 1421:             الحالة بسجل الطالب/الطالبة وبيانات ولي الأمر.
+ 1422:           </p>
+ 1423: 
+ 1424:           <div className="relative mt-5">
+ 1425:             <input
+ 1426:               value={query}
+ 1427:               onChange={(event) => setQuery(event.target.value)}
+ 1428:               placeholder="اكتب اسم الطالب/الطالبة أو رقم الهوية..."
+ 1429:               className="h-14 w-full rounded-2xl border border-sky-200 bg-white px-5 text-sm font-bold text-slate-800 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+ 1430:             />
+ 1431: 
+ 1432:             {query.trim().length >= 2 ? (
+ 1433:               <div className="absolute z-30 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+ 1434:                 {loading ? (
+ 1435:                   <div className="p-4 text-sm font-bold text-slate-500">
+ 1436:                     جاري البحث...
+ 1437:                   </div>
+ 1438:                 ) : students.length ? (
+ 1439:                   students.map((student) => (
+ 1440:                     <button
+ 1441:                       key={student.id}
+ 1442:                       type="button"
+ 1443:                       onClick={() => toggleStudentSelection(student)}
+ 1444:                       className={[
+ 1445:                         "w-full rounded-xl border p-3 text-right transition",
+ 1446:                         selectedStudentIds.has(student.id)
+ 1447:                           ? "border-sky-200 bg-sky-50"
+ 1448:                           : "border-transparent hover:bg-sky-50",
+ 1449:                       ].join(" ")}
+ 1450:                     >
+ 1451:                       <div className="flex items-center justify-between gap-3">
+ 1452:                         <div className="flex items-center gap-2">
+ 1453:                           <strong className="text-sm text-slate-900">
+ 1454:                             {student.fullName}
+ 1455:                           </strong>
+ 1456: 
+ 1457:                           {selectedStudentIds.has(student.id) ? (
+ 1458:                             <span className="rounded-full bg-sky-100 px-2 py-1 text-[11px] font-black text-sky-700">
+ 1459:                               محدد
+ 1460:                             </span>
+ 1461:                           ) : null}
+ 1462:                         </div>
+ 1463: 
+ 1464:                         <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500">
+ 1465:                           {student.nationalId || "بدون هوية"}
+ 1466:                         </span>
+ 1467:                       </div>
+ 1468: 
+ 1469:                       <p className="mt-1 text-xs text-slate-500">
+ 1470:                         {[
+ 1471:                           student.stage,
+ 1472:                           student.grade,
+ 1473:                           student.classroom
+ 1474:                             ? `فصل ${student.classroom}`
+ 1475:                             : null,
+ 1476:                         ]
+ 1477:                           .filter(Boolean)
+ 1478:                           .join(" - ") || "لا توجد بيانات صفية"}
+ 1479:                       </p>
+ 1480:                     </button>
+ 1481:                   ))
+ 1482:                 ) : (
+ 1483:                   <div className="p-4 text-sm font-bold text-slate-500">
+ 1484:                     لا توجد نتائج مطابقة.
+ 1485:                   </div>
+ 1486:                 )}
+ 1487:               </div>
+ 1488:             ) : null}
+ 1489:           </div>
+ 1490:         </div>
+ 1491: 
+ 1492:         <div className="rounded-3xl border border-sky-100 bg-white p-5">
+ 1493:           {selectedStudents.length ? (
+ 1494:             <SelectedStudentsCard
+ 1495:               students={selectedStudents}
+ 1496:               onRemove={(studentId) =>
+ 1497:                 onStudentsChange(
+ 1498:                   selectedStudents.filter((student) => student.id !== studentId),
+ 1499:                 )
+ 1500:               }
+ 1501:               onClearAll={() => onStudentsChange([])}
+ 1502:             />
+ 1503:           ) : (
+ 1504:             <div className="flex h-full min-h-44 flex-col justify-center rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-5 text-center">
+ 1505:               <p className="text-sm font-black text-sky-700">
+ 1506:                 لم يتم اختيار طالب/طالبة
+ 1507:               </p>
+ 1508: 
+ 1509:               <p className="mt-2 text-xs leading-6 text-slate-500">
+ 1510:                 اختيار الطالب/الطالبة يساعد في التقارير والتصدير وتتبع الحالات.
+ 1511:               </p>
+ 1512:             </div>
+ 1513:           )}
+ 1514:         </div>
+ 1515:       </div>
+ 1516:     </section>
+ 1517:   );
+ 1518: }
+ 1519: 
+ 1520: function StudentContextSummary({
+ 1521:   students,
+ 1522:   onEdit,
+ 1523: }: {
+ 1524:   students: SmartStudent[];
+ 1525:   onEdit: () => void;
+ 1526: }) {
+ 1527:   const primaryStudent = students[0] ?? null;
+ 1528: 
+ 1529:   if (!primaryStudent) {
+ 1530:     return null;
+ 1531:   }
+ 1532: 
+ 1533:   const student = primaryStudent;
+ 1534: 
+ 1535:   return (
+ 1536:     <section className="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+ 1537:       <div>
+ 1538:         <p className="text-xs font-black text-slate-500">
+ 1539:           الطالب/الطالبة المرتبط بالحالة
+ 1540:         </p>
+ 1541: 
+ 1542:         <h3 className="mt-1 text-lg font-black text-slate-900">
+ 1543:           {students.length === 1
+ 1544:             ? primaryStudent.fullName
+ 1545:             : `تم اختيار ${students.length} طلاب/طالبات`}
+ 1546:         </h3>
+ 1547: 
+ 1548:         {students.length > 1 ? (
+ 1549:           <p className="mt-1 text-xs text-slate-500">
+ 1550:             {getSelectedStudentsPreview(students)}
+ 1551:           </p>
+ 1552:         ) : null}
+ 1553: 
+ 1554:         <p className="mt-1 text-xs text-slate-500">
+ 1555:           {[
+ 1556:             students.length > 1 ? getSelectedStudentsPreview(students) : null,
+ 1557:             primaryStudent.stage,
+ 1558:             primaryStudent.grade,
+ 1559:             student.classroom ? `فصل ${student.classroom}` : null,
+ 1560:             student.guardianName ? `ولي الأمر: ${student.guardianName}` : null,
+ 1561:           ]
+ 1562:             .filter(Boolean)
+ 1563:             .join(" - ")}
+ 1564:         </p>
+ 1565:       </div>
+ 1566: 
+ 1567:       <button
+ 1568:         type="button"
+ 1569:         onClick={onEdit}
+ 1570:         className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+ 1571:       >
+ 1572:         تعديل الاختيار
+ 1573:       </button>
+ 1574:     </section>
+ 1575:   );
+ 1576: }
+ 1577: 
+ 1578: function StudentSelectedCard({
+ 1579:   student,
+ 1580:   onClear,
+ 1581: }: {
+ 1582:   student: SmartStudent;
+ 1583:   onClear: () => void;
+ 1584: }) {
+ 1585:   return (
+ 1586:     <div>
+ 1587:       <div className="flex items-start justify-between gap-3">
+ 1588:         <div>
+ 1589:           <p className="text-xs font-black text-emerald-700">
+ 1590:             تم اختيار الطالب/الطالبة
+ 1591:           </p>
+ 1592: 
+ 1593:           <h3 className="mt-1 text-lg font-black text-slate-900">
+ 1594:             {student.fullName}
+ 1595:           </h3>
+ 1596:         </div>
+ 1597: 
+ 1598:         <button
+ 1599:           type="button"
+ 1600:           onClick={onClear}
+ 1601:           className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-100"
+ 1602:         >
+ 1603:           مسح
+ 1604:         </button>
+ 1605:       </div>
+ 1606: 
+ 1607:       <div className="mt-4 grid gap-2 text-xs">
+ 1608:         <InfoRow label="رقم الهوية" value={student.nationalId || "غير متاح"} />
+ 1609:         <InfoRow label="المرحلة" value={student.stage || "غير متاح"} />
+ 1610:         <InfoRow label="الصف" value={student.grade || "غير متاح"} />
+ 1611:         <InfoRow label="الفصل" value={student.classroom || "غير متاح"} />
+ 1612:         <InfoRow label="ولي الأمر" value={student.guardianName || "غير متاح"} />
+ 1613:         <InfoRow
+ 1614:           label="جوال ولي الأمر"
+ 1615:           value={student.guardianPhone || "غير متاح"}
+ 1616:         />
+ 1617:       </div>
+ 1618:     </div>
+ 1619:   );
+ 1620: }
+ 1621: 
+ 1622: function SelectedStudentsCard({
+ 1623:   students,
+ 1624:   onRemove,
+ 1625:   onClearAll,
+ 1626: }: {
+ 1627:   students: SmartStudent[];
+ 1628:   onRemove: (studentId: string) => void;
+ 1629:   onClearAll: () => void;
+ 1630: }) {
+ 1631:   const primaryStudent = students[0] ?? null;
+ 1632: 
+ 1633:   if (students.length === 1 && primaryStudent) {
+ 1634:     return (
+ 1635:       <StudentSelectedCard
+ 1636:         student={primaryStudent}
+ 1637:         onClear={onClearAll}
+ 1638:       />
+ 1639:     );
+ 1640:   }
+ 1641: 
+ 1642:   return (
+ 1643:     <div>
+ 1644:       <div className="flex items-start justify-between gap-3">
+ 1645:         <div>
+ 1646:           <p className="text-xs font-black text-emerald-700">
+ 1647:             تم اختيار {students.length} طالب/طالبة
+ 1648:           </p>
+ 1649: 
+ 1650:           <h3 className="mt-1 text-lg font-black text-slate-900">
+ 1651:             {students.length === 1
+ 1652:               ? primaryStudent?.fullName
+ 1653:               : getSelectedStudentsPreview(students)}
+ 1654:           </h3>
+ 1655:         </div>
+ 1656: 
+ 1657:         <button
+ 1658:           type="button"
+ 1659:           onClick={onClearAll}
+ 1660:           className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-100"
+ 1661:         >
+ 1662:           مسح الكل
+ 1663:         </button>
+ 1664:       </div>
+ 1665: 
+ 1666:       <p className="mt-3 text-[11px] font-bold leading-5 text-slate-500">
+ 1667:         سيتم حفظ أول طالب كطالب أساسي للحالة، مع الاحتفاظ بباقي الطلاب داخل
+ 1668:         بيانات الحالة والتقارير.
+ 1669:       </p>
+ 1670: 
+ 1671:       <div className="mt-4 space-y-2">
+ 1672:         {students.map((student, index) => (
+ 1673:           <div key={student.id} className="rounded-2xl bg-slate-50 p-3">
+ 1674:             <div className="flex items-start justify-between gap-3">
+ 1675:               <div>
+ 1676:                 <div className="flex flex-wrap items-center gap-2">
+ 1677:                   <h4 className="text-sm font-black text-slate-900">
+ 1678:                     {student.fullName}
+ 1679:                   </h4>
+ 1680: 
+ 1681:                   {index === 0 ? (
+ 1682:                     <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">
+ 1683:                       الأساسي
+ 1684:                     </span>
+ 1685:                   ) : null}
+ 1686:                 </div>
+ 1687: 
+ 1688:                 <p className="mt-1 text-xs text-slate-500">
+ 1689:                   {getStudentSummaryLine(student)}
+ 1690:                 </p>
+ 1691: 
+ 1692:                 {student.guardianName ? (
+ 1693:                   <p className="mt-1 text-[11px] font-bold text-slate-400">
+ 1694:                     ولي الأمر: {student.guardianName}
+ 1695:                   </p>
+ 1696:                 ) : null}
+ 1697:               </div>
+ 1698: 
+ 1699:               <button
+ 1700:                 type="button"
+ 1701:                 onClick={() => onRemove(student.id)}
+ 1702:                 className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-[11px] font-black text-red-600 transition hover:bg-red-100"
+ 1703:               >
+ 1704:                 إزالة
+ 1705:               </button>
+ 1706:             </div>
+ 1707: 
+ 1708:             {students.length === 1 ? (
+ 1709:               <div className="mt-3 grid gap-2 text-xs">
+ 1710:                 <InfoRow label="رقم الهوية" value={student.nationalId || "غير متاح"} />
+ 1711:                 <InfoRow label="المرحلة" value={student.stage || "غير متاح"} />
+ 1712:                 <InfoRow label="الصف" value={student.grade || "غير متاح"} />
+ 1713:                 <InfoRow label="الفصل" value={student.classroom || "غير متاح"} />
+ 1714:                 <InfoRow label="ولي الأمر" value={student.guardianName || "غير متاح"} />
+ 1715:                 <InfoRow
+ 1716:                   label="جوال ولي الأمر"
+ 1717:                   value={student.guardianPhone || "غير متاح"}
+ 1718:                 />
+ 1719:               </div>
+ 1720:             ) : null}
+ 1721:           </div>
+ 1722:         ))}
+ 1723:       </div>
+ 1724:     </div>
+ 1725:   );
+ 1726: }
+ 1727: 
+ 1728: function InfoRow({ label, value }: { label: string; value: string }) {
+ 1729:   return (
+ 1730:     <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2">
+ 1731:       <span className="font-bold text-slate-500">{label}</span>
+ 1732:       <strong className="text-slate-800">{value}</strong>
+ 1733:     </div>
+ 1734:   );
+ 1735: }
+ 1736: 
+ 1737: function normalizeStudentsResponse(data: unknown): SmartStudent[] {
+ 1738:   const source = Array.isArray(data)
+ 1739:     ? data
+ 1740:     : data &&
+ 1741:         typeof data === "object" &&
+ 1742:         "students" in data &&
+ 1743:         Array.isArray(data.students)
+ 1744:       ? data.students
+ 1745:       : data &&
+ 1746:           typeof data === "object" &&
+ 1747:           "items" in data &&
+ 1748:           Array.isArray(data.items)
+ 1749:         ? data.items
+ 1750:         : [];
+ 1751: 
+ 1752:   return source
+ 1753:     .map((item) => normalizeStudent(item))
+ 1754:     .filter((student): student is SmartStudent => Boolean(student));
+ 1755: }
+ 1756: 
+ 1757: function normalizeStudent(item: unknown): SmartStudent | null {
+ 1758:   if (!item || typeof item !== "object") {
+ 1759:     return null;
+ 1760:   }
+ 1761: 
+ 1762:   const record = item as Record<string, unknown>;
+ 1763: 
+ 1764:   const id = safeString(record.id);
+ 1765:   const fullName =
+ 1766:     safeString(record.fullName) ||
+ 1767:     safeString(record.name) ||
+ 1768:     safeString(record.studentName);
+ 1769: 
+ 1770:   if (!id || !fullName) {
+ 1771:     return null;
+ 1772:   }
+ 1773: 
+ 1774:   const guardian =
+ 1775:     record.guardian && typeof record.guardian === "object"
+ 1776:       ? (record.guardian as Record<string, unknown>)
+ 1777:       : null;
+ 1778: 
+ 1779:   return {
+ 1780:     id,
+ 1781:     fullName,
+ 1782:     nationalId: safeString(record.nationalId),
+ 1783:     grade: safeString(record.grade),
+ 1784:     classroom: safeString(record.classroom),
+ 1785:     stage: safeString(record.stage),
+ 1786:     guardianName:
+ 1787:       safeString(record.guardianName) ||
+ 1788:       safeString(guardian?.name) ||
+ 1789:       safeString(guardian?.fullName),
+ 1790:     guardianPhone:
+ 1791:       safeString(record.guardianPhone) ||
+ 1792:       safeString(guardian?.phone) ||
+ 1793:       safeString(guardian?.mobile),
+ 1794:   };
+ 1795: }
+ 1796: 
+ 1797: function safeString(value: unknown) {
+ 1798:   return typeof value === "string" && value.trim() ? value.trim() : null;
+ 1799: }
+
+===== NOT FOUND: components\workflow\student-picker.tsx =====
+
+===== NOT FOUND: components\students\student-picker.tsx =====
+
+===== NOT FOUND: components\cases\case-create-form.tsx =====
+
+===== NOT FOUND: app\api\dashboard\cases\route.ts =====
+
+===== NOT FOUND: app\api\dashboard\workflows\runtime\route.ts =====
+
+===== NOT FOUND: lib\workflow\workflow-runtime.ts =====
+
+===== NOT FOUND: lib\cases\case-service.ts =====

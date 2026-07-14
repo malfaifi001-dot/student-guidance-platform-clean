@@ -1,0 +1,655 @@
+===== app\dashboard\report-2\cases\[caseId]\prepare\page.tsx =====
+    1: import { notFound, redirect } from "next/navigation";
+    2: 
+    3: import { ReportPrepareFlow } from "@/components/report-flow/report-prepare-flow";
+    4: import { requireDashboardUser } from "@/lib/auth/require-auth";
+    5: import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+    6: import {
+    7:   reportVariants,
+    8:   resolveReportVariantId,
+    9: } from "@/lib/report-engine/report-variant-registry";
+   10: import {
+   11:   getSchoolSubscriptionOverview,
+   12:   isServiceAllowedForSchool,
+   13: } from "@/lib/subscription/subscription-service";
+   14: 
+   15: type PageProps = {
+   16:   params: Promise<{
+   17:     caseId: string;
+   18:   }>;
+   19:   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+   20: };
+   21: 
+   22: function firstParam(value: string | string[] | undefined) {
+   23:   return Array.isArray(value) ? value[0] : value;
+   24: }
+   25: 
+   26: export default async function ReportTwoPreparePage({
+   27:   params,
+   28:   searchParams,
+   29: }: PageProps) {
+   30:   const current = await requireDashboardUser();
+   31: 
+   32:   if (current.user.role !== "ADMIN") {
+   33:     if (!current.user.schoolAccountId) {
+   74:           ? "activation-required"
+   75:           : "service-not-in-plan";
+   76: 
+   77:       redirect(
+   78:         `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+   79:           result.serviceSlug,
+   80:         )}`,
+   81:       );
+   82:     }
+   83:   }
+   84: 
+   85:   return (
+   86:     <ReportPrepareFlow
+   87:       payload={result.payload}
+   88:       selectedVariantId={selectedVariantId}
+   89:       variants={reportVariants}
+   90:       continueHref={`/dashboard/report-2/cases/${caseId}/studio?${new URLSearchParams({
+   91:         mode: "preview",
+   92:         variant: selectedVariantId,
+   93:       }).toString()}`}
+   94:     />
+   95:   );
+   96: }
+
+===== lib\report-flow\report-flow-payload.ts =====
+  193:       languageMode,
+  194:       key,
+  195:       originalLabel,
+  196:     ),
+  197:     originalLabel,
+  198:     originalValue,
+  199:     selected: !technical,
+  200:     technical,
+  201:   };
+  202: }
+  203: 
+  204: 
+  205: function buildCustomReportPrepareFields(
+  206:   payload: SmartReportPayload,
+  207:   languageMode: ReportLanguageMode,
+  208: ): ReportFlowPrepareField[] {
+  209:   const seen = new Set<string>();
+  210:   const sourceFields = [...payload.detailFields, ...payload.primaryFields];
+  211:   const result: ReportFlowPrepareField[] = [];
+  212: 
+  213:   sourceFields.forEach((field, index) => {
+  214:     const key = cleanText(field.key) || `custom_report_field_${index + 1}`;
+  215:     const label = cleanText(field.label) || key;
+  216:     const rawValue =
+  217:       field.value === null || field.value === undefined
+  218:         ? ""
+  219:         : Array.isArray(field.value)
+  220:           ? field.value.map((item) => String(item || "").trim()).filter(Boolean).join("، ")
+  221:           : String(field.value).trim();
+  222: 
+  223:     if (!label || !rawValue) return;
+  224: 
+  225:     const uniqueKey = `${key}::${label}::${rawValue}`;
+  226: 
+  227:     if (seen.has(uniqueKey)) return;
+  228:     seen.add(uniqueKey);
+  229: 
+  230:     result.push({
+  231:       id: `custom-report:${key}:${index}`,
+  232:       source: "detail",
+  233:       key,
+  234:       label: applyReportLanguageModeToText(label, languageMode),
+  235:       value: rawValue,
+  236:       originalLabel: label,
+  237:       originalValue: rawValue,
+  238:       selected: true,
+  239:       technical: false,
+  240:     });
+  241:   });
+  242: 
+  243:   return result;
+  244: }
+  245: export function buildReportFlowPrepareFields(
+  246:   payload: SmartReportPayload,
+  247: ): ReportFlowPrepareField[] {
+  248:   const languageMode = normalizeReportLanguageMode(payload.languageMode);
+  249: 
+  250:   if (payload.service?.slug === "custom-report") {
+  251:     return buildCustomReportPrepareFields(payload, languageMode);
+  252:   }
+  253: 
+  254:   const fields = [
+  255:     ...payload.primaryFields.map((field, index) =>
+  256:       makePrepareField(field, "primary", index, languageMode),
+  257:     ),
+  258:     ...payload.detailFields.map((field, index) =>
+  259:       makePrepareField(field, "detail", index, languageMode),
+  260:     ),
+  261:   ].filter((field): field is ReportFlowPrepareField => Boolean(field));
+  262: 
+  263:   const unique = new Map<string, ReportFlowPrepareField>();
+  264: 
+  265:   for (const field of fields) {
+  266:     const key = `${field.originalLabel}::${field.originalValue}`;
+  267: 
+  268:     if (!unique.has(key)) {
+  269:       unique.set(key, field);
+  270:     }
+  271:   }
+  272: 
+  273:   return Array.from(unique.values());
+  274: }
+  275: 
+  276: export function applyReportFlowLanguageModeToFields(
+  277:   fields: ReportFlowPrepareField[],
+  278:   languageMode: ReportLanguageMode,
+  279: ): ReportFlowPrepareField[] {
+  280:   const normalizedMode = normalizeReportLanguageMode(languageMode);
+  281: 
+  282:   return fields.map((field) => ({
+  283:     ...field,
+  284:     label: applyReportLanguageModeToText(
+  285:       field.originalLabel || field.label,
+  286:       normalizedMode,
+  287:     ),
+  288:     value: applyReportLanguageModeToFieldValue(
+  289:       field.originalValue || field.value,
+  290:       normalizedMode,
+  291:       field.key,
+  292:       field.originalLabel || field.label,
+  293:     ),
+  294:   }));
+  295: }
+  296: 
+  297: export function buildReportFlowContext(
+  298:   payload: SmartReportPayload,
+  299: ): ReportFlowPrepareContext {
+  300:   const allFields = [...payload.primaryFields, ...payload.detailFields];
+  301:   const languageMode = normalizeReportLanguageMode(payload.languageMode);
+  302: 
+  303:   const executor =
+  304:     allFields.find((field) =>
+  305:       ["executor", "assigned_teacher", "teacher"].includes(field.key),
+  306:     )?.value || "";
+  307: 
+  398:     return translateSourceFieldValue(
+  399:       originalDisplay,
+  400:       field.key,
+  401:       originalLabel,
+  402:       languageMode,
+  403:     );
+  404:   }
+  405: 
+  406:   return preparedValue;
+  407: }
+  408: 
+  409: function applyFields(
+  410:   sourceFields: SmartReportField[],
+  411:   preparation: ReportFlowPreparation,
+  412:   source: ReportFlowFieldSource,
+  413:   languageMode: ReportLanguageMode,
+  414: ): SmartReportField[] {
+  415:   const selectedIds = new Set(preparation.selectedFieldIds);
+  416: 
+  417:   return preparation.fields
+  418:     .filter((field) => field.source === source)
+  419:     .filter((field) => selectedIds.has(field.id))
+  420:     .map((field) => {
+  421:       const original =
+  422:         sourceFields.find((item) => item.key === field.key) || sourceFields[0];
+  423: 
+  424:       return {
+  425:         ...(original || {
+  426:           key: field.key,
+  427:           importance: source === "primary" ? "PRIMARY" : "DETAIL",
+  428:         }),
+  429:         key: field.key,
+  430:         label: field.label,
+  431:         value: resolvePreparedFieldValue(original, field, languageMode),
+  432:       } as SmartReportField;
+  433:     });
+  434: }
+  435: 
+  436: export function applyReportFlowPreparationToPayload(
+  437:   payload: SmartReportPayload,
+  438:   preparation: ReportFlowPreparation,
+  439: ): SmartReportPayload {
+  440:   const languageMode = normalizeReportLanguageMode(preparation.languageMode);
+  441:   const showExecutionDescriptionInReport =
+  442:     preparation.showExecutionDescriptionInReport !== false;
+  443:   const primaryFields = applyFields(
+  444:     payload.primaryFields,
+  445:     preparation,
+  472: 
+  473: export function createReportFlowPreparation({
+  474:   payload,
+  475:   variantId,
+  476:   fields,
+  477:   executionSummary,
+  478:   executionSummarySource,
+  479:   languageMode,
+  480:   showExecutionDescriptionInReport,
+  481: }: {
+  482:   payload: SmartReportPayload;
+  483:   variantId: string;
+  484:   fields: ReportFlowPrepareField[];
+  485:   executionSummary: string;
+  486:   executionSummarySource: ReportFlowPreparation["executionSummarySource"];
+  487:   languageMode: ReportLanguageMode;
+  488:   showExecutionDescriptionInReport?: boolean;
+  489: }): ReportFlowPreparation {
+  490:   return {
+  491:     version: 1,
+  492:     caseId: payload.caseInfo.id,
+  493:     variantId,
+  494:     reportType: payload.reportType,
+  495:     languageMode: normalizeReportLanguageMode(languageMode),
+  496:     showExecutionDescriptionInReport:
+  497:       showExecutionDescriptionInReport !== false,
+  498:     selectedFieldIds: fields
+  499:       .filter((field) => field.selected)
+  500:       .map((field) => field.id),
+  501:     fields,
+  502:     executionSummary,
+  503:     executionSummarySource,
+  504:     updatedAt: new Date().toISOString(),
+  505:   };
+  506: }
+
+===== components\report-flow\report-prepare-flow.tsx =====
+   19:   normalizeReportLanguageMode,
+   20:   type ReportLanguageMode,
+   21: } from "@/lib/report-engine/report-language-mode";
+   22: import type {
+   23:   ReportVariantConfig,
+   24:   ReportVariantId,
+   25: } from "@/lib/report-engine/report-variant-registry";
+   26: import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+   27: import {
+   28:   applyReportFlowLanguageModeToFields,
+   29:   applyReportFlowPreparationToPayload,
+   30:   buildReportFlowContext,
+   31:   buildReportFlowPrepareFields,
+   32:   createReportFlowPreparation,
+   33: } from "@/lib/report-flow/report-flow-payload";
+   34: import {
+   35:   loadReportFlowPreparation,
+   36:   saveReportFlowPreparation,
+   37: } from "@/lib/report-flow/report-flow-storage";
+   38: import type {
+   39:   ReportFlowExecutionSummarySource,
+   40:   ReportFlowPrepareField,
+   41:   ReportFlowPreparation,
+   42: } from "@/lib/report-flow/report-flow-types";
+   43: 
+   44: type ReportPrepareFlowProps = {
+   45:   payload: SmartReportPayload;
+   46:   selectedVariantId: ReportVariantId;
+   47:   variants: ReportVariantConfig[];
+   48:   continueHref?: string;
+   49: };
+   50: 
+   51: type PrepareStep = "prepare" | "studio";
+   52: 
+   53: const EXECUTION_SUMMARY_MAX_WORDS = 40;
+   54: 
+   55: function cleanText(value: unknown) {
+   56:   return String(value ?? "").trim();
+   57: }
+   58: 
+   59: function isLikelyEnglishOnlyLabel(value: unknown) {
+   60:   const text = cleanText(value);
+   61: 
+   62:   return Boolean(text) && /^[a-z0-9_\-.]+$/i.test(text) && !/[\u0600-\u06FF]/.test(text);
+   63: }
+   64: 
+   65: function countWords(value: string) {
+   66:   return cleanText(value).split(/\s+/).filter(Boolean).length;
+   67: }
+   68: 
+   69: function limitWords(value: string, maxWords = EXECUTION_SUMMARY_MAX_WORDS) {
+   70:   return cleanText(value).split(/\s+/).filter(Boolean).slice(0, maxWords).join(" ");
+   71: }
+   72: 
+   73: function getFieldSearchText(field: ReportFlowPrepareField) {
+   74:   return `${field.label} ${field.value} ${field.key}`.toLowerCase();
+   75: }
+   76: 
+   77: function buildInitialFields(payload: SmartReportPayload) {
+   78:   return buildReportFlowPrepareFields(payload);
+   79: }
+   80: 
+   81: function buildInitialSummary(payload: SmartReportPayload, languageMode: ReportLanguageMode) {
+   82:   return applyReportLanguageModeToText(payload.narrative.body, languageMode);
+   83: }
+   84: 
+   85: function buildInitialSummarySource(): ReportFlowExecutionSummarySource {
+   86:   return "FALLBACK";
+   87: }
+   88: 
+   89: export function ReportPrepareFlow({
+   90:   payload,
+   91:   selectedVariantId,
+   92:   variants,
+   93:   continueHref,
+   94: }: ReportPrepareFlowProps) {
+   95:   const router = useRouter();
+   96:   const initialLanguageMode = normalizeReportLanguageMode(payload.languageMode);
+   97: 
+   98:   const [step, setStep] = useState<PrepareStep>("prepare");
+   99:   const [hydratedFromStorage, setHydratedFromStorage] = useState(false);
+  100:   const [languageMode, setLanguageMode] =
+  101:     useState<ReportLanguageMode>(initialLanguageMode);
+  102:   const [fields, setFields] = useState<ReportFlowPrepareField[]>(() =>
+  103:     buildInitialFields(payload),
+  104:   );
+  105:   const [executionSummary, setExecutionSummary] = useState("");
+  106:   const [showExecutionDescriptionInReport, setShowExecutionDescriptionInReport] =
+  107:     useState(true);
+  108:   const [summarySource, setSummarySource] =
+  109:     useState<ReportFlowExecutionSummarySource>(() => buildInitialSummarySource());
+  110:   const [search, setSearch] = useState("");
+  111:   const [generating, setGenerating] = useState(false);
+  112:   const [message, setMessage] = useState("");
+  113:   const [documentDraft, setDocumentDraft] = useState<ReportDocumentDraft | null>(
+  114:     null,
+  115:   );
+  116:   const autoSummaryRequestedRef = useRef(false);
+  117: 
+  118:   const context = useMemo(
+  119:     () => ({
+  120:       ...buildReportFlowContext(payload),
+  121:       languageMode,
+  122:     }),
+  123:     [languageMode, payload],
+  124:   );
+  146:       setShowExecutionDescriptionInReport(
+  147:         saved.showExecutionDescriptionInReport !== false,
+  148:       );
+  149:       setExecutionSummary(String(saved.executionSummary || ""));
+  150:       setSummarySource(saved.executionSummarySource || "FALLBACK");
+  151:       setHydratedFromStorage(true);
+  152:       return;
+  153:     }
+  154: 
+  155:     setHydratedFromStorage(true);
+  156:   }, [hydratedFromStorage, initialLanguageMode, payload, selectedVariantId]);
+  157: 
+  158:   const selectedFields = useMemo(
+  159:     () =>
+  160:       fields
+  161:         .filter((field) => field.selected)
+  162:         .filter((field) => cleanText(field.label) && cleanText(field.value)),
+  163:     [fields],
+  164:   );
+  165: 
+  166:   const visibleFields = useMemo(() => {
+  167:     const query = search.trim().toLowerCase();
+  168: 
+  169:     if (!query) return fields;
+  170: 
+  171:     return fields.filter((field) => getFieldSearchText(field).includes(query));
+  172:   }, [fields, search]);
+  173: 
+  174:   const selectedVariant =
+  175:     variants.find((variant) => variant.id === selectedVariantId) || variants[0];
+  176: 
+  177:   function applyLanguageMode(nextMode: ReportLanguageMode) {
+  178:     const normalizedMode = normalizeReportLanguageMode(nextMode);
+  179:     const nextFields = applyReportFlowLanguageModeToFields(fields, normalizedMode);
+  180: 
+  181:     setLanguageMode(normalizedMode);
+  182:     setFields(nextFields);
+  183:     setMessage("تم تحديث مرجع الطالب في الوصف. أعد توليد وصف التنفيذ إذا رغبت في صياغة جديدة.");
+  184:   }
+  185: 
+  186:   function updateField(
+  187:     fieldId: string,
+  188:     patch: Partial<Pick<ReportFlowPrepareField, "label" | "value" | "selected">>,
+  258:   ]);
+  259: 
+  260:   function updateExecutionDescriptionVisibility(visible: boolean) {
+  261:     setShowExecutionDescriptionInReport(visible);
+  262:   }
+  263: 
+  264:   function handleExecutionSummaryChange(nextValue: string) {
+  265:     setExecutionSummary(nextValue);
+  266:     setSummarySource("MANUAL");
+  267:   }
+  268: 
+  269:   async function generateSummary(options?: { auto?: boolean }) {
+  270:     if (selectedFields.length === 0) {
+  271:       if (!options?.auto) {
+  272:         setMessage("اختر حقلًا واحدًا على الأقل قبل توليد وصف التنفيذ.");
+  273:       }
+  274:       return;
+  275:     }
+  276: 
+  277:     setGenerating(true);
+  278:     setMessage(
+  279:       options?.auto ? "جارٍ توليد وصف التنفيذ من بيانات الحالة..." : "",
+  280:     );
+  281: 
+  282:     try {
+  283:       const response = await fetch(
+  284:         `/api/dashboard/reports/case/${payload.caseInfo.id}/execution-summary`,
+  285:         {
+  286:           method: "POST",
+  287:           headers: {
+  288:             "Content-Type": "application/json",
+  289:           },
+  290:           body: JSON.stringify({
+  291:             context: {
+  292:               ...context,
+  293:               languageMode,
+  294:             },
+  295:             fields: selectedFields.map((field) => ({
+  296:               key: field.key,
+  297:               label: field.label,
+  298:               value: field.value,
+  299:             })),
+  300:           }),
+  301:         },
+  302:       );
+  303: 
+  304:       const data = await response.json();
+  305: 
+  306:       if (!response.ok || !data?.success) {
+  307:         throw new Error(data?.error || "تعذر توليد وصف التنفيذ.");
+  308:       }
+  309: 
+  310:       const nextSummary = cleanText(String(data.summary || ""));
+  311:       const nextSource = data?.source === "AI" ? "AI" : "FALLBACK";
+  312: 
+  313:       setExecutionSummary(nextSummary);
+  314:       setSummarySource(nextSource);
+  315:       setMessage(
+  316:         nextSource === "AI"
+  317:           ? "تم تجهيز وصف التنفيذ من بيانات الحالة."
+  318:           : "تم تجهيز وصف احتياطي من بيانات الحالة.",
+  319:       );
+  320:     } catch {
+  321:       const fallbackSummary = cleanText(buildInitialSummary(payload, languageMode));
+  322: 
+  323:       if (!cleanText(executionSummary) && fallbackSummary) {
+  324:         setExecutionSummary(fallbackSummary);
+  325:         setSummarySource("FALLBACK");
+  328:       setMessage(
+  329:         "تعذر توليد الوصف الآن. يمكنك تعديل النص يدويًا أو إعادة المحاولة.",
+  330:       );
+  331:     } finally {
+  332:       setGenerating(false);
+  333:     }
+  334:   }
+  335: 
+  336:   useEffect(() => {
+  337:     if (!hydratedFromStorage || autoSummaryRequestedRef.current) return;
+  338:     if (summarySource === "MANUAL") return;
+  339:     if (cleanText(executionSummary)) return;
+  340:     if (selectedFields.length === 0) return;
+  341: 
+  342:     autoSummaryRequestedRef.current = true;
+  343:     void generateSummary({ auto: true });
+  344:   }, [
+  345:     executionSummary,
+  346:     hydratedFromStorage,
+  347:     selectedFields.length,
+  348:     summarySource,
+  349:   ]);
+  350: 
+  351:   function continueToStudio() {
+  352:     if (generating) {
+  353:       setMessage("انتظر حتى يكتمل تجهيز وصف التنفيذ ثم تابع.");
+  354:       return;
+  355:     }
+  356: 
+  357:     if (selectedFields.length === 0) {
+  358:       setMessage("اختر حقلًا واحدًا على الأقل للمتابعة.");
+  359:       return;
+  360:     }
+  361: 
+  362:     const safeSummary =
+  363:       limitWords(executionSummary, EXECUTION_SUMMARY_MAX_WORDS) ||
+  364:       buildInitialSummary(payload, languageMode) ||
+  365:       "";
+  366: 
+  367:     const nextSummarySource =
+  368:       cleanText(safeSummary) && summarySource ? summarySource : "FALLBACK";
+  369: 
+  370:     const preparation = buildPreparation(safeSummary, nextSummarySource);
+  371: 
+  372:     saveReportFlowPreparation(preparation);
+  373: 
+  374:     if (continueHref) {
+  375:       router.push(continueHref);
+  376:       return;
+  377:     }
+  378: 
+  379:     const preparedPayload = applyReportFlowPreparationToPayload(
+  380:       payload,
+  381:       preparation,
+  382:     );
+  383: 
+  384:     const nextDraft = buildReportDocumentDraftFromPayload({
+  385:       payload: preparedPayload,
+  386:       variantId: selectedVariantId,
+  387:       evidenceConfig: preparedPayload.evidenceConfig,
+  452: 
+  453:                 <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-black text-sky-100/90">
+  454:                   <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
+  455:                     {payload.title || payload.caseInfo.title}
+  456:                   </span>
+  457:                   <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
+  458:                     {payload.service.name}
+  459:                   </span>
+  460:                   <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
+  461:                     {selectedVariant?.shortName || selectedVariant?.name || "تقرير"}
+  462:                   </span>
+  463:                   <span className="rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15">
+  464:                     {selectedFields.length} من {fields.length} حقل
+  465:                   </span>
+  466:                 </div>
+  467:               </div>
+  468: 
+  469:               <div className="flex flex-wrap gap-2">
+  470:                 <Link
+  471:                   href={`/dashboard/cases/${payload.caseInfo.id}`}
+  472:                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
+  473:                 >
+  474:                   <ArrowRight className="h-4 w-4" />
+  475:                   العودة للحالة
+  476:                 </Link>
+  477: 
+  478:                 <button
+  479:                   type="button"
+  480:                   onClick={continueToStudio}
+  481:                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-50"
+  482:                 >
+  483:                   معاينة التقرير
+  484:                   <CheckCircle2 className="h-4 w-4" />
+  485:                 </button>
+  486:               </div>
+  487:             </div>
+  488:           </section>
+  489:           {message ? (
+  490:             <div className="rounded-[1.5rem] border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+  491:               {message}
+  492:             </div>
+  493:           ) : null}
+  494: 
+  651:                         ? "bg-emerald-700 text-white"
+  652:                         : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+  653:                     ].join(" ")}
+  654:                     aria-pressed={languageMode === "FEMALE"}
+  655:                   >
+  656:                     <span>طالبة</span>
+  657:                   </button>
+  658:                 </div>
+  659: 
+  660:                 <button
+  661:                   type="button"
+  662:                   onClick={() => void generateSummary()}
+  663:                   disabled={generating || selectedFields.length === 0}
+  664:                   className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+  665:                 >
+  666:                   {generating ? (
+  667:                     <Loader2 className="h-4 w-4 animate-spin" />
+  668:                   ) : (
+  669:                     <Sparkles className="h-4 w-4" />
+  670:                   )}
+  671:                   {executionSummary
+  672:                     ? "إعادة توليد وصف التنفيذ"
+  673:                     : "توليد وصف التنفيذ"}
+  674:                 </button>
+  675: 
+  676:                 <textarea
+  677:                   value={executionSummary}
+  678:                   onChange={(event) =>
+  679:                     handleExecutionSummaryChange(event.target.value)
+  680:                   }
+  681:                   rows={5}
+  682:                   placeholder="اكتب أو ولّد وصف التنفيذ..."
+  683:                   className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-8 text-slate-950 outline-none transition focus:border-emerald-300 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-950"
+  684:                 />
+  685: 
+  686:                 <div
+  687:                   className={[
+  688:                     "mt-2 flex items-center justify-between text-[11px] font-bold dark:text-slate-500",
+  689:                     countWords(executionSummary) > EXECUTION_SUMMARY_MAX_WORDS
+  690:                       ? "text-amber-600"
+  691:                       : "text-slate-400",
+  692:                   ].join(" ")}
+  693:                 >
+
+===== lib\report-engine\report-case-data-mapper.ts =====
+
+===== lib\report-engine\report-private-fields.ts =====
+   16: 
+   17:   const record = item as Record<string, any>;
+   18: 
+   19:   return String(
+   20:     record.fieldKey ||
+   21:       record.key ||
+   22:       record.name ||
+   23:       record.id ||
+   24:       record.code ||
+   25:       record.slug ||
+   26:       record.field?.key ||
+   27:       record.field?.fieldKey ||
+   28:       record.dynamicField?.key ||
+   29:       record.dynamicField?.fieldKey ||
+   30:       "",
+   31:   ).trim();
+   32: }
+   33: 
+   34: export function filterPrivateReportValues<T>(values: T[] | null | undefined): T[] {
+   35:   if (!Array.isArray(values)) {
+   36:     return [];
+   37:   }
+   38: 
+   39:   return values.filter((item) => {
+   40:     const key = getPossibleFieldKey(item);
+   41: 
+   42:     return !isPrivateReportFieldKey(key);
+   43:   });
+   44: }

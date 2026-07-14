@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
-import { PortfolioDashboard } from "@/components/portfolio/portfolio-dashboard";
+
+import { MinistryElegantPortfolioPrint } from "@/components/portfolio/print/ministry-elegant-portfolio-print";
+import { PortfolioPrintActions } from "@/components/portfolio/print/portfolio-print-actions";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { getTeacherPortfolioWorkspace } from "@/lib/portfolio/portfolio-read-model";
 
-export default async function TeacherPortfolioPage() {
+export default async function TeacherPortfolioPreviewPage() {
   const current = await requireDashboardUser();
 
   if (current.user.role === "ADMIN") {
@@ -20,5 +22,10 @@ export default async function TeacherPortfolioPage() {
     redirect("/dashboard/onboarding?required=true");
   }
 
-  return <PortfolioDashboard data={workspace} />;
+  return (
+    <>
+      <PortfolioPrintActions />
+      <MinistryElegantPortfolioPrint data={workspace} />
+    </>
+  );
 }

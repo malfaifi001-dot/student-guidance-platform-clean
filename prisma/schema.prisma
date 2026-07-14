@@ -91,6 +91,7 @@ enum ActivityAssignmentStatus {
   EXPIRED
   CANCELED
 }
+
 enum CaseStatus {
   DRAFT
   SUBMITTED
@@ -149,6 +150,7 @@ enum IntegrationStatus {
   INACTIVE
   ERROR
 }
+
 enum SurveyStatus {
   DRAFT
   PUBLISHED
@@ -176,21 +178,22 @@ model SchoolAccount {
   studentImportSessions StudentImportSession[]
   users                 User[]
 
-  profile           SchoolProfile?
-  students          Student[]
-  guardians         Guardian[]
-  staff             StaffMember[]
-  services          ServiceAccess[]
-  cases             CaseEntry[]
-  subscription      Subscription?
-  resultsAnalyses   ResultsAnalysis[]
-  assessmentAnalyses AssessmentAnalysis[]
-  calendarReminders CalendarReminder[]
-  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsBySchool")
-  surveys             Survey[]           @relation("SurveysBySchool")
-  surveyResponses     SurveyResponse[]   @relation("SurveyResponsesBySchool")
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  profile               SchoolProfile?
+  students              Student[]
+  guardians             Guardian[]
+  staff                 StaffMember[]
+  services              ServiceAccess[]
+  cases                 CaseEntry[]
+  subscription          Subscription?
+  resultsAnalyses       ResultsAnalysis[]
+  assessmentAnalyses    AssessmentAnalysis[]
+  calendarReminders     CalendarReminder[]
+  activityAssignments   ActivityAssignment[]   @relation("ActivityAssignmentsBySchool")
+  surveys               Survey[]               @relation("SurveysBySchool")
+  surveyResponses       SurveyResponse[]       @relation("SurveyResponsesBySchool")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  achievementPortfolios AchievementPortfolio[]
 }
 
 model User {
@@ -205,26 +208,28 @@ model User {
   role         UserRole @default(COUNSELOR)
   gender       Gender   @default(UNKNOWN)
   officialName String?
-  jobTitle     String?
-  teachingStages Json?
+  jobTitle     String?
+
+  teachingStages      Json?
   teachingSpecialties Json?
-  teachingSubjects Json?
-  isActive     Boolean  @default(true)
+  teachingSubjects    Json?
+  isActive            Boolean @default(true)
 
   onboardingCompleted   Boolean   @default(false)
   onboardingCompletedAt DateTime?
   onboardingSkippedAt   DateTime?
 
-  cases             CaseEntry[]
-  sessions          UserSession[]
-  calendarReminders CalendarReminder[]
+  cases                      CaseEntry[]
+  sessions                   UserSession[]
+  calendarReminders          CalendarReminder[]
   createdActivityAssignments ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
-  createdSurveys            Survey[]             @relation("SurveysCreatedBy")
+  createdSurveys             Survey[]             @relation("SurveysCreatedBy")
 
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
   caseEvidences          CaseEvidence[]
   createdReportTemplates ReportTemplate[]
+  achievementPortfolios  AchievementPortfolio[] @relation("AchievementPortfolioOwner")
 
   @@index([schoolAccountId])
 }
@@ -258,20 +263,20 @@ model SchoolProfile {
   schoolAccountId String        @unique
   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
 
-  schoolName          String
-  principalName       String?
-  principalPhone      String?
-  principalSignatureUrl String?
-  principalSignatureToken String? @unique
+  schoolName                    String
+  principalName                 String?
+  principalPhone                String?
+  principalSignatureUrl         String?
+  principalSignatureToken       String?   @unique
   principalSignatureRequestedAt DateTime?
-  principalSignatureSignedAt DateTime?
+  principalSignatureSignedAt    DateTime?
 
-  activityLeaderName String?
+  activityLeaderName         String?
   activityLeaderSignatureUrl String?
-  activityLeaderSignedAt DateTime?
+  activityLeaderSignedAt     DateTime?
 
   counselorSignatureUrl String?
-  counselorSignedAt DateTime?
+  counselorSignedAt     DateTime?
 
   educationDepartment String?
   educationOffice     String?
@@ -355,10 +360,10 @@ model Service {
   description String?
   status      ServiceStatus @default(ACTIVE)
 
-  workflows         Workflow[]
-  cases             CaseEntry[]
-  access            ServiceAccess[]
-  calendarReminders CalendarReminder[]
+  workflows           Workflow[]
+  cases               CaseEntry[]
+  access              ServiceAccess[]
+  calendarReminders   CalendarReminder[]
   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
   surveys             Survey[]             @relation("SurveysService")
 
@@ -377,10 +382,10 @@ model Workflow {
   isActive     Boolean        @default(false)
   workflowType String         @default("default")
 
-  studentPickerMode StudentPickerMode @default(SERVICE_DEFAULT)
-  evidenceMode      WorkflowEvidenceMode @default(SERVICE_DEFAULT)
-  steps             WorkflowStep[]
-  cases             CaseEntry[]
+  studentPickerMode   StudentPickerMode    @default(SERVICE_DEFAULT)
+  evidenceMode        WorkflowEvidenceMode @default(SERVICE_DEFAULT)
+  steps               WorkflowStep[]
+  cases               CaseEntry[]
   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
 
   createdAt DateTime @default(now())
@@ -414,7 +419,7 @@ model DynamicField {
   step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   key         String
-  label       String
+  label       String    @db.Text
   type        FieldType
   placeholder String?
   helpText    String?
@@ -446,7 +451,7 @@ model DynamicFieldOption {
   fieldId String
   field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
-  label         String
+  label         String  @db.Text
   value         String
   order         Int
   linkedToValue String?
@@ -481,10 +486,10 @@ model CaseEntry {
   status      CaseStatus @default(DRAFT)
   submittedAt DateTime?
 
-  values            CaseValue[]
-  evidences         Evidence[]
-  calendarReminders CalendarReminder[]
-  activityAssignment  ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+  values             CaseValue[]
+  evidences          Evidence[]
+  calendarReminders  CalendarReminder[]
+  activityAssignment ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
 
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -537,7 +542,6 @@ model Evidence {
   @@index([caseEntryId])
 }
 
-
 model ActivityAssignment {
   id String @id @default(cuid())
 
@@ -545,7 +549,7 @@ model ActivityAssignment {
   schoolAccount   SchoolAccount @relation("ActivityAssignmentsBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
 
   createdById String?
-  createdBy   User? @relation("ActivityAssignmentsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   User?   @relation("ActivityAssignmentsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   serviceId String
   service   Service @relation("ActivityAssignmentsService", fields: [serviceId], references: [id])
@@ -570,9 +574,9 @@ model ActivityAssignment {
   dueDate DateTime?
   note    String?   @db.Text
 
-  submittedValues       Json?
+  submittedValues        Json?
   submittedEvidenceItems Json?
-  returnedReason        String? @db.Text
+  returnedReason         String? @db.Text
 
   token          String    @unique
   tokenExpiresAt DateTime?
@@ -598,6 +602,7 @@ model ActivityAssignment {
   @@index([dueDate])
   @@index([createdAt])
 }
+
 model CalendarReminder {
   id String @id @default(cuid())
 
@@ -892,7 +897,6 @@ model ExternalSyncLog {
   @@index([entityType])
 }
 
-
 model AssessmentAnalysis {
   id              String         @id @default(cuid())
   schoolAccountId String?
@@ -900,8 +904,8 @@ model AssessmentAnalysis {
 
   title      String
   sourceFile String?
-  status     String @default("COMPLETED")
-  uploadMode String @default("GENERAL")
+  status     String  @default("COMPLETED")
+  uploadMode String  @default("GENERAL")
 
   totalStudents     Int    @default(0)
   totalRows         Int    @default(0)
@@ -918,6 +922,7 @@ model AssessmentAnalysis {
   @@index([status])
   @@index([createdAt])
 }
+
 model ResultsAnalysis {
   id              String         @id @default(cuid())
   schoolAccountId String?
@@ -1009,7 +1014,7 @@ model ReportSnapshot {
   snapshotPayload      Json
   snapshotTemplateJson Json?
   snapshotPagesJson    Json?
-  snapshotHtml         String @db.LongText
+  snapshotHtml         String  @db.LongText
   pdfUrl               String?
 
   approvedById   String?
@@ -1056,8 +1061,8 @@ model ReportTemplate {
 
   serviceSlug String?
 
-  type ReportTemplateType @default(SYSTEM)
-  content      String? @db.LongText
+  type    ReportTemplateType @default(SYSTEM)
+  content String?            @db.LongText
 
   templateJson Json?
   version      Int   @default(1)
@@ -1415,6 +1420,7 @@ model AssessmentInterventionRule {
   @@index([isEnabled])
   @@index([isDefault])
 }
+
 model AssessmentInterventionWorkflowTarget {
   id String @id @default(cuid())
 
@@ -1441,7 +1447,7 @@ model Survey {
   schoolAccount   SchoolAccount @relation("SurveysBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
 
   createdById String?
-  createdBy   User? @relation("SurveysCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   User?   @relation("SurveysCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   serviceId String?
   service   Service? @relation("SurveysService", fields: [serviceId], references: [id], onDelete: SetNull)
@@ -1449,7 +1455,7 @@ model Survey {
   title       String
   description String? @db.Text
 
-  audienceType String @default("GENERAL")
+  audienceType String  @default("GENERAL")
   ownerRole    String?
   boardPath    String?
 
@@ -1460,7 +1466,7 @@ model Survey {
   endsAt      DateTime?
   publishedAt DateTime?
   closedAt    DateTime?
-  opensAt              DateTime?
+  opensAt     DateTime?
 
   questions SurveyQuestion[]
   responses SurveyResponse[]
@@ -1484,7 +1490,7 @@ model SurveyQuestion {
   key      String
   label    String
   type     SurveyQuestionType
-  helpText String? @db.Text
+  helpText String?            @db.Text
 
   isRequired Boolean @default(false)
   order      Int
@@ -1529,7 +1535,7 @@ model SurveyResponse {
   schoolAccountId String
   schoolAccount   SchoolAccount @relation("SurveyResponsesBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
 
-  respondentType  String @default("GENERAL")
+  respondentType  String  @default("GENERAL")
   respondentName  String?
   respondentPhone String?
   metadata        Json?
@@ -1600,7 +1606,7 @@ model CertificateBatch {
   schoolAccountId String
   createdById     String?
 
-  sourceType String @default("BULK_IMPORT") @db.VarChar(40)
+  sourceType String  @default("BULK_IMPORT") @db.VarChar(40)
   sourceId   String?
 
   status      String @default("DRAFT") @db.VarChar(30)
@@ -1639,8 +1645,8 @@ model IssuedCertificate {
   certificateType String @db.VarChar(50)
   recipientType   String @db.VarChar(50)
 
-  recipientName     String
-  recipientIdentity String?
+  recipientName      String
+  recipientIdentity  String?
   recipientStudentId String?
 
   title  String
@@ -1650,7 +1656,7 @@ model IssuedCertificate {
   issueDate DateTime @default(now())
   status    String   @default("ISSUED") @db.VarChar(30)
 
-  sourceType String @default("MANUAL") @db.VarChar(40)
+  sourceType String  @default("MANUAL") @db.VarChar(40)
   sourceId   String?
 
   pdfUrl       String?
@@ -1670,13 +1676,14 @@ model IssuedCertificate {
   @@index([sourceType, sourceId])
   @@index([status])
 }
+
 model CertificateAttachment {
-  id              String @id @default(cuid())
+  id              String  @id @default(cuid())
   schoolAccountId String
-  targetType      String @db.VarChar(60)
+  targetType      String  @db.VarChar(60)
   targetId        String
   certificateId   String
-  sortOrder       Int    @default(0)
+  sortOrder       Int     @default(0)
   createdById     String?
 
   certificate IssuedCertificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
@@ -1727,14 +1734,15 @@ model CustomReportEntry {
   @@index([templateId])
   @@index([status])
 }
+
 model DashboardResourceLink {
-  id              String @id @default(cuid())
+  id              String  @id @default(cuid())
   schoolAccountId String
-  sourceType      String @db.VarChar(60)
+  sourceType      String  @db.VarChar(60)
   sourceId        String
-  targetType      String @db.VarChar(60)
+  targetType      String  @db.VarChar(60)
   targetId        String
-  sortOrder       Int    @default(0)
+  sortOrder       Int     @default(0)
   createdById     String?
   metadataJson    Json?
 
@@ -1745,4 +1753,102 @@ model DashboardResourceLink {
   @@index([schoolAccountId, sourceType, sourceId], map: "DashboardResourceLink_source_idx")
   @@index([schoolAccountId, targetType, targetId], map: "DashboardResourceLink_target_idx")
   @@index([createdById], map: "DashboardResourceLink_createdBy_idx")
+}
+
+model AchievementPortfolio {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  ownerUserId String
+  owner       User   @relation("AchievementPortfolioOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  title        String
+  roleKey      String @default("TEACHER")
+  academicYear String
+  term         String
+  themeId      String @default("ministry-elegant")
+  status       String @default("DRAFT")
+
+  introText      String? @db.Text
+  conclusionText String? @db.Text
+  visionText     String? @db.Text
+  missionText    String? @db.Text
+  bioText        String? @db.Text
+
+  qualificationsJson Json?
+  coursesJson        Json?
+  certificatesJson   Json?
+  settingsJson       Json?
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sections AchievementPortfolioSection[]
+  items    AchievementPortfolioItem[]
+
+  @@unique([schoolAccountId, ownerUserId, academicYear, term])
+  @@index([schoolAccountId])
+  @@index([ownerUserId])
+  @@index([roleKey])
+  @@index([status])
+  @@index([themeId])
+}
+
+model AchievementPortfolioSection {
+  id String @id @default(cuid())
+
+  portfolioId String
+  portfolio   AchievementPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  kind       String
+  sectionKey String
+  title      String
+  introText  String? @db.Text
+
+  sortOrder    Int     @default(0)
+  isEnabled    Boolean @default(true)
+  metadataJson Json?
+
+  items AchievementPortfolioItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([portfolioId, sectionKey])
+  @@index([portfolioId])
+  @@index([kind])
+  @@index([sortOrder])
+}
+
+model AchievementPortfolioItem {
+  id String @id @default(cuid())
+
+  portfolioId String
+  portfolio   AchievementPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  sectionId String?
+  section   AchievementPortfolioSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  sourceType String
+  sourceId   String?
+
+  title       String
+  description String? @db.Text
+
+  sortOrder    Int     @default(0)
+  isVisible    Boolean @default(true)
+  metadataJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([portfolioId])
+  @@index([sectionId])
+  @@index([sourceType])
+  @@index([sourceId])
+  @@index([isVisible])
+  @@index([sortOrder])
 }

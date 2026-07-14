@@ -664,6 +664,7 @@ function getDeviceLabel(userAgent: string | null) {
   if (/Macintosh|Mac OS/i.test(value)) return "جهاز Mac";
   if (/Linux/i.test(value)) return "جهاز Linux";
 
+  
   return "جهاز غير معروف";
 }
 
