@@ -1,0 +1,724 @@
+
+===== components\reports\guardian-summons\guardian-summons-template.tsx =====
+
+export type GuardianSummonsReasonItem = {
+  id: string;
+  label: string;
+  selected: boolean;
+};
+
+export type GuardianSummonsTemplateData = {
+  schoolName: string;
+  schoolLogoUrl?: string | null;
+  educationDepartment?: string | null;
+  educationOffice?: string | null;
+  hijriYear?: string | null;
+  caseNumber?: string | null;
+  studentName: string;
+  studentGrade?: string | null;
+  studentClassroom?: string | null;
+  guardianName: string;
+  guardianPhone?: string | null;
+  appointmentDay?: string | null;
+  appointmentDate?: string | null;
+  appointmentTime?: string | null;
+  period?: string | null;
+  reasons: GuardianSummonsReasonItem[];
+  notes?: string | null;
+  counselorName?: string | null;
+  principalName?: string | null;
+};
+
+const MINISTRY_LOGO_SRC = "/uploads/school-logos/MOE.png";
+
+function display(value: string | null | undefined) {
+  return value?.trim() || "";
+}
+
+function DottedLine({
+  children,
+  className = "",
+}: {
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={[
+        "inline-flex min-h-[18px] items-end justify-center border-b border-dotted border-black px-2 align-baseline leading-none",
+        className,
+      ].join(" ")}
+    >
+      <span className="pb-[2px]">{children}</span>
+    </span>
+  );
+}
+
+function CircleMark({ selected }: { selected: boolean }) {
+  return (
+    <span className="relative mt-[7px] inline-flex h-[11px] w-[11px] shrink-0 rounded-full border border-black">
+      {selected ? (
+        <span className="absolute left-1/2 top-1/2 h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-black" />
+      ) : null}
+    </span>
+  );
+}
+
+function SignatureBlock({
+  title,
+  name,
+}: {
+  title: string;
+  name?: string | null;
+}) {
+  return (
+    <div className="text-center text-[14px] leading-8">
+      <p className="font-bold">{title}</p>
+      <DottedLine className="mt-2 min-w-[48mm]">{display(name)}</DottedLine>
+      <p className="mt-1">
+        التوقيع: <DottedLine className="min-w-[38mm]" />
+      </p>
+    </div>
+  );
+}
+
+export function GuardianSummonsTemplate({
+  data,
+}: {
+  data: GuardianSummonsTemplateData;
+}) {
+  const classroom = [data.studentGrade, data.studentClassroom]
+    .map(display)
+    .filter(Boolean)
+    .join(" / ");
+
+  return (
+    <section
+      dir="rtl"
+      className="guardian-summons-print-page mx-auto min-h-[297mm] w-[210mm] bg-white px-[18mm] py-[11mm] font-serif text-black shadow-sm print:m-0 print:shadow-none"
+    >
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+
+          html,
+          body {
+            background: #fff !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .guardian-summons-print-page {
+            box-shadow: none !important;
+            break-after: page;
+          }
+        }
+      `}</style>
+
+      <header className="relative min-h-[112px] text-[13px] leading-[1.75]">
+        <div className="absolute right-0 top-0 w-[66mm] text-right">
+          <p>المملكة العربية السعودية</p>
+          <p>وزارة التعليم</p>
+          <p>
+            الإدارة العامة للتعليم بمنطقة{" "}
+            <DottedLine className="min-w-[29mm]">
+              {display(data.educationDepartment)}
+            </DottedLine>
+          </p>
+          <p>
+            مكتب التعليم بمحافظة{" "}
+            <DottedLine className="min-w-[30mm]">
+              {display(data.educationOffice)}
+            </DottedLine>
+          </p>
+        </div>
+
+        <div className="absolute left-0 top-0 w-[58mm] text-right">
+          <p>
+            مدرسة{" "}
+            <DottedLine className="min-w-[38mm]">{display(data.schoolName)}</DottedLine>
+          </p>
+          <p>
+            العام الدراسي{" "}
+            <DottedLine className="min-w-[27mm]">{display(data.hijriYear)}</DottedLine>
+          </p>
+          <p>الإرشاد الطلابي</p>
+          {data.schoolLogoUrl ? (
+            <div className="mt-2 h-[22px] w-[58px] overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={data.schoolLogoUrl}
+                alt={data.schoolName || "شعار المدرسة"}
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mx-auto flex w-[58mm] flex-col items-center text-center">
+          <p className="text-[14px] font-semibold">بسم الله الرحمن الرحيم</p>
+          <div className="relative mt-3 h-[46px] w-[128px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={MINISTRY_LOGO_SRC}
+              alt="وزارة التعليم"
+              className="h-full w-full object-contain"
+            />
+          </div>
+        </div>
+      </header>
+
+      <main className="text-[15px] leading-[2.2]">
+        <h1 className="mt-2 text-center text-[25px] font-bold leading-tight">
+          استدعاء ولي أمر طالب
+        </h1>
+
+        <div className="mt-7 flex flex-wrap items-end gap-x-4 gap-y-1">
+          <span>المكرم ولي أمر الطالب /</span>
+          <DottedLine className="min-w-[54mm]">{display(data.guardianName)}</DottedLine>
+          <span>بالصف</span>
+          <DottedLine className="min-w-[31mm]">{classroom}</DottedLine>
+          <span>سلّمه الله</span>
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-end gap-x-3 text-[13.5px]">
+          <span>اسم الطالب:</span>
+          <DottedLine className="min-w-[62mm]">{display(data.studentName)}</DottedLine>
+          <span>جوال ولي الأمر:</span>
+          <DottedLine className="min-w-[38mm]">{display(data.guardianPhone)}</DottedLine>
+        </div>
+
+        <p className="mt-7 text-center">
+          السلام عليكم ورحمة الله وبركاته ،،،
+        </p>
+
+        <p className="mt-4 text-justify">
+          نظرًا لأهمية التعاون المستمر والتنسيق بين المدرسة وولي أمر الطالب فيما
+          يخدم مصلحته ويحقق له النجاح بإذن الله.
+        </p>
+
+        <p className="mt-7">
+          لذا نأمل منكم الحضور يوم{" "}
+          <DottedLine className="min-w-[28mm]">{display(data.appointmentDay)}</DottedLine>
+          الموافق{" "}
+          <DottedLine className="min-w-[36mm]">{display(data.appointmentDate)}</DottedLine>
+          الساعة{" "}
+          <DottedLine className="min-w-[27mm]">{display(data.appointmentTime)}</DottedLine>
+          <DottedLine className="min-w-[18mm]">{display(data.period)}</DottedLine>
+        </p>
+
+        <p className="mt-7 text-center font-bold">
+          لمناقشة وبحث مشكلة ابنكم وهي :
+        </p>
+
+        <section className="mx-auto mt-4 w-[136mm] space-y-2.5 text-[14.5px] leading-[1.9]">
+          {data.reasons.length ? (
+            data.reasons.map((reason) => (
+              <div key={reason.id} className="flex items-start gap-3">
+                <CircleMark selected={reason.selected} />
+                <p>{reason.label}</p>
+              </div>
+            ))
+          ) : (
+            <>
+              {[
+                "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.",
+                "تأخره الصباحي المتكرر لأكثر من خمسة أيام بدون عذر.",
+                "ضعف التحصيل الدراسي.",
+                "وجود مشكلة سلوكية.",
+              ].map((reason) => (
+                <div key={reason} className="flex items-start gap-3">
+                  <CircleMark selected={false} />
+                  <p>{reason}</p>
+                </div>
+              ))}
+            </>
+          )}
+
+          <div className="flex items-start gap-3">
+            <CircleMark selected={false} />
+            <p>
+              أخرى: <DottedLine className="min-w-[95mm]" />
+            </p>
+          </div>
+        </section>
+
+        {display(data.notes) ? (
+          <section className="mt-6 break-inside-avoid text-[14px] leading-7">
+            <p className="font-bold">ملاحظات:</p>
+            <p className="border-b border-dotted border-black pb-1">
+              {display(data.notes)}
+            </p>
+          </section>
+        ) : null}
+      </main>
+
+      <footer className="mt-14 grid grid-cols-2 gap-14">
+        <SignatureBlock
+          title="الموجه/ـة الطلابي/ـة"
+          name={data.counselorName}
+        />
+        <SignatureBlock title="مدير/ة المدرسة" name={data.principalName} />
+      </footer>
+    </section>
+  );
+}
+
+
+============================================================
+
+===== app\dashboard\guardian-summons\[caseId]\report\page.tsx =====
+
+import { notFound } from "next/navigation";
+
+import {
+  GuardianSummonsTemplate,
+  type GuardianSummonsReasonItem,
+  type GuardianSummonsTemplateData,
+} from "@/components/reports/guardian-summons/guardian-summons-template";
+import {
+  formatWorkflowDisplayValue,
+  stringifyWorkflowRawValue,
+  type WorkflowValueLike,
+} from "@/lib/workflow-values/workflow-display-value";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+
+import { GuardianSummonsPrintController } from "./print-controller";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<{
+    print?: string;
+  }>;
+};
+
+type CaseValueRow = WorkflowValueLike & {
+  id: string;
+  fieldKey: string;
+  value: string | null;
+  jsonValue: unknown;
+};
+
+function cleanText(value: unknown) {
+  const text = String(repairPotentialUtf8Mojibake(value) ?? "").trim();
+
+  return text && text !== "null" && text !== "undefined" ? text : "";
+}
+
+function normalizeText(value: unknown) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_\s-]+/g, "")
+    .trim();
+}
+
+function getRawStoredValue(row: CaseValueRow) {
+  if (row.jsonValue !== null && row.jsonValue !== undefined) {
+    return row.jsonValue;
+  }
+
+  const text = cleanText(row.value);
+
+  if (!text) return "";
+
+  if (
+    (text.startsWith("[") && text.endsWith("]")) ||
+    (text.startsWith("{") && text.endsWith("}"))
+  ) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  }
+
+  return text;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function fieldSearchText(row: CaseValueRow) {
+  return normalizeText(
+    [
+      row.fieldKey,
+      row.field?.key,
+      row.field?.label,
+      row.field?.type,
+    ].join(" "),
+  );
+}
+
+function findValueRow(rows: CaseValueRow[], aliases: string[]) {
+  const normalizedAliases = aliases.map(normalizeText).filter(Boolean);
+
+  return (
+    rows.find((row) => {
+      const text = fieldSearchText(row);
+      return normalizedAliases.some((alias) => text.includes(alias));
+    }) || null
+  );
+}
+
+function findDisplayValue(rows: CaseValueRow[], aliases: string[]) {
+  const row = findValueRow(rows, aliases);
+
+  return row ? cleanText(formatWorkflowDisplayValue(row, rows)) : "";
+}
+
+function getObjectText(
+  value: Record<string, unknown> | null | undefined,
+  keys: string[],
+) {
+  if (!value) return "";
+
+  for (const key of keys) {
+    const text = cleanText(value[key]);
+    if (text) return text;
+  }
+
+  return "";
+}
+
+function extractSelectedValues(value: unknown): string[] {
+  if (value === null || value === undefined || value === "") {
+    return [];
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return [String(value).trim()].filter(Boolean);
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractSelectedValues(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return [
+      ...extractSelectedValues(record.value),
+      ...extractSelectedValues(record.label),
+      ...extractSelectedValues(record.name),
+      ...extractSelectedValues(record.id),
+      ...extractSelectedValues(record.key),
+    ];
+  }
+
+  return [];
+}
+
+function buildReasonItems(
+  rows: CaseValueRow[],
+  aliases: string[],
+): GuardianSummonsReasonItem[] {
+  const row = findValueRow(rows, aliases);
+
+  if (!row) return [];
+
+  const rawSelectedValues = extractSelectedValues(getRawStoredValue(row));
+  const selectedSet = new Set(rawSelectedValues.map(normalizeText));
+  const options = row.field?.options || [];
+
+  if (options.length) {
+    return options.map((option, index) => {
+      const optionValue = cleanText(option.value);
+      const optionLabel = cleanText(option.label);
+      const selected =
+        selectedSet.has(normalizeText(optionValue)) ||
+        selectedSet.has(normalizeText(optionLabel));
+
+      return {
+        id: optionValue || optionLabel || `${row.id}-${index}`,
+        label: optionLabel || optionValue,
+        selected,
+      };
+    });
+  }
+
+  return rawSelectedValues.map((value, index) => ({
+    id: `${row.id}-${index}`,
+    label: cleanText(stringifyWorkflowRawValue(value)),
+    selected: true,
+  }));
+}
+
+function getHijriYear(value: Date | string | null | undefined) {
+  const date = value ? new Date(value) : new Date();
+
+  try {
+    const parts = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+      year: "numeric",
+    }).formatToParts(date);
+
+    return parts.find((part) => part.type === "year")?.value || "";
+  } catch {
+    return "";
+  }
+}
+
+function buildGuardianSummonsTemplateData({
+  caseEntry,
+  values,
+  currentUser,
+}: {
+  caseEntry: Awaited<ReturnType<typeof loadGuardianSummonsCase>>;
+  values: CaseValueRow[];
+  currentUser: {
+    name: string | null;
+    officialName: string | null;
+    jobTitle: string | null;
+  } | null;
+}): GuardianSummonsTemplateData {
+  const schoolProfile = caseEntry.schoolAccount.profile;
+  const student = caseEntry.student;
+  const guardian = student?.guardian;
+  const selectedStudent = asRecord(
+    values.find((item) => item.fieldKey === "selectedStudent")?.jsonValue,
+  );
+  const guardianSnapshot = asRecord(
+    values.find((item) => item.fieldKey === "guardianSnapshot")?.jsonValue,
+  );
+
+  const studentName =
+    findDisplayValue(values, [
+      "student_name",
+      "studentName",
+      "student_full_name",
+      "studentFullName",
+      "full_name",
+      "fullName",
+      "اسم_الطالب",
+      "اسم الطالب",
+    ]) ||
+    cleanText(student?.fullName) ||
+    getObjectText(selectedStudent, ["fullName", "name", "studentName"]);
+  const guardianName =
+    findDisplayValue(values, [
+      "guardian_name",
+      "guardianName",
+      "parent_name",
+      "parentName",
+      "اسم_ولي_الأمر",
+      "اسم ولي الأمر",
+    ]) ||
+    cleanText(guardian?.name) ||
+    getObjectText(guardianSnapshot, ["name", "fullName", "guardianName"]) ||
+    getObjectText(selectedStudent, ["guardianName"]);
+  const guardianPhone =
+    findDisplayValue(values, [
+      "guardian_phone",
+      "guardianPhone",
+      "parent_phone",
+      "parentPhone",
+      "guardian_mobile",
+      "guardianMobile",
+      "جوال ولي الأمر",
+      "هاتف ولي الأمر",
+    ]) ||
+    cleanText(guardian?.phone) ||
+    getObjectText(guardianSnapshot, ["phone", "mobile", "guardianPhone"]) ||
+    getObjectText(selectedStudent, ["guardianPhone"]);
+
+  return {
+    schoolName:
+      cleanText(schoolProfile?.schoolName) || cleanText(caseEntry.schoolAccount.name),
+    schoolLogoUrl: cleanText(schoolProfile?.logoUrl) || null,
+    educationDepartment: cleanText(schoolProfile?.educationDepartment),
+    educationOffice: cleanText(schoolProfile?.educationOffice),
+    hijriYear:
+      cleanText(schoolProfile?.academicYear) ||
+      getHijriYear(caseEntry.submittedAt || caseEntry.createdAt),
+    caseNumber: caseEntry.id.slice(-8),
+    studentName,
+    studentGrade:
+      findDisplayValue(values, [
+        "student_grade",
+        "studentGrade",
+        "grade",
+        "صف الطالب",
+        "الصف",
+      ]) ||
+      cleanText(student?.grade) ||
+      getObjectText(selectedStudent, ["grade", "studentGrade"]),
+    studentClassroom:
+      findDisplayValue(values, [
+        "student_classroom",
+        "studentClassroom",
+        "classroom",
+        "class_name",
+        "className",
+        "section",
+        "الفصل",
+      ]) ||
+      cleanText(student?.classroom) ||
+      getObjectText(selectedStudent, ["classroom", "section"]),
+    guardianName,
+    guardianPhone,
+    appointmentDay: findDisplayValue(values, [
+      "attendance_day",
+      "attendanceDay",
+      "summons_day",
+      "summonsDay",
+      "day",
+      "يوم الحضور",
+      "اليوم",
+    ]),
+    appointmentDate: findDisplayValue(values, [
+      "attendance_date",
+      "attendanceDate",
+      "summons_date",
+      "summonsDate",
+      "date",
+      "تاريخ الحضور",
+      "التاريخ",
+    ]),
+    appointmentTime: findDisplayValue(values, [
+      "attendance_time",
+      "attendanceTime",
+      "summons_time",
+      "summonsTime",
+      "time",
+      "وقت الحضور",
+      "الساعة",
+    ]),
+    period: findDisplayValue(values, ["period", "الفترة"]),
+    reasons: buildReasonItems(values, [
+      "summons_reasons",
+      "summonsReasons",
+      "summons_reason",
+      "summonsReason",
+      "reasons",
+      "reason",
+      "أسباب الاستدعاء",
+      "اسباب الاستدعاء",
+      "سبب الاستدعاء",
+    ]),
+    notes: findDisplayValue(values, ["notes", "note", "ملاحظات", "الملاحظات"]),
+    counselorName:
+      cleanText(caseEntry.createdBy?.officialName) ||
+      cleanText(caseEntry.createdBy?.name) ||
+      cleanText(currentUser?.officialName) ||
+      cleanText(currentUser?.name),
+    principalName: cleanText(schoolProfile?.principalName),
+  };
+}
+
+async function loadGuardianSummonsCase(
+  caseId: string,
+  context: {
+    isAdmin: boolean;
+    schoolAccountId: string | null;
+  },
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: {
+      id: caseId,
+      service: {
+        slug: "guardian-summons",
+      },
+      ...(context.isAdmin
+        ? {}
+        : { schoolAccountId: context.schoolAccountId || "__missing__" }),
+    },
+    include: {
+      schoolAccount: {
+        include: {
+          profile: true,
+        },
+      },
+      service: true,
+      workflow: true,
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      createdBy: {
+        select: {
+          name: true,
+          officialName: true,
+          jobTitle: true,
+        },
+      },
+      values: {
+        include: {
+          field: {
+            include: {
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  if (!caseEntry) {
+    notFound();
+  }
+
+  return caseEntry;
+}
+
+export default async function GuardianSummonsReportPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const [{ caseId }, query, context] = await Promise.all([
+    params,
+    searchParams ?? Promise.resolve({} as { print?: string }),
+    requireDashboardPageContext(),
+  ]);
+
+  const caseEntry = await loadGuardianSummonsCase(caseId, context);
+  const currentUser = await prisma.user.findUnique({
+    where: {
+      id: context.user.id,
+    },
+    select: {
+      name: true,
+      officialName: true,
+      jobTitle: true,
+    },
+  });
+  const values = caseEntry.values as CaseValueRow[];
+  const data = buildGuardianSummonsTemplateData({
+    caseEntry,
+    values,
+    currentUser,
+  });
+
+  return (
+    <main
+      dir="rtl"
+      className="min-h-screen bg-slate-100 py-6 print:bg-white print:py-0"
+    >
+      <GuardianSummonsPrintController shouldPrint={query?.print === "1"} />
+      <GuardianSummonsTemplate data={data} />
+    </main>
+  );
+}
+
+
+============================================================

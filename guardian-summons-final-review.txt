@@ -1,0 +1,1788 @@
+
+===== components\reports\guardian-summons\guardian-summons-template.tsx =====
+
+import type { ReactNode } from "react";
+
+export type GuardianSummonsReasonItem = {
+  id: string;
+  label: string;
+  selected: boolean;
+  otherText?: string | null;
+};
+
+export type GuardianSummonsTemplateData = {
+  schoolName: string;
+  educationDepartment?: string | null;
+  educationOffice?: string | null;
+  hijriYear?: string | null;
+  guardianName: string;
+  guardianPhone?: string | null;
+  studentGrade?: string | null;
+  studentClassroom?: string | null;
+  appointmentDay?: string | null;
+  appointmentDate?: string | null;
+  appointmentTime?: string | null;
+  period?: string | null;
+  reasons: GuardianSummonsReasonItem[];
+  notes?: string | null;
+  counselorName?: string | null;
+  principalName?: string | null;
+};
+
+const MINISTRY_LOGO_SRC = "/uploads/school-logos/MOE.png";
+
+const DEFAULT_REASON_ROWS: GuardianSummonsReasonItem[] = [
+  {
+    id: "frequent-absence",
+    label: "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.",
+    selected: false,
+  },
+  {
+    id: "morning-lateness",
+    label: "تأخره الصباحي المتكرر لأكثر من خمسة أيام بدون عذر.",
+    selected: false,
+  },
+  {
+    id: "low-achievement",
+    label: "ضعف التحصيل الدراسي.",
+    selected: false,
+  },
+  {
+    id: "behavior-problem",
+    label: "وجود مشكلة سلوكية.",
+    selected: false,
+  },
+  {
+    id: "other",
+    label: "أخرى",
+    selected: false,
+  },
+];
+
+function display(value: string | null | undefined) {
+  return value?.trim() || "";
+}
+
+function normalizeArabicText(value: string) {
+  return value
+    .trim()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ");
+}
+
+function stripLeadingPhrases(value: string, phrases: string[]) {
+  let text = normalizeArabicText(value);
+
+  for (const phrase of phrases) {
+    const normalizedPhrase = normalizeArabicText(phrase);
+
+    if (text === normalizedPhrase) {
+      return "";
+    }
+
+    if (text.startsWith(`${normalizedPhrase} `)) {
+      text = text.slice(normalizedPhrase.length).trim();
+    }
+  }
+
+  return text;
+}
+
+function normalizeSchoolNameForOfficialHeader(value?: string | null) {
+  return stripLeadingPhrases(display(value), ["مدرسة"]);
+}
+
+function normalizeEducationDepartment(value?: string | null) {
+  return stripLeadingPhrases(display(value), [
+    "الإدارة العامة للتعليم بمنطقة",
+    "الادارة العامة للتعليم بمنطقة",
+    "الإدارة العامة للتعليم",
+    "الادارة العامة للتعليم",
+    "تعليم منطقة",
+    "منطقة",
+  ]);
+}
+
+function normalizeEducationOffice(value?: string | null) {
+  return stripLeadingPhrases(display(value), [
+    "مكتب التعليم بمحافظة",
+    "مكتب التعليم بمنطقة",
+    "مكتب تعليم منطقة",
+    "مكتب التعليم",
+    "محافظة",
+    "بمحافظة",
+    "منطقة",
+    "بمنطقة",
+  ]);
+}
+
+function isOtherReason(value: string) {
+  const normalized = normalizeArabicText(value).replace(/[\s:_-]+/g, "");
+
+  return (
+    normalized === "اخرى" ||
+    normalized === "other" ||
+    normalized === "__other__" ||
+    normalized.includes("اخرى")
+  );
+}
+
+function prepareReasonRows(
+  reasons: GuardianSummonsReasonItem[],
+  notes?: string | null,
+) {
+  const source = reasons.length ? reasons : DEFAULT_REASON_ROWS;
+  const seen = new Set<string>();
+  const unique = source.filter((reason) => {
+    const key = normalizeArabicText(`${reason.id} ${reason.label}`).replace(
+      /\s+/g,
+      "",
+    );
+
+    if (seen.has(key)) return false;
+    seen.add(key);
+
+    return true;
+  });
+  const hasOther = unique.some((reason) => isOtherReason(reason.label));
+  const withOther = hasOther
+    ? unique
+    : [
+        ...unique,
+        {
+          id: "other",
+          label: "أخرى",
+          selected: false,
+          otherText: notes || "",
+        },
+      ];
+  const selected = withOther.filter((reason) => reason.selected);
+  const official = withOther.filter(
+    (reason) =>
+      !reason.selected &&
+      DEFAULT_REASON_ROWS.some(
+        (defaultReason) =>
+          normalizeArabicText(defaultReason.label) ===
+          normalizeArabicText(reason.label),
+      ),
+  );
+  const remaining = withOther.filter(
+    (reason) => !reason.selected && !official.includes(reason),
+  );
+
+  return [...selected, ...official, ...remaining].slice(0, 7).map((reason) =>
+    isOtherReason(reason.label)
+      ? {
+          ...reason,
+          label: "أخرى",
+          otherText: reason.otherText || notes || "",
+        }
+      : reason,
+  );
+}
+
+function DottedLine({
+  children,
+  className = "",
+}: {
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <span className={`dotted-line ${className}`}>
+      <span>{children}</span>
+    </span>
+  );
+}
+
+function CircleMark({ selected }: { selected: boolean }) {
+  return (
+    <span className="reason-marker" aria-hidden="true">
+      {selected ? <span /> : null}
+    </span>
+  );
+}
+
+function SignatureBlock({
+  title,
+  name,
+}: {
+  title: string;
+  name?: string | null;
+}) {
+  return (
+    <div className="signature-block">
+      <p className="signature-title">{title}</p>
+      <DottedLine className="signature-name">{display(name)}</DottedLine>
+      <p className="signature-line">
+        التوقيع: <DottedLine className="signature-space" />
+      </p>
+    </div>
+  );
+}
+
+export function GuardianSummonsTemplate({
+  data,
+}: {
+  data: GuardianSummonsTemplateData;
+}) {
+  const schoolName = normalizeSchoolNameForOfficialHeader(data.schoolName);
+  const educationDepartment = normalizeEducationDepartment(
+    data.educationDepartment,
+  );
+  const educationOffice = normalizeEducationOffice(data.educationOffice);
+  const classroom = [data.studentGrade, data.studentClassroom]
+    .map(display)
+    .filter(Boolean)
+    .join(" / ");
+  const period = display(data.period);
+  const reasonRows = prepareReasonRows(data.reasons, data.notes);
+
+  return (
+    <section dir="rtl" className="guardian-summons-document">
+      <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
+
+        .guardian-summons-document {
+          position: relative;
+          width: 210mm;
+          min-height: 297mm;
+          height: 297mm;
+          overflow: hidden;
+          box-sizing: border-box;
+          margin: 0 auto;
+          padding: 11mm 16mm 13mm;
+          background: #ffffff;
+          color: #111111;
+          font-family: "Times New Roman", "Amiri", "Noto Naskh Arabic", serif;
+          font-size: 15px;
+          line-height: 2;
+          box-shadow: 0 6px 22px rgba(15, 23, 42, 0.12);
+        }
+
+        .guardian-summons-document * {
+          box-sizing: border-box;
+        }
+
+        .official-header {
+          position: relative;
+          min-height: 37mm;
+        }
+
+        .header-column {
+          position: absolute;
+          top: 0;
+          width: 60mm;
+          font-size: 12.5px;
+          line-height: 1.9;
+        }
+
+        .header-right {
+          right: 0;
+          text-align: right;
+        }
+
+        .header-left {
+          left: 0;
+          text-align: right;
+        }
+
+        .header-center {
+          width: 66mm;
+          margin: 0 auto;
+          text-align: center;
+        }
+
+        .basmala {
+          margin: 0;
+          font-size: 13.5px;
+          font-weight: 700;
+          line-height: 1.5;
+        }
+
+        .ministry-logo {
+          display: block;
+          width: 42mm;
+          height: 18mm;
+          margin: 4mm auto 0;
+          object-fit: contain;
+        }
+
+        .document-title {
+          margin: 2mm 0 0;
+          text-align: center;
+          font-size: 23px;
+          font-weight: 700;
+          line-height: 1.25;
+        }
+
+        .dotted-line {
+          display: inline-flex;
+          min-height: 18px;
+          align-items: flex-end;
+          justify-content: center;
+          padding: 0 6px 1px;
+          border-bottom: 1px dotted #111111;
+          vertical-align: baseline;
+          line-height: 1.2;
+        }
+
+        .official-body {
+          margin-top: 9mm;
+        }
+
+        .recipient-line,
+        .appointment-line {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-end;
+          gap: 0 8px;
+          margin: 0;
+          font-size: 15.5px;
+          line-height: 2.1;
+        }
+
+        .recipient-name {
+          min-width: 50mm;
+          max-width: 64mm;
+        }
+
+        .recipient-classroom {
+          min-width: 27mm;
+          max-width: 38mm;
+        }
+
+        .greeting {
+          margin: 8mm 0 0;
+          text-align: center;
+          font-size: 15.5px;
+        }
+
+        .body-copy {
+          margin: 5mm 0 0;
+          text-align: justify;
+          font-size: 15.5px;
+          line-height: 2.15;
+        }
+
+        .appointment-line {
+          margin-top: 7mm;
+        }
+
+        .appointment-field-day {
+          min-width: 25mm;
+        }
+
+        .appointment-field-date {
+          min-width: 33mm;
+        }
+
+        .appointment-field-time {
+          min-width: 27mm;
+        }
+
+        .appointment-field-period {
+          min-width: 19mm;
+        }
+
+        .reasons-heading {
+          margin: 8mm 0 0;
+          text-align: center;
+          font-size: 15.5px;
+          font-weight: 700;
+        }
+
+        .reasons-list {
+          width: 141mm;
+          margin: 4mm auto 0;
+          padding: 0;
+          list-style: none;
+          font-size: 15px;
+          line-height: 1.85;
+        }
+
+        .reason-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          min-height: 8mm;
+          break-inside: avoid;
+        }
+
+        .reason-marker {
+          position: relative;
+          display: inline-flex;
+          width: 10px;
+          height: 10px;
+          flex: 0 0 10px;
+          align-items: center;
+          justify-content: center;
+          margin-top: 9px;
+          border: 1px solid #111111;
+          border-radius: 999px;
+        }
+
+        .reason-marker span {
+          width: 5px;
+          height: 5px;
+          border-radius: 999px;
+          background: #111111;
+        }
+
+        .reason-other-line {
+          min-width: 85mm;
+        }
+
+        .signature-footer {
+          position: absolute;
+          right: 16mm;
+          bottom: 17mm;
+          left: 16mm;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32mm;
+          align-items: end;
+        }
+
+        .signature-block {
+          text-align: center;
+          font-size: 14.5px;
+          line-height: 2;
+        }
+
+        .signature-title,
+        .signature-line {
+          margin: 0;
+        }
+
+        .signature-title {
+          font-weight: 700;
+        }
+
+        .signature-name {
+          min-width: 46mm;
+          margin-top: 1mm;
+        }
+
+        .signature-space {
+          min-width: 34mm;
+        }
+
+        @media screen and (max-width: 900px) {
+          .guardian-summons-document {
+            transform: scale(calc((100vw - 24px) / 794));
+            transform-origin: top center;
+            margin-bottom: calc(-297mm + ((100vw - 24px) / 794 * 297mm));
+          }
+        }
+
+        @media print {
+          html,
+          body {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .guardian-summons-document {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            max-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            max-height: 297mm !important;
+            margin: 0 !important;
+            padding: 11mm 16mm 13mm !important;
+            overflow: hidden !important;
+            box-shadow: none !important;
+            transform: none !important;
+            break-after: avoid;
+            page-break-after: avoid;
+          }
+        }
+      `}</style>
+
+      <header className="official-header">
+        <div className="header-column header-right">
+          <div>المملكة العربية السعودية</div>
+          <div>وزارة التعليم</div>
+          <div>
+            الإدارة العامة للتعليم بمنطقة{" "}
+            <DottedLine className="min-w-[25mm]">
+              {educationDepartment}
+            </DottedLine>
+          </div>
+          <div>
+            مكتب التعليم بمحافظة{" "}
+            <DottedLine className="min-w-[25mm]">{educationOffice}</DottedLine>
+          </div>
+        </div>
+
+        <div className="header-center">
+          <p className="basmala">بسم الله الرحمن الرحيم</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={MINISTRY_LOGO_SRC}
+            alt="وزارة التعليم"
+            className="ministry-logo"
+          />
+          <h1 className="document-title">استدعاء ولي أمر طالب</h1>
+        </div>
+
+        <div className="header-column header-left">
+          <div>
+            مدرسة <DottedLine className="min-w-[35mm]">{schoolName}</DottedLine>
+          </div>
+          <div>
+            العام الدراسي{" "}
+            <DottedLine className="min-w-[24mm]">{display(data.hijriYear)}</DottedLine>{" "}
+            هـ
+          </div>
+          <div>الإرشاد الطلابي</div>
+        </div>
+      </header>
+
+      <main className="official-body">
+        <p className="recipient-line">
+          <span>المكرم ولي أمر الطالب /</span>
+          <DottedLine className="recipient-name">
+            {display(data.guardianName)}
+          </DottedLine>
+          <span>بالصف</span>
+          <DottedLine className="recipient-classroom">{classroom}</DottedLine>
+          <span>سلّمه الله</span>
+        </p>
+
+        <p className="greeting">السلام عليكم ورحمة الله وبركاته ،،،</p>
+
+        <p className="body-copy">
+          نظرًا لأهمية التعاون المستمر والتنسيق بين المدرسة وولي أمر الطالب فيما
+          يخدم مصلحته ويحقق له النجاح بإذن الله.
+        </p>
+
+        <p className="appointment-line">
+          <span>لذا نأمل منكم الحضور يوم</span>
+          <DottedLine className="appointment-field-day">
+            {display(data.appointmentDay)}
+          </DottedLine>
+          <span>الموافق</span>
+          <DottedLine className="appointment-field-date">
+            {display(data.appointmentDate)}
+          </DottedLine>
+          <span>الساعة</span>
+          <DottedLine className="appointment-field-time">
+            {display(data.appointmentTime)}
+          </DottedLine>
+          {period ? (
+            <DottedLine className="appointment-field-period">{period}</DottedLine>
+          ) : null}
+        </p>
+
+        <p className="reasons-heading">لمناقشة وبحث مشكلة ابنكم وهي :</p>
+
+        <ul className="reasons-list">
+          {reasonRows.map((reason) => {
+            const isOther = isOtherReason(reason.label);
+
+            return (
+              <li key={reason.id} className="reason-row">
+                <CircleMark selected={reason.selected} />
+                <span>
+                  {isOther ? (
+                    <>
+                      أخرى:{" "}
+                      <DottedLine className="reason-other-line">
+                        {display(reason.otherText)}
+                      </DottedLine>
+                    </>
+                  ) : (
+                    reason.label
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </main>
+
+      <footer className="signature-footer">
+        <SignatureBlock
+          title="الموجه/ـة الطلابي/ـة"
+          name={data.counselorName}
+        />
+        <SignatureBlock title="مدير/ة المدرسة" name={data.principalName} />
+      </footer>
+    </section>
+  );
+}
+
+
+============================================================
+
+===== app\print\guardian-summons\[caseId]\page.tsx =====
+
+import { notFound } from "next/navigation";
+
+import {
+  GuardianSummonsTemplate,
+  type GuardianSummonsReasonItem,
+  type GuardianSummonsTemplateData,
+} from "@/components/reports/guardian-summons/guardian-summons-template";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+
+import { GuardianSummonsPrintController } from "./print-controller";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type WorkflowOptionDefinition = {
+  id?: string | null;
+  label?: string | null;
+  value?: string | null;
+  order?: number | null;
+};
+
+type WorkflowFieldDefinition = {
+  id?: string | null;
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: WorkflowOptionDefinition[] | null;
+};
+
+type WorkflowForDefinitions = {
+  steps?: Array<{
+    fields?: WorkflowFieldDefinition[] | null;
+  }> | null;
+} | null;
+
+type CaseValueRow = {
+  id: string;
+  fieldId: string | null;
+  fieldKey: string;
+  value: string | null;
+  jsonValue: unknown;
+  field: WorkflowFieldDefinition | null;
+};
+
+type WorkflowFieldDefinitionMap = {
+  byId: Map<string, WorkflowFieldDefinition>;
+  byKey: Map<string, WorkflowFieldDefinition>;
+  byNormalizedKey: Map<string, WorkflowFieldDefinition>;
+};
+
+type StoredChoice = {
+  tokens: string[];
+  fallbackLabel: string;
+};
+
+const DAY_LABELS: Record<string, string> = {
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+};
+
+const PERIOD_LABELS: Record<string, string> = {
+  am: "صباحًا",
+  morning: "صباحًا",
+  pm: "مساءً",
+  evening: "مساءً",
+  p1: "الحصة الأولى",
+  p2: "الحصة الثانية",
+  p3: "الحصة الثالثة",
+  p4: "الحصة الرابعة",
+  p5: "الحصة الخامسة",
+  p6: "الحصة السادسة",
+  p7: "الحصة السابعة",
+};
+
+const LEGACY_REASON_LABELS: Record<string, string> = {
+  frequent_absence: "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.",
+  absence: "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.",
+  morning_lateness: "تأخره الصباحي المتكرر لأكثر من خمسة أيام بدون عذر.",
+  lateness: "تأخره الصباحي المتكرر لأكثر من خمسة أيام بدون عذر.",
+  low_academic_achievement: "ضعف التحصيل الدراسي.",
+  low_achievement: "ضعف التحصيل الدراسي.",
+  academic_weakness: "ضعف التحصيل الدراسي.",
+  low_test_scores: "انخفاض درجات الاختبارات.",
+  behavior_problem: "وجود مشكلة سلوكية.",
+  behavioral_problem: "وجود مشكلة سلوكية.",
+  other: "أخرى",
+  __other__: "أخرى",
+};
+
+function cleanText(value: unknown) {
+  const text = String(repairPotentialUtf8Mojibake(value) ?? "").trim();
+
+  return text && text !== "null" && text !== "undefined" ? text : "";
+}
+
+function normalizeText(value: unknown) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_\s-]+/g, "")
+    .trim();
+}
+
+function normalizeLookupKey(value: unknown) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, "_")
+    .replace(/-+/g, "_")
+    .trim();
+}
+
+function toArabicDigits(value: string) {
+  const digits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+
+  return value.replace(/\d/g, (digit) => digits[Number(digit)] || digit);
+}
+
+function parsePotentialJson(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) return "";
+
+  if (
+    (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+    (trimmed.startsWith("{") && trimmed.endsWith("}"))
+  ) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed;
+    }
+  }
+
+  return trimmed;
+}
+
+function getRawStoredValue(row: CaseValueRow) {
+  if (row.jsonValue !== null && row.jsonValue !== undefined) {
+    return row.jsonValue;
+  }
+
+  const text = cleanText(row.value);
+
+  return text ? parsePotentialJson(text) : "";
+}
+
+function stringifyRawValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+
+  if (typeof value === "string") return cleanText(value);
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(stringifyRawValue).filter(Boolean).join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return (
+      cleanText(record.label) ||
+      cleanText(record.name) ||
+      cleanText(record.fullName) ||
+      cleanText(record.value) ||
+      cleanText(record.key) ||
+      cleanText(record.id) ||
+      ""
+    );
+  }
+
+  return cleanText(value);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function buildWorkflowFieldDefinitionMap(
+  workflow: WorkflowForDefinitions,
+): WorkflowFieldDefinitionMap {
+  const byId = new Map<string, WorkflowFieldDefinition>();
+  const byKey = new Map<string, WorkflowFieldDefinition>();
+  const byNormalizedKey = new Map<string, WorkflowFieldDefinition>();
+
+  workflow?.steps?.forEach((step) => {
+    step.fields?.forEach((field) => {
+      const id = cleanText(field.id);
+      const key = cleanText(field.key);
+
+      if (id) byId.set(id, field);
+      if (key) {
+        byKey.set(key, field);
+        byNormalizedKey.set(normalizeText(key), field);
+      }
+    });
+  });
+
+  return {
+    byId,
+    byKey,
+    byNormalizedKey,
+  };
+}
+
+function getFieldForRow(
+  row: CaseValueRow,
+  fieldMap: WorkflowFieldDefinitionMap,
+) {
+  const fieldId = cleanText(row.fieldId || row.field?.id);
+  const fieldKey = cleanText(row.field?.key || row.fieldKey);
+  const normalizedFieldKey = normalizeText(fieldKey);
+
+  return (
+    (fieldId ? fieldMap.byId.get(fieldId) : null) ||
+    (fieldKey ? fieldMap.byKey.get(fieldKey) : null) ||
+    (normalizedFieldKey ? fieldMap.byNormalizedKey.get(normalizedFieldKey) : null) ||
+    row.field ||
+    null
+  );
+}
+
+function findValueRow(
+  rows: CaseValueRow[],
+  fieldMap: WorkflowFieldDefinitionMap,
+  aliases: string[],
+) {
+  const normalizedAliases = new Set(aliases.map(normalizeText).filter(Boolean));
+
+  return (
+    rows.find((row) => {
+      const field = getFieldForRow(row, fieldMap);
+      const keys = [row.fieldKey, row.field?.key, field?.key]
+        .map(normalizeText)
+        .filter(Boolean);
+
+      return keys.some((key) => normalizedAliases.has(key));
+    }) || null
+  );
+}
+
+function extractStoredChoices(value: unknown): StoredChoice[] {
+  if (value === null || value === undefined || value === "") {
+    return [];
+  }
+
+  if (typeof value === "string") {
+    const parsed = parsePotentialJson(value);
+
+    if (parsed !== value) {
+      return extractStoredChoices(parsed);
+    }
+
+    return value
+      .split(",")
+      .map((item) => cleanText(item))
+      .filter(Boolean)
+      .map((item) => ({
+        tokens: [item],
+        fallbackLabel: item,
+      }));
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    const text = String(value);
+
+    return [{ tokens: [text], fallbackLabel: text }];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractStoredChoices(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const tokens = [
+      record.value,
+      record.label,
+      record.name,
+      record.id,
+      record.key,
+    ]
+      .map(cleanText)
+      .filter(Boolean);
+    const fallbackLabel =
+      cleanText(record.label) ||
+      cleanText(record.name) ||
+      cleanText(record.value) ||
+      cleanText(record.key) ||
+      cleanText(record.id);
+
+    return tokens.length ? [{ tokens, fallbackLabel }] : [];
+  }
+
+  const text = cleanText(value);
+
+  return text ? [{ tokens: [text], fallbackLabel: text }] : [];
+}
+
+function getOtherValueForField(fieldKey: string, rows: CaseValueRow[]) {
+  if (!fieldKey) return "";
+
+  const otherKey = `${fieldKey}__other`;
+
+  const found = rows.find((row) => {
+    const key = row.field?.key || row.fieldKey;
+
+    return key === otherKey || row.fieldKey === otherKey;
+  });
+
+  if (!found) return "";
+
+  return stringifyRawValue(found.jsonValue ?? found.value);
+}
+
+function findOptionByChoice(
+  field: WorkflowFieldDefinition | null,
+  choice: StoredChoice,
+) {
+  const options = field?.options || [];
+  const normalizedTokens = choice.tokens.map(normalizeText).filter(Boolean);
+
+  return (
+    options.find((option) => {
+      const optionValue = normalizeText(option.value);
+      const optionLabel = normalizeText(option.label);
+      const optionId = normalizeText(option.id);
+
+      return normalizedTokens.some(
+        (token) =>
+          token === optionValue || token === optionLabel || token === optionId,
+      );
+    }) || null
+  );
+}
+
+function fallbackLabelForToken(value: string) {
+  const lookupKey = normalizeLookupKey(value);
+
+  return (
+    DAY_LABELS[lookupKey] ||
+    PERIOD_LABELS[lookupKey] ||
+    LEGACY_REASON_LABELS[lookupKey] ||
+    ""
+  );
+}
+
+function resolveSingleWorkflowLabel(
+  field: WorkflowFieldDefinition | null,
+  choice: StoredChoice,
+  otherValue = "",
+) {
+  const matchedOption = findOptionByChoice(field, choice);
+  const rawValue = choice.tokens[0] || choice.fallbackLabel;
+  const optionValue = cleanText(matchedOption?.value);
+  const optionLabel = cleanText(matchedOption?.label);
+  const normalizedValue = normalizeLookupKey(optionValue || rawValue);
+
+  if (normalizedValue === "other" || normalizedValue === "__other__") {
+    return otherValue || optionLabel || "أخرى";
+  }
+
+  return (
+    optionLabel ||
+    fallbackLabelForToken(rawValue) ||
+    cleanText(choice.fallbackLabel) ||
+    rawValue
+  );
+}
+
+function resolveStoredOptionLabels(
+  field: WorkflowFieldDefinition | null,
+  rawValue: unknown,
+  otherValue = "",
+) {
+  const choices = extractStoredChoices(rawValue);
+  const seen = new Set<string>();
+
+  return choices
+    .map((choice) => resolveSingleWorkflowLabel(field, choice, otherValue))
+    .map(cleanText)
+    .filter(Boolean)
+    .filter((label) => {
+      const key = normalizeText(label);
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+
+      return true;
+    });
+}
+
+function resolveWorkflowValue(
+  row: CaseValueRow,
+  fieldMap: WorkflowFieldDefinitionMap,
+  rows: CaseValueRow[],
+) {
+  const field = getFieldForRow(row, fieldMap);
+  const rawValue = getRawStoredValue(row);
+  const fieldKey = cleanText(field?.key || row.fieldKey);
+  const labels = resolveStoredOptionLabels(
+    field,
+    rawValue,
+    getOtherValueForField(fieldKey, rows),
+  );
+
+  if (field?.options?.length || labels.some((label) => label !== stringifyRawValue(rawValue))) {
+    return labels.join("، ");
+  }
+
+  return stringifyRawValue(rawValue);
+}
+
+function findResolvedValue(
+  rows: CaseValueRow[],
+  fieldMap: WorkflowFieldDefinitionMap,
+  aliases: string[],
+) {
+  const row = findValueRow(rows, fieldMap, aliases);
+
+  return row ? cleanText(resolveWorkflowValue(row, fieldMap, rows)) : "";
+}
+
+function getObjectText(
+  value: Record<string, unknown> | null | undefined,
+  keys: string[],
+) {
+  if (!value) return "";
+
+  for (const key of keys) {
+    const text = cleanText(value[key]);
+    if (text) return text;
+  }
+
+  return "";
+}
+
+function formatArabicDate(value: string) {
+  const text = cleanText(value);
+
+  if (!text) return "";
+
+  const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (isoDate) {
+    return toArabicDigits(`${isoDate[3]} / ${isoDate[2]} / ${isoDate[1]}`);
+  }
+
+  const parsed = new Date(text);
+
+  if (!Number.isNaN(parsed.getTime())) {
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const year = String(parsed.getFullYear());
+
+    return toArabicDigits(`${day} / ${month} / ${year}`);
+  }
+
+  return toArabicDigits(text);
+}
+
+function formatTime(value: string) {
+  const text = cleanText(value);
+
+  if (!text) return "";
+
+  return toArabicDigits(text.replace(/:00$/, ":00"));
+}
+
+function buildReasonItems(
+  rows: CaseValueRow[],
+  fieldMap: WorkflowFieldDefinitionMap,
+): GuardianSummonsReasonItem[] {
+  const row = findValueRow(rows, fieldMap, [
+    "summons_reasons",
+    "summonsReasons",
+    "summons_reason",
+    "summonsReason",
+  ]);
+
+  if (!row) return [];
+
+  const field = getFieldForRow(row, fieldMap);
+  const rawValue = getRawStoredValue(row);
+  const choices = extractStoredChoices(rawValue);
+  const otherValue = getOtherValueForField(cleanText(field?.key || row.fieldKey), rows);
+
+  if (field?.options?.length) {
+    const selectedTokens = choices.flatMap((choice) => choice.tokens.map(normalizeText));
+
+    return field.options.map((option, index) => {
+      const label =
+        cleanText(option.label) ||
+        fallbackLabelForToken(cleanText(option.value)) ||
+        cleanText(option.value);
+      const optionTokens = [
+        option.value,
+        option.label,
+        option.id,
+      ]
+        .map(normalizeText)
+        .filter(Boolean);
+      const selected = selectedTokens.some((token) => optionTokens.includes(token));
+      const isOther =
+        normalizeLookupKey(option.value) === "other" ||
+        normalizeLookupKey(option.value) === "__other__" ||
+        normalizeText(label).includes("اخرى");
+
+      return {
+        id: cleanText(option.id) || cleanText(option.value) || `${row.id}-${index}`,
+        label: isOther ? "أخرى" : label,
+        selected,
+        otherText: isOther ? otherValue : null,
+      };
+    });
+  }
+
+  return choices.map((choice, index) => ({
+    id: `${row.id}-${index}`,
+    label: resolveSingleWorkflowLabel(null, choice, otherValue),
+    selected: true,
+    otherText:
+      normalizeLookupKey(choice.fallbackLabel) === "other" ? otherValue : null,
+  }));
+}
+
+function getHijriYear(value: Date | string | null | undefined) {
+  const date = value ? new Date(value) : new Date();
+
+  try {
+    const parts = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+      year: "numeric",
+    }).formatToParts(date);
+
+    return parts.find((part) => part.type === "year")?.value || "";
+  } catch {
+    return "";
+  }
+}
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+async function loadGuardianSummonsCase(
+  caseId: string,
+  context: {
+    isAdmin: boolean;
+    schoolAccountId: string | null;
+  },
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: {
+      id: caseId,
+      service: {
+        slug: "guardian-summons",
+      },
+      ...(context.isAdmin
+        ? {}
+        : { schoolAccountId: context.schoolAccountId || "__missing__" }),
+    },
+    include: {
+      schoolAccount: {
+        include: {
+          profile: true,
+        },
+      },
+      service: true,
+      workflow: {
+        include: {
+          steps: {
+            orderBy: {
+              order: "asc",
+            },
+            include: {
+              fields: {
+                orderBy: {
+                  order: "asc",
+                },
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      createdBy: {
+        select: {
+          name: true,
+          officialName: true,
+          jobTitle: true,
+        },
+      },
+      values: {
+        include: {
+          field: {
+            include: {
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  if (!caseEntry) {
+    notFound();
+  }
+
+  return caseEntry;
+}
+
+function buildGuardianSummonsTemplateData({
+  caseEntry,
+  currentUser,
+}: {
+  caseEntry: Awaited<ReturnType<typeof loadGuardianSummonsCase>>;
+  currentUser: {
+    name: string | null;
+    officialName: string | null;
+    jobTitle: string | null;
+  } | null;
+}): GuardianSummonsTemplateData {
+  const schoolProfile = caseEntry.schoolAccount.profile;
+  const student = caseEntry.student;
+  const guardian = student?.guardian;
+  const values = caseEntry.values as CaseValueRow[];
+  const fieldMap = buildWorkflowFieldDefinitionMap(caseEntry.workflow);
+  const selectedStudent = asRecord(
+    values.find((item) => item.fieldKey === "selectedStudent")?.jsonValue,
+  );
+  const guardianSnapshot = asRecord(
+    values.find((item) => item.fieldKey === "guardianSnapshot")?.jsonValue,
+  );
+  const guardianName =
+    findResolvedValue(values, fieldMap, [
+      "guardian_name",
+      "guardianName",
+      "parent_name",
+      "parentName",
+    ]) ||
+    cleanText(guardian?.name) ||
+    getObjectText(guardianSnapshot, ["name", "fullName", "guardianName"]) ||
+    getObjectText(selectedStudent, ["guardianName"]);
+  const guardianPhone =
+    findResolvedValue(values, fieldMap, [
+      "guardian_phone",
+      "guardianPhone",
+      "parent_phone",
+      "parentPhone",
+      "guardian_mobile",
+      "guardianMobile",
+    ]) ||
+    cleanText(guardian?.phone) ||
+    getObjectText(guardianSnapshot, ["phone", "mobile", "guardianPhone"]) ||
+    getObjectText(selectedStudent, ["guardianPhone"]);
+  const appointmentDate = findResolvedValue(values, fieldMap, [
+    "attendance_date",
+    "attendanceDate",
+    "summons_date",
+    "summonsDate",
+  ]);
+  const notes = findResolvedValue(values, fieldMap, ["notes", "note"]);
+
+  return {
+    schoolName:
+      cleanText(schoolProfile?.schoolName) || cleanText(caseEntry.schoolAccount.name),
+    educationDepartment: cleanText(schoolProfile?.educationDepartment),
+    educationOffice: cleanText(schoolProfile?.educationOffice),
+    hijriYear:
+      cleanText(schoolProfile?.academicYear) ||
+      getHijriYear(caseEntry.submittedAt || caseEntry.createdAt),
+    guardianName,
+    guardianPhone,
+    studentGrade:
+      findResolvedValue(values, fieldMap, [
+        "student_grade",
+        "studentGrade",
+        "grade",
+      ]) ||
+      cleanText(student?.grade) ||
+      getObjectText(selectedStudent, ["grade", "studentGrade"]),
+    studentClassroom:
+      findResolvedValue(values, fieldMap, [
+        "student_classroom",
+        "studentClassroom",
+        "classroom",
+        "class_name",
+        "className",
+        "section",
+      ]) ||
+      cleanText(student?.classroom) ||
+      getObjectText(selectedStudent, ["classroom", "section"]),
+    appointmentDay: findResolvedValue(values, fieldMap, [
+      "attendance_day",
+      "attendanceDay",
+      "summons_day",
+      "summonsDay",
+    ]),
+    appointmentDate: formatArabicDate(appointmentDate),
+    appointmentTime: formatTime(
+      findResolvedValue(values, fieldMap, [
+        "attendance_time",
+        "attendanceTime",
+        "summons_time",
+        "summonsTime",
+      ]),
+    ),
+    period: findResolvedValue(values, fieldMap, ["period"]),
+    reasons: buildReasonItems(values, fieldMap),
+    notes,
+    counselorName:
+      cleanText(caseEntry.createdBy?.officialName) ||
+      cleanText(caseEntry.createdBy?.name) ||
+      cleanText(currentUser?.officialName) ||
+      cleanText(currentUser?.name),
+    principalName: cleanText(schoolProfile?.principalName),
+  };
+}
+
+export default async function GuardianSummonsStandalonePrintPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const [{ caseId }, query, context] = await Promise.all([
+    params,
+    searchParams ??
+      Promise.resolve({} as Record<string, string | string[] | undefined>),
+    requireDashboardPageContext(),
+  ]);
+  const caseEntry = await loadGuardianSummonsCase(caseId, context);
+  const currentUser = await prisma.user.findUnique({
+    where: {
+      id: context.user.id,
+    },
+    select: {
+      name: true,
+      officialName: true,
+      jobTitle: true,
+    },
+  });
+  const data = buildGuardianSummonsTemplateData({
+    caseEntry,
+    currentUser,
+  });
+
+  return (
+    <main dir="rtl" className="guardian-summons-print-shell">
+      <style>{`
+        :root,
+        html,
+        body {
+          color-scheme: light !important;
+          margin: 0 !important;
+          background: #e5e7eb !important;
+        }
+
+        .guardian-summons-print-shell {
+          min-height: 100vh;
+          padding: 24px 0;
+          background: #e5e7eb;
+        }
+
+        @media print {
+          :root,
+          html,
+          body {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+          }
+
+          .guardian-summons-print-shell {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+          }
+        }
+      `}</style>
+      <GuardianSummonsPrintController shouldPrint={firstParam(query.print) === "1"} />
+      <GuardianSummonsTemplate data={data} />
+    </main>
+  );
+}
+
+
+============================================================
+
+===== app\print\guardian-summons\[caseId]\print-controller.tsx =====
+
+"use client";
+
+import { useEffect } from "react";
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForWindowLoad() {
+  if (document.readyState === "complete") return;
+
+  await new Promise<void>((resolve) => {
+    window.addEventListener("load", () => resolve(), { once: true });
+  });
+}
+
+async function waitForFonts() {
+  try {
+    const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } })
+      .fonts;
+
+    if (fonts?.ready) {
+      await fonts.ready;
+    }
+  } catch {
+    // Printing should continue even when the browser does not expose font readiness.
+  }
+}
+
+async function waitForImages() {
+  const images = Array.from(document.images);
+
+  await Promise.all(
+    images.map(async (image) => {
+      if (image.complete) return;
+
+      await new Promise<void>((resolve) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => resolve(), { once: true });
+      });
+    }),
+  );
+}
+
+export function GuardianSummonsPrintController({
+  shouldPrint,
+}: {
+  shouldPrint: boolean;
+}) {
+  useEffect(() => {
+    if (!shouldPrint) return;
+
+    let cancelled = false;
+
+    async function triggerPrint() {
+      await waitForWindowLoad();
+      await waitForFonts();
+      await waitForImages();
+      await sleep(250);
+
+      if (!cancelled) {
+        window.print();
+      }
+    }
+
+    void triggerPrint();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [shouldPrint]);
+
+  return null;
+}
+
+
+============================================================
+
+===== app\dashboard\guardian-summons\[caseId]\report\page.tsx =====
+
+import { redirect } from "next/navigation";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function appendSearchParams(searchParams: Record<string, string | string[] | undefined>) {
+  const params = new URLSearchParams();
+
+  Object.entries(searchParams).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => params.append(key, item));
+      return;
+    }
+
+    if (typeof value === "string") {
+      params.set(key, value);
+    }
+  });
+
+  const queryString = params.toString();
+
+  return queryString ? `?${queryString}` : "";
+}
+
+export default async function GuardianSummonsReportCompatibilityPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const [{ caseId }, query] = await Promise.all([
+    params,
+    searchParams ??
+      Promise.resolve({} as Record<string, string | string[] | undefined>),
+  ]);
+
+  redirect(
+    `/print/guardian-summons/${encodeURIComponent(caseId)}${appendSearchParams(
+      query,
+    )}`,
+  );
+}
+
+
+============================================================
+
+===== lib\workflow-values\workflow-display-value.ts =====
+
+import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+
+export type WorkflowOptionLike = {
+  label?: string | null;
+  value?: string | null;
+};
+
+export type WorkflowFieldLike = {
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: WorkflowOptionLike[] | null;
+};
+
+export type WorkflowValueLike = {
+  id?: string | null;
+  fieldKey?: string | null;
+  value?: string | null;
+  jsonValue?: unknown;
+  field?: WorkflowFieldLike | null;
+};
+
+export function getWorkflowFieldKey(item: WorkflowValueLike) {
+  return item.field?.key || item.fieldKey || item.id || "";
+}
+
+export function getWorkflowFieldLabel(item: WorkflowValueLike, index?: number) {
+  return repairPotentialUtf8Mojibake(
+    item.field?.label ||
+    item.field?.key ||
+    item.fieldKey ||
+    (typeof index === "number" ? `قيمة رقم ${index + 1}` : "قيمة"),
+  );
+}
+
+export function formatWorkflowDisplayValue(
+  item: WorkflowValueLike,
+  allValues: WorkflowValueLike[] = [],
+) {
+  const fieldKey = getWorkflowFieldKey(item);
+  const rawValue = getRawWorkflowValue(item);
+  const otherValue = getOtherValueForField(fieldKey, allValues);
+
+  return formatValueByFieldOptions(
+    rawValue,
+    item.field?.options || [],
+    otherValue,
+  );
+}
+
+export function stringifyWorkflowRawValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+
+  if (typeof value === "string") {
+    return repairPotentialUtf8Mojibake(value) || "";
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => stringifyWorkflowRawValue(item))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    if (typeof record.fullName === "string") return record.fullName;
+    if (typeof record.name === "string") return record.name;
+    if (typeof record.label === "string") return record.label;
+    if (typeof record.value === "string") return record.value;
+
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+
+  return String(value);
+}
+
+function getRawWorkflowValue(item: WorkflowValueLike) {
+  if (item.jsonValue !== null && item.jsonValue !== undefined) {
+    return normalizeStoredValue(item.jsonValue);
+  }
+
+  return normalizeStoredValue(item.value);
+}
+
+function normalizeStoredValue(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+
+  const trimmed = value.trim();
+
+  if (!trimmed) return "";
+
+  if (
+    (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+    (trimmed.startsWith("{") && trimmed.endsWith("}"))
+  ) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed;
+    }
+  }
+
+  return trimmed;
+}
+
+function formatValueByFieldOptions(
+  value: unknown,
+  options: WorkflowOptionLike[],
+  otherValue?: string,
+): string {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => formatSingleChoice(item, options, otherValue))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  return formatSingleChoice(value, options, otherValue);
+}
+
+function formatSingleChoice(
+  value: unknown,
+  options: WorkflowOptionLike[],
+  otherValue?: string,
+): string {
+  const normalizedValue = stringifyWorkflowRawValue(value).trim();
+
+  if (!normalizedValue) return "";
+
+  if (normalizedValue === "__OTHER__" || normalizedValue === "OTHER") {
+    return otherValue?.trim() || "أخرى";
+  }
+
+  const matchedOption = options.find(
+    (option) => String(option.value ?? "").trim() === normalizedValue,
+  );
+
+  if (matchedOption?.label) {
+    return repairPotentialUtf8Mojibake(matchedOption.label) || matchedOption.label;
+  }
+
+  return repairPotentialUtf8Mojibake(normalizedValue) || normalizedValue;
+}
+
+function getOtherValueForField(
+  fieldKey: string,
+  allValues: WorkflowValueLike[],
+) {
+  if (!fieldKey) return "";
+
+  const otherKey = `${fieldKey}__other`;
+
+  const found = allValues.find((item) => {
+    const key = getWorkflowFieldKey(item);
+    return key === otherKey || item.fieldKey === otherKey;
+  });
+
+  if (!found) return "";
+
+  return stringifyWorkflowRawValue(found.value ?? found.jsonValue);
+}
+
+
+============================================================

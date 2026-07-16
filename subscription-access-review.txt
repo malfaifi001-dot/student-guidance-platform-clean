@@ -1,0 +1,1367 @@
+
+===== lib\subscription\subscription-guard.ts =====
+
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+export async function requireActiveSubscriptionForCurrentUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.schoolAccountId) {
+    redirect("/login");
+  }
+
+  if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  const overview = await getSchoolSubscriptionOverview(
+    current.user.schoolAccountId
+  );
+
+  if (!overview.usable) {
+    redirect("/dashboard/plans?reason=activation-required");
+  }
+
+  return current;
+}
+
+export async function requireServiceAccessForCurrentUser(serviceSlug: string) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user?.schoolAccountId) {
+    redirect("/login");
+  }
+
+  if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  const result = await isServiceAllowedForSchool({
+    schoolAccountId: current.user.schoolAccountId,
+    serviceSlug,
+  });
+
+  if (!result.ok) {
+    const reason =
+      result.reason === "SUBSCRIPTION_INACTIVE"
+        ? "activation-required"
+        : "service-not-in-plan";
+
+    redirect(
+      `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+        serviceSlug
+      )}`
+    );
+  }
+
+  return current;
+}
+
+export async function requireCanCreateInServiceForCurrentUser(
+  serviceSlug: string
+) {
+  await requireActiveSubscriptionForCurrentUser();
+  return requireServiceAccessForCurrentUser(serviceSlug);
+}
+
+
+============================================================
+
+===== lib\subscription\subscription-service.ts =====
+
+import { prisma } from "@/lib/prisma";
+import type { SubscriptionStatus } from "@prisma/client";
+import type { PlanAudience } from "./plan-audience";
+
+const DEFAULT_FREE_PLAN_SLUG = "default-free-auto";
+
+type PlanFeatureLike = {
+  key: string;
+  value: string | null;
+};
+
+export function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+export function getRemainingDays(endsAt?: Date | null) {
+  if (!endsAt) return null;
+
+  const diff = endsAt.getTime() - Date.now();
+  return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
+}
+
+export function isSubscriptionUsable(
+  status?: SubscriptionStatus | string | null,
+  endsAt?: Date | null
+) {
+  if (!status) return false;
+
+  if (status === "CANCELED" || status === "EXPIRED" || status === "PAST_DUE") {
+    return false;
+  }
+
+  if (!endsAt) {
+    return status === "ACTIVE" || status === "TRIAL";
+  }
+
+  return endsAt.getTime() > Date.now();
+}
+
+export function getPlanFeatureValue(
+  features: Array<{ key: string; value: string | null }>,
+  key: string,
+  fallback = "0"
+) {
+  return features.find((feature) => feature.key === key)?.value || fallback;
+}
+
+export function getPlanServiceSlugs(features: PlanFeatureLike[]) {
+  return Array.from(
+    new Set(
+      features
+        .filter((feature) => feature.key.startsWith("service:"))
+        .filter((feature) => feature.value === "enabled")
+        .map((feature) => feature.key.replace("service:", "").trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+export function getPlanAudienceFromFeatures(
+  features: Array<{ key: string; value: string | null }>,
+): PlanAudience {
+  const value = features.find((f) => f.key === "targetAudience")?.value;
+  if (value === "GUIDANCE" || value === "ACTIVITY") return value;
+  return "ALL";
+}
+
+function hasPlanServiceRules(features: PlanFeatureLike[]) {
+  return features.some((feature) => feature.key.startsWith("service:"));
+}
+
+export async function syncSchoolServicesFromPlan(input: {
+  schoolAccountId: string;
+  planId: string;
+}) {
+  const planFeatures = (
+    await prisma.planFeature.findMany({
+      where: {
+        planId: input.planId,
+      },
+      select: {
+        key: true,
+        value: true,
+      },
+    })
+  ).filter((feature) => feature.key.startsWith("service:"));
+
+  const enabledServiceSlugs = getPlanServiceSlugs(planFeatures);
+
+  if (!enabledServiceSlugs.length) {
+    return {
+      enabledServiceCount: 0,
+      missingServiceSlugs: [],
+      skippedReason: "PLAN_HAS_NO_ENABLED_SERVICE_FEATURES",
+    };
+  }
+
+  const enabledServices = await prisma.service.findMany({
+    where: {
+      slug: {
+        in: enabledServiceSlugs,
+      },
+    },
+    select: {
+      id: true,
+      slug: true,
+    },
+  });
+
+  const foundServiceSlugs = new Set(enabledServices.map((service) => service.slug));
+  const missingServiceSlugs = enabledServiceSlugs.filter(
+    (slug) => !foundServiceSlugs.has(slug)
+  );
+
+  if (missingServiceSlugs.length) {
+    throw new Error(
+      `الباقة تحتوي على خدمات غير موجودة في جدول Service: ${missingServiceSlugs.join(", ")}`
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.serviceAccess.updateMany({
+      where: {
+        schoolAccountId: input.schoolAccountId,
+      },
+      data: {
+        isEnabled: false,
+        isPaid: false,
+      },
+    });
+
+    for (const service of enabledServices) {
+      await tx.serviceAccess.upsert({
+        where: {
+          schoolAccountId_serviceId: {
+            schoolAccountId: input.schoolAccountId,
+            serviceId: service.id,
+          },
+        },
+        update: {
+          isEnabled: true,
+          isPaid: true,
+        },
+        create: {
+          schoolAccountId: input.schoolAccountId,
+          serviceId: service.id,
+          isEnabled: true,
+          isPaid: true,
+        },
+      });
+    }
+  });
+
+  return {
+    enabledServiceCount: enabledServices.length,
+    missingServiceSlugs,
+    skippedReason: null,
+  };
+}
+
+export async function assignPlanToSchool(input: {
+  schoolAccountId: string;
+  planId: string;
+  days?: number;
+  status?: SubscriptionStatus;
+  activatedById?: string;
+  reason?: string;
+}) {
+  const plan = await prisma.plan.findUnique({
+    where: {
+      id: input.planId,
+    },
+    include: {
+      features: true,
+    },
+  });
+
+  if (!plan) {
+    throw new Error("الباقة غير موجودة.");
+  }
+
+  const currentSubscription = await prisma.subscription.findUnique({
+    where: {
+      schoolAccountId: input.schoolAccountId,
+    },
+    include: {
+      plan: {
+        select: {
+          slug: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  const durationDays =
+    input.days && input.days > 0
+      ? input.days
+      : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) || 30;
+
+  const now = new Date();
+  const endsAt = addDays(now, durationDays);
+
+  const subscription = await prisma.subscription.upsert({
+    where: {
+      schoolAccountId: input.schoolAccountId,
+    },
+    update: {
+      planId: plan.id,
+      status: input.status || "ACTIVE",
+      startsAt: now,
+      endsAt,
+    },
+    create: {
+      schoolAccountId: input.schoolAccountId,
+      planId: plan.id,
+      status: input.status || "ACTIVE",
+      startsAt: now,
+      endsAt,
+    },
+  });
+
+  await syncSchoolServicesFromPlan({
+    schoolAccountId: input.schoolAccountId,
+    planId: plan.id,
+  });
+
+  if (
+    currentSubscription?.plan?.slug === DEFAULT_FREE_PLAN_SLUG &&
+    plan.slug !== DEFAULT_FREE_PLAN_SLUG
+  ) {
+    try {
+      const convertedAt = new Date();
+      const daysOnDefaultFree = Math.max(
+        Math.ceil(
+          (convertedAt.getTime() - currentSubscription.startsAt.getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
+        0,
+      );
+
+      await prisma.platformActivityLog.create({
+        data: {
+          actorUserId: input.activatedById || null,
+          schoolAccountId: input.schoolAccountId,
+          category: "SUBSCRIPTION",
+          action: "default-free-plan-converted",
+          severity: "SUCCESS",
+          title: "انتقل الحساب من الباقة التلقائية إلى باقة اشتراك",
+          details: {
+            fromPlanSlug: currentSubscription.plan.slug,
+            toPlanId: plan.id,
+            toPlanName: plan.name,
+            startedAt: currentSubscription.startsAt.toISOString(),
+            convertedAt: convertedAt.toISOString(),
+            daysOnDefaultFree,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("default free plan conversion audit failed", error);
+    }
+  }
+
+  try {
+    await prisma.manualActivation.create({
+      data: {
+        schoolAccountId: input.schoolAccountId,
+        activatedById: input.activatedById || null,
+        reason: input.reason || `إسناد باقة ${plan.name}`,
+        startsAt: now,
+        endsAt,
+      },
+    });
+  } catch (error) {
+    console.error("manual activation audit failed", error);
+  }
+
+  return subscription;
+}
+
+export async function getSchoolSubscriptionOverview(schoolAccountId: string) {
+  const subscription = await prisma.subscription.findUnique({
+    where: {
+      schoolAccountId,
+    },
+    include: {
+      plan: {
+        include: {
+          features: true,
+        },
+      },
+    },
+  });
+
+  const usable = isSubscriptionUsable(
+    subscription?.status,
+    subscription?.endsAt
+  );
+
+  return {
+    subscription,
+    usable,
+    remainingDays: getRemainingDays(subscription?.endsAt),
+  };
+}
+
+export async function isServiceAllowedForSchool(input: {
+  schoolAccountId: string;
+  serviceSlug: string;
+}) {
+  const overview = await getSchoolSubscriptionOverview(input.schoolAccountId);
+
+  if (!overview.usable) {
+    return {
+      ok: false,
+      reason: "SUBSCRIPTION_INACTIVE" as const,
+    };
+  }
+
+  const planFeatures = overview.subscription?.plan?.features || [];
+  const planServiceSlugs = getPlanServiceSlugs(planFeatures);
+
+  if (planServiceSlugs.includes(input.serviceSlug)) {
+    const service = await prisma.service.findFirst({
+      where: {
+        slug: input.serviceSlug,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!service) {
+      return {
+        ok: false,
+        reason: "SERVICE_NOT_FOUND" as const,
+      };
+    }
+
+    await prisma.serviceAccess.upsert({
+      where: {
+        schoolAccountId_serviceId: {
+          schoolAccountId: input.schoolAccountId,
+          serviceId: service.id,
+        },
+      },
+      update: {
+        isEnabled: true,
+        isPaid: true,
+      },
+      create: {
+        schoolAccountId: input.schoolAccountId,
+        serviceId: service.id,
+        isEnabled: true,
+        isPaid: true,
+      },
+    });
+
+    return {
+      ok: true,
+      reason: "SERVICE_INCLUDED_BY_PLAN" as const,
+    };
+  }
+
+  if (hasPlanServiceRules(planFeatures)) {
+    return {
+      ok: false,
+      reason: "SERVICE_NOT_INCLUDED" as const,
+    };
+  }
+
+  const accessRows = await prisma.serviceAccess.findMany({
+    where: {
+      schoolAccountId: input.schoolAccountId,
+    },
+  });
+
+  if (accessRows.length === 0) {
+    return {
+      ok: true,
+      reason: "NO_SERVICE_RULES_YET" as const,
+    };
+  }
+
+  const serviceAccess = await prisma.serviceAccess.findFirst({
+    where: {
+      schoolAccountId: input.schoolAccountId,
+      service: {
+        slug: input.serviceSlug,
+      },
+    },
+  });
+
+  if (!serviceAccess?.isEnabled) {
+    return {
+      ok: false,
+      reason: "SERVICE_NOT_INCLUDED" as const,
+    };
+  }
+
+  return {
+    ok: true,
+    reason: "SERVICE_INCLUDED" as const,
+  };
+}
+
+
+============================================================
+
+===== lib\subscription\subscription-api-guard.ts =====
+
+import {
+  requireActiveSubscriptionForCurrentUser,
+  requireServiceAccessForCurrentUser,
+} from "@/bin/require-auth";
+
+export async function requireActiveSubscriptionApi() {
+  const result = await requireActiveSubscriptionForCurrentUser();
+  return result instanceof Response ? result : null;
+}
+
+export async function requireServiceAccessApi(serviceSlug: string) {
+  const result = await requireServiceAccessForCurrentUser(serviceSlug);
+  return result instanceof Response ? result : null;
+}
+
+
+============================================================
+
+===== app\dashboard\guardian-summons\layout.tsx =====
+
+import { redirect } from "next/navigation";
+
+import { ensureDashboardWorkflowService } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
+import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+
+const SERVICE_SLUG = "guardian-summons";
+
+export default async function GuardianSummonsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  await ensureDashboardWorkflowService(SERVICE_SLUG);
+
+  const current = await requireServiceAccessForCurrentUser(SERVICE_SLUG);
+
+  if (current.user.role !== "ADMIN" && current.user.role !== "COUNSELOR") {
+    redirect("/dashboard");
+  }
+
+  return children;
+}
+
+
+============================================================
+
+===== app\api\dashboard\admin\subscriptions\route.ts =====
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { ensureDefaultPlatformServices } from "@/lib/services/default-platform-services";
+import {
+  getDefaultFreePlanConfig,
+  saveDefaultFreePlanConfig,
+} from "@/lib/subscription/default-free-plan";
+import {
+  assignPlanToSchool,
+  getPlanFeatureValue,
+} from "@/lib/subscription/subscription-service";
+import {
+  getDefaultVisibleRolesForAudience,
+  normalizePlanVisibleRoles,
+  type PlanAudience,
+} from "@/lib/subscription/plan-audience";
+
+function slugify(input: string) {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^\u0600-\u06FFa-z0-9-]/g, "")
+    .slice(0, 60);
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+export async function GET() {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+  }
+
+  await ensureDefaultPlatformServices();
+
+  const [defaultFreePlan, plans, services, schools, subscriptions, serviceAccess] =
+    await Promise.all([
+      getDefaultFreePlanConfig(),
+
+      prisma.plan.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          features: true,
+        },
+      }),
+
+      prisma.service.findMany({
+        orderBy: {
+          name: "asc",
+        },
+      }),
+
+      prisma.schoolAccount.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          isActive: true,
+          profile: {
+            select: {
+              schoolName: true,
+              educationDepartment: true,
+            },
+          },
+        },
+      }),
+
+      prisma.subscription.findMany({
+        orderBy: {
+          updatedAt: "desc",
+        },
+        include: {
+          schoolAccount: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              isActive: true,
+              profile: {
+                select: {
+                  schoolName: true,
+                  educationDepartment: true,
+                },
+              },
+            },
+          },
+          plan: true,
+        },
+      }),
+
+      prisma.serviceAccess.findMany({
+        include: {
+          service: true,
+          schoolAccount: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      }),
+    ]);
+
+  return NextResponse.json({
+    defaultFreePlan,
+    plans,
+    services,
+    schools,
+    subscriptions,
+    serviceAccess,
+  });
+}
+
+export async function POST(request: Request) {
+  const adminError = await requireAdminApi();
+
+  if (adminError) {
+    return adminError;
+  }
+
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+  }
+
+  const payload = await request.json().catch(() => null);
+  const action = String(payload?.action || "").trim();
+
+  if (action === "save-default-free-plan") {
+    const planName = String(payload?.planName || "").trim();
+    const enabled = Boolean(payload?.enabled);
+    const durationDays = Number(payload?.durationDays || 0);
+    const accessMode =
+      String(payload?.accessMode || "ALL_SERVICES").trim() === "CUSTOM_SERVICES"
+        ? "CUSTOM_SERVICES"
+        : "ALL_SERVICES";
+    const enabledServiceSlugs = Array.isArray(payload?.enabledServiceSlugs)
+      ? payload.enabledServiceSlugs.map(String)
+      : [];
+
+    if (durationDays <= 0) {
+      return NextResponse.json(
+        { error: "اكتب مدة صحيحة للباقة بالأيام." },
+        { status: 400 },
+      );
+    }
+
+    const config = await saveDefaultFreePlanConfig({
+      planName,
+      enabled,
+      durationDays,
+      accessMode,
+      enabledServiceSlugs,
+    });
+
+    return NextResponse.json({
+      message: "تم حفظ إعدادات الباقة التلقائية.",
+      defaultFreePlan: config,
+    });
+  }
+
+  if (action === "create-plan") {
+    const name = String(payload?.name || "").trim();
+    const rawSlug = String(payload?.slug || "").trim();
+    const slug = slugify(rawSlug || name);
+    const priceMonthly = Number(payload?.priceMonthly || 0);
+    const priceYearly = Number(payload?.priceYearly || 0);
+    const durationDays = Number(payload?.durationDays || 30);
+    const maxStudents = Number(payload?.maxStudents || 0);
+    const maxUsers = Number(payload?.maxUsers || 0);
+    const maxReports = Number(payload?.maxReports || 0);
+    const enabledServiceSlugs = Array.isArray(payload?.enabledServiceSlugs)
+      ? payload.enabledServiceSlugs.map(String)
+      : [];
+
+    const targetAudienceRaw = String(payload?.targetAudience || "ALL").trim();
+    const targetAudience: PlanAudience =
+      targetAudienceRaw === "GUIDANCE" || targetAudienceRaw === "ACTIVITY"
+        ? targetAudienceRaw
+        : "ALL";
+    const visibleRoles =
+      normalizePlanVisibleRoles(payload?.visibleRoles) ??
+      getDefaultVisibleRolesForAudience(targetAudience);
+    const isPublic =
+      typeof payload?.isPublic === "boolean" ? payload.isPublic : true;
+    const isArchived = Boolean(payload?.isArchived);
+
+    if (!name) {
+      return NextResponse.json({ error: "اكتب اسم الباقة." }, { status: 400 });
+    }
+
+    if (!slug) {
+      return NextResponse.json(
+        { error: "تعذر إنشاء معرف الباقة." },
+        { status: 400 },
+      );
+    }
+
+    const existing = await prisma.plan.findUnique({
+      where: {
+        slug,
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "يوجد باقة بنفس المعرف." },
+        { status: 400 },
+      );
+    }
+
+    const plan = await prisma.plan.create({
+      data: {
+        name,
+        slug,
+        priceMonthly: priceMonthly >= 0 ? priceMonthly : 0,
+        priceYearly: priceYearly >= 0 ? priceYearly : 0,
+        isActive: true,
+        isPublic,
+        isArchived,
+        visibleRoles,
+        features: {
+          create: [
+            {
+              key: "targetAudience",
+              label: "الجمهور المستهدف",
+              value: targetAudience,
+            },
+            {
+              key: "durationDays",
+              label: "مدة الاشتراك بالأيام",
+              value: String(durationDays > 0 ? durationDays : 30),
+            },
+            {
+              key: "maxStudents",
+              label: "حد الطلاب",
+              value: String(maxStudents > 0 ? maxStudents : 0),
+            },
+            {
+              key: "maxUsers",
+              label: "حد المستخدمين",
+              value: String(maxUsers > 0 ? maxUsers : 0),
+            },
+            {
+              key: "maxReports",
+              label: "حد التقارير",
+              value: String(maxReports > 0 ? maxReports : 0),
+            },
+            ...enabledServiceSlugs.map((serviceSlug: string) => ({
+              key: `service:${serviceSlug}`,
+              label: `خدمة: ${serviceSlug}`,
+              value: "enabled",
+            })),
+          ],
+        },
+      },
+      include: {
+        features: true,
+      },
+    });
+
+    return NextResponse.json({
+      message: "تم إنشاء الباقة بنجاح.",
+      plan,
+    });
+  }
+
+  if (action === "toggle-plan") {
+    const planId = String(payload?.planId || "").trim();
+    const isActive = Boolean(payload?.isActive);
+
+    if (!planId) {
+      return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
+    }
+
+    await prisma.plan.update({
+      where: {
+        id: planId,
+      },
+      data: {
+        isActive,
+      },
+    });
+
+    return NextResponse.json({
+      message: isActive ? "تم تفعيل الباقة." : "تم إيقاف الباقة.",
+    });
+  }
+
+  if (action === "update-plan-visibility") {
+    const planId = String(payload?.planId || "").trim();
+    const isPublic =
+      typeof payload?.isPublic === "boolean" ? payload.isPublic : undefined;
+    const isArchived =
+      typeof payload?.isArchived === "boolean" ? payload.isArchived : undefined;
+    const visibleRoles = normalizePlanVisibleRoles(payload?.visibleRoles) ?? [];
+
+    if (!planId) {
+      return NextResponse.json({ error: "رقم الباقة مطلوب." }, { status: 400 });
+    }
+
+    const plan = await prisma.plan.findUnique({
+      where: {
+        id: planId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!plan) {
+      return NextResponse.json(
+        { error: "الباقة غير موجودة." },
+        { status: 404 },
+      );
+    }
+
+    await prisma.plan.update({
+      where: {
+        id: planId,
+      },
+      data: {
+        ...(typeof isPublic === "boolean" ? { isPublic } : {}),
+        ...(typeof isArchived === "boolean" ? { isArchived } : {}),
+        visibleRoles,
+      },
+    });
+
+    return NextResponse.json({
+      message: "تم تحديث ظهور الباقة.",
+    });
+  }
+
+  if (action === "assign-plan") {
+    const schoolAccountId = String(payload?.schoolAccountId || "").trim();
+    const planId = String(payload?.planId || "").trim();
+    const days = Number(payload?.days || 0);
+    const status = String(payload?.status || "ACTIVE") as
+      | "TRIAL"
+      | "ACTIVE"
+      | "PAST_DUE"
+      | "CANCELED"
+      | "EXPIRED";
+
+    if (!schoolAccountId || !planId) {
+      return NextResponse.json(
+        { error: "اختر الحساب والباقة." },
+        { status: 400 },
+      );
+    }
+
+    const plan = await prisma.plan.findUnique({
+      where: {
+        id: planId,
+      },
+      include: {
+        features: true,
+      },
+    });
+
+    if (!plan) {
+      return NextResponse.json(
+        { error: "الباقة غير موجودة." },
+        { status: 404 },
+      );
+    }
+
+    const durationDays =
+      days > 0
+        ? days
+        : Number(getPlanFeatureValue(plan.features, "durationDays", "30")) > 0
+          ? Number(getPlanFeatureValue(plan.features, "durationDays", "30"))
+          : 30;
+
+    const subscription = await assignPlanToSchool({
+      schoolAccountId,
+      planId,
+      days: durationDays,
+      status,
+      activatedById: current.user.id,
+      reason: `إسناد باقة ${plan.name} لمدة ${durationDays} يوم`,
+    });
+
+    return NextResponse.json({
+      message: "تم إسناد الباقة وتفعيل الخدمات المصاحبة.",
+      subscription,
+    });
+  }
+
+  if (action === "extend-subscription") {
+    const subscriptionId = String(payload?.subscriptionId || "").trim();
+    const days = Number(payload?.days || 30);
+
+    const subscription = await prisma.subscription.findUnique({
+      where: {
+        id: subscriptionId,
+      },
+    });
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: "الاشتراك غير موجود." },
+        { status: 404 },
+      );
+    }
+
+    const now = new Date();
+    const baseDate =
+      subscription.endsAt && subscription.endsAt.getTime() > now.getTime()
+        ? subscription.endsAt
+        : now;
+
+    const endsAt = addDays(baseDate, days > 0 ? days : 30);
+
+    await prisma.subscription.update({
+      where: {
+        id: subscriptionId,
+      },
+      data: {
+        status: "ACTIVE",
+        endsAt,
+      },
+    });
+
+    await prisma.manualActivation.create({
+      data: {
+        schoolAccountId: subscription.schoolAccountId,
+        activatedById: current.user.id,
+        reason: `تمديد اشتراك لمدة ${days || 30} يوم`,
+        startsAt: now,
+        endsAt,
+      },
+    });
+
+    return NextResponse.json({
+      message: "تم تمديد الاشتراك.",
+    });
+  }
+
+  if (action === "cancel-subscription" || action === "reset-subscription") {
+    const subscriptionId = String(payload?.subscriptionId || "").trim();
+
+    if (!subscriptionId) {
+      return NextResponse.json(
+        { error: "رقم الاشتراك مطلوب." },
+        { status: 400 },
+      );
+    }
+
+    const subscription = await prisma.subscription.findUnique({
+      where: {
+        id: subscriptionId,
+      },
+      include: {
+        schoolAccount: true,
+        plan: true,
+      },
+    });
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: "الاشتراك غير موجود أو تم حذفه مسبقًا." },
+        { status: 404 },
+      );
+    }
+
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.serviceAccess.updateMany({
+        where: {
+          schoolAccountId: subscription.schoolAccountId,
+        },
+        data: {
+          isEnabled: false,
+          isPaid: false,
+        },
+      });
+
+      await tx.manualActivation.create({
+        data: {
+          schoolAccountId: subscription.schoolAccountId,
+          reason: `حذف الاشتراك وإرجاع الحساب بدون باقة: ${subscription.schoolAccount.name}`,
+          startsAt: now,
+          endsAt: now,
+        },
+      });
+
+      await tx.subscription.delete({
+        where: {
+          id: subscription.id,
+        },
+      });
+    });
+
+    return NextResponse.json({
+      message: "تم حذف الاشتراك وإرجاع الحساب بدون باقة وبدون أي أيام.",
+    });
+  }
+
+  if (action === "toggle-service-access") {
+    const schoolAccountId = String(payload?.schoolAccountId || "").trim();
+    const serviceId = String(payload?.serviceId || "").trim();
+    const isEnabled = Boolean(payload?.isEnabled);
+    const isPaid = Boolean(payload?.isPaid);
+
+    if (!schoolAccountId || !serviceId) {
+      return NextResponse.json(
+        { error: "اختر الحساب والخدمة." },
+        { status: 400 },
+      );
+    }
+
+    await prisma.serviceAccess.upsert({
+      where: {
+        schoolAccountId_serviceId: {
+          schoolAccountId,
+          serviceId,
+        },
+      },
+      update: {
+        isEnabled,
+        isPaid,
+      },
+      create: {
+        schoolAccountId,
+        serviceId,
+        isEnabled,
+        isPaid,
+      },
+    });
+
+    return NextResponse.json({
+      message: "تم تحديث صلاحية الخدمة للحساب.",
+    });
+  }
+
+  return NextResponse.json({ error: "إجراء غير معروف." }, { status: 400 });
+}
+
+
+============================================================
+
+===== lib\auth\current-user.ts =====
+
+import { cookies, headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "@/lib/auth/session";
+
+export async function getCurrentSessionUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const sessionPayload = verifySessionToken(token);
+
+  if (!sessionPayload) {
+    return null;
+  }
+
+  const session = await prisma.userSession.findUnique({
+    where: {
+      tokenId: sessionPayload.tokenId,
+    },
+    include: {
+      user: {
+        include: {
+          schoolAccount: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!session || !session.isActive || session.revokedAt) {
+    return null;
+  }
+
+  if (session.expiresAt.getTime() < Date.now()) {
+    await prisma.userSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+      },
+    });
+
+    return null;
+  }
+
+  await prisma.userSession.update({
+    where: {
+      id: session.id,
+    },
+    data: {
+      lastSeenAt: new Date(),
+    },
+  });
+
+  return {
+    session,
+    user: session.user,
+  };
+}
+
+export async function getRequestDeviceInfo() {
+  const headerStore = await headers();
+
+  return {
+    userAgent: headerStore.get("user-agent") || null,
+    ipAddress:
+      headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headerStore.get("x-real-ip") ||
+      null,
+  };
+}
+
+
+============================================================
+
+===== lib\auth\require-auth.ts =====
+
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export async function requireDashboardUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    redirect("/login");
+  }
+
+  return current;
+}
+
+export async function requireCompletedOnboarding() {
+  const current = await requireDashboardUser();
+
+  if (!current.user.onboardingCompleted) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return current;
+}
+
+
+============================================================
+
+===== Prisma subscription models =====
+
+model User {
+  id              String         @id @default(cuid())
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  role         UserRole @default(COUNSELOR)
+  gender       Gender   @default(UNKNOWN)
+  officialName String?
+  jobTitle     String?
+
+  teachingStages      Json?
+  teachingSpecialties Json?
+  teachingSubjects    Json?
+  isActive            Boolean @default(true)
+
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
+  cases                      CaseEntry[]
+  sessions                   UserSession[]
+  calendarReminders          CalendarReminder[]
+  createdActivityAssignments ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
+  createdSurveys             Survey[]             @relation("SurveysCreatedBy")
+
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+  achievementPortfolios  AchievementPortfolio[] @relation("AchievementPortfolioOwner")
+
+  @@index([schoolAccountId])
+}
+
+model SchoolAccount {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  isActive              Boolean                @default(true)
+  studentImportSessions StudentImportSession[]
+  users                 User[]
+
+  profile               SchoolProfile?
+  students              Student[]
+  guardians             Guardian[]
+  staff                 StaffMember[]
+  services              ServiceAccess[]
+  cases                 CaseEntry[]
+  subscription          Subscription?
+  resultsAnalyses       ResultsAnalysis[]
+  assessmentAnalyses    AssessmentAnalysis[]
+  calendarReminders     CalendarReminder[]
+  activityAssignments   ActivityAssignment[]   @relation("ActivityAssignmentsBySchool")
+  surveys               Survey[]               @relation("SurveysBySchool")
+  surveyResponses       SurveyResponse[]       @relation("SurveyResponsesBySchool")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  achievementPortfolios AchievementPortfolio[]
+}
+
+model Subscription {
+  id              String        @id @default(cuid())
+  schoolAccountId String        @unique
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status   SubscriptionStatus @default(TRIAL)
+  startsAt DateTime           @default(now())
+  endsAt   DateTime?
+
+  transactions PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Plan {
+  id           String  @id @default(cuid())
+  name         String
+  slug         String  @unique
+  priceMonthly Int     @default(0)
+  priceYearly  Int     @default(0)
+  isActive     Boolean @default(true)
+  isPublic     Boolean @default(true)
+  isArchived   Boolean @default(false)
+  visibleRoles Json?
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanFeature {
+  id     String @id @default(cuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  key   String
+  label String
+  value String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([key])
+}
+
+model ServiceAccess {
+  id              String        @id @default(cuid())
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  isEnabled Boolean @default(true)
+  isPaid    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolAccountId, serviceId])
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows           Workflow[]
+  cases               CaseEntry[]
+  access              ServiceAccess[]
+  calendarReminders   CalendarReminder[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
+  surveys             Survey[]             @relation("SurveysService")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { EvidenceUploadCard } from "@/components/evidence/evidence-upload-card";
@@ -46,11 +46,14 @@ type SmartStudent = {
   id: string;
   fullName: string;
   nationalId?: string | null;
+  phone?: string | null;
   grade?: string | null;
   classroom?: string | null;
   stage?: string | null;
   guardianName?: string | null;
   guardianPhone?: string | null;
+  guardianRelationship?: string | null;
+  guardianNationalId?: string | null;
 };
 
 export type DynamicFormRendererSaveMode = "draft" | "submit";
@@ -442,6 +445,187 @@ function isEmptyValue(value: unknown) {
   );
 }
 
+type StudentAutofillApplyResult = {
+  values: RuntimeValues;
+  autoPopulatedFieldKeys: Set<string>;
+};
+
+const STUDENT_AUTOFILL_ALIASES = {
+  studentId: ["student_id", "studentId"],
+  studentName: [
+    "student_name",
+    "studentName",
+    "student_full_name",
+    "studentFullName",
+    "full_name",
+    "fullName",
+    "اسم_الطالب",
+  ],
+  studentNationalId: [
+    "student_national_id",
+    "studentNationalId",
+    "national_id",
+    "nationalId",
+    "identity_number",
+    "identityNumber",
+  ],
+  studentStage: ["student_stage", "studentStage", "stage"],
+  studentGrade: ["student_grade", "studentGrade", "grade"],
+  studentClassroom: [
+    "student_classroom",
+    "studentClassroom",
+    "classroom",
+    "class_name",
+    "className",
+    "section",
+  ],
+  studentPhone: ["student_phone", "studentPhone", "student_mobile", "studentMobile"],
+  guardianName: [
+    "guardian_name",
+    "guardianName",
+    "parent_name",
+    "parentName",
+    "guardian_full_name",
+    "guardianFullName",
+    "اسم_ولي_الأمر",
+  ],
+  guardianPhone: [
+    "guardian_phone",
+    "guardianPhone",
+    "parent_phone",
+    "parentPhone",
+    "guardian_mobile",
+    "guardianMobile",
+    "mobile",
+    "phone",
+  ],
+  guardianRelationship: [
+    "guardian_relationship",
+    "guardianRelationship",
+    "relationship",
+    "relationship_to_student",
+  ],
+  guardianNationalId: [
+    "guardian_national_id",
+    "guardianNationalId",
+    "parent_national_id",
+    "parentNationalId",
+  ],
+} as const;
+
+function normalizeStudentFieldKey(key: string) {
+  return String(key || "")
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_\s-]+/g, "")
+    .trim();
+}
+
+function buildStudentAutofillMap(student: SmartStudent | null) {
+  if (!student) {
+    return new Map<string, string>();
+  }
+
+  const sourceValues = {
+    studentId: student.id,
+    studentName: student.fullName,
+    studentNationalId: student.nationalId,
+    studentStage: student.stage,
+    studentGrade: student.grade,
+    studentClassroom: student.classroom,
+    studentPhone: student.phone,
+    guardianName: student.guardianName,
+    guardianPhone: student.guardianPhone,
+    guardianRelationship: student.guardianRelationship,
+    guardianNationalId: student.guardianNationalId,
+  };
+
+  const autofillMap = new Map<string, string>();
+
+  for (const [sourceKey, aliases] of Object.entries(STUDENT_AUTOFILL_ALIASES)) {
+    const value = sourceValues[sourceKey as keyof typeof sourceValues];
+    const cleanValue = typeof value === "string" ? value.trim() : "";
+
+    if (!cleanValue) {
+      continue;
+    }
+
+    for (const alias of aliases) {
+      autofillMap.set(normalizeStudentFieldKey(alias), cleanValue);
+    }
+  }
+
+  return autofillMap;
+}
+
+function resolveWorkflowFieldAutofill(
+  workflowFields: RuntimeField[],
+  student: SmartStudent | null,
+) {
+  const studentAutofillMap = buildStudentAutofillMap(student);
+  const resolved = new Map<string, string>();
+  const seenNormalizedFieldKeys = new Set<string>();
+
+  for (const field of workflowFields) {
+    const normalizedFieldKey = normalizeStudentFieldKey(field.key);
+
+    if (!normalizedFieldKey || seenNormalizedFieldKeys.has(normalizedFieldKey)) {
+      continue;
+    }
+
+    seenNormalizedFieldKeys.add(normalizedFieldKey);
+
+    const value = studentAutofillMap.get(normalizedFieldKey);
+
+    if (value) {
+      resolved.set(field.key, value);
+    }
+  }
+
+  return resolved;
+}
+
+function applyStudentAutofill({
+  currentValues,
+  workflowFields,
+  student,
+  previouslyAutoPopulatedKeys,
+}: {
+  currentValues: RuntimeValues;
+  workflowFields: RuntimeField[];
+  student: SmartStudent | null;
+  previouslyAutoPopulatedKeys: Set<string>;
+}): StudentAutofillApplyResult {
+  const nextValues: RuntimeValues = { ...currentValues };
+  const nextAutoPopulatedFieldKeys = new Set<string>();
+  const resolvedAutofill = resolveWorkflowFieldAutofill(workflowFields, student);
+
+  for (const fieldKey of previouslyAutoPopulatedKeys) {
+    if (!resolvedAutofill.has(fieldKey)) {
+      delete nextValues[fieldKey];
+    }
+  }
+
+  for (const [fieldKey, value] of resolvedAutofill) {
+    const currentValue = nextValues[fieldKey];
+
+    if (
+      isEmptyValue(currentValue) ||
+      previouslyAutoPopulatedKeys.has(fieldKey)
+    ) {
+      nextValues[fieldKey] = value;
+      nextAutoPopulatedFieldKeys.add(fieldKey);
+    }
+  }
+
+  return {
+    values: nextValues,
+    autoPopulatedFieldKeys: nextAutoPopulatedFieldKeys,
+  };
+}
+
 export function DynamicFormRenderer({
   workflow,
   serviceId,
@@ -472,6 +656,11 @@ export function DynamicFormRenderer({
           })),
       }));
   }, [workflow.steps]);
+
+  const workflowFields = useMemo(
+    () => steps.flatMap((step) => step.fields),
+    [steps],
+  );
 
   const normalizedWorkflow: RuntimeWorkflow = useMemo(
     () => ({
@@ -533,6 +722,7 @@ export function DynamicFormRenderer({
   const [fieldLabelOverrides, setFieldLabelOverrides] = useState<
     Record<string, string>
   >({});
+  const autoPopulatedFieldKeysRef = useRef<Set<string>>(new Set());
 
   const [loading, setLoading] = useState(false);
 
@@ -551,10 +741,12 @@ export function DynamicFormRenderer({
   const displayCurrentStep = currentStep
     ? {
         ...currentStep,
-        fields: currentStep.fields.map((field) => ({
-          ...field,
-          label: fieldLabelOverrides[field.id] ?? field.label,
-        })),
+        fields: currentStep.fields
+          .filter((field) => !isStudentPickerField(field))
+          .map((field) => ({
+            ...field,
+            label: fieldLabelOverrides[field.id] ?? field.label,
+          })),
       }
     : null;
 
@@ -579,7 +771,7 @@ export function DynamicFormRenderer({
 
   const showStudentPickerCard =
     needsStudent &&
-    (isStudentPickerStep(displayCurrentStep) ||
+    (isStudentPickerStep(currentStep) ||
       (!workflowHasStudentPickerStep && isFirstStep));
 
   const showStudentSummaryCard =
@@ -742,6 +934,8 @@ export function DynamicFormRenderer({
    * للحقول التابعة التي تحمل autoSelectWhenLinked.
    */
   function updateValue(fieldKey: string, value: unknown) {
+    autoPopulatedFieldKeysRef.current.delete(fieldKey);
+
     setValues((current) => {
       const next: RuntimeValues = {
         ...current,
@@ -787,16 +981,41 @@ export function DynamicFormRenderer({
 
   function handleStudentsChanged(nextStudents: SmartStudent[]) {
     const normalizedStudents = dedupeSelectedStudents(nextStudents);
-    setSelectedStudents(normalizedStudents);
+    const primaryStudent = normalizedStudents[0] ?? null;
+    const autofillResult = applyStudentAutofill({
+      currentValues: values,
+      workflowFields,
+      student: primaryStudent,
+      previouslyAutoPopulatedKeys: autoPopulatedFieldKeysRef.current,
+    });
 
-    setValues((current) => ({
-      ...current,
+    autoPopulatedFieldKeysRef.current =
+      autofillResult.autoPopulatedFieldKeys;
+
+    setSelectedStudents(normalizedStudents);
+    setValues({
+      ...autofillResult.values,
       ...buildSelectedStudentsValues(normalizedStudents),
-    }));
+    });
   }
 
   function validateStudentSelection() {
-    return true;
+    if (!needsStudent) return true;
+
+    if (selectedStudents.length > 0) {
+      return true;
+    }
+
+    showFeedback(
+      "warning",
+      "اختيار الطالب/الطالبة مطلوب",
+      "يرجى اختيار الطالب/الطالبة المرتبط بهذه الحالة قبل المتابعة."
+    );
+
+    const pickerIndex = steps.findIndex(isStudentPickerStep);
+    setCurrentStepIndex(pickerIndex >= 0 ? pickerIndex : 0);
+
+    return false;
   }
 
   function shouldShowFieldInCurrentValues(field: RuntimeField) {
@@ -1044,7 +1263,7 @@ export function DynamicFormRenderer({
 
           {needsStudent ? (
             <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white">
-              اختيار الطالب/الطالبة اختياري
+              اختيار الطالب/الطالبة مطلوب
             </span>
           ) : null}
 
@@ -1182,6 +1401,10 @@ function extractInitialStudent(
       "nationalId" in value && typeof value.nationalId === "string"
         ? value.nationalId
         : null,
+    phone:
+      "phone" in value && typeof value.phone === "string"
+        ? value.phone
+        : null,
     grade:
       "grade" in value && typeof value.grade === "string"
         ? value.grade
@@ -1200,6 +1423,16 @@ function extractInitialStudent(
       "guardianPhone" in value && typeof value.guardianPhone === "string"
         ? value.guardianPhone
         : null,
+    guardianRelationship:
+      "guardianRelationship" in value &&
+      typeof value.guardianRelationship === "string"
+        ? value.guardianRelationship
+        : null,
+    guardianNationalId:
+      "guardianNationalId" in value &&
+      typeof value.guardianNationalId === "string"
+        ? value.guardianNationalId
+        : null,
   };
 }
 
@@ -1208,11 +1441,14 @@ function serializeSelectedStudent(student: SmartStudent) {
     id: student.id,
     fullName: student.fullName,
     nationalId: student.nationalId,
+    phone: student.phone,
     grade: student.grade,
     classroom: student.classroom,
     stage: student.stage,
     guardianName: student.guardianName,
     guardianPhone: student.guardianPhone,
+    guardianRelationship: student.guardianRelationship,
+    guardianNationalId: student.guardianNationalId,
   };
 }
 
@@ -1403,7 +1639,7 @@ function SmartStudentPickerCard({
           </p>
 
           <h2 className="mt-2 text-2xl font-black text-slate-900">
-            اختر الطالب/الطالبة المرتبط بهذه الحالة عند الحاجة
+            اختر الطالب/الطالبة المرتبط بهذه الحالة
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-slate-600">
@@ -1497,7 +1733,7 @@ function SmartStudentPickerCard({
               </p>
 
               <p className="mt-2 text-xs leading-6 text-slate-500">
-                اختيار الطالب/الطالبة اختياري، ويساعد عند الحاجة في التقارير والتصدير وتتبع الحالات.
+                اختيار الطالب/الطالبة مطلوب لهذه الحالة، ويستخدم في التقارير والتصدير وتتبع الحالات.
               </p>
             </div>
           )}
@@ -1770,6 +2006,7 @@ function normalizeStudent(item: unknown): SmartStudent | null {
     id,
     fullName,
     nationalId: safeString(record.nationalId),
+    phone: safeString(record.phone),
     grade: safeString(record.grade),
     classroom: safeString(record.classroom),
     stage: safeString(record.stage),
@@ -1781,6 +2018,16 @@ function normalizeStudent(item: unknown): SmartStudent | null {
       safeString(record.guardianPhone) ||
       safeString(guardian?.phone) ||
       safeString(guardian?.mobile),
+    guardianRelationship:
+      safeString(record.guardianRelationship) ||
+      safeString(record.guardianRelation) ||
+      safeString(record.relationship) ||
+      safeString(guardian?.relation) ||
+      safeString(guardian?.relationship),
+    guardianNationalId:
+      safeString(record.guardianNationalId) ||
+      safeString(record.parentNationalId) ||
+      safeString(guardian?.nationalId),
   };
 }
 

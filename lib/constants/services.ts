@@ -38,6 +38,14 @@ export const workflowServices: AppService[] = [
     kind: "workflow",
   },
   {
+    slug: "guardian-summons",
+    title: "استدعاء ولي أمر",
+    description:
+      "إنشاء وتوثيق استدعاءات أولياء الأمور وربطها بالطلاب والحالات والتقارير الرسمية.",
+    href: "/dashboard/guardian-summons",
+    kind: "workflow",
+  },
+  {
     slug: "committees-meetings",
     title: "اللجان والاجتماعات",
     description: "إدارة محاضر اللجان والاجتماعات والتوصيات.",

@@ -83,6 +83,12 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     icon: FileText,
   },
   {
+    label: "استدعاء ولي أمر",
+    href: "/dashboard/guardian-summons",
+    icon: UserRound,
+    shortLabel: "استدعاء",
+  },
+  {
     label: "المرجع الشامل للطالب",
     href: "/dashboard/student-comprehensive-reference",
     icon: BookOpen,

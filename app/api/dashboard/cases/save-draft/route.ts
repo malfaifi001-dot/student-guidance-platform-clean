@@ -51,6 +51,20 @@ export async function POST(request: Request) {
     const serviceGuard = await requireServiceAccessApi(getActivityProgramsBillingServiceSlug(service.slug));
     if (serviceGuard) return serviceGuard;
 
+    if (
+      service.slug === "guardian-summons" &&
+      authResult.user.role !== "ADMIN" &&
+      authResult.user.role !== "COUNSELOR"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "هذه الخدمة متاحة للموجه الطلابي فقط حالياً.",
+        },
+        { status: 403 },
+      );
+    }
+
     const result = await saveRuntimeCase({
       schoolAccountId: authResult.schoolAccountId,
       createdById: authResult.user.id,

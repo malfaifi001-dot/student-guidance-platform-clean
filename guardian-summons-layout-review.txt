@@ -1,0 +1,1881 @@
+
+============================================================
+===== FILE: components\reports\guardian-summons\guardian-summons-template.tsx =====
+============================================================
+
+export type GuardianSummonsReasonItem = {
+  id: string;
+  label: string;
+  selected: boolean;
+  otherText?: string | null;
+};
+
+export type GuardianSummonsTemplateData = {
+  schoolName: string;
+  educationDepartment?: string | null;
+  educationOffice?: string | null;
+  hijriYear?: string | null;
+  guardianName: string;
+  guardianPhone?: string | null;
+  studentGrade?: string | null;
+  studentClassroom?: string | null;
+  appointmentDay?: string | null;
+  appointmentDate?: string | null;
+  appointmentTime?: string | null;
+  period?: string | null;
+  reasons: GuardianSummonsReasonItem[];
+  notes?: string | null;
+  counselorName?: string | null;
+  counselorJobTitle?: string | null;
+  counselorSignatureUrl?: string | null;
+  principalName?: string | null;
+  principalJobTitle?: string | null;
+  principalSignatureUrl?: string | null;
+};
+
+const MINISTRY_LOGO_SRC = "/uploads/school-logos/MOE.png";
+
+function display(value: string | null | undefined) {
+  return value?.trim() || "";
+}
+
+function normalizeArabicText(value: string) {
+  return value
+    .trim()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ");
+}
+
+function stripLeadingPhrases(value: string, phrases: string[]) {
+  let text = normalizeArabicText(value);
+
+  for (const phrase of phrases) {
+    const normalizedPhrase = normalizeArabicText(phrase);
+
+    if (text === normalizedPhrase) {
+      return "";
+    }
+
+    if (text.startsWith(`${normalizedPhrase} `)) {
+      text = text.slice(normalizedPhrase.length).trim();
+    }
+  }
+
+  return text;
+}
+
+function normalizeSchoolNameForOfficialHeader(value?: string | null) {
+  return stripLeadingPhrases(display(value), ["مدرسة"]);
+}
+
+function normalizeEducationDepartment(value?: string | null) {
+  return stripLeadingPhrases(display(value), [
+    "الإدارة العامة للتعليم بمنطقة",
+    "الادارة العامة للتعليم بمنطقة",
+    "الإدارة العامة للتعليم",
+    "الادارة العامة للتعليم",
+    "تعليم منطقة",
+    "منطقة",
+  ]);
+}
+
+function normalizeEducationOffice(value?: string | null) {
+  return stripLeadingPhrases(display(value), [
+    "مكتب التعليم بمحافظة",
+    "مكتب التعليم بمنطقة",
+    "مكتب تعليم منطقة",
+    "مكتب التعليم",
+    "محافظة",
+    "بمحافظة",
+    "منطقة",
+    "بمنطقة",
+  ]);
+}
+
+function isOtherReason(value: string) {
+  const normalized = normalizeArabicText(value).replace(/[\s:_-]+/g, "");
+
+  return (
+    normalized === "اخرى" ||
+    normalized === "other" ||
+    normalized === "__other__" ||
+    normalized.includes("اخرى")
+  );
+}
+
+function prepareReasonRows(
+  reasons: GuardianSummonsReasonItem[],
+  notes?: string | null,
+) {
+  const seen = new Set<string>();
+
+  return reasons
+    .filter((reason) => reason.selected)
+    .map((reason) => {
+      const other = isOtherReason(reason.id) || isOtherReason(reason.label);
+
+      if (other) {
+        return {
+          ...reason,
+          label: "أخرى",
+          selected: true,
+          otherText: display(reason.otherText) || display(notes) || "",
+        };
+      }
+
+      return {
+        ...reason,
+        label: display(reason.label),
+        selected: true,
+      };
+    })
+    .filter((reason) => {
+      const key =
+        isOtherReason(reason.id) || isOtherReason(reason.label)
+          ? "other"
+          : normalizeArabicText(reason.label).replace(/\s+/g, "");
+
+      if (!key || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+}
+
+function CircleMark({ selected }: { selected: boolean }) {
+  return (
+    <span className="reason-marker" aria-hidden="true">
+      {selected ? <span /> : null}
+    </span>
+  );
+}
+
+function SignatureLine() {
+  return (
+    <p className="signature-line">
+      التوقيع: <span className="signature-space" />
+    </p>
+  );
+}
+
+function SignatureBlock({
+  title,
+  name,
+  signatureUrl,
+}: {
+  title: string;
+  name?: string | null;
+  signatureUrl?: string | null;
+}) {
+  return (
+    <div className="signature-block">
+      <p className="signature-title">{title}</p>
+      <p className="signature-name">{display(name)}</p>
+      <div className="signature-image-slot">
+        {signatureUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={signatureUrl}
+            alt={`توقيع ${title}`}
+            className="signature-image"
+          />
+        ) : (
+          <SignatureLine />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function buildClassroomText(data: GuardianSummonsTemplateData) {
+  return [data.studentGrade, data.studentClassroom]
+    .map(display)
+    .filter(Boolean)
+    .join(" / ");
+}
+
+function buildAppointmentSentence(data: GuardianSummonsTemplateData) {
+  const day = display(data.appointmentDay);
+  const date = display(data.appointmentDate);
+  const time = display(data.appointmentTime);
+  const period = display(data.period);
+  const parts = ["لذا نأمل منكم الحضور"];
+
+  if (day) {
+    parts.push(`يوم ${day}`);
+  }
+
+  if (date) {
+    parts.push(`الموافق ${date}`);
+  }
+
+  if (time) {
+    parts.push(`الساعة ${time}${period ? ` ${period}` : ""}`);
+  } else if (period) {
+    parts.push(period);
+  }
+
+  return parts.join(" ");
+}
+
+export function GuardianSummonsTemplate({
+  data,
+}: {
+  data: GuardianSummonsTemplateData;
+}) {
+  const schoolName = normalizeSchoolNameForOfficialHeader(data.schoolName);
+  const educationDepartment = normalizeEducationDepartment(
+    data.educationDepartment,
+  );
+  const educationOffice = normalizeEducationOffice(data.educationOffice);
+  const hijriYear = display(data.hijriYear);
+  const classroom = buildClassroomText(data);
+  const reasonRows = prepareReasonRows(data.reasons, data.notes);
+
+  return (
+    <section dir="rtl" className="guardian-summons-document">
+      <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
+
+        .guardian-summons-document {
+          position: relative;
+          width: 210mm;
+          min-height: 297mm;
+          height: 297mm;
+          overflow: hidden;
+          box-sizing: border-box;
+          margin: 0 auto;
+          padding: 11mm 16mm 13mm;
+          background: #ffffff;
+          color: #111111;
+          font-family: "Times New Roman", "Amiri", "Noto Naskh Arabic", serif;
+          font-size: 15px;
+          line-height: 2;
+          box-shadow: 0 6px 22px rgba(15, 23, 42, 0.12);
+        }
+
+        .guardian-summons-document * {
+          box-sizing: border-box;
+        }
+
+        .official-header {
+          position: relative;
+          min-height: 37mm;
+        }
+
+        .header-column {
+          position: absolute;
+          top: 0;
+          width: 60mm;
+          font-size: 12.5px;
+          line-height: 1.9;
+        }
+
+        .header-right {
+          right: 0;
+          text-align: right;
+        }
+
+        .header-left {
+          left: 0;
+          text-align: right;
+        }
+
+        .header-center {
+          width: 66mm;
+          margin: 0 auto;
+          text-align: center;
+        }
+
+        .basmala {
+          margin: 0;
+          font-size: 13.5px;
+          font-weight: 700;
+          line-height: 1.5;
+        }
+
+        .ministry-logo {
+          display: block;
+          width: 42mm;
+          height: 18mm;
+          margin: 4mm auto 0;
+          object-fit: contain;
+        }
+
+        .document-title {
+          margin: 2mm 0 0;
+          text-align: center;
+          font-size: 23px;
+          font-weight: 700;
+          line-height: 1.25;
+        }
+
+        .official-body {
+          margin-top: 9mm;
+        }
+
+        .recipient-line,
+        .appointment-line {
+          margin: 0;
+          font-size: 15.5px;
+          line-height: 2.15;
+          word-spacing: 1px;
+        }
+
+        .greeting {
+          margin: 8mm 0 0;
+          text-align: center;
+          font-size: 15.5px;
+        }
+
+        .body-copy {
+          margin: 5mm 0 0;
+          text-align: justify;
+          font-size: 15.5px;
+          line-height: 2.15;
+        }
+
+        .appointment-line {
+          margin-top: 7mm;
+        }
+
+        .reasons-heading {
+          margin: 8mm 0 0;
+          text-align: center;
+          font-size: 15.5px;
+          font-weight: 700;
+        }
+
+        .reasons-list {
+          width: 141mm;
+          margin: 4mm auto 0;
+          padding: 0;
+          list-style: none;
+          font-size: 15px;
+          line-height: 1.85;
+        }
+
+        .reason-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          min-height: 8mm;
+          break-inside: avoid;
+        }
+
+        .reason-marker {
+          position: relative;
+          display: inline-flex;
+          width: 10px;
+          height: 10px;
+          flex: 0 0 10px;
+          align-items: center;
+          justify-content: center;
+          margin-top: 9px;
+          border: 1px solid #111111;
+          border-radius: 999px;
+        }
+
+        .reason-marker span {
+          width: 5px;
+          height: 5px;
+          border-radius: 999px;
+          background: #111111;
+        }
+
+        .signature-footer {
+          position: absolute;
+          right: 16mm;
+          bottom: 17mm;
+          left: 16mm;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32mm;
+          align-items: end;
+        }
+
+        .signature-block {
+          text-align: center;
+          font-size: 14.5px;
+          line-height: 1.8;
+        }
+
+        .signature-title,
+        .signature-name,
+        .signature-line {
+          margin: 0;
+        }
+
+        .signature-title {
+          font-weight: 700;
+        }
+
+        .signature-name {
+          min-height: 8mm;
+        }
+
+        .signature-image-slot {
+          display: flex;
+          height: 18mm;
+          align-items: center;
+          justify-content: center;
+          margin: 1mm auto 0;
+        }
+
+        .signature-image {
+          display: block;
+          max-width: 50mm;
+          max-height: 17mm;
+          object-fit: contain;
+        }
+
+        .signature-space {
+          display: inline-block;
+          width: 34mm;
+          border-bottom: 1px solid #111111;
+          vertical-align: baseline;
+        }
+
+        @media screen and (max-width: 900px) {
+          .guardian-summons-document {
+            transform: scale(calc((100vw - 24px) / 794));
+            transform-origin: top center;
+            margin-bottom: calc(-297mm + ((100vw - 24px) / 794 * 297mm));
+          }
+        }
+
+        @media print {
+          html,
+          body {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .guardian-summons-document {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            max-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            max-height: 297mm !important;
+            margin: 0 !important;
+            padding: 11mm 16mm 13mm !important;
+            overflow: hidden !important;
+            box-shadow: none !important;
+            transform: none !important;
+            break-after: avoid;
+            page-break-after: avoid;
+          }
+        }
+      `}</style>
+
+      <header className="official-header">
+        <div className="header-column header-right">
+          <div>المملكة العربية السعودية</div>
+          <div>وزارة التعليم</div>
+          <div>
+            {educationDepartment
+              ? `الإدارة العامة للتعليم بمنطقة ${educationDepartment}`
+              : "الإدارة العامة للتعليم"}
+          </div>
+          <div>
+            {educationOffice
+              ? `مكتب التعليم بمحافظة ${educationOffice}`
+              : "مكتب التعليم"}
+          </div>
+        </div>
+
+        <div className="header-center">
+          <p className="basmala">بسم الله الرحمن الرحيم</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={MINISTRY_LOGO_SRC}
+            alt="وزارة التعليم"
+            className="ministry-logo"
+          />
+          <h1 className="document-title">استدعاء ولي أمر طالب</h1>
+        </div>
+
+        <div className="header-column header-left">
+          <div>{schoolName ? `مدرسة ${schoolName}` : "مدرسة"}</div>
+          {hijriYear ? <div>{`العام الدراسي ${hijriYear} هـ`}</div> : null}
+          <div>الإرشاد الطلابي</div>
+        </div>
+      </header>
+
+      <main className="official-body">
+        <p className="recipient-line">
+          {`المكرم ولي أمر الطالب / ${display(data.guardianName)}${
+            classroom ? ` بالصف ${classroom}` : ""
+          } سلّمه الله`}
+        </p>
+
+        <p className="greeting">السلام عليكم ورحمة الله وبركاته ،،،</p>
+
+        <p className="body-copy">
+          نظرًا لأهمية التعاون المستمر والتنسيق بين المدرسة وولي أمر الطالب فيما
+          يخدم مصلحته ويحقق له النجاح بإذن الله.
+        </p>
+
+        <p className="appointment-line">{buildAppointmentSentence(data)}</p>
+
+        <p className="reasons-heading">لمناقشة وبحث مشكلة ابنكم وهي :</p>
+
+        <ul className="reasons-list">
+          {reasonRows.map((reason) => {
+            const isOther = isOtherReason(reason.label);
+            const otherText = display(reason.otherText);
+
+            return (
+              <li key={reason.id} className="reason-row">
+                <CircleMark selected={reason.selected} />
+                <span>
+                  {isOther
+                    ? `أخرى${otherText ? `: ${otherText}` : ""}`
+                    : reason.label}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </main>
+
+      <footer className="signature-footer">
+        <SignatureBlock
+          title={display(data.counselorJobTitle) || "الموجه/ـة الطلابي/ـة"}
+          name={data.counselorName}
+          signatureUrl={data.counselorSignatureUrl}
+        />
+        <SignatureBlock
+          title={display(data.principalJobTitle) || "مدير/ة المدرسة"}
+          name={data.principalName}
+          signatureUrl={data.principalSignatureUrl}
+        />
+      </footer>
+    </section>
+  );
+}
+
+
+============================================================
+===== FILE: app\print\guardian-summons\[caseId]\page.tsx =====
+============================================================
+
+import { notFound } from "next/navigation";
+
+import {
+  GuardianSummonsTemplate,
+  type GuardianSummonsReasonItem,
+  type GuardianSummonsTemplateData,
+} from "@/components/reports/guardian-summons/guardian-summons-template";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+
+import { GuardianSummonsPrintController } from "./print-controller";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type WorkflowOptionDefinition = {
+  id?: string | null;
+  label?: string | null;
+  value?: string | null;
+  order?: number | null;
+};
+
+type WorkflowFieldDefinition = {
+  id?: string | null;
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: WorkflowOptionDefinition[] | null;
+};
+
+type WorkflowForDefinitions = {
+  steps?: Array<{
+    fields?: WorkflowFieldDefinition[] | null;
+  }> | null;
+} | null;
+
+type CaseValueRow = {
+  id: string;
+  fieldId: string | null;
+  fieldKey: string;
+  value: string | null;
+  jsonValue: unknown;
+  field: WorkflowFieldDefinition | null;
+};
+
+type WorkflowFieldDefinitionMap = {
+  byId: Map<string, WorkflowFieldDefinition>;
+  byKey: Map<string, WorkflowFieldDefinition>;
+  byNormalizedKey: Map<string, WorkflowFieldDefinition>;
+};
+
+type StoredChoice = {
+  tokens: string[];
+  fallbackLabel: string;
+};
+
+type UserGender = "MALE" | "FEMALE" | "UNKNOWN" | string | null;
+
+type GuardianSummonsCurrentUser = {
+  name: string | null;
+  officialName: string | null;
+  jobTitle: string | null;
+  gender: UserGender;
+} | null;
+
+const DAY_LABELS: Record<string, string> = {
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+};
+
+const PERIOD_LABELS: Record<string, string> = {
+  am: "صباحًا",
+  morning: "صباحًا",
+  pm: "مساءً",
+  evening: "مساءً",
+  p1: "الحصة الأولى",
+  p2: "الحصة الثانية",
+  p3: "الحصة الثالثة",
+  p4: "الحصة الرابعة",
+  p5: "الحصة الخامسة",
+  p6: "الحصة السادسة",
+  p7: "الحصة السابعة",
+};
+
+const LEGACY_REASON_LABELS: Record<string, string> = {
+  frequent_absence: "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.",
+  absence: "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.",
+  morning_lateness: "تأخره الصباحي المتكرر لأكثر من خمسة أيام بدون عذر.",
+  lateness: "تأخره الصباحي المتكرر لأكثر من خمسة أيام بدون عذر.",
+  low_academic_achievement: "ضعف التحصيل الدراسي.",
+  low_achievement: "ضعف التحصيل الدراسي.",
+  academic_weakness: "ضعف التحصيل الدراسي.",
+  low_test_scores: "انخفاض درجات الاختبارات.",
+  behavior_problem: "وجود مشكلة سلوكية.",
+  behavioral_problem: "وجود مشكلة سلوكية.",
+  other: "أخرى",
+  __other__: "أخرى",
+};
+
+function cleanText(value: unknown) {
+  const text = String(repairPotentialUtf8Mojibake(value) ?? "").trim();
+
+  return text && text !== "null" && text !== "undefined" ? text : "";
+}
+
+function normalizeInternalSignatureUrl(value: unknown) {
+  const url = cleanText(value).replace(/\\/g, "/");
+
+  if (!url) return "";
+  if (url.includes("..")) return "";
+  if (/^[a-z]:\//i.test(url)) return "";
+  if (/^(https?:|data:|javascript:|file:|blob:)/i.test(url)) return "";
+  if (!url.startsWith("/uploads/school-signatures/")) return "";
+
+  return url;
+}
+
+function normalizeText(value: unknown) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_\s-]+/g, "")
+    .trim();
+}
+
+function normalizeLookupKey(value: unknown) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, "_")
+    .replace(/-+/g, "_")
+    .trim();
+}
+
+function isOtherReason(value: unknown) {
+  const lookupKey = normalizeLookupKey(value);
+  const compactKey = normalizeText(value);
+
+  return (
+    lookupKey === "other" ||
+    lookupKey === "__other__" ||
+    compactKey === "اخرى" ||
+    compactKey.includes("اخرى")
+  );
+}
+
+function toArabicDigits(value: string) {
+  const digits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+
+  return value.replace(/\d/g, (digit) => digits[Number(digit)] || digit);
+}
+
+function parsePotentialJson(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) return "";
+
+  if (
+    (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+    (trimmed.startsWith("{") && trimmed.endsWith("}"))
+  ) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed;
+    }
+  }
+
+  return trimmed;
+}
+
+function getRawStoredValue(row: CaseValueRow) {
+  if (row.jsonValue !== null && row.jsonValue !== undefined) {
+    return row.jsonValue;
+  }
+
+  const text = cleanText(row.value);
+
+  return text ? parsePotentialJson(text) : "";
+}
+
+function stringifyRawValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+
+  if (typeof value === "string") return cleanText(value);
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(stringifyRawValue).filter(Boolean).join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return (
+      cleanText(record.label) ||
+      cleanText(record.name) ||
+      cleanText(record.fullName) ||
+      cleanText(record.value) ||
+      cleanText(record.key) ||
+      cleanText(record.id) ||
+      ""
+    );
+  }
+
+  return cleanText(value);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function buildWorkflowFieldDefinitionMap(
+  workflow: WorkflowForDefinitions,
+): WorkflowFieldDefinitionMap {
+  const byId = new Map<string, WorkflowFieldDefinition>();
+  const byKey = new Map<string, WorkflowFieldDefinition>();
+  const byNormalizedKey = new Map<string, WorkflowFieldDefinition>();
+
+  workflow?.steps?.forEach((step) => {
+    step.fields?.forEach((field) => {
+      const id = cleanText(field.id);
+      const key = cleanText(field.key);
+
+      if (id) byId.set(id, field);
+      if (key) {
+        byKey.set(key, field);
+        byNormalizedKey.set(normalizeText(key), field);
+      }
+    });
+  });
+
+  return {
+    byId,
+    byKey,
+    byNormalizedKey,
+  };
+}
+
+function getFieldForRow(
+  row: CaseValueRow,
+  fieldMap: WorkflowFieldDefinitionMap,
+) {
+  const fieldId = cleanText(row.fieldId || row.field?.id);
+  const fieldKey = cleanText(row.field?.key || row.fieldKey);
+  const normalizedFieldKey = normalizeText(fieldKey);
+
+  return (
+    (fieldId ? fieldMap.byId.get(fieldId) : null) ||
+    (fieldKey ? fieldMap.byKey.get(fieldKey) : null) ||
+    (normalizedFieldKey ? fieldMap.byNormalizedKey.get(normalizedFieldKey) : null) ||
+    row.field ||
+    null
+  );
+}
+
+function findValueRow(
+  rows: CaseValueRow[],
+  fieldMap: WorkflowFieldDefinitionMap,
+  aliases: string[],
+) {
+  const normalizedAliases = new Set(aliases.map(normalizeText).filter(Boolean));
+
+  return (
+    rows.find((row) => {
+      const field = getFieldForRow(row, fieldMap);
+      const keys = [row.fieldKey, row.field?.key, field?.key]
+        .map(normalizeText)
+        .filter(Boolean);
+
+      return keys.some((key) => normalizedAliases.has(key));
+    }) || null
+  );
+}
+
+function extractStoredChoices(value: unknown): StoredChoice[] {
+  if (value === null || value === undefined || value === "") {
+    return [];
+  }
+
+  if (typeof value === "string") {
+    const parsed = parsePotentialJson(value);
+
+    if (parsed !== value) {
+      return extractStoredChoices(parsed);
+    }
+
+    return value
+      .split(",")
+      .map((item) => cleanText(item))
+      .filter(Boolean)
+      .map((item) => ({
+        tokens: [item],
+        fallbackLabel: item,
+      }));
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    const text = String(value);
+
+    return [{ tokens: [text], fallbackLabel: text }];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractStoredChoices(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const tokens = [
+      record.value,
+      record.label,
+      record.name,
+      record.id,
+      record.key,
+    ]
+      .map(cleanText)
+      .filter(Boolean);
+    const fallbackLabel =
+      cleanText(record.label) ||
+      cleanText(record.name) ||
+      cleanText(record.value) ||
+      cleanText(record.key) ||
+      cleanText(record.id);
+
+    return tokens.length ? [{ tokens, fallbackLabel }] : [];
+  }
+
+  const text = cleanText(value);
+
+  return text ? [{ tokens: [text], fallbackLabel: text }] : [];
+}
+
+function getOtherValueForField(fieldKey: string, rows: CaseValueRow[]) {
+  if (!fieldKey) return "";
+
+  const otherKey = `${fieldKey}__other`;
+
+  const found = rows.find((row) => {
+    const key = row.field?.key || row.fieldKey;
+
+    return key === otherKey || row.fieldKey === otherKey;
+  });
+
+  if (!found) return "";
+
+  return stringifyRawValue(found.jsonValue ?? found.value);
+}
+
+function findOptionByChoice(
+  field: WorkflowFieldDefinition | null,
+  choice: StoredChoice,
+) {
+  const options = field?.options || [];
+  const normalizedTokens = choice.tokens.map(normalizeText).filter(Boolean);
+
+  return (
+    options.find((option) => {
+      const optionValue = normalizeText(option.value);
+      const optionLabel = normalizeText(option.label);
+      const optionId = normalizeText(option.id);
+
+      return normalizedTokens.some(
+        (token) =>
+          token === optionValue || token === optionLabel || token === optionId,
+      );
+    }) || null
+  );
+}
+
+function fallbackLabelForToken(value: string) {
+  const lookupKey = normalizeLookupKey(value);
+
+  return (
+    DAY_LABELS[lookupKey] ||
+    PERIOD_LABELS[lookupKey] ||
+    LEGACY_REASON_LABELS[lookupKey] ||
+    ""
+  );
+}
+
+function resolveSingleWorkflowLabel(
+  field: WorkflowFieldDefinition | null,
+  choice: StoredChoice,
+  otherValue = "",
+) {
+  const matchedOption = findOptionByChoice(field, choice);
+  const rawValue = choice.tokens[0] || choice.fallbackLabel;
+  const optionValue = cleanText(matchedOption?.value);
+  const optionLabel = cleanText(matchedOption?.label);
+  const normalizedValue = normalizeLookupKey(optionValue || rawValue);
+
+  if (normalizedValue === "other" || normalizedValue === "__other__") {
+    return otherValue || optionLabel || "أخرى";
+  }
+
+  return (
+    optionLabel ||
+    fallbackLabelForToken(rawValue) ||
+    cleanText(choice.fallbackLabel) ||
+    rawValue
+  );
+}
+
+function resolveStoredOptionLabels(
+  field: WorkflowFieldDefinition | null,
+  rawValue: unknown,
+  otherValue = "",
+) {
+  const choices = extractStoredChoices(rawValue);
+  const seen = new Set<string>();
+
+  return choices
+    .map((choice) => resolveSingleWorkflowLabel(field, choice, otherValue))
+    .map(cleanText)
+    .filter(Boolean)
+    .filter((label) => {
+      const key = normalizeText(label);
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+
+      return true;
+    });
+}
+
+function resolveWorkflowValue(
+  row: CaseValueRow,
+  fieldMap: WorkflowFieldDefinitionMap,
+  rows: CaseValueRow[],
+) {
+  const field = getFieldForRow(row, fieldMap);
+  const rawValue = getRawStoredValue(row);
+  const fieldKey = cleanText(field?.key || row.fieldKey);
+  const labels = resolveStoredOptionLabels(
+    field,
+    rawValue,
+    getOtherValueForField(fieldKey, rows),
+  );
+
+  if (field?.options?.length || labels.some((label) => label !== stringifyRawValue(rawValue))) {
+    return labels.join("، ");
+  }
+
+  return stringifyRawValue(rawValue);
+}
+
+function findResolvedValue(
+  rows: CaseValueRow[],
+  fieldMap: WorkflowFieldDefinitionMap,
+  aliases: string[],
+) {
+  const row = findValueRow(rows, fieldMap, aliases);
+
+  return row ? cleanText(resolveWorkflowValue(row, fieldMap, rows)) : "";
+}
+
+function getObjectText(
+  value: Record<string, unknown> | null | undefined,
+  keys: string[],
+) {
+  if (!value) return "";
+
+  for (const key of keys) {
+    const text = cleanText(value[key]);
+    if (text) return text;
+  }
+
+  return "";
+}
+
+function formatArabicDate(value: string) {
+  const text = cleanText(value);
+
+  if (!text) return "";
+
+  const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (isoDate) {
+    return toArabicDigits(`${isoDate[3]} / ${isoDate[2]} / ${isoDate[1]}`);
+  }
+
+  const parsed = new Date(text);
+
+  if (!Number.isNaN(parsed.getTime())) {
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const year = String(parsed.getFullYear());
+
+    return toArabicDigits(`${day} / ${month} / ${year}`);
+  }
+
+  return toArabicDigits(text);
+}
+
+function formatTime(value: string) {
+  const text = cleanText(value);
+
+  if (!text) return "";
+
+  return toArabicDigits(text.replace(/:00$/, ":00"));
+}
+
+function buildReasonItems(
+  rows: CaseValueRow[],
+  fieldMap: WorkflowFieldDefinitionMap,
+): GuardianSummonsReasonItem[] {
+  const row = findValueRow(rows, fieldMap, [
+    "summons_reasons",
+    "summonsReasons",
+    "summons_reason",
+    "summonsReason",
+  ]);
+
+  if (!row) return [];
+
+  const field = getFieldForRow(row, fieldMap);
+  const rawValue = getRawStoredValue(row);
+  const choices = extractStoredChoices(rawValue);
+  const otherValue = getOtherValueForField(
+    cleanText(field?.key || row.fieldKey),
+    rows,
+  );
+  const seen = new Set<string>();
+
+  return choices
+    .map((choice, index) => {
+      const matchedOption = findOptionByChoice(field, choice);
+      const optionValue = cleanText(matchedOption?.value);
+      const optionLabel = cleanText(matchedOption?.label);
+      const rawIdentity =
+        optionValue ||
+        choice.tokens[0] ||
+        choice.fallbackLabel;
+
+      const resolvedLabel =
+        optionLabel ||
+        fallbackLabelForToken(rawIdentity) ||
+        resolveSingleWorkflowLabel(field, choice, otherValue) ||
+        rawIdentity;
+
+      const other =
+        normalizeLookupKey(optionValue) === "other" ||
+        normalizeLookupKey(optionValue) === "__other__" ||
+        normalizeLookupKey(rawIdentity) === "other" ||
+        normalizeLookupKey(rawIdentity) === "__other__" ||
+        normalizeText(resolvedLabel).includes("اخرى");
+
+      return {
+        id:
+          cleanText(matchedOption?.id) ||
+          optionValue ||
+          `${row.id}-${index}`,
+        label: other ? "أخرى" : cleanText(resolvedLabel),
+        selected: true,
+        otherText: other ? otherValue || null : null,
+      };
+    })
+    .filter((reason) => {
+      const key =
+        isOtherReason(reason.id) || isOtherReason(reason.label)
+          ? "other"
+          : normalizeText(reason.label);
+
+      if (!key || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+}
+
+function getHijriYear(value: Date | string | null | undefined) {
+  const date = value ? new Date(value) : new Date();
+
+  try {
+    const parts = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+      year: "numeric",
+    }).formatToParts(date);
+
+    return parts.find((part) => part.type === "year")?.value || "";
+  } catch {
+    return "";
+  }
+}
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function getDefaultCounselorTitle(gender: UserGender) {
+  if (gender === "MALE") return "الموجه الطلابي";
+  if (gender === "FEMALE") return "الموجهة الطلابية";
+
+  return "الموجه/ـة الطلابي/ـة";
+}
+
+function buildGuardianSummonsSignatoryData({
+  caseEntry,
+  currentUser,
+}: {
+  caseEntry: Awaited<ReturnType<typeof loadGuardianSummonsCase>>;
+  currentUser: GuardianSummonsCurrentUser;
+}) {
+  const schoolProfile = caseEntry.schoolAccount.profile;
+  const creator = caseEntry.createdBy;
+  const counselorGender = creator?.gender || currentUser?.gender || "UNKNOWN";
+  const counselorJobTitle =
+    cleanText(creator?.jobTitle) ||
+    cleanText(currentUser?.jobTitle) ||
+    getDefaultCounselorTitle(counselorGender);
+
+  return {
+    counselorName:
+      cleanText(creator?.officialName) ||
+      cleanText(creator?.name) ||
+      cleanText(currentUser?.officialName) ||
+      cleanText(currentUser?.name),
+    counselorJobTitle,
+    counselorSignatureUrl: normalizeInternalSignatureUrl(
+      schoolProfile?.counselorSignatureUrl,
+    ),
+    principalName: cleanText(schoolProfile?.principalName),
+    principalJobTitle: "مدير/ة المدرسة",
+    principalSignatureUrl: normalizeInternalSignatureUrl(
+      schoolProfile?.principalSignatureUrl,
+    ),
+  };
+}
+
+async function loadGuardianSummonsCase(
+  caseId: string,
+  context: {
+    isAdmin: boolean;
+    schoolAccountId: string | null;
+  },
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: {
+      id: caseId,
+      service: {
+        slug: "guardian-summons",
+      },
+      ...(context.isAdmin
+        ? {}
+        : { schoolAccountId: context.schoolAccountId || "__missing__" }),
+    },
+    include: {
+      schoolAccount: {
+        include: {
+          profile: true,
+        },
+      },
+      service: true,
+      workflow: {
+        include: {
+          steps: {
+            orderBy: {
+              order: "asc",
+            },
+            include: {
+              fields: {
+                orderBy: {
+                  order: "asc",
+                },
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      createdBy: {
+        select: {
+          name: true,
+          officialName: true,
+          jobTitle: true,
+          gender: true,
+        },
+      },
+      values: {
+        include: {
+          field: {
+            include: {
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  if (!caseEntry) {
+    notFound();
+  }
+
+  return caseEntry;
+}
+
+function buildGuardianSummonsTemplateData({
+  caseEntry,
+  currentUser,
+}: {
+  caseEntry: Awaited<ReturnType<typeof loadGuardianSummonsCase>>;
+  currentUser: GuardianSummonsCurrentUser;
+}): GuardianSummonsTemplateData {
+  const schoolProfile = caseEntry.schoolAccount.profile;
+  const student = caseEntry.student;
+  const guardian = student?.guardian;
+  const values = caseEntry.values as CaseValueRow[];
+  const fieldMap = buildWorkflowFieldDefinitionMap(caseEntry.workflow);
+  const selectedStudent = asRecord(
+    values.find((item) => item.fieldKey === "selectedStudent")?.jsonValue,
+  );
+  const guardianSnapshot = asRecord(
+    values.find((item) => item.fieldKey === "guardianSnapshot")?.jsonValue,
+  );
+  const guardianName =
+    findResolvedValue(values, fieldMap, [
+      "guardian_name",
+      "guardianName",
+      "parent_name",
+      "parentName",
+    ]) ||
+    cleanText(guardian?.name) ||
+    getObjectText(guardianSnapshot, ["name", "fullName", "guardianName"]) ||
+    getObjectText(selectedStudent, ["guardianName"]);
+  const guardianPhone =
+    findResolvedValue(values, fieldMap, [
+      "guardian_phone",
+      "guardianPhone",
+      "parent_phone",
+      "parentPhone",
+      "guardian_mobile",
+      "guardianMobile",
+    ]) ||
+    cleanText(guardian?.phone) ||
+    getObjectText(guardianSnapshot, ["phone", "mobile", "guardianPhone"]) ||
+    getObjectText(selectedStudent, ["guardianPhone"]);
+  const appointmentDate = findResolvedValue(values, fieldMap, [
+    "attendance_date",
+    "attendanceDate",
+    "summons_date",
+    "summonsDate",
+  ]);
+  const notes = findResolvedValue(values, fieldMap, ["notes", "note"]);
+  const signatoryData = buildGuardianSummonsSignatoryData({
+    caseEntry,
+    currentUser,
+  });
+
+  return {
+    schoolName:
+      cleanText(schoolProfile?.schoolName) || cleanText(caseEntry.schoolAccount.name),
+    educationDepartment: cleanText(schoolProfile?.educationDepartment),
+    educationOffice: cleanText(schoolProfile?.educationOffice),
+    hijriYear:
+      cleanText(schoolProfile?.academicYear) ||
+      getHijriYear(caseEntry.submittedAt || caseEntry.createdAt),
+    guardianName,
+    guardianPhone,
+    studentGrade:
+      findResolvedValue(values, fieldMap, [
+        "student_grade",
+        "studentGrade",
+        "grade",
+      ]) ||
+      cleanText(student?.grade) ||
+      getObjectText(selectedStudent, ["grade", "studentGrade"]),
+    studentClassroom:
+      findResolvedValue(values, fieldMap, [
+        "student_classroom",
+        "studentClassroom",
+        "classroom",
+        "class_name",
+        "className",
+        "section",
+      ]) ||
+      cleanText(student?.classroom) ||
+      getObjectText(selectedStudent, ["classroom", "section"]),
+    appointmentDay: findResolvedValue(values, fieldMap, [
+      "attendance_day",
+      "attendanceDay",
+      "summons_day",
+      "summonsDay",
+    ]),
+    appointmentDate: formatArabicDate(appointmentDate),
+    appointmentTime: formatTime(
+      findResolvedValue(values, fieldMap, [
+        "attendance_time",
+        "attendanceTime",
+        "summons_time",
+        "summonsTime",
+      ]),
+    ),
+    period: findResolvedValue(values, fieldMap, ["period"]),
+    reasons: buildReasonItems(values, fieldMap),
+    notes,
+    ...signatoryData,
+  };
+}
+
+export default async function GuardianSummonsStandalonePrintPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const [{ caseId }, query, context] = await Promise.all([
+    params,
+    searchParams ??
+      Promise.resolve({} as Record<string, string | string[] | undefined>),
+    requireDashboardPageContext(),
+  ]);
+  const caseEntry = await loadGuardianSummonsCase(caseId, context);
+  const currentUser = await prisma.user.findUnique({
+    where: {
+      id: context.user.id,
+    },
+    select: {
+      name: true,
+      officialName: true,
+      jobTitle: true,
+      gender: true,
+    },
+  });
+  const data = buildGuardianSummonsTemplateData({
+    caseEntry,
+    currentUser,
+  });
+
+  return (
+    <main dir="rtl" className="guardian-summons-print-shell">
+      <style>{`
+        :root,
+        html,
+        body {
+          color-scheme: light !important;
+          margin: 0 !important;
+          background: #e5e7eb !important;
+        }
+
+        .guardian-summons-print-shell {
+          min-height: 100vh;
+          padding: 24px 0;
+          background: #e5e7eb;
+        }
+
+        @media print {
+          :root,
+          html,
+          body {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+          }
+
+          .guardian-summons-print-shell {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+          }
+        }
+      `}</style>
+      <GuardianSummonsPrintController shouldPrint={firstParam(query.print) === "1"} />
+      <GuardianSummonsTemplate data={data} />
+    </main>
+  );
+}
+
+
+============================================================
+===== FILE: app\print\guardian-summons\[caseId]\print-controller.tsx =====
+============================================================
+
+"use client";
+
+import { useEffect } from "react";
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForWindowLoad() {
+  if (document.readyState === "complete") return;
+
+  await new Promise<void>((resolve) => {
+    window.addEventListener("load", () => resolve(), { once: true });
+  });
+}
+
+async function waitForFonts() {
+  try {
+    const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } })
+      .fonts;
+
+    if (fonts?.ready) {
+      await fonts.ready;
+    }
+  } catch {
+    // Printing should continue even when the browser does not expose font readiness.
+  }
+}
+
+async function waitForImages() {
+  const images = Array.from(document.images);
+
+  await Promise.all(
+    images.map(async (image) => {
+      if (image.complete) return;
+
+      await new Promise<void>((resolve) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => resolve(), { once: true });
+      });
+    }),
+  );
+}
+
+export function GuardianSummonsPrintController({
+  shouldPrint,
+}: {
+  shouldPrint: boolean;
+}) {
+  useEffect(() => {
+    if (!shouldPrint) return;
+
+    let cancelled = false;
+
+    async function triggerPrint() {
+      await waitForWindowLoad();
+      await waitForFonts();
+      await waitForImages();
+      await sleep(250);
+
+      if (!cancelled) {
+        window.print();
+      }
+    }
+
+    void triggerPrint();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [shouldPrint]);
+
+  return null;
+}
+
+
+============================================================
+===== FILE: app\dashboard\guardian-summons\[caseId]\report\page.tsx =====
+============================================================
+
+import { redirect } from "next/navigation";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function appendSearchParams(searchParams: Record<string, string | string[] | undefined>) {
+  const params = new URLSearchParams();
+
+  Object.entries(searchParams).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => params.append(key, item));
+      return;
+    }
+
+    if (typeof value === "string") {
+      params.set(key, value);
+    }
+  });
+
+  const queryString = params.toString();
+
+  return queryString ? `?${queryString}` : "";
+}
+
+export default async function GuardianSummonsReportCompatibilityPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const [{ caseId }, query] = await Promise.all([
+    params,
+    searchParams ??
+      Promise.resolve({} as Record<string, string | string[] | undefined>),
+  ]);
+
+  redirect(
+    `/print/guardian-summons/${encodeURIComponent(caseId)}${appendSearchParams(
+      query,
+    )}`,
+  );
+}
+
+
+============================================================
+===== FILE: app\layout.tsx =====
+============================================================
+
+import type {  Metadata, Viewport } from "next";
+import { Cairo } from "next/font/google";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import "./globals.css";
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  variable: "--font-cairo",
+  display: "swap",
+});
+
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
+export const metadata: Metadata = {
+  title: "منصة التوجيه الطلابي",
+  description:
+    "منصة ذكية للموجه والموجهة الطلابية لإدارة الخدمات والحالات والتقارير المدرسية.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ar" dir="rtl" className={cairo.variable} suppressHydrationWarning>
+      <body className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
+    </html>
+  );
+}
+
+
+============================================================
+===== FILE: app\globals.css =====
+============================================================
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+--font-sans: var(--font-cairo);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-border: var(--border);
+
+  --radius-sm: calc(var(--radius) * 0.7);
+  --radius-md: calc(var(--radius) * 0.9);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.3);
+  --radius-2xl: calc(var(--radius) * 1.7);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  --primary: #0284c7;
+  --primary-foreground: #ffffff;
+
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+
+  --border: #e2e8f0;
+
+  --radius: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .container-app {
+    @apply mx-auto w-full max-w-7xl px-4 md:px-6;
+  }
+
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl;
+  }
+
+  .card-shadow {
+    box-shadow:
+      0 10px 30px rgba(15, 23, 42, 0.06),
+      0 2px 10px rgba(15, 23, 42, 0.04);
+  }
+}
+/* Student Guidance Platform: Dark mode surface compatibility */
+.dark .bg-white {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .bg-\[\#f5f8fc\],
+.dark .bg-\[\#f7faff\] {
+  background-color: rgb(2 6 23) !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-200\/70 {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800 {
+  color: rgb(248 250 252) !important;
+}
+
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .text-slate-400 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgb(15 23 42) !important;
+  color: rgb(248 250 252) !important;
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(100 116 139) !important;
+}
+
+.dark table thead {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark tr,
+.dark tbody {
+  border-color: rgb(51 65 85) !important;
+}
+
+/* Mobile app behavior: reduce browser zoom gestures inside the app shell */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Prevent iOS input-focus zoom by keeping form controls at 16px minimum */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Report 2 official signatures: larger and darker */
+[data-report-design-signature-block] img,
+.report-design-signature-grid-block img {
+  transform: scale(1.3);
+  transform-origin: center bottom;
+  filter: grayscale(1) contrast(1.85) brightness(0.48) drop-shadow(0 0 0.45px rgba(0, 0, 0, 0.95));
+  opacity: 1;
+}
+
+/* Report 2 official signature names: +4px */
+[data-report-design-signature-block] p.font-black,
+.report-design-signature-grid-block p.font-black {
+  font-size: calc(100% + 4px) !important;
+  line-height: 1.25 !important;
+}
+
+/* Report 2 official signature signer names */
+.report-design-signature-grid-block .report-design-signature-name {
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+  font-weight: 900 !important;
+  color: #020617 !important;
+}
+
+/* Report 2 official signature role titles: +6px */
+[data-report-design-signature-block] .report-design-signature-name + p,
+.report-design-signature-grid-block .report-design-signature-name + p,
+[data-report-design-signature-block] p.text-slate-500,
+.report-design-signature-grid-block p.text-slate-500 {
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 900 !important;
+  color: #334155 !important;
+}
+
+
+============================================================
+===== CURRENT GIT DIFF =====
+============================================================
+
