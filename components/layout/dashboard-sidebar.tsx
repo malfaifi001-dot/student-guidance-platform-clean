@@ -108,6 +108,11 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     href: "/dashboard/family-school-communication",
     icon: MessageCircle,
   },
+  {
+    label: "المرجع الشامل",
+    href: "/dashboard/counselor-reference-library",
+    icon: BookOpen,
+  },
 ];
 
 
@@ -215,6 +220,11 @@ const adminMainLinks: SidebarLinkItem[] = [
   { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
   { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
   { label: "الاستبيانات", href: "/dashboard/admin/surveys", icon: ClipboardList },
+  {
+    label: "إدارة المرجع الشامل",
+    href: "/dashboard/admin/counselor-reference-library",
+    icon: BookOpen,
+  },
   { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
   { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
   { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
@@ -281,6 +291,7 @@ const collapsedLabelByLabel: Record<string, string> = {
   "الخدمات الإرشادية المقدمة للطلاب": "الإرشاد",
   "المرجع الشامل للطالب": "مرجع الطالب",
   "المرجع الشامل للموجه الطلابي": "مرجع الموجه",
+  "المرجع الشامل": "المرجع",
   "تحليل النتائج": "التحليل",
   "التواصل بين الأسرة والمدرسة": "الأسرة",
 

@@ -15,6 +15,23 @@ enum UserRole {
   STAFF
 }
 
+enum ReferenceLibraryItemType {
+  FOLDER
+  FILE
+}
+
+enum ReferenceLibraryItemStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ReferenceLibraryAudienceType {
+  ALL_USERS
+  ROLE
+  USER
+}
+
 enum ImportSessionStatus {
   DRAFT
   PARSED
@@ -194,6 +211,7 @@ model SchoolAccount {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   achievementPortfolios AchievementPortfolio[]
+  referenceLibraryItems ReferenceLibraryItem[] @relation("ReferenceLibrarySchool")
 }
 
 model User {
@@ -225,11 +243,13 @@ model User {
   createdActivityAssignments ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
   createdSurveys             Survey[]             @relation("SurveysCreatedBy")
 
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  caseEvidences          CaseEvidence[]
-  createdReportTemplates ReportTemplate[]
-  achievementPortfolios  AchievementPortfolio[] @relation("AchievementPortfolioOwner")
+  createdAt                     DateTime                   @default(now())
+  updatedAt                     DateTime                   @updatedAt
+  caseEvidences                 CaseEvidence[]
+  createdReportTemplates        ReportTemplate[]
+  achievementPortfolios         AchievementPortfolio[]     @relation("AchievementPortfolioOwner")
+  createdReferenceLibraryItems  ReferenceLibraryItem[]     @relation("ReferenceLibraryCreatedBy")
+  referenceLibraryAudienceRules ReferenceLibraryAudience[] @relation("ReferenceLibraryAudienceUser")
 
   @@index([schoolAccountId])
 }
@@ -351,6 +371,91 @@ model StaffMember {
   updatedAt DateTime @updatedAt
 
   @@index([schoolAccountId])
+}
+
+model ReferenceLibraryItem {
+  id String @id @default(cuid())
+
+  parentId String?
+  parent   ReferenceLibraryItem?  @relation("ReferenceLibraryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children ReferenceLibraryItem[] @relation("ReferenceLibraryHierarchy")
+
+  schoolAccountId String?
+  schoolAccount   SchoolAccount? @relation("ReferenceLibrarySchool", fields: [schoolAccountId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("ReferenceLibraryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  title       String  @db.VarChar(200)
+  description String? @db.Text
+
+  itemType ReferenceLibraryItemType
+  status   ReferenceLibraryItemStatus @default(DRAFT)
+
+  sortOrder     Int     @default(0)
+  allowDownload Boolean @default(true)
+
+  originalFileName   String? @db.VarChar(255)
+  storageKey         String? @unique @db.VarChar(255)
+  originalStorageKey String? @unique @db.VarChar(255)
+
+  mimeType      String? @db.VarChar(150)
+  fileExtension String? @db.VarChar(20)
+  sizeBytes     Int?
+
+  pdfFileName   String? @db.VarChar(255)
+  pdfStorageKey String? @unique @db.VarChar(255)
+  pdfMimeType   String? @db.VarChar(150)
+  pdfSizeBytes  Int?
+
+  docxFileName   String? @db.VarChar(255)
+  docxStorageKey String? @unique @db.VarChar(255)
+  docxMimeType   String? @db.VarChar(150)
+  docxSizeBytes  Int?
+
+  previewStorageKey  String?   @unique @db.VarChar(255)
+  previewMimeType    String?   @db.VarChar(150)
+  previewSizeBytes   Int?
+  previewGeneratedAt DateTime?
+
+  pdfCoverApplied Boolean @default(false)
+
+  publishedAt DateTime?
+  archivedAt  DateTime?
+
+  audiences ReferenceLibraryAudience[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([itemType])
+  @@index([status])
+  @@index([sortOrder])
+  @@index([createdAt])
+}
+
+model ReferenceLibraryAudience {
+  id String @id @default(cuid())
+
+  itemId String
+  item   ReferenceLibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  audienceType ReferenceLibraryAudienceType
+
+  userId String?
+  user   User?   @relation("ReferenceLibraryAudienceUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  role UserRole?
+
+  createdAt DateTime @default(now())
+
+  @@index([itemId])
+  @@index([audienceType])
+  @@index([userId])
+  @@index([role])
 }
 
 model Service {

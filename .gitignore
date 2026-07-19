@@ -32,3 +32,11 @@ public/uploads/school-signatures/
 /app/api/local-diagnostics/
 /public/uploads/certificates/
 /public/uploads/school-signatures/
+.storage/reference-library/
+_local-backups/
+reference-library-base-files.txt
+
+test.docx
+_local-docx-convert-test/
+_local-libreoffice-profile/
+reference-library-preview-files.txt

@@ -8,7 +8,7 @@ import {
 export async function requireActiveSubscriptionForCurrentUser() {
   const current = await getCurrentSessionUser();
 
-  if (!current?.user?.schoolAccountId) {
+  if (!current?.user) {
     redirect("/login");
   }
 
@@ -16,8 +16,12 @@ export async function requireActiveSubscriptionForCurrentUser() {
     return current;
   }
 
+  if (!current.user.schoolAccountId) {
+    redirect("/login");
+  }
+
   const overview = await getSchoolSubscriptionOverview(
-    current.user.schoolAccountId
+    current.user.schoolAccountId,
   );
 
   if (!overview.usable) {
@@ -27,15 +31,21 @@ export async function requireActiveSubscriptionForCurrentUser() {
   return current;
 }
 
-export async function requireServiceAccessForCurrentUser(serviceSlug: string) {
+export async function requireServiceAccessForCurrentUser(
+  serviceSlug: string,
+) {
   const current = await getCurrentSessionUser();
 
-  if (!current?.user?.schoolAccountId) {
+  if (!current?.user) {
     redirect("/login");
   }
 
   if (current.user.role === "ADMIN") {
     return current;
+  }
+
+  if (!current.user.schoolAccountId) {
+    redirect("/login");
   }
 
   const result = await isServiceAllowedForSchool({
@@ -51,8 +61,8 @@ export async function requireServiceAccessForCurrentUser(serviceSlug: string) {
 
     redirect(
       `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
-        serviceSlug
-      )}`
+        serviceSlug,
+      )}`,
     );
   }
 
@@ -60,8 +70,11 @@ export async function requireServiceAccessForCurrentUser(serviceSlug: string) {
 }
 
 export async function requireCanCreateInServiceForCurrentUser(
-  serviceSlug: string
+  serviceSlug: string,
 ) {
   await requireActiveSubscriptionForCurrentUser();
-  return requireServiceAccessForCurrentUser(serviceSlug);
+
+  return requireServiceAccessForCurrentUser(
+    serviceSlug,
+  );
 }

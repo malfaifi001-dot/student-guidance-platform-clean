@@ -140,6 +140,14 @@ export const workflowUploadServices: AppService[] = [
 ];
 
 export const standaloneServices: AppService[] = [
+  {
+    slug: "counselor-reference-library",
+    title: "المرجع الشامل للموجه الطلابي",
+    description:
+      "مكتبة الحقائب والأدلة والملفات المهنية الخاصة بالموجه الطلابي.",
+    href: "/dashboard/counselor-reference-library",
+    kind: "standalone",
+  },
   ACTIVITY_PROGRAM_PARENT_SERVICE,
   {
     slug: "comprehensive-reference",

@@ -1,0 +1,6017 @@
+
+==================================================
+FILE: prisma\schema.prisma
+==================================================
+   1: generator client {
+   2:   provider = "prisma-client-js"
+   3: }
+   4: 
+   5: datasource db {
+   6:   provider = "mysql"
+   7: }
+   8: 
+   9: enum UserRole {
+  10:   ADMIN
+  11:   COUNSELOR
+  12:   ACTIVITY_LEADER
+  13:   TEACHER
+  14:   SCHOOL_OWNER
+  15:   STAFF
+  16: }
+  17: 
+  18: enum ReferenceLibraryItemType {
+  19:   FOLDER
+  20:   FILE
+  21: }
+  22: 
+  23: enum ReferenceLibraryItemStatus {
+  24:   DRAFT
+  25:   PUBLISHED
+  26:   ARCHIVED
+  27: }
+  28: 
+  29: enum ReferenceLibraryAudienceType {
+  30:   ALL_USERS
+  31:   ROLE
+  32:   USER
+  33: }
+  34: 
+  35: enum ImportSessionStatus {
+  36:   DRAFT
+  37:   PARSED
+  38:   COMMITTED
+  39:   FAILED
+  40:   CANCELED
+  41: }
+  42: 
+  43: enum ImportRowStatus {
+  44:   PENDING
+  45:   VALID
+  46:   INVALID
+  47:   CREATED
+  48:   UPDATED
+  49:   SKIPPED
+  50:   CONFLICT
+  51: }
+  52: 
+  53: enum Gender {
+  54:   MALE
+  55:   FEMALE
+  56:   UNKNOWN
+  57: }
+  58: 
+  59: enum ServiceStatus {
+  60:   ACTIVE
+  61:   INACTIVE
+  62:   COMING_SOON
+  63: }
+  64: 
+  65: enum StudentPickerMode {
+  66:   SERVICE_DEFAULT
+  67:   REQUIRED
+  68:   DISABLED
+  69: }
+  70: 
+  71: enum WorkflowEvidenceMode {
+  72:   SERVICE_DEFAULT
+  73:   ENABLED
+  74:   DISABLED
+  75: }
+  76: 
+  77: enum WorkflowStatus {
+  78:   DRAFT
+  79:   ACTIVE
+  80:   ARCHIVED
+  81: }
+  82: 
+  83: enum FieldType {
+  84:   TEXT
+  85:   TEXTAREA
+  86:   NUMBER
+  87:   DATE
+  88:   SELECT
+  89:   MULTI_SELECT
+  90:   CHECKBOX
+  91:   RADIO
+  92:   FILE_UPLOAD
+  93:   IMAGE_UPLOAD
+  94:   STUDENT_PICKER
+  95:   PARENT_PICKER
+  96:   STAFF_PICKER
+  97:   REPEATER
+  98:   SIGNATURE
+  99:   RICH_TEXT
+ 100: }
+ 101: 
+ 102: enum ActivityAssignmentStatus {
+ 103:   SENT
+ 104:   OPENED
+ 105:   SUBMITTED
+ 106:   APPROVED
+ 107:   RETURNED
+ 108:   EXPIRED
+ 109:   CANCELED
+ 110: }
+ 111: 
+ 112: enum CaseStatus {
+ 113:   DRAFT
+ 114:   SUBMITTED
+ 115:   ARCHIVED
+ 116: }
+ 117: 
+ 118: enum EvidenceType {
+ 119:   IMAGE
+ 120:   FILE
+ 121:   LINK
+ 122: }
+ 123: 
+ 124: enum CalendarReminderStatus {
+ 125:   PENDING
+ 126:   COMPLETED
+ 127:   CANCELED
+ 128: }
+ 129: 
+ 130: enum CalendarReminderPriority {
+ 131:   NORMAL
+ 132:   IMPORTANT
+ 133:   URGENT
+ 134: }
+ 135: 
+ 136: enum CalendarReminderLinkType {
+ 137:   GENERAL
+ 138:   SERVICE
+ 139:   CASE
+ 140:   STUDENT
+ 141: }
+ 142: 
+ 143: enum SubscriptionStatus {
+ 144:   TRIAL
+ 145:   ACTIVE
+ 146:   PAST_DUE
+ 147:   CANCELED
+ 148:   EXPIRED
+ 149: }
+ 150: 
+ 151: enum PaymentStatus {
+ 152:   PENDING
+ 153:   PAID
+ 154:   FAILED
+ 155:   REFUNDED
+ 156:   CANCELED
+ 157: }
+ 158: 
+ 159: enum PaymentMethod {
+ 160:   CARD
+ 161:   BANK_TRANSFER
+ 162:   MANUAL
+ 163: }
+ 164: 
+ 165: enum IntegrationStatus {
+ 166:   ACTIVE
+ 167:   INACTIVE
+ 168:   ERROR
+ 169: }
+ 170: 
+ 171: enum SurveyStatus {
+ 172:   DRAFT
+ 173:   PUBLISHED
+ 174:   CLOSED
+ 175:   ARCHIVED
+ 176: }
+ 177: 
+ 178: enum SurveyQuestionType {
+ 179:   TEXT
+ 180:   TEXTAREA
+ 181:   SINGLE_CHOICE
+ 182:   MULTIPLE_CHOICE
+ 183:   YES_NO
+ 184:   RATING
+ 185:   SCALE
+ 186:   NUMBER
+ 187:   DATE
+ 188: }
+ 189: 
+ 190: model SchoolAccount {
+ 191:   id                    String                 @id @default(cuid())
+ 192:   name                  String
+ 193:   slug                  String                 @unique
+ 194:   isActive              Boolean                @default(true)
+ 195:   studentImportSessions StudentImportSession[]
+ 196:   users                 User[]
+ 197: 
+ 198:   profile               SchoolProfile?
+ 199:   students              Student[]
+ 200:   guardians             Guardian[]
+ 201:   staff                 StaffMember[]
+ 202:   services              ServiceAccess[]
+ 203:   cases                 CaseEntry[]
+ 204:   subscription          Subscription?
+ 205:   resultsAnalyses       ResultsAnalysis[]
+ 206:   assessmentAnalyses    AssessmentAnalysis[]
+ 207:   calendarReminders     CalendarReminder[]
+ 208:   activityAssignments   ActivityAssignment[]   @relation("ActivityAssignmentsBySchool")
+ 209:   surveys               Survey[]               @relation("SurveysBySchool")
+ 210:   surveyResponses       SurveyResponse[]       @relation("SurveyResponsesBySchool")
+ 211:   createdAt             DateTime               @default(now())
+ 212:   updatedAt             DateTime               @updatedAt
+ 213:   achievementPortfolios AchievementPortfolio[]
+ 214:   referenceLibraryItems ReferenceLibraryItem[] @relation("ReferenceLibrarySchool")
+ 215: }
+ 216: 
+ 217: model User {
+ 218:   id              String         @id @default(cuid())
+ 219:   schoolAccountId String?
+ 220:   schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+ 221: 
+ 222:   name         String
+ 223:   email        String   @unique
+ 224:   phone        String?
+ 225:   passwordHash String?
+ 226:   role         UserRole @default(COUNSELOR)
+ 227:   gender       Gender   @default(UNKNOWN)
+ 228:   officialName String?
+ 229:   jobTitle     String?
+ 230: 
+ 231:   teachingStages      Json?
+ 232:   teachingSpecialties Json?
+ 233:   teachingSubjects    Json?
+ 234:   isActive            Boolean @default(true)
+ 235: 
+ 236:   onboardingCompleted   Boolean   @default(false)
+ 237:   onboardingCompletedAt DateTime?
+ 238:   onboardingSkippedAt   DateTime?
+ 239: 
+ 240:   cases                      CaseEntry[]
+ 241:   sessions                   UserSession[]
+ 242:   calendarReminders          CalendarReminder[]
+ 243:   createdActivityAssignments ActivityAssignment[] @relation("ActivityAssignmentsCreatedBy")
+ 244:   createdSurveys             Survey[]             @relation("SurveysCreatedBy")
+ 245: 
+ 246:   createdAt                     DateTime                   @default(now())
+ 247:   updatedAt                     DateTime                   @updatedAt
+ 248:   caseEvidences                 CaseEvidence[]
+ 249:   createdReportTemplates        ReportTemplate[]
+ 250:   achievementPortfolios         AchievementPortfolio[]     @relation("AchievementPortfolioOwner")
+ 251:   createdReferenceLibraryItems  ReferenceLibraryItem[]     @relation("ReferenceLibraryCreatedBy")
+ 252:   referenceLibraryAudienceRules ReferenceLibraryAudience[] @relation("ReferenceLibraryAudienceUser")
+ 253: 
+ 254:   @@index([schoolAccountId])
+ 255: }
+ 256: 
+ 257: model UserSession {
+ 258:   id String @id @default(cuid())
+ 259: 
+ 260:   userId String
+ 261:   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 262: 
+ 263:   tokenId String @unique
+ 264: 
+ 265:   userAgent String?
+ 266:   ipAddress String?
+ 267: 
+ 268:   isActive   Boolean   @default(true)
+ 269:   expiresAt  DateTime
+ 270:   lastSeenAt DateTime  @default(now())
+ 271:   revokedAt  DateTime?
+ 272: 
+ 273:   createdAt DateTime @default(now())
+ 274: 
+ 275:   @@index([userId])
+ 276:   @@index([tokenId])
+ 277:   @@index([isActive])
+ 278:   @@index([expiresAt])
+ 279: }
+ 280: 
+ 281: model SchoolProfile {
+ 282:   id              String        @id @default(cuid())
+ 283:   schoolAccountId String        @unique
+ 284:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 285: 
+ 286:   schoolName                    String
+ 287:   principalName                 String?
+ 288:   principalPhone                String?
+ 289:   principalSignatureUrl         String?
+ 290:   principalSignatureToken       String?   @unique
+ 291:   principalSignatureRequestedAt DateTime?
+ 292:   principalSignatureSignedAt    DateTime?
+ 293: 
+ 294:   activityLeaderName         String?
+ 295:   activityLeaderSignatureUrl String?
+ 296:   activityLeaderSignedAt     DateTime?
+ 297: 
+ 298:   counselorSignatureUrl String?
+ 299:   counselorSignedAt     DateTime?
+ 300: 
+ 301:   educationDepartment String?
+ 302:   educationOffice     String?
+ 303:   city                String?
+ 304:   district            String?
+ 305:   stage               String?
+ 306:   academicYear        String?
+ 307:   currentSemester     String?
+ 308:   logoUrl             String?
+ 309: 
+ 310:   createdAt DateTime @default(now())
+ 311:   updatedAt DateTime @updatedAt
+ 312: }
+ 313: 
+ 314: model Guardian {
+ 315:   id              String        @id @default(cuid())
+ 316:   schoolAccountId String
+ 317:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 318: 
+ 319:   name     String
+ 320:   phone    String?
+ 321:   relation String?
+ 322: 
+ 323:   students Student[]
+ 324: 
+ 325:   createdAt DateTime @default(now())
+ 326:   updatedAt DateTime @updatedAt
+ 327: 
+ 328:   @@index([schoolAccountId])
+ 329: }
+ 330: 
+ 331: model Student {
+ 332:   id              String        @id @default(cuid())
+ 333:   schoolAccountId String
+ 334:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 335: 
+ 336:   guardianId String?
+ 337:   guardian   Guardian? @relation(fields: [guardianId], references: [id])
+ 338: 
+ 339:   fullName   String
+ 340:   nationalId String?
+ 341:   gender     Gender  @default(UNKNOWN)
+ 342:   stage      String?
+ 343:   grade      String?
+ 344:   classroom  String?
+ 345:   phone      String?
+ 346:   isActive   Boolean @default(true)
+ 347: 
+ 348:   cases             CaseEntry[]
+ 349:   calendarReminders CalendarReminder[]
+ 350: 
+ 351:   createdAt DateTime @default(now())
+ 352:   updatedAt DateTime @updatedAt
+ 353: 
+ 354:   @@index([schoolAccountId])
+ 355:   @@index([guardianId])
+ 356:   @@index([fullName])
+ 357: }
+ 358: 
+ 359: model StaffMember {
+ 360:   id              String        @id @default(cuid())
+ 361:   schoolAccountId String
+ 362:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 363: 
+ 364:   name      String
+ 365:   roleTitle String?
+ 366:   phone     String?
+ 367:   email     String?
+ 368:   gender    Gender  @default(UNKNOWN)
+ 369: 
+ 370:   createdAt DateTime @default(now())
+ 371:   updatedAt DateTime @updatedAt
+ 372: 
+ 373:   @@index([schoolAccountId])
+ 374: }
+ 375: 
+ 376: model ReferenceLibraryItem {
+ 377:   id String @id @default(cuid())
+ 378: 
+ 379:   parentId String?
+ 380:   parent   ReferenceLibraryItem?  @relation("ReferenceLibraryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+ 381:   children ReferenceLibraryItem[] @relation("ReferenceLibraryHierarchy")
+ 382: 
+ 383:   schoolAccountId String?
+ 384:   schoolAccount   SchoolAccount? @relation("ReferenceLibrarySchool", fields: [schoolAccountId], references: [id], onDelete: SetNull)
+ 385: 
+ 386:   createdById String?
+ 387:   createdBy   User?   @relation("ReferenceLibraryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+ 388: 
+ 389:   title       String  @db.VarChar(200)
+ 390:   description String? @db.Text
+ 391: 
+ 392:   itemType ReferenceLibraryItemType
+ 393:   status   ReferenceLibraryItemStatus @default(DRAFT)
+ 394: 
+ 395:   sortOrder     Int     @default(0)
+ 396:   allowDownload Boolean @default(true)
+ 397: 
+ 398:   originalFileName   String? @db.VarChar(255)
+ 399:   storageKey         String? @unique @db.VarChar(255)
+ 400:   originalStorageKey String? @unique @db.VarChar(255)
+ 401: 
+ 402:   mimeType      String? @db.VarChar(150)
+ 403:   fileExtension String? @db.VarChar(20)
+ 404:   sizeBytes     Int?
+ 405: 
+ 406:   previewStorageKey  String?   @unique @db.VarChar(255)
+ 407:   previewMimeType    String?   @db.VarChar(150)
+ 408:   previewSizeBytes   Int?
+ 409:   previewGeneratedAt DateTime?
+ 410: 
+ 411:   pdfCoverApplied Boolean @default(false)
+ 412: 
+ 413:   publishedAt DateTime?
+ 414:   archivedAt  DateTime?
+ 415: 
+ 416:   audiences ReferenceLibraryAudience[]
+ 417: 
+ 418:   createdAt DateTime @default(now())
+ 419:   updatedAt DateTime @updatedAt
+ 420: 
+ 421:   @@index([parentId])
+ 422:   @@index([schoolAccountId])
+ 423:   @@index([createdById])
+ 424:   @@index([itemType])
+ 425:   @@index([status])
+ 426:   @@index([sortOrder])
+ 427:   @@index([createdAt])
+ 428: }
+ 429: 
+ 430: model ReferenceLibraryAudience {
+ 431:   id String @id @default(cuid())
+ 432: 
+ 433:   itemId String
+ 434:   item   ReferenceLibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+ 435: 
+ 436:   audienceType ReferenceLibraryAudienceType
+ 437: 
+ 438:   userId String?
+ 439:   user   User?   @relation("ReferenceLibraryAudienceUser", fields: [userId], references: [id], onDelete: Cascade)
+ 440: 
+ 441:   role UserRole?
+ 442: 
+ 443:   createdAt DateTime @default(now())
+ 444: 
+ 445:   @@index([itemId])
+ 446:   @@index([audienceType])
+ 447:   @@index([userId])
+ 448:   @@index([role])
+ 449: }
+ 450: 
+ 451: model Service {
+ 452:   id          String        @id @default(cuid())
+ 453:   slug        String        @unique
+ 454:   name        String
+ 455:   description String?
+ 456:   status      ServiceStatus @default(ACTIVE)
+ 457: 
+ 458:   workflows           Workflow[]
+ 459:   cases               CaseEntry[]
+ 460:   access              ServiceAccess[]
+ 461:   calendarReminders   CalendarReminder[]
+ 462:   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
+ 463:   surveys             Survey[]             @relation("SurveysService")
+ 464: 
+ 465:   createdAt DateTime @default(now())
+ 466:   updatedAt DateTime @updatedAt
+ 467: }
+ 468: 
+ 469: model Workflow {
+ 470:   id        String  @id @default(cuid())
+ 471:   serviceId String
+ 472:   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+ 473: 
+ 474:   name         String
+ 475:   version      Int            @default(1)
+ 476:   status       WorkflowStatus @default(DRAFT)
+ 477:   isActive     Boolean        @default(false)
+ 478:   workflowType String         @default("default")
+ 479: 
+ 480:   studentPickerMode   StudentPickerMode    @default(SERVICE_DEFAULT)
+ 481:   evidenceMode        WorkflowEvidenceMode @default(SERVICE_DEFAULT)
+ 482:   steps               WorkflowStep[]
+ 483:   cases               CaseEntry[]
+ 484:   activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
+ 485: 
+ 486:   createdAt DateTime @default(now())
+ 487:   updatedAt DateTime @updatedAt
+ 488: 
+ 489:   @@index([serviceId])
+ 490:   @@index([serviceId, workflowType, isActive])
+ 491: }
+ 492: 
+ 493: model WorkflowStep {
+ 494:   id         String   @id @default(cuid())
+ 495:   workflowId String
+ 496:   workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+ 497: 
+ 498:   title       String
+ 499:   description String?
+ 500:   order       Int
+ 501: 
+ 502:   fields DynamicField[]
+ 503: 
+ 504:   createdAt DateTime @default(now())
+ 505:   updatedAt DateTime @updatedAt
+ 506: 
+ 507:   @@index([workflowId])
+ 508:   @@index([order])
+ 509: }
+ 510: 
+ 511: model DynamicField {
+ 512:   id     String       @id @default(cuid())
+ 513:   stepId String
+ 514:   step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+ 515: 
+ 516:   key         String
+ 517:   label       String    @db.Text
+ 518:   type        FieldType
+ 519:   placeholder String?
+ 520:   helpText    String?
+ 521:   isRequired  Boolean   @default(false)
+ 522:   order       Int
+ 523: 
+ 524:   dependsOnFieldKey String?
+ 525:   linkedToValue     String?
+ 526:   allowOther        Boolean @default(false)
+ 527:   isRepeater        Boolean @default(false)
+ 528: 
+ 529:   defaultValue         String? @db.Text
+ 530:   defaultJson          Json?
+ 531:   autoSelectWhenLinked Boolean @default(false)
+ 532: 
+ 533:   options DynamicFieldOption[]
+ 534:   values  CaseValue[]
+ 535: 
+ 536:   createdAt DateTime @default(now())
+ 537:   updatedAt DateTime @updatedAt
+ 538: 
+ 539:   @@index([stepId])
+ 540:   @@index([key])
+ 541:   @@index([order])
+ 542: }
+ 543: 
+ 544: model DynamicFieldOption {
+ 545:   id      String       @id @default(cuid())
+ 546:   fieldId String
+ 547:   field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+ 548: 
+ 549:   label         String  @db.Text
+ 550:   value         String
+ 551:   order         Int
+ 552:   linkedToValue String?
+ 553: 
+ 554:   createdAt DateTime @default(now())
+ 555:   updatedAt DateTime @updatedAt
+ 556: 
+ 557:   @@index([fieldId])
+ 558:   @@index([value])
+ 559: }
+ 560: 
+ 561: model CaseEntry {
+ 562:   id String @id @default(cuid())
+ 563: 
+ 564:   schoolAccountId String
+ 565:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 566: 
+ 567:   serviceId String
+ 568:   service   Service @relation(fields: [serviceId], references: [id])
+ 569: 
+ 570:   workflowId       String?
+ 571:   workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+ 572:   workflowSnapshot Json?
+ 573:   guidanceReports  GuidanceReport[]
+ 574:   studentId        String?
+ 575:   student          Student?         @relation(fields: [studentId], references: [id])
+ 576: 
+ 577:   createdById String?
+ 578:   createdBy   User?   @relation(fields: [createdById], references: [id])
+ 579: 
+ 580:   title       String?
+ 581:   status      CaseStatus @default(DRAFT)
+ 582:   submittedAt DateTime?
+ 583: 
+ 584:   values             CaseValue[]
+ 585:   evidences          Evidence[]
+ 586:   calendarReminders  CalendarReminder[]
+ 587:   activityAssignment ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+ 588: 
+ 589:   createdAt              DateTime         @default(now())
+ 590:   updatedAt              DateTime         @updatedAt
+ 591:   caseEvidences          CaseEvidence[]
+ 592:   createdReportTemplates ReportTemplate[]
+ 593: 
+ 594:   @@index([schoolAccountId])
+ 595:   @@index([serviceId])
+ 596:   @@index([workflowId])
+ 597:   @@index([studentId])
+ 598:   @@index([status])
+ 599: }
+ 600: 
+ 601: model CaseValue {
+ 602:   id String @id @default(cuid())
+ 603: 
+ 604:   caseEntryId String
+ 605:   caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+ 606: 
+ 607:   fieldId String?
+ 608:   field   DynamicField? @relation(fields: [fieldId], references: [id])
+ 609: 
+ 610:   fieldKey  String
+ 611:   value     String? @db.Text
+ 612:   jsonValue Json?
+ 613: 
+ 614:   createdAt DateTime @default(now())
+ 615:   updatedAt DateTime @updatedAt
+ 616: 
+ 617:   @@index([caseEntryId])
+ 618:   @@index([fieldKey])
+ 619: }
+ 620: 
+ 621: model Evidence {
+ 622:   id String @id @default(cuid())
+ 623: 
+ 624:   caseEntryId String
+ 625:   caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+ 626: 
+ 627:   type     EvidenceType
+ 628:   fileName String?
+ 629:   fileUrl  String?
+ 630:   mimeType String?
+ 631:   size     Int?
+ 632:   note     String?
+ 633: 
+ 634:   createdAt DateTime @default(now())
+ 635:   updatedAt DateTime @updatedAt
+ 636: 
+ 637:   @@index([caseEntryId])
+ 638: }
+ 639: 
+ 640: model ActivityAssignment {
+ 641:   id String @id @default(cuid())
+ 642: 
+ 643:   schoolAccountId String
+ 644:   schoolAccount   SchoolAccount @relation("ActivityAssignmentsBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 645: 
+ 646:   createdById String?
+ 647:   createdBy   User?   @relation("ActivityAssignmentsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+ 648: 
+ 649:   serviceId String
+ 650:   service   Service @relation("ActivityAssignmentsService", fields: [serviceId], references: [id])
+ 651: 
+ 652:   workflowId String
+ 653:   workflow   Workflow @relation("ActivityAssignmentsWorkflow", fields: [workflowId], references: [id])
+ 654: 
+ 655:   caseEntryId String?    @unique
+ 656:   caseEntry   CaseEntry? @relation("ActivityAssignmentCaseEntry", fields: [caseEntryId], references: [id], onDelete: SetNull)
+ 657: 
+ 658:   domainSlug  String
+ 659:   domainTitle String
+ 660: 
+ 661:   teacherName  String
+ 662:   teacherPhone String
+ 663:   teacherEmail String?
+ 664: 
+ 665:   teacherSignatureUrl String?
+ 666:   teacherSignedName   String?
+ 667:   teacherSignedAt     DateTime?
+ 668: 
+ 669:   dueDate DateTime?
+ 670:   note    String?   @db.Text
+ 671: 
+ 672:   submittedValues        Json?
+ 673:   submittedEvidenceItems Json?
+ 674:   returnedReason         String? @db.Text
+ 675: 
+ 676:   token          String    @unique
+ 677:   tokenExpiresAt DateTime?
+ 678: 
+ 679:   openedAt    DateTime?
+ 680:   submittedAt DateTime?
+ 681:   approvedAt  DateTime?
+ 682:   returnedAt  DateTime?
+ 683:   canceledAt  DateTime?
+ 684: 
+ 685:   status ActivityAssignmentStatus @default(SENT)
+ 686: 
+ 687:   createdAt DateTime @default(now())
+ 688:   updatedAt DateTime @updatedAt
+ 689: 
+ 690:   @@index([schoolAccountId])
+ 691:   @@index([createdById])
+ 692:   @@index([serviceId])
+ 693:   @@index([workflowId])
+ 694:   @@index([domainSlug])
+ 695:   @@index([teacherPhone])
+ 696:   @@index([status])
+ 697:   @@index([dueDate])
+ 698:   @@index([createdAt])
+ 699: }
+ 700: 
+ 701: model CalendarReminder {
+ 702:   id String @id @default(cuid())
+ 703: 
+ 704:   schoolAccountId String
+ 705:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 706: 
+ 707:   createdById String?
+ 708:   createdBy   User?   @relation(fields: [createdById], references: [id])
+ 709: 
+ 710:   title String
+ 711:   note  String?
+ 712: 
+ 713:   status   CalendarReminderStatus   @default(PENDING)
+ 714:   priority CalendarReminderPriority @default(NORMAL)
+ 715:   linkType CalendarReminderLinkType @default(GENERAL)
+ 716: 
+ 717:   scheduledAt         DateTime
+ 718:   remindBeforeMinutes Int?
+ 719: 
+ 720:   serviceId String?
+ 721:   service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+ 722: 
+ 723:   caseEntryId String?
+ 724:   caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id], onDelete: SetNull)
+ 725: 
+ 726:   studentId String?
+ 727:   student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+ 728: 
+ 729:   completedAt   DateTime?
+ 730:   completedById String?
+ 731: 
+ 732:   createdAt DateTime @default(now())
+ 733:   updatedAt DateTime @updatedAt
+ 734: 
+ 735:   @@index([schoolAccountId])
+ 736:   @@index([createdById])
+ 737:   @@index([status])
+ 738:   @@index([priority])
+ 739:   @@index([scheduledAt])
+ 740:   @@index([serviceId])
+ 741:   @@index([caseEntryId])
+ 742:   @@index([studentId])
+ 743: }
+ 744: 
+ 745: model ExportTemplate {
+ 746:   id          String  @id @default(cuid())
+ 747:   serviceSlug String?
+ 748:   name        String
+ 749:   content     String
+ 750:   isDefault   Boolean @default(false)
+ 751: 
+ 752:   createdAt DateTime @default(now())
+ 753:   updatedAt DateTime @updatedAt
+ 754: 
+ 755:   @@index([serviceSlug])
+ 756: }
+ 757: 
+ 758: model Plan {
+ 759:   id           String  @id @default(cuid())
+ 760:   name         String
+ 761:   slug         String  @unique
+ 762:   priceMonthly Int     @default(0)
+ 763:   priceYearly  Int     @default(0)
+ 764:   isActive     Boolean @default(true)
+ 765:   isPublic     Boolean @default(true)
+ 766:   isArchived   Boolean @default(false)
+ 767:   visibleRoles Json?
+ 768: 
+ 769:   features      PlanFeature[]
+ 770:   subscriptions Subscription[]
+ 771: 
+ 772:   createdAt DateTime @default(now())
+ 773:   updatedAt DateTime @updatedAt
+ 774: }
+ 775: 
+ 776: model PlanFeature {
+ 777:   id     String @id @default(cuid())
+ 778:   planId String
+ 779:   plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+ 780: 
+ 781:   key   String
+ 782:   label String
+ 783:   value String?
+ 784: 
+ 785:   createdAt DateTime @default(now())
+ 786:   updatedAt DateTime @updatedAt
+ 787: 
+ 788:   @@index([planId])
+ 789:   @@index([key])
+ 790: }
+ 791: 
+ 792: model Subscription {
+ 793:   id              String        @id @default(cuid())
+ 794:   schoolAccountId String        @unique
+ 795:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 796: 
+ 797:   planId String
+ 798:   plan   Plan   @relation(fields: [planId], references: [id])
+ 799: 
+ 800:   status   SubscriptionStatus @default(TRIAL)
+ 801:   startsAt DateTime           @default(now())
+ 802:   endsAt   DateTime?
+ 803: 
+ 804:   transactions PaymentTransaction[]
+ 805: 
+ 806:   createdAt DateTime @default(now())
+ 807:   updatedAt DateTime @updatedAt
+ 808: }
+ 809: 
+ 810: model ServiceAccess {
+ 811:   id              String        @id @default(cuid())
+ 812:   schoolAccountId String
+ 813:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 814: 
+ 815:   serviceId String
+ 816:   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+ 817: 
+ 818:   isEnabled Boolean @default(true)
+ 819:   isPaid    Boolean @default(false)
+ 820: 
+ 821:   createdAt DateTime @default(now())
+ 822:   updatedAt DateTime @updatedAt
+ 823: 
+ 824:   @@unique([schoolAccountId, serviceId])
+ 825: }
+ 826: 
+ 827: model FeatureFlag {
+ 828:   id        String  @id @default(cuid())
+ 829:   key       String  @unique
+ 830:   label     String
+ 831:   isEnabled Boolean @default(false)
+ 832: 
+ 833:   createdAt DateTime @default(now())
+ 834:   updatedAt DateTime @updatedAt
+ 835: }
+ 836: 
+ 837: model UsageLimit {
+ 838:   id         String @id @default(cuid())
+ 839:   planSlug   String
+ 840:   featureKey String
+ 841:   limit      Int
+ 842: 
+ 843:   createdAt DateTime @default(now())
+ 844:   updatedAt DateTime @updatedAt
+ 845: 
+ 846:   @@unique([planSlug, featureKey])
+ 847: }
+ 848: 
+ 849: model UsageRecord {
+ 850:   id              String @id @default(cuid())
+ 851:   schoolAccountId String
+ 852:   featureKey      String
+ 853:   amount          Int    @default(1)
+ 854: 
+ 855:   createdAt DateTime @default(now())
+ 856: 
+ 857:   @@index([schoolAccountId])
+ 858:   @@index([featureKey])
+ 859: }
+ 860: 
+ 861: model PaymentProvider {
+ 862:   id         String  @id @default(cuid())
+ 863:   name       String
+ 864:   slug       String  @unique
+ 865:   isActive   Boolean @default(false)
+ 866:   configJson Json?
+ 867: 
+ 868:   transactions PaymentTransaction[]
+ 869: 
+ 870:   createdAt DateTime @default(now())
+ 871:   updatedAt DateTime @updatedAt
+ 872: }
+ 873: 
+ 874: model PaymentTransaction {
+ 875:   id             String        @id @default(cuid())
+ 876:   subscriptionId String?
+ 877:   subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+ 878: 
+ 879:   providerId String?
+ 880:   provider   PaymentProvider? @relation(fields: [providerId], references: [id])
+ 881: 
+ 882:   amount       Int
+ 883:   currency     String        @default("SAR")
+ 884:   method       PaymentMethod
+ 885:   status       PaymentStatus @default(PENDING)
+ 886:   externalRef  String?
+ 887:   metadataJson Json?
+ 888: 
+ 889:   invoice Invoice?
+ 890: 
+ 891:   createdAt DateTime @default(now())
+ 892:   updatedAt DateTime @updatedAt
+ 893: 
+ 894:   @@index([subscriptionId])
+ 895:   @@index([providerId])
+ 896:   @@index([status])
+ 897: }
+ 898: 
+ 899: model BankTransferRequest {
+ 900:   id              String        @id @default(cuid())
+ 901:   schoolAccountId String
+ 902:   amount          Int
+ 903:   currency        String        @default("SAR")
+ 904:   senderName      String?
+ 905:   receiptUrl      String?
+ 906:   status          PaymentStatus @default(PENDING)
+ 907:   adminNote       String?
+ 908: 
+ 909:   planId          String?
+ 910:   durationDays    Int?
+ 911:   requesterUserId String?
+ 912:   billingCycle    String?
+ 913: 
+ 914:   createdAt DateTime @default(now())
+ 915:   updatedAt DateTime @updatedAt
+ 916: 
+ 917:   @@index([schoolAccountId])
+ 918:   @@index([status])
+ 919: }
+ 920: 
+ 921: model ManualActivation {
+ 922:   id              String    @id @default(cuid())
+ 923:   schoolAccountId String
+ 924:   activatedById   String?
+ 925:   reason          String?
+ 926:   startsAt        DateTime  @default(now())
+ 927:   endsAt          DateTime?
+ 928: 
+ 929:   createdAt DateTime @default(now())
+ 930: 
+ 931:   @@index([schoolAccountId])
+ 932: }
+ 933: 
+ 934: model IntegrationProvider {
+ 935:   id     String            @id @default(cuid())
+ 936:   name   String
+ 937:   slug   String            @unique
+ 938:   status IntegrationStatus @default(INACTIVE)
+ 939: 
+ 940:   credentials ApiCredential[]
+ 941:   webhooks    WebhookEvent[]
+ 942:   syncLogs    ExternalSyncLog[]
+ 943: 
+ 944:   createdAt DateTime @default(now())
+ 945:   updatedAt DateTime @updatedAt
+ 946: }
+ 947: 
+ 948: model ApiCredential {
+ 949:   id         String              @id @default(cuid())
+ 950:   providerId String
+ 951:   provider   IntegrationProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+ 952: 
+ 953:   label          String
+ 954:   keyName        String
+ 955:   encryptedValue String
+ 956: 
+ 957:   createdAt DateTime @default(now())
+ 958:   updatedAt DateTime @updatedAt
+ 959: 
+ 960:   @@index([providerId])
+ 961: }
+ 962: 
+ 963: model WebhookEvent {
+ 964:   id         String               @id @default(cuid())
+ 965:   providerId String?
+ 966:   provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+ 967: 
+ 968:   eventType   String
+ 969:   payloadJson Json?
+ 970:   processed   Boolean   @default(false)
+ 971:   processedAt DateTime?
+ 972: 
+ 973:   createdAt DateTime @default(now())
+ 974: 
+ 975:   @@index([providerId])
+ 976:   @@index([processed])
+ 977: }
+ 978: 
+ 979: model ExternalSyncLog {
+ 980:   id         String               @id @default(cuid())
+ 981:   providerId String?
+ 982:   provider   IntegrationProvider? @relation(fields: [providerId], references: [id])
+ 983: 
+ 984:   entityType String
+ 985:   entityId   String?
+ 986:   status     String
+ 987:   message    String?
+ 988: 
+ 989:   createdAt DateTime @default(now())
+ 990: 
+ 991:   @@index([providerId])
+ 992:   @@index([entityType])
+ 993: }
+ 994: 
+ 995: model AssessmentAnalysis {
+ 996:   id              String         @id @default(cuid())
+ 997:   schoolAccountId String?
+ 998:   schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+ 999: 
+1000:   title      String
+1001:   sourceFile String?
+1002:   status     String  @default("COMPLETED")
+1003:   uploadMode String  @default("GENERAL")
+1004: 
+1005:   totalStudents     Int    @default(0)
+1006:   totalRows         Int    @default(0)
+1007:   totalSubjects     Int    @default(0)
+1008:   averagePercentage Float?
+1009: 
+1010:   summaryJson Json?
+1011:   rowsJson    Json?
+1012: 
+1013:   createdAt DateTime @default(now())
+1014:   updatedAt DateTime @updatedAt
+1015: 
+1016:   @@index([schoolAccountId])
+1017:   @@index([status])
+1018:   @@index([createdAt])
+1019: }
+1020: 
+1021: model ResultsAnalysis {
+1022:   id              String         @id @default(cuid())
+1023:   schoolAccountId String?
+1024:   schoolAccount   SchoolAccount? @relation(fields: [schoolAccountId], references: [id])
+1025: 
+1026:   title      String
+1027:   grade      String?
+1028:   classroom  String?
+1029:   sourceFile String?
+1030:   status     String  @default("COMPLETED")
+1031: 
+1032:   totalStudents Int    @default(0)
+1033:   totalSubjects Int    @default(0)
+1034:   averageScore  Float?
+1035: 
+1036:   summaryJson Json?
+1037:   rowsJson    Json?
+1038: 
+1039:   createdAt DateTime @default(now())
+1040:   updatedAt DateTime @updatedAt
+1041: 
+1042:   @@index([schoolAccountId])
+1043:   @@index([grade])
+1044:   @@index([classroom])
+1045: }
+1046: 
+1047: enum ReportStatus {
+1048:   DRAFT
+1049:   GENERATED
+1050:   APPROVED
+1051:   ARCHIVED
+1052: }
+1053: 
+1054: enum ReportTemplateType {
+1055:   SYSTEM
+1056:   SCHOOL
+1057:   PERSONAL
+1058: }
+1059: 
+1060: model GuidanceReport {
+1061:   id          String @id @default(cuid())
+1062:   title       String
+1063:   serviceSlug String
+1064: 
+1065:   caseEntryId String
+1066:   caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+1067: 
+1068:   status ReportStatus @default(DRAFT)
+1069: 
+1070:   genderMode String @default("MALE")
+1071: 
+1072:   editableContent String  @db.LongText
+1073:   renderedContent String? @db.LongText
+1074: 
+1075:   evidenceEnabled Boolean @default(true)
+1076: 
+1077:   templateId         String?
+1078:   templateSnapshot   Json?
+1079:   reportDataSnapshot Json?
+1080:   generatedAt        DateTime?
+1081:   generatedPdfUrl    String?
+1082: 
+1083:   approvedAt DateTime?
+1084:   archivedAt DateTime?
+1085: 
+1086:   createdAt DateTime @default(now())
+1087:   updatedAt DateTime @updatedAt
+1088: 
+1089:   evidenceItems ReportEvidence[]
+1090: 
+1091:   @@index([caseEntryId])
+1092:   @@index([serviceSlug])
+1093:   @@index([status])
+1094:   @@index([templateId])
+1095:   @@index([generatedAt])
+1096: }
+1097: 
+1098: model ReportSnapshot {
+1099:   id              String  @id @default(cuid())
+1100:   caseEntryId     String
+1101:   schoolAccountId String?
+1102:   serviceSlug     String?
+1103:   serviceName     String?
+1104:   reportTitle     String
+1105:   templateId      String?
+1106:   templateName    String?
+1107:   variantId       String?
+1108: 
+1109:   snapshotPayload      Json
+1110:   snapshotTemplateJson Json?
+1111:   snapshotPagesJson    Json?
+1112:   snapshotHtml         String  @db.LongText
+1113:   pdfUrl               String?
+1114: 
+1115:   approvedById   String?
+1116:   approvedByName String?
+1117:   approvedAt     DateTime @default(now())
+1118: 
+1119:   createdAt DateTime @default(now())
+1120:   updatedAt DateTime @updatedAt
+1121: 
+1122:   @@index([caseEntryId])
+1123:   @@index([schoolAccountId])
+1124:   @@index([serviceSlug])
+1125:   @@index([approvedAt])
+1126:   @@index([approvedById])
+1127: }
+1128: 
+1129: model ReportEvidence {
+1130:   id String @id @default(cuid())
+1131: 
+1132:   reportId String
+1133:   report   GuidanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+1134: 
+1135:   fileName String
+1136:   fileUrl  String
+1137:   caption  String?
+1138: 
+1139:   mimeType String?
+1140:   size     Int?
+1141: 
+1142:   sortOrder Int     @default(0)
+1143:   visible   Boolean @default(true)
+1144: 
+1145:   createdAt DateTime @default(now())
+1146: 
+1147:   @@index([reportId])
+1148:   @@index([visible])
+1149: }
+1150: 
+1151: model ReportTemplate {
+1152:   id String @id @default(cuid())
+1153: 
+1154:   name        String
+1155:   description String?
+1156: 
+1157:   serviceSlug String?
+1158: 
+1159:   type    ReportTemplateType @default(SYSTEM)
+1160:   content String?            @db.LongText
+1161: 
+1162:   templateJson Json?
+1163:   version      Int   @default(1)
+1164: 
+1165:   genderAware Boolean @default(true)
+1166: 
+1167:   usageCount Int     @default(0)
+1168:   isActive   Boolean @default(true)
+1169: 
+1170:   createdById String?
+1171:   createdBy   User?   @relation(fields: [createdById], references: [id])
+1172: 
+1173:   createdAt   DateTime   @default(now())
+1174:   updatedAt   DateTime   @updatedAt
+1175:   caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+1176:   caseEntryId String?
+1177: 
+1178:   @@index([serviceSlug])
+1179:   @@index([type])
+1180:   @@index([isActive])
+1181:   @@index([createdById])
+1182: }
+1183: 
+1184: model StudentImportSession {
+1185:   id              String        @id @default(cuid())
+1186:   schoolAccountId String
+1187:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+1188: 
+1189:   title  String
+1190:   source String              @default("NOOR_EXCEL")
+1191:   status ImportSessionStatus @default(DRAFT)
+1192: 
+1193:   totalRows     Int @default(0)
+1194:   validRows     Int @default(0)
+1195:   invalidRows   Int @default(0)
+1196:   createdCount  Int @default(0)
+1197:   updatedCount  Int @default(0)
+1198:   skippedCount  Int @default(0)
+1199:   conflictCount Int @default(0)
+1200: 
+1201:   files StudentImportFile[]
+1202:   rows  StudentImportRow[]
+1203: 
+1204:   committedAt       DateTime?
+1205:   createdAt         DateTime  @default(now())
+1206:   updatedAt         DateTime  @updatedAt
+1207:   academicYear      String?
+1208:   term              String?
+1209:   importMode        String    @default("FULL_SYNC")
+1210:   committedByUserId String?
+1211:   isArchived        Boolean   @default(false)
+1212:   archivedAt        DateTime?
+1213:   archivedByUserId  String?
+1214:   cycleId           String?
+1215: 
+1216:   @@index([schoolAccountId])
+1217:   @@index([status])
+1218: }
+1219: 
+1220: model StudentImportFile {
+1221:   id        String               @id @default(cuid())
+1222:   sessionId String
+1223:   session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+1224: 
+1225:   fileName String
+1226:   mimeType String?
+1227:   size     Int?
+1228:   rowCount Int     @default(0)
+1229: 
+1230:   createdAt DateTime @default(now())
+1231: 
+1232:   @@index([sessionId])
+1233: }
+1234: 
+1235: model StudentImportRow {
+1236:   id        String               @id @default(cuid())
+1237:   sessionId String
+1238:   session   StudentImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+1239: 
+1240:   rowIndex Int
+1241:   status   ImportRowStatus @default(PENDING)
+1242: 
+1243:   fullName      String
+1244:   nationalId    String?
+1245:   gender        Gender  @default(UNKNOWN)
+1246:   stage         String?
+1247:   grade         String?
+1248:   classroom     String?
+1249:   guardianName  String?
+1250:   guardianPhone String?
+1251: 
+1252:   matchedStudentId String?
+1253:   errorMessage     String?
+1254:   rawJson          Json?
+1255: 
+1256:   createdAt  DateTime @default(now())
+1257:   updatedAt  DateTime @updatedAt
+1258:   planAction String?
+1259: 
+1260:   @@index([sessionId])
+1261:   @@index([nationalId])
+1262:   @@index([status])
+1263: }
+1264: 
+1265: model CaseEvidence {
+1266:   id String @id @default(cuid())
+1267: 
+1268:   caseEntryId String?
+1269:   caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+1270: 
+1271:   fileName String
+1272:   fileUrl  String
+1273:   mimeType String
+1274:   size     Int
+1275: 
+1276:   uploadedById String?
+1277:   uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+1278: 
+1279:   createdAt DateTime @default(now())
+1280: 
+1281:   @@index([caseEntryId])
+1282: }
+1283: 
+1284: model ActivationCode {
+1285:   id String @id @default(cuid())
+1286: 
+1287:   code String @unique
+1288: 
+1289:   label        String?
+1290:   durationDays Int     @default(30)
+1291: 
+1292:   maxUses   Int @default(1)
+1293:   usedCount Int @default(0)
+1294: 
+1295:   isActive Boolean @default(true)
+1296: 
+1297:   schoolAccountId String?
+1298:   createdById     String?
+1299:   usedByUserId    String?
+1300: 
+1301:   expiresAt  DateTime?
+1302:   lastUsedAt DateTime?
+1303: 
+1304:   note String?
+1305: 
+1306:   createdAt DateTime @default(now())
+1307:   updatedAt DateTime @updatedAt
+1308: 
+1309:   @@index([code])
+1310:   @@index([isActive])
+1311:   @@index([schoolAccountId])
+1312:   @@index([createdById])
+1313:   @@index([usedByUserId])
+1314: }
+1315: 
+1316: model PlatformActivityLog {
+1317:   id String @id @default(cuid())
+1318: 
+1319:   actorUserId     String?
+1320:   targetUserId    String?
+1321:   schoolAccountId String?
+1322: 
+1323:   category String
+1324:   action   String
+1325:   severity String @default("INFO")
+1326: 
+1327:   title   String
+1328:   details Json?
+1329: 
+1330:   ipAddress String?
+1331:   userAgent String?
+1332: 
+1333:   createdAt DateTime @default(now())
+1334: 
+1335:   @@index([actorUserId])
+1336:   @@index([targetUserId])
+1337:   @@index([schoolAccountId])
+1338:   @@index([category])
+1339:   @@index([action])
+1340:   @@index([createdAt])
+1341: }
+1342: 
+1343: model StudentImportChange {
+1344:   id String @id @default(cuid())
+1345: 
+1346:   sessionId String
+1347:   rowId     String?
+1348:   studentId String?
+1349: 
+1350:   action String
+1351: 
+1352:   beforeJson Json?
+1353:   afterJson  Json?
+1354: 
+1355:   rolledBackAt DateTime?
+1356:   createdAt    DateTime  @default(now())
+1357: 
+1358:   @@index([sessionId])
+1359:   @@index([studentId])
+1360:   @@index([action])
+1361: }
+1362: 
+1363: model NoorImportCycle {
+1364:   id String @id @default(cuid())
+1365: 
+1366:   schoolAccountId String
+1367:   academicYear    String
+1368:   term            String
+1369:   title           String
+1370:   status          String @default("DRAFT")
+1371: 
+1372:   totalStudents     Int @default(0)
+1373:   totalSessions     Int @default(0)
+1374:   pendingSessions   Int @default(0)
+1375:   committedSessions Int @default(0)
+1376: 
+1377:   latestSessionId   String?
+1378:   latestCommittedAt DateTime?
+1379: 
+1380:   isArchived       Boolean   @default(false)
+1381:   archivedAt       DateTime?
+1382:   archivedByUserId String?
+1383:   createdByUserId  String?
+1384: 
+1385:   createdAt DateTime @default(now())
+1386:   updatedAt DateTime @updatedAt
+1387: 
+1388:   @@index([schoolAccountId])
+1389:   @@index([schoolAccountId, academicYear, term])
+1390:   @@index([status])
+1391: }
+1392: 
+1393: model InvoiceSettings {
+1394:   id                     String   @id @default(cuid())
+1395:   singletonKey           String   @unique @default("default")
+1396:   sellerName             String   @default("منصة التوجيه الطلابي")
+1397:   sellerDomain           String?  @default("smstudents.com")
+1398:   sellerCountry          String?  @default("المملكة العربية السعودية")
+1399:   sellerAddress          String?
+1400:   commercialRegistration String?
+1401:   taxNumber              String?
+1402:   vatEnabled             Boolean  @default(false)
+1403:   vatRate                Int      @default(0)
+1404:   invoicePrefix          String   @default("INV")
+1405:   invoiceNote            String?  @db.Text
+1406:   createdAt              DateTime @default(now())
+1407:   updatedAt              DateTime @updatedAt
+1408: }
+1409: 
+1410: model InvoiceNumberSequence {
+1411:   id         String   @id @default(cuid())
+1412:   year       Int
+1413:   month      Int
+1414:   nextNumber Int      @default(1)
+1415:   createdAt  DateTime @default(now())
+1416:   updatedAt  DateTime @updatedAt
+1417: 
+1418:   @@unique([year, month])
+1419: }
+1420: 
+1421: model Invoice {
+1422:   id                   String             @id @default(cuid())
+1423:   invoiceNumber        String             @unique
+1424:   paymentTransactionId String             @unique
+1425:   paymentTransaction   PaymentTransaction @relation(fields: [paymentTransactionId], references: [id], onDelete: Cascade)
+1426:   issuedById           String?
+1427:   status               String             @default("ISSUED")
+1428: 
+1429:   sellerName             String
+1430:   sellerDomain           String?
+1431:   sellerCountry          String?
+1432:   sellerAddress          String?
+1433:   commercialRegistration String?
+1434:   taxNumber              String?
+1435: 
+1436:   buyerName        String
+1437:   buyerEmail       String?
+1438:   buyerJobTitle    String?
+1439:   buyerSchoolName  String?
+1440:   buyerAccountName String?
+1441: 
+1442:   itemTitle      String
+1443:   subtotalAmount Int
+1444:   taxRate        Int    @default(0)
+1445:   taxAmount      Int    @default(0)
+1446:   totalAmount    Int
+1447:   currency       String @default("SAR")
+1448: 
+1449:   pdfUrl       String?
+1450:   snapshotJson Json?
+1451:   creditNotes  CreditNote[]
+1452:   issuedAt     DateTime     @default(now())
+1453:   createdAt    DateTime     @default(now())
+1454:   updatedAt    DateTime     @updatedAt
+1455: 
+1456:   @@index([paymentTransactionId])
+1457:   @@index([issuedAt])
+1458:   @@index([status])
+1459: }
+1460: 
+1461: model CreditNote {
+1462:   id               String  @id @default(cuid())
+1463:   creditNoteNumber String  @unique
+1464:   invoiceId        String
+1465:   invoice          Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+1466: 
+1467:   issuedById String?
+1468:   status     String  @default("ISSUED")
+1469:   reason     String? @db.Text
+1470: 
+1471:   subtotalAmount Int
+1472:   taxRate        Int    @default(0)
+1473:   taxAmount      Int    @default(0)
+1474:   totalAmount    Int
+1475:   currency       String @default("SAR")
+1476: 
+1477:   snapshotJson Json?
+1478:   issuedAt     DateTime @default(now())
+1479:   createdAt    DateTime @default(now())
+1480:   updatedAt    DateTime @updatedAt
+1481: 
+1482:   @@index([invoiceId])
+1483:   @@index([issuedAt])
+1484:   @@index([status])
+1485: }
+1486: 
+1487: model AssessmentInterventionRule {
+1488:   id String @id @default(cuid())
+1489: 
+1490:   schoolAccountId String?
+1491: 
+1492:   title            String
+1493:   sourceType       String @default("ASSESSMENT_RISK_STUDENT")
+1494:   interventionType String @default("ACADEMIC_RISK")
+1495: 
+1496:   targetServiceId  String
+1497:   targetWorkflowId String?
+1498: 
+1499:   isEnabled Boolean @default(true)
+1500:   isDefault Boolean @default(false)
+1501: 
+1502:   conditionJson    Json?
+1503:   fieldMappingJson Json?
+1504: 
+1505:   createdByUserId String?
+1506: 
+1507:   createdAt DateTime @default(now())
+1508:   updatedAt DateTime @updatedAt
+1509: 
+1510:   @@index([schoolAccountId])
+1511:   @@index([sourceType])
+1512:   @@index([interventionType])
+1513:   @@index([targetServiceId])
+1514:   @@index([targetWorkflowId])
+1515:   @@index([isEnabled])
+1516:   @@index([isDefault])
+1517: }
+1518: 
+1519: model AssessmentInterventionWorkflowTarget {
+1520:   id String @id @default(cuid())
+1521: 
+1522:   serviceId  String
+1523:   workflowId String
+1524:   targetType String
+1525: 
+1526:   isEnabled Boolean @default(true)
+1527: 
+1528:   createdAt DateTime @default(now())
+1529:   updatedAt DateTime @updatedAt
+1530: 
+1531:   @@unique([workflowId, targetType])
+1532:   @@index([serviceId])
+1533:   @@index([workflowId])
+1534:   @@index([targetType])
+1535:   @@index([isEnabled])
+1536: }
+1537: 
+1538: model Survey {
+1539:   id String @id @default(cuid())
+1540: 
+1541:   schoolAccountId String
+1542:   schoolAccount   SchoolAccount @relation("SurveysBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+1543: 
+1544:   createdById String?
+1545:   createdBy   User?   @relation("SurveysCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+1546: 
+1547:   serviceId String?
+1548:   service   Service? @relation("SurveysService", fields: [serviceId], references: [id], onDelete: SetNull)
+1549: 
+1550:   title       String
+1551:   description String? @db.Text
+1552: 
+1553:   audienceType String  @default("GENERAL")
+1554:   ownerRole    String?
+1555:   boardPath    String?
+1556: 
+1557:   isAnonymous Boolean @default(false)
+1558:   token       String  @unique
+1559: 
+1560:   status      SurveyStatus @default(DRAFT)
+1561:   endsAt      DateTime?
+1562:   publishedAt DateTime?
+1563:   closedAt    DateTime?
+1564:   opensAt     DateTime?
+1565: 
+1566:   questions SurveyQuestion[]
+1567:   responses SurveyResponse[]
+1568: 
+1569:   createdAt DateTime @default(now())
+1570:   updatedAt DateTime @updatedAt
+1571: 
+1572:   @@index([schoolAccountId])
+1573:   @@index([createdById])
+1574:   @@index([serviceId])
+1575:   @@index([status])
+1576:   @@index([audienceType])
+1577: }
+1578: 
+1579: model SurveyQuestion {
+1580:   id String @id @default(cuid())
+1581: 
+1582:   surveyId String
+1583:   survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+1584: 
+1585:   key      String
+1586:   label    String
+1587:   type     SurveyQuestionType
+1588:   helpText String?            @db.Text
+1589: 
+1590:   isRequired Boolean @default(false)
+1591:   order      Int
+1592: 
+1593:   scaleMin Int?
+1594:   scaleMax Int?
+1595: 
+1596:   options SurveyOption[]
+1597:   answers SurveyAnswer[]
+1598: 
+1599:   createdAt DateTime @default(now())
+1600:   updatedAt DateTime @updatedAt
+1601: 
+1602:   @@unique([surveyId, key])
+1603:   @@index([surveyId])
+1604:   @@index([order])
+1605: }
+1606: 
+1607: model SurveyOption {
+1608:   id String @id @default(cuid())
+1609: 
+1610:   questionId String
+1611:   question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+1612: 
+1613:   label String
+1614:   value String
+1615:   order Int
+1616: 
+1617:   createdAt DateTime @default(now())
+1618:   updatedAt DateTime @updatedAt
+1619: 
+1620:   @@index([questionId])
+1621:   @@index([order])
+1622: }
+1623: 
+1624: model SurveyResponse {
+1625:   id String @id @default(cuid())
+1626: 
+1627:   surveyId String
+1628:   survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+1629: 
+1630:   schoolAccountId String
+1631:   schoolAccount   SchoolAccount @relation("SurveyResponsesBySchool", fields: [schoolAccountId], references: [id], onDelete: Cascade)
+1632: 
+1633:   respondentType  String  @default("GENERAL")
+1634:   respondentName  String?
+1635:   respondentPhone String?
+1636:   metadata        Json?
+1637: 
+1638:   answers SurveyAnswer[]
+1639: 
+1640:   submittedAt DateTime @default(now())
+1641:   createdAt   DateTime @default(now())
+1642: 
+1643:   @@index([surveyId])
+1644:   @@index([schoolAccountId])
+1645:   @@index([respondentType])
+1646:   @@index([submittedAt])
+1647: }
+1648: 
+1649: model SurveyAnswer {
+1650:   id String @id @default(cuid())
+1651: 
+1652:   responseId String
+1653:   response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+1654: 
+1655:   questionId String
+1656:   question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+1657: 
+1658:   value     String? @db.Text
+1659:   jsonValue Json?
+1660: 
+1661:   createdAt DateTime @default(now())
+1662: 
+1663:   @@unique([responseId, questionId])
+1664:   @@index([questionId])
+1665: }
+1666: 
+1667: model CertificateTemplate {
+1668:   id String @id @default(cuid())
+1669: 
+1670:   key         String  @unique
+1671:   name        String
+1672:   description String?
+1673: 
+1674:   status      String @default("ACTIVE") @db.VarChar(30)
+1675:   pageSize    String @default("A4") @db.VarChar(20)
+1676:   orientation String @default("LANDSCAPE") @db.VarChar(20)
+1677: 
+1678:   templatePath     String?
+1679:   previewImagePath String?
+1680: 
+1681:   isSystem        Boolean @default(false)
+1682:   schoolAccountId String?
+1683:   createdById     String?
+1684: 
+1685:   themeJson Json?
+1686: 
+1687:   issuedCertificates IssuedCertificate[]
+1688: 
+1689:   createdAt DateTime @default(now())
+1690:   updatedAt DateTime @updatedAt
+1691: 
+1692:   @@index([schoolAccountId])
+1693:   @@index([status])
+1694: }
+1695: 
+1696: model CertificateBatch {
+1697:   id String @id @default(cuid())
+1698: 
+1699:   batchNumber String @unique
+1700: 
+1701:   schoolAccountId String
+1702:   createdById     String?
+1703: 
+1704:   sourceType String  @default("BULK_IMPORT") @db.VarChar(40)
+1705:   sourceId   String?
+1706: 
+1707:   status      String @default("DRAFT") @db.VarChar(30)
+1708:   totalCount  Int    @default(0)
+1709:   issuedCount Int    @default(0)
+1710:   failedCount Int    @default(0)
+1711: 
+1712:   fileName    String?
+1713:   notes       String? @db.Text
+1714:   optionsJson Json?
+1715: 
+1716:   certificates IssuedCertificate[]
+1717: 
+1718:   createdAt DateTime @default(now())
+1719:   updatedAt DateTime @updatedAt
+1720: 
+1721:   @@index([schoolAccountId])
+1722:   @@index([createdById])
+1723:   @@index([status])
+1724: }
+1725: 
+1726: model IssuedCertificate {
+1727:   id String @id @default(cuid())
+1728: 
+1729:   certificateNumber String @unique
+1730: 
+1731:   schoolAccountId String
+1732:   createdById     String?
+1733: 
+1734:   templateId String?
+1735:   template   CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+1736: 
+1737:   batchId String?
+1738:   batch   CertificateBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+1739: 
+1740:   certificateType String @db.VarChar(50)
+1741:   recipientType   String @db.VarChar(50)
+1742: 
+1743:   recipientName      String
+1744:   recipientIdentity  String?
+1745:   recipientStudentId String?
+1746: 
+1747:   title  String
+1748:   reason String? @db.Text
+1749:   body   String  @db.Text
+1750: 
+1751:   issueDate DateTime @default(now())
+1752:   status    String   @default("ISSUED") @db.VarChar(30)
+1753: 
+1754:   sourceType String  @default("MANUAL") @db.VarChar(40)
+1755:   sourceId   String?
+1756: 
+1757:   pdfUrl       String?
+1758:   htmlSnapshot String? @db.LongText
+1759:   dataJson     Json?
+1760: 
+1761:   createdAt DateTime @default(now())
+1762:   updatedAt DateTime @updatedAt
+1763: 
+1764:   certificateAttachments CertificateAttachment[]
+1765: 
+1766:   @@index([schoolAccountId])
+1767:   @@index([createdById])
+1768:   @@index([templateId])
+1769:   @@index([batchId])
+1770:   @@index([recipientStudentId])
+1771:   @@index([sourceType, sourceId])
+1772:   @@index([status])
+1773: }
+1774: 
+1775: model CertificateAttachment {
+1776:   id              String  @id @default(cuid())
+1777:   schoolAccountId String
+1778:   targetType      String  @db.VarChar(60)
+1779:   targetId        String
+1780:   certificateId   String
+1781:   sortOrder       Int     @default(0)
+1782:   createdById     String?
+1783: 
+1784:   certificate IssuedCertificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+1785: 
+1786:   createdAt DateTime @default(now())
+1787:   updatedAt DateTime @updatedAt
+1788: 
+1789:   @@unique([schoolAccountId, targetType, targetId, certificateId], map: "CertificateAttachment_scope_certificate_key")
+1790:   @@index([schoolAccountId, targetType, targetId], map: "CertificateAttachment_target_idx")
+1791:   @@index([certificateId], map: "CertificateAttachment_certificate_idx")
+1792:   @@index([createdById], map: "CertificateAttachment_createdBy_idx")
+1793: }
+1794: 
+1795: model CustomReportTemplate {
+1796:   id              String   @id @default(cuid())
+1797:   schoolAccountId String?
+1798:   createdById     String
+1799:   title           String
+1800:   description     String?  @db.Text
+1801:   prompt          String?  @db.Text
+1802:   schemaJson      Json
+1803:   source          String   @default("AI")
+1804:   status          String   @default("ACTIVE")
+1805:   isArchived      Boolean  @default(false)
+1806:   createdAt       DateTime @default(now())
+1807:   updatedAt       DateTime @updatedAt
+1808: 
+1809:   @@index([schoolAccountId])
+1810:   @@index([createdById])
+1811:   @@index([isArchived])
+1812:   @@index([status])
+1813: }
+1814: 
+1815: model CustomReportEntry {
+1816:   id                 String   @id @default(cuid())
+1817:   schoolAccountId    String?
+1818:   createdById        String
+1819:   templateId         String?
+1820:   title              String
+1821:   valuesJson         Json
+1822:   snapshotSchemaJson Json
+1823:   status             String   @default("DRAFT")
+1824:   createdAt          DateTime @default(now())
+1825:   updatedAt          DateTime @updatedAt
+1826: 
+1827:   @@index([schoolAccountId])
+1828:   @@index([createdById])
+1829:   @@index([templateId])
+1830:   @@index([status])
+1831: }
+1832: 
+1833: model DashboardResourceLink {
+1834:   id              String  @id @default(cuid())
+1835:   schoolAccountId String
+1836:   sourceType      String  @db.VarChar(60)
+1837:   sourceId        String
+1838:   targetType      String  @db.VarChar(60)
+1839:   targetId        String
+1840:   sortOrder       Int     @default(0)
+1841:   createdById     String?
+1842:   metadataJson    Json?
+1843: 
+1844:   createdAt DateTime @default(now())
+1845:   updatedAt DateTime @updatedAt
+1846: 
+1847:   @@unique([schoolAccountId, sourceType, sourceId, targetType, targetId], map: "DashboardResourceLink_scope_target_key")
+1848:   @@index([schoolAccountId, sourceType, sourceId], map: "DashboardResourceLink_source_idx")
+1849:   @@index([schoolAccountId, targetType, targetId], map: "DashboardResourceLink_target_idx")
+1850:   @@index([createdById], map: "DashboardResourceLink_createdBy_idx")
+1851: }
+1852: 
+1853: model AchievementPortfolio {
+1854:   id String @id @default(cuid())
+1855: 
+1856:   schoolAccountId String
+1857:   schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+1858: 
+1859:   ownerUserId String
+1860:   owner       User   @relation("AchievementPortfolioOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+1861: 
+1862:   title        String
+1863:   roleKey      String @default("TEACHER")
+1864:   academicYear String
+1865:   term         String
+1866:   themeId      String @default("ministry-elegant")
+1867:   status       String @default("DRAFT")
+1868: 
+1869:   introText      String? @db.Text
+1870:   conclusionText String? @db.Text
+1871:   visionText     String? @db.Text
+1872:   missionText    String? @db.Text
+1873:   bioText        String? @db.Text
+1874: 
+1875:   qualificationsJson Json?
+1876:   coursesJson        Json?
+1877:   certificatesJson   Json?
+1878:   settingsJson       Json?
+1879: 
+1880:   publishedAt DateTime?
+1881:   createdAt   DateTime  @default(now())
+1882:   updatedAt   DateTime  @updatedAt
+1883: 
+1884:   sections AchievementPortfolioSection[]
+1885:   items    AchievementPortfolioItem[]
+1886: 
+1887:   @@unique([schoolAccountId, ownerUserId, academicYear, term])
+1888:   @@index([schoolAccountId])
+1889:   @@index([ownerUserId])
+1890:   @@index([roleKey])
+1891:   @@index([status])
+1892:   @@index([themeId])
+1893: }
+1894: 
+1895: model AchievementPortfolioSection {
+1896:   id String @id @default(cuid())
+1897: 
+1898:   portfolioId String
+1899:   portfolio   AchievementPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+1900: 
+1901:   kind       String
+1902:   sectionKey String
+1903:   title      String
+1904:   introText  String? @db.Text
+1905: 
+1906:   sortOrder    Int     @default(0)
+1907:   isEnabled    Boolean @default(true)
+1908:   metadataJson Json?
+1909: 
+1910:   items AchievementPortfolioItem[]
+1911: 
+1912:   createdAt DateTime @default(now())
+1913:   updatedAt DateTime @updatedAt
+1914: 
+1915:   @@unique([portfolioId, sectionKey])
+1916:   @@index([portfolioId])
+1917:   @@index([kind])
+1918:   @@index([sortOrder])
+1919: }
+1920: 
+1921: model AchievementPortfolioItem {
+1922:   id String @id @default(cuid())
+1923: 
+1924:   portfolioId String
+1925:   portfolio   AchievementPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+1926: 
+1927:   sectionId String?
+1928:   section   AchievementPortfolioSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+1929: 
+1930:   sourceType String
+1931:   sourceId   String?
+1932: 
+1933:   title       String
+1934:   description String? @db.Text
+1935: 
+1936:   sortOrder    Int     @default(0)
+1937:   isVisible    Boolean @default(true)
+1938:   metadataJson Json?
+1939: 
+1940:   createdAt DateTime @default(now())
+1941:   updatedAt DateTime @updatedAt
+1942: 
+1943:   @@index([portfolioId])
+1944:   @@index([sectionId])
+1945:   @@index([sourceType])
+1946:   @@index([sourceId])
+1947:   @@index([isVisible])
+1948:   @@index([sortOrder])
+1949: }
+
+==================================================
+FILE: lib\reference-library\reference-library-service.ts
+==================================================
+   1: import type {
+   2:   Prisma,
+   3:   ReferenceLibraryItemStatus,
+   4: } from "@prisma/client";
+   5: import { prisma } from "@/lib/prisma";
+   6: import {
+   7:   deleteReferenceLibraryFile,
+   8:   saveReferenceLibraryFile,
+   9: } from "@/lib/reference-library/reference-library-storage";
+  10: import type { ReferenceLibraryAudienceInput } from "@/lib/reference-library/reference-library-types";
+  11: import { validateReferenceLibraryParent } from "@/lib/reference-library/reference-library-hierarchy";
+  12: 
+  13: function buildAudienceCreateData(
+  14:   audiences: ReferenceLibraryAudienceInput[],
+  15: ): Prisma.ReferenceLibraryAudienceCreateWithoutItemInput[] {
+  16:   return audiences.map((audience) => {
+  17:     if (audience.audienceType === "ALL_USERS") {
+  18:       return {
+  19:         audienceType: "ALL_USERS",
+  20:       };
+  21:     }
+  22: 
+  23:     if (audience.audienceType === "ROLE") {
+  24:       return {
+  25:         audienceType: "ROLE",
+  26:         role: audience.role,
+  27:       };
+  28:     }
+  29: 
+  30:     return {
+  31:       audienceType: "USER",
+  32:       user: {
+  33:         connect: {
+  34:           id: audience.userId,
+  35:         },
+  36:       },
+  37:     };
+  38:   });
+  39: }
+  40: 
+  41: export async function listAdminReferenceLibraryItems(input: {
+  42:   parentId: string | null;
+  43:   search?: string | null;
+  44:   status?: ReferenceLibraryItemStatus | null;
+  45: }) {
+  46:   const search = String(input.search ?? "").trim();
+  47: 
+  48:   const [items, parent] = await Promise.all([
+  49:     prisma.referenceLibraryItem.findMany({
+  50:       where: {
+  51:         parentId: input.parentId,
+  52:         ...(input.status
+  53:           ? {
+  54:               status: input.status,
+  55:             }
+  56:           : {}),
+  57:         ...(search
+  58:           ? {
+  59:               OR: [
+  60:                 {
+  61:                   title: {
+  62:                     contains: search,
+  63:                   },
+  64:                 },
+  65:                 {
+  66:                   description: {
+  67:                     contains: search,
+  68:                   },
+  69:                 },
+  70:               ],
+  71:             }
+  72:           : {}),
+  73:       },
+  74:       orderBy: [
+  75:         {
+  76:           sortOrder: "asc",
+  77:         },
+  78:         {
+  79:           createdAt: "desc",
+  80:         },
+  81:       ],
+  82:       include: {
+  83:         audiences: {
+  84:           select: {
+  85:             id: true,
+  86:             audienceType: true,
+  87:             role: true,
+  88:             userId: true,
+  89:             user: {
+  90:               select: {
+  91:                 id: true,
+  92:                 name: true,
+  93:                 email: true,
+  94:                 role: true,
+  95:               },
+  96:             },
+  97:           },
+  98:         },
+  99:         _count: {
+ 100:           select: {
+ 101:             children: true,
+ 102:           },
+ 103:         },
+ 104:       },
+ 105:     }),
+ 106:     input.parentId
+ 107:       ? prisma.referenceLibraryItem.findUnique({
+ 108:           where: {
+ 109:             id: input.parentId,
+ 110:           },
+ 111:           select: {
+ 112:             id: true,
+ 113:             parentId: true,
+ 114:             title: true,
+ 115:             itemType: true,
+ 116:           },
+ 117:         })
+ 118:       : null,
+ 119:   ]);
+ 120: 
+ 121:   return {
+ 122:     parent,
+ 123:     items,
+ 124:   };
+ 125: }
+ 126: 
+ 127: export async function createReferenceLibraryFolder(input: {
+ 128:   title: string;
+ 129:   description: string | null;
+ 130:   parentId: string | null;
+ 131:   sortOrder: number;
+ 132:   status: ReferenceLibraryItemStatus;
+ 133:   createdById: string;
+ 134:   audiences: ReferenceLibraryAudienceInput[];
+ 135:   inheritAudience: boolean;
+ 136: }) {
+ 137:   const parentResult = await validateReferenceLibraryParent({
+ 138:     parentId: input.parentId,
+ 139:   });
+ 140: 
+ 141:   if (!parentResult.ok) {
+ 142:     throw new Error(`REFERENCE_LIBRARY_VALIDATION:${parentResult.error}`);
+ 143:   }
+ 144: 
+ 145:   return prisma.referenceLibraryItem.create({
+ 146:     data: {
+ 147:       title: input.title,
+ 148:       description: input.description,
+ 149:       parentId: input.parentId,
+ 150:       itemType: "FOLDER",
+ 151:       status: input.status,
+ 152:       sortOrder: input.sortOrder,
+ 153:       allowDownload: false,
+ 154:       createdById: input.createdById,
+ 155:       publishedAt:
+ 156:         input.status === "PUBLISHED"
+ 157:           ? new Date()
+ 158:           : null,
+ 159:       audiences:
+ 160:         input.inheritAudience
+ 161:           ? undefined
+ 162:           : {
+ 163:               create: buildAudienceCreateData(input.audiences),
+ 164:             },
+ 165:     },
+ 166:     include: {
+ 167:       audiences: true,
+ 168:       _count: {
+ 169:         select: {
+ 170:           children: true,
+ 171:         },
+ 172:       },
+ 173:     },
+ 174:   });
+ 175: }
+ 176: 
+ 177: export async function createReferenceLibraryFile(input: {
+ 178:   title: string;
+ 179:   description: string | null;
+ 180:   parentId: string;
+ 181:   sortOrder: number;
+ 182:   status: ReferenceLibraryItemStatus;
+ 183:   allowDownload: boolean;
+ 184:   createdById: string;
+ 185:   audiences: ReferenceLibraryAudienceInput[];
+ 186:   inheritAudience: boolean;
+ 187:   originalFileName: string;
+ 188:   storageKey: string;
+ 189:   mimeType: string;
+ 190:   fileExtension: string;
+ 191:   sizeBytes: number;
+ 192: }) {
+ 193:   const parentResult = await validateReferenceLibraryParent({
+ 194:     parentId: input.parentId,
+ 195:   });
+ 196: 
+ 197:   if (!parentResult.ok || !parentResult.parent) {
+ 198:     throw new Error(
+ 199:       `REFERENCE_LIBRARY_VALIDATION:${
+ 200:         parentResult.ok
+ 201:           ? "المجلد الأب مطلوب."
+ 202:           : parentResult.error
+ 203:       }`,
+ 204:     );
+ 205:   }
+ 206: 
+ 207:   return prisma.referenceLibraryItem.create({
+ 208:     data: {
+ 209:       title: input.title,
+ 210:       description: input.description,
+ 211:       parentId: input.parentId,
+ 212:       itemType: "FILE",
+ 213:       status: input.status,
+ 214:       sortOrder: input.sortOrder,
+ 215:       allowDownload: input.allowDownload,
+ 216:       createdById: input.createdById,
+ 217:       originalFileName: input.originalFileName,
+ 218:       storageKey: input.storageKey,
+ 219:       mimeType: input.mimeType,
+ 220:       fileExtension: input.fileExtension,
+ 221:       sizeBytes: input.sizeBytes,
+ 222:       publishedAt:
+ 223:         input.status === "PUBLISHED"
+ 224:           ? new Date()
+ 225:           : null,
+ 226:       audiences:
+ 227:         input.inheritAudience
+ 228:           ? undefined
+ 229:           : {
+ 230:               create: buildAudienceCreateData(input.audiences),
+ 231:             },
+ 232:     },
+ 233:     include: {
+ 234:       audiences: true,
+ 235:     },
+ 236:   });
+ 237: }
+ 238: 
+ 239: export async function updateReferenceLibraryItem(input: {
+ 240:   itemId: string;
+ 241:   title?: string;
+ 242:   description?: string | null;
+ 243:   parentId?: string | null;
+ 244:   sortOrder?: number;
+ 245:   status?: ReferenceLibraryItemStatus;
+ 246:   allowDownload?: boolean;
+ 247:   audiences?: ReferenceLibraryAudienceInput[];
+ 248:   inheritAudience?: boolean;
+ 249: }) {
+ 250:   const existing = await prisma.referenceLibraryItem.findUnique({
+ 251:     where: {
+ 252:       id: input.itemId,
+ 253:     },
+ 254:     select: {
+ 255:       id: true,
+ 256:       itemType: true,
+ 257:       status: true,
+ 258:       publishedAt: true,
+ 259:     },
+ 260:   });
+ 261: 
+ 262:   if (!existing) {
+ 263:     throw new Error("REFERENCE_LIBRARY_NOT_FOUND");
+ 264:   }
+ 265: 
+ 266:   if (input.parentId !== undefined) {
+ 267:     const parentResult = await validateReferenceLibraryParent({
+ 268:       itemId: input.itemId,
+ 269:       parentId: input.parentId,
+ 270:     });
+ 271: 
+ 272:     if (!parentResult.ok) {
+ 273:       throw new Error(
+ 274:         `REFERENCE_LIBRARY_VALIDATION:${parentResult.error}`,
+ 275:       );
+ 276:     }
+ 277:   }
+ 278: 
+ 279:   return prisma.$transaction(async (tx) => {
+ 280:     if (
+ 281:       input.inheritAudience === true ||
+ 282:       input.audiences !== undefined
+ 283:     ) {
+ 284:       await tx.referenceLibraryAudience.deleteMany({
+ 285:         where: {
+ 286:           itemId: input.itemId,
+ 287:         },
+ 288:       });
+ 289:     }
+ 290: 
+ 291:     if (
+ 292:       input.inheritAudience === false &&
+ 293:       input.audiences &&
+ 294:       input.audiences.length > 0
+ 295:     ) {
+ 296:       await tx.referenceLibraryAudience.createMany({
+ 297:         data: input.audiences.map((audience) => ({
+ 298:           itemId: input.itemId,
+ 299:           audienceType: audience.audienceType,
+ 300:           userId:
+ 301:             audience.audienceType === "USER"
+ 302:               ? audience.userId
+ 303:               : null,
+ 304:           role:
+ 305:             audience.audienceType === "ROLE"
+ 306:               ? audience.role
+ 307:               : null,
+ 308:         })),
+ 309:       });
+ 310:     }
+ 311: 
+ 312:     return tx.referenceLibraryItem.update({
+ 313:       where: {
+ 314:         id: input.itemId,
+ 315:       },
+ 316:       data: {
+ 317:         ...(input.title !== undefined
+ 318:           ? {
+ 319:               title: input.title,
+ 320:             }
+ 321:           : {}),
+ 322:         ...(input.description !== undefined
+ 323:           ? {
+ 324:               description: input.description,
+ 325:             }
+ 326:           : {}),
+ 327:         ...(input.parentId !== undefined
+ 328:           ? {
+ 329:               parentId: input.parentId,
+ 330:             }
+ 331:           : {}),
+ 332:         ...(input.sortOrder !== undefined
+ 333:           ? {
+ 334:               sortOrder: input.sortOrder,
+ 335:             }
+ 336:           : {}),
+ 337:         ...(input.allowDownload !== undefined &&
+ 338:         existing.itemType === "FILE"
+ 339:           ? {
+ 340:               allowDownload: input.allowDownload,
+ 341:             }
+ 342:           : {}),
+ 343:         ...(input.status !== undefined
+ 344:           ? {
+ 345:               status: input.status,
+ 346:               publishedAt:
+ 347:                 input.status === "PUBLISHED"
+ 348:                   ? existing.publishedAt ?? new Date()
+ 349:                   : null,
+ 350:               archivedAt:
+ 351:                 input.status === "ARCHIVED"
+ 352:                   ? new Date()
+ 353:                   : null,
+ 354:             }
+ 355:           : {}),
+ 356:       },
+ 357:       include: {
+ 358:         audiences: true,
+ 359:         _count: {
+ 360:           select: {
+ 361:             children: true,
+ 362:           },
+ 363:         },
+ 364:       },
+ 365:     });
+ 366:   });
+ 367: }
+ 368: 
+ 369: export async function replaceReferenceLibraryFile(input: {
+ 370:   itemId: string;
+ 371:   storageKey: string;
+ 372:   buffer: Uint8Array;
+ 373:   originalFileName: string;
+ 374:   mimeType: string;
+ 375:   fileExtension: string;
+ 376: }) {
+ 377:   const existing = await prisma.referenceLibraryItem.findUnique({
+ 378:     where: {
+ 379:       id: input.itemId,
+ 380:     },
+ 381:     select: {
+ 382:       id: true,
+ 383:       itemType: true,
+ 384:       storageKey: true,
+ 385:     },
+ 386:   });
+ 387: 
+ 388:   if (!existing || existing.itemType !== "FILE") {
+ 389:     throw new Error("REFERENCE_LIBRARY_FILE_NOT_FOUND");
+ 390:   }
+ 391: 
+ 392:   await saveReferenceLibraryFile({
+ 393:     storageKey: input.storageKey,
+ 394:     buffer: input.buffer,
+ 395:   });
+ 396: 
+ 397:   try {
+ 398:     const updated = await prisma.referenceLibraryItem.update({
+ 399:       where: {
+ 400:         id: input.itemId,
+ 401:       },
+ 402:       data: {
+ 403:         originalFileName: input.originalFileName,
+ 404:         storageKey: input.storageKey,
+ 405:         mimeType: input.mimeType,
+ 406:         fileExtension: input.fileExtension,
+ 407:         sizeBytes: input.buffer.byteLength,
+ 408:         pdfCoverApplied: false,
+ 409:         originalStorageKey: null,
+ 410:       },
+ 411:     });
+ 412: 
+ 413:     await deleteReferenceLibraryFile(existing.storageKey);
+ 414: 
+ 415:     return updated;
+ 416:   } catch (error) {
+ 417:     await deleteReferenceLibraryFile(input.storageKey);
+ 418:     throw error;
+ 419:   }
+ 420: }
+ 421: 
+ 422: export async function deleteReferenceLibraryItem(itemId: string) {
+ 423:   const existing = await prisma.referenceLibraryItem.findUnique({
+ 424:     where: {
+ 425:       id: itemId,
+ 426:     },
+ 427:     select: {
+ 428:       id: true,
+ 429:       itemType: true,
+ 430:       storageKey: true,
+ 431:       originalStorageKey: true,
+ 432:       _count: {
+ 433:         select: {
+ 434:           children: true,
+ 435:         },
+ 436:       },
+ 437:     },
+ 438:   });
+ 439: 
+ 440:   if (!existing) {
+ 441:     throw new Error("REFERENCE_LIBRARY_NOT_FOUND");
+ 442:   }
+ 443: 
+ 444:   if (
+ 445:     existing.itemType === "FOLDER" &&
+ 446:     existing._count.children > 0
+ 447:   ) {
+ 448:     throw new Error("REFERENCE_LIBRARY_FOLDER_NOT_EMPTY");
+ 449:   }
+ 450: 
+ 451:   await prisma.referenceLibraryItem.delete({
+ 452:     where: {
+ 453:       id: itemId,
+ 454:     },
+ 455:   });
+ 456: 
+ 457:   await Promise.allSettled([
+ 458:     deleteReferenceLibraryFile(existing.storageKey),
+ 459:     deleteReferenceLibraryFile(existing.originalStorageKey),
+ 460:   ]);
+ 461: 
+ 462:   return existing;
+ 463: }
+
+==================================================
+FILE: lib\reference-library\reference-library-types.ts
+==================================================
+   1: import type {
+   2:   ReferenceLibraryAudienceType,
+   3:   ReferenceLibraryItemStatus,
+   4:   ReferenceLibraryItemType,
+   5:   UserRole,
+   6: } from "@prisma/client";
+   7: 
+   8: export type ReferenceLibraryAudienceInput =
+   9:   | {
+  10:       audienceType: "ALL_USERS";
+  11:       userId?: never;
+  12:       role?: never;
+  13:     }
+  14:   | {
+  15:       audienceType: "ROLE";
+  16:       role: UserRole;
+  17:       userId?: never;
+  18:     }
+  19:   | {
+  20:       audienceType: "USER";
+  21:       userId: string;
+  22:       role?: never;
+  23:     };
+  24: 
+  25: export type ReferenceLibraryItemSummary = {
+  26:   id: string;
+  27:   parentId: string | null;
+  28:   title: string;
+  29:   description: string | null;
+  30:   itemType: ReferenceLibraryItemType;
+  31:   status: ReferenceLibraryItemStatus;
+  32:   sortOrder: number;
+  33:   allowDownload: boolean;
+  34:   mimeType: string | null;
+  35:   fileExtension: string | null;
+  36:   sizeBytes: number | null;
+  37:   pdfCoverApplied: boolean;
+  38:   childrenCount: number;
+  39:   createdAt: Date;
+  40:   updatedAt: Date;
+  41: };
+  42: 
+  43: export type ReferenceLibraryViewer = {
+  44:   id: string;
+  45:   role: UserRole;
+  46:   schoolAccountId: string | null;
+  47: };
+  48: 
+  49: export type ReferenceLibraryAccessResult =
+  50:   | {
+  51:       allowed: true;
+  52:       inheritedFromItemId: string | null;
+  53:     }
+  54:   | {
+  55:       allowed: false;
+  56:       reason:
+  57:         | "ITEM_NOT_FOUND"
+  58:         | "TENANT_MISMATCH"
+  59:         | "NO_AUDIENCE"
+  60:         | "AUDIENCE_DENIED"
+  61:         | "MAX_DEPTH_REACHED";
+  62:     };
+
+==================================================
+FILE: lib\reference-library\reference-library-public-service.ts
+==================================================
+   1: import type {
+   2:   ReferenceLibraryItemStatus,
+   3:   UserRole,
+   4: } from "@prisma/client";
+   5: import { prisma } from "@/lib/prisma";
+   6: import {
+   7:   assertReferenceLibraryItemAccess,
+   8:   checkReferenceLibraryItemAccess,
+   9: } from "@/lib/reference-library/reference-library-access";
+  10: import type {
+  11:   ReferenceLibraryItemSummary,
+  12:   ReferenceLibraryViewer,
+  13: } from "@/lib/reference-library/reference-library-types";
+  14: 
+  15: const USER_VISIBLE_STATUSES: ReferenceLibraryItemStatus[] = [
+  16:   "PUBLISHED",
+  17: ];
+  18: 
+  19: function toSummary(item: {
+  20:   id: string;
+  21:   parentId: string | null;
+  22:   title: string;
+  23:   description: string | null;
+  24:   itemType: "FOLDER" | "FILE";
+  25:   status: ReferenceLibraryItemStatus;
+  26:   sortOrder: number;
+  27:   allowDownload: boolean;
+  28:   mimeType: string | null;
+  29:   fileExtension: string | null;
+  30:   sizeBytes: number | null;
+  31:   pdfCoverApplied: boolean;
+  32:   createdAt: Date;
+  33:   updatedAt: Date;
+  34:   _count: {
+  35:     children: number;
+  36:   };
+  37: }): ReferenceLibraryItemSummary {
+  38:   return {
+  39:     id: item.id,
+  40:     parentId: item.parentId,
+  41:     title: item.title,
+  42:     description: item.description,
+  43:     itemType: item.itemType,
+  44:     status: item.status,
+  45:     sortOrder: item.sortOrder,
+  46:     allowDownload: item.allowDownload,
+  47:     mimeType: item.mimeType,
+  48:     fileExtension: item.fileExtension,
+  49:     sizeBytes: item.sizeBytes,
+  50:     pdfCoverApplied: item.pdfCoverApplied,
+  51:     childrenCount: item._count.children,
+  52:     createdAt: item.createdAt,
+  53:     updatedAt: item.updatedAt,
+  54:   };
+  55: }
+  56: 
+  57: export function buildReferenceLibraryViewer(input: {
+  58:   id: string;
+  59:   role: UserRole;
+  60:   schoolAccountId: string | null;
+  61: }): ReferenceLibraryViewer {
+  62:   return {
+  63:     id: input.id,
+  64:     role: input.role,
+  65:     schoolAccountId: input.schoolAccountId,
+  66:   };
+  67: }
+  68: 
+  69: export async function listVisibleReferenceLibraryItems(input: {
+  70:   parentId: string | null;
+  71:   viewer: ReferenceLibraryViewer;
+  72:   search?: string | null;
+  73: }) {
+  74:   if (input.parentId) {
+  75:     const parent = await prisma.referenceLibraryItem.findUnique({
+  76:       where: {
+  77:         id: input.parentId,
+  78:       },
+  79:       select: {
+  80:         id: true,
+  81:         parentId: true,
+  82:         title: true,
+  83:         description: true,
+  84:         itemType: true,
+  85:         status: true,
+  86:         sortOrder: true,
+  87:         allowDownload: true,
+  88:         mimeType: true,
+  89:         fileExtension: true,
+  90:         sizeBytes: true,
+  91:         pdfCoverApplied: true,
+  92:         createdAt: true,
+  93:         updatedAt: true,
+  94:         _count: {
+  95:           select: {
+  96:             children: true,
+  97:           },
+  98:         },
+  99:       },
+ 100:     });
+ 101: 
+ 102:     if (
+ 103:       !parent ||
+ 104:       parent.itemType !== "FOLDER" ||
+ 105:       parent.status !== "PUBLISHED"
+ 106:     ) {
+ 107:       return null;
+ 108:     }
+ 109: 
+ 110:     await assertReferenceLibraryItemAccess({
+ 111:       itemId: parent.id,
+ 112:       viewer: input.viewer,
+ 113:       allowedStatuses: USER_VISIBLE_STATUSES,
+ 114:     });
+ 115:   }
+ 116: 
+ 117:   const search = String(input.search ?? "").trim();
+ 118: 
+ 119:   const rawItems = await prisma.referenceLibraryItem.findMany({
+ 120:     where: {
+ 121:       parentId: input.parentId,
+ 122:       status: "PUBLISHED",
+ 123:       ...(search
+ 124:         ? {
+ 125:             OR: [
+ 126:               {
+ 127:                 title: {
+ 128:                   contains: search,
+ 129:                 },
+ 130:               },
+ 131:               {
+ 132:                 description: {
+ 133:                   contains: search,
+ 134:                 },
+ 135:               },
+ 136:             ],
+ 137:           }
+ 138:         : {}),
+ 139:     },
+ 140:     orderBy: [
+ 141:       {
+ 142:         sortOrder: "asc",
+ 143:       },
+ 144:       {
+ 145:         itemType: "asc",
+ 146:       },
+ 147:       {
+ 148:         updatedAt: "desc",
+ 149:       },
+ 150:     ],
+ 151:     select: {
+ 152:       id: true,
+ 153:       parentId: true,
+ 154:       title: true,
+ 155:       description: true,
+ 156:       itemType: true,
+ 157:       status: true,
+ 158:       sortOrder: true,
+ 159:       allowDownload: true,
+ 160:       mimeType: true,
+ 161:       fileExtension: true,
+ 162:       sizeBytes: true,
+ 163:       pdfCoverApplied: true,
+ 164:       createdAt: true,
+ 165:       updatedAt: true,
+ 166:       _count: {
+ 167:         select: {
+ 168:           children: true,
+ 169:         },
+ 170:       },
+ 171:     },
+ 172:   });
+ 173: 
+ 174:   const visibleItems: ReferenceLibraryItemSummary[] = [];
+ 175: 
+ 176:   for (const item of rawItems) {
+ 177:     const access = await checkReferenceLibraryItemAccess({
+ 178:       itemId: item.id,
+ 179:       viewer: input.viewer,
+ 180:       allowedStatuses: USER_VISIBLE_STATUSES,
+ 181:     });
+ 182: 
+ 183:     if (access.allowed) {
+ 184:       visibleItems.push(toSummary(item));
+ 185:     }
+ 186:   }
+ 187: 
+ 188:   return visibleItems;
+ 189: }
+ 190: 
+ 191: export async function getVisibleReferenceLibraryItem(input: {
+ 192:   itemId: string;
+ 193:   viewer: ReferenceLibraryViewer;
+ 194: }) {
+ 195:   const item = await prisma.referenceLibraryItem.findUnique({
+ 196:     where: {
+ 197:       id: input.itemId,
+ 198:     },
+ 199:     select: {
+ 200:       id: true,
+ 201:       parentId: true,
+ 202:       title: true,
+ 203:       description: true,
+ 204:       itemType: true,
+ 205:       status: true,
+ 206:       sortOrder: true,
+ 207:       allowDownload: true,
+ 208:       originalFileName: true,
+ 209:       storageKey: true,
+ 210:       mimeType: true,
+ 211:       fileExtension: true,
+ 212:       sizeBytes: true,
+ 213:       pdfCoverApplied: true,
+ 214:       createdAt: true,
+ 215:       updatedAt: true,
+ 216:       parent: {
+ 217:         select: {
+ 218:           id: true,
+ 219:           parentId: true,
+ 220:           title: true,
+ 221:         },
+ 222:       },
+ 223:       _count: {
+ 224:         select: {
+ 225:           children: true,
+ 226:         },
+ 227:       },
+ 228:     },
+ 229:   });
+ 230: 
+ 231:   if (!item || item.status !== "PUBLISHED") {
+ 232:     return null;
+ 233:   }
+ 234: 
+ 235:   await assertReferenceLibraryItemAccess({
+ 236:     itemId: item.id,
+ 237:     viewer: input.viewer,
+ 238:     allowedStatuses: USER_VISIBLE_STATUSES,
+ 239:   });
+ 240: 
+ 241:   return item;
+ 242: }
+ 243: 
+ 244: export async function buildReferenceLibraryBreadcrumbs(
+ 245:   itemId: string | null,
+ 246: ) {
+ 247:   const breadcrumbs: Array<{
+ 248:     id: string;
+ 249:     title: string;
+ 250:   }> = [];
+ 251: 
+ 252:   let currentId = itemId;
+ 253:   let depth = 0;
+ 254: 
+ 255:   while (currentId && depth < 20) {
+ 256:     const item = await prisma.referenceLibraryItem.findUnique({
+ 257:       where: {
+ 258:         id: currentId,
+ 259:       },
+ 260:       select: {
+ 261:         id: true,
+ 262:         parentId: true,
+ 263:         title: true,
+ 264:       },
+ 265:     });
+ 266: 
+ 267:     if (!item) {
+ 268:       break;
+ 269:     }
+ 270: 
+ 271:     breadcrumbs.unshift({
+ 272:       id: item.id,
+ 273:       title: item.title,
+ 274:     });
+ 275: 
+ 276:     currentId = item.parentId;
+ 277:     depth += 1;
+ 278:   }
+ 279: 
+ 280:   return breadcrumbs;
+ 281: }
+
+==================================================
+FILE: components\reference-library\admin-reference-library-types.ts
+==================================================
+   1: export type ReferenceLibraryAudience = {
+   2:   id: string;
+   3:   audienceType: "ALL_USERS" | "ROLE" | "USER";
+   4:   role: string | null;
+   5:   userId: string | null;
+   6:   user?: {
+   7:     id: string;
+   8:     name: string;
+   9:     email: string;
+  10:     role: string;
+  11:   } | null;
+  12: };
+  13: 
+  14: export type ReferenceLibraryAdminItem = {
+  15:   id: string;
+  16:   parentId: string | null;
+  17:   title: string;
+  18:   description: string | null;
+  19:   itemType: "FOLDER" | "FILE";
+  20:   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  21:   sortOrder: number;
+  22:   allowDownload: boolean;
+  23:   originalFileName: string | null;
+  24:   mimeType: string | null;
+  25:   fileExtension: string | null;
+  26:   sizeBytes: number | null;
+  27:   pdfCoverApplied: boolean;
+  28:   publishedAt: string | null;
+  29:   archivedAt: string | null;
+  30:   createdAt: string;
+  31:   updatedAt: string;
+  32:   audiences: ReferenceLibraryAudience[];
+  33:   _count?: {
+  34:     children: number;
+  35:   };
+  36: };
+  37: 
+  38: export type ReferenceLibraryAdminParent = {
+  39:   id: string;
+  40:   parentId: string | null;
+  41:   title: string;
+  42:   itemType: "FOLDER" | "FILE";
+  43: };
+  44: 
+  45: export type ReferenceLibraryItemsResponse = {
+  46:   parent: ReferenceLibraryAdminParent | null;
+  47:   items: ReferenceLibraryAdminItem[];
+  48: };
+  49: 
+  50: export type ReferenceLibraryFeedback = {
+  51:   type: "success" | "error" | "warning";
+  52:   title: string;
+  53:   message: string;
+  54: } | null;
+
+==================================================
+FILE: components\reference-library\admin-reference-upload-dialog.tsx
+==================================================
+   1: "use client";
+   2: 
+   3: import {
+   4:   FileUp,
+   5:   LoaderCircle,
+   6:   UploadCloud,
+   7:   X,
+   8: } from "lucide-react";
+   9: import {
+  10:   useEffect,
+  11:   useRef,
+  12:   useState,
+  13: } from "react";
+  14: 
+  15: type AudienceMode =
+  16:   | "INHERIT"
+  17:   | "COUNSELOR"
+  18:   | "ALL_USERS";
+  19: 
+  20: export function AdminReferenceUploadDialog({
+  21:   open,
+  22:   parentId,
+  23:   parentTitle,
+  24:   onClose,
+  25:   onUploaded,
+  26: }: {
+  27:   open: boolean;
+  28:   parentId: string | null;
+  29:   parentTitle: string | null;
+  30:   onClose: () => void;
+  31:   onUploaded: (message: string) => void;
+  32: }) {
+  33:   const inputRef = useRef<HTMLInputElement>(null);
+  34: 
+  35:   const [file, setFile] = useState<File | null>(
+  36:     null,
+  37:   );
+  38:   const [title, setTitle] = useState("");
+  39:   const [description, setDescription] =
+  40:     useState("");
+  41:   const [status, setStatus] = useState<
+  42:     "DRAFT" | "PUBLISHED"
+  43:   >("PUBLISHED");
+  44:   const [allowDownload, setAllowDownload] =
+  45:     useState(true);
+  46:   const [addSchoolCover, setAddSchoolCover] =
+  47:     useState(true);
+  48:   const [audienceMode, setAudienceMode] =
+  49:     useState<AudienceMode>(
+  50:       parentId ? "INHERIT" : "COUNSELOR",
+  51:     );
+  52:   const [busy, setBusy] = useState(false);
+  53:   const [error, setError] = useState("");
+  54: 
+  55:   useEffect(() => {
+  56:     if (!open) {
+  57:       return;
+  58:     }
+  59: 
+  60:     setFile(null);
+  61:     setTitle("");
+  62:     setDescription("");
+  63:     setStatus("PUBLISHED");
+  64:     setAllowDownload(true);
+  65:     setAddSchoolCover(true);
+  66:     setAudienceMode(
+  67:       parentId ? "INHERIT" : "COUNSELOR",
+  68:     );
+  69:     setBusy(false);
+  70:     setError("");
+  71: 
+  72:     if (inputRef.current) {
+  73:       inputRef.current.value = "";
+  74:     }
+  75:   }, [open, parentId]);
+  76: 
+  77:   if (!open) {
+  78:     return null;
+  79:   }
+  80: 
+  81:   function selectFile(selectedFile: File | null) {
+  82:     setError("");
+  83: 
+  84:     if (!selectedFile) {
+  85:       setFile(null);
+  86:       return;
+  87:     }
+  88: 
+  89:     const lowerName =
+  90:       selectedFile.name.toLowerCase();
+  91: 
+  92:     if (
+  93:       !lowerName.endsWith(".pdf") &&
+  94:       !lowerName.endsWith(".docx")
+  95:     ) {
+  96:       setError(
+  97:         "الصيغ المدعومة هي PDF وWord بصيغة DOCX.",
+  98:       );
+  99:       setFile(null);
+ 100:       return;
+ 101:     }
+ 102: 
+ 103:     if (selectedFile.size > 50 * 1024 * 1024) {
+ 104:       setError(
+ 105:         "حجم الملف يتجاوز 50 ميجابايت.",
+ 106:       );
+ 107:       setFile(null);
+ 108:       return;
+ 109:     }
+ 110: 
+ 111:     setFile(selectedFile);
+ 112: 
+ 113:     if (!title.trim()) {
+ 114:       setTitle(
+ 115:         selectedFile.name.replace(
+ 116:           /\.(pdf|docx)$/i,
+ 117:           "",
+ 118:         ),
+ 119:       );
+ 120:     }
+ 121:   }
+ 122: 
+ 123:   async function submit() {
+ 124:     if (!parentId) {
+ 125:       setError(
+ 126:         "افتح حقيبة أو قسمًا أولًا ثم ارفع الملف داخله.",
+ 127:       );
+ 128:       return;
+ 129:     }
+ 130: 
+ 131:     if (!file) {
+ 132:       setError("اختر ملفًا للرفع.");
+ 133:       return;
+ 134:     }
+ 135: 
+ 136:     if (!title.trim()) {
+ 137:       setError("اكتب عنوان الملف.");
+ 138:       return;
+ 139:     }
+ 140: 
+ 141:     setBusy(true);
+ 142:     setError("");
+ 143: 
+ 144:     const formData = new FormData();
+ 145: 
+ 146:     formData.set("file", file);
+ 147:     formData.set("title", title.trim());
+ 148:     formData.set(
+ 149:       "description",
+ 150:       description.trim(),
+ 151:     );
+ 152:     formData.set("parentId", parentId);
+ 153:     formData.set("status", status);
+ 154:     formData.set("sortOrder", "0");
+ 155:     formData.set(
+ 156:       "allowDownload",
+ 157:       String(allowDownload),
+ 158:     );
+ 159:     formData.set(
+ 160:       "addSchoolCover",
+ 161:       String(addSchoolCover),
+ 162:     );
+ 163:     formData.set(
+ 164:       "inheritAudience",
+ 165:       String(audienceMode === "INHERIT"),
+ 166:     );
+ 167: 
+ 168:     const audiences =
+ 169:       audienceMode === "ALL_USERS"
+ 170:         ? [
+ 171:             {
+ 172:               audienceType: "ALL_USERS",
+ 173:             },
+ 174:           ]
+ 175:         : [
+ 176:             {
+ 177:               audienceType: "ROLE",
+ 178:               role: "COUNSELOR",
+ 179:             },
+ 180:           ];
+ 181: 
+ 182:     formData.set(
+ 183:       "audiences",
+ 184:       JSON.stringify(audiences),
+ 185:     );
+ 186: 
+ 187:     try {
+ 188:       const response = await fetch(
+ 189:         "/api/dashboard/admin/counselor-reference-library/upload",
+ 190:         {
+ 191:           method: "POST",
+ 192:           body: formData,
+ 193:         },
+ 194:       );
+ 195: 
+ 196:       const payload = await response
+ 197:         .json()
+ 198:         .catch(() => null);
+ 199: 
+ 200:       if (!response.ok) {
+ 201:         throw new Error(
+ 202:           payload?.error || "تعذر رفع الملف.",
+ 203:         );
+ 204:       }
+ 205: 
+ 206:       onUploaded(
+ 207:         payload?.message ||
+ 208:           "تم رفع الملف بنجاح.",
+ 209:       );
+ 210:       onClose();
+ 211:     } catch (requestError) {
+ 212:       setError(
+ 213:         requestError instanceof Error
+ 214:           ? requestError.message
+ 215:           : "تعذر رفع الملف.",
+ 216:       );
+ 217:     } finally {
+ 218:       setBusy(false);
+ 219:     }
+ 220:   }
+ 221: 
+ 222:   return (
+ 223:     <div
+ 224:       className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto bg-slate-950/35 p-4 backdrop-blur-sm"
+ 225:       dir="rtl"
+ 226:     >
+ 227:       <div className="my-6 w-full max-w-2xl rounded-[32px] border border-white/70 bg-white p-5 shadow-2xl">
+ 228:         <div className="flex items-start justify-between gap-4">
+ 229:           <div className="flex items-start gap-3">
+ 230:             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700">
+ 231:               <UploadCloud className="h-5 w-5" />
+ 232:             </div>
+ 233: 
+ 234:             <div>
+ 235:               <h2 className="text-xl font-black text-slate-950">
+ 236:                 رفع ملف جديد
+ 237:               </h2>
+ 238: 
+ 239:               <p className="mt-1 text-sm font-bold leading-6 text-slate-500">
+ 240:                 {parentTitle
+ 241:                   ? `سيحفظ داخل: ${parentTitle}`
+ 242:                   : "يجب فتح حقيبة أو قسم قبل رفع الملف."}
+ 243:               </p>
+ 244:             </div>
+ 245:           </div>
+ 246: 
+ 247:           <button
+ 248:             type="button"
+ 249:             onClick={onClose}
+ 250:             disabled={busy}
+ 251:             className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+ 252:             aria-label="إغلاق"
+ 253:           >
+ 254:             <X className="h-4 w-4" />
+ 255:           </button>
+ 256:         </div>
+ 257: 
+ 258:         <div className="mt-6 space-y-5">
+ 259:           <button
+ 260:             type="button"
+ 261:             onClick={() => inputRef.current?.click()}
+ 262:             disabled={busy}
+ 263:             className="flex min-h-40 w-full flex-col items-center justify-center rounded-[26px] border-2 border-dashed border-sky-200 bg-sky-50/60 px-5 py-7 text-center transition hover:border-sky-400 hover:bg-sky-50 disabled:opacity-50"
+ 264:           >
+ 265:             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-sky-700 shadow-sm">
+ 266:               <FileUp className="h-6 w-6" />
+ 267:             </div>
+ 268: 
+ 269:             <p className="mt-4 font-black text-slate-950">
+ 270:               {file
+ 271:                 ? file.name
+ 272:                 : "اضغط لاختيار ملف"}
+ 273:             </p>
+ 274: 
+ 275:             <p className="mt-2 text-xs font-bold text-slate-500">
+ 276:               PDF أو DOCX، بحد أقصى 50 ميجابايت
+ 277:             </p>
+ 278: 
+ 279:             {file ? (
+ 280:               <p className="mt-2 text-xs font-black text-sky-700">
+ 281:                 {formatFileSize(file.size)}
+ 282:               </p>
+ 283:             ) : null}
+ 284:           </button>
+ 285: 
+ 286:           <input
+ 287:             ref={inputRef}
+ 288:             type="file"
+ 289:             accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+ 290:             className="hidden"
+ 291:             onChange={(event) =>
+ 292:               selectFile(
+ 293:                 event.target.files?.[0] ?? null,
+ 294:               )
+ 295:             }
+ 296:           />
+ 297: 
+ 298:           <label className="block">
+ 299:             <span className="mb-2 block text-sm font-black text-slate-700">
+ 300:               عنوان الملف
+ 301:             </span>
+ 302: 
+ 303:             <input
+ 304:               value={title}
+ 305:               onChange={(event) =>
+ 306:                 setTitle(event.target.value)
+ 307:               }
+ 308:               maxLength={200}
+ 309:               placeholder="عنوان واضح يظهر للمستخدم"
+ 310:               className="h-13 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-950 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+ 311:             />
+ 312:           </label>
+ 313: 
+ 314:           <label className="block">
+ 315:             <span className="mb-2 block text-sm font-black text-slate-700">
+ 316:               الوصف
+ 317:             </span>
+ 318: 
+ 319:             <textarea
+ 320:               value={description}
+ 321:               onChange={(event) =>
+ 322:                 setDescription(event.target.value)
+ 323:               }
+ 324:               rows={3}
+ 325:               maxLength={5000}
+ 326:               placeholder="وصف مختصر لمحتوى الملف"
+ 327:               className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold leading-7 text-slate-950 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+ 328:             />
+ 329:           </label>
+ 330: 
+ 331:           <div className="grid gap-4 sm:grid-cols-2">
+ 332:             <label className="block">
+ 333:               <span className="mb-2 block text-sm font-black text-slate-700">
+ 334:                 حالة النشر
+ 335:               </span>
+ 336: 
+ 337:               <select
+ 338:                 value={status}
+ 339:                 onChange={(event) =>
+ 340:                   setStatus(
+ 341:                     event.target.value as
+ 342:                       | "DRAFT"
+ 343:                       | "PUBLISHED",
+ 344:                   )
+ 345:                 }
+ 346:                 className="h-13 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-950 outline-none"
+ 347:               >
+ 348:                 <option value="PUBLISHED">
+ 349:                   منشور
+ 350:                 </option>
+ 351:                 <option value="DRAFT">
+ 352:                   مسودة
+ 353:                 </option>
+ 354:               </select>
+ 355:             </label>
+ 356: 
+ 357:             <label className="block">
+ 358:               <span className="mb-2 block text-sm font-black text-slate-700">
+ 359:                 المستفيدون
+ 360:               </span>
+ 361: 
+ 362:               <select
+ 363:                 value={audienceMode}
+ 364:                 onChange={(event) =>
+ 365:                   setAudienceMode(
+ 366:                     event.target.value as AudienceMode,
+ 367:                   )
+ 368:                 }
+ 369:                 className="h-13 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-950 outline-none"
+ 370:               >
+ 371:                 {parentId ? (
+ 372:                   <option value="INHERIT">
+ 373:                     نفس مستفيدي المجلد
+ 374:                   </option>
+ 375:                 ) : null}
+ 376: 
+ 377:                 <option value="COUNSELOR">
+ 378:                   الموجهون الطلابيون
+ 379:                 </option>
+ 380: 
+ 381:                 <option value="ALL_USERS">
+ 382:                   جميع المستخدمين
+ 383:                 </option>
+ 384:               </select>
+ 385:             </label>
+ 386:           </div>
+ 387: 
+ 388: 
+ 389:           {file?.name.toLowerCase().endsWith(".pdf") ? (
+ 390:             <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4">
+ 391:               <div>
+ 392:                 <p className="text-sm font-black text-sky-950">
+ 393:                   إضافة غلاف هوية المدرسة
+ 394:                 </p>
+ 395: 
+ 396:                 <p className="mt-1 text-xs font-bold leading-6 text-sky-700">
+ 397:                   يضاف غلاف رسمي تلقائيًا كأول صفحة في ملف PDF.
+ 398:                 </p>
+ 399:               </div>
+ 400: 
+ 401:               <input
+ 402:                 type="checkbox"
+ 403:                 checked={addSchoolCover}
+ 404:                 onChange={(event) =>
+ 405:                   setAddSchoolCover(
+ 406:                     event.target.checked,
+ 407:                   )
+ 408:                 }
+ 409:                 className="h-5 w-5 rounded border-sky-300 accent-sky-600"
+ 410:               />
+ 411:             </label>
+ 412:           ) : null}
+ 413:           <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+ 414:             <div>
+ 415:               <p className="text-sm font-black text-slate-900">
+ 416:                 السماح بالتحميل
+ 417:               </p>
+ 418: 
+ 419:               <p className="mt-1 text-xs font-bold text-slate-500">
+ 420:                 يستطيع المستخدم تنزيل نسخة من الملف.
+ 421:               </p>
+ 422:             </div>
+ 423: 
+ 424:             <input
+ 425:               type="checkbox"
+ 426:               checked={allowDownload}
+ 427:               onChange={(event) =>
+ 428:                 setAllowDownload(
+ 429:                   event.target.checked,
+ 430:                 )
+ 431:               }
+ 432:               className="h-5 w-5 rounded border-slate-300 accent-sky-600"
+ 433:             />
+ 434:           </label>
+ 435: 
+ 436:           {error ? (
+ 437:             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">
+ 438:               {error}
+ 439:             </div>
+ 440:           ) : null}
+ 441:         </div>
+ 442: 
+ 443:         <div className="mt-6 flex flex-wrap justify-end gap-2">
+ 444:           <button
+ 445:             type="button"
+ 446:             onClick={onClose}
+ 447:             disabled={busy}
+ 448:             className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+ 449:           >
+ 450:             إلغاء
+ 451:           </button>
+ 452: 
+ 453:           <button
+ 454:             type="button"
+ 455:             onClick={submit}
+ 456:             disabled={busy || !parentId}
+ 457:             className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+ 458:           >
+ 459:             {busy ? (
+ 460:               <LoaderCircle className="h-4 w-4 animate-spin" />
+ 461:             ) : (
+ 462:               <UploadCloud className="h-4 w-4" />
+ 463:             )}
+ 464: 
+ 465:             رفع الملف
+ 466:           </button>
+ 467:         </div>
+ 468:       </div>
+ 469:     </div>
+ 470:   );
+ 471: }
+ 472: 
+ 473: function formatFileSize(size: number) {
+ 474:   if (size < 1024) {
+ 475:     return `${size} بايت`;
+ 476:   }
+ 477: 
+ 478:   if (size < 1024 * 1024) {
+ 479:     return `${(size / 1024).toFixed(1)} كيلوبايت`;
+ 480:   }
+ 481: 
+ 482:   return `${(size / 1024 / 1024).toFixed(1)} ميجابايت`;
+ 483: }
+
+==================================================
+FILE: components\reference-library\admin-reference-item-card.tsx
+==================================================
+   1: "use client";
+   2: 
+   3: import {
+   4:   Archive,
+   5:   Eye,
+   6:   FileText,
+   7:   FolderOpen,
+   8:   LoaderCircle,
+   9:   MoreHorizontal,
+  10:   Pencil,
+  11:   RefreshCw,
+  12:   Trash2,
+  13:   UploadCloud,
+  14:   X,
+  15: } from "lucide-react";
+  16: import Link from "next/link";
+  17: import {
+  18:   useEffect,
+  19:   useRef,
+  20:   useState,
+  21: } from "react";
+  22: import type { ReferenceLibraryAdminItem } from "@/components/reference-library/admin-reference-library-types";
+  23: 
+  24: export function AdminReferenceItemCard({
+  25:   item,
+  26:   busy,
+  27:   onOpen,
+  28:   onChangeStatus,
+  29:   onDelete,
+  30:   onReplaced,
+  31: }: {
+  32:   item: ReferenceLibraryAdminItem;
+  33:   busy: boolean;
+  34:   onOpen: () => void;
+  35:   onChangeStatus: (
+  36:     status: "DRAFT" | "PUBLISHED" | "ARCHIVED",
+  37:   ) => void;
+  38:   onDelete: () => void;
+  39:   onReplaced: (message: string) => void;
+  40: }) {
+  41:   const menuRef = useRef<HTMLDivElement>(null);
+  42:   const replaceInputRef =
+  43:     useRef<HTMLInputElement>(null);
+  44: 
+  45:   const [menuOpen, setMenuOpen] =
+  46:     useState(false);
+  47: 
+  48:   const [replaceOpen, setReplaceOpen] =
+  49:     useState(false);
+  50: 
+  51:   const [replacementFile, setReplacementFile] =
+  52:     useState<File | null>(null);
+  53: 
+  54:   const [replaceBusy, setReplaceBusy] =
+  55:     useState(false);
+  56: 
+  57:   const [replaceError, setReplaceError] =
+  58:     useState("");
+  59: 
+  60:   useEffect(() => {
+  61:     function handleClick(event: MouseEvent) {
+  62:       if (
+  63:         menuRef.current &&
+  64:         !menuRef.current.contains(
+  65:           event.target as Node,
+  66:         )
+  67:       ) {
+  68:         setMenuOpen(false);
+  69:       }
+  70:     }
+  71: 
+  72:     document.addEventListener(
+  73:       "mousedown",
+  74:       handleClick,
+  75:     );
+  76: 
+  77:     return () => {
+  78:       document.removeEventListener(
+  79:         "mousedown",
+  80:         handleClick,
+  81:       );
+  82:     };
+  83:   }, []);
+  84: 
+  85:   const isFolder =
+  86:     item.itemType === "FOLDER";
+  87: 
+  88:   const statusAppearance =
+  89:     item.status === "PUBLISHED"
+  90:       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+  91:       : item.status === "ARCHIVED"
+  92:         ? "border-slate-200 bg-slate-100 text-slate-600"
+  93:         : "border-amber-200 bg-amber-50 text-amber-700";
+  94: 
+  95:   const statusLabel =
+  96:     item.status === "PUBLISHED"
+  97:       ? "منشور"
+  98:       : item.status === "ARCHIVED"
+  99:         ? "مؤرشف"
+ 100:         : "مسودة";
+ 101: 
+ 102:   function openReplaceDialog() {
+ 103:     setReplacementFile(null);
+ 104:     setReplaceError("");
+ 105:     setReplaceOpen(true);
+ 106: 
+ 107:     if (replaceInputRef.current) {
+ 108:       replaceInputRef.current.value = "";
+ 109:     }
+ 110:   }
+ 111: 
+ 112:   function closeReplaceDialog() {
+ 113:     if (replaceBusy) {
+ 114:       return;
+ 115:     }
+ 116: 
+ 117:     setReplaceOpen(false);
+ 118:     setReplacementFile(null);
+ 119:     setReplaceError("");
+ 120:   }
+ 121: 
+ 122:   function selectReplacementFile(
+ 123:     selectedFile: File | null,
+ 124:   ) {
+ 125:     setReplaceError("");
+ 126: 
+ 127:     if (!selectedFile) {
+ 128:       setReplacementFile(null);
+ 129:       return;
+ 130:     }
+ 131: 
+ 132:     const lowerName =
+ 133:       selectedFile.name.toLowerCase();
+ 134: 
+ 135:     if (
+ 136:       !lowerName.endsWith(".pdf") &&
+ 137:       !lowerName.endsWith(".docx")
+ 138:     ) {
+ 139:       setReplacementFile(null);
+ 140:       setReplaceError(
+ 141:         "الصيغ المدعومة هي PDF وWord بصيغة DOCX.",
+ 142:       );
+ 143:       return;
+ 144:     }
+ 145: 
+ 146:     if (
+ 147:       selectedFile.size >
+ 148:       50 * 1024 * 1024
+ 149:     ) {
+ 150:       setReplacementFile(null);
+ 151:       setReplaceError(
+ 152:         "حجم الملف يتجاوز الحد الأعلى وهو 50 ميجابايت.",
+ 153:       );
+ 154:       return;
+ 155:     }
+ 156: 
+ 157:     setReplacementFile(selectedFile);
+ 158:   }
+ 159: 
+ 160:   async function replaceFile() {
+ 161:     if (!replacementFile) {
+ 162:       setReplaceError(
+ 163:         "اختر الملف البديل أولًا.",
+ 164:       );
+ 165:       return;
+ 166:     }
+ 167: 
+ 168:     setReplaceBusy(true);
+ 169:     setReplaceError("");
+ 170: 
+ 171:     const formData = new FormData();
+ 172:     formData.set("file", replacementFile);
+ 173: 
+ 174:     try {
+ 175:       const response = await fetch(
+ 176:         `/api/dashboard/admin/counselor-reference-library/items/${encodeURIComponent(
+ 177:           item.id,
+ 178:         )}/replace-file`,
+ 179:         {
+ 180:           method: "POST",
+ 181:           body: formData,
+ 182:         },
+ 183:       );
+ 184: 
+ 185:       const payload = await response
+ 186:         .json()
+ 187:         .catch(() => null);
+ 188: 
+ 189:       if (!response.ok) {
+ 190:         throw new Error(
+ 191:           payload?.error ||
+ 192:             "تعذر استبدال الملف.",
+ 193:         );
+ 194:       }
+ 195: 
+ 196:       setReplaceOpen(false);
+ 197:       setReplacementFile(null);
+ 198: 
+ 199:       onReplaced(
+ 200:         payload?.message ||
+ 201:           "تم استبدال الملف بنجاح.",
+ 202:       );
+ 203:     } catch (error) {
+ 204:       setReplaceError(
+ 205:         error instanceof Error
+ 206:           ? error.message
+ 207:           : "تعذر استبدال الملف.",
+ 208:       );
+ 209:     } finally {
+ 210:       setReplaceBusy(false);
+ 211:     }
+ 212:   }
+ 213: 
+ 214:   return (
+ 215:     <>
+ 216:       <article className="group relative overflow-visible rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(15,23,42,0.09)]">
+ 217:         <div className="flex items-start justify-between gap-4">
+ 218:           <div className="flex min-w-0 items-start gap-3">
+ 219:             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700">
+ 220:               {isFolder ? (
+ 221:                 <FolderOpen className="h-5 w-5" />
+ 222:               ) : (
+ 223:                 <FileText className="h-5 w-5" />
+ 224:               )}
+ 225:             </div>
+ 226: 
+ 227:             <div className="min-w-0">
+ 228:               <div className="flex flex-wrap items-center gap-2">
+ 229:                 <span className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700">
+ 230:                   {isFolder
+ 231:                     ? item.parentId
+ 232:                       ? "قسم"
+ 233:                       : "حقيبة"
+ 234:                     : item.fileExtension?.toUpperCase() ||
+ 235:                       "ملف"}
+ 236:                 </span>
+ 237: 
+ 238:                 <span
+ 239:                   className={`rounded-full border px-3 py-1 text-[11px] font-black ${statusAppearance}`}
+ 240:                 >
+ 241:                   {statusLabel}
+ 242:                 </span>
+ 243: 
+ 244:                 {!isFolder &&
+ 245:                 item.pdfCoverApplied ? (
+ 246:                   <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-black text-violet-700">
+ 247:                     غلاف رسمي
+ 248:                   </span>
+ 249:                 ) : null}
+ 250:               </div>
+ 251: 
+ 252:               <h3 className="mt-3 line-clamp-2 text-lg font-black leading-8 text-slate-950">
+ 253:                 {item.title}
+ 254:               </h3>
+ 255:             </div>
+ 256:           </div>
+ 257: 
+ 258:           <div
+ 259:             ref={menuRef}
+ 260:             className="relative shrink-0"
+ 261:           >
+ 262:             <button
+ 263:               type="button"
+ 264:               disabled={busy || replaceBusy}
+ 265:               onClick={() =>
+ 266:                 setMenuOpen((value) => !value)
+ 267:               }
+ 268:               className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-950 disabled:opacity-50"
+ 269:               aria-label="إجراءات العنصر"
+ 270:             >
+ 271:               <MoreHorizontal className="h-5 w-5" />
+ 272:             </button>
+ 273: 
+ 274:             {menuOpen ? (
+ 275:               <div className="absolute left-0 top-12 z-30 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+ 276:                 <button
+ 277:                   type="button"
+ 278:                   onClick={() => {
+ 279:                     setMenuOpen(false);
+ 280:                     onOpen();
+ 281:                   }}
+ 282:                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-right text-sm font-black text-slate-700 transition hover:bg-slate-50"
+ 283:                 >
+ 284:                   {isFolder ? (
+ 285:                     <FolderOpen className="h-4 w-4" />
+ 286:                   ) : (
+ 287:                     <Eye className="h-4 w-4" />
+ 288:                   )}
+ 289: 
+ 290:                   {isFolder
+ 291:                     ? "فتح المحتوى"
+ 292:                     : "بيانات الملف"}
+ 293:                 </button>
+ 294: 
+ 295:                 {!isFolder ? (
+ 296:                   <button
+ 297:                     type="button"
+ 298:                     onClick={() => {
+ 299:                       setMenuOpen(false);
+ 300:                       openReplaceDialog();
+ 301:                     }}
+ 302:                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-right text-sm font-black text-sky-700 transition hover:bg-sky-50"
+ 303:                   >
+ 304:                     <RefreshCw className="h-4 w-4" />
+ 305:                     استبدال الملف
+ 306:                   </button>
+ 307:                 ) : null}
+ 308: 
+ 309:                 {item.status !== "PUBLISHED" ? (
+ 310:                   <button
+ 311:                     type="button"
+ 312:                     onClick={() => {
+ 313:                       setMenuOpen(false);
+ 314:                       onChangeStatus(
+ 315:                         "PUBLISHED",
+ 316:                       );
+ 317:                     }}
+ 318:                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-right text-sm font-black text-emerald-700 transition hover:bg-emerald-50"
+ 319:                   >
+ 320:                     <Eye className="h-4 w-4" />
+ 321:                     نشر
+ 322:                   </button>
+ 323:                 ) : (
+ 324:                   <button
+ 325:                     type="button"
+ 326:                     onClick={() => {
+ 327:                       setMenuOpen(false);
+ 328:                       onChangeStatus("DRAFT");
+ 329:                     }}
+ 330:                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-right text-sm font-black text-amber-700 transition hover:bg-amber-50"
+ 331:                   >
+ 332:                     <Pencil className="h-4 w-4" />
+ 333:                     تحويل لمسودة
+ 334:                   </button>
+ 335:                 )}
+ 336: 
+ 337:                 {item.status !== "ARCHIVED" ? (
+ 338:                   <button
+ 339:                     type="button"
+ 340:                     onClick={() => {
+ 341:                       setMenuOpen(false);
+ 342:                       onChangeStatus(
+ 343:                         "ARCHIVED",
+ 344:                       );
+ 345:                     }}
+ 346:                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-right text-sm font-black text-slate-700 transition hover:bg-slate-100"
+ 347:                   >
+ 348:                     <Archive className="h-4 w-4" />
+ 349:                     أرشفة
+ 350:                   </button>
+ 351:                 ) : null}
+ 352: 
+ 353:                 <button
+ 354:                   type="button"
+ 355:                   onClick={() => {
+ 356:                     setMenuOpen(false);
+ 357:                     onDelete();
+ 358:                   }}
+ 359:                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-right text-sm font-black text-rose-700 transition hover:bg-rose-50"
+ 360:                 >
+ 361:                   <Trash2 className="h-4 w-4" />
+ 362:                   حذف
+ 363:                 </button>
+ 364:               </div>
+ 365:             ) : null}
+ 366:           </div>
+ 367:         </div>
+ 368: 
+ 369:         <p className="mt-4 line-clamp-2 min-h-12 text-sm font-bold leading-6 text-slate-500">
+ 370:           {item.description ||
+ 371:             (isFolder
+ 372:               ? "حقيبة منظمة تضم مجموعة من الأقسام والملفات."
+ 373:               : "ملف معرفي متاح ضمن المرجع الشامل.")}
+ 374:         </p>
+ 375: 
+ 376:         <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-black text-slate-500">
+ 377:           {isFolder ? (
+ 378:             <span className="rounded-xl bg-slate-50 px-3 py-2">
+ 379:               {item._count?.children ?? 0} عنصر
+ 380:             </span>
+ 381:           ) : (
+ 382:             <>
+ 383:               <span className="rounded-xl bg-slate-50 px-3 py-2">
+ 384:                 {formatFileSize(
+ 385:                   item.sizeBytes,
+ 386:                 )}
+ 387:               </span>
+ 388: 
+ 389:               <span className="rounded-xl bg-slate-50 px-3 py-2">
+ 390:                 {item.allowDownload
+ 391:                   ? "التحميل مسموح"
+ 392:                   : "المعاينة فقط"}
+ 393:               </span>
+ 394:             </>
+ 395:           )}
+ 396: 
+ 397:           <span className="rounded-xl bg-slate-50 px-3 py-2">
+ 398:             تحديث {formatDate(item.updatedAt)}
+ 399:           </span>
+ 400:         </div>
+ 401: 
+ 402:         <div className="mt-5 border-t border-slate-100 pt-4">
+ 403:           {isFolder ? (
+ 404:             <button
+ 405:               type="button"
+ 406:               onClick={onOpen}
+ 407:               disabled={busy}
+ 408:               className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50"
+ 409:             >
+ 410:               <FolderOpen className="h-4 w-4" />
+ 411:               فتح المحتوى
+ 412:             </button>
+ 413:           ) : (
+ 414:             <div className="flex flex-wrap gap-2">
+ 415:               <Link
+ 416:                 href={`/dashboard/counselor-reference-library/file/${encodeURIComponent(
+ 417:                   item.id,
+ 418:                 )}`}
+ 419:                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
+ 420:               >
+ 421:                 <Eye className="h-4 w-4" />
+ 422:                 معاينة الملف
+ 423:               </Link>
+ 424: 
+ 425:               <button
+ 426:                 type="button"
+ 427:                 onClick={openReplaceDialog}
+ 428:                 disabled={replaceBusy}
+ 429:                 className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+ 430:               >
+ 431:                 <RefreshCw className="h-4 w-4" />
+ 432:                 استبدال
+ 433:               </button>
+ 434:             </div>
+ 435:           )}
+ 436:         </div>
+ 437:       </article>
+ 438: 
+ 439:       {replaceOpen ? (
+ 440:         <div
+ 441:           className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-sm"
+ 442:           dir="rtl"
+ 443:         >
+ 444:           <div className="my-6 w-full max-w-xl rounded-[32px] border border-white/70 bg-white p-5 shadow-2xl">
+ 445:             <div className="flex items-start justify-between gap-4">
+ 446:               <div className="flex items-start gap-3">
+ 447:                 <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700">
+ 448:                   <RefreshCw className="h-5 w-5" />
+ 449:                 </div>
+ 450: 
+ 451:                 <div>
+ 452:                   <h2 className="text-xl font-black text-slate-950">
+ 453:                     استبدال الملف
+ 454:                   </h2>
+ 455: 
+ 456:                   <p className="mt-1 text-sm font-bold leading-6 text-slate-500">
+ 457:                     سيتم استبدال محتوى «{item.title}»
+ 458:                     مع بقاء العنوان والصلاحيات والرابط
+ 459:                     كما هي.
+ 460:                   </p>
+ 461:                 </div>
+ 462:               </div>
+ 463: 
+ 464:               <button
+ 465:                 type="button"
+ 466:                 onClick={closeReplaceDialog}
+ 467:                 disabled={replaceBusy}
+ 468:                 className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 disabled:opacity-50"
+ 469:                 aria-label="إغلاق"
+ 470:               >
+ 471:                 <X className="h-4 w-4" />
+ 472:               </button>
+ 473:             </div>
+ 474: 
+ 475:             <button
+ 476:               type="button"
+ 477:               onClick={() =>
+ 478:                 replaceInputRef.current?.click()
+ 479:               }
+ 480:               disabled={replaceBusy}
+ 481:               className="mt-6 flex min-h-40 w-full flex-col items-center justify-center rounded-[26px] border-2 border-dashed border-sky-200 bg-sky-50/60 px-5 py-7 text-center transition hover:border-sky-400 hover:bg-sky-50 disabled:opacity-50"
+ 482:             >
+ 483:               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-sky-700 shadow-sm">
+ 484:                 <UploadCloud className="h-6 w-6" />
+ 485:               </div>
+ 486: 
+ 487:               <p className="mt-4 font-black text-slate-950">
+ 488:                 {replacementFile
+ 489:                   ? replacementFile.name
+ 490:                   : "اختر الملف البديل"}
+ 491:               </p>
+ 492: 
+ 493:               <p className="mt-2 text-xs font-bold text-slate-500">
+ 494:                 PDF أو DOCX، بحد أقصى 50 ميجابايت
+ 495:               </p>
+ 496: 
+ 497:               {replacementFile ? (
+ 498:                 <p className="mt-2 text-xs font-black text-sky-700">
+ 499:                   {formatFileSize(
+ 500:                     replacementFile.size,
+ 501:                   )}
+ 502:                 </p>
+ 503:               ) : null}
+ 504:             </button>
+ 505: 
+ 506:             <input
+ 507:               ref={replaceInputRef}
+ 508:               type="file"
+ 509:               accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+ 510:               className="hidden"
+ 511:               onChange={(event) =>
+ 512:                 selectReplacementFile(
+ 513:                   event.target.files?.[0] ??
+ 514:                     null,
+ 515:                 )
+ 516:               }
+ 517:             />
+ 518: 
+ 519:             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+ 520:               <p className="text-sm font-black text-amber-950">
+ 521:                 تنبيه
+ 522:               </p>
+ 523: 
+ 524:               <p className="mt-1 text-xs font-bold leading-6 text-amber-800">
+ 525:                 سيُحذف الملف المخزن السابق بعد نجاح
+ 526:                 حفظ الملف الجديد. لن يتغير عنوان
+ 527:                 العنصر أو المستفيدون أو حالة النشر.
+ 528:               </p>
+ 529:             </div>
+ 530: 
+ 531:             {replaceError ? (
+ 532:               <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">
+ 533:                 {replaceError}
+ 534:               </div>
+ 535:             ) : null}
+ 536: 
+ 537:             <div className="mt-6 flex flex-wrap justify-end gap-2">
+ 538:               <button
+ 539:                 type="button"
+ 540:                 onClick={closeReplaceDialog}
+ 541:                 disabled={replaceBusy}
+ 542:                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+ 543:               >
+ 544:                 إلغاء
+ 545:               </button>
+ 546: 
+ 547:               <button
+ 548:                 type="button"
+ 549:                 onClick={() => {
+ 550:                   void replaceFile();
+ 551:                 }}
+ 552:                 disabled={
+ 553:                   replaceBusy ||
+ 554:                   !replacementFile
+ 555:                 }
+ 556:                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+ 557:               >
+ 558:                 {replaceBusy ? (
+ 559:                   <LoaderCircle className="h-4 w-4 animate-spin" />
+ 560:                 ) : (
+ 561:                   <RefreshCw className="h-4 w-4" />
+ 562:                 )}
+ 563: 
+ 564:                 تأكيد الاستبدال
+ 565:               </button>
+ 566:             </div>
+ 567:           </div>
+ 568:         </div>
+ 569:       ) : null}
+ 570:     </>
+ 571:   );
+ 572: }
+ 573: 
+ 574: function formatFileSize(
+ 575:   size: number | null,
+ 576: ) {
+ 577:   if (!size) {
+ 578:     return "حجم غير محدد";
+ 579:   }
+ 580: 
+ 581:   if (size < 1024) {
+ 582:     return `${size} بايت`;
+ 583:   }
+ 584: 
+ 585:   if (size < 1024 * 1024) {
+ 586:     return `${(size / 1024).toFixed(1)} كيلوبايت`;
+ 587:   }
+ 588: 
+ 589:   return `${(size / 1024 / 1024).toFixed(1)} ميجابايت`;
+ 590: }
+ 591: 
+ 592: function formatDate(value: string) {
+ 593:   return new Intl.DateTimeFormat("ar-SA", {
+ 594:     year: "numeric",
+ 595:     month: "short",
+ 596:     day: "numeric",
+ 597:   }).format(new Date(value));
+ 598: }
+
+==================================================
+FILE: components\reference-library\admin-reference-library-center.tsx
+==================================================
+   1: "use client";
+   2: 
+   3: import {
+   4:   Archive,
+   5:   BookOpen,
+   6:   ChevronLeft,
+   7:   FileText,
+   8:   FolderOpen,
+   9:   FolderPlus,
+  10:   LoaderCircle,
+  11:   Plus,
+  12:   Search,
+  13:   UploadCloud,
+  14: } from "lucide-react";
+  15: import {
+  16:   useCallback,
+  17:   useEffect,
+  18:   useMemo,
+  19:   useState,
+  20: } from "react";
+  21: import { AdminReferenceFolderDialog } from "@/components/reference-library/admin-reference-folder-dialog";
+  22: import { AdminReferenceUploadDialog } from "@/components/reference-library/admin-reference-upload-dialog";
+  23: import { AdminReferenceItemCard } from "@/components/reference-library/admin-reference-item-card";
+  24: import { ReferenceLibraryConfirmDialog } from "@/components/reference-library/reference-library-confirm-dialog";
+  25: import { ReferenceLibraryFeedbackCard } from "@/components/reference-library/reference-library-feedback-card";
+  26: import type {
+  27:   ReferenceLibraryAdminItem,
+  28:   ReferenceLibraryAdminParent,
+  29:   ReferenceLibraryFeedback,
+  30:   ReferenceLibraryItemsResponse,
+  31: } from "@/components/reference-library/admin-reference-library-types";
+  32: 
+  33: type Breadcrumb = {
+  34:   id: string | null;
+  35:   title: string;
+  36: };
+  37: 
+  38: type PendingAction =
+  39:   | {
+  40:       type: "DELETE";
+  41:       item: ReferenceLibraryAdminItem;
+  42:     }
+  43:   | {
+  44:       type: "STATUS";
+  45:       item: ReferenceLibraryAdminItem;
+  46:       status:
+  47:         | "DRAFT"
+  48:         | "PUBLISHED"
+  49:         | "ARCHIVED";
+  50:     }
+  51:   | null;
+  52: 
+  53: export function AdminReferenceLibraryCenter() {
+  54:   const [items, setItems] = useState<
+  55:     ReferenceLibraryAdminItem[]
+  56:   >([]);
+  57:   const [parent, setParent] =
+  58:     useState<ReferenceLibraryAdminParent | null>(
+  59:       null,
+  60:     );
+  61:   const [breadcrumbs, setBreadcrumbs] =
+  62:     useState<Breadcrumb[]>([
+  63:       {
+  64:         id: null,
+  65:         title: "المرجع الشامل",
+  66:       },
+  67:     ]);
+  68: 
+  69:   const [search, setSearch] = useState("");
+  70:   const [appliedSearch, setAppliedSearch] =
+  71:     useState("");
+  72:   const [status, setStatus] = useState<
+  73:     "" | "DRAFT" | "PUBLISHED" | "ARCHIVED"
+  74:   >("");
+  75: 
+  76:   const [loading, setLoading] = useState(true);
+  77:   const [actionBusy, setActionBusy] =
+  78:     useState(false);
+  79:   const [folderDialogOpen, setFolderDialogOpen] =
+  80:     useState(false);
+  81:   const [uploadDialogOpen, setUploadDialogOpen] =
+  82:     useState(false);
+  83:   const [pendingAction, setPendingAction] =
+  84:     useState<PendingAction>(null);
+  85:   const [feedback, setFeedback] =
+  86:     useState<ReferenceLibraryFeedback>(null);
+  87: 
+  88:   const currentParentId =
+  89:     breadcrumbs.at(-1)?.id ?? null;
+  90: 
+  91:   const loadItems = useCallback(async () => {
+  92:     setLoading(true);
+  93: 
+  94:     try {
+  95:       const params = new URLSearchParams();
+  96: 
+  97:       if (currentParentId) {
+  98:         params.set("parentId", currentParentId);
+  99:       }
+ 100: 
+ 101:       if (appliedSearch) {
+ 102:         params.set("search", appliedSearch);
+ 103:       }
+ 104: 
+ 105:       if (status) {
+ 106:         params.set("status", status);
+ 107:       }
+ 108: 
+ 109:       const response = await fetch(
+ 110:         `/api/dashboard/admin/counselor-reference-library/items?${params.toString()}`,
+ 111:         {
+ 112:           cache: "no-store",
+ 113:         },
+ 114:       );
+ 115: 
+ 116:       const payload =
+ 117:         (await response
+ 118:           .json()
+ 119:           .catch(() => null)) as
+ 120:           | ReferenceLibraryItemsResponse
+ 121:           | {
+ 122:               error?: string;
+ 123:             }
+ 124:           | null;
+ 125: 
+ 126:       if (!response.ok) {
+ 127:         throw new Error(
+ 128:           payload &&
+ 129:           "error" in payload &&
+ 130:           payload.error
+ 131:             ? payload.error
+ 132:             : "تعذر تحميل المحتوى.",
+ 133:         );
+ 134:       }
+ 135: 
+ 136:       const result =
+ 137:         payload as ReferenceLibraryItemsResponse;
+ 138: 
+ 139:       setItems(result.items);
+ 140:       setParent(result.parent);
+ 141:     } catch (requestError) {
+ 142:       setItems([]);
+ 143:       setFeedback({
+ 144:         type: "error",
+ 145:         title: "تعذر تحميل المرجع",
+ 146:         message:
+ 147:           requestError instanceof Error
+ 148:             ? requestError.message
+ 149:             : "تعذر تحميل المحتوى.",
+ 150:       });
+ 151:     } finally {
+ 152:       setLoading(false);
+ 153:     }
+ 154:   }, [
+ 155:     appliedSearch,
+ 156:     currentParentId,
+ 157:     status,
+ 158:   ]);
+ 159: 
+ 160:   useEffect(() => {
+ 161:     void loadItems();
+ 162:   }, [loadItems]);
+ 163: 
+ 164:   const stats = useMemo(() => {
+ 165:     return {
+ 166:       folders: items.filter(
+ 167:         (item) => item.itemType === "FOLDER",
+ 168:       ).length,
+ 169:       files: items.filter(
+ 170:         (item) => item.itemType === "FILE",
+ 171:       ).length,
+ 172:       published: items.filter(
+ 173:         (item) => item.status === "PUBLISHED",
+ 174:       ).length,
+ 175:       drafts: items.filter(
+ 176:         (item) => item.status === "DRAFT",
+ 177:       ).length,
+ 178:     };
+ 179:   }, [items]);
+ 180: 
+ 181:   function openFolder(
+ 182:     item: ReferenceLibraryAdminItem,
+ 183:   ) {
+ 184:     if (item.itemType !== "FOLDER") {
+ 185:       setFeedback({
+ 186:         type: "warning",
+ 187:         title: "إدارة الملف",
+ 188:         message:
+ 189:           "المعاينة والاستبدال ستضاف في الدفعة الرابعة.",
+ 190:       });
+ 191:       return;
+ 192:     }
+ 193: 
+ 194:     setSearch("");
+ 195:     setAppliedSearch("");
+ 196:     setStatus("");
+ 197: 
+ 198:     setBreadcrumbs((current) => [
+ 199:       ...current,
+ 200:       {
+ 201:         id: item.id,
+ 202:         title: item.title,
+ 203:       },
+ 204:     ]);
+ 205:   }
+ 206: 
+ 207:   function navigateToBreadcrumb(index: number) {
+ 208:     setSearch("");
+ 209:     setAppliedSearch("");
+ 210:     setStatus("");
+ 211:     setBreadcrumbs((current) =>
+ 212:       current.slice(0, index + 1),
+ 213:     );
+ 214:   }
+ 215: 
+ 216:   async function executePendingAction() {
+ 217:     if (!pendingAction) {
+ 218:       return;
+ 219:     }
+ 220: 
+ 221:     setActionBusy(true);
+ 222: 
+ 223:     try {
+ 224:       if (pendingAction.type === "DELETE") {
+ 225:         const response = await fetch(
+ 226:           `/api/dashboard/admin/counselor-reference-library/items/${encodeURIComponent(
+ 227:             pendingAction.item.id,
+ 228:           )}`,
+ 229:           {
+ 230:             method: "DELETE",
+ 231:           },
+ 232:         );
+ 233: 
+ 234:         const payload = await response
+ 235:           .json()
+ 236:           .catch(() => null);
+ 237: 
+ 238:         if (!response.ok) {
+ 239:           throw new Error(
+ 240:             payload?.error ||
+ 241:               "تعذر حذف العنصر.",
+ 242:           );
+ 243:         }
+ 244: 
+ 245:         setFeedback({
+ 246:           type: "success",
+ 247:           title: "تم الحذف",
+ 248:           message:
+ 249:             payload?.message ||
+ 250:             "تم حذف العنصر بنجاح.",
+ 251:         });
+ 252:       } else {
+ 253:         const response = await fetch(
+ 254:           `/api/dashboard/admin/counselor-reference-library/items/${encodeURIComponent(
+ 255:             pendingAction.item.id,
+ 256:           )}`,
+ 257:           {
+ 258:             method: "PATCH",
+ 259:             headers: {
+ 260:               "Content-Type": "application/json",
+ 261:             },
+ 262:             body: JSON.stringify({
+ 263:               status: pendingAction.status,
+ 264:             }),
+ 265:           },
+ 266:         );
+ 267: 
+ 268:         const payload = await response
+ 269:           .json()
+ 270:           .catch(() => null);
+ 271: 
+ 272:         if (!response.ok) {
+ 273:           throw new Error(
+ 274:             payload?.error ||
+ 275:               "تعذر تحديث حالة العنصر.",
+ 276:           );
+ 277:         }
+ 278: 
+ 279:         setFeedback({
+ 280:           type: "success",
+ 281:           title: "تم تحديث الحالة",
+ 282:           message:
+ 283:             payload?.message ||
+ 284:             "تم تحديث العنصر بنجاح.",
+ 285:         });
+ 286:       }
+ 287: 
+ 288:       setPendingAction(null);
+ 289:       await loadItems();
+ 290:     } catch (requestError) {
+ 291:       setFeedback({
+ 292:         type: "error",
+ 293:         title: "تعذر تنفيذ الإجراء",
+ 294:         message:
+ 295:           requestError instanceof Error
+ 296:             ? requestError.message
+ 297:             : "تعذر تنفيذ العملية.",
+ 298:       });
+ 299:     } finally {
+ 300:       setActionBusy(false);
+ 301:     }
+ 302:   }
+ 303: 
+ 304:   const confirmTitle =
+ 305:     pendingAction?.type === "DELETE"
+ 306:       ? "حذف العنصر"
+ 307:       : pendingAction?.type === "STATUS" &&
+ 308:           pendingAction.status === "ARCHIVED"
+ 309:         ? "أرشفة العنصر"
+ 310:         : "تغيير حالة العنصر";
+ 311: 
+ 312:   const confirmDescription =
+ 313:     pendingAction?.type === "DELETE"
+ 314:       ? pendingAction.item.itemType === "FOLDER"
+ 315:         ? "سيحذف المجلد إذا كان فارغًا فقط. المجلد الذي يحتوي عناصر لن يُحذف."
+ 316:         : "سيحذف الملف وبياناته من المرجع الشامل."
+ 317:       : pendingAction?.type === "STATUS"
+ 318:         ? `سيتم تغيير حالة «${pendingAction.item.title}» إلى ${
+ 319:             pendingAction.status === "PUBLISHED"
+ 320:               ? "منشور"
+ 321:               : pendingAction.status === "ARCHIVED"
+ 322:                 ? "مؤرشف"
+ 323:                 : "مسودة"
+ 324:           }.`
+ 325:         : "";
+ 326: 
+ 327:   return (
+ 328:     <div
+ 329:       className="space-y-7 pb-10"
+ 330:       dir="rtl"
+ 331:     >
+ 332:       <section className="overflow-hidden rounded-[36px] bg-gradient-to-l from-sky-500 via-sky-600 to-slate-800 p-6 text-white shadow-[0_18px_45px_rgba(30,64,175,0.18)] sm:p-8">
+ 333:         <div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-center">
+ 334:           <div>
+ 335:             <div className="flex items-center gap-2 text-xs font-black text-white/75">
+ 336:               <BookOpen className="h-4 w-4" />
+ 337:               خدمة مستقلة
+ 338:             </div>
+ 339: 
+ 340:             <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
+ 341:               إدارة المرجع الشامل
+ 342:             </h1>
+ 343: 
+ 344:             <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-white/85 sm:text-base">
+ 345:               أنشئ الحقائب والأقسام، وارفع الأدلة
+ 346:               والملفات، ثم انشرها للموجهين
+ 347:               الطلابيين بطريقة منظمة وسهلة.
+ 348:             </p>
+ 349:           </div>
+ 350: 
+ 351:           <div className="flex flex-wrap gap-3">
+ 352:             <button
+ 353:               type="button"
+ 354:               onClick={() =>
+ 355:                 setFolderDialogOpen(true)
+ 356:               }
+ 357:               className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-lg transition hover:-translate-y-0.5"
+ 358:             >
+ 359:               <FolderPlus className="h-4 w-4" />
+ 360:               {currentParentId
+ 361:                 ? "إضافة قسم"
+ 362:                 : "إنشاء حقيبة"}
+ 363:             </button>
+ 364: 
+ 365:             <button
+ 366:               type="button"
+ 367:               onClick={() => {
+ 368:                 if (!currentParentId) {
+ 369:                   setFeedback({
+ 370:                     type: "warning",
+ 371:                     title: "اختر حقيبة أولًا",
+ 372:                     message:
+ 373:                       "افتح حقيبة أو قسمًا، ثم ارفع الملف داخله.",
+ 374:                   });
+ 375:                   return;
+ 376:                 }
+ 377: 
+ 378:                 setUploadDialogOpen(true);
+ 379:               }}
+ 380:               className="inline-flex items-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur transition hover:bg-white/20"
+ 381:             >
+ 382:               <UploadCloud className="h-4 w-4" />
+ 383:               رفع ملف
+ 384:             </button>
+ 385:           </div>
+ 386:         </div>
+ 387:       </section>
+ 388: 
+ 389:       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+ 390:         <StatCard
+ 391:           label="المجلدات"
+ 392:           value={stats.folders}
+ 393:           icon={<FolderOpen className="h-5 w-5" />}
+ 394:         />
+ 395: 
+ 396:         <StatCard
+ 397:           label="الملفات"
+ 398:           value={stats.files}
+ 399:           icon={<FileText className="h-5 w-5" />}
+ 400:         />
+ 401: 
+ 402:         <StatCard
+ 403:           label="المنشور"
+ 404:           value={stats.published}
+ 405:           icon={<BookOpen className="h-5 w-5" />}
+ 406:         />
+ 407: 
+ 408:         <StatCard
+ 409:           label="المسودات"
+ 410:           value={stats.drafts}
+ 411:           icon={<Archive className="h-5 w-5" />}
+ 412:         />
+ 413:       </section>
+ 414: 
+ 415:       <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
+ 416:         <div className="flex flex-col gap-5">
+ 417:           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+ 418:             <div>
+ 419:               <p className="text-xs font-black text-sky-700">
+ 420:                 المحتوى الحالي
+ 421:               </p>
+ 422: 
+ 423:               <h2 className="mt-1 text-2xl font-black text-slate-950">
+ 424:                 {parent?.title ||
+ 425:                   "الحقائب الرئيسية"}
+ 426:               </h2>
+ 427: 
+ 428:               <p className="mt-2 text-sm font-bold text-slate-500">
+ 429:                 {currentParentId
+ 430:                   ? "الأقسام والملفات الموجودة داخل هذا المستوى."
+ 431:                   : "ابدأ بإنشاء حقيبة رئيسية، ثم أضف الأقسام والملفات بداخلها."}
+ 432:               </p>
+ 433:             </div>
+ 434: 
+ 435:             <div className="flex flex-col gap-2 sm:flex-row">
+ 436:               <form
+ 437:                 onSubmit={(event) => {
+ 438:                   event.preventDefault();
+ 439:                   setAppliedSearch(search.trim());
+ 440:                 }}
+ 441:                 className="relative"
+ 442:               >
+ 443:                 <Search className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+ 444: 
+ 445:                 <input
+ 446:                   value={search}
+ 447:                   onChange={(event) =>
+ 448:                     setSearch(event.target.value)
+ 449:                   }
+ 450:                   placeholder="ابحث داخل المستوى..."
+ 451:                   className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pr-11 pl-4 text-sm font-bold text-slate-950 outline-none transition focus:border-sky-400 focus:bg-white sm:w-72"
+ 452:                 />
+ 453:               </form>
+ 454: 
+ 455:               <select
+ 456:                 value={status}
+ 457:                 onChange={(event) =>
+ 458:                   setStatus(
+ 459:                     event.target.value as
+ 460:                       | ""
+ 461:                       | "DRAFT"
+ 462:                       | "PUBLISHED"
+ 463:                       | "ARCHIVED",
+ 464:                   )
+ 465:                 }
+ 466:                 className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black text-slate-700 outline-none"
+ 467:               >
+ 468:                 <option value="">
+ 469:                   كل الحالات
+ 470:                 </option>
+ 471:                 <option value="PUBLISHED">
+ 472:                   منشور
+ 473:                 </option>
+ 474:                 <option value="DRAFT">
+ 475:                   مسودة
+ 476:                 </option>
+ 477:                 <option value="ARCHIVED">
+ 478:                   مؤرشف
+ 479:                 </option>
+ 480:               </select>
+ 481:             </div>
+ 482:           </div>
+ 483: 
+ 484:           <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+ 485:             {breadcrumbs.map(
+ 486:               (breadcrumb, index) => (
+ 487:                 <div
+ 488:                   key={
+ 489:                     breadcrumb.id ??
+ 490:                     "reference-root"
+ 491:                   }
+ 492:                   className="flex items-center gap-2"
+ 493:                 >
+ 494:                   {index > 0 ? (
+ 495:                     <ChevronLeft className="h-4 w-4 text-slate-300" />
+ 496:                   ) : null}
+ 497: 
+ 498:                   <button
+ 499:                     type="button"
+ 500:                     onClick={() =>
+ 501:                       navigateToBreadcrumb(index)
+ 502:                     }
+ 503:                     className={
+ 504:                       index ===
+ 505:                       breadcrumbs.length - 1
+ 506:                         ? "rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700"
+ 507:                         : "rounded-xl px-3 py-2 text-xs font-black text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
+ 508:                     }
+ 509:                   >
+ 510:                     {breadcrumb.title}
+ 511:                   </button>
+ 512:                 </div>
+ 513:               ),
+ 514:             )}
+ 515:           </div>
+ 516:         </div>
+ 517:       </section>
+ 518: 
+ 519:       {loading ? (
+ 520:         <LoadingGrid />
+ 521:       ) : items.length > 0 ? (
+ 522:         <section className="grid gap-5 lg:grid-cols-2">
+ 523:           {items.map((item) => (
+ 524:             <AdminReferenceItemCard
+ 525:               key={item.id}
+ 526:               item={item}
+ 527:               busy={actionBusy}
+ 528:               onOpen={() => openFolder(item)}
+ 529:               onChangeStatus={(nextStatus) =>
+ 530:                 setPendingAction({
+ 531:                   type: "STATUS",
+ 532:                   item,
+ 533:                   status: nextStatus,
+ 534:                 })
+ 535:               }
+ 536:               onDelete={() =>
+ 537:                 setPendingAction({
+ 538:                   type: "DELETE",
+ 539:                   item,
+ 540:                 })
+ 541:               }
+ 542:               onReplaced={(message) => {
+ 543:                 setFeedback({
+ 544:                   type: "success",
+ 545:                   title: "تم استبدال الملف",
+ 546:                   message,
+ 547:                 });
+ 548: 
+ 549:                 void loadItems();
+ 550:               }}
+ 551:             />
+ 552:           ))}
+ 553:         </section>
+ 554:       ) : (
+ 555:         <section className="rounded-[32px] border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+ 556:           <div className="mx-auto grid h-16 w-16 place-items-center rounded-[22px] bg-sky-50 text-sky-700">
+ 557:             <BookOpen className="h-7 w-7" />
+ 558:           </div>
+ 559: 
+ 560:           <h3 className="mt-5 text-xl font-black text-slate-950">
+ 561:             لا يوجد محتوى في هذا المستوى
+ 562:           </h3>
+ 563: 
+ 564:           <p className="mx-auto mt-2 max-w-lg text-sm font-bold leading-7 text-slate-500">
+ 565:             أنشئ حقيبة أو قسمًا جديدًا، وبعد فتح
+ 566:             المجلد تستطيع رفع ملفات PDF وWord
+ 567:             داخله.
+ 568:           </p>
+ 569: 
+ 570:           <button
+ 571:             type="button"
+ 572:             onClick={() =>
+ 573:               setFolderDialogOpen(true)
+ 574:             }
+ 575:             className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+ 576:           >
+ 577:             <Plus className="h-4 w-4" />
+ 578:             {currentParentId
+ 579:               ? "إضافة قسم"
+ 580:               : "إنشاء أول حقيبة"}
+ 581:           </button>
+ 582:         </section>
+ 583:       )}
+ 584: 
+ 585:       <AdminReferenceFolderDialog
+ 586:         open={folderDialogOpen}
+ 587:         parentId={currentParentId}
+ 588:         parentTitle={parent?.title ?? null}
+ 589:         onClose={() =>
+ 590:           setFolderDialogOpen(false)
+ 591:         }
+ 592:         onCreated={(message) => {
+ 593:           setFeedback({
+ 594:             type: "success",
+ 595:             title: "تم إنشاء المحتوى",
+ 596:             message,
+ 597:           });
+ 598:           void loadItems();
+ 599:         }}
+ 600:       />
+ 601: 
+ 602:       <AdminReferenceUploadDialog
+ 603:         open={uploadDialogOpen}
+ 604:         parentId={currentParentId}
+ 605:         parentTitle={parent?.title ?? null}
+ 606:         onClose={() =>
+ 607:           setUploadDialogOpen(false)
+ 608:         }
+ 609:         onUploaded={(message) => {
+ 610:           setFeedback({
+ 611:             type: "success",
+ 612:             title: "اكتمل رفع الملف",
+ 613:             message,
+ 614:           });
+ 615:           void loadItems();
+ 616:         }}
+ 617:       />
+ 618: 
+ 619:       <ReferenceLibraryConfirmDialog
+ 620:         open={Boolean(pendingAction)}
+ 621:         title={confirmTitle}
+ 622:         description={confirmDescription}
+ 623:         confirmLabel={
+ 624:           pendingAction?.type === "DELETE"
+ 625:             ? "حذف العنصر"
+ 626:             : "تأكيد التغيير"
+ 627:         }
+ 628:         busy={actionBusy}
+ 629:         destructive={
+ 630:           pendingAction?.type === "DELETE"
+ 631:         }
+ 632:         onCancel={() => {
+ 633:           if (!actionBusy) {
+ 634:             setPendingAction(null);
+ 635:           }
+ 636:         }}
+ 637:         onConfirm={() => {
+ 638:           void executePendingAction();
+ 639:         }}
+ 640:       />
+ 641: 
+ 642:       <ReferenceLibraryFeedbackCard
+ 643:         feedback={feedback}
+ 644:         onClose={() => setFeedback(null)}
+ 645:       />
+ 646:     </div>
+ 647:   );
+ 648: }
+ 649: 
+ 650: function StatCard({
+ 651:   label,
+ 652:   value,
+ 653:   icon,
+ 654: }: {
+ 655:   label: string;
+ 656:   value: number;
+ 657:   icon: React.ReactNode;
+ 658: }) {
+ 659:   return (
+ 660:     <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+ 661:       <div className="flex items-center justify-between gap-4">
+ 662:         <div>
+ 663:           <p className="text-xs font-black text-slate-500">
+ 664:             {label}
+ 665:           </p>
+ 666: 
+ 667:           <p className="mt-2 text-3xl font-black text-slate-950">
+ 668:             {value}
+ 669:           </p>
+ 670:         </div>
+ 671: 
+ 672:         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-50 text-sky-700">
+ 673:           {icon}
+ 674:         </div>
+ 675:       </div>
+ 676:     </div>
+ 677:   );
+ 678: }
+ 679: 
+ 680: function LoadingGrid() {
+ 681:   return (
+ 682:     <section className="grid gap-5 lg:grid-cols-2">
+ 683:       {Array.from({
+ 684:         length: 4,
+ 685:       }).map((_, index) => (
+ 686:         <div
+ 687:           key={index}
+ 688:           className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-5"
+ 689:         >
+ 690:           <div className="flex items-start gap-3">
+ 691:             <div className="h-12 w-12 rounded-2xl bg-slate-100" />
+ 692: 
+ 693:             <div className="flex-1">
+ 694:               <div className="h-5 w-24 rounded bg-slate-100" />
+ 695:               <div className="mt-4 h-6 w-2/3 rounded bg-slate-100" />
+ 696:             </div>
+ 697:           </div>
+ 698: 
+ 699:           <div className="mt-5 h-4 w-full rounded bg-slate-100" />
+ 700:           <div className="mt-2 h-4 w-3/4 rounded bg-slate-100" />
+ 701:           <div className="mt-6 h-10 w-32 rounded-2xl bg-slate-100" />
+ 702:         </div>
+ 703:       ))}
+ 704:     </section>
+ 705:   );
+ 706: }
+
+==================================================
+FILE: components\reference-library\reference-library-item-card.tsx
+==================================================
+   1: import {
+   2:   BookOpen,
+   3:   Download,
+   4:   Eye,
+   5:   FileText,
+   6:   FolderOpen,
+   7: } from "lucide-react";
+   8: import Link from "next/link";
+   9: import type {
+  10:   ReferenceLibraryItemSummary,
+  11: } from "@/lib/reference-library/reference-library-types";
+  12: 
+  13: export function ReferenceLibraryItemCard({
+  14:   item,
+  15: }: {
+  16:   item: ReferenceLibraryItemSummary;
+  17: }) {
+  18:   const isFolder =
+  19:     item.itemType === "FOLDER";
+  20: 
+  21:   const openHref = isFolder
+  22:     ? `/dashboard/counselor-reference-library/${encodeURIComponent(
+  23:         item.id,
+  24:       )}`
+  25:     : `/dashboard/counselor-reference-library/file/${encodeURIComponent(
+  26:         item.id,
+  27:       )}`;
+  28: 
+  29:   return (
+  30:     <article className="group relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(15,23,42,0.09)]">
+  31:       <Link
+  32:         href={openHref}
+  33:         className="absolute inset-0 z-0"
+  34:         aria-label={`فتح ${item.title}`}
+  35:       />
+  36: 
+  37:       <div className="relative z-10 pointer-events-none">
+  38:         <div className="flex items-start gap-4">
+  39:           <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700">
+  40:             {isFolder ? (
+  41:               <FolderOpen className="h-6 w-6" />
+  42:             ) : (
+  43:               <FileText className="h-6 w-6" />
+  44:             )}
+  45:           </div>
+  46: 
+  47:           <div className="min-w-0 flex-1">
+  48:             <div className="flex flex-wrap items-center gap-2">
+  49:               <span className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700">
+  50:                 {isFolder
+  51:                   ? item.parentId
+  52:                     ? "قسم"
+  53:                     : "حقيبة"
+  54:                   : item.fileExtension?.toUpperCase() ||
+  55:                     "ملف"}
+  56:               </span>
+  57: 
+  58:               {item.pdfCoverApplied ? (
+  59:                 <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
+  60:                   غلاف رسمي
+  61:                 </span>
+  62:               ) : null}
+  63:             </div>
+  64: 
+  65:             <h2 className="mt-3 line-clamp-2 text-xl font-black leading-8 text-slate-950">
+  66:               {item.title}
+  67:             </h2>
+  68:           </div>
+  69:         </div>
+  70: 
+  71:         <p className="mt-4 line-clamp-2 min-h-12 text-sm font-bold leading-6 text-slate-500">
+  72:           {item.description ||
+  73:             (isFolder
+  74:               ? "محتوى معرفي منظم يضم أقسامًا وملفات متعددة."
+  75:               : "ملف متاح للقراءة ضمن المرجع الشامل.")}
+  76:         </p>
+  77: 
+  78:         <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-black text-slate-500">
+  79:           {isFolder ? (
+  80:             <span className="rounded-xl bg-slate-50 px-3 py-2">
+  81:               {item.childrenCount} عنصر
+  82:             </span>
+  83:           ) : (
+  84:             <>
+  85:               <span className="rounded-xl bg-slate-50 px-3 py-2">
+  86:                 {formatFileSize(
+  87:                   item.sizeBytes,
+  88:                 )}
+  89:               </span>
+  90: 
+  91:               <span className="rounded-xl bg-slate-50 px-3 py-2">
+  92:                 {item.allowDownload
+  93:                   ? "المعاينة والتحميل"
+  94:                   : "المعاينة فقط"}
+  95:               </span>
+  96:             </>
+  97:           )}
+  98: 
+  99:           <span className="rounded-xl bg-slate-50 px-3 py-2">
+ 100:             تحديث {formatDate(item.updatedAt)}
+ 101:           </span>
+ 102:         </div>
+ 103:       </div>
+ 104: 
+ 105:       <div className="relative z-10 mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+ 106:         <Link
+ 107:           href={openHref}
+ 108:           className="pointer-events-auto inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
+ 109:         >
+ 110:           {isFolder ? (
+ 111:             <BookOpen className="h-4 w-4" />
+ 112:           ) : (
+ 113:             <Eye className="h-4 w-4" />
+ 114:           )}
+ 115: 
+ 116:           {isFolder
+ 117:             ? "فتح المحتوى"
+ 118:             : "معاينة الملف"}
+ 119:         </Link>
+ 120: 
+ 121:         {!isFolder &&
+ 122:         item.allowDownload ? (
+ 123:           <a
+ 124:             href={`/api/dashboard/counselor-reference-library/files/${encodeURIComponent(
+ 125:               item.id,
+ 126:             )}?download=1`}
+ 127:             className="pointer-events-auto inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+ 128:           >
+ 129:             <Download className="h-4 w-4" />
+ 130:             تحميل
+ 131:           </a>
+ 132:         ) : null}
+ 133:       </div>
+ 134:     </article>
+ 135:   );
+ 136: }
+ 137: 
+ 138: function formatFileSize(
+ 139:   size: number | null,
+ 140: ) {
+ 141:   if (!size) {
+ 142:     return "حجم غير محدد";
+ 143:   }
+ 144: 
+ 145:   if (size < 1024) {
+ 146:     return `${size} بايت`;
+ 147:   }
+ 148: 
+ 149:   if (size < 1024 * 1024) {
+ 150:     return `${(size / 1024).toFixed(1)} كيلوبايت`;
+ 151:   }
+ 152: 
+ 153:   return `${(size / 1024 / 1024).toFixed(1)} ميجابايت`;
+ 154: }
+ 155: 
+ 156: function formatDate(value: Date) {
+ 157:   return new Intl.DateTimeFormat("ar-SA", {
+ 158:     year: "numeric",
+ 159:     month: "short",
+ 160:     day: "numeric",
+ 161:   }).format(value);
+ 162: }
+
+==================================================
+FILE: app\api\dashboard\admin\counselor-reference-library\upload\route.ts
+==================================================
+   1: import { NextResponse } from "next/server";
+   2: import { prisma } from "@/lib/prisma";
+   3: import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+   4: import {
+   5:   getCurrentSessionUser,
+   6:   getRequestDeviceInfo,
+   7: } from "@/lib/auth/current-user";
+   8: import { logPlatformActivity } from "@/lib/admin/activity-log";
+   9: import {
+  10:   createReferenceLibraryFile,
+  11: } from "@/lib/reference-library/reference-library-service";
+  12: import {
+  13:   createReferenceLibraryStorageKey,
+  14:   deleteReferenceLibraryFile,
+  15:   saveReferenceLibraryFile,
+  16: } from "@/lib/reference-library/reference-library-storage";
+  17: import {
+  18:   isPdfSignature,
+  19:   isZipSignature,
+  20:   validateReferenceLibraryFileMetadata,
+  21: } from "@/lib/reference-library/reference-library-validation";
+  22: import {
+  23:   parseBoolean,
+  24:   parseItemTextInput,
+  25:   parseJsonArray,
+  26:   parseReferenceLibraryStatus,
+  27:   parseSafeInteger,
+  28:   referenceLibraryErrorResponse,
+  29: } from "@/lib/reference-library/reference-library-api";
+  30: import { normalizeReferenceLibraryAudiences } from "@/lib/reference-library/reference-library-audience";
+  31: import {
+  32:   buildReferenceLibraryPdfWithCover,
+  33: } from "@/lib/reference-library/reference-library-pdf-cover";
+  34: 
+  35: export const runtime = "nodejs";
+  36: 
+  37: async function loadLogoBuffer(
+  38:   logoUrl: string | null | undefined,
+  39: ) {
+  40:   if (!logoUrl) {
+  41:     return null;
+  42:   }
+  43: 
+  44:   try {
+  45:     const response = await fetch(logoUrl);
+  46: 
+  47:     if (!response.ok) {
+  48:       return null;
+  49:     }
+  50: 
+  51:     return Buffer.from(
+  52:       await response.arrayBuffer(),
+  53:     );
+  54:   } catch {
+  55:     return null;
+  56:   }
+  57: }
+  58: 
+  59: export async function POST(request: Request) {
+  60:   const adminError = await requireAdminApi();
+  61: 
+  62:   if (adminError) {
+  63:     return adminError;
+  64:   }
+  65: 
+  66:   const current = await getCurrentSessionUser();
+  67: 
+  68:   if (!current?.user) {
+  69:     return NextResponse.json(
+  70:       {
+  71:         error: "يجب تسجيل الدخول.",
+  72:       },
+  73:       {
+  74:         status: 401,
+  75:       },
+  76:     );
+  77:   }
+  78: 
+  79:   const formData = await request.formData().catch(() => null);
+  80: 
+  81:   if (!formData) {
+  82:     return NextResponse.json(
+  83:       {
+  84:         error: "تعذر قراءة بيانات الرفع.",
+  85:       },
+  86:       {
+  87:         status: 400,
+  88:       },
+  89:     );
+  90:   }
+  91: 
+  92:   const uploadedFile = formData.get("file");
+  93: 
+  94:   if (!(uploadedFile instanceof File)) {
+  95:     return NextResponse.json(
+  96:       {
+  97:         error: "اختر ملفًا للرفع.",
+  98:       },
+  99:       {
+ 100:         status: 400,
+ 101:       },
+ 102:     );
+ 103:   }
+ 104: 
+ 105:   const parentId = String(
+ 106:     formData.get("parentId") ?? "",
+ 107:   ).trim();
+ 108: 
+ 109:   if (!parentId) {
+ 110:     return NextResponse.json(
+ 111:       {
+ 112:         error: "اختر المجلد الذي سيحفظ الملف داخله.",
+ 113:       },
+ 114:       {
+ 115:         status: 400,
+ 116:       },
+ 117:     );
+ 118:   }
+ 119: 
+ 120:   const textResult = parseItemTextInput({
+ 121:     title:
+ 122:       formData.get("title") ||
+ 123:       uploadedFile.name,
+ 124:     description:
+ 125:       formData.get("description"),
+ 126:   });
+ 127: 
+ 128:   if (!textResult.ok) {
+ 129:     return textResult.response;
+ 130:   }
+ 131: 
+ 132:   const metadataResult =
+ 133:     validateReferenceLibraryFileMetadata({
+ 134:       fileName: uploadedFile.name,
+ 135:       mimeType: uploadedFile.type,
+ 136:       size: uploadedFile.size,
+ 137:     });
+ 138: 
+ 139:   if (!metadataResult.ok) {
+ 140:     return NextResponse.json(
+ 141:       {
+ 142:         error: metadataResult.error,
+ 143:       },
+ 144:       {
+ 145:         status:
+ 146:           uploadedFile.size >
+ 147:           50 * 1024 * 1024
+ 148:             ? 413
+ 149:             : 415,
+ 150:       },
+ 151:     );
+ 152:   }
+ 153: 
+ 154:   const originalBuffer = new Uint8Array(
+ 155:     await uploadedFile.arrayBuffer(),
+ 156:   );
+ 157: 
+ 158:   if (
+ 159:     metadataResult.extension === "pdf" &&
+ 160:     !isPdfSignature(originalBuffer)
+ 161:   ) {
+ 162:     return NextResponse.json(
+ 163:       {
+ 164:         error: "محتوى ملف PDF غير صالح.",
+ 165:       },
+ 166:       {
+ 167:         status: 415,
+ 168:       },
+ 169:     );
+ 170:   }
+ 171: 
+ 172:   if (
+ 173:     metadataResult.extension === "docx" &&
+ 174:     !isZipSignature(originalBuffer)
+ 175:   ) {
+ 176:     return NextResponse.json(
+ 177:       {
+ 178:         error: "محتوى ملف Word غير صالح.",
+ 179:       },
+ 180:       {
+ 181:         status: 415,
+ 182:       },
+ 183:     );
+ 184:   }
+ 185: 
+ 186:   const status = parseReferenceLibraryStatus(
+ 187:     formData.get("status") ?? "DRAFT",
+ 188:   );
+ 189: 
+ 190:   if (!status || status === "ARCHIVED") {
+ 191:     return NextResponse.json(
+ 192:       {
+ 193:         error: "حالة الملف غير صالحة.",
+ 194:       },
+ 195:       {
+ 196:         status: 400,
+ 197:       },
+ 198:     );
+ 199:   }
+ 200: 
+ 201:   const inheritAudience = parseBoolean(
+ 202:     formData.get("inheritAudience"),
+ 203:     true,
+ 204:   );
+ 205: 
+ 206:   const audienceResult =
+ 207:     await normalizeReferenceLibraryAudiences(
+ 208:       parseJsonArray(
+ 209:         formData.get("audiences"),
+ 210:       ),
+ 211:     );
+ 212: 
+ 213:   if (
+ 214:     !inheritAudience &&
+ 215:     !audienceResult.ok
+ 216:   ) {
+ 217:     return NextResponse.json(
+ 218:       {
+ 219:         error: audienceResult.error,
+ 220:       },
+ 221:       {
+ 222:         status: 400,
+ 223:       },
+ 224:     );
+ 225:   }
+ 226: 
+ 227:   const addSchoolCover =
+ 228:     metadataResult.extension === "pdf" &&
+ 229:     parseBoolean(
+ 230:       formData.get("addSchoolCover"),
+ 231:       true,
+ 232:     );
+ 233: 
+ 234:   const originalStorageKey =
+ 235:     addSchoolCover
+ 236:       ? createReferenceLibraryStorageKey(
+ 237:           metadataResult.extension,
+ 238:         )
+ 239:       : null;
+ 240: 
+ 241:   const finalStorageKey =
+ 242:     createReferenceLibraryStorageKey(
+ 243:       metadataResult.extension,
+ 244:     );
+ 245: 
+ 246:   let finalBuffer = originalBuffer;
+ 247:   let coverWarning: string | null = null;
+ 248: 
+ 249:   try {
+ 250:     if (addSchoolCover) {
+ 251:       const parent =
+ 252:         await prisma.referenceLibraryItem.findUnique({
+ 253:           where: {
+ 254:             id: parentId,
+ 255:           },
+ 256:           select: {
+ 257:             title: true,
+ 258:           },
+ 259:         });
+ 260: 
+ 261:       const profile =
+ 262:         current.user.schoolAccount?.profile;
+ 263: 
+ 264:       const logoBuffer =
+ 265:         await loadLogoBuffer(
+ 266:           profile?.logoUrl,
+ 267:         );
+ 268: 
+ 269:       finalBuffer =
+ 270:         await buildReferenceLibraryPdfWithCover({
+ 271:           originalPdf: originalBuffer,
+ 272:           identity: {
+ 273:             schoolName:
+ 274:               profile?.schoolName ||
+ 275:               current.user.schoolAccount?.name ||
+ 276:               "هوية المدرسة غير مكتملة",
+ 277:             educationDepartment:
+ 278:               profile?.educationDepartment,
+ 279:             educationOffice:
+ 280:               profile?.educationOffice,
+ 281:             city: profile?.city,
+ 282:             academicYear:
+ 283:               profile?.academicYear,
+ 284:             logoBuffer,
+ 285:             packageTitle:
+ 286:               parent?.title ?? null,
+ 287:             fileTitle: textResult.title,
+ 288:             description:
+ 289:               textResult.description,
+ 290:             counselorName:
+ 291:               current.user.officialName ||
+ 292:               current.user.name,
+ 293:           },
+ 294:         });
+ 295: 
+ 296:       if (
+ 297:         !profile?.schoolName ||
+ 298:         !profile?.logoUrl
+ 299:       ) {
+ 300:         coverWarning =
+ 301:           "تم إنشاء الغلاف بالبيانات المتاحة، لكن هوية المدرسة غير مكتملة.";
+ 302:       }
+ 303:     }
+ 304: 
+ 305:     if (originalStorageKey) {
+ 306:       await saveReferenceLibraryFile({
+ 307:         storageKey: originalStorageKey,
+ 308:         buffer: originalBuffer,
+ 309:       });
+ 310:     }
+ 311: 
+ 312:     await saveReferenceLibraryFile({
+ 313:       storageKey: finalStorageKey,
+ 314:       buffer: finalBuffer,
+ 315:     });
+ 316: 
+ 317:     const item =
+ 318:       await createReferenceLibraryFile({
+ 319:         title: textResult.title,
+ 320:         description:
+ 321:           textResult.description,
+ 322:         parentId,
+ 323:         sortOrder: parseSafeInteger(
+ 324:           formData.get("sortOrder"),
+ 325:           0,
+ 326:         ),
+ 327:         status,
+ 328:         allowDownload: parseBoolean(
+ 329:           formData.get("allowDownload"),
+ 330:           true,
+ 331:         ),
+ 332:         createdById: current.user.id,
+ 333:         audiences: audienceResult.ok
+ 334:           ? audienceResult.audiences
+ 335:           : [],
+ 336:         inheritAudience,
+ 337:         originalFileName:
+ 338:           uploadedFile.name,
+ 339:         storageKey: finalStorageKey,
+ 340:         mimeType:
+ 341:           metadataResult.mimeType,
+ 342:         fileExtension:
+ 343:           metadataResult.extension,
+ 344:         sizeBytes:
+ 345:           finalBuffer.byteLength,
+ 346:       });
+ 347: 
+ 348:     const updatedItem =
+ 349:       originalStorageKey
+ 350:         ? await prisma.referenceLibraryItem.update({
+ 351:             where: {
+ 352:               id: item.id,
+ 353:             },
+ 354:             data: {
+ 355:               originalStorageKey,
+ 356:               pdfCoverApplied: true,
+ 357:             },
+ 358:           })
+ 359:         : item;
+ 360: 
+ 361:     const deviceInfo =
+ 362:       await getRequestDeviceInfo();
+ 363: 
+ 364:     await logPlatformActivity({
+ 365:       actorUserId: current.user.id,
+ 366:       schoolAccountId:
+ 367:         current.user.schoolAccountId,
+ 368:       category: "SYSTEM",
+ 369:       action:
+ 370:         "REFERENCE_LIBRARY_FILE_UPLOADED",
+ 371:       severity: "SUCCESS",
+ 372:       title:
+ 373:         "تم رفع ملف إلى المرجع الشامل",
+ 374:       details: {
+ 375:         itemId: updatedItem.id,
+ 376:         title: updatedItem.title,
+ 377:         parentId: updatedItem.parentId,
+ 378:         mimeType:
+ 379:           updatedItem.mimeType,
+ 380:         sizeBytes:
+ 381:           updatedItem.sizeBytes,
+ 382:         pdfCoverApplied:
+ 383:           updatedItem.pdfCoverApplied,
+ 384:       },
+ 385:       ...deviceInfo,
+ 386:     });
+ 387: 
+ 388:     return NextResponse.json(
+ 389:       {
+ 390:         message:
+ 391:           "تم رفع الملف بنجاح.",
+ 392:         warning: coverWarning,
+ 393:         item: updatedItem,
+ 394:       },
+ 395:       {
+ 396:         status: 201,
+ 397:       },
+ 398:     );
+ 399:   } catch (error) {
+ 400:     await Promise.allSettled([
+ 401:       deleteReferenceLibraryFile(
+ 402:         originalStorageKey,
+ 403:       ),
+ 404:       deleteReferenceLibraryFile(
+ 405:         finalStorageKey,
+ 406:       ),
+ 407:     ]);
+ 408: 
+ 409:     return referenceLibraryErrorResponse(
+ 410:       error,
+ 411:     );
+ 412:   }
+ 413: }
+
+==================================================
+FILE: app\api\dashboard\admin\counselor-reference-library\items\[itemId]\replace-file\route.ts
+==================================================
+   1: import { NextResponse } from "next/server";
+   2: import { prisma } from "@/lib/prisma";
+   3: import { requireAdminApi } from "@/lib/admin/admin-api-guard";
+   4: import {
+   5:   getCurrentSessionUser,
+   6:   getRequestDeviceInfo,
+   7: } from "@/lib/auth/current-user";
+   8: import { logPlatformActivity } from "@/lib/admin/activity-log";
+   9: import {
+  10:   createReferenceLibraryStorageKey,
+  11:   deleteReferenceLibraryFile,
+  12: } from "@/lib/reference-library/reference-library-storage";
+  13: import {
+  14:   replaceReferenceLibraryFile,
+  15: } from "@/lib/reference-library/reference-library-service";
+  16: import {
+  17:   isPdfSignature,
+  18:   isZipSignature,
+  19:   validateReferenceLibraryFileMetadata,
+  20: } from "@/lib/reference-library/reference-library-validation";
+  21: import {
+  22:   referenceLibraryErrorResponse,
+  23: } from "@/lib/reference-library/reference-library-api";
+  24: 
+  25: export const runtime = "nodejs";
+  26: 
+  27: type RouteContext = {
+  28:   params: Promise<{
+  29:     itemId: string;
+  30:   }>;
+  31: };
+  32: 
+  33: export async function POST(
+  34:   request: Request,
+  35:   context: RouteContext,
+  36: ) {
+  37:   const adminError =
+  38:     await requireAdminApi();
+  39: 
+  40:   if (adminError) {
+  41:     return adminError;
+  42:   }
+  43: 
+  44:   const current =
+  45:     await getCurrentSessionUser();
+  46: 
+  47:   if (!current?.user) {
+  48:     return NextResponse.json(
+  49:       {
+  50:         error: "يجب تسجيل الدخول.",
+  51:       },
+  52:       {
+  53:         status: 401,
+  54:       },
+  55:     );
+  56:   }
+  57: 
+  58:   const { itemId } =
+  59:     await context.params;
+  60: 
+  61:   const existing =
+  62:     await prisma.referenceLibraryItem.findUnique({
+  63:       where: {
+  64:         id: itemId,
+  65:       },
+  66:       select: {
+  67:         id: true,
+  68:         itemType: true,
+  69:         previewStorageKey: true,
+  70:       },
+  71:     });
+  72: 
+  73:   if (
+  74:     !existing ||
+  75:     existing.itemType !== "FILE"
+  76:   ) {
+  77:     return NextResponse.json(
+  78:       {
+  79:         error: "الملف غير موجود.",
+  80:       },
+  81:       {
+  82:         status: 404,
+  83:       },
+  84:     );
+  85:   }
+  86: 
+  87:   const formData =
+  88:     await request.formData().catch(
+  89:       () => null,
+  90:     );
+  91: 
+  92:   const uploadedFile =
+  93:     formData?.get("file");
+  94: 
+  95:   if (!(uploadedFile instanceof File)) {
+  96:     return NextResponse.json(
+  97:       {
+  98:         error: "اختر الملف البديل.",
+  99:       },
+ 100:       {
+ 101:         status: 400,
+ 102:       },
+ 103:     );
+ 104:   }
+ 105: 
+ 106:   const metadataResult =
+ 107:     validateReferenceLibraryFileMetadata({
+ 108:       fileName: uploadedFile.name,
+ 109:       mimeType: uploadedFile.type,
+ 110:       size: uploadedFile.size,
+ 111:     });
+ 112: 
+ 113:   if (!metadataResult.ok) {
+ 114:     return NextResponse.json(
+ 115:       {
+ 116:         error: metadataResult.error,
+ 117:       },
+ 118:       {
+ 119:         status:
+ 120:           uploadedFile.size >
+ 121:           50 * 1024 * 1024
+ 122:             ? 413
+ 123:             : 415,
+ 124:       },
+ 125:     );
+ 126:   }
+ 127: 
+ 128:   const buffer = new Uint8Array(
+ 129:     await uploadedFile.arrayBuffer(),
+ 130:   );
+ 131: 
+ 132:   if (
+ 133:     metadataResult.extension === "pdf" &&
+ 134:     !isPdfSignature(buffer)
+ 135:   ) {
+ 136:     return NextResponse.json(
+ 137:       {
+ 138:         error:
+ 139:           "محتوى ملف PDF غير صالح.",
+ 140:       },
+ 141:       {
+ 142:         status: 415,
+ 143:       },
+ 144:     );
+ 145:   }
+ 146: 
+ 147:   if (
+ 148:     metadataResult.extension === "docx" &&
+ 149:     !isZipSignature(buffer)
+ 150:   ) {
+ 151:     return NextResponse.json(
+ 152:       {
+ 153:         error:
+ 154:           "محتوى ملف Word غير صالح.",
+ 155:       },
+ 156:       {
+ 157:         status: 415,
+ 158:       },
+ 159:     );
+ 160:   }
+ 161: 
+ 162:   const storageKey =
+ 163:     createReferenceLibraryStorageKey(
+ 164:       metadataResult.extension,
+ 165:     );
+ 166: 
+ 167:   try {
+ 168:     const item =
+ 169:       await replaceReferenceLibraryFile({
+ 170:         itemId,
+ 171:         storageKey,
+ 172:         buffer,
+ 173:         originalFileName:
+ 174:           uploadedFile.name,
+ 175:         mimeType:
+ 176:           metadataResult.mimeType,
+ 177:         fileExtension:
+ 178:           metadataResult.extension,
+ 179:       });
+ 180: 
+ 181:     await prisma.referenceLibraryItem.update({
+ 182:       where: {
+ 183:         id: item.id,
+ 184:       },
+ 185:       data: {
+ 186:         previewStorageKey: null,
+ 187:         previewMimeType: null,
+ 188:         previewSizeBytes: null,
+ 189:         previewGeneratedAt: null,
+ 190:       },
+ 191:     });
+ 192: 
+ 193:     await deleteReferenceLibraryFile(
+ 194:       existing.previewStorageKey,
+ 195:     ).catch(() => undefined);
+ 196: 
+ 197:     const deviceInfo =
+ 198:       await getRequestDeviceInfo();
+ 199: 
+ 200:     await logPlatformActivity({
+ 201:       actorUserId:
+ 202:         current.user.id,
+ 203:       schoolAccountId:
+ 204:         current.user.schoolAccountId,
+ 205:       category: "SYSTEM",
+ 206:       action:
+ 207:         "REFERENCE_LIBRARY_FILE_REPLACED",
+ 208:       severity: "SUCCESS",
+ 209:       title:
+ 210:         "تم استبدال ملف في المرجع الشامل",
+ 211:       details: {
+ 212:         itemId: item.id,
+ 213:         title: item.title,
+ 214:         mimeType: item.mimeType,
+ 215:         sizeBytes: item.sizeBytes,
+ 216:         previewReset: true,
+ 217:       },
+ 218:       ...deviceInfo,
+ 219:     });
+ 220: 
+ 221:     return NextResponse.json({
+ 222:       message:
+ 223:         "تم استبدال الملف بنجاح، وستُنشأ معاينة PDF الجديدة عند فتحه.",
+ 224:       item,
+ 225:     });
+ 226:   } catch (error) {
+ 227:     return referenceLibraryErrorResponse(
+ 228:       error,
+ 229:     );
+ 230:   }
+ 231: }
+
+==================================================
+FILE: app\api\dashboard\counselor-reference-library\files\[itemId]\route.ts
+==================================================
+   1: import { NextResponse } from "next/server";
+   2: import { prisma } from "@/lib/prisma";
+   3: import {
+   4:   getRequestDeviceInfo,
+   5: } from "@/lib/auth/current-user";
+   6: import { logPlatformActivity } from "@/lib/admin/activity-log";
+   7: import {
+   8:   getVisibleReferenceLibraryItem,
+   9: } from "@/lib/reference-library/reference-library-public-service";
+  10: import {
+  11:   createReferenceLibraryStorageKey,
+  12:   deleteReferenceLibraryFile,
+  13:   readReferenceLibraryFile,
+  14:   referenceLibraryFileExists,
+  15:   saveReferenceLibraryFile,
+  16: } from "@/lib/reference-library/reference-library-storage";
+  17: import {
+  18:   requireReferenceLibraryApiViewer,
+  19: } from "@/lib/reference-library/reference-library-api-access";
+  20: import {
+  21:   convertDocxBufferToPdf,
+  22: } from "@/lib/reference-library/reference-library-docx-pdf";
+  23: 
+  24: export const runtime = "nodejs";
+  25: export const dynamic = "force-dynamic";
+  26: 
+  27: type RouteContext = {
+  28:   params: Promise<{
+  29:     itemId: string;
+  30:   }>;
+  31: };
+  32: 
+  33: function safeFileName(value: string) {
+  34:   return value
+  35:     .replace(/[\r\n"]/g, "")
+  36:     .replace(/[\\/]/g, "-")
+  37:     .trim()
+  38:     .slice(0, 180);
+  39: }
+  40: 
+  41: function contentDisposition(
+  42:   mode: "inline" | "attachment",
+  43:   fileName: string,
+  44: ) {
+  45:   const safeName =
+  46:     safeFileName(fileName) ||
+  47:     "reference-file";
+  48: 
+  49:   return `${mode}; filename*=UTF-8''${encodeURIComponent(
+  50:     safeName,
+  51:   )}`;
+  52: }
+  53: 
+  54: async function ensureDocxPreview(input: {
+  55:   itemId: string;
+  56:   storageKey: string;
+  57:   currentPreviewStorageKey: string | null;
+  58: }): Promise<string> {
+  59:   if (
+  60:     input.currentPreviewStorageKey &&
+  61:     await referenceLibraryFileExists(
+  62:       input.currentPreviewStorageKey,
+  63:     )
+  64:   ) {
+  65:     return input.currentPreviewStorageKey;
+  66:   }
+  67: 
+  68:   const originalBuffer =
+  69:     await readReferenceLibraryFile(
+  70:       input.storageKey,
+  71:     );
+  72: 
+  73:   const previewBuffer =
+  74:     await convertDocxBufferToPdf(
+  75:       originalBuffer,
+  76:     );
+  77: 
+  78:   const previewStorageKey =
+  79:     createReferenceLibraryStorageKey("pdf");
+  80: 
+  81:   try {
+  82:     await saveReferenceLibraryFile({
+  83:       storageKey: previewStorageKey,
+  84:       buffer: previewBuffer,
+  85:     });
+  86: 
+  87:     const updated =
+  88:       await prisma.referenceLibraryItem.update({
+  89:         where: {
+  90:           id: input.itemId,
+  91:         },
+  92:         data: {
+  93:           previewStorageKey,
+  94:           previewMimeType:
+  95:             "application/pdf",
+  96:           previewSizeBytes:
+  97:             previewBuffer.byteLength,
+  98:           previewGeneratedAt:
+  99:             new Date(),
+ 100:         },
+ 101:         select: {
+ 102:           previewStorageKey: true,
+ 103:         },
+ 104:       });
+ 105: 
+ 106:     if (
+ 107:       input.currentPreviewStorageKey &&
+ 108:       input.currentPreviewStorageKey !==
+ 109:         updated.previewStorageKey
+ 110:     ) {
+ 111:       await deleteReferenceLibraryFile(
+ 112:         input.currentPreviewStorageKey,
+ 113:       ).catch(() => undefined);
+ 114:     }
+ 115: 
+ 116:     if (!updated.previewStorageKey) {
+ 117:       throw new Error(
+ 118:         "REFERENCE_LIBRARY_PREVIEW_STORAGE_KEY_MISSING",
+ 119:       );
+ 120:     }
+ 121: 
+ 122:     return updated.previewStorageKey;
+ 123:   } catch (error) {
+ 124:     await deleteReferenceLibraryFile(
+ 125:       previewStorageKey,
+ 126:     ).catch(() => undefined);
+ 127: 
+ 128:     throw error;
+ 129:   }
+ 130: }
+ 131: 
+ 132: function parseRange(
+ 133:   rangeHeader: string,
+ 134:   totalLength: number,
+ 135: ) {
+ 136:   const match =
+ 137:     /^bytes=(\d*)-(\d*)$/.exec(
+ 138:       rangeHeader.trim(),
+ 139:     );
+ 140: 
+ 141:   if (!match) {
+ 142:     return null;
+ 143:   }
+ 144: 
+ 145:   const start = match[1]
+ 146:     ? Number(match[1])
+ 147:     : 0;
+ 148: 
+ 149:   const requestedEnd = match[2]
+ 150:     ? Number(match[2])
+ 151:     : totalLength - 1;
+ 152: 
+ 153:   const end = Math.min(
+ 154:     requestedEnd,
+ 155:     totalLength - 1,
+ 156:   );
+ 157: 
+ 158:   if (
+ 159:     !Number.isSafeInteger(start) ||
+ 160:     !Number.isSafeInteger(end) ||
+ 161:     start < 0 ||
+ 162:     end < start ||
+ 163:     start >= totalLength
+ 164:   ) {
+ 165:     return null;
+ 166:   }
+ 167: 
+ 168:   return {
+ 169:     start,
+ 170:     end,
+ 171:   };
+ 172: }
+ 173: 
+ 174: export async function GET(
+ 175:   request: Request,
+ 176:   context: RouteContext,
+ 177: ) {
+ 178:   const access =
+ 179:     await requireReferenceLibraryApiViewer();
+ 180: 
+ 181:   if (!access.ok) {
+ 182:     return access.response;
+ 183:   }
+ 184: 
+ 185:   const { itemId } = await context.params;
+ 186:   const url = new URL(request.url);
+ 187: 
+ 188:   const download =
+ 189:     url.searchParams.get("download") === "1";
+ 190: 
+ 191:   const preview =
+ 192:     url.searchParams.get("preview") === "1";
+ 193: 
+ 194:   const visibleItem =
+ 195:     await getVisibleReferenceLibraryItem({
+ 196:       itemId,
+ 197:       viewer: access.viewer,
+ 198:     }).catch(() => null);
+ 199: 
+ 200:   if (
+ 201:     !visibleItem ||
+ 202:     visibleItem.itemType !== "FILE" ||
+ 203:     !visibleItem.storageKey ||
+ 204:     !visibleItem.mimeType
+ 205:   ) {
+ 206:     return NextResponse.json(
+ 207:       {
+ 208:         error: "الملف غير موجود.",
+ 209:       },
+ 210:       {
+ 211:         status: 404,
+ 212:       },
+ 213:     );
+ 214:   }
+ 215: 
+ 216:   if (download && !visibleItem.allowDownload) {
+ 217:     return NextResponse.json(
+ 218:       {
+ 219:         error:
+ 220:           "تحميل هذا الملف غير مسموح.",
+ 221:       },
+ 222:       {
+ 223:         status: 403,
+ 224:       },
+ 225:     );
+ 226:   }
+ 227: 
+ 228:   const storedItem =
+ 229:     await prisma.referenceLibraryItem.findUnique({
+ 230:       where: {
+ 231:         id: visibleItem.id,
+ 232:       },
+ 233:       select: {
+ 234:         previewStorageKey: true,
+ 235:         previewMimeType: true,
+ 236:       },
+ 237:     });
+ 238: 
+ 239:   let selectedStorageKey =
+ 240:     visibleItem.storageKey;
+ 241: 
+ 242:   let selectedMimeType =
+ 243:     visibleItem.mimeType;
+ 244: 
+ 245:   let selectedFileName =
+ 246:     visibleItem.originalFileName ||
+ 247:     `${visibleItem.title}.${visibleItem.fileExtension || ""}`;
+ 248: 
+ 249:   if (
+ 250:     preview &&
+ 251:     visibleItem.fileExtension === "docx"
+ 252:   ) {
+ 253:     try {
+ 254:       const previewStorageKey =
+ 255:         await ensureDocxPreview({
+ 256:           itemId: visibleItem.id,
+ 257:           storageKey:
+ 258:             visibleItem.storageKey,
+ 259:           currentPreviewStorageKey:
+ 260:             storedItem?.previewStorageKey ??
+ 261:             null,
+ 262:         });
+ 263: 
+ 264:       selectedStorageKey =
+ 265:         previewStorageKey;
+ 266: 
+ 267:       selectedMimeType =
+ 268:         "application/pdf";
+ 269: 
+ 270:       selectedFileName =
+ 271:         `${visibleItem.title}.pdf`;
+ 272:     } catch (error) {
+ 273:       console.error(
+ 274:         "REFERENCE_LIBRARY_PREVIEW_FAILED",
+ 275:         error,
+ 276:       );
+ 277: 
+ 278:       return NextResponse.json(
+ 279:         {
+ 280:           error:
+ 281:             "تعذر إنشاء معاينة PDF. تأكد من تثبيت LibreOffice على الخادم وضبط LIBREOFFICE_PATH.",
+ 282:         },
+ 283:         {
+ 284:           status: 503,
+ 285:         },
+ 286:       );
+ 287:     }
+ 288:   }
+ 289: 
+ 290:   if (
+ 291:     !await referenceLibraryFileExists(
+ 292:       selectedStorageKey,
+ 293:     )
+ 294:   ) {
+ 295:     return NextResponse.json(
+ 296:       {
+ 297:         error:
+ 298:           "تعذر العثور على الملف المخزن.",
+ 299:       },
+ 300:       {
+ 301:         status: 404,
+ 302:       },
+ 303:     );
+ 304:   }
+ 305: 
+ 306:   const buffer =
+ 307:     await readReferenceLibraryFile(
+ 308:       selectedStorageKey,
+ 309:     );
+ 310: 
+ 311:   const responseHeaders = new Headers({
+ 312:     "Content-Type": selectedMimeType,
+ 313:     "Content-Disposition":
+ 314:       contentDisposition(
+ 315:         download
+ 316:           ? "attachment"
+ 317:           : "inline",
+ 318:         selectedFileName,
+ 319:       ),
+ 320:     "X-Content-Type-Options":
+ 321:       "nosniff",
+ 322:     "Cache-Control":
+ 323:       "private, no-store, max-age=0",
+ 324:     "Accept-Ranges": "bytes",
+ 325:   });
+ 326: 
+ 327:   if (download) {
+ 328:     const deviceInfo =
+ 329:       await getRequestDeviceInfo();
+ 330: 
+ 331:     void logPlatformActivity({
+ 332:       actorUserId:
+ 333:         access.current.user.id,
+ 334:       schoolAccountId:
+ 335:         access.current.user
+ 336:           .schoolAccountId,
+ 337:       category: "SYSTEM",
+ 338:       action:
+ 339:         "REFERENCE_LIBRARY_FILE_DOWNLOADED",
+ 340:       severity: "INFO",
+ 341:       title:
+ 342:         "تم تنزيل ملف من المرجع الشامل",
+ 343:       details: {
+ 344:         itemId: visibleItem.id,
+ 345:         title: visibleItem.title,
+ 346:         mimeType:
+ 347:           visibleItem.mimeType,
+ 348:         sizeBytes:
+ 349:           visibleItem.sizeBytes,
+ 350:       },
+ 351:       ...deviceInfo,
+ 352:     });
+ 353:   }
+ 354: 
+ 355:   const rangeHeader =
+ 356:     request.headers.get("range");
+ 357: 
+ 358:   if (
+ 359:     rangeHeader &&
+ 360:     selectedMimeType === "application/pdf"
+ 361:   ) {
+ 362:     const range = parseRange(
+ 363:       rangeHeader,
+ 364:       buffer.length,
+ 365:     );
+ 366: 
+ 367:     if (!range) {
+ 368:       responseHeaders.set(
+ 369:         "Content-Range",
+ 370:         `bytes */${buffer.length}`,
+ 371:       );
+ 372: 
+ 373:       return new Response(null, {
+ 374:         status: 416,
+ 375:         headers: responseHeaders,
+ 376:       });
+ 377:     }
+ 378: 
+ 379:     const chunk = buffer.subarray(
+ 380:       range.start,
+ 381:       range.end + 1,
+ 382:     );
+ 383: 
+ 384:     responseHeaders.set(
+ 385:       "Content-Range",
+ 386:       `bytes ${range.start}-${range.end}/${buffer.length}`,
+ 387:     );
+ 388: 
+ 389:     responseHeaders.set(
+ 390:       "Content-Length",
+ 391:       String(chunk.length),
+ 392:     );
+ 393: 
+ 394:     return new Response(chunk, {
+ 395:       status: 206,
+ 396:       headers: responseHeaders,
+ 397:     });
+ 398:   }
+ 399: 
+ 400:   responseHeaders.set(
+ 401:     "Content-Length",
+ 402:     String(buffer.length),
+ 403:   );
+ 404: 
+ 405:   return new Response(buffer, {
+ 406:     status: 200,
+ 407:     headers: responseHeaders,
+ 408:   });
+ 409: }
+
+==================================================
+FILE: app\dashboard\counselor-reference-library\file\[itemId]\page.tsx
+==================================================
+   1: import {
+   2:   ArrowRight,
+   3:   Download,
+   4:   FileText,
+   5: } from "lucide-react";
+   6: import Link from "next/link";
+   7: import { notFound } from "next/navigation";
+   8: import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+   9: import {
+  10:   buildReferenceLibraryViewer,
+  11:   getVisibleReferenceLibraryItem,
+  12: } from "@/lib/reference-library/reference-library-public-service";
+  13: import {
+  14:   COUNSELOR_REFERENCE_LIBRARY_SERVICE_SLUG,
+  15: } from "@/lib/reference-library/reference-library-constants";
+  16: 
+  17: type PageProps = {
+  18:   params: Promise<{
+  19:     itemId: string;
+  20:   }>;
+  21: };
+  22: 
+  23: export default async function CounselorReferenceLibraryFilePage({
+  24:   params,
+  25: }: PageProps) {
+  26:   const current =
+  27:     await requireServiceAccessForCurrentUser(
+  28:       COUNSELOR_REFERENCE_LIBRARY_SERVICE_SLUG,
+  29:     );
+  30: 
+  31:   const { itemId } = await params;
+  32: 
+  33:   const viewer =
+  34:     buildReferenceLibraryViewer({
+  35:       id: current.user.id,
+  36:       role: current.user.role,
+  37:       schoolAccountId:
+  38:         current.user.schoolAccountId,
+  39:     });
+  40: 
+  41:   const item =
+  42:     await getVisibleReferenceLibraryItem({
+  43:       itemId,
+  44:       viewer,
+  45:     }).catch(() => null);
+  46: 
+  47:   if (
+  48:     !item ||
+  49:     item.itemType !== "FILE" ||
+  50:     !item.storageKey
+  51:   ) {
+  52:     notFound();
+  53:   }
+  54: 
+  55:   const parentHref = item.parentId
+  56:     ? `/dashboard/counselor-reference-library/${encodeURIComponent(
+  57:         item.parentId,
+  58:       )}`
+  59:     : "/dashboard/counselor-reference-library";
+  60: 
+  61:   const fileUrl =
+  62:     `/api/dashboard/counselor-reference-library/files/${encodeURIComponent(
+  63:       item.id,
+  64:     )}`;
+  65: 
+  66:   const previewUrl =
+  67:     item.fileExtension === "docx"
+  68:       ? `${fileUrl}?preview=1`
+  69:       : fileUrl;
+  70: 
+  71:   const supportsPreview =
+  72:     item.fileExtension === "pdf" ||
+  73:     item.fileExtension === "docx";
+  74: 
+  75:   return (
+  76:     <div
+  77:       className="space-y-6 pb-12"
+  78:       dir="rtl"
+  79:     >
+  80:       <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_12px_34px_rgba(15,23,42,0.05)] sm:p-7">
+  81:         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+  82:           <div className="flex items-start gap-4">
+  83:             <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700">
+  84:               <FileText className="h-6 w-6" />
+  85:             </div>
+  86: 
+  87:             <div>
+  88:               <p className="text-xs font-black text-sky-700">
+  89:                 {item.fileExtension?.toUpperCase()}
+  90:               </p>
+  91: 
+  92:               <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+  93:                 {item.title}
+  94:               </h1>
+  95: 
+  96:               <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+  97:                 {item.description ||
+  98:                   "معاينة الملف داخل المرجع الشامل."}
+  99:               </p>
+ 100: 
+ 101:               {item.fileExtension === "docx" ? (
+ 102:                 <p className="mt-2 text-xs font-black text-emerald-700">
+ 103:                   تتم معاينة ملف Word كنسخة PDF،
+ 104:                   بينما يبقى التحميل بصيغة Word الأصلية.
+ 105:                 </p>
+ 106:               ) : null}
+ 107:             </div>
+ 108:           </div>
+ 109: 
+ 110:           <div className="flex flex-wrap gap-2">
+ 111:             <Link
+ 112:               href={parentHref}
+ 113:               className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+ 114:             >
+ 115:               <ArrowRight className="h-4 w-4" />
+ 116:               العودة للمحتوى
+ 117:             </Link>
+ 118: 
+ 119:             {item.allowDownload ? (
+ 120:               <a
+ 121:                 href={`${fileUrl}?download=1`}
+ 122:                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+ 123:               >
+ 124:                 <Download className="h-4 w-4" />
+ 125:                 تحميل الملف الأصلي
+ 126:               </a>
+ 127:             ) : null}
+ 128:           </div>
+ 129:         </div>
+ 130:       </section>
+ 131: 
+ 132:       {supportsPreview ? (
+ 133:         <section className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
+ 134:           <iframe
+ 135:             src={previewUrl}
+ 136:             title={`معاينة ${item.title}`}
+ 137:             className="h-[78vh] min-h-[620px] w-full bg-slate-100"
+ 138:           />
+ 139:         </section>
+ 140:       ) : (
+ 141:         <section className="rounded-[30px] border border-amber-200 bg-amber-50 px-6 py-12 text-center">
+ 142:           <h2 className="text-lg font-black text-amber-950">
+ 143:             المعاينة غير متاحة
+ 144:           </h2>
+ 145: 
+ 146:           <p className="mt-2 text-sm font-bold text-amber-800">
+ 147:             يمكنك تنزيل الملف الأصلي إذا كانت
+ 148:             صلاحية التحميل مفعلة.
+ 149:           </p>
+ 150:         </section>
+ 151:       )}
+ 152:     </div>
+ 153:   );
+ 154: }
