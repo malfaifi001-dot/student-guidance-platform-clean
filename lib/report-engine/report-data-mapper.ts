@@ -1,4 +1,5 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import type {
   EvidenceLayout,
   OfficialReportData,
@@ -22,6 +23,10 @@ type EvidenceLike = {
   description?: string | null;
   fileName?: string | null;
   fileUrl?: string | null;
+  imageUrl?: string | null;
+  publicUrl?: string | null;
+  storagePath?: string | null;
+  attachmentId?: string | null;
   url?: string | null;
 };
 
@@ -254,25 +259,20 @@ function buildReportSections(values?: CaseValueLike[]): ReportSection[] {
 }
 
 function buildReportEvidences(evidences?: EvidenceLike[]): ReportEvidence[] {
-  const safeEvidences = evidences || [];
-
-  if (!safeEvidences.length) {
-    return [
-      {
-        id: "sample-1",
-        title: "شاهد تجريبي",
-        description: "لم يتم إرفاق شواهد فعلية بعد.",
-        imageUrl: "/sample/report-evidence/activity-wide-1.jpeg",
-      },
-    ];
-  }
+  const safeEvidences = filterValidReportEvidenceItems(evidences || []);
 
   return safeEvidences.map((evidence, index) => ({
     id: evidence.id || `evidence-${index + 1}`,
     title: evidence.title || `شاهد ${index + 1}`,
     description: evidence.description || undefined,
     fileName: evidence.fileName || undefined,
-    imageUrl: evidence.fileUrl || evidence.url || undefined,
+    imageUrl:
+      evidence.fileUrl ||
+      evidence.url ||
+      evidence.imageUrl ||
+      evidence.publicUrl ||
+      evidence.storagePath ||
+      undefined,
   }));
 }
 

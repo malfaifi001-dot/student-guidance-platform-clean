@@ -1,6 +1,7 @@
 "use client";
 
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 
 export type ReportDesignId =
   | "ministry-form"
@@ -190,6 +191,11 @@ type PreviewCaseData = {
     url?: string;
     fileUrl?: string;
     imageUrl?: string;
+    publicUrl?: string;
+    storagePath?: string;
+    attachmentId?: string;
+    fileId?: string;
+    evidenceId?: string;
     type?: "IMAGE" | "FILE";
     mimeType?: string | null;
     caption?: string;
@@ -254,9 +260,13 @@ function isReportDesignImageEvidence(
   if (String(evidence.type || "").trim().toUpperCase() === "IMAGE") return true;
   if (String(evidence.mimeType || "").toLowerCase().startsWith("image/")) return true;
 
-  return [evidence.imageUrl, evidence.url, evidence.fileUrl].some((value) =>
-    hasReportDesignImageEvidenceExtension(value),
-  );
+  return [
+    evidence.imageUrl,
+    evidence.url,
+    evidence.fileUrl,
+    evidence.publicUrl,
+    evidence.storagePath,
+  ].some((value) => hasReportDesignImageEvidenceExtension(value));
 }
 
 function getReportDesignEvidenceImageUrl(
@@ -264,7 +274,22 @@ function getReportDesignEvidenceImageUrl(
 ) {
   if (!evidence || !isReportDesignImageEvidence(evidence)) return "";
 
-  return String(evidence.imageUrl || evidence.url || evidence.fileUrl || "").trim();
+  return String(
+    evidence.imageUrl ||
+      evidence.url ||
+      evidence.fileUrl ||
+      evidence.publicUrl ||
+      evidence.storagePath ||
+      "",
+  ).trim();
+}
+
+function getValidPreviewEvidences(previewCase: PreviewCaseData | null) {
+  const hasSelectedCase = Boolean(previewCase?.caseId);
+
+  return filterValidReportEvidenceItems(previewCase?.evidences || [], {
+    allowSampleEvidence: !hasSelectedCase,
+  });
 }
 
 function getReportDesignSignatureStyleText() {
@@ -669,6 +694,7 @@ export function FinalReportDesignRenderer({
   const normalizedTemplate = normalizeFinalReportTemplate(
     template,
     editorialBlocks,
+    previewCaseData,
   );
 
   const context = buildFinalReportContext(previewCaseData, identity);
@@ -737,7 +763,6 @@ export function FinalReportDesignRenderer({
 
 function findSavedEvidenceGalleryBlock(template: any) {
   const pages = Array.isArray(template?.pages) ? template.pages : [];
-  const savedEvidenceBlock = findSavedEvidenceGalleryBlock(template);
 
   for (const page of pages) {
     const blocks = Array.isArray(page?.blocks) ? page.blocks : [];
@@ -753,25 +778,34 @@ function findSavedEvidenceGalleryBlock(template: any) {
 function normalizeFinalReportTemplate(
   template: any,
   editorialBlocks: Record<string, string>,
+  previewCaseData: PreviewCaseData | null,
 ) {
   const pages = Array.isArray(template?.pages) ? template.pages : [];
   const savedEvidenceBlock = findSavedEvidenceGalleryBlock(template);
+  const hasEvidence = getValidPreviewEvidences(previewCaseData).length > 0;
 
   return {
     ...template,
-    pages: pages.map((page: any, pageIndex: number) => {
+    pages: pages.flatMap((page: any, pageIndex: number) => {
+      if (!hasEvidence && page?.kind === "evidence") {
+        return [];
+      }
+
       const pageBlocks = Array.isArray(page?.blocks) ? page.blocks : [];
 
-      const normalizedBlocks = pageBlocks.map((block: any, blockIndex: number) =>
-        normalizeFinalReportBlock(template, block, blockIndex, editorialBlocks),
-      );
+      const normalizedBlocks = pageBlocks
+        .map((block: any, blockIndex: number) =>
+          normalizeFinalReportBlock(template, block, blockIndex, editorialBlocks),
+        )
+        .filter((block: any) => hasEvidence || block.kind !== "evidence-gallery");
 
       const shouldAddEvidenceBlock =
+        hasEvidence &&
         page?.kind === "evidence" &&
         !savedEvidenceBlock &&
         !normalizedBlocks.some((block: any) => block.kind === "evidence-gallery");
 
-      return {
+      return [{
         ...page,
         id: page?.id || "final-page-" + (pageIndex + 1),
         title: page?.title || "صفحة " + (pageIndex + 1),
@@ -797,7 +831,7 @@ function normalizeFinalReportTemplate(
               },
             ]
           : normalizedBlocks,
-      };
+      }];
     }),
   };
 }
@@ -921,6 +955,7 @@ function buildFinalReportContext(
     student.fullName ||
     data.studentName ||
     "";
+  const validEvidenceCount = getValidPreviewEvidences(data).length;
 
   const context: Record<string, string> = {
     "case.id": data.caseId || data.id || data.caseEntry?.id || "",
@@ -974,9 +1009,9 @@ function buildFinalReportContext(
       identity.school?.principalName ||
       "",
 
-    "evidence.count": String(data.evidences?.length || 0),
-    evidenceCount: String(data.evidences?.length || 0),
-    evidenceCountText: formatFinalEvidenceCount(data.evidences?.length || 0),
+    "evidence.count": String(validEvidenceCount),
+    evidenceCount: String(validEvidenceCount),
+    evidenceCountText: formatFinalEvidenceCount(validEvidenceCount),
   };
 
   for (const value of collectFinalValues(data)) {
@@ -1594,7 +1629,7 @@ export function A4DesignPage({
     const activityValues = workflowValues.slice(0, 5);
     const metricValues = workflowValues.slice(0, 4);
     const detailValues = workflowValues.slice(0, 12);
-    const evidenceCount = previewCase?.evidences?.length || 0;
+    const evidenceCount = getValidPreviewEvidences(previewCase).length;
 
     return (
       <article className="pdf-report-page mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden bg-white p-[7mm] shadow-2xl">
@@ -2661,17 +2696,19 @@ function EvidenceBlock({
   designId: ReportDesignId;
   textAlign: string;
 }) {
-  const realEvidences = previewCase?.evidences || [];
+  const hasSelectedCase = Boolean(previewCase?.caseId);
+  const realEvidences = getValidPreviewEvidences(previewCase);
   const perPage = getEvidencePerPage(block);
   const startIndex = block.evidenceStartIndex || 0;
+  const accent = getDesignAccentClasses(designId);
+
+  if (!realEvidences.length && hasSelectedCase) return null;
+  if (!realEvidences.length && block.evidenceEmptyBehavior === "hide") return null;
+
   const placeholderEvidences = createEvidencePlaceholders(perPage, startIndex);
   const sourceEvidences = realEvidences.length ? realEvidences : placeholderEvidences;
   const visibleEvidences = sourceEvidences.slice(startIndex, startIndex + perPage);
   const isPlaceholderMode = !realEvidences.length;
-  const hiddenCount = Math.max(realEvidences.length - (startIndex + perPage), 0);
-  const accent = getDesignAccentClasses(designId);
-
-  if (!realEvidences.length && block.evidenceEmptyBehavior === "hide") return null;
 
   if (block.evidenceLayout === "ATTACHMENT_LIST") {
     return (
@@ -2718,7 +2755,11 @@ function EvidenceBlock({
                   className={`report-design-evidence-fallback ${getEvidenceImageHeightClass(block)} flex w-full flex-col items-center justify-center bg-slate-50 text-center`}
                 >
                   <div className={["flex h-14 w-14 items-center justify-center rounded-2xl text-2xl", accent.iconClass].join(" ")}>📎</div>
-                  <p className="mt-3 text-xs font-black text-slate-500">مساحة شاهد للمعاينة</p>
+                  <p className="mt-3 text-xs font-black text-slate-500">
+                    {isPlaceholderMode
+                      ? "مساحة شاهد للمعاينة"
+                      : evidence.title || evidence.caption || "مرفق محفوظ"}
+                  </p>
                 </div>
               )}
 
@@ -2756,7 +2797,7 @@ function AutoEvidencePages({
 
   if (!activePage || !evidenceBlock || evidenceBlock.evidenceAutoCreatePages === false) return null;
 
-  const evidences = previewCase?.evidences || [];
+  const evidences = getValidPreviewEvidences(previewCase);
   const perPage = getEvidencePerPage(evidenceBlock);
   const pagesCount = Math.ceil(evidences.length / perPage);
 

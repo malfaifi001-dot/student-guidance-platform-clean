@@ -150,6 +150,7 @@ function mapSmartPayloadToActivityReportData(
     id: item.id || `evidence-${index + 1}`,
     title: item.title || `شاهد ${index + 1}`,
     imageUrl: item.type === "IMAGE" ? item.url : undefined,
+    fileUrl: item.url,
     fileName: item.title || `شاهد ${index + 1}`,
   }));
 

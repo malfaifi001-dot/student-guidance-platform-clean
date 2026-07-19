@@ -11,6 +11,7 @@ import {
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
 import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
 import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
 
@@ -1001,7 +1002,7 @@ function collectEvidences(payload: SmartReportPayload) {
 
   const seen = new Set<string>();
 
-  return collected
+  return filterValidReportEvidenceItems(collected)
     .map((item, index) => {
       const rawUrl =
         item.fileUrl ||
@@ -1052,6 +1053,8 @@ function collectEvidences(payload: SmartReportPayload) {
         url: normalizedUrl || undefined,
         fileUrl,
         imageUrl,
+        attachmentId: cleanText(item.attachmentId || item.fileId || item.evidenceId) || undefined,
+        storagePath: cleanText(item.storagePath) || undefined,
         type: evidenceType,
         mimeType: cleanText(item.mimeType) || undefined,
         caption: cleanText(
@@ -1064,9 +1067,9 @@ function collectEvidences(payload: SmartReportPayload) {
         ),
       };
     })
-    .filter((item) => item.fileUrl || item.imageUrl)
+    .filter((item) => filterValidReportEvidenceItems([item]).length > 0)
     .filter((item) => {
-      const key = `${item.id}|${item.fileUrl}|${item.imageUrl}`;
+      const key = `${item.id}|${item.fileUrl}|${item.imageUrl}|${item.attachmentId || ""}`;
 
       if (seen.has(key)) {
         return false;
@@ -1515,7 +1518,13 @@ function getReportTwoBlockHeightScore(
 
   if (block.kind === "evidence-gallery") {
     const perPage = getEvidencePerPageFromBlock(block);
-    const shown = Math.min(perPage, Math.max(previewCase.evidences.length, 1));
+    const evidenceCount = previewCase.evidences.length;
+
+    if (!evidenceCount) {
+      return 0;
+    }
+
+    const shown = Math.min(perPage, evidenceCount);
 
     if (block.evidenceLayout === "ONE_PER_PAGE") return 92;
     if (block.evidenceLayout === "GRID_2X2") return shown <= 2 ? 54 : 72;
@@ -1660,7 +1669,7 @@ function normalizeReportTwoBlockForRuntime(
     evidenceStartIndex: Number(block.evidenceStartIndex || 0),
     evidenceLimit: perPage,
     evidenceAutoCreatePages: false,
-    evidenceEmptyBehavior: count ? block.evidenceEmptyBehavior : "message",
+    evidenceEmptyBehavior: count ? block.evidenceEmptyBehavior : "hide",
   } as StudioBlock;
 }
 
@@ -1817,6 +1826,13 @@ function buildReportTwoRuntimeTemplate(
     }
 
     sourcePage.blocks.forEach((originalBlock) => {
+      if (
+        originalBlock.kind === "evidence-gallery" &&
+        previewCase.evidences.length === 0
+      ) {
+        return;
+      }
+
       const normalizedBlock = normalizeReportTwoBlockForRuntime(
         originalBlock,
         previewCase,

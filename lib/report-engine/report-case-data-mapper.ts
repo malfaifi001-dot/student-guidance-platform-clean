@@ -1,4 +1,5 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 export type ReportMappedStudent = {
   id?: string;
   fullName: string;
@@ -89,6 +90,10 @@ type CaseEntryForReport = {
     fileName?: string | null;
     fileUrl?: string | null;
     url?: string | null;
+    imageUrl?: string | null;
+    publicUrl?: string | null;
+    storagePath?: string | null;
+    attachmentId?: string | null;
     mimeType?: string | null;
     size?: number | null;
     note?: string | null;
@@ -101,6 +106,10 @@ type CaseEntryForReport = {
     fileName: string;
     fileUrl: string;
     url?: string | null;
+    imageUrl?: string | null;
+    publicUrl?: string | null;
+    storagePath?: string | null;
+    attachmentId?: string | null;
     mimeType?: string | null;
     size?: number | null;
     note?: string | null;
@@ -152,6 +161,9 @@ function isImageEvidence(item: {
   mimeType?: string | null;
   fileUrl?: string | null;
   url?: string | null;
+  imageUrl?: string | null;
+  publicUrl?: string | null;
+  storagePath?: string | null;
   fileName?: string | null;
   title?: string | null;
 }) {
@@ -163,9 +175,15 @@ function isImageEvidence(item: {
     return true;
   }
 
-  return [item.fileUrl, item.url, item.fileName, item.title].some((value) =>
-    hasReportImageEvidenceExtension(value)
-  );
+  return [
+    item.fileUrl,
+    item.url,
+    item.imageUrl,
+    item.publicUrl,
+    item.storagePath,
+    item.fileName,
+    item.title,
+  ].some((value) => hasReportImageEvidenceExtension(value));
 }
 
 function normalizeReportValues(
@@ -181,10 +199,17 @@ function normalizeReportValues(
 function normalizeReportEvidences(
   caseEntry: CaseEntryForReport
 ): ReportMappedEvidence[] {
-  const normalEvidences: ReportMappedEvidence[] = (caseEntry.evidences || [])
-    .filter((item) => Boolean(item.fileUrl || item.url))
+  const normalEvidences: ReportMappedEvidence[] = filterValidReportEvidenceItems(
+    caseEntry.evidences || [],
+  )
     .map((item) => {
-      const fileUrl = item.fileUrl || item.url || "";
+      const fileUrl =
+        item.fileUrl ||
+        item.url ||
+        item.imageUrl ||
+        item.publicUrl ||
+        item.storagePath ||
+        "";
       const evidenceTitle = item.title || item.note || item.fileName || "Ø´Ø§Ù‡Ø¯";
 
       return {
@@ -200,12 +225,17 @@ function normalizeReportEvidences(
       };
     });
 
-  const legacyCaseEvidences: ReportMappedEvidence[] = (
-    caseEntry.caseEvidences || []
+  const legacyCaseEvidences: ReportMappedEvidence[] = filterValidReportEvidenceItems(
+    caseEntry.caseEvidences || [],
   )
-    .filter((item) => Boolean(item.fileUrl || item.url))
     .map((item) => {
-      const fileUrl = item.fileUrl || item.url || "";
+      const fileUrl =
+        item.fileUrl ||
+        item.url ||
+        item.imageUrl ||
+        item.publicUrl ||
+        item.storagePath ||
+        "";
       const evidenceTitle = item.title || item.note || item.fileName || "Ø´Ø§Ù‡Ø¯";
 
       return {

@@ -1,6 +1,7 @@
 "use client";
 
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 
 import type { ReactNode } from "react";
 import type {
@@ -36,6 +37,9 @@ type RuntimeEvidenceItem = {
   fileName?: string | null;
   fileUrl?: string | null;
   imageUrl?: string | null;
+  publicUrl?: string | null;
+  storagePath?: string | null;
+  attachmentId?: string | null;
   mimeType?: string | null;
   caption?: string | null;
   description?: string | null;
@@ -417,6 +421,10 @@ function PreviewBlock({
     const settings = block.settings || {};
     const layout = settings.evidenceLayout || "grid-2x2";
 
+    if (!evidences.length && previewCaseData?.caseId) {
+      return null;
+    }
+
     return (
       <BlockShell block={block}>
         {evidences.length ? (
@@ -796,7 +804,9 @@ function getRuntimeEvidences(
       }
     | null;
 
-  return Array.isArray(data?.evidences) ? data.evidences : [];
+  return filterValidReportEvidenceItems(data?.evidences || [], {
+    allowSampleEvidence: !previewCaseData?.caseId,
+  });
 }
 
 function getStudent(previewCaseData: RuntimePreviewCaseData | null) {

@@ -1,0 +1,2373 @@
+Statistics Stage 1 Scan
+Project: D:\student-guidance-platform-clean
+Generated: 2026-07-19 19:20:44
+
+IMPORTANT: .env and .env.local are intentionally excluded.
+
+==========================================================================================
+GIT STATUS
+==========================================================================================
+ M components/activity-programs/reports/activity-execution-card-report.tsx
+ M components/cases/case-details-view.tsx
+ M components/layout/dashboard-sidebar.tsx
+ M components/report-2/report-two-studio-runtime.tsx
+ M components/report-engine/design-renderers/report-design-renderer.tsx
+ M components/report-engine/report-builder-pdf-renderer.tsx
+ M components/report-engine/report-template-live-preview.tsx
+ M components/report-engine/report-template-studio.tsx
+ M components/report-engine/smart-report-document-renderer.tsx
+ M lib/report-engine/report-block-paginator.ts
+ M lib/report-engine/report-builder-template-runtime.ts
+ M lib/report-engine/report-case-data-mapper.ts
+ M lib/report-engine/report-data-mapper.ts
+ M lib/report-engine/smart-report-payload-builder.ts
+?? lib/report-engine/report-evidence-utils.ts
+
+
+==========================================================================================
+FILE: package.json
+==========================================================================================
+{
+    "name": "student-guidance-platform-clean",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "prisma generate && next build",
+        "start": "next start -H 0.0.0.0 -p 3000",
+        "lint": "eslint",
+        "postinstall": "prisma generate"
+    },
+    "dependencies": {
+        "@hookform/resolvers": "^5.4.0",
+        "@prisma/adapter-better-sqlite3": "^7.8.0",
+        "@prisma/adapter-mariadb": "^7.8.0",
+        "@prisma/client": "^7.8.0",
+        "@types/qrcode": "^1.5.6",
+        "bcryptjs": "^3.0.3",
+        "better-sqlite3": "^12.10.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "date-fns": "^4.3.0",
+        "exceljs": "^4.4.0",
+        "html2canvas": "^1.4.1",
+        "jspdf": "^4.2.1",
+        "lucide-react": "^1.16.0",
+        "mariadb": "^3.5.2",
+        "next": "16.2.6",
+        "pdf-lib": "^1.17.1",
+        "playwright": "^1.60.0",
+        "prisma": "^7.8.0",
+        "puppeteer": "^25.1.0",
+        "qrcode": "^1.5.4",
+        "radix-ui": "^1.4.3",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
+        "react-hook-form": "^7.76.1",
+        "recharts": "^3.8.1",
+        "shadcn": "^4.8.2",
+        "sharp": "^0.35.3",
+        "tailwind-merge": "^3.6.0",
+        "tw-animate-css": "^1.4.0",
+        "xlsx": "^0.18.5",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4",
+        "@types/better-sqlite3": "^7.6.13",
+        "@types/node": "^20",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "dotenv": "^17.4.2",
+        "eslint": "^9",
+        "eslint-config-next": "16.2.6",
+        "tailwindcss": "^4",
+        "typescript": "^5"
+    }
+}
+
+
+==========================================================================================
+RELEVANT PRISMA MODELS
+==========================================================================================
+
+----- model Service -----
+model Service {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  status      ServiceStatus @default(ACTIVE)
+
+  workflows           Workflow[]
+  cases               CaseEntry[]
+  access              ServiceAccess[]
+  calendarReminders   CalendarReminder[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsService")
+  surveys             Survey[]             @relation("SurveysService")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+----- model Workflow -----
+model Workflow {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  name         String
+  version      Int            @default(1)
+  status       WorkflowStatus @default(DRAFT)
+  isActive     Boolean        @default(false)
+  workflowType String         @default("default")
+
+  studentPickerMode   StudentPickerMode    @default(SERVICE_DEFAULT)
+  evidenceMode        WorkflowEvidenceMode @default(SERVICE_DEFAULT)
+  steps               WorkflowStep[]
+  cases               CaseEntry[]
+  activityAssignments ActivityAssignment[] @relation("ActivityAssignmentsWorkflow")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([serviceId, workflowType, isActive])
+}
+
+----- model WorkflowStep -----
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  fields DynamicField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([order])
+}
+
+----- model DynamicField -----
+model DynamicField {
+  id     String       @id @default(cuid())
+  stepId String
+  step   WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  key         String
+  label       String    @db.Text
+  type        FieldType
+  placeholder String?
+  helpText    String?
+  isRequired  Boolean   @default(false)
+  order       Int
+
+  dependsOnFieldKey String?
+  linkedToValue     String?
+  allowOther        Boolean @default(false)
+  isRepeater        Boolean @default(false)
+
+  defaultValue         String? @db.Text
+  defaultJson          Json?
+  autoSelectWhenLinked Boolean @default(false)
+
+  options DynamicFieldOption[]
+  values  CaseValue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stepId])
+  @@index([key])
+  @@index([order])
+}
+
+----- model DynamicFieldOption -----
+model DynamicFieldOption {
+  id      String       @id @default(cuid())
+  fieldId String
+  field   DynamicField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  label         String  @db.Text
+  value         String
+  order         Int
+  linkedToValue String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fieldId])
+  @@index([value])
+}
+
+----- model CaseEntry -----
+model CaseEntry {
+  id String @id @default(cuid())
+
+  schoolAccountId String
+  schoolAccount   SchoolAccount @relation(fields: [schoolAccountId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workflowId       String?
+  workflow         Workflow?        @relation(fields: [workflowId], references: [id])
+  workflowSnapshot Json?
+  guidanceReports  GuidanceReport[]
+  studentId        String?
+  student          Student?         @relation(fields: [studentId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  title       String?
+  status      CaseStatus @default(DRAFT)
+  submittedAt DateTime?
+
+  values             CaseValue[]
+  evidences          Evidence[]
+  calendarReminders  CalendarReminder[]
+  activityAssignment ActivityAssignment? @relation("ActivityAssignmentCaseEntry")
+
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  caseEvidences          CaseEvidence[]
+  createdReportTemplates ReportTemplate[]
+
+  @@index([schoolAccountId])
+  @@index([serviceId])
+  @@index([workflowId])
+  @@index([studentId])
+  @@index([status])
+}
+
+----- model CaseValue -----
+model CaseValue {
+  id String @id @default(cuid())
+
+  caseEntryId String
+  caseEntry   CaseEntry @relation(fields: [caseEntryId], references: [id], onDelete: Cascade)
+
+  fieldId String?
+  field   DynamicField? @relation(fields: [fieldId], references: [id])
+
+  fieldKey  String
+  value     String? @db.Text
+  jsonValue Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseEntryId])
+  @@index([fieldKey])
+}
+
+----- model ReportTemplate -----
+model ReportTemplate {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  serviceSlug String?
+
+  type    ReportTemplateType @default(SYSTEM)
+  content String?            @db.LongText
+
+  templateJson Json?
+  version      Int   @default(1)
+
+  genderAware Boolean @default(true)
+
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  caseEntry   CaseEntry? @relation(fields: [caseEntryId], references: [id])
+  caseEntryId String?
+
+  @@index([serviceSlug])
+  @@index([type])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+MODEL NOT FOUND: ReportTemplateVersion
+
+MODEL NOT FOUND: ReportTemplateSnapshot
+
+----- model PlatformActivityLog -----
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  actorUserId     String?
+  targetUserId    String?
+  schoolAccountId String?
+
+  category String
+  action   String
+  severity String @default("INFO")
+
+  title   String
+  details Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([schoolAccountId])
+  @@index([category])
+  @@index([action])
+  @@index([createdAt])
+}
+
+----- Relevant enums -----
+enum WorkflowEvidenceMode {
+  SERVICE_DEFAULT
+  ENABLED
+  DISABLED
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  ARCHIVED
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ReportTemplateType {
+  SYSTEM
+  SCHOOL
+  PERSONAL
+}
+
+
+==========================================================================================
+FILE: lib\auth\current-user.ts
+==========================================================================================
+import { cookies, headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "@/lib/auth/session";
+
+export async function getCurrentSessionUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const sessionPayload = verifySessionToken(token);
+
+  if (!sessionPayload) {
+    return null;
+  }
+
+  const session = await prisma.userSession.findUnique({
+    where: {
+      tokenId: sessionPayload.tokenId,
+    },
+    include: {
+      user: {
+        include: {
+          schoolAccount: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!session || !session.isActive || session.revokedAt) {
+    return null;
+  }
+
+  if (session.expiresAt.getTime() < Date.now()) {
+    await prisma.userSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+      },
+    });
+
+    return null;
+  }
+
+  await prisma.userSession.update({
+    where: {
+      id: session.id,
+    },
+    data: {
+      lastSeenAt: new Date(),
+    },
+  });
+
+  return {
+    session,
+    user: session.user,
+  };
+}
+
+export async function getRequestDeviceInfo() {
+  const headerStore = await headers();
+
+  return {
+    userAgent: headerStore.get("user-agent") || null,
+    ipAddress:
+      headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headerStore.get("x-real-ip") ||
+      null,
+  };
+}
+
+
+==========================================================================================
+FILE: lib\auth\require-auth.ts
+==========================================================================================
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+
+export async function requireDashboardUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current) {
+    redirect("/login");
+  }
+
+  return current;
+}
+
+export async function requireCompletedOnboarding() {
+  const current = await requireDashboardUser();
+
+  if (!current.user.onboardingCompleted) {
+    redirect("/dashboard/onboarding?required=true");
+  }
+
+  return current;
+}
+
+
+==========================================================================================
+FILE: lib\subscription\subscription-guard.ts
+==========================================================================================
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import {
+  getSchoolSubscriptionOverview,
+  isServiceAllowedForSchool,
+} from "@/lib/subscription/subscription-service";
+
+export async function requireActiveSubscriptionForCurrentUser() {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    redirect("/login");
+  }
+
+  if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  if (!current.user.schoolAccountId) {
+    redirect("/login");
+  }
+
+  const overview = await getSchoolSubscriptionOverview(
+    current.user.schoolAccountId,
+  );
+
+  if (!overview.usable) {
+    redirect("/dashboard/plans?reason=activation-required");
+  }
+
+  return current;
+}
+
+export async function requireServiceAccessForCurrentUser(
+  serviceSlug: string,
+) {
+  const current = await getCurrentSessionUser();
+
+  if (!current?.user) {
+    redirect("/login");
+  }
+
+  if (current.user.role === "ADMIN") {
+    return current;
+  }
+
+  if (!current.user.schoolAccountId) {
+    redirect("/login");
+  }
+
+  const result = await isServiceAllowedForSchool({
+    schoolAccountId: current.user.schoolAccountId,
+    serviceSlug,
+  });
+
+  if (!result.ok) {
+    const reason =
+      result.reason === "SUBSCRIPTION_INACTIVE"
+        ? "activation-required"
+        : "service-not-in-plan";
+
+    redirect(
+      `/dashboard/plans?reason=${reason}&service=${encodeURIComponent(
+        serviceSlug,
+      )}`,
+    );
+  }
+
+  return current;
+}
+
+export async function requireCanCreateInServiceForCurrentUser(
+  serviceSlug: string,
+) {
+  await requireActiveSubscriptionForCurrentUser();
+
+  return requireServiceAccessForCurrentUser(
+    serviceSlug,
+  );
+}
+
+==========================================================================================
+FILE: lib\subscription\subscription-api-guard.ts
+==========================================================================================
+import {
+  requireActiveSubscriptionForCurrentUser,
+  requireServiceAccessForCurrentUser,
+} from "@/bin/require-auth";
+
+export async function requireActiveSubscriptionApi() {
+  const result = await requireActiveSubscriptionForCurrentUser();
+  return result instanceof Response ? result : null;
+}
+
+export async function requireServiceAccessApi(serviceSlug: string) {
+  const result = await requireServiceAccessForCurrentUser(serviceSlug);
+  return result instanceof Response ? result : null;
+}
+
+
+==========================================================================================
+FILE: lib\security\permissions.ts
+==========================================================================================
+import type { UserRole } from "./roles";
+
+export const PERMISSIONS = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "workflows:read",
+  "workflows:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "cases:close",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+  "subscription:manage",
+  "admin:manage",
+] as const;
+
+export type Permission = (typeof PERMISSIONS)[number];
+
+const COUNSELOR_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "students:write",
+  "cases:read",
+  "cases:create",
+  "cases:update",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "results-analysis:read",
+  "results-analysis:create",
+  "results-analysis:export",
+  "subscription:read",
+];
+
+const ACTIVITY_LEADER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "evidence:read",
+  "evidence:upload",
+  "reports:read",
+  "reports:export",
+  "subscription:read",
+];
+
+const TEACHER_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "subscription:read",
+];
+
+const STAFF_PERMISSIONS: Permission[] = [
+  "dashboard:read",
+  "students:read",
+  "cases:read",
+  "evidence:read",
+  "reports:read",
+  "results-analysis:read",
+  "subscription:read",
+];
+
+const SCHOOL_OWNER_PERMISSIONS: Permission[] = [
+  ...COUNSELOR_PERMISSIONS,
+  "workflows:read",
+  "subscription:manage",
+];
+
+const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  ADMIN: [...PERMISSIONS],
+  COUNSELOR: COUNSELOR_PERMISSIONS,
+  ACTIVITY_LEADER: ACTIVITY_LEADER_PERMISSIONS,
+  TEACHER: TEACHER_PERMISSIONS,
+  SCHOOL_OWNER: SCHOOL_OWNER_PERMISSIONS,
+  STAFF: STAFF_PERMISSIONS,
+};
+
+export function hasPermission(role: UserRole, permission: Permission) {
+  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+export function getRolePermissions(role: UserRole) {
+  return ROLE_PERMISSIONS[role] ?? [];
+}
+
+
+==========================================================================================
+FILE: lib\constants\services.ts
+==========================================================================================
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+import {
+  ACTIVITY_PROGRAM_PARENT_SERVICE,
+  ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+} from "@/lib/activity-programs/activity-program-catalog";
+import { TEACHER_PERFORMANCE_WORKFLOW_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+
+export type AppService = {
+  slug: string;
+  title: string;
+  description: string;
+  href: string;
+  kind: "workflow" | "standalone" | "admin";
+};
+
+export const workflowServices: AppService[] = [
+  ...ACTIVITY_PROGRAM_WORKFLOW_SERVICES,
+  ...TEACHER_PERFORMANCE_WORKFLOW_SERVICES,
+  {
+    slug: "teacher-report-issuance",
+    title: "إصدار تقرير",
+    description: "خدمة للمعلم لإصدار تقرير عبر نموذج Workflow منشور من الأدمن.",
+    href: "/dashboard/teacher/report-issuance",
+    kind: "workflow",
+  },
+  {
+    slug: "guidance-programs",
+    title: "البرامج الإرشادية",
+    description: "إدارة البرامج الإرشادية وخطط التنفيذ.",
+    href: "/dashboard/guidance-programs",
+    kind: "workflow",
+  },
+  {
+    slug: "student-follow-up",
+    title: "متابعة الطلاب",
+    description: "متابعة الطلاب والحالات الطلابية.",
+    href: "/dashboard/student-follow-up",
+    kind: "workflow",
+  },
+  {
+    slug: "guardian-summons",
+    title: "استدعاء ولي أمر",
+    description:
+      "إنشاء وتوثيق استدعاءات أولياء الأمور وربطها بالطلاب والحالات والتقارير الرسمية.",
+    href: "/dashboard/guardian-summons",
+    kind: "workflow",
+  },
+  {
+    slug: "committees-meetings",
+    title: "اللجان والاجتماعات",
+    description: "إدارة محاضر اللجان والاجتماعات والتوصيات.",
+    href: "/dashboard/committees-meetings",
+    kind: "workflow",
+  },
+  {
+    slug: "family-school-communication",
+    title: "التواصل بين الأسرة والمدرسة",
+    description: "توثيق التواصل بين الأسرة والمدرسة.",
+    href: "/dashboard/family-school-communication",
+    kind: "workflow",
+  },
+  {
+    slug: "student-guidance-services",
+    title: "الخدمات الإرشادية المقدمة للطلاب",
+    description: "إدارة الخدمات الإرشادية المقدمة للطلاب.",
+    href: "/dashboard/student-guidance-services",
+    kind: "workflow",
+  },
+];
+
+export const smartInterventionWorkflowServices: AppService[] = [
+  {
+    slug: "smart-student-support",
+    title: "تدخل فردي ذكي",
+    description: "Workflow مستقل للتدخلات الفردية الناتجة من مركز التحليل.",
+    href: "/dashboard/smart-student-support",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-student-excellence",
+    title: "تعزيز وتميز ذكي",
+    description: "Workflow مستقل لرعاية الطلاب المتميزين وتعزيزهم.",
+    href: "/dashboard/smart-student-excellence",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-student-group-custom",
+    title: "خطة جماعية مخصصة",
+    description: "Workflow مستقل لخطة جماعية يحدد المستخدم طلابها يدويًا.",
+    href: "/dashboard/smart-student-group-custom",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-student-group-subject",
+    title: "خطة جماعية حسب مادة",
+    description: "Workflow مستقل لمجموعة طلاب لديهم ضعف مشترك في مادة.",
+    href: "/dashboard/smart-student-group-subject",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-classroom-support",
+    title: "خطة فصل ذكية",
+    description: "Workflow مستقل للتدخلات الصفية على مستوى الفصل.",
+    href: "/dashboard/smart-classroom-support",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-grade-support",
+    title: "خطة صف دراسي ذكية",
+    description: "Workflow مستقل للتدخلات على مستوى الصف الدراسي.",
+    href: "/dashboard/smart-grade-support",
+    kind: "workflow",
+  },
+  {
+    slug: "smart-subject-support",
+    title: "تدخل علاجي لمادة",
+    description: "Workflow مستقل للتدخلات العلاجية على مستوى المادة.",
+    href: "/dashboard/smart-subject-support",
+    kind: "workflow",
+  },
+];
+
+export const SMART_INTERVENTION_SERVICE_SLUGS = smartInterventionWorkflowServices.map(
+  (service) => service.slug,
+);
+
+export const SMART_INTERVENTION_TARGET_SERVICE_SLUG_BY_TYPE: Record<string, string> = {
+  STUDENT_SUPPORT: "smart-student-support",
+  STUDENT_EXCELLENCE: "smart-student-excellence",
+  STUDENT_GROUP_CUSTOM: "smart-student-group-custom",
+  STUDENT_GROUP_SUBJECT: "smart-student-group-subject",
+  CLASSROOM_SUPPORT: "smart-classroom-support",
+  GRADE_SUPPORT: "smart-grade-support",
+  SUBJECT_SUPPORT: "smart-subject-support",
+};
+
+export const workflowUploadServices: AppService[] = [
+  ...workflowServices,
+  ...smartInterventionWorkflowServices,
+];
+
+export const standaloneServices: AppService[] = [
+  {
+    slug: "counselor-reference-library",
+    title: "المرجع الشامل",
+    description:
+      "مكتبة الحقائب والأدلة والملفات المهنية الخاصة بالموجه الطلابي.",
+    href: "/dashboard/counselor-reference-library",
+    kind: "standalone",
+  },
+  ACTIVITY_PROGRAM_PARENT_SERVICE,
+  {
+    slug: "surveys",
+    title: "الاستبيانات",
+    description: "إنشاء الاستبيانات ونشرها وتحليل ردود المستفيدين.",
+    href: OFFICIAL_WORKSPACE_ROUTES.surveys,
+    kind: "standalone",
+  },
+  {
+    slug: "results-analysis",
+    title: "تحليل النتائج",
+    description: "رفع وتحليل نتائج الطلاب.",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    kind: "standalone",
+  },
+  {
+    slug: "assessment-center",
+    title: "مركز التحليل والاختبارات",
+    description: "تحليل نتائج الطلاب والاختبارات، وربطها بالتدخلات والخطط الذكية.",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    kind: "standalone",
+  },
+  {
+    slug: "reports",
+    title: "التقارير",
+    description: "إنشاء ومعاينة واعتماد التقارير.",
+    href: OFFICIAL_WORKSPACE_ROUTES.reports,
+    kind: "standalone",
+  },
+  {
+    slug: "custom-report",
+    title: "التقرير المخصص",
+    description: "إنشاء تقارير مخصصة ومرنة حسب احتياج المدرسة.",
+    href: "/dashboard/custom-report",
+    kind: "standalone",
+  },
+];
+
+export const dashboardServices = [
+  ...workflowServices,
+  ...standaloneServices,
+];
+
+
+==========================================================================================
+FILE: lib\admin\activity-log.ts
+==========================================================================================
+import { Prisma} from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+export type PlatformActivityCategory =
+  | "AUTH"
+  | "USER"
+  | "SUBSCRIPTION"
+  | "ACTIVATION"
+  | "PAYMENT"
+  | "CASE"
+  | "REPORT"
+  | "EVIDENCE"
+  | "WORKFLOW"
+  | "SECURITY"
+  | "SYSTEM";
+
+export type PlatformActivitySeverity =
+  | "INFO"
+  | "SUCCESS"
+  | "WARNING"
+  | "ERROR";
+
+type PlatformActivityInput = {
+  actorUserId?: string | null;
+  targetUserId?: string | null;
+  schoolAccountId?: string | null;
+
+  category: PlatformActivityCategory | string;
+  action: string;
+  severity?: PlatformActivitySeverity | string;
+
+  title: string;
+  details?: Prisma.InputJsonValue | Record<string, unknown>;
+
+  ipAddress?: string | null;
+  userAgent?: string | null;
+};
+
+function toPrismaJsonValue(
+  value: Prisma.InputJsonValue | Record<string, unknown> | undefined
+): Prisma.InputJsonValue {
+  if (value === undefined) {
+    return {};
+  }
+
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+export async function logPlatformActivity(input: PlatformActivityInput) {
+  try {
+    await prisma.platformActivityLog.create({
+      data: {
+        actorUserId: input.actorUserId || null,
+        targetUserId: input.targetUserId || null,
+        schoolAccountId: input.schoolAccountId || null,
+        category: input.category,
+        action: input.action,
+        severity: input.severity || "INFO",
+        title: input.title,
+        details: toPrismaJsonValue(input.details),
+        ipAddress: input.ipAddress || null,
+        userAgent: input.userAgent || null,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to write platform activity log:", error);
+  }
+}
+
+export async function logAdminActivity(input: PlatformActivityInput) {
+  return logPlatformActivity(input);
+}
+
+
+==========================================================================================
+FILE: lib\admin\activity-events.ts
+==========================================================================================
+import { headers } from "next/headers";
+import { getCurrentSessionUser } from "@/lib/auth/current-user";
+import { logPlatformActivity } from "@/lib/admin/activity-log";
+
+export async function getRequestActivityMeta() {
+  const headerStore = await headers();
+
+  return {
+    ipAddress:
+      headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headerStore.get("x-real-ip") ||
+      null,
+    userAgent: headerStore.get("user-agent") || null,
+  };
+}
+
+export async function logAuthLogoutEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  email?: string | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "AUTH",
+    action: "logout",
+    severity: "INFO",
+    title: `تم تسجيل خروج المستخدم ${input.email || ""}`.trim(),
+    details: {
+      email: input.email || null,
+    },
+    ...meta,
+  });
+}
+
+export async function logActivationCodeRedeemedEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  code: string;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "ACTIVATION",
+    action: "redeem-activation-code",
+    severity: "SUCCESS",
+    title: "تم استخدام كود تفعيل",
+    details: {
+      code: input.code,
+    },
+    ...meta,
+  });
+}
+
+export async function logBankTransferRequestedEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  amount?: number | null;
+  planId?: string | null;
+  billingCycle?: string | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "PAYMENT",
+    action: "bank-transfer-requested",
+    severity: "INFO",
+    title: "تم إرسال طلب تحويل بنكي",
+    details: {
+      amount: input.amount || null,
+      planId: input.planId || null,
+      billingCycle: input.billingCycle || null,
+    },
+    ...meta,
+  });
+}
+
+export async function logPlanOrderCreatedEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  planId: string;
+  planName?: string | null;
+  billingCycle?: string | null;
+  amount?: number | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "SUBSCRIPTION",
+    action: "plan-order-created",
+    severity: "INFO",
+    title: `تم طلب باقة ${input.planName || ""}`.trim(),
+    details: {
+      planId: input.planId,
+      planName: input.planName || null,
+      billingCycle: input.billingCycle || null,
+      amount: input.amount || null,
+    },
+    ...meta,
+  });
+}
+
+export async function logBankTransferReviewedEvent(input: {
+  actorUserId: string;
+  schoolAccountId?: string | null;
+  requestId: string;
+  status: "APPROVED" | "REJECTED";
+  amount?: number | null;
+  note?: string | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.actorUserId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "PAYMENT",
+    action:
+      input.status === "APPROVED"
+        ? "bank-transfer-approved"
+        : "bank-transfer-rejected",
+    severity: input.status === "APPROVED" ? "SUCCESS" : "WARNING",
+    title:
+      input.status === "APPROVED"
+        ? "تم قبول طلب التحويل البنكي"
+        : "تم رفض طلب التحويل البنكي",
+    details: {
+      requestId: input.requestId,
+      amount: input.amount || null,
+      note: input.note || null,
+    },
+    ...meta,
+  });
+}
+
+
+async function getActivityActor() {
+  const current = await getCurrentSessionUser();
+
+  return {
+    userId: current?.user?.id || null,
+    schoolAccountId: current?.user?.schoolAccountId || null,
+    email: current?.user?.email || null,
+    role: current?.user?.role || null,
+  };
+}
+
+
+export async function logCaseSavedEvent(input: {
+  caseId: string;
+  status: "DRAFT" | "SUBMITTED";
+  title?: string | null;
+  workflowId?: string | null;
+  serviceId?: string | null;
+  serviceSlug?: string | null;
+  studentId?: string | null;
+  valueCount?: number;
+  evidenceCount?: number;
+}) {
+  const [meta, actor] = await Promise.all([
+    getRequestActivityMeta(),
+    getActivityActor(),
+  ]);
+
+  await logPlatformActivity({
+    actorUserId: actor.userId,
+    targetUserId: actor.userId,
+    schoolAccountId: actor.schoolAccountId,
+    category: "CASE",
+    action: input.status === "SUBMITTED" ? "case-submitted" : "case-draft-saved",
+    severity: input.status === "SUBMITTED" ? "SUCCESS" : "INFO",
+    title:
+      input.status === "SUBMITTED"
+        ? "تم إرسال حالة إرشادية"
+        : "تم حفظ مسودة حالة إرشادية",
+    details: {
+      caseId: input.caseId,
+      caseTitle: input.title || null,
+      status: input.status,
+      workflowId: input.workflowId || null,
+      serviceId: input.serviceId || null,
+      serviceSlug: input.serviceSlug || null,
+      studentId: input.studentId || null,
+      valueCount: input.valueCount || 0,
+      evidenceCount: input.evidenceCount || 0,
+    },
+    ...meta,
+  });
+}
+
+export async function logEvidenceUploadedEvent(input: {
+  itemsCount: number;
+  totalSizeBytes: number;
+  fileNames?: string[];
+  source?: string;
+  caseId?: string | null;
+  reportId?: string | null;
+}) {
+  const [meta, actor] = await Promise.all([
+    getRequestActivityMeta(),
+    getActivityActor(),
+  ]);
+
+  await logPlatformActivity({
+    actorUserId: actor.userId,
+    targetUserId: actor.userId,
+    schoolAccountId: actor.schoolAccountId,
+    category: "EVIDENCE",
+    action: "evidence-uploaded",
+    severity: "SUCCESS",
+    title: "تم رفع شواهد",
+    details: {
+      itemsCount: input.itemsCount,
+      totalSizeBytes: input.totalSizeBytes,
+      fileNames: input.fileNames || [],
+      source: input.source || "general-evidence-upload",
+      caseId: input.caseId || null,
+      reportId: input.reportId || null,
+    },
+    ...meta,
+  });
+}
+
+export async function logReportCreatedEvent(input: {
+  reportId: string;
+  caseEntryId?: string | null;
+  title?: string | null;
+  templateId?: string | null;
+  serviceSlug?: string | null;
+  evidenceCount?: number;
+}) {
+  const [meta, actor] = await Promise.all([
+    getRequestActivityMeta(),
+    getActivityActor(),
+  ]);
+
+  await logPlatformActivity({
+    actorUserId: actor.userId,
+    targetUserId: actor.userId,
+    schoolAccountId: actor.schoolAccountId,
+    category: "REPORT",
+    action: "report-created",
+    severity: "SUCCESS",
+    title: "تم إنشاء تقرير إرشادي",
+    details: {
+      reportId: input.reportId,
+      caseEntryId: input.caseEntryId || null,
+      reportTitle: input.title || null,
+      templateId: input.templateId || null,
+      serviceSlug: input.serviceSlug || null,
+      evidenceCount: input.evidenceCount || 0,
+    },
+    ...meta,
+  });
+}
+
+export async function logReportExportedEvent(input: {
+  reportId: string;
+  format?: "PDF" | "WORD" | "HTML" | "UNKNOWN";
+  title?: string | null;
+}) {
+  const [meta, actor] = await Promise.all([
+    getRequestActivityMeta(),
+    getActivityActor(),
+  ]);
+
+  await logPlatformActivity({
+    actorUserId: actor.userId,
+    targetUserId: actor.userId,
+    schoolAccountId: actor.schoolAccountId,
+    category: "REPORT",
+    action: "report-exported",
+    severity: "SUCCESS",
+    title: "تم تصدير تقرير",
+    details: {
+      reportId: input.reportId,
+      format: input.format || "UNKNOWN",
+      reportTitle: input.title || null,
+    },
+    ...meta,
+  });
+}
+
+export async function logAuthLoginEvent(input: {
+  userId: string;
+  schoolAccountId?: string | null;
+  email?: string | null;
+}) {
+  const meta = await getRequestActivityMeta();
+
+  await logPlatformActivity({
+    actorUserId: input.userId,
+    targetUserId: input.userId,
+    schoolAccountId: input.schoolAccountId || null,
+    category: "AUTH",
+    action: "login",
+    severity: "SUCCESS",
+    title: `تم تسجيل دخول المستخدم ${input.email || ""}`.trim(),
+    details: {
+      email: input.email || null,
+    },
+    ...meta,
+  });
+}
+
+
+==========================================================================================
+FILE: components\layout\dashboard-sidebar.tsx
+==========================================================================================
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ACTIVITY_PROGRAM_DOMAINS } from "@/lib/activity-programs/activity-program-catalog";
+import { OFFICIAL_WORKSPACE_ROUTES } from "@/lib/workspace/workspace-modules";
+import { TEACHER_PERFORMANCE_SERVICES } from "@/lib/teacher-performance/teacher-performance-services";
+import type { ComponentType, ReactNode } from "react";
+import {
+  Activity,
+  BarChart3,
+  BookOpen,
+  BrainCircuit,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Crown,
+  FilePlus2,
+  FileText,
+  FolderKanban,
+  GitBranch,
+  Home,
+  KeyRound,
+  LayoutDashboard,
+  Medal,
+  MessageCircle,
+  PenTool,
+  School,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  UserRound,
+  Users,
+  WalletCards,
+} from "lucide-react";
+
+type SidebarUser = {
+  role?: string | null;
+  name?: string | null;
+  officialName?: string | null;
+};
+
+type SidebarLinkItem = {
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  shortLabel?: string;
+};
+
+const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
+
+const counselorImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard", icon: Home },
+  { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+];
+
+const counselorServiceLinks: SidebarLinkItem[] = [
+  {
+    label: "البرامج الإرشادية",
+    href: "/dashboard/guidance-programs",
+    icon: ClipboardList,
+  },
+  {
+    label: "اللجان والاجتماعات",
+    href: "/dashboard/committees-meetings",
+    icon: ShieldCheck,
+  },
+  {
+    label: "متابعة الطلاب",
+    href: "/dashboard/student-follow-up",
+    icon: Users,
+  },
+  {
+    label: "الخدمات الإرشادية المقدمة للطلاب",
+    href: "/dashboard/student-guidance-services",
+    icon: FileText,
+  },
+  {
+    label: "استدعاء ولي أمر",
+    href: "/dashboard/guardian-summons",
+    icon: UserRound,
+    shortLabel: "استدعاء",
+  },
+  {
+    label: "تحليل النتائج",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    icon: BarChart3,
+  },
+  {
+    label: "التواصل بين الأسرة والمدرسة",
+    href: "/dashboard/family-school-communication",
+    icon: MessageCircle,
+  },
+  {
+    label: "المرجع الشامل",
+    href: "/dashboard/counselor-reference-library",
+    icon: BookOpen,
+  },
+];
+
+
+const assessmentCenterLinks: SidebarLinkItem[] = [
+  {
+    label: "لوحة المركز",
+    href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
+    icon: BarChart3,
+  },
+  {
+    label: "ربط الطلاب",
+    href: "/dashboard/assessment-center/linking",
+    icon: GitBranch,
+  },
+  {
+    label: "الموجه الذكي",
+    href: "/dashboard/assessment-center/smart-counselor",
+    icon: Sparkles,
+  },
+];
+const counselorToolsLinks: SidebarLinkItem[] = [
+  { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
+];
+
+const counselorAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const activityLeaderImportantLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: "/dashboard/activity-leader", icon: Home },
+  { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban, shortLabel: "الأنشطة" },
+  { label: "البرامج والفعاليات", href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms, icon: ClipboardList },
+  { label: "خطط النشاط", href: "/dashboard/activity-leader/plans", icon: FolderKanban },
+  { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
+];
+
+const activityProgramDomainLinks: SidebarLinkItem[] = [
+  {
+    label: "كل برامج النشاط",
+    href: OFFICIAL_WORKSPACE_ROUTES.activityLeaderPrograms,
+    icon: ClipboardList,
+    shortLabel: "البرامج",
+  },
+  ...ACTIVITY_PROGRAM_DOMAINS.map((domain) => ({
+    label: domain.title,
+    href: `/dashboard/activity-leader/programs/${domain.slug}`,
+    icon: ClipboardList,
+    shortLabel: domain.shortLabel,
+  })),
+];
+const activityLeaderServiceLinks: SidebarLinkItem[] = [
+  { label: "متابعة أنشطة المعلمين", href: "/dashboard/activity-leader/teacher-assignments", icon: ClipboardList, shortLabel: "المعلمون" },
+  { label: "رفع بيانات الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud, shortLabel: "رفع الطلاب" },
+  { label: "الاستبيانات", href: "/dashboard/activity-leader/surveys", icon: ClipboardList },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
+  { label: "المشاركات الطلابية", href: "/dashboard/activity-leader/participations", icon: Users },
+  { label: "الشواهد والمرفقات", href: "/dashboard/activity-leader/evidence", icon: UploadCloud },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
+];
+
+const activityLeaderAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/plans", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+
+const teacherServiceLinks: SidebarLinkItem[] = [
+  { label: "الرئيسية", href: OFFICIAL_WORKSPACE_ROUTES.teacherHome, icon: Home },
+  { label: "الحالات", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
+  { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
+  { label: "التقويم والتنبيهات", href: "/dashboard/teacher/calendar", icon: CalendarDays },
+  ];
+
+const teacherPerformanceLinks: SidebarLinkItem[] = [
+  ...TEACHER_PERFORMANCE_SERVICES.map((service) => ({
+    label: service.title,
+    href: service.href,
+    icon: ClipboardList,
+    shortLabel: service.shortTitle,
+  })),
+  { label: "تقرير مخصص", href: "/dashboard/ai-report", icon: Sparkles, shortLabel: "مخصص" },
+  { label: "التقرير الذكي التجريبي", href: "/dashboard/teacher/ai-report2", icon: BrainCircuit, shortLabel: "تجريبي" },
+  { label: "ملف إنجازي", href: "/dashboard/teacher/portfolio", icon: FolderKanban, shortLabel: "إنجازي" },
+];
+
+const teacherAdditionalLinks: SidebarLinkItem[] = [
+  { label: "رفع الطلاب", href: OFFICIAL_WORKSPACE_ROUTES.studentImport, icon: UploadCloud },
+  { label: "الشهادات", href: OFFICIAL_WORKSPACE_ROUTES.certificates, icon: Medal },
+  { label: "الاستبيانات", href: OFFICIAL_WORKSPACE_ROUTES.surveys, icon: ClipboardList },
+];
+
+const teacherAccountLinks: SidebarLinkItem[] = [
+  { label: "الباقات", href: "/dashboard/subscription", icon: WalletCards },
+  { label: "حسابي", href: "/dashboard/account", icon: UserRound },
+  { label: "إعدادات المدرسة", href: "/dashboard/settings/school", icon: School },
+];
+const adminMainLinks: SidebarLinkItem[] = [
+  { label: "مركز الإدارة", href: "/dashboard/admin", icon: LayoutDashboard },
+  { label: "صحة النظام", href: "/dashboard/admin/system-health", icon: Activity },
+  { label: "المستخدمين", href: "/dashboard/admin/users", icon: Users },
+  { label: "سجل العمليات", href: "/dashboard/admin/activity", icon: Activity },
+  { label: "الاستبيانات", href: "/dashboard/admin/surveys", icon: ClipboardList },
+  {
+    label: "إدارة المرجع الشامل",
+    href: "/dashboard/admin/counselor-reference-library",
+    icon: BookOpen,
+  },
+  { label: "التفعيلات", href: "/dashboard/admin/activations", icon: KeyRound },
+  { label: "الاشتراكات", href: "/dashboard/admin/subscriptions", icon: Crown },
+  { label: "المشتركين", href: "/dashboard/admin/subscribers", icon: Users },
+  { label: "Workflows", href: "/dashboard/admin/workflows", icon: GitBranch },
+];
+
+const adminPaymentLinks: SidebarLinkItem[] = [
+  { label: "عمليات الدفع", href: "/dashboard/admin/payments", icon: WalletCards },
+  { label: "مزودو الدفع", href: "/dashboard/admin/payments/providers", icon: WalletCards },
+  { label: "التسوية المالية", href: "/dashboard/admin/payments/reconciliation", icon: WalletCards },
+  { label: "الفواتير", href: "/dashboard/admin/payments/invoices", icon: FileText },
+  {
+    label: "إعدادات الفواتير والضريبة",
+    href: "/dashboard/admin/payments/invoice-settings",
+    icon: Settings,
+  },
+];
+
+const adminBuilderLinks: SidebarLinkItem[] = [
+  {
+    label: "مصمم Workflow",
+    href: "/dashboard/admin/workflow-builder",
+    icon: PenTool,
+  },
+  {
+    label: "قوالب التقارير",
+    href: "/dashboard/admin/report-templates",
+    icon: FileText,
+  },
+  {
+    label: "قالب تقرير جديد",
+    href: "/dashboard/admin/report-templates/new",
+    icon: FilePlus2,
+  },
+];
+
+const adminAccountLinks: SidebarLinkItem[] = [
+  { label: "حساب الأدمن", href: "/dashboard/account", icon: UserRound },
+  { label: "هوية المنصة", href: "/dashboard/settings/school", icon: Settings },
+];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function hasActive(pathname: string, items: SidebarLinkItem[]) {
+  return items.some((item) => isActivePath(pathname, item.href));
+}
+
+const collapsedLabelByLabel: Record<string, string> = {
+  "الرئيسية": "الرئيسية",
+  "الحالات": "الحالات",
+  "مركز الأنشطة": "الأنشطة",
+  "متابعة أنشطة المعلمين": "المعلمون",
+  "التقارير": "التقارير",
+  "تقرير خاص": "خاص",
+  "تقرير مخصص": "مخصص",
+  "التقويم والتنبيهات": "التقويم",
+
+  "البرامج الإرشادية": "البرامج",
+  "اللجان والاجتماعات": "اللجان",
+  "متابعة الطلاب": "المتابعة",
+  "الخدمات الإرشادية المقدمة للطلاب": "الإرشاد",
+  "المرجع الشامل": "المرجع",
+  "تحليل النتائج": "التحليل",
+  "التواصل بين الأسرة والمدرسة": "الأسرة",
+
+  "لوحة المركز": "المركز",
+  "تحليل جديد": "تحليل جديد",
+  "التحليلات السابقة": "السابقة",
+  "تحليل المواد": "المواد",
+  "تحليل الصفوف والفصول": "الصفوف",
+  "الطلاب المعرضون للخطر": "الخطر",
+  "التوصيات العلاجية": "التوصيات",
+  "تقارير التحليل": "تقارير",
+
+  "رفع بيانات الطلاب": "رفع الطلاب",
+  "الباقات": "الباقات",
+  "حسابي": "حسابي",
+  "إعدادات المدرسة": "المدرسة",
+
+  "مركز الإدارة": "الإدارة",
+  "صحة النظام": "الصحة",
+  "المستخدمين": "المستخدمون",
+  "سجل العمليات": "السجل",
+  "التفعيلات": "التفعيلات",
+  "الاشتراكات": "الاشتراكات",
+  "المشتركين": "المشتركون",
+  "Workflows": "Workflows",
+
+  "عمليات الدفع": "الدفع",
+  "مزودو الدفع": "المزودون",
+  "التسوية المالية": "التسوية",
+  "الفواتير": "الفواتير",
+  "إعدادات الفواتير والضريبة": "الضريبة",
+
+  "مصمم Workflow": "المصمم",
+  "قوالب التقارير": "القوالب",
+  "قالب تقرير جديد": "قالب جديد",
+  "حساب الأدمن": "حساب الأدمن",
+  "هوية المنصة": "الهوية",
+};
+
+function getCollapsedLabel(item: SidebarLinkItem) {
+  return item.shortLabel || collapsedLabelByLabel[item.label] || item.label;
+}
+
+export function DashboardSidebar({ user }: { user?: SidebarUser | null }) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  const isAdmin =
+    user?.role === "ADMIN" || pathname.startsWith("/dashboard/admin");
+  const isActivityLeader =
+    user?.role === "ACTIVITY_LEADER" ||
+    pathname.startsWith("/dashboard/activity-leader");
+  const isTeacher =
+    user?.role === "TEACHER" || pathname.startsWith("/dashboard/teacher");
+
+  const dashboardHomeHref = isAdmin
+    ? "/dashboard/admin"
+    : isActivityLeader
+      ? OFFICIAL_WORKSPACE_ROUTES.activityLeaderHome
+      : isTeacher
+        ? OFFICIAL_WORKSPACE_ROUTES.teacherHome
+        : OFFICIAL_WORKSPACE_ROUTES.counselorHome;
+
+  const dashboardTitle = isAdmin
+    ? "إدارة المنصة"
+    : isActivityLeader
+      ? "ريادة النشاط"
+      : isTeacher
+        ? "مساحة المعلم"
+        : "التوجيه الطلابي";
+
+  const dashboardSubtitle = isAdmin
+    ? "Admin Center"
+    : isActivityLeader
+      ? "Activity Leader"
+      : isTeacher
+        ? "Teacher Workspace"
+        : "Counselor";
+useEffect(() => {
+    const savedValue = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    setCollapsed(savedValue === "true");
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  }, [collapsed, ready]);
+
+  return (
+    <aside
+      className={[
+        "sticky top-0 hidden h-screen shrink-0 overflow-hidden bg-transparent py-4 transition-all duration-300 md:block xl:py-5",
+        collapsed ? "w-[92px] px-2 lg:w-[96px] xl:w-[104px] xl:px-3" : "w-[232px] px-2 lg:w-[280px] lg:px-3 xl:w-[320px] xl:px-4",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl transition-all duration-300 dark:border-slate-800/80 dark:bg-slate-950/92 dark:shadow-black/30",
+          collapsed ? "p-2" : "p-4",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "flex items-center gap-2 border-b border-slate-100 pb-3 dark:border-slate-800",
+            collapsed ? "justify-center" : "justify-between",
+          ].join(" ")}
+        >
+          <Link
+            href={dashboardHomeHref}
+            className={[
+              "flex min-w-0 items-center rounded-[1.35rem] transition",
+              collapsed ? "justify-center p-1" : "flex-1 gap-3 px-2 py-2",
+              isAdmin
+                ? "hover:bg-slate-50 dark:hover:bg-slate-900"
+                : "hover:bg-sky-50/60 dark:hover:bg-sky-500/10",
+            ].join(" ")}
+            title={dashboardTitle}
+          >
+            <div
+              className={[
+                "flex shrink-0 items-center justify-center rounded-2xl ring-1",
+                collapsed ? "h-11 w-11" : "h-12 w-12",
+                isAdmin
+                  ? "bg-slate-950 text-white ring-slate-900 dark:bg-white dark:text-slate-950 dark:ring-slate-200"
+                  : "bg-sky-50 text-sky-600 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/20",
+              ].join(" ")}
+            >
+              {isAdmin ? (
+                <ShieldCheck className="h-5 w-5" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
+            </div>
+
+            {!collapsed ? (
+              <div className="min-w-0">
+                <h1 className="truncate text-[15px] font-black text-slate-950 dark:text-white">
+                  {dashboardTitle}
+                </h1>
+                <p className="mt-1 truncate text-[11px] font-black text-slate-400 dark:text-slate-500">
+                  {dashboardSubtitle}
+                </p>
+              </div>
+            ) : null}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+            aria-label={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+            title={collapsed ? "توسيع القائمة" : "تصغير القائمة"}
+          >
+            {collapsed ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+
+        {isAdmin ? (
+          <AdminSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isActivityLeader ? (
+          <ActivityLeaderSidebar pathname={pathname} collapsed={collapsed} />
+        ) : isTeacher ? (
+          <TeacherSidebar pathname={pathname} collapsed={collapsed} />
+        ) : (
+          <CounselorSidebar pathname={pathname} collapsed={collapsed} />
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function AdminSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الإدارة" collapsed={collapsed}>
+          {adminMainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="المدفوعات"
+          defaultOpen={pathname.startsWith("/dashboard/admin/payments")}
+          admin
+          collapsed={collapsed}
+        >
+          {adminPaymentLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="أدوات البناء"
+          defaultOpen={hasActive(pathname, adminBuilderLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminBuilderLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والإعدادات"
+          defaultOpen={hasActive(pathname, adminAccountLinks)}
+          admin
+          collapsed={collapsed}
+        >
+          {adminAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              admin
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+    </>
+  );
+}
+
+function ActivityLeaderSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {activityLeaderImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="برامج النشاط"
+          defaultOpen={pathname.startsWith("/dashboard/activity-leader/programs")}
+          collapsed={collapsed}
+        >
+          {activityProgramDomainLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/activity-leader/programs"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarSection title="إدارة النشاط" collapsed={collapsed}>
+          {activityLeaderServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {activityLeaderAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+    </>
+  );
+}
+function TeacherSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="مساحة المعلم" collapsed={collapsed}>
+          {teacherServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="تقييم أداء المعلم"
+          defaultOpen={teacherPerformanceLinks.some((item) => isActivePath(pathname, item.href))}
+          collapsed={collapsed}
+        >
+          {teacherPerformanceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="مركز التحليل والاختبارات"
+          defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
+          collapsed={collapsed}
+        >
+          {assessmentCenterLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/assessment-center"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="خدمات إضافية"
+          defaultOpen={hasActive(pathname, teacherAdditionalLinks)}
+          collapsed={collapsed}
+        >
+          {teacherAdditionalLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/subscription") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {teacherAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+    </>
+  );
+}
+function CounselorSidebar({
+  pathname,
+  collapsed,
+}: {
+  pathname: string;
+  collapsed: boolean;
+}) {
+  return (
+    <>
+      <nav
+        className={[
+          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
+        ].join(" ")}
+      >
+        <SidebarSection title="الأهم" collapsed={collapsed}>
+          {counselorImportantLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="الخدمات" collapsed={collapsed}>
+          {counselorServiceLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarDropdown
+          title="مركز التحليل والاختبارات"
+          defaultOpen={pathname.startsWith("/dashboard/assessment-center")}
+          collapsed={collapsed}
+        >
+          {assessmentCenterLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={
+                item.href === "/dashboard/assessment-center"
+                  ? pathname === item.href
+                  : isActivePath(pathname, item.href)
+              }
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="أدوات إضافية"
+          defaultOpen={hasActive(pathname, counselorToolsLinks)}
+          collapsed={collapsed}
+        >
+          {counselorToolsLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+
+        <SidebarDropdown
+          title="الحساب والباقات"
+          defaultOpen={
+            pathname.startsWith("/dashboard/plans") ||
+            pathname.startsWith("/dashboard/account") ||
+            pathname.startsWith("/dashboard/settings")
+          }
+          collapsed={collapsed}
+        >
+          {counselorAccountLinks.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              active={isActivePath(pathname, item.href)}
+              compact
+              collapsed={collapsed}
+            />
+          ))}
+        </SidebarDropdown>
+      </nav>
+    </>
+  );
+}
+
+function SidebarSection({
+  title,
+  children,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  collapsed: boolean;
+}) {
+  return (
+    <section>
+      {!collapsed ? (
+        <p className="mb-2 px-3 text-[11px] font-black tracking-wide text-slate-400 dark:text-slate-500">
+          {title}
+        </p>
+      ) : null}
+
+      <div className={collapsed ? "space-y-1.5" : "space-y-1.5"}>{children}</div>
+    </section>
+  );
+}
+
+function SidebarDropdown({
+  title,
+  children,
+  defaultOpen = false,
+  admin,
+  collapsed,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  admin?: boolean;
+  collapsed: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (collapsed) {
+    return <div className="space-y-1.5">{children}</div>;
+  }
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={[
+          "mb-2 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black tracking-wide transition",
+          admin
+            ? "text-slate-400 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-slate-900 dark:hover:text-slate-200"
+            : "text-slate-400 hover:bg-sky-50 hover:text-sky-700 dark:text-slate-500 dark:hover:bg-sky-500/10 dark:hover:text-sky-200",
+        ].join(" ")}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={["h-4 w-4 transition", open ? "rotate-180" : ""].join(
+            " "
+          )}
+        />
+      </button>
+
+      {open ? <div className="space-y-1.5">{children}</div> : null}
+    </section>
+  );
+}
+
+function SidebarLink({
+  item,
+  active,
+  admin,
+  compact,
+  collapsed,
+}: {
+  item: SidebarLinkItem;
+  active: boolean;
+  admin?: boolean;
+  compact?: boolean;
+  collapsed: boolean;
+}) {
+  const Icon = item.icon;
+  const collapsedLabel = getCollapsedLabel(item);
+
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      className={[
+        "group relative flex items-center rounded-2xl transition",
+        collapsed
+          ? "min-h-[66px] flex-col justify-center gap-1 px-1 py-1.5 text-center"
+          : "min-h-11 gap-3 px-4 py-2.5",
+        compact && !collapsed ? "py-2" : "",
+        active
+          ? admin
+            ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+            : "bg-sky-50 text-sky-700 shadow-sm dark:bg-sky-500/15 dark:text-sky-200 dark:ring-1 dark:ring-sky-400/20"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white",
+      ].join(" ")}
+    >
+      {active && !collapsed ? (
+        <span
+          className={[
+            "absolute right-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-full",
+            admin ? "bg-white dark:bg-slate-950" : "bg-sky-500",
+          ].join(" ")}
+        />
+      ) : null}
+
+      <div
+        className={[
+          "flex shrink-0 items-center justify-center rounded-xl transition",
+          collapsed ? "h-9 w-9" : compact ? "h-8 w-8" : "h-9 w-9",
+          active
+            ? admin
+              ? "bg-white/10 text-white dark:bg-slate-950/10 dark:text-slate-950"
+              : "bg-white text-sky-600 dark:bg-sky-400/15 dark:text-sky-200"
+            : "bg-slate-100/70 text-slate-500 group-hover:bg-white group-hover:text-sky-600 dark:bg-slate-900 dark:text-slate-400 dark:group-hover:bg-slate-800 dark:group-hover:text-sky-300",
+        ].join(" ")}
+      >
+        <Icon className={collapsed ? "h-5 w-5" : compact ? "h-4 w-4" : "h-5 w-5"} />
+      </div>
+
+      {!collapsed ? (
+        <span className="min-w-0 flex-1 whitespace-normal break-words text-right text-[14px] font-black leading-6">
+          {item.label}
+        </span>
+      ) : (
+        <>
+          <span className="line-clamp-2 max-w-[64px] text-center text-[9px] font-black leading-[11px] text-current">
+            {collapsedLabel}
+          </span>
+
+          <span className="pointer-events-none fixed right-[112px] z-50 hidden whitespace-nowrap rounded-2xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-xl group-hover:block dark:border dark:border-slate-700 dark:bg-slate-900">
+            {item.label}
+          </span>
+        </>
+      )}
+    </Link>
+  );
+}
+
+
+==========================================================================================
+EXISTING AI / DEEPSEEK FILES
+==========================================================================================
+
+==========================================================================================
+REPORT AND CASE ROUTES
+==========================================================================================
+.\app\api\admin\report-templates\preview-case\route.ts
+.\app\api\admin\report-templates\workflow-fields\route.ts
+.\app\api\dashboard\ai-report\field-options\route.ts
+.\app\api\dashboard\ai-report\suggest\route.ts
+.\app\api\dashboard\ai-report2\clarify\route.ts
+.\app\api\dashboard\ai-report2\suggest\route.ts
+.\app\api\dashboard\assessment-center\interventions\create-case\route.ts
+
+.\app\api\dashboard\cases\autosave\route.ts
+.\app\api\dashboard\cases\save-draft\route.ts
+.\app\api\dashboard\cases\submit\route.ts
+.\app\api\dashboard\custom-report\entries\route.ts
+.\app\api\dashboard\custom-report\suggest\route.ts
+
+.\app\api\dashboard\custom-report\templates\route.ts
+
+
+
+
+
+
+.\app\api\dashboard\report\prepare\route.ts
+.\app\api\dashboard\report\route.ts
+
+
+
+
+
+
+
+.\app\api\dashboard\report-2\snapshots\route.ts
+
+
+
+
+
+
+
+
+
+.\app\api\dashboard\reports\prepare\route.ts
+.\app\api\dashboard\reports\route.ts
+
+
+.\app\api\dashboard\report-templates\route.ts
+.\app\api\dashboard\special-report\ai\route.ts
+
+.\app\api\dashboard\special-report\runtime\route.ts
+.\app\api\dashboard\special-report\templates\route.ts
+.\app\api\dev\seed-one-page-mosaic-report-template\route.ts
+.\app\api\dev\seed-three-report-design-templates\route.ts
+
+.\app\dashboard\activity-leader\reports\page.tsx
+.\app\dashboard\admin\document-designs\evidence-rich-report\page.tsx
+.\app\dashboard\admin\document-designs\minimal-guidance-report\page.tsx
+.\app\dashboard\admin\document-designs\official-school-report\page.tsx
+.\app\dashboard\admin\document-designs\visual-program-report\page.tsx
+.\app\dashboard\admin\reports\page.tsx
+.\app\dashboard\admin\report-templates\activity-leader\page.tsx
+
+.\app\dashboard\admin\report-templates\designs\page.tsx
+.\app\dashboard\admin\report-templates\library\page.tsx
+.\app\dashboard\admin\report-templates\new\page.tsx
+.\app\dashboard\admin\report-templates\page.tsx
+.\app\dashboard\admin\report-texts\page.tsx
+.\app\dashboard\ai-report\layout.tsx
+.\app\dashboard\ai-report\new\page.tsx
+.\app\dashboard\ai-report\page.tsx
+.\app\dashboard\assessment-center\report-linking\page.tsx
+.\app\dashboard\assessment-center\reports\page.tsx
+
+
+.\app\dashboard\cases\page.tsx
+.\app\dashboard\custom-report\layout.tsx
+.\app\dashboard\custom-report\new\page.tsx
+.\app\dashboard\custom-report\page.tsx
+
+
+
+
+
+.\app\dashboard\report\new\layout.tsx
+.\app\dashboard\report\new\page.tsx
+.\app\dashboard\report\page.tsx
+
+
+
+.\app\dashboard\report-1\page.tsx
+
+
+.\app\dashboard\report-2\page.tsx
+
+.\app\dashboard\report-preview\page.tsx
+
+
+
+.\app\dashboard\reports\cases\page.tsx
+.\app\dashboard\reports\new\layout.tsx
+.\app\dashboard\reports\new\page.tsx
+.\app\dashboard\reports\page.tsx
+.\app\dashboard\reports\saved\page.tsx
+.\app\dashboard\surveys\report-linking\page.tsx
+.\app\dashboard\teacher\ai-report2\new\page.tsx
+.\app\dashboard\teacher\ai-report2\page.tsx
+.\app\dashboard\teacher\report-issuance\layout.tsx
+.\app\dashboard\teacher\report-issuance\new\page.tsx
+.\app\dashboard\teacher\report-issuance\page.tsx
+.\app\dashboard\teacher\report-workflow\page.tsx
+
+.\app\dashboard\teacher\special-report\new\page.tsx
+
+
+.\app\mobile\counselor\cases\new\page.tsx
+.\app\mobile\counselor\cases\page.tsx
+
+
+
+
+
+
+
+
+==========================================================================================
+REPORT ISSUANCE MATCHES
+==========================================================================================
+
+==========================================================================================
+DEEPSEEK USAGE MATCHES
+==========================================================================================

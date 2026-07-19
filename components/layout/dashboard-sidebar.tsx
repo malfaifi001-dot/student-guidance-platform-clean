@@ -57,7 +57,6 @@ const counselorImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard", icon: Home },
   { label: "مركز الأنشطة", href: OFFICIAL_WORKSPACE_ROUTES.cases, icon: FolderKanban },
   { label: "التقارير", href: OFFICIAL_WORKSPACE_ROUTES.reports, icon: FileText },
-  { label: "تقرير خاص", href: "/dashboard/custom-report", icon: Sparkles },
   { label: "التقويم والتنبيهات", href: "/dashboard/calendar", icon: CalendarDays },
 ];
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 
 import { workflowUploadServices } from "@/lib/constants/services";
 import { useEffect, useMemo, useState } from "react";
@@ -459,7 +460,11 @@ function buildRuntimeContext(template: StudioTemplate, previewCase: PreviewCaseD
     "student.guardianName": previewCase?.student?.guardianName || "اسم ولي الأمر",
     "student.guardianPhone": previewCase?.student?.guardianPhone || "رقم ولي الأمر",
 
-    "evidence.count": String(previewCase?.evidences?.length || 0),
+    "evidence.count": String(
+      filterValidReportEvidenceItems(previewCase?.evidences || [], {
+        allowSampleEvidence: !previewCase?.caseId,
+      }).length,
+    ),
 
     ...values,
   };
@@ -2754,16 +2759,24 @@ function PreviewBlock({
   }
 
   if (block.kind === "evidence-gallery") {
-    const realEvidences = previewCase?.evidences || [];
+    const hasSelectedCase = Boolean(previewCase?.caseId);
+    const realEvidences = filterValidReportEvidenceItems(
+      previewCase?.evidences || [],
+      { allowSampleEvidence: !hasSelectedCase },
+    );
     const perPage = getEvidencePerPage(block);
     const startIndex = block.evidenceStartIndex || 0;
-    const placeholderEvidences = createEvidencePlaceholders(perPage, startIndex);
-    const sourceEvidences = realEvidences.length ? realEvidences : placeholderEvidences;
+
+    if (!realEvidences.length && hasSelectedCase) {
+      return null;
+    }
 
     if (!realEvidences.length && block.evidenceEmptyBehavior === "hide") {
       return null;
     }
 
+    const placeholderEvidences = createEvidencePlaceholders(perPage, startIndex);
+    const sourceEvidences = realEvidences.length ? realEvidences : placeholderEvidences;
     const visibleEvidences = sourceEvidences.slice(startIndex, startIndex + perPage);
     const hiddenCount = Math.max(realEvidences.length - (startIndex + perPage), 0);
     const isPlaceholderMode = !realEvidences.length;

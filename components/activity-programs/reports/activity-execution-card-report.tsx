@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import type { ReportBlock } from "@/lib/report-engine/report-block-types";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import type {
   ReportEvidenceConfig,
   SmartReportEvidenceItem,
@@ -50,6 +51,9 @@ export type ActivityExecutionCardReportData = {
     id: string;
     title: string;
     imageUrl?: string;
+    fileUrl?: string;
+    storagePath?: string;
+    attachmentId?: string;
     fileName?: string;
   }[];
 
@@ -157,12 +161,17 @@ function getInfoIcon(label: string) {
 function mapSmartEvidenceToActivityEvidence(
   items: SmartReportEvidenceItem[] | undefined,
 ): EvidenceItem[] {
-  return (items || []).map((item, index) => ({
+  return filterValidReportEvidenceItems(items || []).map((item, index) => ({
     id: item.id || `evidence-${index + 1}`,
     title: item.title || `شاهد ${index + 1}`,
     imageUrl: item.type === "IMAGE" ? item.url : undefined,
+    fileUrl: item.url,
     fileName: item.title || `شاهد ${index + 1}`,
   }));
+}
+
+function getValidActivityEvidences(evidences: EvidenceItem[] | undefined) {
+  return filterValidReportEvidenceItems(evidences || []);
 }
 
 function buildDefaultBlocks(
@@ -217,14 +226,16 @@ function buildDefaultBlocks(
     }
   }
 
-  if (data.evidences.length > 0) {
+  const validEvidences = getValidActivityEvidences(data.evidences);
+
+  if (validEvidences.length > 0) {
     blocks.push({
       id: "evidence",
       type: "EVIDENCE_GRID",
-      evidenceItems: data.evidences.map((item) => ({
+      evidenceItems: validEvidences.map((item) => ({
         id: item.id,
         title: item.title,
-        url: item.imageUrl,
+        url: item.imageUrl || item.fileUrl || item.storagePath,
         type: item.imageUrl ? "IMAGE" : "FILE",
       })),
       estimatedHeight: 90,

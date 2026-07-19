@@ -1,4 +1,5 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
 import {
   applyReportLanguageModeToFieldValue,
@@ -896,26 +897,38 @@ function isImageEvidence(item: any) {
 }
 
 function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
-  const normalItems: SmartReportEvidenceItem[] = (caseEntry.evidences || [])
-    .filter((item: any) => Boolean(item.fileUrl || item.url))
+  const normalItems: SmartReportEvidenceItem[] = filterValidReportEvidenceItems(
+    caseEntry.evidences || [],
+  )
     .map((item: any) => ({
       id: item.id,
       title: item.fileName || item.note || "شاهد",
       caption: item.note || undefined,
-      url: item.fileUrl || item.url || undefined,
+      url:
+        item.fileUrl ||
+        item.url ||
+        item.imageUrl ||
+        item.publicUrl ||
+        item.storagePath ||
+        undefined,
       type: isImageEvidence(item) ? "IMAGE" : "FILE",
       ...(item.title ? { title: item.title } : {}),
       ...(item.caption ? { caption: item.caption } : {}),
     }));
 
-  const caseEvidenceItems: SmartReportEvidenceItem[] = (
-    caseEntry.caseEvidences || []
+  const caseEvidenceItems: SmartReportEvidenceItem[] = filterValidReportEvidenceItems(
+    caseEntry.caseEvidences || [],
   )
-    .filter((item: any) => Boolean(item.fileUrl || item.url))
     .map((item: any) => ({
       id: item.id,
       title: item.fileName || "شاهد",
-      url: item.fileUrl || item.url,
+      url:
+        item.fileUrl ||
+        item.url ||
+        item.imageUrl ||
+        item.publicUrl ||
+        item.storagePath ||
+        undefined,
       type: isImageEvidence(item) ? "IMAGE" : "FILE",
       ...(item.title ? { title: item.title } : {}),
       ...(item.caption || item.note
@@ -926,13 +939,20 @@ function normalizeEvidence(caseEntry: any): SmartReportEvidenceItem[] {
   const assignmentEvidenceItems: SmartReportEvidenceItem[] = Array.isArray(
     caseEntry.activityAssignment?.submittedEvidenceItems,
   )
-    ? caseEntry.activityAssignment.submittedEvidenceItems
-        .filter((item: any) => Boolean(item?.fileUrl || item?.url))
+    ? filterValidReportEvidenceItems(
+        caseEntry.activityAssignment.submittedEvidenceItems,
+      )
         .map((item: any, index: number) => ({
           id: item.id || `assignment-evidence-${index + 1}`,
           title: item.fileName || item.title || `شاهد ${index + 1}`,
           caption: item.caption || item.note || undefined,
-          url: item.fileUrl || item.url,
+          url:
+            item.fileUrl ||
+            item.url ||
+            item.imageUrl ||
+            item.publicUrl ||
+            item.storagePath ||
+            undefined,
           type: isImageEvidence(item) ? "IMAGE" : "FILE",
         }))
     : [];

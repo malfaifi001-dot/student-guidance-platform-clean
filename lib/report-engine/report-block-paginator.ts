@@ -7,6 +7,7 @@ import type {
   ReportEvidenceConfig,
   SmartReportPayload,
 } from "@/lib/report-engine/smart-report-types";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 
 const DEFAULT_PAGE_CAPACITY = 260;
 const MAX_TEXT_BLOCK_HEIGHT = 82;
@@ -95,7 +96,7 @@ function expandEvidenceBlocks(
   block: ReportBlock,
   evidenceConfig?: ReportEvidenceConfig,
 ): ReportBlock[] {
-  const items = block.evidenceItems || [];
+  const items = filterValidReportEvidenceItems(block.evidenceItems || []);
   const visible = evidenceConfig?.visible ?? true;
 
   if (!visible || items.length === 0) return [];

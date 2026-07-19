@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 
 type LegacyReportTemplateId =
   | "official-long"
@@ -134,7 +135,8 @@ export function buildBuilderPreviewCaseData(
     ? report.caseEntry.evidences
     : [];
 
-  const evidences = reportEvidenceItems.length
+  const evidences = filterValidReportEvidenceItems(
+    reportEvidenceItems.length
     ? reportEvidenceItems
         .filter((item: any) => item.visible !== false)
         .map((item: any) => ({
@@ -158,9 +160,10 @@ export function buildBuilderPreviewCaseData(
           item.mimeType?.startsWith("image/") || /\.(png|jpg|jpeg|webp|gif)$/i.test(item.fileName || "")
             ? item.fileUrl || ""
             : undefined,
-        mimeType: item.mimeType || "",
-        note: item.note || "",
-      }));
+          mimeType: item.mimeType || "",
+          note: item.note || "",
+      })),
+  );
 
   return {
     id: report.caseEntry.id,

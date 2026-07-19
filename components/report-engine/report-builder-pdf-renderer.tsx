@@ -1,4 +1,5 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
+import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import type { CSSProperties, ReactNode } from "react";
 import type {
   ReportTemplateBlock,
@@ -40,6 +41,9 @@ type RuntimeEvidenceItem = {
   fileName?: string | null;
   fileUrl?: string | null;
   imageUrl?: string | null;
+  publicUrl?: string | null;
+  storagePath?: string | null;
+  attachmentId?: string | null;
   mimeType?: string | null;
   caption?: string | null;
   description?: string | null;
@@ -75,14 +79,7 @@ export function ReportBuilderPdfRenderer({
     const chunks = chunkEvidencesForLayout(allEvidences, evidenceLayoutMode);
 
     if (!chunks.length) {
-      return [
-        {
-          ...page,
-          evidenceChunk: [],
-          evidencePageNumber: 1,
-          evidenceTotalPages: 1,
-        },
-      ];
+      return [];
     }
 
     return chunks.map((chunk, index) => ({
@@ -657,7 +654,9 @@ function getRuntimeEvidences(
   previewCaseData: RuntimePreviewCaseData | null
 ): RuntimeEvidenceItem[] {
   const data = previewCaseData as { evidences?: RuntimeEvidenceItem[] } | null;
-  return Array.isArray(data?.evidences) ? data.evidences : [];
+  return filterValidReportEvidenceItems(data?.evidences || [], {
+    allowSampleEvidence: !previewCaseData?.caseId,
+  });
 }
 
 function getStudent(previewCaseData: RuntimePreviewCaseData | null) {
