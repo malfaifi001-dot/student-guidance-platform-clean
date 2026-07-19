@@ -3,14 +3,9 @@ import { prisma } from "@/lib/prisma";
 export const DEFAULT_PLATFORM_SERVICES = [
   {
     slug: "counselor-reference-library",
-    name: "المرجع الشامل للموجه الطلابي",
+    name: "المرجع الشامل",
     description:
       "مكتبة معرفية للموجه الطلابي تتيح استعراض الحقائب والأدلة والملفات وقراءتها أو تحميلها حسب الصلاحيات.",
-  },
-  {
-    slug: "student-comprehensive-reference",
-    name: "المرجع الشامل للطالب",
-    description: "مكتبة مرجعية مخصصة للطالب/الطالبة يمكن ربطها لاحقًا بواجهة الطالب.",
   },
   {
     slug: "custom-report",

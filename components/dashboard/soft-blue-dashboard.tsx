@@ -94,7 +94,7 @@ export function SoftBlueDashboard({
                 />
 
                 <HeroButton
-                  href="/dashboard/comprehensive-reference"
+                  href="/dashboard/counselor-reference-library"
                   icon={<BookOpen className="h-4 w-4" />}
                   label="فتح المرجع"
                 />
@@ -124,7 +124,7 @@ export function SoftBlueDashboard({
               label="الطلاب"
               value={formatCount(stats.students)}
               helper="افتح المرجع الشامل عند الحاجة."
-              href="/dashboard/comprehensive-reference"
+              href="/dashboard/counselor-reference-library"
             />
           </section>
 
@@ -184,9 +184,9 @@ export function SoftBlueDashboard({
                 />
 
                 <QuietLink
-                  href="/dashboard/comprehensive-reference"
+                  href="/dashboard/counselor-reference-library"
                   icon={<BookOpen className="h-5 w-5" />}
-                  title="المرجع الشامل للموجه الطلابي"
+                  title="المرجع الشامل"
                 />
 
                 <QuietLink

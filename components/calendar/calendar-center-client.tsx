@@ -149,10 +149,6 @@ function getLinkHref(reminder: ReminderItem) {
     return `/dashboard/cases/${reminder.caseEntry.id}`;
   }
 
-  if (reminder.linkType === "STUDENT" && reminder.student?.id) {
-    return `/dashboard/comprehensive-reference?studentId=${reminder.student.id}`;
-  }
-
   return "";
 }
 

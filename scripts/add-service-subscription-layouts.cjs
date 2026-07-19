@@ -7,8 +7,7 @@ const services = [
   { dir: "app/dashboard/committees-meetings", slug: "committees-meetings" },
   { dir: "app/dashboard/guidance-programs", slug: "guidance-programs" },
   { dir: "app/dashboard/student-guidance-services", slug: "student-guidance-services" },
-  { dir: "app/dashboard/results-analysis", slug: "results-analysis" },
-  { dir: "app/dashboard/comprehensive-reference", slug: "comprehensive-reference" }
+  { dir: "app/dashboard/results-analysis", slug: "results-analysis" }
 ];
 
 for (const service of services) {

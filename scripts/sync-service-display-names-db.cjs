@@ -23,9 +23,9 @@ const serviceNames = {
     name: "التواصل بين الأسرة والمدرسة",
     description: "توثيق التواصل بين الأسرة والمدرسة.",
   },
-  "comprehensive-reference": {
-    name: "المرجع الشامل للموجه الطلابي",
-    description: "مرجع شامل للموجه الطلابي لمتابعة بيانات الطلاب وسجلاتهم.",
+  "counselor-reference-library": {
+    name: "المرجع الشامل",
+    description: "مكتبة الحقائب والأدلة والملفات المهنية الخاصة بالموجه الطلابي.",
   },
   "results-analysis": {
     name: "تحليل النتائج",

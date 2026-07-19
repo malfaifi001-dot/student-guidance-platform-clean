@@ -7,7 +7,7 @@ const serviceNames = {
   "student-follow-up": "متابعة الطلاب",
   "student-guidance-services": "الخدمات الإرشادية المقدمة للطلاب",
   "family-school-communication": "التواصل بين الأسرة والمدرسة",
-  "comprehensive-reference": "المرجع الشامل للموجه الطلابي",
+  "counselor-reference-library": "المرجع الشامل",
   "results-analysis": "تحليل النتائج",
   "reports": "التقارير",
 };
@@ -18,7 +18,7 @@ const serviceDescriptions = {
   "student-follow-up": "متابعة الطلاب والحالات الطلابية.",
   "student-guidance-services": "إدارة الخدمات الإرشادية المقدمة للطلاب.",
   "family-school-communication": "توثيق التواصل بين الأسرة والمدرسة.",
-  "comprehensive-reference": "مرجع شامل للموجه الطلابي لمتابعة بيانات الطلاب وسجلاتهم.",
+  "counselor-reference-library": "مكتبة الحقائب والأدلة والملفات المهنية الخاصة بالموجه الطلابي.",
   "results-analysis": "رفع وتحليل نتائج الطلاب.",
   "reports": "إنشاء ومعاينة واعتماد التقارير.",
 };
@@ -33,9 +33,9 @@ const replacements = new Map([
   ["الخدمات التوجيهية المقدمة للطلاب", "الخدمات الإرشادية المقدمة للطلاب"],
   ["الخدمات الارشادية المقدمة للطلاب", "الخدمات الإرشادية المقدمة للطلاب"],
 
-  ["السجل الشامل للطالب", "المرجع الشامل للموجه الطلابي"],
-  ["السجل الشامل", "المرجع الشامل للموجه الطلابي"],
-  ["المرجع الشامل الموجه الطلابي", "المرجع الشامل للموجه الطلابي"],
+  ["السجل الشامل للطالب", "المرجع الشامل"],
+  ["السجل الشامل", "المرجع الشامل"],
+  ["المرجع الشامل الموجه الطلابي", "المرجع الشامل"],
 
   ["البرامج الارشادية", "البرامج الإرشادية"],
   ["اللجان و الاجتماعات", "اللجان والاجتماعات"],
@@ -94,10 +94,10 @@ export const workflowServices: AppService[] = [
 
 export const standaloneServices: AppService[] = [
   {
-    slug: "comprehensive-reference",
-    title: "${serviceNames["comprehensive-reference"]}",
-    description: "${serviceDescriptions["comprehensive-reference"]}",
-    href: "/dashboard/comprehensive-reference",
+    slug: "counselor-reference-library",
+    title: "${serviceNames["counselor-reference-library"]}",
+    description: "${serviceDescriptions["counselor-reference-library"]}",
+    href: "/dashboard/counselor-reference-library",
     kind: "standalone",
   },
   {

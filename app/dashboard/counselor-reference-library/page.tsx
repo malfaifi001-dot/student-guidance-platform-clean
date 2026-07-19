@@ -42,7 +42,7 @@ export default async function CounselorReferenceLibraryPage({
 
   return (
     <ReferenceLibraryPageShell
-      title="المرجع الشامل للموجه الطلابي"
+      title="المرجع الشامل"
       description="استعرض الحقائب والأدلة والنماذج المهنية، واقرأ الملفات أو حمّلها حسب الصلاحيات."
       items={items}
       breadcrumbs={[]}

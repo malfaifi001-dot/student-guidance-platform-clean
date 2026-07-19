@@ -91,7 +91,7 @@ function getServiceDisplayName(slug?: string | null) {
     surveys: "الاستبيانات",
     "results-analysis": "تحليل النتائج",
     "assessment-center": "مركز التحليل والاختبارات",
-    "comprehensive-reference": "المرجع الشامل للموجه الطلابي",
+    "counselor-reference-library": "المرجع الشامل",
     "custom-report": "التقرير المخصص",
     reports: "التقارير",
   };

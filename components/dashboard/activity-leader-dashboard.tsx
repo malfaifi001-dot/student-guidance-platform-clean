@@ -134,7 +134,7 @@ export function ActivityLeaderDashboard({
               label="الطلاب"
               value={formatCount(stats.students)}
               helper="بيانات الطلاب المتاحة داخل الحساب."
-              href="/dashboard/student-comprehensive-reference"
+              href="/dashboard/data-center/students"
             />
           </section>
 

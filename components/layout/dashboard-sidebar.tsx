@@ -89,16 +89,6 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     shortLabel: "استدعاء",
   },
   {
-    label: "المرجع الشامل للطالب",
-    href: "/dashboard/student-comprehensive-reference",
-    icon: BookOpen,
-  },
-  {
-    label: "المرجع الشامل للموجه الطلابي",
-    href: "/dashboard/comprehensive-reference",
-    icon: BookOpen,
-  },
-  {
     label: "تحليل النتائج",
     href: OFFICIAL_WORKSPACE_ROUTES.assessmentCenter,
     icon: BarChart3,
@@ -289,8 +279,6 @@ const collapsedLabelByLabel: Record<string, string> = {
   "اللجان والاجتماعات": "اللجان",
   "متابعة الطلاب": "المتابعة",
   "الخدمات الإرشادية المقدمة للطلاب": "الإرشاد",
-  "المرجع الشامل للطالب": "مرجع الطالب",
-  "المرجع الشامل للموجه الطلابي": "مرجع الموجه",
   "المرجع الشامل": "المرجع",
   "تحليل النتائج": "التحليل",
   "التواصل بين الأسرة والمدرسة": "الأسرة",

@@ -96,7 +96,7 @@ function serviceLabel(slug: string) {
     "guidance-programs": "البرامج الإرشادية",
     "results-analysis": "تحليل النتائج",
     "student-guidance-services": "الخدمات الإرشادية",
-    "comprehensive-reference": "المرجع الشامل",
+    "counselor-reference-library": "المرجع الشامل",
   };
 
   return labels[slug] || slug;

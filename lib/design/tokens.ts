@@ -28,7 +28,7 @@ export const serviceColors: Record<string, string> = {
   "committees-meetings": "from-violet-500 to-fuchsia-500",
   "family-school-communication": "from-amber-500 to-orange-500",
   "student-guidance-services": "from-blue-500 to-indigo-500",
-  "comprehensive-reference": "from-slate-500 to-slate-700",
+  "counselor-reference-library": "from-slate-500 to-slate-700",
   "results-analysis": "from-rose-500 to-pink-500",
   reports: "from-green-500 to-lime-500",
 };

@@ -51,7 +51,10 @@ export default async function CounselorReferenceLibraryFilePage({
   const fileUrl = `/api/dashboard/counselor-reference-library/files/${encodeURIComponent(
     item.id,
   )}`;
-  const pdfPreviewUrl = `${fileUrl}?variant=pdf`;
+  const basePdfPreviewUrl = `${fileUrl}?variant=pdf`;
+  const pdfPreviewUrl = item.pdfCoverApplied
+    ? `${basePdfPreviewUrl}#page=2`
+    : basePdfPreviewUrl;
 
   return (
     <div className="space-y-6 pb-12" dir="rtl">

@@ -118,12 +118,6 @@ function getLinkHref(reminder: DashboardAttentionMiniReminder) {
     return `/dashboard/cases/${reminder.caseEntry.id}`;
   }
 
-  if (reminder.linkType === "STUDENT" && reminder.student?.id) {
-    return `/dashboard/comprehensive-reference?studentId=${encodeURIComponent(
-      reminder.student.id,
-    )}`;
-  }
-
   return "";
 }
 
