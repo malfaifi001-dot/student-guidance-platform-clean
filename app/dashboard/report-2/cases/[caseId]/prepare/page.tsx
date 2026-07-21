@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ReportPrepareFlow } from "@/components/report-flow/report-prepare-flow";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import { buildSmartReportPayloadForCase } from "@/lib/report-engine/smart-report-payload-builder";
+import { withStudentPrimaryFields } from "@/lib/report-engine/with-student-primary-fields";
 import {
   reportVariants,
   resolveReportVariantId,
@@ -84,7 +85,7 @@ export default async function ReportTwoPreparePage({
 
   return (
     <ReportPrepareFlow
-      payload={result.payload}
+      payload={withStudentPrimaryFields(result.payload)}
       selectedVariantId={selectedVariantId}
       variants={reportVariants}
       continueHref={`/dashboard/report-2/cases/${caseId}/studio?${new URLSearchParams({
