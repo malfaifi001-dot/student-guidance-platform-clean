@@ -231,6 +231,7 @@ export async function POST(request: Request) {
         templateId,
         templateSnapshot,
         reportDataSnapshot,
+        status: "GENERATED",
         generatedAt: new Date(),
 
         evidenceItems: {

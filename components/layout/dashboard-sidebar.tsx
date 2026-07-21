@@ -102,7 +102,11 @@ const counselorServiceLinks: SidebarLinkItem[] = [
     href: "/dashboard/counselor-reference-library",
     icon: BookOpen,
   },
-];
+  {
+    label: "الإحصائيات",
+    href: "/dashboard/statistics",
+    icon: BarChart3,
+  },];
 
 
 const assessmentCenterLinks: SidebarLinkItem[] = [
@@ -279,6 +283,7 @@ const collapsedLabelByLabel: Record<string, string> = {
   "متابعة الطلاب": "المتابعة",
   "الخدمات الإرشادية المقدمة للطلاب": "الإرشاد",
   "المرجع الشامل": "المرجع",
+  "الإحصائيات": "إحصائيات",
   "تحليل النتائج": "التحليل",
   "التواصل بين الأسرة والمدرسة": "الأسرة",
 

@@ -1957,3 +1957,41 @@ model AchievementPortfolioItem {
   @@index([isVisible])
   @@index([sortOrder])
 }
+
+model StatisticalReport {
+  id String @id @default(cuid())
+
+  schoolAccountId String?
+  createdById     String
+  serviceId       String
+
+  serviceSlugSnapshot String @db.VarChar(191)
+  serviceNameSnapshot String @db.VarChar(191)
+  title               String @db.VarChar(255)
+
+  dateFrom DateTime
+  dateTo   DateTime
+
+  filtersJson              Json
+  deterministicMetricsJson Json
+  aiAnalysisJson           Json?
+
+  sourceCaseCount     Int  @default(0)
+  sourceReportCount   Int  @default(0)
+  sourceReportIdsJson Json
+
+  analysisMode     String    @default("DETERMINISTIC") @db.VarChar(40)
+  reportTemplateId String?
+  archivedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([createdById])
+  @@index([serviceId])
+  @@index([serviceSlugSnapshot])
+  @@index([dateFrom, dateTo])
+  @@index([archivedAt])
+  @@index([createdAt])
+}
