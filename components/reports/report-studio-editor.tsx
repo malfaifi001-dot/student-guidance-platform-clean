@@ -55,6 +55,12 @@ type EditableContentPayload = {
   >;
   workflowValueOverrides?: WorkflowValueOverride[];
   evidenceLayoutMode?: EvidenceLayoutMode;
+  editorialMeta?: {
+    editedAfterApproval?: boolean;
+    lastEditedAfterApprovalAt?: string;
+    lastEditedAfterApprovalById?: string;
+  };
+  [key: string]: unknown;
 };
 
 type StudioReport = {
@@ -184,7 +190,8 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  const locked = report.status === "APPROVED" || report.status === "ARCHIVED";
+  const isArchived = report.status === "ARCHIVED";
+  const isApproved = report.status === "APPROVED";
 
   const parsed = useMemo(
     () => parseEditableContent(report.editableContent, report.renderedContent),
@@ -199,6 +206,10 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   );
   const [title, setTitle] = useState(report.title);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [approvedEditingConfirmed, setApprovedEditingConfirmed] = useState(false);
+  const [approvedEditModalOpen, setApprovedEditModalOpen] = useState(false);
+  const [editedAfterApprovalInSession, setEditedAfterApprovalInSession] =
+    useState(false);
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
   const [previewVersion, setPreviewVersion] = useState(1);
@@ -219,6 +230,11 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   const [savingEvidence, setSavingEvidence] = useState(false);
   const [evidenceLayoutMode, setEvidenceLayoutMode] =
     useState<EvidenceLayoutMode>(parsed.evidenceLayoutMode || "two-per-page");
+  const canEdit = !isArchived && (!isApproved || approvedEditingConfirmed);
+  const editorLocked = !canEdit;
+  const wasEditedAfterApproval = Boolean(
+    parsed.editorialMeta?.editedAfterApproval || editedAfterApprovalInSession,
+  );
 
   const runtimeContext = useMemo(() => buildRuntimeContext(report), [report]);
 
@@ -297,13 +313,14 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
       page: activePage,
       blocks: cleanBlockOverrides,
       context: runtimeContext,
+      evidenceLayoutMode,
     });
 
     return {
       ...template,
       pages: livePage ? [livePage] : [],
     };
-  }, [activePage, cleanBlockOverrides, runtimeContext, template]);
+  }, [activePage, cleanBlockOverrides, evidenceLayoutMode, runtimeContext, template]);
 
   const livePreviewCaseData = useMemo(
     () => buildPreviewCaseDataForRenderer(report),
@@ -313,6 +330,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   const editableContent = useMemo(() => {
     return JSON.stringify(
       {
+        ...parsed,
         version: 20,
         type: "FINAL_REPORT_PAGE_EDITOR",
         updatedAt: new Date().toISOString(),
@@ -391,12 +409,17 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   }
 
   async function saveReport() {
-    if (locked) {
+    if (isArchived) {
       setFeedback({
         type: "warning",
-        title: "التقارير مغلق",
-        message: "لا يمكن تعديل التقارير بعد الاعتماد أو الأرشفة.",
+        title: "التقرير مؤرشف",
+        message: "التقرير مؤرشف ولا يمكن تعديله قبل استعادته.",
       });
+      return;
+    }
+
+    if (isApproved && !approvedEditingConfirmed) {
+      setApprovedEditModalOpen(true);
       return;
     }
 
@@ -430,10 +453,13 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
 
       setFeedback({
         type: "success",
-        title: "تم حفظ التعديلات",
+        title: isApproved
+          ? "تم حفظ تعديلات التقرير المعتمد"
+          : "تم حفظ التعديلات",
         message:
           "تم حفظ تعديلات التقارير فقط. بيانات الحالة الأصلية لم تتغير.",
       });
+      if (isApproved) setEditedAfterApprovalInSession(true);
 
       setPreviewVersion((current) => current + 1);
 
@@ -456,7 +482,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
   }
 
   async function approveReport() {
-    if (locked) return;
+    if (isArchived || isApproved) return;
 
     try {
       setApproving(true);
@@ -587,6 +613,9 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                 عدّل النصوص الظاهرة داخل صفحات القالب فقط. التعديل لا يغير
                 بيانات الحالة الأصلية.
               </p>
+              <p className="mt-2 text-xs font-bold text-slate-400">
+                آخر تحديث للتقرير: {formatDate(report.updatedAt)}
+              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -621,6 +650,45 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
         <div className="grid items-start gap-5 p-5 xl:grid-cols-[420px_minmax(0,1fr)] 2xl:grid-cols-[460px_minmax(0,1fr)]">
           <aside className="space-y-3 self-start">
 {feedback ? <FeedbackCard feedback={feedback} /> : null}
+
+            {isApproved ? (
+              <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-sm font-black text-emerald-900">
+                  هذا التقرير معتمد. يمكنك تعديل صياغة التقرير وعرض الشواهد دون تغيير بيانات الحالة الأصلية.
+                </p>
+                <p className="mt-2 text-xs font-bold leading-6 text-emerald-700">
+                  سيظل التقرير بحالة معتمد، ولن تتغير النسخ المحفوظة أو تاريخ الاعتماد.
+                </p>
+                {!approvedEditingConfirmed ? (
+                  <button
+                    type="button"
+                    onClick={() => setApprovedEditModalOpen(true)}
+                    className="mt-3 w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800"
+                  >
+                    تحرير التقرير المعتمد
+                  </button>
+                ) : (
+                  <span className="mt-3 inline-flex rounded-full bg-white px-3 py-2 text-xs font-black text-emerald-700 ring-1 ring-emerald-200">
+                    وضع التحرير بعد الاعتماد مفعّل
+                  </span>
+                )}
+              </section>
+            ) : null}
+
+            {isArchived ? (
+              <section className="rounded-3xl border border-slate-200 bg-slate-100 p-4 text-sm font-black text-slate-600">
+                التقرير مؤرشف ولا يمكن تعديله قبل استعادته.
+              </section>
+            ) : null}
+
+            {wasEditedAfterApproval ? (
+              <section className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-black text-amber-900">تم تعديل التقرير بعد الاعتماد</p>
+                <p className="mt-2 text-xs font-bold leading-6 text-amber-700">
+                  تم تعديل صياغة التقرير بعد اعتماده، بينما بقيت بيانات الحالة الأصلية والنسخ المحفوظة دون تغيير.
+                </p>
+              </section>
+            ) : null}
 
                         {/* REPORT_STUDIO_SIDE_TEXT_EDITOR */}
             <details open className="rounded-3xl border border-emerald-100 bg-white p-3 shadow-sm">
@@ -687,7 +755,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                                   blockKey,
                                 })
                               }
-                              disabled={locked}
+                              disabled={editorLocked}
                               className="rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-50"
                             >
                               نصوص مقترحة
@@ -696,7 +764,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                             <button
                               type="button"
                               onClick={() => rotateSuggestion(activePage, block)}
-                              disabled={locked}
+                              disabled={editorLocked}
                               className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                             >
                               تدوير النص
@@ -705,7 +773,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                             <button
                               type="button"
                               onClick={() => resetBlock(blockKey)}
-                              disabled={locked}
+                              disabled={editorLocked}
                               className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
                             >
                               رجوع للتلقائي
@@ -718,7 +786,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                           onChange={(event) =>
                             updateBlock(blockKey, event.target.value)
                           }
-                          disabled={locked}
+                          disabled={editorLocked}
                           rows={7}
                           className="mt-4 w-full resize-y rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold leading-7 text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
                         />
@@ -753,7 +821,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                disabled={locked}
+                disabled={editorLocked}
                 className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
               />
             </section>
@@ -762,20 +830,26 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
               <button
                 type="button"
                 onClick={saveReport}
-                disabled={locked || saving || (!hasChanges && !evidenceChanged)}
+                disabled={editorLocked || saving || (!hasChanges && !evidenceChanged)}
                 className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {saving || savingEvidence ? "جاري الحفظ..." : "حفظ التعديلات وتحديث المعاينة"}
+                {saving || savingEvidence
+                  ? "جاري الحفظ..."
+                  : isApproved
+                    ? "حفظ تعديلات التقرير المعتمد"
+                    : "حفظ التعديلات وتحديث المعاينة"}
               </button>
 
-              <button
-                type="button"
-                onClick={approveReport}
-                disabled={locked || approving}
-                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-              >
-                {approving ? "جاري الاعتماد..." : "اعتماد التقارير"}
-              </button>
+              {!isApproved && !isArchived ? (
+                <button
+                  type="button"
+                  onClick={approveReport}
+                  disabled={approving}
+                  className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {approving ? "جاري الاعتماد..." : "اعتماد التقارير"}
+                </button>
+              ) : null}
             </div>
           </aside>
 
@@ -821,7 +895,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                       onChange={(event) =>
                         setEvidenceLayoutMode(event.target.value as EvidenceLayoutMode)
                       }
-                      disabled={locked}
+                      disabled={editorLocked}
                       className="mt-3 w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-emerald-600 disabled:bg-slate-100"
                     >
                       {EVIDENCE_LAYOUT_OPTIONS.map((option) => (
@@ -833,7 +907,7 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                   </section>
 
                   <EvidenceEditor
-                    locked={locked}
+                    locked={editorLocked}
                     items={evidenceItems}
                     onUpdate={updateEvidenceItem}
                     onMove={moveEvidenceItem}
@@ -867,14 +941,14 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
                     <span
                       className={[
                         "rounded-full px-3 py-1 text-xs font-black",
-                        locked
+                        editorLocked
                           ? "bg-slate-200 text-slate-700"
                           : hasChanges
                             ? "bg-amber-100 text-amber-800"
                             : "bg-emerald-100 text-emerald-800",
                       ].join(" ")}
                     >
-                      {locked ? "مغلق" : hasChanges ? "غير محفوظ" : "محفوظ"}
+                      {editorLocked ? "مغلق" : hasChanges ? "غير محفوظ" : "محفوظ"}
                     </span>
 
                     <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
@@ -935,6 +1009,36 @@ export function ReportStudioEditor({ report }: ReportStudioEditorProps) {
             setSuggestionBlock(null);
           }}
         />
+      ) : null}
+
+      {approvedEditModalOpen ? (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/50 p-4" dir="rtl">
+          <section className="w-full max-w-lg rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-2xl">
+            <h2 className="text-2xl font-black text-slate-950">تحرير تقرير معتمد</h2>
+            <p className="mt-3 text-sm font-bold leading-7 text-slate-600">
+              سيتم تعديل محتوى التقرير فقط، بينما تبقى بيانات الحالة والنسخ المحفوظة كما هي. سيظل التقرير بحالة معتمد.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setApprovedEditModalOpen(false)}
+                className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 hover:bg-slate-50"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setApprovedEditingConfirmed(true);
+                  setApprovedEditModalOpen(false);
+                }}
+                className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white hover:bg-emerald-800"
+              >
+                بدء التحرير
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
     </main>
   );
@@ -1186,6 +1290,60 @@ function EvidenceEditor({
         )}
       </div>
     </section>
+  );
+}
+
+export function ReportStudioSavedPreview({ report }: ReportStudioEditorProps) {
+  const parsed = parseEditableContent(report.editableContent, report.renderedContent);
+  const template = mergeSignatureOnlyStudioPagesIntoPrevious(
+    ensureDefaultStudioSignatureBlock(normalizeTemplateSnapshot(report)),
+  );
+  const pages = template.pages as TemplatePage[];
+  const blocks = sanitizeInitialBlockOverrides(pages, parsed.blocks || {});
+  const context = buildRuntimeContext(report);
+  const previewTemplate = {
+    ...template,
+    pages: pages
+      .map((page) =>
+        buildLivePreviewPage({
+          page,
+          blocks,
+          context,
+          evidenceLayoutMode: parsed.evidenceLayoutMode || "two-per-page",
+        }),
+      )
+      .filter(Boolean),
+  };
+  const editedAfterApproval = Boolean(parsed.editorialMeta?.editedAfterApproval);
+
+  return (
+    <main className="min-h-screen bg-[#eef3ef] px-6 py-6" dir="rtl">
+      <section className="mx-auto mb-5 flex max-w-7xl flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-emerald-100 bg-white p-5 shadow-sm print:hidden">
+        <div>
+          <p className="text-sm font-black text-emerald-700">معاينة التقرير</p>
+          <h1 className="mt-1 text-2xl font-black text-slate-950">{report.title}</h1>
+          <p className="mt-2 text-xs font-bold text-slate-500">
+            الحالة: {getStatusName(report.status)} · آخر تحديث: {formatDate(report.updatedAt)}
+          </p>
+          {editedAfterApproval ? (
+            <p className="mt-2 text-xs font-black text-amber-700">
+              تم تعديل التقرير بعد الاعتماد — بقيت بيانات الحالة الأصلية والنسخ المحفوظة دون تغيير.
+            </p>
+          ) : null}
+        </div>
+        <Link href={`/dashboard/report/${report.id}/studio`} className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white">
+          فتح المحرر
+        </Link>
+      </section>
+      <section className="mx-auto max-w-7xl">
+        <FinalReportDesignRenderer
+          template={previewTemplate}
+          previewCaseData={buildPreviewCaseDataForRenderer(report) as any}
+          editorialBlocks={blocks}
+          identity={{}}
+        />
+      </section>
+    </main>
   );
 }
 
@@ -1458,6 +1616,9 @@ function parseEditableContent(
     };
   } catch {
     return {
+      version: 1,
+      type: "LEGACY_EDITORIAL_CONTENT",
+      legacyContent: content,
       blocks: {},
       workflowValueOverrides: [],
       evidenceLayoutMode: "two-per-page",
@@ -1988,10 +2149,12 @@ function buildLivePreviewPage({
   page,
   blocks,
   context,
+  evidenceLayoutMode,
 }: {
   page?: TemplatePage;
   blocks: Record<string, string>;
   context: Record<string, string>;
+  evidenceLayoutMode: EvidenceLayoutMode;
 }) {
   if (!page) {
     return null;
@@ -2010,6 +2173,9 @@ function buildLivePreviewPage({
 
       return {
         ...block,
+        ...(normalizeBlockKind(block) === "evidence-gallery"
+          ? { evidenceLayout: toRendererEvidenceLayout(evidenceLayoutMode) }
+          : {}),
         content,
         customContent: content,
         settings: {
@@ -2019,6 +2185,13 @@ function buildLivePreviewPage({
       };
     }),
   };
+}
+
+function toRendererEvidenceLayout(mode: EvidenceLayoutMode) {
+  if (mode === "one-per-page") return "ONE_PER_PAGE";
+  if (mode === "grid-2x2") return "GRID_2X2";
+  if (mode === "compact") return "ATTACHMENT_LIST";
+  return "TWO_PER_PAGE";
 }
 
 function buildPreviewCaseDataForRenderer(report: StudioReport) {

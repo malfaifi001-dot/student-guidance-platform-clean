@@ -225,7 +225,8 @@ export function ReportOneEditor({
   const templatePages = useMemo(() => getTemplatePages(template), [template]);
   const firstPageId = initialDraft?.pages?.[0]?.id || templatePages[0]?.id || "report-one-page-1";
   const initialFields = useMemo(() => getInitialFields(payload), [payload]);
-  const approved = status === "APPROVED";
+  const isApproved = status === "APPROVED";
+  const isArchived = status === "ARCHIVED";
   const overflowMovedBlockIds = useRef(new Set<string>());
 
   const [pages, setPages] = useState<ReportOneEditorPage[]>(
@@ -269,6 +270,21 @@ export function ReportOneEditor({
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
   const [message, setMessage] = useState("");
+  const [approvedEditingConfirmed, setApprovedEditingConfirmed] = useState(false);
+  const [approvedEditModalOpen, setApprovedEditModalOpen] = useState(false);
+  const [editedAfterApprovalInSession, setEditedAfterApprovalInSession] =
+    useState(false);
+  const canEdit = !isArchived && (!isApproved || approvedEditingConfirmed);
+  const editorLocked = !canEdit;
+  const initialEditorialMeta = initialDraft
+    ? (initialDraft as unknown as Record<string, unknown>).editorialMeta
+    : null;
+  const wasEditedAfterApproval = Boolean(
+    initialEditorialMeta &&
+      typeof initialEditorialMeta === "object" &&
+      !Array.isArray(initialEditorialMeta) &&
+      (initialEditorialMeta as Record<string, unknown>).editedAfterApproval,
+  ) || editedAfterApprovalInSession;
 
   const visibleFields = fields.filter((field) => field.visible);
 
@@ -358,7 +374,7 @@ export function ReportOneEditor({
 
 
   function deleteManualPage(pageId: string) {
-    if (approved) return;
+    if (!canEdit) return;
 
     const page = pages.find((item) => item.id === pageId);
 
@@ -392,7 +408,7 @@ export function ReportOneEditor({
     setMessage("تم حذف الصفحة المضافة.");
   }
   function updateField(fieldId: string, patch: Partial<ReportOneEditableField>) {
-    if (approved) return;
+    if (!canEdit) return;
 
     setFields((current) =>
       current.map((field) =>
@@ -407,7 +423,7 @@ export function ReportOneEditor({
   }
 
   function toggleField(fieldId: string) {
-    if (approved) return;
+    if (!canEdit) return;
 
     setFields((current) =>
       current.map((field) =>
@@ -422,7 +438,7 @@ export function ReportOneEditor({
   }
 
   function updateBlock(nextBlock: ReportOneEditableBlock) {
-    if (approved) return;
+    if (!canEdit) return;
 
     setBlocks((current) =>
       current.map((block) => (block.id === nextBlock.id ? nextBlock : block)),
@@ -430,7 +446,7 @@ export function ReportOneEditor({
   }
 
   function addBlock(type: ReportOneEditableBlock["type"]) {
-    if (approved) return;
+    if (!canEdit) return;
 
     const pageId = getWritableActivePageId();
     const block = createBlock(type, pageId);
@@ -444,7 +460,7 @@ export function ReportOneEditor({
   }
 
   function removeBlock(blockId: string) {
-    if (approved) return;
+    if (!canEdit) return;
 
     setBlocks((current) => {
       const next = current.filter((block) => block.id !== blockId);
@@ -458,7 +474,7 @@ export function ReportOneEditor({
   }
 
   function moveBlock(blockId: string, direction: "up" | "down") {
-    if (approved) return;
+    if (!canEdit) return;
 
     setBlocks((current) => {
       const index = current.findIndex((block) => block.id === blockId);
@@ -480,8 +496,13 @@ export function ReportOneEditor({
   }
 
   async function saveReport() {
-    if (approved) {
-      setMessage("تم اعتماد التقرير. لا يمكن التعديل بعد الاعتماد.");
+    if (isArchived) {
+      setMessage("التقرير مؤرشف ولا يمكن تعديله قبل استعادته.");
+      return;
+    }
+
+    if (isApproved && !approvedEditingConfirmed) {
+      setApprovedEditModalOpen(true);
       return;
     }
 
@@ -524,7 +545,12 @@ export function ReportOneEditor({
         );
       }
 
-      setMessage("تم حفظ التقرير بنجاح.");
+      setMessage(
+        isApproved
+          ? "تم حفظ تعديلات التقرير المعتمد."
+          : "تم حفظ التقرير بنجاح.",
+      );
+      if (isApproved) setEditedAfterApprovalInSession(true);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -537,6 +563,7 @@ export function ReportOneEditor({
   }
 
   async function approveReport() {
+    if (isApproved || isArchived) return;
     if (!currentReportId) {
       setMessage("احفظ التقرير أولًا قبل الاعتماد.");
       return;
@@ -621,20 +648,26 @@ export function ReportOneEditor({
                 <button
                   type="button"
                   onClick={saveReport}
-                  disabled={saving || approved}
+                  disabled={saving || editorLocked}
                   className="rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {saving ? "جار الحفظ..." : "حفظ التقرير"}
+                  {saving
+                    ? "جار الحفظ..."
+                    : isApproved
+                      ? "حفظ تعديلات التقرير المعتمد"
+                      : "حفظ التقرير"}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={approveReport}
-                  disabled={approving || approved}
-                  className="rounded-2xl bg-slate-950 px-5 py-3 text-xs font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {approving ? "جار الاعتماد..." : "حفظ واعتماد"}
-                </button>
+                {!isApproved && !isArchived ? (
+                  <button
+                    type="button"
+                    onClick={approveReport}
+                    disabled={approving}
+                    className="rounded-2xl bg-slate-950 px-5 py-3 text-xs font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {approving ? "جار الاعتماد..." : "حفظ واعتماد"}
+                  </button>
+                ) : null}
 
                 <button
                   type="button"
@@ -653,6 +686,38 @@ export function ReportOneEditor({
                 </button>
               </div>
             </div>
+
+            {isApproved ? (
+              <div className="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-sm font-black text-emerald-900">
+                  هذا التقرير معتمد. يمكنك تعديل صياغة التقرير وعرض الشواهد دون تغيير بيانات الحالة الأصلية.
+                </p>
+                {!approvedEditingConfirmed ? (
+                  <button
+                    type="button"
+                    onClick={() => setApprovedEditModalOpen(true)}
+                    className="mt-3 rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white hover:bg-emerald-800"
+                  >
+                    تحرير التقرير المعتمد
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {isArchived ? (
+              <p className="mt-4 rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-600">
+                التقرير مؤرشف ولا يمكن تعديله قبل استعادته.
+              </p>
+            ) : null}
+
+            {wasEditedAfterApproval ? (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm font-black text-amber-900">تم تعديل التقرير بعد الاعتماد</p>
+                <p className="mt-1 text-xs font-bold leading-6 text-amber-700">
+                  تم تعديل صياغة التقرير بعد اعتماده، بينما بقيت بيانات الحالة الأصلية والنسخ المحفوظة دون تغيير.
+                </p>
+              </div>
+            ) : null}
           </section>
 
           <ReportOneTemplatePreview
@@ -674,7 +739,7 @@ export function ReportOneEditor({
         </section>
 
         <ReportOneControlPanel
-          disabled={approved}
+          disabled={editorLocked}
           title={title}
           onTitleChange={setTitle}
           template={template}
@@ -692,6 +757,32 @@ export function ReportOneEditor({
           onEvidenceSettingsChange={setEvidenceSettings}
         />
       </div>
+
+      {approvedEditModalOpen ? (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/50 p-4" dir="rtl">
+          <section className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
+            <h2 className="text-2xl font-black text-slate-950">تحرير تقرير معتمد</h2>
+            <p className="mt-3 text-sm font-bold leading-7 text-slate-600">
+              سيتم تعديل محتوى التقرير فقط، بينما تبقى بيانات الحالة والنسخ المحفوظة كما هي. سيظل التقرير بحالة معتمد.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setApprovedEditModalOpen(false)} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600">
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setApprovedEditingConfirmed(true);
+                  setApprovedEditModalOpen(false);
+                }}
+                className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white"
+              >
+                بدء التحرير
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

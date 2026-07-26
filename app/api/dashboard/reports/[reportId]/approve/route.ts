@@ -35,6 +35,8 @@ export async function POST(_request: Request, context: RouteContext) {
       where: buildReportAccessWhere(reportId, {
         schoolAccountId: authResult.schoolAccountId,
         isAdmin: authResult.isAdmin,
+        userId: authResult.user.id,
+        userRole: authResult.user.role,
       }),
       select: {
         id: true,
@@ -60,6 +62,14 @@ export async function POST(_request: Request, context: RouteContext) {
         },
         { status: 400 }
       );
+    }
+
+    if (existingReport.status === ReportStatus.APPROVED) {
+      return NextResponse.json({
+        success: true,
+        alreadyApproved: true,
+        message: "التقرير معتمد مسبقًا.",
+      });
     }
 
     const report = await prisma.guidanceReport.update({

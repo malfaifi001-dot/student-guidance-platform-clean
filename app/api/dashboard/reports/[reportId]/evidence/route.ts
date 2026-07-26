@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireActiveSubscriptionApi } from "@/lib/subscription/subscription-api-guard";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { buildReportAccessWhere } from "@/lib/reports/report-access";
+import { addApprovedEditorialMeta } from "@/lib/reports/report-editorial-content";
 
 type RouteContext = {
   params: Promise<{
@@ -46,10 +47,17 @@ export async function PATCH(request: Request, context: RouteContext) {
       where: buildReportAccessWhere(reportId, {
         schoolAccountId: authResult.schoolAccountId,
         isAdmin: authResult.isAdmin,
+        userId: authResult.user.id,
+        userRole: authResult.user.role,
       }),
       select: {
         id: true,
         status: true,
+        caseEntryId: true,
+        serviceSlug: true,
+        title: true,
+        editableContent: true,
+        caseEntry: { select: { schoolAccountId: true } },
       },
     });
 
@@ -63,13 +71,14 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
-    if (report.status === "APPROVED" || report.status === "ARCHIVED") {
+    if (report.status === "ARCHIVED") {
       return NextResponse.json(
         {
           success: false,
-          error: "لا يمكن تعديل شواهد تقرير معتمد أو مؤرشف.",
+          code: "REPORT_ARCHIVED",
+          error: "لا يمكن تعديل تقرير مؤرشف قبل استعادته.",
         },
-        { status: 403 }
+        { status: 409 }
       );
     }
 
@@ -88,7 +97,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const normalizedItems = items
-      .map((item: any, index: any) => ({
+      .map((item: EvidencePayloadItem, index: number) => ({
         id: typeof item.id === "string" ? item.id : "",
         caption:
           typeof item.caption === "string"
@@ -103,7 +112,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             ? item.sortOrder
             : index,
       }))
-      .filter((item: any) => item.id);
+      .filter((item) => item.id);
 
     if (!normalizedItems.length) {
       return NextResponse.json(
@@ -115,21 +124,96 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
-    await prisma.$transaction(
-      normalizedItems.map((item: any, index: any) =>
-        prisma.reportEvidence.updateMany({
-          where: {
-            id: item.id,
-            reportId: report.id,
-          },
+    const uniqueIds = new Set(normalizedItems.map((item) => item.id));
+    if (uniqueIds.size !== normalizedItems.length) {
+      return NextResponse.json(
+        { success: false, error: "تحتوي بيانات الشواهد على معرّفات مكررة." },
+        { status: 400 },
+      );
+    }
+
+    const existingItems = await prisma.reportEvidence.findMany({
+      where: { reportId: report.id, id: { in: [...uniqueIds] } },
+      select: { id: true, caption: true, visible: true, sortOrder: true },
+    });
+
+    if (existingItems.length !== normalizedItems.length) {
+      return NextResponse.json(
+        { success: false, error: "أحد الشواهد لا ينتمي إلى هذا التقرير." },
+        { status: 400 },
+      );
+    }
+
+    const currentById = new Map(existingItems.map((item) => [item.id, item]));
+    const changedItems = normalizedItems.filter((item) => {
+      const current = currentById.get(item.id);
+      return Boolean(
+        current &&
+          ((current.caption || "") !== item.caption ||
+            current.visible !== item.visible ||
+            current.sortOrder !== item.sortOrder),
+      );
+    });
+
+    if (changedItems.length) {
+      const editedAt = new Date().toISOString();
+      await prisma.$transaction([
+        ...changedItems.map((item) =>
+          prisma.reportEvidence.update({
+            where: { id: item.id },
+            data: {
+              caption: item.caption,
+              visible: item.visible,
+              sortOrder: item.sortOrder,
+            },
+          }),
+        ),
+        ...(report.status === "APPROVED"
+          ? [
+              prisma.guidanceReport.update({
+                where: { id: report.id },
+                data: {
+                  editableContent: addApprovedEditorialMeta({
+                    editableContent: report.editableContent,
+                    actorUserId: authResult.user.id,
+                    editedAt,
+                  }),
+                },
+              }),
+            ]
+          : []),
+        prisma.platformActivityLog.create({
           data: {
-            caption: item.caption,
-            visible: item.visible,
-            sortOrder: item.sortOrder ?? index,
+            actorUserId: authResult.user.id,
+            schoolAccountId: report.caseEntry.schoolAccountId,
+            category: "REPORT",
+            action:
+              report.status === "APPROVED"
+                ? "APPROVED_REPORT_EDITED"
+                : "REPORT_EDITED",
+            severity: "INFO",
+            title:
+              report.status === "APPROVED"
+                ? "تم تعديل تقرير بعد الاعتماد"
+                : "تم تعديل شواهد التقرير",
+            details: {
+              reportId: report.id,
+              caseEntryId: report.caseEntryId,
+              serviceSlug: report.serviceSlug,
+              reportTitle: report.title,
+              reportStatus: report.status,
+              actorUserId: authResult.user.id,
+              changedSections: ["evidencePresentation"],
+              titleChanged: false,
+              editableContentChanged: false,
+              renderedContentChanged: false,
+              evidencePresentationChanged: true,
+              editedAt,
+            },
           },
-        })
-      )
-    );
+        }),
+      ]);
+    }
 
     const evidenceItems = await prisma.reportEvidence.findMany({
       where: {
@@ -142,6 +226,10 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     return NextResponse.json({
       success: true,
+      message:
+        report.status === "APPROVED"
+          ? "تم حفظ تعديلات شواهد التقرير المعتمد."
+          : "تم حفظ تعديلات الشواهد.",
       evidenceItems,
     });
   } catch (error) {

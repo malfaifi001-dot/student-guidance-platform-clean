@@ -1,49 +1,19 @@
 import { notFound, redirect } from "next/navigation";
 
-import { SavedSmartReportPreviewPage } from "@/components/report-engine/saved-smart-report-preview-page";
+import { ReportStudioSavedPreview } from "@/components/reports/report-studio-editor";
 import { prisma } from "@/lib/prisma";
 import { requireDashboardUser } from "@/lib/auth/require-auth";
 import {
   getSchoolSubscriptionOverview,
   isServiceAllowedForSchool,
 } from "@/lib/subscription/subscription-service";
-import { resolveReportVariantId } from "@/lib/report-engine/report-variant-registry";
 import { buildGuidanceReportWhereForUser } from "@/lib/report-engine/report-access-scope";
-import type { SmartReportPayload } from "@/lib/report-engine/smart-report-types";
 
 type PageProps = {
   params: Promise<{
     reportId: string;
   }>;
 };
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return {};
-  }
-
-  return value as Record<string, unknown>;
-}
-
-function hasSmartPayload(value: unknown): value is SmartReportPayload {
-  const record = asRecord(value);
-
-  return Boolean(record.caseInfo && record.identity && record.service);
-}
-
-function formatDate(value: Date | null) {
-  if (!value) return "";
-
-  try {
-    return value.toLocaleDateString("ar-SA-u-ca-gregory", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  } catch {
-    return value.toISOString().slice(0, 10);
-  }
-}
 
 export default async function SavedSmartReportPreviewRoute({
   params,
@@ -76,8 +46,11 @@ export default async function SavedSmartReportPreviewRoute({
       caseEntry: {
         include: {
           service: true,
+          student: { include: { guardian: true } },
+          values: { include: { field: true } },
         },
       },
+      evidenceItems: { orderBy: { sortOrder: "asc" } },
     },
   });
 
@@ -105,33 +78,67 @@ export default async function SavedSmartReportPreviewRoute({
     }
   }
 
-  if (!hasSmartPayload(report.reportDataSnapshot)) {
-    return (
-      <main className="min-h-screen bg-[#f5f8f6] px-6 py-10" dir="rtl">
-        <section className="mx-auto max-w-2xl rounded-[2rem] border border-amber-100 bg-white p-6 text-center shadow-sm">
-          <p className="text-sm font-black text-amber-600">
-            لا يمكن عرض التقرير
-          </p>
-
-          <h1 className="mt-2 text-2xl font-black text-slate-950">
-            هذا التقرير لا يحتوي على نسخة التقرير الذكي.
-          </h1>
-        </section>
-      </main>
-    );
-  }
-
-  const templateSnapshot = asRecord(report.templateSnapshot);
-  const variantId = resolveReportVariantId(templateSnapshot.variantId as string | null | undefined);
-  const payload = report.reportDataSnapshot;
-
   return (
-    <SavedSmartReportPreviewPage
-      reportId={report.id}
-      caseId={report.caseEntryId}
-      payload={payload}
-      variantId={variantId}
-      generatedAt={formatDate(report.generatedAt)}
+    <ReportStudioSavedPreview
+      report={{
+        id: report.id,
+        title: report.title,
+        serviceSlug: report.serviceSlug,
+        status: String(report.status),
+        genderMode: report.genderMode,
+        templateId: report.templateId,
+        hasTemplateSnapshot: Boolean(report.templateSnapshot),
+        hasReportDataSnapshot: Boolean(report.reportDataSnapshot),
+        templateSnapshot: report.templateSnapshot,
+        reportDataSnapshot: report.reportDataSnapshot,
+        editableContent: report.editableContent || "",
+        renderedContent: report.renderedContent || "",
+        createdAt: report.createdAt.toISOString(),
+        updatedAt: report.updatedAt.toISOString(),
+        generatedAt: report.generatedAt?.toISOString() || null,
+        approvedAt: report.approvedAt?.toISOString() || null,
+        archivedAt: report.archivedAt?.toISOString() || null,
+        reportValues: report.caseEntry.values.map((value) => ({
+          fieldKey: value.fieldKey,
+          fieldLabel: value.field?.label || value.fieldKey,
+          value: value.value ||
+            (value.jsonValue === null ? "" : JSON.stringify(value.jsonValue)),
+        })),
+        evidenceItems: report.evidenceItems.map((item) => ({
+          id: item.id,
+          fileName: item.fileName,
+          fileUrl: item.fileUrl,
+          caption: item.caption,
+          mimeType: item.mimeType,
+          size: item.size,
+          sortOrder: item.sortOrder,
+          visible: item.visible,
+          createdAt: item.createdAt.toISOString(),
+        })),
+        caseEntry: {
+          id: report.caseEntry.id,
+          title: report.caseEntry.title,
+          status: String(report.caseEntry.status),
+          createdAt: report.caseEntry.createdAt.toISOString(),
+          service: {
+            id: report.caseEntry.service.id,
+            name: report.caseEntry.service.name,
+            slug: report.caseEntry.service.slug,
+          },
+          student: report.caseEntry.student
+            ? {
+                id: report.caseEntry.student.id,
+                fullName: report.caseEntry.student.fullName,
+                nationalId: report.caseEntry.student.nationalId,
+                stage: report.caseEntry.student.stage,
+                grade: report.caseEntry.student.grade,
+                classroom: report.caseEntry.student.classroom,
+                guardianName: report.caseEntry.student.guardian?.name || null,
+                guardianPhone: report.caseEntry.student.guardian?.phone || null,
+              }
+            : null,
+        },
+      }}
     />
   );
 }
