@@ -148,6 +148,7 @@ export function WorkflowStepCard({
           <div className="md:col-span-2">
             <CommitteeChainRepeater
               fields={step.fields}
+              values={values}
               value={
                 Array.isArray(values.committee_items)
                   ? (values.committee_items as any[])

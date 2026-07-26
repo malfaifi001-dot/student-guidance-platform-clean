@@ -320,69 +320,6 @@ export function StatisticsReportView({
             </p>
           </section>
 
-          <section>
-            <h2 className="border-r-4 border-cyan-700 pr-3 text-xl font-black text-slate-950">
-              النتائج الرقمية
-            </h2>
-
-            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-              <table className="w-full border-collapse text-right">
-                <thead className="bg-slate-100">
-                  <tr>
-                    <th className="border-b border-slate-200 px-4 py-3 text-sm font-black text-slate-800">
-                      الحقل
-                    </th>
-
-                    <th className="border-b border-slate-200 px-4 py-3 text-sm font-black text-slate-800">
-                      القيمة
-                    </th>
-
-                    <th className="w-32 border-b border-slate-200 px-4 py-3 text-center text-sm font-black text-slate-800">
-                      عدد الحالات
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {data.metrics.map(
-                    (
-                      metric,
-                      index,
-                    ) => (
-                      <tr
-                        key={
-                          metric.metricId
-                        }
-                        className={
-                          index % 2
-                            ? "bg-slate-50"
-                            : "bg-white"
-                        }
-                      >
-                        <td className="border-b border-slate-100 px-4 py-3 text-sm font-bold text-slate-700">
-                          {
-                            metric.fieldLabel
-                          }
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-3 text-sm font-black text-slate-900">
-                          {
-                            metric.valueLabel
-                          }
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-3 text-center text-lg font-black text-cyan-800">
-                          {
-                            metric.caseCount
-                          }
-                        </td>
-                      </tr>
-                    ),
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
 
           {data.insights.length ? (
             <section className="break-inside-avoid">

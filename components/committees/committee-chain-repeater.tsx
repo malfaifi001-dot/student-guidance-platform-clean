@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 type OptionLike = {
   id?: string;
   label: string;
@@ -12,6 +14,8 @@ type FieldLike = {
   key: string;
   label: string;
   allowOther?: boolean;
+  dependsOnFieldKey?: string | null;
+  linkedToValue?: string | null;
   options?: OptionLike[];
 };
 
@@ -30,6 +34,7 @@ export type CommitteeChainRow = {
 
 type Props = {
   fields: FieldLike[];
+  values: Record<string, unknown>;
   value?: CommitteeChainRow[];
   onChange: (rows: CommitteeChainRow[]) => void;
 };
@@ -78,8 +83,8 @@ function fieldText(field: FieldLike) {
   return normalizeText(`${field.key} ${field.label}`);
 }
 
-function findAgendaField(fields: FieldLike[]) {
-  return fields.find((field) => {
+function findAgendaFields(fields: FieldLike[]) {
+  return fields.filter((field) => {
     const text = fieldText(field);
 
     return (
@@ -155,39 +160,83 @@ function findOptionByValue(options: OptionLike[], value: string) {
 function findStrictChildOption(
   childOptions: OptionLike[],
   parentValue?: string | null,
-  parentOrder?: number | null,
 ) {
   const linkedOptions = childOptions.filter((option) =>
     sameValue(option.linkedToValue, parentValue),
   );
 
-  if (linkedOptions.length) {
-    return linkedOptions[0] || null;
-  }
-
-  if (parentOrder !== undefined && parentOrder !== null) {
-    const byOrder = childOptions.find(
-      (option) => Number(option.order) === Number(parentOrder),
-    );
-
-    if (byOrder) return byOrder;
-  }
-
-  return null;
+  return linkedOptions[0] || null;
 }
 
 function getStrictChildOptions(
   childOptions: OptionLike[],
   parentValue?: string | null,
-  parentOrder?: number | null,
 ) {
-  const strictOption = findStrictChildOption(
-    childOptions,
-    parentValue,
-    parentOrder,
-  );
+  const strictOption = findStrictChildOption(childOptions, parentValue);
 
   return strictOption ? [strictOption] : [];
+}
+
+function getParentValues(field: FieldLike, values: Record<string, unknown>) {
+  if (!field.dependsOnFieldKey) return [];
+
+  const value = values[field.dependsOnFieldKey];
+  const source = Array.isArray(value) ? value : [value];
+
+  return source.map(cleanValue).filter(Boolean);
+}
+
+function isFieldInCurrentScope(
+  field: FieldLike,
+  values: Record<string, unknown>,
+) {
+  if (!field.dependsOnFieldKey) return true;
+
+  const parentValues = getParentValues(field, values);
+  if (!parentValues.length) return false;
+
+  return field.linkedToValue
+    ? parentValues.some((value) => sameValue(value, field.linkedToValue))
+    : true;
+}
+
+function getScopedOptions(
+  field: FieldLike | undefined,
+  values: Record<string, unknown>,
+) {
+  if (!field || !isFieldInCurrentScope(field, values)) return [];
+
+  const options = sortOptions(field);
+  if (!field.dependsOnFieldKey) return options;
+
+  const parentValues = getParentValues(field, values);
+  const fieldProvidesScope = Boolean(
+    field.linkedToValue &&
+      parentValues.some((value) => sameValue(value, field.linkedToValue)),
+  );
+
+  return options.filter((option) =>
+    option.linkedToValue
+      ? parentValues.some((value) => sameValue(value, option.linkedToValue))
+      : fieldProvidesScope,
+  );
+}
+
+function getCommitteeScopeSignature(
+  agendaFields: FieldLike[],
+  values: Record<string, unknown>,
+) {
+  const dependencyKeys = [
+    ...new Set(
+      agendaFields
+        .map((field) => field.dependsOnFieldKey)
+        .filter((key): key is string => Boolean(key)),
+    ),
+  ].sort();
+
+  return JSON.stringify(
+    dependencyKeys.map((key) => [key, values[key] ?? null]),
+  );
 }
 
 function isRowUsed(row: Partial<CommitteeChainRow>) {
@@ -234,21 +283,51 @@ function normalizeRows(value?: CommitteeChainRow[]) {
     return [createRow()];
   }
 
-  return value.map((row) => ({
-    ...createRow(),
-    ...row,
-    id: row.id || createId(),
-  }));
+  const rows = value
+    .filter(
+      (row): row is CommitteeChainRow =>
+        Boolean(row) && typeof row === "object",
+    )
+    .map((row) => ({
+      ...createRow(),
+      ...row,
+      id: cleanValue(row.id) || createId(),
+      agenda: cleanValue(row.agenda),
+      discussion: cleanValue(row.discussion),
+      recommendation: cleanValue(row.recommendation),
+    }));
+
+  return rows.length ? rows : [createRow()];
 }
 
-export function CommitteeChainRepeater({ fields, value, onChange }: Props) {
-  const agendaField = findAgendaField(fields);
+export function CommitteeChainRepeater({
+  fields,
+  values,
+  value,
+  onChange,
+}: Props) {
+  const agendaFields = findAgendaFields(fields);
+  const agendaField = agendaFields.find((field) =>
+    isFieldInCurrentScope(field, values),
+  );
   const discussionField = findDiscussionField(fields);
   const recommendationField = findRecommendationField(fields);
 
-  const agendaOptions = sortOptions(agendaField);
+  const agendaOptions = getScopedOptions(agendaField, values);
   const discussionOptions = sortOptions(discussionField);
   const recommendationOptions = sortOptions(recommendationField);
+  const committeeScopeSignature = getCommitteeScopeSignature(
+    agendaFields,
+    values,
+  );
+  const previousCommitteeScopeRef = useRef(committeeScopeSignature);
+
+  useEffect(() => {
+    if (previousCommitteeScopeRef.current === committeeScopeSignature) return;
+
+    previousCommitteeScopeRef.current = committeeScopeSignature;
+    onChange([createRow()]);
+  }, [committeeScopeSignature, onChange]);
 
   const rows = normalizeRows(value);
 
@@ -301,19 +380,16 @@ export function CommitteeChainRepeater({ fields, value, onChange }: Props) {
     const selectedDiscussion = findStrictChildOption(
       discussionOptions,
       selectedAgenda.value,
-      selectedAgenda.order,
     );
 
     const selectedRecommendation =
       findStrictChildOption(
         recommendationOptions,
         selectedDiscussion?.value,
-        selectedDiscussion?.order,
       ) ||
       findStrictChildOption(
         recommendationOptions,
         selectedAgenda.value,
-        selectedAgenda.order,
       );
 
     return {
@@ -404,30 +480,26 @@ export function CommitteeChainRepeater({ fields, value, onChange }: Props) {
             : getStrictChildOptions(
                 discussionOptions,
                 selectedAgenda?.value,
-                selectedAgenda?.order,
               );
 
           const selectedDiscussion =
-            findOptionByValue(discussionOptions, row.discussion) ||
-            allowedDiscussionOptions[0] ||
-            null;
+            allowedDiscussionOptions.find((option) =>
+              sameValue(option.value, row.discussion),
+            ) || allowedDiscussionOptions[0] || null;
 
           const allowedRecommendationOptions = isOther(row.agenda)
             ? []
             : getStrictChildOptions(
                 recommendationOptions,
                 selectedDiscussion?.value,
-                selectedDiscussion?.order,
               ).length
               ? getStrictChildOptions(
                   recommendationOptions,
                   selectedDiscussion?.value,
-                  selectedDiscussion?.order,
                 )
               : getStrictChildOptions(
                   recommendationOptions,
                   selectedAgenda?.value,
-                  selectedAgenda?.order,
                 );
 
           return (
