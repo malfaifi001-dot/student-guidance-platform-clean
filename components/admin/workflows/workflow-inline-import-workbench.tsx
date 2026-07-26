@@ -363,6 +363,7 @@ export function WorkflowInlineImportWorkbench({
   const [parsedWorkflow, setParsedWorkflow] = useState<ParsedWorkflow | null>(
     null,
   );
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -386,6 +387,7 @@ export function WorkflowInlineImportWorkbench({
     setWarnings([]);
     setErrors([]);
     setParsedWorkflow(null);
+    setSelectedFile(file);
 
     if (!file) return;
 
@@ -427,26 +429,22 @@ export function WorkflowInlineImportWorkbench({
   }
 
   async function saveDraft() {
-    if (!parsedWorkflow || errors.length) return;
+    if (!parsedWorkflow || !selectedFile || errors.length) return;
 
     try {
       setSaving(true);
       setMessage(null);
 
-      const response = await fetch(
-        `/api/dashboard/admin/workflows/${serviceSlug}/draft`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: workflowName,
-            workflowType,
-            steps: parsedWorkflow.steps,
-          }),
-        },
-      );
+      const formData = new FormData();
+      formData.set("serviceSlug", serviceSlug);
+      formData.set("workflowType", workflowType);
+      formData.set("workflowName", workflowName);
+      formData.set("file", selectedFile);
+
+      const response = await fetch("/api/dashboard/admin/workflows/upload", {
+        method: "POST",
+        body: formData,
+      });
 
       const data = await readWorkflowApiResponse(response);
 
@@ -611,7 +609,7 @@ export function WorkflowInlineImportWorkbench({
           <button
             type="button"
             onClick={saveDraft}
-            disabled={!parsedWorkflow || errors.length > 0 || saving}
+            disabled={!parsedWorkflow || !selectedFile || errors.length > 0 || saving}
             className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           >
             {saving ? (

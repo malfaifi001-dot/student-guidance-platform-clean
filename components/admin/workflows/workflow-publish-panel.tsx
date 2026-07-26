@@ -7,11 +7,11 @@ import {
   Eye,
   FileStack,
   Loader2,
-  PencilLine,
   Rocket,
   UserRoundSearch,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { WorkflowNameEditor } from "@/components/admin/workflows/workflow-name-editor";
 import {
   normalizeWorkflowEvidenceMode,
   normalizeWorkflowStudentPickerMode,
@@ -84,20 +84,14 @@ export function WorkflowPublishPanel({
 }: WorkflowPublishPanelProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [savingName, setSavingName] = useState(false);
   const [savingStudentPickerMode, setSavingStudentPickerMode] = useState(false);
   const [savingEvidenceMode, setSavingEvidenceMode] = useState(false);
-  const [draftName, setDraftName] = useState(draftWorkflowName || "");
   const [studentPickerMode, setStudentPickerMode] =
     useState<WorkflowStudentPickerMode>("SERVICE_DEFAULT");
   const [evidenceMode, setEvidenceMode] =
     useState<WorkflowEvidenceMode>("SERVICE_DEFAULT");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setDraftName(draftWorkflowName || "");
-  }, [draftWorkflowName]);
 
   useEffect(() => {
     if (!draftWorkflowId || !hasDraft) {
@@ -157,43 +151,6 @@ export function WorkflowPublishPanel({
       cancelled = true;
     };
   }, [draftWorkflowId, hasDraft, serviceSlug]);
-
-  async function saveDraftName() {
-    if (!draftWorkflowId || !draftName.trim()) return;
-
-    try {
-      setSavingName(true);
-      setMessage(null);
-      setError(null);
-
-      const response = await fetch(
-        `/api/dashboard/admin/workflows/${serviceSlug}/draft-name`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            workflowId: draftWorkflowId,
-            name: draftName,
-          }),
-        },
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "تعذر تحديث اسم المسودة.");
-      }
-
-      setMessage("تم تحديث اسم المسودة.");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع.");
-    } finally {
-      setSavingName(false);
-    }
-  }
 
   async function saveStudentPickerMode() {
     if (!draftWorkflowId) return;
@@ -355,31 +312,16 @@ export function WorkflowPublishPanel({
           {hasDraft ? (
             <>
               <div className="rounded-3xl bg-slate-50 p-3">
-                <label className="text-xs font-black text-slate-500">
+                <p className="text-xs font-black text-slate-500">
                   اسم المسودة قبل النشر
-                </label>
-
-                <div className="mt-2 flex gap-2">
-                  <input
-                    value={draftName}
-                    onChange={(event) => setDraftName(event.target.value)}
-                    className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 outline-none focus:border-sky-400"
+                </p>
+                {draftWorkflowId && draftWorkflowName ? (
+                  <WorkflowNameEditor
+                    serviceSlug={serviceSlug}
+                    workflowId={draftWorkflowId}
+                    currentName={draftWorkflowName}
                   />
-
-                  <button
-                    type="button"
-                    onClick={saveDraftName}
-                    disabled={savingName || !draftWorkflowId || !draftName.trim()}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    {savingName ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <PencilLine className="h-4 w-4" />
-                    )}
-                    حفظ الاسم
-                  </button>
-                </div>
+                ) : null}
               </div>
 
               <div className="rounded-3xl bg-slate-50 p-3">

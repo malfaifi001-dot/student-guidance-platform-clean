@@ -9,6 +9,12 @@ import {
 } from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
 import { getCurrentSessionUser } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/prisma";
+import {
+  createWorkflowOriginalFileStorageKey,
+  deleteWorkflowOriginalFile,
+  getWorkflowExcelExtension,
+  saveWorkflowOriginalFile,
+} from "@/lib/storage/workflow-original-file-storage";
 import { parseWorkflowExcel } from "@/lib/workflow-upload/workflow-excel-parser";
 import { normalizeWorkflowType } from "@/lib/workflows/workflow-types";
 import {
@@ -60,6 +66,8 @@ export async function POST(request: Request) {
 
   const current = await getCurrentSessionUser();
   const admin = current?.user;
+  let createdWorkflowId: string | null = null;
+  let savedStorageKey: string | null = null;
 
   try {
     const formData = await request.formData();
@@ -68,6 +76,7 @@ export async function POST(request: Request) {
     const workflowType = normalizeWorkflowType(
       String(formData.get("workflowType") ?? ""),
     );
+    const workflowName = String(formData.get("workflowName") ?? "").trim();
     const studentPickerMode = normalizeWorkflowStudentPickerMode(
       formData.get("studentPickerMode"),
     );
@@ -83,6 +92,13 @@ export async function POST(request: Request) {
           success: false,
           error: "serviceSlug مطلوب.",
         },
+        { status: 400 },
+      );
+    }
+
+    if (workflowName.length > 160) {
+      return NextResponse.json(
+        { success: false, error: "يجب ألا يتجاوز اسم Workflow 160 حرفًا." },
         { status: 400 },
       );
     }
@@ -126,6 +142,7 @@ export async function POST(request: Request) {
     await ensureDashboardWorkflowService(serviceSlug);
 
     const buffer = await file.arrayBuffer();
+    const fileBytes = new Uint8Array(buffer);
     const rows = await parseWorkflowExcel(buffer);
 
     if (rows.length === 0) {
@@ -144,16 +161,55 @@ export async function POST(request: Request) {
       rows,
       workflowType,
     });
+    createdWorkflowId = result.workflow.id;
 
-    await prisma.workflow.update({
+    const extension = getWorkflowExcelExtension(file.name);
+    if (!extension) throw new Error("صيغة ملف Workflow غير مدعومة.");
+
+    savedStorageKey = createWorkflowOriginalFileStorageKey({
+      serviceSlug,
+      workflowId: result.workflow.id,
+      extension,
+    });
+    await saveWorkflowOriginalFile({
+      storageKey: savedStorageKey,
+      buffer: fileBytes,
+    });
+
+    const originalFileMimeType =
+      file.type ||
+      (extension === "xlsx"
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "application/vnd.ms-excel");
+
+    const refreshedWorkflow = await prisma.workflow.update({
       where: {
         id: result.workflow.id,
       },
       data: {
+        ...(workflowName ? { name: workflowName } : {}),
         status: "DRAFT",
         isActive: false,
         studentPickerMode: studentPickerMode as any,
         evidenceMode: evidenceMode as any,
+        originalFileName: file.name.trim().slice(0, 255),
+        originalFileStorageKey: savedStorageKey,
+        originalFileMimeType,
+        originalFileSize: file.size,
+        originalFileUploadedAt: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        version: true,
+        status: true,
+        isActive: true,
+        workflowType: true,
+        originalFileName: true,
+        originalFileStorageKey: true,
+        originalFileMimeType: true,
+        originalFileSize: true,
+        originalFileUploadedAt: true,
       },
     });
 
@@ -170,6 +226,11 @@ export async function POST(request: Request) {
         workflowId: result.workflow.id,
         fileName: file.name,
         fileSize: file.size,
+        originalFileName: file.name.trim().slice(0, 255),
+        originalFileStorageKey: savedStorageKey,
+        originalFileMimeType,
+        originalFileSize: file.size,
+        originalFileUploadedAt: new Date().toISOString(),
         rowsCount: rows.length,
       },
     });
@@ -178,8 +239,17 @@ export async function POST(request: Request) {
       success: true,
       message: "تم رفع Workflow كمسودة بنجاح. راجع النسخة ثم فعّلها عند الاعتماد.",
       result,
+      workflow: refreshedWorkflow,
     });
   } catch (error) {
+    await deleteWorkflowOriginalFile(savedStorageKey).catch(() => null);
+
+    if (createdWorkflowId) {
+      await prisma.workflow
+        .delete({ where: { id: createdWorkflowId } })
+        .catch(() => null);
+    }
+
     await logAdminActivity({
       actorUserId: admin?.id || null,
       schoolAccountId: admin?.schoolAccountId || null,

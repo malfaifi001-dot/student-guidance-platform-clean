@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/lib/admin/admin-api-guard";
 import { prisma } from "@/lib/prisma";
+import { deleteWorkflowOriginalFile } from "@/lib/storage/workflow-original-file-storage";
 
 type RouteContext = {
   params: Promise<{
@@ -113,6 +114,12 @@ export async function DELETE(request: Request, context: RouteContext) {
         },
       });
     });
+
+    await deleteWorkflowOriginalFile(workflow.originalFileStorageKey).catch(
+      (storageError) => {
+        console.error("Failed to delete workflow original file:", storageError);
+      },
+    );
 
     return NextResponse.json({
       success: true,

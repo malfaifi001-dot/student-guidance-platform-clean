@@ -1,3 +1,873 @@
+WORKFLOW ADMIN CODE REVIEW
+Project: D:\student-guidance-platform-clean
+Generated: 07/26/2026 08:42:57
+
+Collected files: 3
+
+============================================================
+FILE: app\dashboard\admin\workflows\[serviceSlug]\page.tsx
+============================================================
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowUpLeft } from "lucide-react";
+
+import { WorkflowHealthReport } from "@/components/admin/workflow-health/workflow-health-report";
+import { WorkflowEvidenceModeControl } from "@/components/admin/workflows/workflow-evidence-mode-control";
+import { WorkflowHistoryActions } from "@/components/admin/workflows/workflow-history-actions";
+import { WorkflowInlineImportWorkbench } from "@/components/admin/workflows/workflow-inline-import-workbench";
+import { WorkflowPublishPanel } from "@/components/admin/workflows/workflow-publish-panel";
+import { WorkflowStudentPickerModeControl } from "@/components/admin/workflows/workflow-student-picker-mode-control";
+import { validateWorkflow } from "@/engine/workflow-validation/workflow-validator";
+import { requireAdminPage } from "@/lib/admin/admin-page-guard";
+
+import { prisma } from "@/lib/prisma";
+import {
+  ensureDashboardWorkflowService,
+  getWorkflowUploadServices,
+  isWorkflowUploadEligibleService,
+} from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
+import {
+  WORKFLOW_TYPES,
+  getWorkflowPlacementLabel,
+  isSecondaryWorkflow,
+} from "@/lib/workflows/workflow-types";
+
+type PageProps = {
+  params: Promise<{
+    serviceSlug: string;
+  }>;
+};
+
+function formatWorkflowDate(value: Date | string | null | undefined) {
+  if (!value) return "غير محدد";
+
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function getWorkflowStatusLabel(status: string, isActive: boolean) {
+  if (isActive) return "مفعل حاليًا";
+  if (status === "DRAFT") return "مسودة";
+  if (status === "ACTIVE") return "منشور غير مفعل";
+  if (status === "ARCHIVED") return "مؤرشف";
+
+  return status || "غير محدد";
+}
+
+function getWorkflowStatusClass(status: string, isActive: boolean) {
+  if (isActive) {
+    return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
+  }
+
+  if (status === "DRAFT") {
+    return "bg-sky-50 text-sky-700 ring-1 ring-sky-100";
+  }
+
+  if (status === "ARCHIVED") {
+    return "bg-slate-100 text-slate-500 ring-1 ring-slate-200";
+  }
+
+  return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+}
+
+function countWorkflowFields(workflow: any) {
+  return workflow.steps.reduce(
+    (total: number, step: any) => total + step.fields.length,
+    0,
+  );
+}
+
+function countWorkflowOptions(workflow: any) {
+  return workflow.steps.reduce(
+    (total: number, step: any) =>
+      total +
+      step.fields.reduce(
+        (fieldTotal: number, field: any) =>
+          fieldTotal + field.options.length,
+        0,
+      ),
+    0,
+  );
+}
+
+function formatCasesUsageCount(count: number) {
+  return new Intl.NumberFormat("ar-SA").format(count);
+}
+
+export default async function ServiceWorkflowPage({ params }: PageProps) {
+  await requireAdminPage();
+
+  const { serviceSlug } = await params;
+
+  const serviceConfig = getWorkflowUploadServices().find(
+    (service) => service.slug === serviceSlug,
+  );
+
+  if (!serviceConfig || !isWorkflowUploadEligibleService(serviceConfig)) {
+    notFound();
+  }
+
+  await ensureDashboardWorkflowService(serviceSlug);
+
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: serviceSlug,
+    },
+    include: {
+      workflows: {
+        include: {
+          steps: {
+            include: {
+              fields: {
+                include: {
+                  options: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              cases: true,
+            },
+          },
+        },
+        orderBy: {
+          version: "desc",
+        },
+      },
+    },
+  });
+
+  if (!service) {
+    notFound();
+  }
+
+  const workflows = service.workflows;
+
+  const defaultWorkflows = workflows.filter(
+    (workflow) => workflow.workflowType === WORKFLOW_TYPES.DEFAULT,
+  );
+
+  const subWorkflows = workflows.filter((workflow) =>
+    isSecondaryWorkflow(workflow.workflowType),
+  );
+
+  const activeWorkflow = defaultWorkflows.find((workflow) => workflow.isActive);
+  const latestDraftWorkflow = defaultWorkflows.find(
+    (workflow) => workflow.status === "DRAFT",
+  );
+
+  const workflowForHealth = latestDraftWorkflow || activeWorkflow;
+
+  const healthReport = workflowForHealth
+    ? validateWorkflow({
+        id: workflowForHealth.id,
+        name: workflowForHealth.name,
+        steps: workflowForHealth.steps.map((step) => ({
+          id: step.id,
+          title: step.title,
+          fields: step.fields.map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            type: field.type,
+            isRequired: field.isRequired,
+            dependsOnFieldKey: field.dependsOnFieldKey,
+            linkedToValue: field.linkedToValue,
+            allowOther: field.allowOther,
+            options: field.options.map((option) => ({
+              id: option.id,
+              label: option.label,
+              value: option.value,
+              linkedToValue: option.linkedToValue,
+            })),
+          })),
+        })),
+      })
+    : null;
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="grid gap-5 xl:grid-cols-[1fr_auto] xl:items-center">
+          <div>
+            <p className="text-xs font-black text-sky-700">Service Workflow</p>
+
+            <h1 className="mt-2 text-4xl font-black text-slate-950">
+              {serviceConfig.title}
+            </h1>
+
+            <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              ارفع Excel، راجع النموذج مباشرة، ثم احفظه كمسودة. النشر وحده هو
+              الذي يغير ما يظهر للموجهين.
+            </p>
+          </div>
+
+          <Link
+            href="/dashboard/admin/workflows"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            <ArrowUpLeft className="h-4 w-4" />
+            مركز Workflows
+          </Link>
+        </div>
+      </section>
+
+      <WorkflowInlineImportWorkbench
+        serviceId={service.id}
+        serviceSlug={serviceSlug}
+        serviceName={serviceConfig.title}
+      />
+
+      <WorkflowPublishPanel
+        serviceSlug={serviceSlug}
+        previewHref={`/dashboard/admin/workflows/${serviceSlug}/preview`}
+        hasDraft={Boolean(latestDraftWorkflow)}
+        draftWorkflowId={latestDraftWorkflow?.id}
+        draftWorkflowName={latestDraftWorkflow?.name}
+        draftVersion={latestDraftWorkflow?.version}
+        activeWorkflowName={activeWorkflow?.name}
+      />
+
+      <WorkflowUploadHistorySection serviceSlug={serviceSlug} workflows={workflows} />
+
+      {healthReport ? <WorkflowHealthReport report={healthReport} /> : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-emerald-700">
+              Workflow الأساسي
+            </p>
+
+            <h2 className="mt-1 text-2xl font-black text-slate-900">
+              النسخة المفعلة للموجه
+            </h2>
+          </div>
+
+          {activeWorkflow ? (
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+              مفعل
+            </span>
+          ) : (
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 ring-1 ring-amber-100">
+              غير مفعل
+            </span>
+          )}
+        </div>
+
+        {activeWorkflow ? (
+          <div className="mt-6 space-y-4">
+            <div className="rounded-3xl bg-slate-50 p-5">
+              <p className="text-xs font-black text-slate-400">الاسم</p>
+
+              <p className="mt-1 text-xl font-black text-slate-900">
+                {activeWorkflow.name}
+              </p>
+
+              <p className="mt-2 text-sm font-bold text-slate-500">
+                Version {activeWorkflow.version} ·{" "}
+                {activeWorkflow.steps.length} خطوات
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {activeWorkflow.steps
+                .sort((a, b) => a.order - b.order)
+                .map((step) => (
+                  <div
+                    key={step.id}
+                    className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
+                  >
+                    <h3 className="font-black text-slate-900">
+                      {step.order}. {step.title}
+                    </h3>
+
+                    <p className="mt-2 text-xs font-bold text-slate-500">
+                      {step.fields.length} حقول
+                    </p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl bg-amber-50 p-6 text-sm font-bold text-amber-700">
+            لا يوجد Workflow أساسي مفعل لهذه الخدمة. ارفع ملف Excel أو انشر آخر
+            مسودة.
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div>
+          <p className="text-xs font-black text-sky-700">
+            Workflows فرعية داخل الخدمة
+          </p>
+
+          <h2 className="mt-1 text-2xl font-black text-slate-900">
+            النماذج الفرعية
+          </h2>
+        </div>
+
+        {subWorkflows.length ? (
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {subWorkflows.map((workflow) => (
+              <article
+                key={workflow.id}
+                className="rounded-2xl border border-slate-100 bg-slate-50 p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black text-emerald-700">
+                      {getWorkflowPlacementLabel(workflow.workflowType)}
+                    </p>
+
+                    <h3 className="mt-1 text-lg font-black text-slate-900">
+                      {workflow.name}
+                    </h3>
+                  </div>
+
+                  <span
+                    className={[
+                      "rounded-full px-3 py-1 text-[11px] font-black",
+                      workflow.isActive
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-slate-100 text-slate-500",
+                    ].join(" ")}
+                  >
+                    {workflow.isActive ? "مفعل" : workflow.status}
+                  </span>
+                </div>
+
+                <p className="mt-3 text-sm font-bold text-slate-500">
+                  Version {workflow.version} · {workflow.steps.length} خطوات
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-sm font-bold text-slate-500">
+            لا توجد Workflows فرعية داخل هذه الخدمة.
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+
+function WorkflowUploadHistorySection({ serviceSlug, workflows }: { serviceSlug: string; workflows: any[] }) {
+  const sortedWorkflows = [...workflows].sort((a, b) => {
+    if (a.isActive && !b.isActive) return -1;
+    if (!a.isActive && b.isActive) return 1;
+
+    return b.version - a.version;
+  });
+
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-sky-700">
+            سجل المرفوعات السابقة
+          </p>
+
+          <h2 className="mt-1 text-2xl font-black text-slate-950">
+            كل Workflows المحفوظة لهذه الخدمة
+          </h2>
+
+          <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+            هنا تظهر كل النسخ التي تم حفظها كمسودات أو نشرها سابقًا، مع توضيح
+            النسخة المفعلّة حاليًا للموجهين.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-50 px-4 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+          {sortedWorkflows.length} نسخة محفوظة
+        </span>
+      </div>
+
+      {sortedWorkflows.length ? (
+        <div className="mt-6 grid gap-4 xl:grid-cols-2">
+          {sortedWorkflows.map((workflow) => {
+            const statusClass = getWorkflowStatusClass(
+              workflow.status,
+              workflow.isActive,
+            );
+
+            return (
+              <article
+                key={workflow.id}
+                className={[
+                  "rounded-3xl border p-5 transition",
+                  workflow.isActive
+                    ? "border-emerald-200 bg-emerald-50/40 shadow-sm"
+                    : "border-slate-200 bg-white hover:border-sky-200 hover:shadow-sm",
+                ].join(" ")}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={["rounded-full px-3 py-1 text-xs font-black", statusClass].join(" ")}>
+                        {getWorkflowStatusLabel(workflow.status, workflow.isActive)}
+                      </span>
+
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                        Version {workflow.version}
+                      </span>
+
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-200">
+                        {getWorkflowPlacementLabel(workflow.workflowType)}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-3 text-xl font-black leading-8 text-slate-950">
+                      {workflow.name}
+                    </h3>
+
+                    <p className="mt-1 text-xs font-bold text-slate-500">
+                      آخر تحديث: {formatWorkflowDate(workflow.updatedAt)}
+                    </p>
+                  </div>
+
+                  {workflow.isActive ? (
+                    <div className="rounded-2xl bg-emerald-700 px-4 py-3 text-xs font-black text-white">
+                      يظهر للموجه الآن
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <WorkflowHistoryActions
+                    serviceSlug={serviceSlug}
+                    workflowId={workflow.id}
+                    workflowName={workflow.name}
+                    previewHref={`/dashboard/admin/workflows/${serviceSlug}/preview?workflowId=${workflow.id}`}
+                    isActive={workflow.isActive}
+                    casesCount={workflow._count?.cases || 0}
+                  />
+                </div>
+
+                <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                  <WorkflowHistoryMetric
+                    label="الخطوات"
+                    value={workflow.steps.length}
+                  />
+
+                  <WorkflowHistoryMetric
+                    label="الحقول"
+                    value={countWorkflowFields(workflow)}
+                  />
+
+                  <WorkflowHistoryMetric
+                    label="الخيارات"
+                    value={countWorkflowOptions(workflow)}
+                  />
+                </div>
+
+                <WorkflowStudentPickerModeControl
+                  serviceSlug={serviceSlug}
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  initialMode={workflow.studentPickerMode || "SERVICE_DEFAULT"}
+                  disabled={workflow.status === "ARCHIVED"}
+                  isActive={workflow.isActive}
+                />
+
+                <WorkflowEvidenceModeControl
+                  serviceSlug={serviceSlug}
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  initialMode={workflow.evidenceMode || "SERVICE_DEFAULT"}
+                  disabled={workflow.status === "ARCHIVED"}
+                  isActive={workflow.isActive}
+                />
+
+                {(workflow._count?.cases || 0) > 0 ? (
+                  <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-black leading-6 text-amber-800 ring-1 ring-amber-100">
+                    مستخدم في {formatCasesUsageCount(workflow._count?.cases || 0)} حالات — لا يمكن حذفه أو تعديله حفاظًا على الحالات السابقة.
+                  </div>
+                ) : null}
+
+                <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold leading-6 text-slate-500">
+                  {workflow.status === "DRAFT"
+                    ? "هذه نسخة مسودة. يمكن مراجعتها ونشرها لاحقًا بدون التأثير على النسخة المفعلة."
+                    : workflow.isActive
+                      ? "هذه هي النسخة المعتمدة التي يستخدمها الموجهون حاليًا."
+                      : "هذه نسخة محفوظة قديمة وليست هي التي تظهر للموجه الآن."}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+          <h3 className="text-xl font-black text-slate-800">
+            لا توجد مرفوعات محفوظة بعد
+          </h3>
+
+          <p className="mt-2 text-sm font-bold text-slate-500">
+            ارفع ملف Excel واحفظه كمسودة حتى يظهر هنا.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function WorkflowHistoryMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+      <p className="text-[11px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 text-lg font-black text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+
+============================================================
+FILE: app\dashboard\admin\workflows\page.tsx
+============================================================
+import {
+  CheckCircle2,
+  Clock3,
+  Layers3,
+  ShieldCheck,
+  UploadCloud,
+  Workflow,
+} from "lucide-react";
+import type { ReactNode } from "react";
+
+import {
+  ensureDashboardWorkflowServices,
+  getWorkflowUploadServices,
+} from "@/lib/admin/workflows/ensure-dashboard-workflow-services";
+import { prisma } from "@/lib/prisma";
+import { AdminWorkflowsFilterBar } from "@/components/admin/admin-workflows-filter-bar";
+
+function countWorkflowFields(workflow: any) {
+  return workflow.steps.reduce(
+    (total: number, step: any) => total + step.fields.length,
+    0,
+  );
+}
+
+function countWorkflowOptions(workflow: any) {
+  return workflow.steps.reduce(
+    (total: number, step: any) =>
+      total +
+      step.fields.reduce(
+        (fieldTotal: number, field: any) => fieldTotal + field.options.length,
+        0,
+      ),
+    0,
+  );
+}
+
+function formatDate(value: Date | string | null | undefined) {
+  if (!value) return "لم يتم الرفع بعد";
+  try {
+    return new Date(value).toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("ar-SA").format(value);
+}
+
+export default async function AdminWorkflowsPage() {
+  await ensureDashboardWorkflowServices();
+
+  const workflowUploadServices = getWorkflowUploadServices();
+  const serviceSlugs = workflowUploadServices.map((service) => service.slug);
+
+  const workflows = await prisma.workflow.findMany({
+    where: {
+      service: {
+        slug: {
+          in: serviceSlugs,
+        },
+      },
+    },
+    include: {
+      service: true,
+      steps: {
+        include: {
+          fields: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          cases: true,
+        },
+      },
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+
+  const activeWorkflows = workflows.filter((workflow) => workflow.isActive);
+  const draftWorkflows = workflows.filter((workflow) => workflow.status === "DRAFT");
+  const linkedCasesCount = workflows.reduce(
+    (total, workflow) => total + (workflow._count?.cases || 0),
+    0,
+  );
+
+  const totalFields = workflows.reduce(
+    (total, workflow) => total + countWorkflowFields(workflow),
+    0,
+  );
+
+  const totalOptions = workflows.reduce(
+    (total, workflow) => total + countWorkflowOptions(workflow),
+    0,
+  );
+
+  const latestWorkflow = workflows[0] || null;
+
+  return (
+    <main className="space-y-8" dir="rtl">
+      <section className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-slate-950 p-8 text-white shadow-2xl">
+        <div className="grid gap-8 xl:grid-cols-[1fr_360px] xl:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black text-sky-100">
+              <ShieldCheck className="h-4 w-4" />
+              مركز التحكم الرسمي في نماذج الخدمات
+            </div>
+
+            <h1 className="mt-6 text-4xl font-black leading-tight md:text-5xl">
+              إدارة Workflows الخدمات
+            </h1>
+
+            <p className="mt-5 max-w-4xl text-sm font-bold leading-8 text-slate-300">
+              هذه الصفحة هي نقطة التحكم الأساسية في نماذج الخدمات. من هنا يتم رفع
+              ملفات Excel، مراجعة النموذج قبل اعتماده، حفظه كمسودة، ثم نشره
+              للموجهين والموجهات بدون التأثير على الحالات السابقة.
+            </p>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a
+                href="#workflow-services"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-50"
+              >
+                <UploadCloud className="h-4 w-4" />
+                اختيار خدمة للرفع
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/10 p-5 backdrop-blur">
+            <p className="text-xs font-black text-sky-100">حالة المركز الآن</p>
+
+            <div className="mt-4 grid gap-3">
+              <WorkflowHeroMetric
+                label="الخدمات القابلة للرفع"
+                value={workflowUploadServices.length}
+              />
+              <WorkflowHeroMetric
+                label="Workflows منشورة"
+                value={activeWorkflows.length}
+              />
+              <WorkflowHeroMetric
+                label="مسودات تنتظر المراجعة"
+                value={draftWorkflows.length}
+              />
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-slate-950/50 px-4 py-3">
+              <p className="text-[11px] font-black text-slate-400">
+                آخر نشاط Workflow
+              </p>
+              <p className="mt-1 text-sm font-black text-white">
+                {latestWorkflow
+                  ? `${latestWorkflow.service.name} · ${formatDate(latestWorkflow.updatedAt)}`
+                  : "لم يتم رفع أي Workflow بعد"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminWorkflowMetricCard
+          icon={<Workflow className="h-5 w-5" />}
+          label="النماذج المحفوظة"
+          value={workflows.length}
+          hint="تشمل المسودات والمنشور والمؤرشف."
+        />
+
+        <AdminWorkflowMetricCard
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          label="النماذج المنشورة"
+          value={activeWorkflows.length}
+          hint="هذه هي النسخ التي تظهر للموجهين."
+        />
+
+        <AdminWorkflowMetricCard
+          icon={<Clock3 className="h-5 w-5" />}
+          label="مسودات قيد المراجعة"
+          value={draftWorkflows.length}
+          hint="راجعها ثم انشرها عند اكتمالها."
+        />
+
+        <AdminWorkflowMetricCard
+          icon={<Layers3 className="h-5 w-5" />}
+          label="حقول وخيارات"
+          value={`${formatNumber(totalFields)} / ${formatNumber(totalOptions)}`}
+          hint="إجمالي الحقول والخيارات في النماذج."
+        />
+      </section>
+
+      <section
+        id="workflow-services"
+        className="space-y-5 rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-black text-emerald-700">
+              الخدمات التي تستقبل Workflow
+            </p>
+
+            <h2 className="mt-2 text-3xl font-black text-slate-950">
+              اختر الخدمة وابدأ الرفع
+            </h2>
+
+            <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-slate-500">
+              تم استبعاد الخدمات التي لا تعتمد على Workflow من Excel مثل السجل
+              الشامل، التقارير، وتحليل النتائج.
+            </p>
+          </div>
+
+          <span className="rounded-full bg-slate-50 px-4 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+            {workflowUploadServices.length} خدمة جاهزة
+          </span>
+        </div>
+
+        <AdminWorkflowsFilterBar
+          services={workflowUploadServices}
+          workflows={workflows.map((wf) => ({
+            ...wf,
+            serviceSlug: wf.service.slug,
+          }))}
+        />
+      </section>
+
+      <section className="rounded-[2rem] border border-amber-100 bg-amber-50 p-5">
+        <div className="flex flex-wrap items-start gap-3">
+          <ShieldCheck className="mt-1 h-5 w-5 text-amber-700" />
+
+          <div>
+            <h3 className="font-black text-amber-950">تنبيه تشغيلي مهم</h3>
+            <p className="mt-2 text-sm font-bold leading-7 text-amber-800">
+              حذف أو أرشفة Workflow مستخدم في حالات سابقة قد يؤثر على التحرير أو
+              التقارير. استخدم النشر للنسخ الجديدة بدل تعديل النسخ القديمة
+              المستخدمة.
+            </p>
+
+            {linkedCasesCount > 0 ? (
+              <p className="mt-2 text-xs font-black text-amber-700">
+                يوجد حاليًا {formatNumber(linkedCasesCount)} حالة مرتبطة بنماذج
+                Workflow محفوظة.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function WorkflowHeroMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
+      <span className="text-xs font-black text-slate-300">{label}</span>
+      <strong className="text-2xl font-black text-white">
+        {formatNumber(value)}
+      </strong>
+    </div>
+  );
+}
+
+function AdminWorkflowMetricCard({
+  icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: number | string;
+  hint: string;
+}) {
+  return (
+    <article className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+        {icon}
+      </div>
+
+      <p className="mt-4 text-sm font-black text-slate-500">{label}</p>
+
+      <strong className="mt-2 block text-3xl font-black text-slate-950">
+        {typeof value === "number" ? formatNumber(value) : value}
+      </strong>
+
+      <p className="mt-2 text-xs font-bold leading-6 text-slate-400">{hint}</p>
+    </article>
+  );
+}
+
+
+function SmallWorkflowStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-2xl bg-slate-50 px-3 py-3 text-center ring-1 ring-slate-100">
+      <p className="text-[11px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 text-lg font-black text-slate-950">
+        {formatNumber(value)}
+      </p>
+    </div>
+  );
+}
+
+
+============================================================
+FILE: prisma\schema.prisma
+============================================================
 generator client {
   provider = "prisma-client-js"
 }
@@ -486,12 +1356,6 @@ model Workflow {
   status       WorkflowStatus @default(DRAFT)
   isActive     Boolean        @default(false)
   workflowType String         @default("default")
-
-  originalFileName       String?   @db.VarChar(255)
-  originalFileStorageKey String?   @unique @db.VarChar(255)
-  originalFileMimeType   String?   @db.VarChar(150)
-  originalFileSize       Int?
-  originalFileUploadedAt DateTime?
 
   studentPickerMode   StudentPickerMode    @default(SERVICE_DEFAULT)
   evidenceMode        WorkflowEvidenceMode @default(SERVICE_DEFAULT)
