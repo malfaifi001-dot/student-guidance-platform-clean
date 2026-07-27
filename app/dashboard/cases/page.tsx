@@ -410,6 +410,7 @@ export default async function CasesPage() {
   );
 
   const rows = cases.map((caseItem) => {
+    const latestReportTwoSnapshot = snapshotMap.get(caseItem.id) || null;
     const latestReport = caseItem.guidanceReports[0] || null;
     const reportPreviewUrl = latestReport
       ? `/dashboard/report/${latestReport.id}/preview${
@@ -482,7 +483,10 @@ export default async function CasesPage() {
       valuesCount: caseItem._count.values,
       evidencesCount: caseItem._count.evidences,
       reportsCount: caseItem._count.guidanceReports,
-      reportTwoSnapshotId: snapshotMap.get(caseItem.id) || null,
+      reportTwoSnapshotId: latestReportTwoSnapshot?.id || null,
+      reportTwoSnapshotStatus: latestReportTwoSnapshot?.status || null,
+      reportTwoSnapshotApprovedAt:
+        latestReportTwoSnapshot?.approvedAt || null,
 
       latestReport: latestReport
         ? {

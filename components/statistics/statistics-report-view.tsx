@@ -21,9 +21,10 @@ export type StatisticsReportViewData = {
 
   serviceSlug: string;
   serviceName: string;
+  serviceNames: string[];
 
-  dateFrom: string;
-  dateTo: string;
+  dateFrom: string | null;
+  dateTo: string | null;
 
   sourceCaseCount: number;
   sourceReportCount: number;
@@ -65,8 +66,12 @@ type Props = {
 };
 
 function formatDate(
-  value: string,
+  value: string | null,
 ) {
+  if (!value) {
+    return "جميع الفترات";
+  }
+
   return new Intl.DateTimeFormat(
     "ar-SA",
     {
@@ -252,7 +257,7 @@ export function StatisticsReportView({
             </h1>
 
             <p className="mt-3 text-lg font-bold text-slate-600">
-              {data.serviceName}
+              {data.serviceNames.join("، ")}
             </p>
           </div>
         </header>

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { createReportTwoSnapshot } from "@/lib/report-2/report-snapshot-service";
+import { getAuthorizedReportTwoCase } from "@/lib/report-2/report-two-access";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 
 type RouteContext = {
   params: Promise<{
@@ -26,6 +29,18 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const { caseId } = await context.params;
+    const caseEntry = await getAuthorizedReportTwoCase(
+      dashboardContext,
+      caseId,
+      "REPORT_APPROVE",
+    );
+    if (!caseEntry) {
+      return NextResponse.json({ error: "الحالة غير موجودة أو لا تملك صلاحية اعتماد تقريرها." }, { status: 404 });
+    }
+    const serviceGuard = await requireServiceAccessApi(
+      getActivityProgramsBillingServiceSlug(caseEntry.service.slug),
+    );
+    if (serviceGuard) return serviceGuard;
     const body = await readBody(request);
 
     const result = await createReportTwoSnapshot(dashboardContext, {
@@ -39,6 +54,8 @@ export async function POST(request: Request, context: RouteContext) {
       snapshotPagesJson: body.snapshotPagesJson || null,
       snapshotHtml: body.snapshotHtml,
       pdfUrl: body.pdfUrl || null,
+      editorState: body.editorState || null,
+      approvedEditConfirmed: body.approvedEditConfirmed === true,
     });
 
     if (!result.ok) {

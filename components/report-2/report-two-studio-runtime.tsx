@@ -284,6 +284,14 @@ type ReportTwoStudioRuntimeProps = {
   initialMode?: "preview" | "edit";
   payload: SmartReportPayload;
   templates: TemplateOption[];
+  initialReport?: {
+    id: string;
+    status: "DRAFT" | "APPROVED";
+    version: number;
+    approvedAt?: string | null;
+    editorState?: unknown;
+    previewUrl: string;
+  } | null;
 };
 
 const REPORT_TWO_PAGE_CONTENT_HEIGHT_SCORE = 214;
@@ -2922,6 +2930,7 @@ export function ReportTwoStudioRuntime({
   initialMode = "edit",
   payload,
   templates,
+  initialReport = null,
 }: ReportTwoStudioRuntimeProps) {
   const router = useRouter();
   const [preparedPayload, setPreparedPayload] = useState<SmartReportPayload>(payload);
@@ -2929,7 +2938,12 @@ export function ReportTwoStudioRuntime({
   const [approvedSnapshot, setApprovedSnapshot] = useState<{
     id: string;
     previewUrl: string;
-  } | null>(null);
+  } | null>(initialReport?.status === "APPROVED" ? {
+    id: initialReport.id,
+    previewUrl: initialReport.previewUrl,
+  } : null);
+  const [persistedReport, setPersistedReport] = useState(initialReport);
+  const [reportTwoSaveSubmitting, setReportTwoSaveSubmitting] = useState(false);
   const [reportTwoApprovalSubmitting, setReportTwoApprovalSubmitting] =
     useState(false);
 
@@ -3565,6 +3579,8 @@ export function ReportTwoStudioRuntime({
             snapshotTemplateJson: signedVisiblePreviewTemplate,
             snapshotPagesJson: signedVisiblePreviewTemplate.pages,
             snapshotHtml,
+            editorState: createReportTwoDraftSnapshot(),
+            approvedEditConfirmed: persistedReport?.status === "APPROVED",
           }),
         },
       );
@@ -3595,6 +3611,14 @@ export function ReportTwoStudioRuntime({
       };
 
       setApprovedSnapshot(nextApprovedSnapshot);
+      setPersistedReport({
+        id: result.snapshot.id,
+        status: "APPROVED",
+        version: result.snapshot.version,
+        approvedAt: result.snapshot.approvedAt,
+        editorState: result.snapshot.editorState,
+        previewUrl: nextApprovedSnapshot.previewUrl,
+      });
 
       if (showSuccessPopup) {
         setReportTwoActionModal({
@@ -3937,6 +3961,71 @@ export function ReportTwoStudioRuntime({
 
     if (showMessage) {
       setPopup({ type: "alert", title: "حفظ المسودة", message: "تم حفظ المسودة الحالية." });
+    }
+  }
+
+  async function persistReportTwoDraft(approvedEditConfirmed = false) {
+    if (reportTwoSaveSubmitting) return;
+    const snapshotHtml = buildReportTwoSnapshotHtml();
+    if (!snapshotHtml.trim()) {
+      setPopup({ type: "alert", title: "حفظ التقرير", message: "تعذر التقاط معاينة التقرير الحالية." });
+      return;
+    }
+
+    if (persistedReport?.status === "APPROVED" && !approvedEditConfirmed) {
+      setPopup({
+        type: "confirm",
+        title: "تحرير تقرير معتمد",
+        message: "سيتم تعديل محتوى التقرير مع بقاء حالة الاعتماد وتاريخ الاعتماد كما هما.",
+        onConfirm: () => void persistReportTwoDraft(true),
+      });
+      return;
+    }
+
+    saveReportTwoDraftNow(false);
+    setReportTwoSaveSubmitting(true);
+    try {
+      const activeTemplate = templates.find((item) => item.id === selectedTemplateOptionId);
+      const response = await fetch(
+        `/api/dashboard/report-2/cases/${encodeURIComponent(caseId)}/save`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reportTitle: getReportTwoSnapshotTitle(),
+            templateId: selectedTemplateOptionId || null,
+            templateName: activeTemplate?.name || template.name || null,
+            variantId: selectedVariantId || null,
+            snapshotPayload: preparedPayload,
+            snapshotTemplateJson: signedVisiblePreviewTemplate,
+            snapshotPagesJson: signedVisiblePreviewTemplate.pages,
+            snapshotHtml,
+            editorState: createReportTwoDraftSnapshot(),
+            expectedVersion: persistedReport?.version ?? null,
+            approvedEditConfirmed,
+          }),
+        },
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "تعذر حفظ التقرير.");
+      setPersistedReport({
+        id: result.report.id,
+        status: result.report.status,
+        version: result.report.version,
+        approvedAt: result.report.approvedAt,
+        editorState: result.report.editorState,
+        previewUrl: result.previewUrl,
+      });
+      setReportTwoActionModal({
+        title: result.report.status === "APPROVED" ? "تم حفظ التقرير المعتمد" : "تم حفظ التقرير",
+        message: result.message,
+        linkHref: result.previewUrl,
+        linkLabel: "معاينة التقرير",
+      });
+    } catch (error) {
+      setPopup({ type: "alert", title: "حفظ التقرير", message: error instanceof Error ? error.message : "تعذر حفظ التقرير." });
+    } finally {
+      setReportTwoSaveSubmitting(false);
     }
   }
 
@@ -4446,6 +4535,19 @@ export function ReportTwoStudioRuntime({
     setSavedRuntimeTemplatesLoaded(true);
   }, [serviceSlugForSavedTemplates]);
 
+  const initialReportRestoredRef = useRef(false);
+
+  useEffect(() => {
+    if (initialReportRestoredRef.current || !initialReport?.editorState) return;
+    const restored = parseReportTwoDraftSnapshot(JSON.stringify(initialReport.editorState));
+    if (!restored) return;
+    initialReportRestoredRef.current = true;
+    restoreReportTwoDraftSnapshot(restored);
+    setDraftRestored(true);
+    setLastAutoSavedAt(restored.savedAt);
+    lastDraftSerializedRef.current = JSON.stringify(restored);
+  }, [initialReport]);
+
   useEffect(() => {
     if (runtimeMode !== "edit") {
       setPendingDraftSnapshot(null);
@@ -4871,10 +4973,11 @@ export function ReportTwoStudioRuntime({
 
             <button
               type="button"
-              onClick={() => saveReportTwoDraftNow(true)}
+              onClick={() => void persistReportTwoDraft()}
+              disabled={reportTwoSaveSubmitting}
               className="rounded-2xl bg-emerald-700 px-3 py-2 text-[11px] font-black text-white transition hover:bg-emerald-800"
             >
-              حفظ الآن
+              {reportTwoSaveSubmitting ? "جاري الحفظ..." : "حفظ الآن"}
             </button>
 
             <button

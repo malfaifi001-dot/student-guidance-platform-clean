@@ -50,10 +50,14 @@ function cleanText(
 }
 
 function selectionKey(
+  serviceSlug: string,
+  workflowId: string | undefined,
   fieldKey: string,
   value: string,
 ) {
   return JSON.stringify([
+    serviceSlug,
+    workflowId || "legacy",
     fieldKey,
     value,
   ]);
@@ -61,6 +65,7 @@ function selectionKey(
 
 export function normalizeStatisticsSelections(
   value: unknown,
+  defaultServiceSlug?: string,
 ): StatisticsValueSelection[] {
   if (!Array.isArray(value)) {
     throw new StatisticsSelectionError({
@@ -100,7 +105,10 @@ export function normalizeStatisticsSelections(
       1000,
     );
 
-    if (!fieldKey || !selectedValue) {
+    const serviceSlug = (cleanText(record.serviceSlug, 191) || defaultServiceSlug || "").toLowerCase();
+    const workflowId = cleanText(record.workflowId, 191) || undefined;
+
+    if (!serviceSlug || !fieldKey || !selectedValue) {
       throw new StatisticsSelectionError({
         message: "إحدى القيم المختارة غير مكتملة.",
         code: "INVALID_STATISTICS_SELECTION",
@@ -108,6 +116,8 @@ export function normalizeStatisticsSelections(
     }
 
     const key = selectionKey(
+      serviceSlug,
+      workflowId,
       fieldKey,
       selectedValue,
     );
@@ -119,6 +129,8 @@ export function normalizeStatisticsSelections(
     seen.add(key);
 
     normalized.push({
+      serviceSlug,
+      ...(workflowId ? { workflowId } : {}),
       fieldKey,
       value: selectedValue,
     });
@@ -148,11 +160,16 @@ export function selectPreparedStatisticsMetrics(
       for (const item of field.values) {
         availableMetrics.set(
           selectionKey(
+            field.serviceSlug,
+            field.workflowId || undefined,
             field.key,
             item.value,
           ),
           {
             metricId: item.metricId,
+            serviceSlug: field.serviceSlug,
+            serviceName: field.serviceName,
+            workflowId: field.workflowId,
 
             fieldKey: field.key,
             fieldLabel: field.label,
@@ -171,12 +188,24 @@ export function selectPreparedStatisticsMetrics(
     [];
 
   for (const selection of selections) {
-    const metric = availableMetrics.get(
+    let metric = availableMetrics.get(
       selectionKey(
+        selection.serviceSlug,
+        selection.workflowId,
         selection.fieldKey,
         selection.value,
       ),
     );
+
+    if (!metric && !selection.workflowId) {
+      const compatible = Array.from(availableMetrics.values()).filter(
+        (item) =>
+          item.serviceSlug === selection.serviceSlug &&
+          item.fieldKey === selection.fieldKey &&
+          item.value === selection.value,
+      );
+      if (compatible.length === 1) metric = compatible[0];
+    }
 
     if (!metric) {
       throw new StatisticsSelectionError({

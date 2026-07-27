@@ -133,7 +133,7 @@ function buildFallbackAnalysis(input: {
     );
 
   const executiveDescription = [
-    `يعرض هذا التقرير نتائج ${input.prepared.sourceCaseCount} حالة مرتبطة بـ ${input.prepared.sourceReportCount} تقريرًا صادرًا لخدمة ${input.prepared.service.name} خلال ${input.prepared.dateRange.label}.`,
+    `يعرض هذا التقرير نتائج ${input.prepared.sourceCaseCount} حالة مرتبطة بـ ${input.prepared.sourceReportCount} تقريرًا صادرًا لخدمات ${input.prepared.services.map((service) => service.name).join("، ")} خلال ${input.prepared.dateRange.label}.`,
     metricSentences.length
       ? `وشملت القيم المختارة: ${metricSentences.join("، ")}.`
       : "",
@@ -215,7 +215,7 @@ export async function analyzeSelectedStatistics(
 
   const payload = {
     serviceName:
-      input.prepared.service.name,
+      input.prepared.services.map((service) => service.name).join("، "),
 
     dateRange:
       input.prepared.dateRange.label,

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Eye } from "lucide-react";
+import { Download, Eye, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
+import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 
 type SnapshotItem = {
   id: string;
@@ -22,6 +23,7 @@ type SnapshotItem = {
   approvedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  status?: "DRAFT" | "APPROVED";
 };
 
 type ReportTwoArchiveClientProps = {
@@ -63,22 +65,23 @@ function getUniqueValues(
 export function ReportTwoArchiveClient({
   snapshots,
 }: ReportTwoArchiveClientProps) {
+  const [items, setItems] = useState(snapshots);
   const [search, setSearch] = useState("");
   const [filterService, setFilterService] = useState("");
   const [filterApprovedBy, setFilterApprovedBy] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
 
   const services = useMemo(
-    () => getUniqueValues(snapshots, "serviceName"),
-    [snapshots],
+    () => getUniqueValues(items, "serviceName"),
+    [items],
   );
   const approvedByNames = useMemo(
-    () => getUniqueValues(snapshots, "approvedByName"),
-    [snapshots],
+    () => getUniqueValues(items, "approvedByName"),
+    [items],
   );
 
   const filtered = useMemo(() => {
-    let list = [...snapshots];
+    let list = [...items];
     const query = search.trim().toLowerCase();
 
     if (query) {
@@ -123,7 +126,7 @@ export function ReportTwoArchiveClient({
     });
 
     return list;
-  }, [filterApprovedBy, filterService, search, snapshots, sortKey]);
+  }, [filterApprovedBy, filterService, search, items, sortKey]);
 
   const hasActiveFilters =
     search || filterService || filterApprovedBy || sortKey !== "newest";
@@ -207,8 +210,14 @@ export function ReportTwoArchiveClient({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-800">
-                    معتمد
+                  <span
+                    className={
+                      snapshot.status === "DRAFT"
+                        ? "inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100 dark:bg-sky-950/50 dark:text-sky-400 dark:ring-sky-800"
+                        : "inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-800"
+                    }
+                  >
+                    {snapshot.status === "DRAFT" ? "مسودة" : "معتمد"}
                   </span>
 
                   <h2 className="mt-3 text-lg font-black leading-8 text-slate-950 dark:text-white">
@@ -237,12 +246,28 @@ export function ReportTwoArchiveClient({
                   >
                     <Download className="h-4 w-4" />
                   </ReportTwoPdfDownloadButton>
+                  <ReportDeleteAction
+                    reportId={snapshot.id}
+                    reportTitle={snapshot.reportTitle}
+                    reportStatus={snapshot.status || "APPROVED"}
+                    deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(snapshot.id)}`}
+                    onDeleted={() =>
+                      setItems((current) =>
+                        current.filter((item) => item.id !== snapshot.id),
+                      )
+                    }
+                    className="grid h-10 w-10 place-items-center rounded-full border border-rose-200 bg-rose-50 text-rose-700 shadow-sm transition hover:bg-rose-100"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </ReportDeleteAction>
                 </div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700">
-                  {snapshot.serviceName || snapshot.serviceSlug || "خدمة غير محددة"}
+                  {snapshot.serviceName ||
+                    snapshot.serviceSlug ||
+                    "خدمة غير محددة"}
                 </span>
               </div>
 
@@ -252,7 +277,7 @@ export function ReportTwoArchiveClient({
                     حالة الاعتماد
                   </dt>
                   <dd className="font-black text-slate-800 dark:text-slate-100">
-                    معتمد
+                    {snapshot.status === "DRAFT" ? "مسودة" : "معتمد"}
                   </dd>
                 </div>
 
@@ -274,8 +299,6 @@ export function ReportTwoArchiveClient({
                   </dd>
                 </div>
               </dl>
-
-
             </article>
           ))}
         </div>

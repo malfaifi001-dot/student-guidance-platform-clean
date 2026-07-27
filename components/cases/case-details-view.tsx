@@ -26,6 +26,7 @@ import {
 type CaseDetailsViewProps = {
   caseEntry: any;
   reportTwoSnapshotId?: string | null;
+  reportTwoStatus?: "DRAFT" | "APPROVED" | null;
 };
 
 type FieldLookupItem = WorkflowFieldLike & {
@@ -921,7 +922,11 @@ function SavedReportsPanel({
     </section>
   );
 }
-export function CaseDetailsView({ caseEntry, reportTwoSnapshotId = null }: CaseDetailsViewProps) {
+export function CaseDetailsView({
+  caseEntry,
+  reportTwoSnapshotId = null,
+  reportTwoStatus = null,
+}: CaseDetailsViewProps) {
   const displayTitle = getSmartCaseDisplayTitle(caseEntry);
   const fieldMap = buildFieldMap(caseEntry);
   const latestReport = getLatestReport(caseEntry);
@@ -950,7 +955,12 @@ export function CaseDetailsView({ caseEntry, reportTwoSnapshotId = null }: CaseD
     ? `/dashboard/report-2/snapshots/${reportTwoSnapshotId}/preview`
     : null;
   const primaryReportHref = reportTwoSnapshotHref || `/dashboard/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`;
-  const primaryReportLabel = reportTwoSnapshotHref ? "تقرير معتمد" : "إصدار تقرير جديد";
+  const primaryReportLabel = reportTwoSnapshotHref
+    ? reportTwoStatus === "APPROVED"
+      ? "معاينة التقرير المعتمد"
+      : "معاينة مسودة التقرير"
+    : "إصدار تقرير جديد";
+  const reportIsApproved = reportTwoStatus === "APPROVED";
 
   const isCommitteesCase = caseEntry.service?.slug === COMMITTEE_SERVICE_SLUG;
 
@@ -1054,26 +1064,24 @@ export function CaseDetailsView({ caseEntry, reportTwoSnapshotId = null }: CaseD
                 الحالات
               </Link>
 
-              {!reportTwoSnapshotHref ? (
-                <Link
-                  href={`/dashboard/cases/${caseEntry.id}/edit`}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-                >
-                  <PencilLine className="h-4 w-4" />
-                  تعديل
-                </Link>
-              ) : (
-                <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-xs font-black text-slate-500">
-                  تم إصدار التقرير — الحالة مقفلة
-                </span>
-              )}
+              <Link
+                href={`/dashboard/cases/${caseEntry.id}/edit`}
+                aria-label="تعديل الحالة"
+                title="تعديل الحالة"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+              >
+                <PencilLine className="h-4 w-4" />
+                تعديل الحالة
+              </Link>
 
               <Link
                 href={primaryReportHref}
                 className={[
                   "inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-xs font-black text-white transition",
                   reportTwoSnapshotHref
-                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    ? reportIsApproved
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-sky-600 hover:bg-sky-700"
                     : "bg-emerald-700 hover:bg-emerald-800",
                 ].join(" ")}
               >
@@ -1083,6 +1091,26 @@ export function CaseDetailsView({ caseEntry, reportTwoSnapshotId = null }: CaseD
             </div>
           </div>
         </section>
+
+        {reportTwoSnapshotHref ? (
+          <section className={[
+            "rounded-[2rem] border px-5 py-4 shadow-sm",
+            reportIsApproved
+              ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+              : "border-sky-200 bg-sky-50 text-sky-950",
+          ].join(" ")}>
+            <h2 className="text-base font-black">
+              {reportIsApproved
+                ? "هذه الحالة مرتبطة بتقرير معتمد"
+                : "هذه الحالة مرتبطة بتقرير مسودة"}
+            </h2>
+            <p className="mt-2 text-sm font-bold leading-7 opacity-80">
+              {reportIsApproved
+                ? "يمكنك تعديل بيانات الحالة، وسيتم تحديث البيانات المرتبطة داخل التقرير مع بقاء التقرير معتمدًا."
+                : "يمكنك تعديل بيانات الحالة، وسيتم تحديث البيانات المرتبطة داخل التقرير بعد الحفظ."}
+            </p>
+          </section>
+        ) : null}
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
@@ -1283,26 +1311,24 @@ export function CaseDetailsView({ caseEntry, reportTwoSnapshotId = null }: CaseD
               الحالات
             </Link>
 
-            {!reportTwoSnapshotHref ? (
-              <Link
-                href={`/dashboard/cases/${caseEntry.id}/edit`}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-50"
-              >
-                <PencilLine className="h-4 w-4" />
-                تعديل
-              </Link>
-            ) : (
-              <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-xs font-black text-slate-500">
-                تم إصدار التقرير — الحالة مقفلة
-              </span>
-            )}
+            <Link
+              href={`/dashboard/cases/${caseEntry.id}/edit`}
+              aria-label="تعديل الحالة"
+              title="تعديل الحالة"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+            >
+              <PencilLine className="h-4 w-4" />
+              تعديل الحالة
+            </Link>
 
             <Link
               href={primaryReportHref}
               className={[
                 "inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-xs font-black text-white transition",
                 reportTwoSnapshotHref
-                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  ? reportIsApproved
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-sky-600 hover:bg-sky-700"
                   : "bg-emerald-700 hover:bg-emerald-800",
               ].join(" ")}
             >
@@ -1312,6 +1338,26 @@ export function CaseDetailsView({ caseEntry, reportTwoSnapshotId = null }: CaseD
           </div>
         </div>
       </section>
+
+      {reportTwoSnapshotHref ? (
+        <section className={[
+          "rounded-[2rem] border px-5 py-4 shadow-sm",
+          reportIsApproved
+            ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+            : "border-sky-200 bg-sky-50 text-sky-950",
+        ].join(" ")}>
+          <h2 className="text-base font-black">
+            {reportIsApproved
+              ? "هذه الحالة مرتبطة بتقرير معتمد"
+              : "هذه الحالة مرتبطة بتقرير مسودة"}
+          </h2>
+          <p className="mt-2 text-sm font-bold leading-7 opacity-80">
+            {reportIsApproved
+              ? "يمكنك تعديل بيانات الحالة، وسيتم تحديث البيانات المرتبطة داخل التقرير مع بقاء التقرير معتمدًا."
+              : "يمكنك تعديل بيانات الحالة، وسيتم تحديث البيانات المرتبطة داخل التقرير بعد الحفظ."}
+          </p>
+        </section>
+      ) : null}
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard

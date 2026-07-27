@@ -39,13 +39,14 @@ export class StatisticsPrepareError extends Error {
 export async function prepareDeterministicStatistics(
   input: {
     context: DashboardContext;
-    serviceSlug: string;
+    serviceSlugs: string[];
     range: StatisticsDateRange;
   },
 ): Promise<StatisticsPrepareResult> {
-  const service = await prisma.service.findUnique({
+  const services = await prisma.service.findMany({
     where: {
-      slug: input.serviceSlug,
+      slug: { in: input.serviceSlugs },
+      status: "ACTIVE",
     },
     select: {
       id: true,
@@ -55,7 +56,7 @@ export async function prepareDeterministicStatistics(
     },
   });
 
-  if (!service || service.status !== "ACTIVE") {
+  if (services.length !== input.serviceSlugs.length) {
     throw new StatisticsPrepareError({
       message: "الخدمة غير موجودة أو غير نشطة.",
       code: "STATISTICS_SERVICE_NOT_FOUND",
@@ -67,7 +68,7 @@ export async function prepareDeterministicStatistics(
     await listIssuedReportSources(
       input.context,
       {
-        serviceSlug: service.slug,
+        serviceSlugs: input.serviceSlugs,
         from: input.range.from,
         to: input.range.to,
       },
@@ -87,21 +88,41 @@ export async function prepareDeterministicStatistics(
     ),
   );
 
-  const resolved =
-    await loadResolvedStatisticsCases({
-      caseIds: sourceCaseIds,
+  const workflowSteps = (await Promise.all(services.map(async (service) => {
+    const serviceCaseIds = Array.from(new Set(issuedSources
+      .filter((source) => source.serviceSlug === service.slug)
+      .map((source) => source.caseEntryId)));
+    const resolved = await loadResolvedStatisticsCases({
+      caseIds: serviceCaseIds,
       serviceId: service.id,
+      serviceSlug: service.slug,
     });
+    return buildPreparedWorkflowSteps(resolved, { serviceSlug: service.slug, serviceName: service.name });
+  }))).flat();
 
-  const workflowSteps =
-    buildPreparedWorkflowSteps(resolved);
+  if (!issuedSources.length) {
+    throw new StatisticsPrepareError({
+      message: "لا توجد بيانات إحصائية متاحة للخدمات والفترة المحددة.",
+      code: "NO_STATISTICS_SOURCE_DATA",
+      status: 422,
+    });
+  }
+
+  const orderedServices = input.serviceSlugs.map((slug) => services.find((service) => service.slug === slug)!);
+  const primaryService = orderedServices[0];
 
   return {
     service: {
+      id: primaryService.id,
+      slug: primaryService.slug,
+      name: primaryService.name,
+    },
+    services: orderedServices.map((service) => ({
       id: service.id,
       slug: service.slug,
       name: service.name,
-    },
+      hasSourceData: issuedSources.some((source) => source.serviceSlug === service.slug),
+    })),
 
     dateRange: {
       preset: input.range.preset,

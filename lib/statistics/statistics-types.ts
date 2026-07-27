@@ -4,6 +4,7 @@ export type IssuedReportSourceType =
 
 export type StatisticsIssuedReportFilters = {
   serviceSlug?: string;
+  serviceSlugs?: string[];
   from?: Date;
   to?: Date;
 };
@@ -58,6 +59,7 @@ export type StatisticsFieldDefinition = {
   key: string;
   label: string;
   type: string;
+  workflowId: string | null;
 
   stepId: string;
   stepKey: string;
@@ -83,6 +85,9 @@ export type StatisticsPreparedField = {
   key: string;
   label: string;
   type: string;
+  serviceSlug: string;
+  serviceName: string;
+  workflowId: string | null;
 
   stepKey: string;
   stepTitle: string;
@@ -99,6 +104,9 @@ export type StatisticsPreparedWorkflowStep = {
   key: string;
   title: string;
   order: number;
+  serviceSlug: string;
+  serviceName: string;
+  workflowId: string | null;
   fields: StatisticsPreparedField[];
 };
 
@@ -108,6 +116,7 @@ export type StatisticsPrepareResult = {
     slug: string;
     name: string;
   };
+  services: Array<{ id: string; slug: string; name: string; hasSourceData: boolean }>;
 
   dateRange: {
     preset: StatisticsDatePreset;
@@ -126,12 +135,17 @@ export type StatisticsPrepareResult = {
 };
 
 export type StatisticsValueSelection = {
+  serviceSlug: string;
+  workflowId?: string;
   fieldKey: string;
   value: string;
 };
 
 export type StatisticsSelectedMetric = {
   metricId: string;
+  serviceSlug: string;
+  serviceName: string;
+  workflowId: string | null;
 
   fieldKey: string;
   fieldLabel: string;
@@ -158,6 +172,7 @@ export type StatisticsDescriptionResult = {
     slug: string;
     name: string;
   };
+  services: Array<{ id: string; slug: string; name: string; hasSourceData: boolean }>;
 
   dateRange: {
     preset: StatisticsDatePreset;

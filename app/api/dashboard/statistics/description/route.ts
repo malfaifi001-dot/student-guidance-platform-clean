@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 import {
   requireActiveSubscriptionForCurrentUser,
-  requireServiceAccessForCurrentUser,
 } from "@/bin/require-auth";
+import { normalizeStatisticsServiceSelection, requireAllowedStatisticsServices, StatisticsServiceSelectionError } from "@/lib/statistics/statistics-service-selection";
 
 import {
   requireDashboardApiContext,
@@ -45,24 +45,6 @@ function isRecord(
   );
 }
 
-function normalizeServiceSlug(
-  value: unknown,
-) {
-  const slug = String(value || "")
-    .trim()
-    .toLowerCase();
-
-  if (
-    !slug ||
-    slug.length > 191 ||
-    !/^[a-z0-9_-]+$/.test(slug)
-  ) {
-    return null;
-  }
-
-  return slug;
-}
-
 export async function POST(
   request: Request,
 ) {
@@ -99,46 +81,14 @@ export async function POST(
     );
   }
 
-  const serviceSlug =
-    normalizeServiceSlug(
-      body.serviceSlug,
-    );
-
-  if (!serviceSlug) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "اختر خدمة صحيحة.",
-        code:
-          "STATISTICS_SERVICE_REQUIRED",
-      },
-      {
-        status: 400,
-      },
-    );
-  }
-
-  const subscriptionResult =
-    await requireActiveSubscriptionForCurrentUser();
-
-  if (
-    subscriptionResult instanceof Response
-  ) {
-    return subscriptionResult;
-  }
-
-  const serviceAccessResult =
-    await requireServiceAccessForCurrentUser(
-      serviceSlug,
-    );
-
-  if (
-    serviceAccessResult instanceof Response
-  ) {
-    return serviceAccessResult;
+  if (!context.isAdmin) {
+    const subscriptionResult = await requireActiveSubscriptionForCurrentUser();
+    if (subscriptionResult instanceof Response) return subscriptionResult;
   }
 
   try {
+    const serviceSlugs = normalizeStatisticsServiceSelection(body);
+    await requireAllowedStatisticsServices(context, serviceSlugs);
     const range =
       resolveStatisticsDateRange({
         preset: body.preset,
@@ -149,12 +99,13 @@ export async function POST(
     const selections =
       normalizeStatisticsSelections(
         body.selectedValues,
+        serviceSlugs.length === 1 ? serviceSlugs[0] : undefined,
       );
 
     const prepared =
       await prepareDeterministicStatistics({
         context,
-        serviceSlug,
+        serviceSlugs,
         range,
       });
 
@@ -175,6 +126,7 @@ export async function POST(
 
       data: {
         service: prepared.service,
+        services: prepared.services,
         dateRange:
           prepared.dateRange,
 
@@ -189,6 +141,9 @@ export async function POST(
       },
     });
   } catch (error) {
+    if (error instanceof StatisticsServiceSelectionError) {
+      return NextResponse.json({ success: false, error: error.message, code: error.code }, { status: error.status });
+    }
     if (
       error instanceof
       StatisticsDateRangeError

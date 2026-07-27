@@ -11,12 +11,14 @@ import type {
   StatisticsResolvedCase,
   StatisticsResolvedCases,
 } from "./statistics-workflow-resolver";
+import { isImportantStatisticsField } from "./statistics-important-fields";
 
 const SUPPORTED_FIELD_TYPES = new Set([
   "SELECT",
   "MULTI_SELECT",
   "RADIO",
   "CHECKBOX",
+  "BOOLEAN",
 ]);
 
 function normalizeExpectedParentValue(
@@ -158,10 +160,14 @@ function getValueLabel(input: {
 }
 
 function metricId(
+  serviceSlug: string,
+  workflowId: string | null,
   fieldKey: string,
   value: string,
 ) {
   return [
+    encodeURIComponent(serviceSlug),
+    encodeURIComponent(workflowId || "legacy"),
     "field",
     encodeURIComponent(fieldKey),
     "value",
@@ -185,12 +191,13 @@ function buildFieldCatalog(
   for (const caseEntry of resolved.cases) {
     for (const field of caseEntry.fields.values()) {
       if (
-        !SUPPORTED_FIELD_TYPES.has(field.type)
+        !SUPPORTED_FIELD_TYPES.has(field.type) ||
+        !isImportantStatisticsField(field)
       ) {
         continue;
       }
 
-      const catalogId = field.id;
+      const catalogId = `${caseEntry.workflowId || "legacy"}:${field.id}`;
       const current = catalog.get(catalogId);
 
       if (!current) {
@@ -224,6 +231,8 @@ function buildFieldCatalog(
 function countField(input: {
   resolved: StatisticsResolvedCases;
   catalog: FieldCatalog;
+  serviceSlug: string;
+  serviceName: string;
 }): StatisticsPreparedField | null {
   const field = input.catalog.definition;
 
@@ -287,6 +296,8 @@ function countField(input: {
 
       return {
         metricId: metricId(
+          input.serviceSlug,
+          field.workflowId,
           field.key,
           value,
         ),
@@ -326,10 +337,13 @@ function countField(input: {
   }
 
   return {
-    id: field.id,
+    id: `${input.serviceSlug}:${field.workflowId || "legacy"}:${field.id}`,
     key: field.key,
     label: field.label,
     type: field.type,
+    serviceSlug: input.serviceSlug,
+    serviceName: input.serviceName,
+    workflowId: field.workflowId,
 
     stepKey: field.stepKey,
     stepTitle: field.stepTitle,
@@ -346,6 +360,7 @@ function countField(input: {
 
 export function buildPreparedWorkflowSteps(
   resolved: StatisticsResolvedCases,
+  identity: { serviceSlug: string; serviceName: string },
 ): StatisticsPreparedWorkflowStep[] {
   const catalog = buildFieldCatalog(resolved);
 
@@ -356,6 +371,8 @@ export function buildPreparedWorkflowSteps(
       countField({
         resolved,
         catalog: fieldCatalog,
+        serviceSlug: identity.serviceSlug,
+        serviceName: identity.serviceName,
       }),
     )
     .filter(
@@ -381,17 +398,21 @@ export function buildPreparedWorkflowSteps(
   >();
 
   for (const field of preparedFields) {
+    const scopedStepKey = `${field.serviceSlug}:${field.workflowId || "legacy"}:${field.stepKey}`;
     const current = steps.get(
-      field.stepKey,
+      scopedStepKey,
     ) || {
-      key: field.stepKey,
+      key: scopedStepKey,
       title: field.stepTitle,
       order: field.stepOrder,
+      serviceSlug: field.serviceSlug,
+      serviceName: field.serviceName,
+      workflowId: field.workflowId,
       fields: [],
     };
 
     current.fields.push(field);
-    steps.set(field.stepKey, current);
+    steps.set(scopedStepKey, current);
   }
 
   return Array.from(steps.values()).sort(

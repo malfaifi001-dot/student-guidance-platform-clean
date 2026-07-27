@@ -19,8 +19,8 @@ type ReportItem = {
 
   analysisMode: string;
 
-  dateFrom: string;
-  dateTo: string;
+  dateFrom: string | null;
+  dateTo: string | null;
 
   createdAt: string;
 };

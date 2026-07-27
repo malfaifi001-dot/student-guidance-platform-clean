@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+import { ReportDeleteModal } from "@/components/reports/report-delete-modal";
 
 type ReportStatus = "DRAFT" | "GENERATED" | "APPROVED" | "ARCHIVED" | string;
 
@@ -65,11 +67,7 @@ type ReportsDashboardProps = {
 
 type SnapshotFilter = "ALL" | "SNAPSHOT" | "LIVE";
 type TemplateFilter =
-  | "ALL"
-  | "official-long"
-  | "visual-activity"
-  | "executive-brief"
-  | "UNKNOWN";
+  "ALL" | "official-long" | "visual-activity" | "executive-brief" | "UNKNOWN";
 type PendingAction =
   | {
       type: "APPROVE";
@@ -81,6 +79,10 @@ type PendingAction =
     }
   | {
       type: "DUPLICATE";
+      report: ReportDashboardItem;
+    }
+  | {
+      type: "DELETE";
       report: ReportDashboardItem;
     }
   | null;
@@ -169,48 +171,48 @@ export function ReportsDashboard({ reports, stats }: ReportsDashboardProps) {
     templateFilter,
     serviceFilter,
   ]);
-async function runReportAction() {
-  if (!pendingAction) {
-    return;
-  }
-
-  try {
-    setActionError("");
-
-    const endpoint =
-      pendingAction.type === "APPROVE"
-        ? `/api/dashboard/reports/${pendingAction.report.id}/approve`
-        : pendingAction.type === "ARCHIVE"
-          ? `/api/dashboard/reports/${pendingAction.report.id}/delete`
-          : `/api/dashboard/reports/${pendingAction.report.id}/duplicate`;
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.error || "تعذر تنفيذ الإجراء.");
-    }
-
-    setPendingAction(null);
-
-    if (pendingAction.type === "DUPLICATE" && data.previewUrl) {
-      router.push(data.previewUrl);
-      router.refresh();
+  async function runReportAction() {
+    if (!pendingAction) {
       return;
     }
 
-    startTransition(() => {
-      router.refresh();
-    });
-  } catch (error) {
-    setActionError(
-      error instanceof Error ? error.message : "تعذر تنفيذ الإجراء."
-    );
+    try {
+      setActionError("");
+
+      const endpoint =
+        pendingAction.type === "APPROVE"
+          ? `/api/dashboard/reports/${pendingAction.report.id}/approve`
+          : pendingAction.type === "ARCHIVE" || pendingAction.type === "DELETE"
+            ? `/api/dashboard/reports/${pendingAction.report.id}/delete`
+            : `/api/dashboard/reports/${pendingAction.report.id}/duplicate`;
+
+      const response = await fetch(endpoint, {
+        method: pendingAction.type === "DELETE" ? "DELETE" : "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر تنفيذ الإجراء.");
+      }
+
+      setPendingAction(null);
+
+      if (pendingAction.type === "DUPLICATE" && data.previewUrl) {
+        router.push(data.previewUrl);
+        router.refresh();
+        return;
+      }
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "تعذر تنفيذ الإجراء.",
+      );
+    }
   }
-}
   return (
     <section className="space-y-6">
       <StatsGrid stats={stats} />
@@ -306,21 +308,25 @@ async function runReportAction() {
         <div className="grid gap-4">
           {filteredReports.map((report) => (
             <ReportCard
-  key={report.id}
-  report={report}
-  onApprove={() => {
-    setActionError("");
-    setPendingAction({ type: "APPROVE", report });
-  }}
-  onArchive={() => {
-    setActionError("");
-    setPendingAction({ type: "ARCHIVE", report });
-  }}
-  onDuplicate={() => {
-    setActionError("");
-    setPendingAction({ type: "DUPLICATE", report });
-  }}
-/>
+              key={report.id}
+              report={report}
+              onApprove={() => {
+                setActionError("");
+                setPendingAction({ type: "APPROVE", report });
+              }}
+              onArchive={() => {
+                setActionError("");
+                setPendingAction({ type: "ARCHIVE", report });
+              }}
+              onDuplicate={() => {
+                setActionError("");
+                setPendingAction({ type: "DUPLICATE", report });
+              }}
+              onDelete={() => {
+                setActionError("");
+                setPendingAction({ type: "DELETE", report });
+              }}
+            />
           ))}
         </div>
       ) : (
@@ -335,7 +341,19 @@ async function runReportAction() {
         </section>
       )}
 
-      {pendingAction ? (
+      {pendingAction?.type === "DELETE" ? (
+        <ReportDeleteModal
+          title={pendingAction.report.title}
+          status={pendingAction.report.status}
+          loading={isPending}
+          error={actionError}
+          onCancel={() => {
+            setPendingAction(null);
+            setActionError("");
+          }}
+          onConfirm={runReportAction}
+        />
+      ) : pendingAction ? (
         <ActionConfirmModal
           pendingAction={pendingAction}
           loading={isPending}
@@ -358,8 +376,16 @@ function StatsGrid({ stats }: { stats: ReportsStats }) {
       <StatCard label="معتمدة" value={stats.approved} tone="success" />
       <StatCard label="مسودات" value={stats.draft} tone="neutral" />
       <StatCard label="مولّدة" value={stats.generated} tone="info" />
-      <StatCard label="Snapshot ثابت" value={stats.withSnapshot} tone="success" />
-      <StatCard label="Live قديم" value={stats.withoutSnapshot} tone="warning" />
+      <StatCard
+        label="Snapshot ثابت"
+        value={stats.withSnapshot}
+        tone="success"
+      />
+      <StatCard
+        label="Live قديم"
+        value={stats.withoutSnapshot}
+        tone="warning"
+      />
     </div>
   );
 }
@@ -394,15 +420,18 @@ function ReportCard({
   onApprove,
   onArchive,
   onDuplicate,
+  onDelete,
 }: {
   report: ReportDashboardItem;
   onApprove: () => void;
   onArchive: () => void;
   onDuplicate: () => void;
+  onDelete: () => void;
 }) {
   const statusMeta = getReportStatusMeta(report.status);
   const templateName = getTemplateName(report.templateId);
-  const canApprove = report.status !== "APPROVED" && report.status !== "ARCHIVED";
+  const canApprove =
+    report.status !== "APPROVED" && report.status !== "ARCHIVED";
   const canArchive = report.status !== "ARCHIVED";
 
   return (
@@ -410,7 +439,10 @@ function ReportCard({
       <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge label={statusMeta.label} className={statusMeta.className} />
+            <StatusBadge
+              label={statusMeta.label}
+              className={statusMeta.className}
+            />
 
             <StatusBadge
               label={
@@ -441,12 +473,20 @@ function ReportCard({
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <InfoBox label="تاريخ الإنشاء" value={formatDate(report.createdAt)} />
+            <InfoBox
+              label="تاريخ الإنشاء"
+              value={formatDate(report.createdAt)}
+            />
             <InfoBox
               label="تاريخ التوليد"
-              value={report.generatedAt ? formatDate(report.generatedAt) : "غير محدد"}
+              value={
+                report.generatedAt ? formatDate(report.generatedAt) : "غير محدد"
+              }
             />
-            <InfoBox label="عدد الشواهد" value={`${report.evidenceItemsCount}`} />
+            <InfoBox
+              label="عدد الشواهد"
+              value={`${report.evidenceItemsCount}`}
+            />
             <InfoBox
               label="الصف/الفصل"
               value={
@@ -472,14 +512,14 @@ function ReportCard({
           >
             معاينة التقارير
           </Link>
-{report.status !== "APPROVED" && report.status !== "ARCHIVED" ? (
-  <Link
-    href={`/dashboard/report/${report.id}/studio`}
-    className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-center text-sm font-black text-sky-700 transition hover:bg-sky-100"
-  >
-    تعديل التقارير
-  </Link>
-) : null}
+          {report.status !== "APPROVED" && report.status !== "ARCHIVED" ? (
+            <Link
+              href={`/dashboard/report/${report.id}/studio`}
+              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-center text-sm font-black text-sky-700 transition hover:bg-sky-100"
+            >
+              تعديل التقارير
+            </Link>
+          ) : null}
           <Link
             href={`/dashboard/cases/${report.caseEntry.id}`}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50"
@@ -497,13 +537,23 @@ function ReportCard({
             </button>
           ) : null}
 
-<button
-  type="button"
-  onClick={onDuplicate}
-  className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100"
->
-  نسخ التقارير
-</button>
+          <button
+            type="button"
+            onClick={onDuplicate}
+            className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100"
+          >
+            نسخ التقارير
+          </button>
+
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="حذف التقرير"
+            title="حذف التقرير"
+            className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-100"
+          >
+            <Trash2 className="ml-1 inline h-4 w-4" /> حذف التقرير
+          </button>
 
           {canArchive ? (
             <button
@@ -550,89 +600,87 @@ function ActionConfirmModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
- const isApprove = pendingAction.type === "APPROVE";
-const isArchive = pendingAction.type === "ARCHIVE";
-const isDuplicate = pendingAction.type === "DUPLICATE";
-return (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
-    <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
-      <div
-        className={[
-          "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-black",
-          isApprove
-            ? "bg-emerald-50 text-emerald-700"
-            : isArchive
-              ? "bg-amber-50 text-amber-700"
-              : "bg-sky-50 text-sky-700",
-        ].join(" ")}
-      >
-        {isApprove ? "✓" : isArchive ? "!" : "⧉"}
-      </div>
-
-      <div className="mt-4 text-center">
-        <h2 className="text-xl font-black text-slate-900">
-          {isApprove
-            ? "اعتماد التقارير؟"
-            : isArchive
-              ? "أرشفة التقارير؟"
-              : "نسخ التقارير؟"}
-        </h2>
-
-        <p className="mt-3 text-sm leading-7 text-slate-500">
-          {isApprove
-            ? "سيتم تغيير حالة التقارير إلى معتمد وتسجيل تاريخ الاعتماد."
-            : isArchive
-              ? "سيتم نقل التقارير إلى الأرشيف بدل حذفه نهائيًا، حفاظًا على السجلات الرسمية."
-              : "سيتم إنشاء نسخة جديدة من التقارير بنفس القالب والـ Snapshot والشواهد، دون التأثير على التقارير الأصلي."}
-        </p>
-
-        <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-900">
-          {pendingAction.report.title}
-        </p>
-      </div>
-
-      {error ? (
-        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      ) : null}
-
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={loading}
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-        >
-          إلغاء
-        </button>
-
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={loading}
+  const isApprove = pendingAction.type === "APPROVE";
+  const isArchive = pendingAction.type === "ARCHIVE";
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
+        <div
           className={[
-            "rounded-2xl px-4 py-3 text-sm font-black text-white transition disabled:opacity-50",
+            "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-black",
             isApprove
-              ? "bg-emerald-700 hover:bg-emerald-800"
+              ? "bg-emerald-50 text-emerald-700"
               : isArchive
-                ? "bg-amber-700 hover:bg-amber-800"
-                : "bg-sky-700 hover:bg-sky-800",
+                ? "bg-amber-50 text-amber-700"
+                : "bg-sky-50 text-sky-700",
           ].join(" ")}
         >
-          {loading
-            ? "جارٍ التنفيذ..."
-            : isApprove
-              ? "نعم، اعتمد التقارير"
+          {isApprove ? "✓" : isArchive ? "!" : "⧉"}
+        </div>
+
+        <div className="mt-4 text-center">
+          <h2 className="text-xl font-black text-slate-900">
+            {isApprove
+              ? "اعتماد التقارير؟"
               : isArchive
-                ? "نعم، أرشف التقارير"
-                : "نعم، انسخ التقارير"}
-        </button>
+                ? "أرشفة التقارير؟"
+                : "نسخ التقارير؟"}
+          </h2>
+
+          <p className="mt-3 text-sm leading-7 text-slate-500">
+            {isApprove
+              ? "سيتم تغيير حالة التقارير إلى معتمد وتسجيل تاريخ الاعتماد."
+              : isArchive
+                ? "سيتم نقل التقارير إلى الأرشيف بدل حذفه نهائيًا، حفاظًا على السجلات الرسمية."
+                : "سيتم إنشاء نسخة جديدة من التقارير بنفس القالب والـ Snapshot والشواهد، دون التأثير على التقارير الأصلي."}
+          </p>
+
+          <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-900">
+            {pendingAction.report.title}
+          </p>
+        </div>
+
+        {error ? (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            إلغاء
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className={[
+              "rounded-2xl px-4 py-3 text-sm font-black text-white transition disabled:opacity-50",
+              isApprove
+                ? "bg-emerald-700 hover:bg-emerald-800"
+                : isArchive
+                  ? "bg-amber-700 hover:bg-amber-800"
+                  : "bg-sky-700 hover:bg-sky-800",
+            ].join(" ")}
+          >
+            {loading
+              ? "جارٍ التنفيذ..."
+              : isApprove
+                ? "نعم، اعتمد التقارير"
+                : isArchive
+                  ? "نعم، أرشف التقارير"
+                  : "نعم، انسخ التقارير"}
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
-
+  );
 }
 
 function StatusBadge({
@@ -643,7 +691,9 @@ function StatusBadge({
   className: string;
 }) {
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-black ${className}`}>
+    <span
+      className={`rounded-full border px-3 py-1 text-xs font-black ${className}`}
+    >
       {label}
     </span>
   );

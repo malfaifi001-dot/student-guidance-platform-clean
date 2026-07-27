@@ -6,7 +6,10 @@ import {
   type RuntimeWorkflow,
 } from "@/engine/runtime/runtime-resolver";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
+import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 import { prisma } from "@/lib/prisma";
+import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
 
 type PageProps = {
   params: Promise<{
@@ -215,9 +218,14 @@ export default async function EditCasePage({ params }: PageProps) {
     redirect("/dashboard/onboarding?required=true");
   }
 
-  const caseWhere = context.isAdmin
-    ? { id: caseId }
-    : { id: caseId, schoolAccountId: schoolAccountId as string };
+  const caseWhere = {
+    id: caseId,
+    ...buildCaseEntryWhereForUser({
+      id: context.user.id,
+      role: context.user.role,
+      schoolAccountId,
+    }),
+  };
 
   const caseEntry = await prisma.caseEntry.findFirst({
     where: caseWhere,
@@ -225,6 +233,15 @@ export default async function EditCasePage({ params }: PageProps) {
       values: true,
       evidences: true,
       service: true,
+      guidanceReports: {
+        orderBy: { updatedAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          approvedAt: true,
+        },
+      },
       workflow: {
         include: {
           steps: {
@@ -245,6 +262,18 @@ export default async function EditCasePage({ params }: PageProps) {
   });
 
   if (!caseEntry || !caseEntry.service) {
+    notFound();
+  }
+
+  await requireServiceAccessForCurrentUser(
+    getActivityProgramsBillingServiceSlug(caseEntry.service.slug),
+  );
+
+  if (
+    caseEntry.service.slug === "guardian-summons" &&
+    !context.isAdmin &&
+    context.user.role !== "COUNSELOR"
+  ) {
     notFound();
   }
 
@@ -269,8 +298,51 @@ export default async function EditCasePage({ params }: PageProps) {
     size: item.size || 0,
   }));
 
+  const latestReportTwoSnapshot = await prisma.reportSnapshot.findFirst({
+    where: {
+      caseEntryId: caseEntry.id,
+      ...(context.isAdmin ? {} : { schoolAccountId: caseEntry.schoolAccountId }),
+    },
+    orderBy: { approvedAt: "desc" },
+    select: { id: true, approvedAt: true },
+  });
+  const activeReportTwo = await prisma.reportTwoActive.findFirst({
+    where: {
+      caseEntryId: caseEntry.id,
+      ...(context.isAdmin ? {} : { schoolAccountId: caseEntry.schoolAccountId }),
+    },
+    select: { id: true, status: true, approvedAt: true },
+  });
+  const latestSavedReport = caseEntry.guidanceReports[0] || null;
+  const hasApprovedReport = Boolean(
+    activeReportTwo?.status === "APPROVED" ||
+      latestReportTwoSnapshot?.approvedAt ||
+      latestSavedReport?.status === "APPROVED" ||
+      latestSavedReport?.approvedAt,
+  );
+  const hasSavedReport = Boolean(
+    activeReportTwo || latestReportTwoSnapshot || latestSavedReport,
+  );
+  const reportSyncStatus =
+    activeReportTwo?.status || (latestReportTwoSnapshot ? "APPROVED" : null);
+
   return (
     <div className="space-y-5" dir="rtl">
+      {hasSavedReport ? (
+        <section className="rounded-[2rem] border border-sky-200 bg-sky-50 px-5 py-4 text-sky-950 shadow-sm">
+          <h2 className="text-base font-black">
+            {hasApprovedReport
+              ? "هذه الحالة لها تقرير معتمد"
+              : "هذه الحالة لها تقرير محفوظ"}
+          </h2>
+          <p className="mt-2 text-sm font-bold leading-7 text-sky-800">
+            {hasApprovedReport
+              ? "سيتم تحديث البيانات المرتبطة داخل التقرير المعتمد بعد حفظ الحالة، مع بقاء التقرير بحالة معتمد وبقاء تاريخ الاعتماد كما هو."
+              : "سيتم تحديث البيانات المرتبطة داخل التقرير تلقائيًا بعد حفظ الحالة."}
+          </p>
+        </section>
+      ) : null}
+
       {source === "SNAPSHOT" ? (
         <section className="rounded-[2rem] border border-amber-100 bg-amber-50 px-5 py-4 text-sm font-bold leading-7 text-amber-800">
           هذه الحالة تستخدم نسخة محفوظة من Workflow وقت إنشاء الحالة، لذلك لن
@@ -290,6 +362,7 @@ export default async function EditCasePage({ params }: PageProps) {
         title={caseEntry.title ?? undefined}
         initialValues={initialValues}
         initialEvidenceItems={evidenceItems}
+        reportSyncStatus={reportSyncStatus}
       />
     </div>
   );

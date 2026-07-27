@@ -59,10 +59,12 @@ function buildCaseScope(
           createdById: context.user.id,
         }
       : {}),
-    ...(filters.serviceSlug
+    ...(filters.serviceSlug || filters.serviceSlugs?.length
       ? {
           service: {
-            slug: filters.serviceSlug,
+            slug: filters.serviceSlugs?.length
+              ? { in: filters.serviceSlugs }
+              : filters.serviceSlug,
           },
         }
       : {}),
@@ -167,9 +169,11 @@ async function listReportSnapshotSources(
             approvedAt: approvedAtFilter,
           }
         : {}),
-      ...(filters.serviceSlug
+      ...(filters.serviceSlug || filters.serviceSlugs?.length
         ? {
-            serviceSlug: filters.serviceSlug,
+            serviceSlug: filters.serviceSlugs?.length
+              ? { in: filters.serviceSlugs }
+              : filters.serviceSlug,
           }
         : {}),
       ...(!context.isAdmin

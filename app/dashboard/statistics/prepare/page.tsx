@@ -7,6 +7,7 @@ import {
 import {
   requireDashboardPageContext,
 } from "@/lib/auth/dashboard-context";
+import { normalizeStatisticsServiceSelection } from "@/lib/statistics/statistics-service-selection";
 
 type SearchValue =
   | string
@@ -44,11 +45,12 @@ export default async function StatisticsPreparePage({
 
   const params = await searchParams;
 
-  const serviceSlug = firstValue(
-    params.serviceSlug,
-  )
-    .trim()
-    .toLowerCase();
+  let serviceSlugs: string[];
+  try {
+    serviceSlugs = normalizeStatisticsServiceSelection({ serviceSlug: params.serviceSlug });
+  } catch {
+    redirect("/dashboard/statistics");
+  }
 
   const preset =
     firstValue(params.preset)
@@ -62,20 +64,9 @@ export default async function StatisticsPreparePage({
   const to =
     firstValue(params.to).trim();
 
-  if (
-    !serviceSlug ||
-    !/^[a-z0-9_-]+$/.test(
-      serviceSlug,
-    )
-  ) {
-    redirect(
-      "/dashboard/statistics",
-    );
-  }
-
   return (
     <StatisticsPrepareShell
-      serviceSlug={serviceSlug}
+      serviceSlugs={serviceSlugs}
       preset={preset}
       from={from || undefined}
       to={to || undefined}

@@ -1,0 +1,111 @@
+import "server-only";
+
+import type { DashboardContext } from "@/lib/auth/dashboard-context";
+import { buildCaseEntryReportWhereForUser } from "@/lib/report-engine/report-access-scope";
+import { prisma } from "@/lib/prisma";
+
+export type ReportTwoCapability =
+  | "REPORT_VIEW"
+  | "REPORT_EDIT"
+  | "REPORT_APPROVE"
+  | "REPORT_EXPORT"
+  | "REPORT_ARCHIVE"
+  | "REPORT_DELETE"
+  | "CASE_EDIT_AND_SYNC_REPORT";
+
+const SCHOOL_REPORT_CAPABILITIES = new Set<ReportTwoCapability>([
+  "REPORT_VIEW",
+  "REPORT_EDIT",
+  "REPORT_APPROVE",
+  "REPORT_EXPORT",
+  "REPORT_ARCHIVE",
+  "REPORT_DELETE",
+  "CASE_EDIT_AND_SYNC_REPORT",
+]);
+
+const LIMITED_REPORT_CAPABILITIES = new Set<ReportTwoCapability>([
+  "REPORT_VIEW",
+  "REPORT_EDIT",
+  "REPORT_APPROVE",
+  "REPORT_EXPORT",
+  "REPORT_DELETE",
+  "CASE_EDIT_AND_SYNC_REPORT",
+]);
+
+export function roleHasReportTwoCapability(
+  role: string,
+  capability: ReportTwoCapability,
+) {
+  if (role === "ADMIN") return true;
+  if (["COUNSELOR", "ACTIVITY_LEADER", "SCHOOL_OWNER"].includes(role)) {
+    return SCHOOL_REPORT_CAPABILITIES.has(capability);
+  }
+  if (["TEACHER", "STAFF"].includes(role)) {
+    return LIMITED_REPORT_CAPABILITIES.has(capability);
+  }
+  return false;
+}
+
+export async function getAuthorizedReportTwoCase(
+  context: DashboardContext,
+  caseId: string,
+  capability: ReportTwoCapability,
+) {
+  if (!roleHasReportTwoCapability(context.user.role, capability)) return null;
+
+  return prisma.caseEntry.findFirst({
+    where: {
+      id: caseId,
+      ...buildCaseEntryReportWhereForUser({
+        id: context.user.id,
+        role: context.user.role,
+        schoolAccountId: context.schoolAccountId,
+      }),
+    },
+    select: {
+      id: true,
+      schoolAccountId: true,
+      serviceId: true,
+      title: true,
+      service: { select: { slug: true, name: true } },
+    },
+  });
+}
+
+export async function getAuthorizedReportTwoById(
+  context: DashboardContext,
+  reportId: string,
+  capability: ReportTwoCapability,
+) {
+  if (!roleHasReportTwoCapability(context.user.role, capability)) return null;
+
+  const active = await prisma.reportTwoActive.findUnique({
+    where: { id: reportId },
+  });
+  if (active) {
+    const caseEntry = await getAuthorizedReportTwoCase(
+      context,
+      active.caseEntryId,
+      capability,
+    );
+    return caseEntry && caseEntry.schoolAccountId === active.schoolAccountId
+      ? { kind: "ACTIVE" as const, report: active, caseEntry }
+      : null;
+  }
+
+  const snapshot = await prisma.reportSnapshot.findUnique({
+    where: { id: reportId },
+  });
+  if (!snapshot) return null;
+
+  const caseEntry = await getAuthorizedReportTwoCase(
+    context,
+    snapshot.caseEntryId,
+    capability,
+  );
+  return caseEntry &&
+    (!snapshot.schoolAccountId ||
+      snapshot.schoolAccountId === caseEntry.schoolAccountId)
+    ? { kind: "SNAPSHOT" as const, report: snapshot, caseEntry }
+    : null;
+}

@@ -1,8 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, FileText, PencilLine, Search, UserRound } from "lucide-react";
+import {
+  Eye,
+  FileText,
+  PencilLine,
+  Search,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { useMemo, useState } from "react";
+import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 
 type CaseRow = {
   id: string;
@@ -45,6 +53,8 @@ type CaseRow = {
   evidencesCount: number;
   reportsCount: number;
   reportTwoSnapshotId: string | null;
+  reportTwoSnapshotStatus?: "DRAFT" | "APPROVED" | null;
+  reportTwoSnapshotApprovedAt?: string | null;
   latestReport?: {
     id: string;
     status: string;
@@ -97,7 +107,11 @@ function getDisplayStatus(caseItem: CaseRow) {
     };
   }
 
-  if (caseItem.status === "SUBMITTED" && caseItem.reportsCount === 0) {
+  if (
+    caseItem.status === "SUBMITTED" &&
+    caseItem.reportsCount === 0 &&
+    !caseItem.reportTwoSnapshotId
+  ) {
     return {
       label: "جاهزة للتقرير",
       className: "bg-sky-50 text-sky-700 ring-1 ring-sky-100",
@@ -124,8 +138,8 @@ function getNextActionText(caseItem: CaseRow) {
     return "استكمال المتابعة";
   }
 
-  if (caseItem.reportTwoSnapshotId || caseItem.latestReport?.previewUrl) {
-    return "مراجعة التقرير";
+  if (caseItem.reportTwoSnapshotId) {
+    return "معاينة التقرير";
   }
 
   if (caseItem.status === "SUBMITTED") {
@@ -138,7 +152,7 @@ function getNextActionText(caseItem: CaseRow) {
 function getReportAction(caseItem: CaseRow) {
   if (caseItem.reportTwoSnapshotId) {
     return {
-      label: "عرض التقرير",
+      label: "معاينة التقرير",
       href: `/dashboard/report-2/snapshots/${caseItem.reportTwoSnapshotId}/preview`,
       className: "bg-emerald-700 text-white hover:bg-emerald-800",
     };
@@ -146,9 +160,12 @@ function getReportAction(caseItem: CaseRow) {
 
   if (caseItem.latestReport?.previewUrl) {
     return {
-      label: "عرض التقرير",
+      label: "معاينة التقرير",
       href: caseItem.latestReport.previewUrl,
-      className: "bg-emerald-700 text-white hover:bg-emerald-800",
+      className:
+        caseItem.latestReport.status === "APPROVED"
+          ? "bg-emerald-700 text-white hover:bg-emerald-800"
+          : "bg-sky-600 text-white hover:bg-sky-700",
     };
   }
 
@@ -163,12 +180,7 @@ function getReportAction(caseItem: CaseRow) {
   return null;
 }
 
-export function CasesSearchTable({
-  cases,
-  viewerName: _viewerName = "الموجه/الموجهة",
-  viewerRole: _viewerRole,
-  isAdmin: _isAdmin = false,
-}: CasesSearchTableProps) {
+export function CasesSearchTable({ cases }: CasesSearchTableProps) {
   const [query, setQuery] = useState("");
   const [selectedService, setSelectedService] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -204,14 +216,21 @@ export function CasesSearchTable({
 
       if (
         selectedStatus === "READY_FOR_REPORT" &&
-        !(caseItem.status === "SUBMITTED" && caseItem.reportsCount === 0)
+        !(
+          caseItem.status === "SUBMITTED" &&
+          caseItem.reportsCount === 0 &&
+          !caseItem.reportTwoSnapshotId
+        )
       ) {
         return false;
       }
 
       if (
         selectedStatus === "SUBMITTED" &&
-        !(caseItem.status === "SUBMITTED" && caseItem.reportsCount > 0)
+        !(
+          caseItem.status === "SUBMITTED" &&
+          (caseItem.reportsCount > 0 || Boolean(caseItem.reportTwoSnapshotId))
+        )
       ) {
         return false;
       }
@@ -222,15 +241,14 @@ export function CasesSearchTable({
 
       if (
         selectedReportState === "hasReport" &&
-        !caseItem.reportTwoSnapshotId &&
-        !caseItem.latestReport?.previewUrl
+        !caseItem.reportTwoSnapshotId
       ) {
         return false;
       }
 
       if (
         selectedReportState === "missingReport" &&
-        (caseItem.reportTwoSnapshotId || caseItem.latestReport?.previewUrl)
+        caseItem.reportTwoSnapshotId
       ) {
         return false;
       }
@@ -335,7 +353,23 @@ export function CasesSearchTable({
 function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
   const displayStatus = getDisplayStatus(caseItem);
   const reportAction = getReportAction(caseItem);
-  const isFollowUpLocked = Boolean(caseItem.reportTwoSnapshotId);
+  const reportStatus = caseItem.reportTwoSnapshotId
+    ? caseItem.reportTwoSnapshotStatus ||
+      (caseItem.reportTwoSnapshotApprovedAt ? "APPROVED" : "DRAFT")
+    : caseItem.latestReport?.status || null;
+  const persistedReportId =
+    caseItem.reportTwoSnapshotId || caseItem.latestReport?.id || null;
+  const deleteEndpoint = caseItem.reportTwoSnapshotId
+    ? `/api/dashboard/report-2/snapshots/${encodeURIComponent(caseItem.reportTwoSnapshotId)}`
+    : caseItem.latestReport
+      ? `/api/dashboard/reports/${encodeURIComponent(caseItem.latestReport.id)}/delete`
+      : null;
+  const reportStatusLabel =
+    reportStatus === "APPROVED"
+      ? "معتمد"
+      : reportStatus === "DRAFT"
+        ? "مسودة"
+        : null;
 
   const baseIconButtonClass =
     "grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700";
@@ -346,9 +380,11 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
   const reportIconButtonClass = reportAction
     ? [
         "grid h-10 w-10 place-items-center rounded-full text-white shadow-sm transition",
-        reportAction.label === "عرض التقرير"
+        reportStatus === "APPROVED"
           ? "bg-emerald-700 hover:bg-emerald-800"
-          : "bg-sky-700 hover:bg-sky-800",
+          : reportStatus === "DRAFT"
+            ? "bg-sky-600 hover:bg-sky-700"
+            : "bg-sky-700 hover:bg-sky-800",
       ].join(" ")
     : disabledIconButtonClass;
 
@@ -369,9 +405,16 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
             {caseItem.service.name}
           </span>
 
-          {reportAction && reportAction.label === "عرض التقرير" ? (
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
-              لها تقرير
+          {reportStatusLabel ? (
+            <span
+              className={[
+                "rounded-full px-3 py-1 text-xs font-black ring-1",
+                reportStatus === "APPROVED"
+                  ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                  : "bg-sky-50 text-sky-700 ring-sky-100",
+              ].join(" ")}
+            >
+              {reportStatusLabel}
             </span>
           ) : null}
         </div>
@@ -386,24 +429,14 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
             <Eye className="h-4 w-4" />
           </Link>
 
-          {isFollowUpLocked ? (
-            <span
-              aria-label="المتابعة مقفلة بعد التقرير"
-              title="المتابعة مقفلة بعد التقرير"
-              className={disabledIconButtonClass}
-            >
-              <PencilLine className="h-4 w-4" />
-            </span>
-          ) : (
-            <Link
-              href={`/dashboard/cases/${caseItem.id}/edit`}
-              aria-label="متابعة الحالة"
-              title="متابعة الحالة"
-              className={baseIconButtonClass}
-            >
-              <PencilLine className="h-4 w-4" />
-            </Link>
-          )}
+          <Link
+            href={`/dashboard/cases/${caseItem.id}/edit`}
+            aria-label="تعديل الحالة"
+            title="تعديل الحالة"
+            className={baseIconButtonClass}
+          >
+            <PencilLine className="h-4 w-4" />
+          </Link>
 
           {reportAction ? (
             <Link
@@ -423,6 +456,18 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
               <FileText className="h-4 w-4" />
             </span>
           )}
+
+          {persistedReportId && deleteEndpoint ? (
+            <ReportDeleteAction
+              reportId={persistedReportId}
+              reportTitle={caseItem.title}
+              reportStatus={reportStatus || "DRAFT"}
+              deleteEndpoint={deleteEndpoint}
+              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </ReportDeleteAction>
+          ) : null}
         </div>
       </div>
 

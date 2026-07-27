@@ -7,6 +7,8 @@ type SnapshotInfo = {
   reportTitle: string;
   snapshotTemplateJson?: unknown;
   snapshotPagesJson?: unknown;
+  renderContext?: unknown;
+  previewCase?: unknown;
 };
 
 type PdfDownloadButtonProps = {
@@ -94,6 +96,8 @@ export function ReportTwoPdfDownloadButton({
 
       const exportSnapshot: Record<string, unknown> = {
         template: { pages },
+        context: snapshot.renderContext || {},
+        previewCase: snapshot.previewCase || null,
       };
 
       const response = await fetch(

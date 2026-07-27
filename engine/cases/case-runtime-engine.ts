@@ -1,5 +1,6 @@
 ﻿import { prisma } from "@/lib/prisma";
 import { CaseStatus, EvidenceType} from "@prisma/client";
+import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
 import {
   serializeCaseValues,
   type RuntimeCaseValues,
@@ -16,6 +17,8 @@ type EvidenceItem = {
 type CaseAccessScope = {
   schoolAccountId?: string | null;
   isAdmin?: boolean;
+  userId?: string | null;
+  userRole?: string | null;
 };
 
 type SaveRuntimeCaseParams = {
@@ -96,7 +99,11 @@ function buildCaseWhere(caseId: string, scope: CaseAccessScope) {
 
   return {
     id: caseId,
-    schoolAccountId,
+    ...buildCaseEntryWhereForUser({
+      id: scope.userId || "__NO_USER__",
+      role: scope.userRole || "COUNSELOR",
+      schoolAccountId,
+    }),
   };
 }
 
@@ -298,6 +305,164 @@ function mergeStudentSnapshotsIntoValues(
   return nextValues as unknown as RuntimeCaseValues;
 }
 
+type RuntimeValidationField = {
+  key: string;
+  type: string;
+  allowOther: boolean;
+  options: Array<{ value: string }>;
+};
+
+const RUNTIME_SYSTEM_VALUE_KEYS = new Set([
+  "selectedStudent",
+  "selected_students_count",
+  "selected_students_names_text",
+  "selected_students_json",
+  "primary_student_id",
+  "studentSnapshot",
+  "guardianSnapshot",
+]);
+
+const CHOICE_FIELD_TYPES = new Set([
+  "SELECT",
+  "MULTI_SELECT",
+  "RADIO",
+  "CHECKBOX",
+]);
+
+function getSnapshotWorkflowRecord(snapshot: unknown) {
+  if (!snapshot || typeof snapshot !== "object") return null;
+
+  const record = snapshot as Record<string, unknown>;
+  if (Array.isArray(record.steps)) return record;
+
+  for (const key of ["workflow", "runtimeWorkflow"]) {
+    const nested = record[key];
+    if (
+      nested &&
+      typeof nested === "object" &&
+      Array.isArray((nested as Record<string, unknown>).steps)
+    ) {
+      return nested as Record<string, unknown>;
+    }
+  }
+
+  return null;
+}
+
+function fieldsFromWorkflowSnapshot(snapshot: unknown): RuntimeValidationField[] {
+  const workflow = getSnapshotWorkflowRecord(snapshot);
+  if (!workflow || !Array.isArray(workflow.steps)) return [];
+
+  return workflow.steps.flatMap((step) => {
+    if (!step || typeof step !== "object") return [];
+    const fields = (step as Record<string, unknown>).fields;
+    if (!Array.isArray(fields)) return [];
+
+    return fields.flatMap((field) => {
+      if (!field || typeof field !== "object") return [];
+      const record = field as Record<string, unknown>;
+      const key = String(record.key || "").trim();
+      if (!key) return [];
+
+      const options = Array.isArray(record.options)
+        ? record.options
+            .map((option) =>
+              option && typeof option === "object"
+                ? String((option as Record<string, unknown>).value || "").trim()
+                : "",
+            )
+            .filter(Boolean)
+            .map((value) => ({ value }))
+        : [];
+
+      return [{
+        key,
+        type: String(record.type || "TEXT").toUpperCase(),
+        allowOther: Boolean(record.allowOther),
+        options,
+      }];
+    });
+  });
+}
+
+async function getRuntimeValidationFields(existingCase: {
+  workflowId: string | null;
+  workflowSnapshot: unknown;
+}) {
+  const snapshotFields = fieldsFromWorkflowSnapshot(existingCase.workflowSnapshot);
+  if (snapshotFields.length || !existingCase.workflowId) return snapshotFields;
+
+  const workflow = await prisma.workflow.findUnique({
+    where: { id: existingCase.workflowId },
+    select: {
+      steps: {
+        select: {
+          fields: {
+            select: {
+              key: true,
+              type: true,
+              allowOther: true,
+              options: { select: { value: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return (
+    workflow?.steps.flatMap((step) =>
+      step.fields.map((field) => ({
+        key: field.key,
+        type: String(field.type),
+        allowOther: field.allowOther,
+        options: field.options,
+      })),
+    ) || []
+  );
+}
+
+async function validateRuntimeCaseValues(
+  existingCase: { workflowId: string | null; workflowSnapshot: unknown },
+  values: RuntimeCaseValues,
+) {
+  const fields = await getRuntimeValidationFields(existingCase);
+  const fieldMap = new Map(fields.map((field) => [field.key, field]));
+
+  for (const [key, value] of Object.entries(values || {})) {
+    if (RUNTIME_SYSTEM_VALUE_KEYS.has(key)) continue;
+
+    if (key.endsWith("__other")) {
+      const parent = fieldMap.get(key.slice(0, -7));
+      if (parent?.allowOther) continue;
+    }
+
+    const field = fieldMap.get(key);
+    if (!field) {
+      throw new Error(`الحقل غير تابع لـ Workflow الحالة: ${key}`);
+    }
+
+    if (!CHOICE_FIELD_TYPES.has(field.type) || value == null || value === "") {
+      continue;
+    }
+
+    const allowedValues = new Set(field.options.map((option) => option.value));
+    if (field.allowOther) allowedValues.add("__OTHER__");
+    const selectedValues = Array.isArray(value) ? value : [value];
+
+    for (const selectedValue of selectedValues) {
+      if (
+        (typeof selectedValue !== "string" &&
+          typeof selectedValue !== "number" &&
+          typeof selectedValue !== "boolean") ||
+        !allowedValues.has(String(selectedValue))
+      ) {
+        throw new Error(`الخيار المحدد لا يتبع الحقل: ${field.key}`);
+      }
+    }
+  }
+}
+
 // SMART_STUDENT_SERVER_SNAPSHOT_MARKER
 
 async function findStudentOrNull(
@@ -432,6 +597,7 @@ export async function updateRuntimeCase({
       id: true,
       schoolAccountId: true,
       workflowId: true,
+      workflowSnapshot: true,
     },
   });
 
@@ -452,50 +618,31 @@ export async function updateRuntimeCase({
     values,
     existingStudent
   );
+  await validateRuntimeCaseValues(existingCase, valuesWithStudentSnapshot);
   const serializedValues = serializeCaseValues(valuesWithStudentSnapshot);
   const normalizedEvidenceItems = normalizeEvidenceItems(evidenceItems);
-  const workflowSnapshot = await buildWorkflowSnapshotForCase(
-    existingCase.workflowId
-  );
+  const caseEntry = await prisma.$transaction(async (tx) => {
+    await tx.caseValue.deleteMany({ where: { caseEntryId: caseId } });
+    await tx.evidence.deleteMany({ where: { caseEntryId: caseId } });
 
-  await prisma.caseValue.deleteMany({
-    where: {
-      caseEntryId: caseId,
-    },
-  });
-
-  await prisma.evidence.deleteMany({
-    where: {
-      caseEntryId: caseId,
-    },
-  });
-
-  const caseEntry = await prisma.caseEntry.update({
-    where: {
-      id: caseId,
-    },
-    data: {
-      title: title || undefined,
-      studentId: studentId ? existingStudent?.id : null,
-      status: status ? toCaseStatus(status) : undefined,
-      submittedAt: status === "SUBMITTED" ? new Date() : undefined,
-      workflowSnapshot: workflowSnapshot || undefined,
-
-      values: {
-        create: serializedValues,
+    return tx.caseEntry.update({
+      where: { id: caseId },
+      data: {
+        title: title || undefined,
+        studentId: studentId ? existingStudent?.id : null,
+        status: status ? toCaseStatus(status) : undefined,
+        submittedAt: status === "SUBMITTED" ? new Date() : undefined,
+        values: { create: serializedValues },
+        evidences: { create: normalizedEvidenceItems },
       },
-
-      evidences: {
-        create: normalizedEvidenceItems,
+      include: {
+        service: true,
+        workflow: true,
+        student: true,
+        values: true,
+        evidences: true,
       },
-    },
-    include: {
-      service: true,
-      workflow: true,
-      student: true,
-      values: true,
-      evidences: true,
-    },
+    });
   });
 
   return caseEntry;

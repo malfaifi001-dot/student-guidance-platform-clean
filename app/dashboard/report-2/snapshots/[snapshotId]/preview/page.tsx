@@ -10,6 +10,9 @@ import { buildAssessmentPdfHtml } from "@/lib/assessment-center/assessment-pdf-r
 import { getLinkedSurveyHtmlItems } from "@/lib/report-2/report-linked-survey-attachments";
 import { prisma } from "@/lib/prisma";
 import { getReportTwoSnapshotById } from "@/lib/report-2/report-snapshot-service";
+import { getAuthorizedReportTwoById } from "@/lib/report-2/report-two-access";
+import { requireServiceAccessForCurrentUser } from "@/lib/subscription/subscription-guard";
+import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
 
 type PageProps = {
   params: Promise<{
@@ -166,6 +169,15 @@ export default async function ReportTwoSnapshotPreviewPage({
   const { snapshotId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const printMode = firstParam(resolvedSearchParams.print) === "1";
+  const authorized = await getAuthorizedReportTwoById(
+    context,
+    snapshotId,
+    "REPORT_VIEW",
+  );
+  if (!authorized) notFound();
+  await requireServiceAccessForCurrentUser(
+    getActivityProgramsBillingServiceSlug(authorized.caseEntry.service.slug),
+  );
   const snapshot = await getReportTwoSnapshotById(context, snapshotId);
 
   if (!snapshot) {

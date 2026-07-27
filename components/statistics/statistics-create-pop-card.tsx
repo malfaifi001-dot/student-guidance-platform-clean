@@ -11,7 +11,7 @@ import type {
 } from "@/lib/statistics/statistics-types";
 
 type StartInput = {
-  serviceSlug: string;
+  serviceSlugs: string[];
   preset: StatisticsDatePreset;
   from?: string;
   to?: string;
@@ -65,9 +65,9 @@ export function StatisticsCreatePopCard({
     useState("");
 
   const [
-    selectedService,
-    setSelectedService,
-  ] = useState("");
+    selectedServices,
+    setSelectedServices,
+  ] = useState<Set<string>>(() => new Set());
 
   const [preset, setPreset] =
     useState<StatisticsDatePreset>(
@@ -113,9 +113,9 @@ export function StatisticsCreatePopCard({
   function submit() {
     setLocalError("");
 
-    if (!selectedService) {
+    if (!selectedServices.size) {
       setLocalError(
-        "اختر الخدمة أولًا.",
+        "اختر خدمة واحدة على الأقل.",
       );
       return;
     }
@@ -131,7 +131,7 @@ export function StatisticsCreatePopCard({
     }
 
     onStart({
-      serviceSlug: selectedService,
+      serviceSlugs: Array.from(selectedServices),
       preset,
       ...(preset === "CUSTOM"
         ? {
@@ -176,7 +176,7 @@ export function StatisticsCreatePopCard({
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              اختر الخدمة والفترة، ثم انتقل
+              اختر الخدمات والفترة، ثم انتقل
               إلى صفحة التحضير لتحديد الحقول
               والقيم.
             </p>
@@ -196,12 +196,11 @@ export function StatisticsCreatePopCard({
           <section>
             <div className="mb-3 flex items-center justify-between gap-3">
               <h3 className="font-bold text-slate-900">
-                الخدمة
+                الخدمات
               </h3>
 
               <span className="text-xs text-slate-500">
-                تظهر الخدمات التي لديها
-                تقارير صادرة فقط
+                تم اختيار {selectedServices.size} خدمات
               </span>
             </div>
 
@@ -216,6 +215,19 @@ export function StatisticsCreatePopCard({
               className="mb-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
             />
 
+            <div className="mb-3 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setSelectedServices((current) => {
+                const next = new Set(current);
+                filteredServices.forEach((service) => next.add(service.slug));
+                return next;
+              })} className="rounded-xl border border-cyan-200 px-3 py-2 text-xs font-black text-cyan-700">تحديد الكل</button>
+              <button type="button" onClick={() => setSelectedServices((current) => {
+                const next = new Set(current);
+                filteredServices.forEach((service) => next.delete(service.slug));
+                return next;
+              })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600">إلغاء تحديد الكل</button>
+            </div>
+
             <div className="max-h-[280px] space-y-2 overflow-y-auto rounded-2xl border border-slate-200 p-2">
               {loading ? (
                 <div className="px-4 py-10 text-center text-sm text-slate-500">
@@ -225,18 +237,17 @@ export function StatisticsCreatePopCard({
                 filteredServices.map(
                   (service) => {
                     const selected =
-                      selectedService ===
-                      service.slug;
+                      selectedServices.has(service.slug);
 
                     return (
                       <button
                         key={service.id}
                         type="button"
-                        onClick={() =>
-                          setSelectedService(
-                            service.slug,
-                          )
-                        }
+                        onClick={() => setSelectedServices((current) => {
+                          const next = new Set(current);
+                          if (next.has(service.slug)) next.delete(service.slug); else next.add(service.slug);
+                          return next;
+                        })}
                         className={[
                           "w-full rounded-2xl border px-4 py-3 text-right transition",
                           selected
@@ -244,7 +255,8 @@ export function StatisticsCreatePopCard({
                             : "border-slate-200 bg-white hover:border-cyan-200 hover:bg-slate-50",
                         ].join(" ")}
                       >
-                        <span className="block font-bold text-slate-900">
+                        <span className="flex items-center gap-3 font-bold text-slate-900">
+                          <input type="checkbox" checked={selected} readOnly className="h-5 w-5 accent-cyan-700" />
                           {service.name}
                         </span>
 
@@ -269,8 +281,7 @@ export function StatisticsCreatePopCard({
                 )
               ) : (
                 <div className="px-4 py-10 text-center text-sm leading-6 text-slate-500">
-                  لا توجد خدمات تحتوي على
-                  تقارير صادرة ضمن نطاق حسابك.
+                  لا توجد خدمات متاحة ضمن اشتراك حسابك.
                 </div>
               )}
             </div>
@@ -366,7 +377,8 @@ export function StatisticsCreatePopCard({
             onClick={submit}
             disabled={
               loading ||
-              services.length === 0
+              services.length === 0 ||
+              selectedServices.size === 0
             }
             className="rounded-2xl bg-cyan-700 px-6 py-3 text-sm font-black text-white shadow-lg shadow-cyan-700/20 transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
           >

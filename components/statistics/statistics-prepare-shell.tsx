@@ -17,7 +17,7 @@ import type {
 } from "@/lib/statistics/statistics-types";
 
 type Props = {
-  serviceSlug: string;
+  serviceSlugs: string[];
   preset: string;
   from?: string;
   to?: string;
@@ -42,17 +42,19 @@ type DescriptionResponse = {
 };
 
 function valueSelectionKey(
-  fieldKey: string,
+  field: Pick<StatisticsPreparedField, "serviceSlug" | "workflowId" | "key">,
   value: string,
 ) {
   return JSON.stringify([
-    fieldKey,
+    field.serviceSlug,
+    field.workflowId || "legacy",
+    field.key,
     value,
   ]);
 }
 
 export function StatisticsPrepareShell({
-  serviceSlug,
+  serviceSlugs,
   preset,
   from,
   to,
@@ -135,7 +137,7 @@ export function StatisticsPrepareShell({
             signal: controller.signal,
 
             body: JSON.stringify({
-              serviceSlug,
+              serviceSlugs,
               preset,
               ...(from ? { from } : {}),
               ...(to ? { to } : {}),
@@ -169,7 +171,7 @@ export function StatisticsPrepareShell({
         if (firstField) {
           setExpandedFields(
             new Set([
-              firstField.key,
+              firstField.id,
             ]),
           );
         }
@@ -202,7 +204,7 @@ export function StatisticsPrepareShell({
       controller.abort();
     };
   }, [
-    serviceSlug,
+    serviceSlugs,
     preset,
     from,
     to,
@@ -231,7 +233,7 @@ export function StatisticsPrepareShell({
           ) {
             const key =
               valueSelectionKey(
-                field.key,
+                field,
                 item.value,
               );
 
@@ -239,6 +241,8 @@ export function StatisticsPrepareShell({
               selectedKeys.has(key)
             ) {
               selections.push({
+                serviceSlug: field.serviceSlug,
+                ...(field.workflowId ? { workflowId: field.workflowId } : {}),
                 fieldKey: field.key,
                 value: item.value,
               });
@@ -258,11 +262,11 @@ export function StatisticsPrepareShell({
   }
 
   function toggleValue(
-    fieldKey: string,
+    field: StatisticsPreparedField,
     value: string,
   ) {
     const key = valueSelectionKey(
-      fieldKey,
+      field,
       value,
     );
 
@@ -287,7 +291,7 @@ export function StatisticsPrepareShell({
     const fieldKeys = field.values.map(
       (item) =>
         valueSelectionKey(
-          field.key,
+          field,
           item.value,
         ),
     );
@@ -358,7 +362,7 @@ export function StatisticsPrepareShell({
           cache: "no-store",
 
           body: JSON.stringify({
-            serviceSlug,
+            serviceSlugs,
             preset,
             ...(from ? { from } : {}),
             ...(to ? { to } : {}),
@@ -447,7 +451,7 @@ export function StatisticsPrepareShell({
           cache: "no-store",
 
           body: JSON.stringify({
-            serviceSlug,
+            serviceSlugs,
             preset,
             ...(from ? { from } : {}),
             ...(to ? { to } : {}),
@@ -580,11 +584,11 @@ export function StatisticsPrepareShell({
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-2xl border border-white bg-white/85 px-4 py-3 shadow-sm">
               <p className="text-xs text-slate-500">
-                الخدمة
+                الخدمات
               </p>
 
               <p className="mt-1 text-sm font-black text-slate-900">
-                {data.service.name}
+                {data.services.map((service) => service.name).join("، ")}
               </p>
             </div>
 
@@ -633,6 +637,11 @@ export function StatisticsPrepareShell({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className="space-y-5">
+          {data.services.filter((service) => !service.hasSourceData).map((service) => (
+            <div key={service.slug} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+              {service.name}: لا توجد تقارير معتمدة لهذه الخدمة ضمن الفترة المحددة.
+            </div>
+          ))}
           {availableFields.length === 0 ? (
             <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-6 text-sm leading-7 text-amber-800">
               لم يتم العثور على حقول اختيارية
@@ -648,7 +657,8 @@ export function StatisticsPrepareShell({
                 >
                   <header className="border-b border-slate-100 bg-slate-50 px-5 py-4">
                     <h2 className="font-black text-slate-900">
-                      {step.title}
+                      <span className="block text-xs font-bold text-cyan-700">{step.serviceName}</span>
+                      <span className="mt-1 block">{step.title}</span>
                     </h2>
 
                     <p className="mt-1 text-xs text-slate-500">
@@ -664,7 +674,7 @@ export function StatisticsPrepareShell({
                       (field) => {
                         const expanded =
                           expandedFields.has(
-                            field.key,
+                            field.id,
                           );
 
                         const allSelected =
@@ -672,7 +682,7 @@ export function StatisticsPrepareShell({
                             (item) =>
                               selectedKeys.has(
                                 valueSelectionKey(
-                                  field.key,
+                                  field,
                                   item.value,
                                 ),
                               ),
@@ -683,7 +693,7 @@ export function StatisticsPrepareShell({
                             (item) =>
                               selectedKeys.has(
                                 valueSelectionKey(
-                                  field.key,
+                                  field,
                                   item.value,
                                 ),
                               ),
@@ -692,7 +702,7 @@ export function StatisticsPrepareShell({
                         const searchQuery =
                           (
                             valueSearch[
-                              field.key
+                              field.id
                             ] || ""
                           )
                             .trim()
@@ -723,7 +733,7 @@ export function StatisticsPrepareShell({
                               type="button"
                               onClick={() =>
                                 toggleExpanded(
-                                  field.key,
+                                  field.id,
                                 )
                               }
                               className="flex w-full items-center justify-between gap-4 bg-white px-4 py-4 text-right transition hover:bg-slate-50"
@@ -793,8 +803,7 @@ export function StatisticsPrepareShell({
                                   <input
                                     value={
                                       valueSearch[
-                                        field
-                                          .key
+                                        field.id
                                       ] || ""
                                     }
                                     onChange={(
@@ -805,7 +814,7 @@ export function StatisticsPrepareShell({
                                           current,
                                         ) => ({
                                           ...current,
-                                          [field.key]:
+                                          [field.id]:
                                             event
                                               .target
                                               .value,
@@ -824,8 +833,8 @@ export function StatisticsPrepareShell({
                                     ) => {
                                       const checked =
                                         selectedKeys.has(
-                                          valueSelectionKey(
-                                            field.key,
+                                  valueSelectionKey(
+                                    field,
                                             item.value,
                                           ),
                                         );
@@ -852,7 +861,7 @@ export function StatisticsPrepareShell({
                                               }
                                               onChange={() =>
                                                 toggleValue(
-                                                  field.key,
+                                                  field,
                                                   item.value,
                                                 )
                                               }

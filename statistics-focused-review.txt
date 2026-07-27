@@ -1,0 +1,6810 @@
+
+============================================================
+FILE: app\api\dashboard\statistics\description\route.ts
+============================================================
+import { NextResponse } from "next/server";
+
+import {
+  requireActiveSubscriptionForCurrentUser,
+  requireServiceAccessForCurrentUser,
+} from "@/bin/require-auth";
+
+import {
+  requireDashboardApiContext,
+} from "@/lib/auth/dashboard-context";
+
+import {
+  analyzeSelectedStatistics,
+} from "@/lib/statistics/statistics-ai-analyzer";
+
+import {
+  requireStatisticsRole,
+} from "@/lib/statistics/statistics-access";
+
+import {
+  resolveStatisticsDateRange,
+  StatisticsDateRangeError,
+} from "@/lib/statistics/statistics-date-range";
+
+import {
+  prepareDeterministicStatistics,
+  StatisticsPrepareError,
+} from "@/lib/statistics/statistics-prepare-service";
+
+import {
+  normalizeStatisticsSelections,
+  selectPreparedStatisticsMetrics,
+  StatisticsSelectionError,
+} from "@/lib/statistics/statistics-selection";
+
+export const dynamic = "force-dynamic";
+
+function isRecord(
+  value: unknown,
+): value is Record<string, unknown> {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value),
+  );
+}
+
+function normalizeServiceSlug(
+  value: unknown,
+) {
+  const slug = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    !slug ||
+    slug.length > 191 ||
+    !/^[a-z0-9_-]+$/.test(slug)
+  ) {
+    return null;
+  }
+
+  return slug;
+}
+
+export async function POST(
+  request: Request,
+) {
+  const context =
+    await requireDashboardApiContext();
+
+  if (context instanceof NextResponse) {
+    return context;
+  }
+
+  const roleGuard =
+    requireStatisticsRole(context);
+
+  if (roleGuard) {
+    return roleGuard;
+  }
+
+  const body = await request
+    .json()
+    .catch(() => null);
+
+  if (!isRecord(body)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "بيانات طلب الوصف غير صحيحة.",
+        code:
+          "INVALID_STATISTICS_DESCRIPTION_REQUEST",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const serviceSlug =
+    normalizeServiceSlug(
+      body.serviceSlug,
+    );
+
+  if (!serviceSlug) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "اختر خدمة صحيحة.",
+        code:
+          "STATISTICS_SERVICE_REQUIRED",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const subscriptionResult =
+    await requireActiveSubscriptionForCurrentUser();
+
+  if (
+    subscriptionResult instanceof Response
+  ) {
+    return subscriptionResult;
+  }
+
+  const serviceAccessResult =
+    await requireServiceAccessForCurrentUser(
+      serviceSlug,
+    );
+
+  if (
+    serviceAccessResult instanceof Response
+  ) {
+    return serviceAccessResult;
+  }
+
+  try {
+    const range =
+      resolveStatisticsDateRange({
+        preset: body.preset,
+        from: body.from,
+        to: body.to,
+      });
+
+    const selections =
+      normalizeStatisticsSelections(
+        body.selectedValues,
+      );
+
+    const prepared =
+      await prepareDeterministicStatistics({
+        context,
+        serviceSlug,
+        range,
+      });
+
+    const selectedMetrics =
+      selectPreparedStatisticsMetrics(
+        prepared,
+        selections,
+      );
+
+    const analysis =
+      await analyzeSelectedStatistics({
+        prepared,
+        selectedMetrics,
+      });
+
+    return NextResponse.json({
+      success: true,
+
+      data: {
+        service: prepared.service,
+        dateRange:
+          prepared.dateRange,
+
+        sourceCaseCount:
+          prepared.sourceCaseCount,
+
+        sourceReportCount:
+          prepared.sourceReportCount,
+
+        selectedMetrics,
+        analysis,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof
+      StatisticsDateRangeError
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code:
+            "INVALID_STATISTICS_DATE_RANGE",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (
+      error instanceof
+      StatisticsSelectionError
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.code,
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
+    if (
+      error instanceof
+      StatisticsPrepareError
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.code,
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
+    console.error(
+      "statistics description failed",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "تعذر إنشاء الوصف التنفيذي.",
+        code:
+          "STATISTICS_DESCRIPTION_FAILED",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+}
+
+============================================================
+FILE: app\api\dashboard\statistics\generate\route.ts
+============================================================
+import { NextResponse } from "next/server";
+
+import {
+  requireActiveSubscriptionForCurrentUser,
+  requireServiceAccessForCurrentUser,
+} from "@/bin/require-auth";
+
+import {
+  requireDashboardApiContext,
+} from "@/lib/auth/dashboard-context";
+
+import {
+  requireStatisticsRole,
+} from "@/lib/statistics/statistics-access";
+
+import {
+  resolveStatisticsDateRange,
+  StatisticsDateRangeError,
+} from "@/lib/statistics/statistics-date-range";
+
+import {
+  createStatisticsReport,
+  StatisticsReportServiceError,
+} from "@/lib/statistics/statistics-report-service";
+
+import {
+  normalizeStatisticsSelections,
+  StatisticsSelectionError,
+} from "@/lib/statistics/statistics-selection";
+
+export const dynamic = "force-dynamic";
+
+function isRecord(
+  value: unknown,
+): value is Record<string, unknown> {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value),
+  );
+}
+
+function normalizeServiceSlug(
+  value: unknown,
+) {
+  const slug = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    !slug ||
+    slug.length > 191 ||
+    !/^[a-z0-9_-]+$/.test(slug)
+  ) {
+    return null;
+  }
+
+  return slug;
+}
+
+export async function POST(
+  request: Request,
+) {
+  const context =
+    await requireDashboardApiContext();
+
+  if (context instanceof NextResponse) {
+    return context;
+  }
+
+  const roleGuard =
+    requireStatisticsRole(context);
+
+  if (roleGuard) {
+    return roleGuard;
+  }
+
+  const body = await request
+    .json()
+    .catch(() => null);
+
+  if (!isRecord(body)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "بيانات حفظ التقرير غير صحيحة.",
+        code:
+          "INVALID_STATISTICS_GENERATE_REQUEST",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const serviceSlug =
+    normalizeServiceSlug(
+      body.serviceSlug,
+    );
+
+  if (!serviceSlug) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "اختر خدمة صحيحة.",
+        code:
+          "STATISTICS_SERVICE_REQUIRED",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const subscriptionResult =
+    await requireActiveSubscriptionForCurrentUser();
+
+  if (
+    subscriptionResult instanceof Response
+  ) {
+    return subscriptionResult;
+  }
+
+  const serviceAccessResult =
+    await requireServiceAccessForCurrentUser(
+      serviceSlug,
+    );
+
+  if (
+    serviceAccessResult instanceof Response
+  ) {
+    return serviceAccessResult;
+  }
+
+  try {
+    const range =
+      resolveStatisticsDateRange({
+        preset: body.preset,
+        from: body.from,
+        to: body.to,
+      });
+
+    const selectedValues =
+      normalizeStatisticsSelections(
+        body.selectedValues,
+      );
+
+    const result =
+      await createStatisticsReport({
+        context,
+        serviceSlug,
+        range,
+        selectedValues,
+
+        analysis: {
+          executiveDescription:
+            body.executiveDescription,
+
+          insights:
+            body.insights,
+
+          recommendations:
+            body.recommendations,
+
+          analysisMode:
+            body.analysisMode,
+        },
+      });
+
+    return NextResponse.json({
+      success: true,
+      reportId: result.reportId,
+      title: result.title,
+      createdAt:
+        result.createdAt,
+    });
+  } catch (error) {
+    if (
+      error instanceof
+      StatisticsDateRangeError
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code:
+            "INVALID_STATISTICS_DATE_RANGE",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (
+      error instanceof
+      StatisticsSelectionError
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.code,
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
+    if (
+      error instanceof
+      StatisticsReportServiceError
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.code,
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.name === "ZodError"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "راجع الوصف التنفيذي والاستنتاجات قبل الحفظ.",
+          code:
+            "INVALID_STATISTICS_ANALYSIS",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    console.error(
+      "statistics generate failed",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "تعذر حفظ التقرير الإحصائي.",
+        code:
+          "STATISTICS_GENERATE_FAILED",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+}
+
+============================================================
+FILE: app\api\dashboard\statistics\prepare\route.ts
+============================================================
+import { NextResponse } from "next/server";
+
+import {
+  requireActiveSubscriptionForCurrentUser,
+  requireServiceAccessForCurrentUser,
+} from "@/bin/require-auth";
+
+import {
+  requireDashboardApiContext,
+} from "@/lib/auth/dashboard-context";
+
+import {
+  requireStatisticsRole,
+} from "@/lib/statistics/statistics-access";
+
+import {
+  resolveStatisticsDateRange,
+  StatisticsDateRangeError,
+} from "@/lib/statistics/statistics-date-range";
+
+import {
+  prepareDeterministicStatistics,
+  StatisticsPrepareError,
+} from "@/lib/statistics/statistics-prepare-service";
+
+export const dynamic = "force-dynamic";
+
+function isRecord(
+  value: unknown,
+): value is Record<string, unknown> {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value),
+  );
+}
+
+function normalizeServiceSlug(value: unknown) {
+  const slug = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    !slug ||
+    slug.length > 191 ||
+    !/^[a-z0-9_-]+$/.test(slug)
+  ) {
+    return null;
+  }
+
+  return slug;
+}
+
+export async function POST(request: Request) {
+  const context =
+    await requireDashboardApiContext();
+
+  if (context instanceof NextResponse) {
+    return context;
+  }
+
+  const roleGuard =
+    requireStatisticsRole(context);
+
+  if (roleGuard) {
+    return roleGuard;
+  }
+
+  const body = await request
+    .json()
+    .catch(() => null);
+
+  if (!isRecord(body)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "بيانات طلب التحضير غير صحيحة.",
+        code: "INVALID_STATISTICS_REQUEST",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const serviceSlug =
+    normalizeServiceSlug(body.serviceSlug);
+
+  if (!serviceSlug) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "اختر خدمة صحيحة.",
+        code: "STATISTICS_SERVICE_REQUIRED",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const subscriptionResult =
+    await requireActiveSubscriptionForCurrentUser();
+
+  if (subscriptionResult instanceof Response) {
+    return subscriptionResult;
+  }
+
+  const serviceAccessResult =
+    await requireServiceAccessForCurrentUser(
+      serviceSlug,
+    );
+
+  if (serviceAccessResult instanceof Response) {
+    return serviceAccessResult;
+  }
+
+  try {
+    const range =
+      resolveStatisticsDateRange({
+        preset: body.preset,
+        from: body.from,
+        to: body.to,
+      });
+
+    const result =
+      await prepareDeterministicStatistics({
+        context,
+        serviceSlug,
+        range,
+      });
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    if (
+      error instanceof StatisticsDateRangeError
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: "INVALID_STATISTICS_DATE_RANGE",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (
+      error instanceof StatisticsPrepareError
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.code,
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
+    console.error(
+      "statistics prepare failed",
+      error,
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "تعذر تجهيز البيانات الإحصائية.",
+        code: "STATISTICS_PREPARE_FAILED",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
+}
+
+============================================================
+FILE: app\api\dashboard\statistics\reports\route.ts
+============================================================
+import { NextResponse } from "next/server";
+
+import {
+  requireActiveSubscriptionForCurrentUser,
+} from "@/bin/require-auth";
+
+import {
+  requireDashboardApiContext,
+} from "@/lib/auth/dashboard-context";
+
+import {
+  requireStatisticsRole,
+} from "@/lib/statistics/statistics-access";
+
+import {
+  listStatisticsReports,
+} from "@/lib/statistics/statistics-report-service";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  const context =
+    await requireDashboardApiContext();
+
+  if (context instanceof NextResponse) {
+    return context;
+  }
+
+  const roleGuard =
+    requireStatisticsRole(context);
+
+  if (roleGuard) {
+    return roleGuard;
+  }
+
+  const subscriptionResult =
+    await requireActiveSubscriptionForCurrentUser();
+
+  if (
+    subscriptionResult instanceof Response
+  ) {
+    return subscriptionResult;
+  }
+
+  const reports =
+    await listStatisticsReports(
+      context,
+    );
+
+  return NextResponse.json({
+    success: true,
+    reports,
+  });
+}
+
+============================================================
+FILE: app\api\dashboard\statistics\services\route.ts
+============================================================
+import { NextResponse } from "next/server";
+
+import {
+  requireActiveSubscriptionForCurrentUser,
+  requireServiceAccessForCurrentUser,
+} from "@/bin/require-auth";
+import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
+import { requireStatisticsRole } from "@/lib/statistics/statistics-access";
+import {
+  buildStatisticsServiceOptions,
+  listIssuedReportSources,
+} from "@/lib/statistics/statistics-issued-report-source";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  const context = await requireDashboardApiContext();
+
+  if (context instanceof NextResponse) {
+    return context;
+  }
+
+  const roleGuard = requireStatisticsRole(context);
+
+  if (roleGuard) {
+    return roleGuard;
+  }
+
+  if (!context.isAdmin && !context.schoolAccountId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "لم يتم ربط الحساب بمدرسة.",
+        code: "SCHOOL_ACCOUNT_REQUIRED",
+      },
+      {
+        status: 403,
+      },
+    );
+  }
+
+  const subscriptionResult =
+    await requireActiveSubscriptionForCurrentUser();
+
+  if (subscriptionResult instanceof Response) {
+    return subscriptionResult;
+  }
+
+  const issuedSources =
+    await listIssuedReportSources(context);
+
+  const discoveredServices =
+    buildStatisticsServiceOptions(issuedSources);
+
+  const allowedServices = [];
+
+  for (const service of discoveredServices) {
+    const accessResult =
+      await requireServiceAccessForCurrentUser(
+        service.slug,
+      );
+
+    if (!(accessResult instanceof Response)) {
+      allowedServices.push(service);
+    }
+  }
+
+  const allowedSlugs = new Set(
+    allowedServices.map((service) => service.slug),
+  );
+
+  const allowedSources = issuedSources.filter(
+    (source) => allowedSlugs.has(source.serviceSlug),
+  );
+
+  return NextResponse.json({
+    success: true,
+    services: allowedServices,
+    totals: {
+      eligibleCaseCount: new Set(
+        allowedSources.map(
+          (source) => source.caseEntryId,
+        ),
+      ).size,
+      issuedReportCount: new Set(
+        allowedSources.map(
+          (source) => source.normalizedId,
+        ),
+      ).size,
+    },
+  });
+}
+
+============================================================
+FILE: app\dashboard\statistics\[reportId]\page.tsx
+============================================================
+import {
+  notFound,
+  redirect,
+} from "next/navigation";
+
+import {
+  StatisticsReportView,
+} from "@/components/statistics/statistics-report-view";
+
+import {
+  requireDashboardPageContext,
+} from "@/lib/auth/dashboard-context";
+
+import {
+  getStatisticsReportView,
+} from "@/lib/statistics/statistics-report-query";
+
+export const dynamic =
+  "force-dynamic";
+
+type Props = {
+  params: Promise<{
+    reportId: string;
+  }>;
+
+  searchParams: Promise<
+    Record<
+      string,
+      string | string[] | undefined
+    >
+  >;
+};
+
+function firstValue(
+  value:
+    | string
+    | string[]
+    | undefined,
+) {
+  return Array.isArray(value)
+    ? value[0] || ""
+    : value || "";
+}
+
+export default async function StatisticsReportPage({
+  params,
+  searchParams,
+}: Props) {
+  const context =
+    await requireDashboardPageContext();
+
+  if (
+    context.user.role !== "ADMIN" &&
+    context.user.role !== "COUNSELOR"
+  ) {
+    redirect("/dashboard");
+  }
+
+  const resolvedParams =
+    await params;
+
+  const reportId =
+    resolvedParams.reportId.trim();
+
+  if (!reportId) {
+    notFound();
+  }
+
+  const data =
+    await getStatisticsReportView(
+      context,
+      reportId,
+    );
+
+  if (!data) {
+    notFound();
+  }
+
+  const query =
+    await searchParams;
+
+  const autoPrint =
+    firstValue(query.print) === "1";
+
+  return (
+    <StatisticsReportView
+      data={data}
+      autoPrint={autoPrint}
+    />
+  );
+}
+
+============================================================
+FILE: app\dashboard\statistics\page.tsx
+============================================================
+import { redirect } from "next/navigation";
+
+import {
+  requireDashboardPageContext,
+} from "@/lib/auth/dashboard-context";
+
+import {
+  StatisticsLandingShell,
+} from "@/components/statistics/statistics-landing-shell";
+
+export default async function StatisticsPage() {
+  const context =
+    await requireDashboardPageContext();
+
+  if (
+    context.user.role !== "ADMIN" &&
+    context.user.role !== "COUNSELOR"
+  ) {
+    redirect("/dashboard");
+  }
+
+  return <StatisticsLandingShell />;
+}
+
+============================================================
+FILE: app\dashboard\statistics\prepare\page.tsx
+============================================================
+import { redirect } from "next/navigation";
+
+import {
+  StatisticsPrepareShell,
+} from "@/components/statistics/statistics-prepare-shell";
+
+import {
+  requireDashboardPageContext,
+} from "@/lib/auth/dashboard-context";
+
+type SearchValue =
+  | string
+  | string[]
+  | undefined;
+
+type Props = {
+  searchParams: Promise<
+    Record<string, SearchValue>
+  >;
+};
+
+function firstValue(
+  value: SearchValue,
+) {
+  if (Array.isArray(value)) {
+    return value[0] || "";
+  }
+
+  return value || "";
+}
+
+export default async function StatisticsPreparePage({
+  searchParams,
+}: Props) {
+  const context =
+    await requireDashboardPageContext();
+
+  if (
+    context.user.role !== "ADMIN" &&
+    context.user.role !== "COUNSELOR"
+  ) {
+    redirect("/dashboard");
+  }
+
+  const params = await searchParams;
+
+  const serviceSlug = firstValue(
+    params.serviceSlug,
+  )
+    .trim()
+    .toLowerCase();
+
+  const preset =
+    firstValue(params.preset)
+      .trim()
+      .toUpperCase() ||
+    "LAST_30_DAYS";
+
+  const from =
+    firstValue(params.from).trim();
+
+  const to =
+    firstValue(params.to).trim();
+
+  if (
+    !serviceSlug ||
+    !/^[a-z0-9_-]+$/.test(
+      serviceSlug,
+    )
+  ) {
+    redirect(
+      "/dashboard/statistics",
+    );
+  }
+
+  return (
+    <StatisticsPrepareShell
+      serviceSlug={serviceSlug}
+      preset={preset}
+      from={from || undefined}
+      to={to || undefined}
+    />
+  );
+}
+
+============================================================
+FILE: components\statistics\statistics-create-pop-card.tsx
+============================================================
+"use client";
+
+import {
+  useMemo,
+  useState,
+} from "react";
+
+import type {
+  StatisticsDatePreset,
+  StatisticsServiceOption,
+} from "@/lib/statistics/statistics-types";
+
+type StartInput = {
+  serviceSlug: string;
+  preset: StatisticsDatePreset;
+  from?: string;
+  to?: string;
+};
+
+type Props = {
+  open: boolean;
+  loading: boolean;
+  error: string;
+  services: StatisticsServiceOption[];
+
+  onClose: () => void;
+  onStart: (input: StartInput) => void;
+};
+
+const PRESETS: Array<{
+  value: StatisticsDatePreset;
+  label: string;
+}> = [
+  {
+    value: "LAST_30_DAYS",
+    label: "آخر 30 يومًا",
+  },
+  {
+    value: "CURRENT_MONTH",
+    label: "الشهر الحالي",
+  },
+  {
+    value: "CURRENT_YEAR",
+    label: "العام الحالي",
+  },
+  {
+    value: "ALL_TIME",
+    label: "جميع الفترات",
+  },
+  {
+    value: "CUSTOM",
+    label: "فترة مخصصة",
+  },
+];
+
+export function StatisticsCreatePopCard({
+  open,
+  loading,
+  error,
+  services,
+  onClose,
+  onStart,
+}: Props) {
+  const [search, setSearch] =
+    useState("");
+
+  const [
+    selectedService,
+    setSelectedService,
+  ] = useState("");
+
+  const [preset, setPreset] =
+    useState<StatisticsDatePreset>(
+      "LAST_30_DAYS",
+    );
+
+  const [from, setFrom] =
+    useState("");
+
+  const [to, setTo] =
+    useState("");
+
+  const [localError, setLocalError] =
+    useState("");
+
+  const filteredServices = useMemo(
+    () => {
+      const query = search
+        .trim()
+        .toLocaleLowerCase("ar");
+
+      if (!query) {
+        return services;
+      }
+
+      return services.filter(
+        (service) =>
+          service.name
+            .toLocaleLowerCase("ar")
+            .includes(query) ||
+          service.slug
+            .toLowerCase()
+            .includes(query),
+      );
+    },
+    [search, services],
+  );
+
+  if (!open) {
+    return null;
+  }
+
+  function submit() {
+    setLocalError("");
+
+    if (!selectedService) {
+      setLocalError(
+        "اختر الخدمة أولًا.",
+      );
+      return;
+    }
+
+    if (
+      preset === "CUSTOM" &&
+      (!from || !to)
+    ) {
+      setLocalError(
+        "حدد تاريخ البداية والنهاية.",
+      );
+      return;
+    }
+
+    onStart({
+      serviceSlug: selectedService,
+      preset,
+      ...(preset === "CUSTOM"
+        ? {
+            from,
+            to,
+          }
+        : {}),
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      dir="rtl"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (
+          event.target ===
+          event.currentTarget
+        ) {
+          onClose();
+        }
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="statistics-create-title"
+        className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl"
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+          <div>
+            <p className="text-sm font-semibold text-cyan-700">
+              تقرير جديد
+            </p>
+
+            <h2
+              id="statistics-create-title"
+              className="mt-1 text-xl font-black text-slate-900"
+            >
+              إنشاء تقرير إحصائي
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              اختر الخدمة والفترة، ثم انتقل
+              إلى صفحة التحضير لتحديد الحقول
+              والقيم.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-xl text-slate-500 transition hover:bg-slate-50"
+            aria-label="إغلاق"
+          >
+            ×
+          </button>
+        </header>
+
+        <div className="space-y-6 px-6 py-5">
+          <section>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="font-bold text-slate-900">
+                الخدمة
+              </h3>
+
+              <span className="text-xs text-slate-500">
+                تظهر الخدمات التي لديها
+                تقارير صادرة فقط
+              </span>
+            </div>
+
+            <input
+              value={search}
+              onChange={(event) =>
+                setSearch(
+                  event.target.value,
+                )
+              }
+              placeholder="ابحث عن خدمة..."
+              className="mb-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+            />
+
+            <div className="max-h-[280px] space-y-2 overflow-y-auto rounded-2xl border border-slate-200 p-2">
+              {loading ? (
+                <div className="px-4 py-10 text-center text-sm text-slate-500">
+                  جارٍ تحميل الخدمات...
+                </div>
+              ) : filteredServices.length ? (
+                filteredServices.map(
+                  (service) => {
+                    const selected =
+                      selectedService ===
+                      service.slug;
+
+                    return (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedService(
+                            service.slug,
+                          )
+                        }
+                        className={[
+                          "w-full rounded-2xl border px-4 py-3 text-right transition",
+                          selected
+                            ? "border-cyan-500 bg-cyan-50 ring-2 ring-cyan-100"
+                            : "border-slate-200 bg-white hover:border-cyan-200 hover:bg-slate-50",
+                        ].join(" ")}
+                      >
+                        <span className="block font-bold text-slate-900">
+                          {service.name}
+                        </span>
+
+                        <span className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
+                          <span>
+                            {
+                              service.eligibleCaseCount
+                            }{" "}
+                            حالة
+                          </span>
+
+                          <span>
+                            {
+                              service.issuedReportCount
+                            }{" "}
+                            تقرير صادر
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  },
+                )
+              ) : (
+                <div className="px-4 py-10 text-center text-sm leading-6 text-slate-500">
+                  لا توجد خدمات تحتوي على
+                  تقارير صادرة ضمن نطاق حسابك.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="mb-3 font-bold text-slate-900">
+              الفترة الإحصائية
+            </h3>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {PRESETS.map((item) => {
+                const selected =
+                  preset === item.value;
+
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() =>
+                      setPreset(item.value)
+                    }
+                    className={[
+                      "rounded-2xl border px-4 py-3 text-sm font-bold transition",
+                      selected
+                        ? "border-cyan-500 bg-cyan-50 text-cyan-800 ring-2 ring-cyan-100"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {preset === "CUSTOM" ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-slate-700">
+                    من
+                  </span>
+
+                  <input
+                    type="date"
+                    value={from}
+                    onChange={(event) =>
+                      setFrom(
+                        event.target.value,
+                      )
+                    }
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-slate-700">
+                    إلى
+                  </span>
+
+                  <input
+                    type="date"
+                    value={to}
+                    onChange={(event) =>
+                      setTo(
+                        event.target.value,
+                      )
+                    }
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                  />
+                </label>
+              </div>
+            ) : null}
+          </section>
+
+          {error || localError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+              {localError || error}
+            </div>
+          ) : null}
+        </div>
+
+        <footer className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-between">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+          >
+            إلغاء
+          </button>
+
+          <button
+            type="button"
+            onClick={submit}
+            disabled={
+              loading ||
+              services.length === 0
+            }
+            className="rounded-2xl bg-cyan-700 px-6 py-3 text-sm font-black text-white shadow-lg shadow-cyan-700/20 transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            بدء التحضير
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+============================================================
+FILE: components\statistics\statistics-landing-shell.tsx
+============================================================
+"use client";
+
+import {
+  useMemo,
+  useState,
+} from "react";
+
+import { useRouter } from "next/navigation";
+
+import type {
+  StatisticsDatePreset,
+  StatisticsServiceOption,
+} from "@/lib/statistics/statistics-types";
+
+import {
+  StatisticsCreatePopCard,
+} from "./statistics-create-pop-card";
+
+import {
+  StatisticsPreviousReports,
+} from "./statistics-previous-reports";
+
+type ServicesResponse = {
+  success?: boolean;
+  error?: string;
+
+  services?: StatisticsServiceOption[];
+
+  totals?: {
+    eligibleCaseCount: number;
+    issuedReportCount: number;
+  };
+};
+
+export function StatisticsLandingShell() {
+  const router = useRouter();
+
+  const [open, setOpen] =
+    useState(false);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [loaded, setLoaded] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [services, setServices] =
+    useState<
+      StatisticsServiceOption[]
+    >([]);
+
+  const totals = useMemo(
+    () => ({
+      cases: services.reduce(
+        (sum, service) =>
+          sum +
+          service.eligibleCaseCount,
+        0,
+      ),
+
+      reports: services.reduce(
+        (sum, service) =>
+          sum +
+          service.issuedReportCount,
+        0,
+      ),
+    }),
+    [services],
+  );
+
+  async function loadServices() {
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        "/api/dashboard/statistics/services",
+        {
+          cache: "no-store",
+        },
+      );
+
+      const payload =
+        (await response.json()) as
+          ServicesResponse;
+
+      if (
+        !response.ok ||
+        !payload.success
+      ) {
+        throw new Error(
+          payload.error ||
+            "تعذر تحميل الخدمات.",
+        );
+      }
+
+      setServices(
+        Array.isArray(payload.services)
+          ? payload.services
+          : [],
+      );
+
+      setLoaded(true);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "تعذر تحميل الخدمات.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openCreateCard() {
+    setOpen(true);
+
+    if (!loaded) {
+      void loadServices();
+    }
+  }
+
+  function startPreparation(input: {
+    serviceSlug: string;
+    preset: StatisticsDatePreset;
+    from?: string;
+    to?: string;
+  }) {
+    const params =
+      new URLSearchParams();
+
+    params.set(
+      "serviceSlug",
+      input.serviceSlug,
+    );
+
+    params.set(
+      "preset",
+      input.preset,
+    );
+
+    if (input.from) {
+      params.set("from", input.from);
+    }
+
+    if (input.to) {
+      params.set("to", input.to);
+    }
+
+    router.push(
+      `/dashboard/statistics/prepare?${params.toString()}`,
+    );
+  }
+
+  return (
+    <main
+      className="space-y-6"
+      dir="rtl"
+    >
+      <section className="overflow-hidden rounded-[30px] border border-cyan-100 bg-gradient-to-l from-cyan-50 via-white to-sky-50 p-6 shadow-sm md:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <span className="inline-flex rounded-full border border-cyan-200 bg-white px-4 py-2 text-xs font-black text-cyan-800">
+              التقارير الرقمية
+            </span>
+
+            <h1 className="mt-4 text-3xl font-black text-slate-950 md:text-4xl">
+              الإحصائيات
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+              أنشئ تقريرًا إحصائيًا من
+              الحالات التي لديها تقارير
+              صادرة، ثم اختر الحقول والقيم
+              التي تريد عرض أعدادها.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={openCreateCard}
+            className="rounded-2xl bg-cyan-700 px-6 py-4 text-sm font-black text-white shadow-xl shadow-cyan-700/20 transition hover:-translate-y-0.5 hover:bg-cyan-800"
+          >
+            إنشاء تقرير إحصائي
+          </button>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-500">
+            الخدمات المتاحة
+          </p>
+
+          <p className="mt-3 text-3xl font-black text-slate-950">
+            {loaded
+              ? services.length
+              : "—"}
+          </p>
+
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            خدمات تحتوي على تقارير صادرة
+            ضمن نطاق الحساب.
+          </p>
+        </article>
+
+        <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-500">
+            الحالات المؤهلة
+          </p>
+
+          <p className="mt-3 text-3xl font-black text-slate-950">
+            {loaded
+              ? totals.cases
+              : "—"}
+          </p>
+
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            كل حالة تُحسب مرة واحدة داخل
+            كل قيمة.
+          </p>
+        </article>
+
+        <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-slate-500">
+            التقارير الصادرة
+          </p>
+
+          <p className="mt-3 text-3xl font-black text-slate-950">
+            {loaded
+              ? totals.reports
+              : "—"}
+          </p>
+
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            عدد مستقل عن عدد الحالات
+            المؤهلة.
+          </p>
+        </article>
+      </section>
+
+      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-black text-slate-900">
+          آلية التقرير
+        </h2>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          {[
+            {
+              number: "1",
+              title: "اختيار الخدمة",
+              text:
+                "تظهر الخدمات التي لديها تقارير صادرة فعلية فقط.",
+            },
+            {
+              number: "2",
+              title: "تحديد القيم",
+              text:
+                "اختر الحقول والقيم وشاهد العدد المباشر لكل قيمة.",
+            },
+            {
+              number: "3",
+              title: "صياغة الوصف",
+              text:
+                "يصيغ DeepSeek الوصف التنفيذي دون تغيير الأرقام.",
+            },
+          ].map((item) => (
+            <article
+              key={item.number}
+              className="rounded-2xl bg-slate-50 p-5"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-700 text-sm font-black text-white">
+                {item.number}
+              </span>
+
+              <h3 className="mt-4 font-black text-slate-900">
+                {item.title}
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {item.text}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <StatisticsPreviousReports />
+
+      <StatisticsCreatePopCard
+        open={open}
+        loading={loading}
+        error={error}
+        services={services}
+        onClose={() => setOpen(false)}
+        onStart={startPreparation}
+      />
+    </main>
+  );
+}
+
+============================================================
+FILE: components\statistics\statistics-prepare-shell.tsx
+============================================================
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import type {
+  StatisticsAiAnalysis,
+  StatisticsPrepareResult,
+  StatisticsPreparedField,
+  StatisticsValueSelection,
+} from "@/lib/statistics/statistics-types";
+
+type Props = {
+  serviceSlug: string;
+  preset: string;
+  from?: string;
+  to?: string;
+};
+
+type PrepareResponse = {
+  success?: boolean;
+  error?: string;
+  data?: StatisticsPrepareResult;
+};
+
+type DescriptionResponse = {
+  success?: boolean;
+  error?: string;
+
+  data?: {
+    sourceCaseCount: number;
+    sourceReportCount: number;
+
+    analysis: StatisticsAiAnalysis;
+  };
+};
+
+function valueSelectionKey(
+  fieldKey: string,
+  value: string,
+) {
+  return JSON.stringify([
+    fieldKey,
+    value,
+  ]);
+}
+
+export function StatisticsPrepareShell({
+  serviceSlug,
+  preset,
+  from,
+  to,
+}: Props) {
+  const router = useRouter();
+  const [loading, setLoading] =
+    useState(true);
+
+  const [
+    descriptionLoading,
+    setDescriptionLoading,
+  ] = useState(false);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [descriptionError, setDescriptionError] =
+    useState("");
+
+  const [saveError, setSaveError] =
+    useState("");
+
+  const [data, setData] =
+    useState<
+      StatisticsPrepareResult | null
+    >(null);
+
+  const [
+    selectedKeys,
+    setSelectedKeys,
+  ] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const [
+    expandedFields,
+    setExpandedFields,
+  ] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const [
+    valueSearch,
+    setValueSearch,
+  ] = useState<
+    Record<string, string>
+  >({});
+
+  const [
+    executiveDescription,
+    setExecutiveDescription,
+  ] = useState("");
+
+  const [analysis, setAnalysis] =
+    useState<
+      StatisticsAiAnalysis | null
+    >(null);
+
+  useEffect(() => {
+    const controller =
+      new AbortController();
+
+    async function load() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch(
+          "/api/dashboard/statistics/prepare",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            cache: "no-store",
+            signal: controller.signal,
+
+            body: JSON.stringify({
+              serviceSlug,
+              preset,
+              ...(from ? { from } : {}),
+              ...(to ? { to } : {}),
+            }),
+          },
+        );
+
+        const payload =
+          (await response.json()) as
+            PrepareResponse;
+
+        if (
+          !response.ok ||
+          !payload.success ||
+          !payload.data
+        ) {
+          throw new Error(
+            payload.error ||
+              "تعذر تجهيز البيانات.",
+          );
+        }
+
+        setData(payload.data);
+
+        const firstField =
+          payload.data.workflowSteps
+            .flatMap(
+              (step) => step.fields,
+            )[0];
+
+        if (firstField) {
+          setExpandedFields(
+            new Set([
+              firstField.key,
+            ]),
+          );
+        }
+      } catch (caughtError) {
+        if (
+          caughtError instanceof Error &&
+          caughtError.name ===
+            "AbortError"
+        ) {
+          return;
+        }
+
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "تعذر تجهيز البيانات.",
+        );
+      } finally {
+        if (
+          !controller.signal.aborted
+        ) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    serviceSlug,
+    preset,
+    from,
+    to,
+  ]);
+
+  const selectedValues =
+    useMemo<
+      StatisticsValueSelection[]
+    >(() => {
+      if (!data) {
+        return [];
+      }
+
+      const selections:
+        StatisticsValueSelection[] = [];
+
+      for (
+        const step of
+        data.workflowSteps
+      ) {
+        for (
+          const field of step.fields
+        ) {
+          for (
+            const item of field.values
+          ) {
+            const key =
+              valueSelectionKey(
+                field.key,
+                item.value,
+              );
+
+            if (
+              selectedKeys.has(key)
+            ) {
+              selections.push({
+                fieldKey: field.key,
+                value: item.value,
+              });
+            }
+          }
+        }
+      }
+
+      return selections;
+    }, [data, selectedKeys]);
+
+  function clearGeneratedText() {
+    setExecutiveDescription("");
+    setAnalysis(null);
+    setDescriptionError("");
+    setSaveError("");
+  }
+
+  function toggleValue(
+    fieldKey: string,
+    value: string,
+  ) {
+    const key = valueSelectionKey(
+      fieldKey,
+      value,
+    );
+
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+
+      return next;
+    });
+
+    clearGeneratedText();
+  }
+
+  function toggleWholeField(
+    field: StatisticsPreparedField,
+  ) {
+    const fieldKeys = field.values.map(
+      (item) =>
+        valueSelectionKey(
+          field.key,
+          item.value,
+        ),
+    );
+
+    const allSelected =
+      fieldKeys.every((key) =>
+        selectedKeys.has(key),
+      );
+
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+
+      for (const key of fieldKeys) {
+        if (allSelected) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+      }
+
+      return next;
+    });
+
+    clearGeneratedText();
+  }
+
+  function toggleExpanded(
+    fieldKey: string,
+  ) {
+    setExpandedFields(
+      (current) => {
+        const next =
+          new Set(current);
+
+        if (next.has(fieldKey)) {
+          next.delete(fieldKey);
+        } else {
+          next.add(fieldKey);
+        }
+
+        return next;
+      },
+    );
+  }
+
+  async function generateDescription() {
+    if (
+      selectedValues.length === 0
+    ) {
+      setDescriptionError(
+        "اختر قيمة إحصائية واحدة على الأقل.",
+      );
+      return;
+    }
+
+    setDescriptionLoading(true);
+    setDescriptionError("");
+
+    try {
+      const response = await fetch(
+        "/api/dashboard/statistics/description",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          cache: "no-store",
+
+          body: JSON.stringify({
+            serviceSlug,
+            preset,
+            ...(from ? { from } : {}),
+            ...(to ? { to } : {}),
+
+            selectedValues,
+          }),
+        },
+      );
+
+      const payload =
+        (await response.json()) as
+          DescriptionResponse;
+
+      if (
+        !response.ok ||
+        !payload.success ||
+        !payload.data
+      ) {
+        throw new Error(
+          payload.error ||
+            "تعذر إنشاء الوصف التنفيذي.",
+        );
+      }
+
+      setAnalysis(
+        payload.data.analysis,
+      );
+
+      setExecutiveDescription(
+        payload.data.analysis
+          .executiveDescription,
+      );
+    } catch (caughtError) {
+      setDescriptionError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "تعذر إنشاء الوصف التنفيذي.",
+      );
+    } finally {
+      setDescriptionLoading(false);
+    }
+  }
+
+  async function saveReport() {
+    setSaveError("");
+
+    if (!analysis) {
+      setSaveError(
+        "أنشئ الوصف التنفيذي قبل حفظ التقرير.",
+      );
+      return;
+    }
+
+    const approvedDescription =
+      executiveDescription.trim();
+
+    if (
+      approvedDescription.length < 20
+    ) {
+      setSaveError(
+        "الوصف التنفيذي قصير جدًا.",
+      );
+      return;
+    }
+
+    if (
+      selectedValues.length === 0
+    ) {
+      setSaveError(
+        "اختر قيمة إحصائية واحدة على الأقل.",
+      );
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const response = await fetch(
+        "/api/dashboard/statistics/generate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          cache: "no-store",
+
+          body: JSON.stringify({
+            serviceSlug,
+            preset,
+            ...(from ? { from } : {}),
+            ...(to ? { to } : {}),
+
+            selectedValues,
+
+            executiveDescription:
+              approvedDescription,
+
+            insights:
+              analysis.insights,
+
+            recommendations:
+              analysis.recommendations,
+
+            analysisMode:
+              analysis.analysisMode,
+          }),
+        },
+      );
+
+      const payload =
+        (await response.json()) as {
+          success?: boolean;
+          error?: string;
+          reportId?: string;
+        };
+
+      if (
+        !response.ok ||
+        !payload.success ||
+        !payload.reportId
+      ) {
+        throw new Error(
+          payload.error ||
+            "تعذر حفظ التقرير الإحصائي.",
+        );
+      }
+
+      router.push(
+        `/dashboard/statistics/${payload.reportId}`,
+      );
+
+      router.refresh();
+    } catch (caughtError) {
+      setSaveError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "تعذر حفظ التقرير الإحصائي.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+  if (loading) {
+    return (
+      <main
+        className="space-y-6"
+        dir="rtl"
+      >
+        <div className="rounded-[28px] border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-cyan-100 border-t-cyan-700" />
+
+          <p className="mt-4 font-bold text-slate-700">
+            جارٍ تجهيز الحقول
+            والقيم الإحصائية...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <main
+        className="space-y-6"
+        dir="rtl"
+      >
+        <section className="rounded-[28px] border border-rose-200 bg-rose-50 p-6">
+          <h1 className="text-xl font-black text-rose-800">
+            تعذر تجهيز التقرير
+          </h1>
+
+          <p className="mt-3 text-sm leading-7 text-rose-700">
+            {error ||
+              "لا توجد بيانات متاحة."}
+          </p>
+
+          <Link
+            href="/dashboard/statistics"
+            className="mt-5 inline-flex rounded-2xl bg-white px-5 py-3 text-sm font-bold text-rose-700 shadow-sm"
+          >
+            العودة إلى الإحصائيات
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  const availableFields =
+    data.workflowSteps.flatMap(
+      (step) => step.fields,
+    );
+
+  return (
+    <main
+      className="space-y-6"
+      dir="rtl"
+    >
+      <section className="rounded-[28px] border border-cyan-100 bg-gradient-to-l from-cyan-50 via-white to-sky-50 p-6 shadow-sm">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <Link
+              href="/dashboard/statistics"
+              className="text-sm font-bold text-cyan-700 hover:text-cyan-900"
+            >
+              العودة إلى الإحصائيات
+            </Link>
+
+            <h1 className="mt-3 text-3xl font-black text-slate-950">
+              تحضير التقرير الإحصائي
+            </h1>
+
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              اختر الحقول والقيم التي تريد
+              تضمينها في التقرير الإحصائي.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-2xl border border-white bg-white/85 px-4 py-3 shadow-sm">
+              <p className="text-xs text-slate-500">
+                الخدمة
+              </p>
+
+              <p className="mt-1 text-sm font-black text-slate-900">
+                {data.service.name}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white bg-white/85 px-4 py-3 shadow-sm">
+              <p className="text-xs text-slate-500">
+                الحالات
+              </p>
+
+              <p className="mt-1 text-xl font-black text-slate-900">
+                {
+                  data.sourceCaseCount
+                }
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white bg-white/85 px-4 py-3 shadow-sm">
+              <p className="text-xs text-slate-500">
+                التقارير
+              </p>
+
+              <p className="mt-1 text-xl font-black text-slate-900">
+                {
+                  data.sourceReportCount
+                }
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white bg-white/85 px-4 py-3 shadow-sm">
+              <p className="text-xs text-slate-500">
+                المحدد
+              </p>
+
+              <p className="mt-1 text-xl font-black text-cyan-800">
+                {
+                  selectedValues.length
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-4 inline-flex rounded-full border border-cyan-200 bg-white px-4 py-2 text-xs font-bold text-cyan-800">
+          {data.dateRange.label}
+        </p>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="space-y-5">
+          {availableFields.length === 0 ? (
+            <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-6 text-sm leading-7 text-amber-800">
+              لم يتم العثور على حقول اختيارية
+              قابلة للإحصاء ضمن الحالات
+              المؤهلة.
+            </div>
+          ) : (
+            data.workflowSteps.map(
+              (step) => (
+                <article
+                  key={step.key}
+                  className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm"
+                >
+                  <header className="border-b border-slate-100 bg-slate-50 px-5 py-4">
+                    <h2 className="font-black text-slate-900">
+                      {step.title}
+                    </h2>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      {
+                        step.fields.length
+                      }{" "}
+                      حقول قابلة للتحليل
+                    </p>
+                  </header>
+
+                  <div className="space-y-3 p-4">
+                    {step.fields.map(
+                      (field) => {
+                        const expanded =
+                          expandedFields.has(
+                            field.key,
+                          );
+
+                        const allSelected =
+                          field.values.every(
+                            (item) =>
+                              selectedKeys.has(
+                                valueSelectionKey(
+                                  field.key,
+                                  item.value,
+                                ),
+                              ),
+                          );
+
+                        const selectedCount =
+                          field.values.filter(
+                            (item) =>
+                              selectedKeys.has(
+                                valueSelectionKey(
+                                  field.key,
+                                  item.value,
+                                ),
+                              ),
+                          ).length;
+
+                        const searchQuery =
+                          (
+                            valueSearch[
+                              field.key
+                            ] || ""
+                          )
+                            .trim()
+                            .toLocaleLowerCase(
+                              "ar",
+                            );
+
+                        const visibleValues =
+                          searchQuery
+                            ? field.values.filter(
+                                (item) =>
+                                  item.label
+                                    .toLocaleLowerCase(
+                                      "ar",
+                                    )
+                                    .includes(
+                                      searchQuery,
+                                    ),
+                              )
+                            : field.values;
+
+                        return (
+                          <section
+                            key={field.id}
+                            className="overflow-hidden rounded-2xl border border-slate-200"
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleExpanded(
+                                  field.key,
+                                )
+                              }
+                              className="flex w-full items-center justify-between gap-4 bg-white px-4 py-4 text-right transition hover:bg-slate-50"
+                            >
+                              <span>
+                                <span className="block font-black text-slate-900">
+                                  {
+                                    field.label
+                                  }
+                                </span>
+
+                                <span className="mt-1 block text-xs text-slate-500">
+                                  {
+                                    field.caseCount
+                                  }{" "}
+                                  حالة تحتوي
+                                  على قيمة
+                                </span>
+                              </span>
+
+                              <span className="flex items-center gap-3">
+                                {selectedCount >
+                                0 ? (
+                                  <span className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-black text-cyan-800">
+                                    {
+                                      selectedCount
+                                    }{" "}
+                                    محدد
+                                  </span>
+                                ) : null}
+
+                                <span className="text-xl text-slate-400">
+                                  {expanded
+                                    ? "−"
+                                    : "+"}
+                                </span>
+                              </span>
+                            </button>
+
+                            {expanded ? (
+                              <div className="border-t border-slate-100 bg-slate-50/60 p-4">
+                                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                  <p className="text-xs font-semibold text-slate-500">
+                                    اختر القيم
+                                    المطلوب عرضها
+                                    في التقرير
+                                  </p>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      toggleWholeField(
+                                        field,
+                                      )
+                                    }
+                                    className="rounded-xl border border-cyan-200 bg-white px-3 py-2 text-xs font-black text-cyan-700 transition hover:bg-cyan-50"
+                                  >
+                                    {allSelected
+                                      ? "إلغاء تحديد الكل"
+                                      : "تحديد الكل"}
+                                  </button>
+                                </div>
+
+                                {field.values
+                                  .length >
+                                8 ? (
+                                  <input
+                                    value={
+                                      valueSearch[
+                                        field
+                                          .key
+                                      ] || ""
+                                    }
+                                    onChange={(
+                                      event,
+                                    ) =>
+                                      setValueSearch(
+                                        (
+                                          current,
+                                        ) => ({
+                                          ...current,
+                                          [field.key]:
+                                            event
+                                              .target
+                                              .value,
+                                        }),
+                                      )
+                                    }
+                                    placeholder="ابحث داخل القيم..."
+                                    className="mb-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                                  />
+                                ) : null}
+
+                                <div className="max-h-72 space-y-2 overflow-y-auto">
+                                  {visibleValues.map(
+                                    (
+                                      item,
+                                    ) => {
+                                      const checked =
+                                        selectedKeys.has(
+                                          valueSelectionKey(
+                                            field.key,
+                                            item.value,
+                                          ),
+                                        );
+
+                                      return (
+                                        <label
+                                          key={
+                                            item.metricId
+                                          }
+                                          className={[
+                                            "flex cursor-pointer items-center justify-between gap-4 rounded-xl border px-4 py-3 transition",
+                                            checked
+                                              ? "border-cyan-400 bg-cyan-50"
+                                              : "border-slate-200 bg-white hover:border-cyan-200",
+                                          ].join(
+                                            " ",
+                                          )}
+                                        >
+                                          <span className="flex min-w-0 items-center gap-3">
+                                            <input
+                                              type="checkbox"
+                                              checked={
+                                                checked
+                                              }
+                                              onChange={() =>
+                                                toggleValue(
+                                                  field.key,
+                                                  item.value,
+                                                )
+                                              }
+                                              className="h-5 w-5 rounded border-slate-300 accent-cyan-700"
+                                            />
+
+                                            <span className="truncate text-sm font-bold text-slate-800">
+                                              {
+                                                item.label
+                                              }
+                                            </span>
+                                          </span>
+
+                                          <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                                            {
+                                              item.caseCount
+                                            }{" "}
+                                            حالات
+                                          </span>
+                                        </label>
+                                      );
+                                    },
+                                  )}
+
+                                  {visibleValues.length ===
+                                  0 ? (
+                                    <p className="py-6 text-center text-sm text-slate-500">
+                                      لا توجد نتائج
+                                      مطابقة.
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ) : null}
+                          </section>
+                        );
+                      },
+                    )}
+                  </div>
+                </article>
+              ),
+            )
+          )}
+        </section>
+
+        <aside className="self-start xl:sticky xl:top-6">
+          <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+            <header className="border-b border-slate-100 bg-slate-50 px-5 py-4">
+              <p className="text-xs font-bold text-cyan-700">
+                DeepSeek
+              </p>
+
+              <h2 className="mt-1 text-lg font-black text-slate-900">
+                الوصف التنفيذي للتقرير
+                الإحصائي
+              </h2>
+
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                الذكاء الاصطناعي يصيغ النص
+                فقط، بينما تبقى الأرقام من
+                المحرك الإحصائي.
+              </p>
+            </header>
+
+            <div className="space-y-4 p-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">
+                    الحالات
+                  </p>
+
+                  <p className="mt-1 text-xl font-black text-slate-900">
+                    {
+                      data.sourceCaseCount
+                    }
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">
+                    التقارير الصادرة
+                  </p>
+
+                  <p className="mt-1 text-xl font-black text-slate-900">
+                    {
+                      data.sourceReportCount
+                    }
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  generateDescription
+                }
+                disabled={
+                  descriptionLoading ||
+                  selectedValues.length ===
+                    0
+                }
+                className="w-full rounded-2xl bg-cyan-700 px-5 py-3 text-sm font-black text-white shadow-lg shadow-cyan-700/20 transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {descriptionLoading
+                  ? "جارٍ إنشاء الوصف..."
+                  : analysis
+                    ? "إعادة توليد الوصف"
+                    : "إنشاء الوصف التنفيذي"}
+              </button>
+
+              {descriptionError ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  {descriptionError}
+                </div>
+              ) : null}
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-700">
+                  النص المعتمد
+                </span>
+
+                <textarea
+                  value={
+                    executiveDescription
+                  }
+                  onChange={(event) =>
+                    setExecutiveDescription(
+                      event.target.value.slice(
+                        0,
+                        1800,
+                      ),
+                    )
+                  }
+                  rows={12}
+                  placeholder="حدد القيم ثم اضغط إنشاء الوصف التنفيذي..."
+                  className="w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+                />
+
+                <span className="mt-1 block text-left text-xs text-slate-400">
+                  {
+                    executiveDescription.length
+                  }
+                  /1800
+                </span>
+              </label>
+
+              {analysis ? (
+                <>
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-black text-slate-900">
+                        الاستنتاجات
+                      </h3>
+
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-600">
+                        {analysis.analysisMode ===
+                        "DEEPSEEK"
+                          ? "تحليل ذكي"
+                          : "صياغة احتياطية"}
+                      </span>
+                    </div>
+
+                    <ul className="mt-3 space-y-2">
+                      {analysis.insights.map(
+                        (
+                          insight,
+                          index,
+                        ) => (
+                          <li
+                            key={`${index}-${insight}`}
+                            className="text-sm leading-6 text-slate-600"
+                          >
+                            • {insight}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <h3 className="text-sm font-black text-slate-900">
+                      التوصيات
+                    </h3>
+
+                    <ul className="mt-3 space-y-2">
+                      {analysis.recommendations.map(
+                        (
+                          recommendation,
+                          index,
+                        ) => (
+                          <li
+                            key={`${index}-${recommendation}`}
+                            className="text-sm leading-6 text-slate-600"
+                          >
+                            •{" "}
+                            {
+                              recommendation
+                            }
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                </>
+              ) : null}
+
+              {saveError ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  {saveError}
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={saveReport}
+                disabled={
+                  saving ||
+                  descriptionLoading ||
+                  !analysis ||
+                  selectedValues.length === 0 ||
+                  executiveDescription.trim().length < 20
+                }
+                className="w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-700/20 transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving
+                  ? "جارٍ حفظ التقرير..."
+                  : "حفظ التقرير ومعاينته"}
+              </button>
+
+              <p className="text-center text-xs leading-5 text-slate-400">
+                سيعيد الخادم حساب جميع
+                الأرقام قبل حفظ التقرير.
+              </p>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+============================================================
+FILE: components\statistics\statistics-previous-reports.tsx
+============================================================
+"use client";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import Link from "next/link";
+
+type ReportItem = {
+  id: string;
+  title: string;
+
+  serviceSlug: string;
+  serviceName: string;
+
+  sourceCaseCount: number;
+  sourceReportCount: number;
+
+  analysisMode: string;
+
+  dateFrom: string;
+  dateTo: string;
+
+  createdAt: string;
+};
+
+type ReportsResponse = {
+  success?: boolean;
+  error?: string;
+  reports?: ReportItem[];
+};
+
+function formatDate(
+  value: string,
+) {
+  return new Intl.DateTimeFormat(
+    "ar-SA",
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    },
+  ).format(new Date(value));
+}
+
+export function StatisticsPreviousReports() {
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [reports, setReports] =
+    useState<ReportItem[]>([]);
+
+  useEffect(() => {
+    const controller =
+      new AbortController();
+
+    async function loadReports() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch(
+          "/api/dashboard/statistics/reports",
+          {
+            cache: "no-store",
+            signal:
+              controller.signal,
+          },
+        );
+
+        const payload =
+          (await response.json()) as
+            ReportsResponse;
+
+        if (
+          !response.ok ||
+          !payload.success
+        ) {
+          throw new Error(
+            payload.error ||
+              "تعذر تحميل التقارير السابقة.",
+          );
+        }
+
+        setReports(
+          Array.isArray(
+            payload.reports,
+          )
+            ? payload.reports
+            : [],
+        );
+      } catch (caughtError) {
+        if (
+          caughtError instanceof Error &&
+          caughtError.name ===
+            "AbortError"
+        ) {
+          return;
+        }
+
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "تعذر تحميل التقارير السابقة.",
+        );
+      } finally {
+        if (
+          !controller.signal.aborted
+        ) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadReports();
+
+    return () =>
+      controller.abort();
+  }, []);
+
+  return (
+    <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-slate-900">
+            التقارير الإحصائية السابقة
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            التقارير المحفوظة من بيانات
+            الحالات والتقارير الصادرة.
+          </p>
+        </div>
+
+        {!loading ? (
+          <span className="rounded-full bg-slate-100 px-4 py-2 text-xs font-black text-slate-600">
+            {reports.length} تقرير
+          </span>
+        ) : null}
+      </div>
+
+      {loading ? (
+        <div className="mt-6 rounded-2xl bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
+          جارٍ تحميل التقارير السابقة...
+        </div>
+      ) : error ? (
+        <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+          {error}
+        </div>
+      ) : reports.length === 0 ? (
+        <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+          <p className="font-black text-slate-900">
+            لا توجد تقارير محفوظة بعد
+          </p>
+
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            أنشئ أول تقرير إحصائي من الزر
+            أعلى الصفحة.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {reports.map(
+            (report) => (
+              <article
+                key={report.id}
+                className="rounded-[24px] border border-slate-200 bg-slate-50 p-5 transition hover:border-cyan-200 hover:bg-white hover:shadow-md"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">
+                    {report.serviceName}
+                  </span>
+
+                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-slate-500">
+                    {report.analysisMode ===
+                    "DEEPSEEK"
+                      ? "صياغة ذكية"
+                      : "صياغة احتياطية"}
+                  </span>
+                </div>
+
+                <h3 className="mt-4 line-clamp-2 text-lg font-black leading-7 text-slate-950">
+                  {report.title}
+                </h3>
+
+                <p className="mt-3 text-xs font-semibold text-slate-500">
+                  تم الإنشاء:{" "}
+                  {formatDate(
+                    report.createdAt,
+                  )}
+                </p>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-white p-3">
+                    <p className="text-xs text-slate-500">
+                      الحالات
+                    </p>
+
+                    <p className="mt-1 text-xl font-black text-slate-900">
+                      {
+                        report.sourceCaseCount
+                      }
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white p-3">
+                    <p className="text-xs text-slate-500">
+                      التقارير
+                    </p>
+
+                    <p className="mt-1 text-xl font-black text-slate-900">
+                      {
+                        report.sourceReportCount
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href={`/dashboard/statistics/${report.id}`}
+                  className="mt-5 flex w-full items-center justify-center rounded-2xl border border-cyan-200 bg-white px-4 py-3 text-sm font-black text-cyan-700 transition hover:bg-cyan-50"
+                >
+                  عرض التقرير
+                </Link>
+              </article>
+            ),
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+============================================================
+FILE: components\statistics\statistics-report-view.tsx
+============================================================
+"use client";
+
+import {
+  useEffect,
+  useRef,
+} from "react";
+
+import Link from "next/link";
+
+import {
+  PrintExportPopCard,
+} from "@/components/print-export/print-export-pop-card";
+
+import {
+  usePrintExportAction,
+} from "@/components/print-export/use-print-export-action";
+
+export type StatisticsReportViewData = {
+  id: string;
+  title: string;
+
+  serviceSlug: string;
+  serviceName: string;
+
+  dateFrom: string;
+  dateTo: string;
+
+  sourceCaseCount: number;
+  sourceReportCount: number;
+
+  analysisMode: string;
+  createdAt: string;
+
+  metrics: Array<{
+    metricId: string;
+    fieldLabel: string;
+    valueLabel: string;
+    caseCount: number;
+  }>;
+
+  executiveDescription: string;
+  insights: string[];
+  recommendations: string[];
+
+  school: {
+    name: string;
+    educationDepartment: string;
+    educationOffice: string;
+    city: string;
+    stage: string;
+    academicYear: string;
+    currentSemester: string;
+    logoUrl: string;
+  };
+
+  creator: {
+    name: string;
+    jobTitle: string;
+  };
+};
+
+type Props = {
+  data: StatisticsReportViewData;
+  autoPrint: boolean;
+};
+
+function formatDate(
+  value: string,
+) {
+  return new Intl.DateTimeFormat(
+    "ar-SA",
+    {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    },
+  ).format(new Date(value));
+}
+
+export function StatisticsReportView({
+  data,
+  autoPrint,
+}: Props) {
+  const printedRef =
+    useRef(false);
+
+  const {
+    status: printExportStatus,
+    modal: printExportModal,
+    runPrintExport,
+    openFallbackPrintUrl,
+    closeModal,
+  } = usePrintExportAction();
+
+  useEffect(() => {
+    if (
+      !autoPrint ||
+      printedRef.current
+    ) {
+      return;
+    }
+
+    printedRef.current = true;
+
+    const timeout = setTimeout(
+      () => {
+        window.print();
+      },
+      500,
+    );
+
+    return () =>
+      clearTimeout(timeout);
+  }, [autoPrint]);
+
+  async function openPrintReport() {
+    await runPrintExport({
+      printUrl:
+        `/dashboard/statistics/${data.id}?print=1`,
+
+      blockedTitle:
+        "معاينة طباعة التقرير الإحصائي",
+
+      blockedMessage:
+        "تم حظر فتح معاينة الطباعة تلقائيًا. استخدم الزر أدناه لفتح التقرير في تبويب جديد.",
+
+      errorTitle:
+        "طباعة التقرير الإحصائي",
+
+      errorMessage:
+        "تعذر فتح التقرير للطباعة. حاول مرة أخرى.",
+    });
+  }
+
+  return (
+    <main
+      className="min-h-screen bg-slate-100 px-3 py-6 print:bg-white print:p-0"
+      dir="rtl"
+    >
+      {!autoPrint ? (
+        <section className="statistics-print-controls mx-auto mb-5 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <Link
+            href="/dashboard/statistics"
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+          >
+            العودة إلى الإحصائيات
+          </Link>
+
+          <button
+            type="button"
+            onClick={
+              openPrintReport
+            }
+            disabled={
+              printExportStatus ===
+              "loading"
+            }
+            className="rounded-xl bg-cyan-700 px-5 py-2.5 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-50"
+          >
+            {printExportStatus ===
+            "loading"
+              ? "جارٍ فتح الطباعة..."
+              : "طباعة / حفظ PDF"}
+          </button>
+        </section>
+      ) : null}
+
+      <article className="statistics-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden bg-white shadow-xl print:min-h-0 print:max-w-none print:shadow-none">
+        <header className="border-b-[3px] border-cyan-800 px-[14mm] pb-6 pt-[12mm]">
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex items-center gap-4">
+              {data.school.logoUrl ? (
+                <img
+                  src={
+                    data.school.logoUrl
+                  }
+                  alt="شعار المدرسة"
+                  className="h-20 w-20 object-contain"
+                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-center text-xs font-black text-slate-500">
+                  شعار
+                  <br />
+                  المدرسة
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-bold text-slate-500">
+                  المملكة العربية السعودية
+                </p>
+
+                <p className="mt-1 text-sm font-bold text-slate-500">
+                  وزارة التعليم
+                </p>
+
+                {data.school
+                  .educationDepartment ? (
+                  <p className="mt-1 text-sm font-bold text-slate-500">
+                    {
+                      data.school
+                        .educationDepartment
+                    }
+                  </p>
+                ) : null}
+
+                <h2 className="mt-2 text-xl font-black text-slate-950">
+                  {data.school.name}
+                </h2>
+              </div>
+            </div>
+
+            <div className="text-left text-xs font-bold leading-6 text-slate-500">
+              {data.school
+                .academicYear ? (
+                <p>
+                  العام الدراسي:{" "}
+                  {
+                    data.school
+                      .academicYear
+                  }
+                </p>
+              ) : null}
+
+              {data.school
+                .currentSemester ? (
+                <p>
+                  الفصل:{" "}
+                  {
+                    data.school
+                      .currentSemester
+                  }
+                </p>
+              ) : null}
+
+              <p>
+                تاريخ الإنشاء:{" "}
+                {formatDate(
+                  data.createdAt,
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm font-black tracking-wide text-cyan-700">
+              تقرير رسمي
+            </p>
+
+            <h1 className="mt-2 text-3xl font-black text-slate-950">
+              تقرير إحصائي
+            </h1>
+
+            <p className="mt-3 text-lg font-bold text-slate-600">
+              {data.serviceName}
+            </p>
+          </div>
+        </header>
+
+        <div className="space-y-7 px-[14mm] py-[10mm]">
+          <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 p-4 text-center">
+              <p className="text-xs font-bold text-slate-500">
+                الحالات المؤهلة
+              </p>
+
+              <p className="mt-2 text-2xl font-black text-slate-950">
+                {
+                  data.sourceCaseCount
+                }
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 p-4 text-center">
+              <p className="text-xs font-bold text-slate-500">
+                التقارير الصادرة
+              </p>
+
+              <p className="mt-2 text-2xl font-black text-slate-950">
+                {
+                  data.sourceReportCount
+                }
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 p-4 text-center">
+              <p className="text-xs font-bold text-slate-500">
+                بداية الفترة
+              </p>
+
+              <p className="mt-2 text-sm font-black text-slate-950">
+                {formatDate(
+                  data.dateFrom,
+                )}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 p-4 text-center">
+              <p className="text-xs font-bold text-slate-500">
+                نهاية الفترة
+              </p>
+
+              <p className="mt-2 text-sm font-black text-slate-950">
+                {formatDate(
+                  data.dateTo,
+                )}
+              </p>
+            </div>
+          </section>
+
+          <section className="break-inside-avoid">
+            <h2 className="border-r-4 border-cyan-700 pr-3 text-xl font-black text-slate-950">
+              الوصف التنفيذي
+            </h2>
+
+            <p className="mt-4 whitespace-pre-wrap text-justify text-[14px] font-semibold leading-8 text-slate-700">
+              {
+                data.executiveDescription
+              }
+            </p>
+          </section>
+
+
+          {data.insights.length ? (
+            <section className="break-inside-avoid">
+              <h2 className="border-r-4 border-cyan-700 pr-3 text-xl font-black text-slate-950">
+                أبرز الاستنتاجات
+              </h2>
+
+              <ol className="mt-4 space-y-3">
+                {data.insights.map(
+                  (
+                    insight,
+                    index,
+                  ) => (
+                    <li
+                      key={`${index}-${insight}`}
+                      className="flex gap-3 text-sm font-semibold leading-7 text-slate-700"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-xs font-black text-cyan-800">
+                        {index + 1}
+                      </span>
+
+                      <span>
+                        {insight}
+                      </span>
+                    </li>
+                  ),
+                )}
+              </ol>
+            </section>
+          ) : null}
+
+          {data.recommendations
+            .length ? (
+            <section className="break-inside-avoid">
+              <h2 className="border-r-4 border-cyan-700 pr-3 text-xl font-black text-slate-950">
+                التوصيات
+              </h2>
+
+              <ol className="mt-4 space-y-3">
+                {data.recommendations.map(
+                  (
+                    recommendation,
+                    index,
+                  ) => (
+                    <li
+                      key={`${index}-${recommendation}`}
+                      className="flex gap-3 text-sm font-semibold leading-7 text-slate-700"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-800">
+                        {index + 1}
+                      </span>
+
+                      <span>
+                        {
+                          recommendation
+                        }
+                      </span>
+                    </li>
+                  ),
+                )}
+              </ol>
+            </section>
+          ) : null}
+
+          <section className="break-inside-avoid rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <h2 className="text-base font-black text-slate-950">
+              منهجية التقرير
+            </h2>
+
+            <p className="mt-3 text-xs font-semibold leading-6 text-slate-600">
+              تم احتساب كل حالة مرة واحدة
+              لكل قيمة مختارة، واقتصر
+              المصدر على الحالات المرتبطة
+              بتقارير صادرة ضمن الفترة
+              المحددة. تمت صياغة النص
+              التنفيذي بعد اكتمال الحساب
+              الرقمي، ولم تدخل الشواهد أو
+              البيانات الشخصية في التحليل.
+            </p>
+          </section>
+        </div>
+
+        <footer className="mt-auto border-t border-slate-200 px-[14mm] py-6">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="text-xs font-bold text-slate-500">
+                أعد التقرير
+              </p>
+
+              <p className="mt-2 font-black text-slate-950">
+                {data.creator.name}
+              </p>
+
+              <p className="mt-1 text-xs font-bold text-slate-500">
+                {data.creator.jobTitle}
+              </p>
+            </div>
+
+            <div className="text-left text-xs font-bold leading-6 text-slate-500">
+              <p>
+                رقم التقرير:
+              </p>
+
+              <p className="font-mono text-[10px]">
+                {data.id}
+              </p>
+            </div>
+          </div>
+        </footer>
+      </article>
+
+      <PrintExportPopCard
+        modal={printExportModal}
+        onClose={closeModal}
+        onOpenFallback={
+          openFallbackPrintUrl
+        }
+      />
+
+      <style jsx global>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
+
+        @media print {
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+
+          .statistics-print-controls {
+            display: none !important;
+          }
+
+          .statistics-report-sheet {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            border: 0 !important;
+            box-shadow: none !important;
+          }
+
+          .statistics-report-sheet section,
+          .statistics-report-sheet table,
+          .statistics-report-sheet tr {
+            break-inside: avoid;
+          }
+        }
+      `}</style>
+    </main>
+  );
+}
+
+============================================================
+FILE: lib\statistics\statistics-access.ts
+============================================================
+import "server-only";
+
+import { NextResponse } from "next/server";
+
+import type { DashboardContext } from "@/lib/auth/dashboard-context";
+
+const STATISTICS_ALLOWED_ROLES = new Set([
+  "ADMIN",
+  "COUNSELOR",
+]);
+
+export function requireStatisticsRole(
+  context: DashboardContext,
+): NextResponse | null {
+  if (STATISTICS_ALLOWED_ROLES.has(context.user.role)) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "لا تملك صلاحية الوصول إلى خدمة الإحصائيات.",
+      code: "STATISTICS_ROLE_FORBIDDEN",
+    },
+    {
+      status: 403,
+    },
+  );
+}
+
+============================================================
+FILE: lib\statistics\statistics-ai-analyzer.ts
+============================================================
+import "server-only";
+
+import { z } from "zod";
+
+import { callDeepSeekChat } from "@/lib/ai/deepseek-client";
+
+import type {
+  StatisticsAiAnalysis,
+  StatisticsPrepareResult,
+  StatisticsSelectedMetric,
+} from "./statistics-types";
+
+const deepSeekAnalysisSchema = z.object({
+  executiveDescription: z
+    .string()
+    .trim()
+    .min(20)
+    .max(1800),
+
+  insights: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(5)
+        .max(400),
+    )
+    .max(6),
+
+  recommendations: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(5)
+        .max(400),
+    )
+    .max(6),
+});
+
+function extractJson(text: string) {
+  const clean = text.trim();
+
+  if (
+    clean.startsWith("{") &&
+    clean.endsWith("}")
+  ) {
+    return clean;
+  }
+
+  const fenced = clean.match(
+    /```(?:json)?\s*([\s\S]*?)```/i,
+  );
+
+  if (fenced?.[1]) {
+    return fenced[1].trim();
+  }
+
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
+
+  if (start >= 0 && end > start) {
+    return clean.slice(start, end + 1);
+  }
+
+  throw new Error(
+    "DEEPSEEK_STATISTICS_JSON_NOT_FOUND",
+  );
+}
+
+function normalizeArabicDigits(text: string) {
+  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+  const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+
+  return text
+    .replace(/[٠-٩]/g, (digit) =>
+      String(arabicDigits.indexOf(digit)),
+    )
+    .replace(/[۰-۹]/g, (digit) =>
+      String(persianDigits.indexOf(digit)),
+    );
+}
+
+function extractNumbers(text: string) {
+  const normalized =
+    normalizeArabicDigits(text);
+
+  return (
+    normalized.match(
+      /-?\d+(?:[.,]\d+)?/g,
+    ) || []
+  ).map((value) =>
+    value.replace(",", "."),
+  );
+}
+
+function containsUnknownNumbers(input: {
+  sourcePayload: unknown;
+  analysis: {
+    executiveDescription: string;
+    insights: string[];
+    recommendations: string[];
+  };
+}) {
+  const allowedNumbers = new Set(
+    extractNumbers(
+      JSON.stringify(input.sourcePayload),
+    ),
+  );
+
+  const generatedText = [
+    input.analysis.executiveDescription,
+    ...input.analysis.insights,
+    ...input.analysis.recommendations,
+  ].join(" ");
+
+  return extractNumbers(
+    generatedText,
+  ).some(
+    (number) =>
+      !allowedNumbers.has(number),
+  );
+}
+
+function buildFallbackAnalysis(input: {
+  prepared: StatisticsPrepareResult;
+  selectedMetrics: StatisticsSelectedMetric[];
+}): StatisticsAiAnalysis {
+  const metricSentences =
+    input.selectedMetrics.map(
+      (metric) =>
+        `${metric.valueLabel} ضمن ${metric.fieldLabel}: ${metric.caseCount} حالة`,
+    );
+
+  const executiveDescription = [
+    `يعرض هذا التقرير نتائج ${input.prepared.sourceCaseCount} حالة مرتبطة بـ ${input.prepared.sourceReportCount} تقريرًا صادرًا لخدمة ${input.prepared.service.name} خلال ${input.prepared.dateRange.label}.`,
+    metricSentences.length
+      ? `وشملت القيم المختارة: ${metricSentences.join("، ")}.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const highestMetrics = [
+    ...input.selectedMetrics,
+  ]
+    .sort(
+      (first, second) =>
+        second.caseCount -
+        first.caseCount,
+    )
+    .slice(0, 5);
+
+  return {
+    executiveDescription,
+
+    insights: highestMetrics.map(
+      (metric) =>
+        `بلغ عدد الحالات التي تضمنت ${metric.valueLabel} في حقل ${metric.fieldLabel} عدد ${metric.caseCount} حالة.`,
+    ),
+
+    recommendations: [
+      "مراجعة القيم الأعلى تكرارًا وتحديد التدخلات المناسبة لها.",
+      "متابعة تغير النتائج في الفترات القادمة باستخدام الحقول نفسها.",
+      "الاستفادة من النتائج الرقمية في توجيه البرامج والخدمات ذات الأولوية.",
+    ],
+
+    analysisMode: "FALLBACK",
+  };
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+) {
+  let timeout:
+    | ReturnType<typeof setTimeout>
+    | undefined;
+
+  try {
+    const timeoutPromise =
+      new Promise<never>(
+        (_resolve, reject) => {
+          timeout = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "DEEPSEEK_STATISTICS_TIMEOUT",
+                ),
+              ),
+            timeoutMs,
+          );
+        },
+      );
+
+    return await Promise.race([
+      promise,
+      timeoutPromise,
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+export async function analyzeSelectedStatistics(
+  input: {
+    prepared: StatisticsPrepareResult;
+    selectedMetrics: StatisticsSelectedMetric[];
+  },
+): Promise<StatisticsAiAnalysis> {
+  const fallback =
+    buildFallbackAnalysis(input);
+
+  const payload = {
+    serviceName:
+      input.prepared.service.name,
+
+    dateRange:
+      input.prepared.dateRange.label,
+
+    sourceCaseCount:
+      input.prepared.sourceCaseCount,
+
+    sourceReportCount:
+      input.prepared.sourceReportCount,
+
+    selectedMetrics:
+      input.selectedMetrics.map(
+        (metric) => ({
+          metricId: metric.metricId,
+          fieldLabel:
+            metric.fieldLabel,
+          valueLabel:
+            metric.valueLabel,
+          caseCount:
+            metric.caseCount,
+        }),
+      ),
+  };
+
+  try {
+    const response = await withTimeout(
+      callDeepSeekChat({
+        messages: [
+          {
+            role: "system",
+            content: [
+              "أنت محرر تقارير إحصائية مدرسية باللغة العربية.",
+              "اكتب وصفًا تنفيذيًا رسميًا ومختصرًا اعتمادًا على البيانات المرسلة فقط.",
+              "الأرقام محسوبة مسبقًا ولا يجوز تعديلها أو إعادة حسابها.",
+              "لا تضف أرقامًا أو نسبًا أو حقائق غير موجودة.",
+              "لا تذكر حقولًا أو قيمًا لم يحددها المستخدم.",
+              "لا تستنتج معلومات شخصية عن الطلاب.",
+              "أرجع JSON صحيحًا فقط دون Markdown.",
+            ].join(" "),
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              task:
+                "صياغة وصف تنفيذي واستنتاجات وتوصيات عملية للتقرير الإحصائي.",
+
+              requiredOutput: {
+                executiveDescription:
+                  "نص عربي رسمي من فقرة أو فقرتين",
+                insights:
+                  "مصفوفة استنتاجات قصيرة",
+                recommendations:
+                  "مصفوفة توصيات عملية قصيرة",
+              },
+
+              rules: [
+                "استخدم الأرقام نفسها دون تغيير.",
+                "لا تنشئ نسبًا مئوية.",
+                "لا تضف أسماء أو معرفات أو بيانات شخصية.",
+                "لا تذكر أي قيمة غير موجودة في selectedMetrics.",
+                "أرجع JSON فقط.",
+              ],
+
+              data: payload,
+            }),
+          },
+        ],
+
+        temperature: 0.15,
+        maxTokens: 700,
+      }),
+      40000,
+    );
+
+    const parsedJson = JSON.parse(
+      extractJson(response),
+    ) as unknown;
+
+    const parsed =
+      deepSeekAnalysisSchema.parse(
+        parsedJson,
+      );
+
+    if (
+      containsUnknownNumbers({
+        sourcePayload: payload,
+        analysis: parsed,
+      })
+    ) {
+      return fallback;
+    }
+
+    return {
+      executiveDescription:
+        parsed.executiveDescription,
+      insights: parsed.insights,
+      recommendations:
+        parsed.recommendations,
+      analysisMode: "DEEPSEEK",
+    };
+  } catch (error) {
+    console.error(
+      "statistics DeepSeek analysis failed",
+      error instanceof Error
+        ? error.message
+        : "UNKNOWN_ERROR",
+    );
+
+    return fallback;
+  }
+}
+
+============================================================
+FILE: lib\statistics\statistics-date-range.ts
+============================================================
+import type {
+  StatisticsDatePreset,
+  StatisticsDateRange,
+} from "./statistics-types";
+
+export class StatisticsDateRangeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StatisticsDateRangeError";
+  }
+}
+
+function startOfDay(date: Date) {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function endOfDay(date: Date) {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  return result;
+}
+
+function parseCustomDate(
+  value: unknown,
+  boundary: "START" | "END",
+) {
+  const clean = String(value || "").trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    throw new StatisticsDateRangeError(
+      "صيغة التاريخ المخصص يجب أن تكون YYYY-MM-DD.",
+    );
+  }
+
+  const [year, month, day] = clean
+    .split("-")
+    .map(Number);
+
+  const parsed = new Date(
+    year,
+    month - 1,
+    day,
+    boundary === "END" ? 23 : 0,
+    boundary === "END" ? 59 : 0,
+    boundary === "END" ? 59 : 0,
+    boundary === "END" ? 999 : 0,
+  );
+
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    throw new StatisticsDateRangeError(
+      "التاريخ المخصص غير صحيح.",
+    );
+  }
+
+  return parsed;
+}
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat("ar-SA", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+function normalizePreset(
+  value: unknown,
+): StatisticsDatePreset {
+  const clean = String(value || "LAST_30_DAYS")
+    .trim()
+    .toUpperCase();
+
+  const allowed = new Set<StatisticsDatePreset>([
+    "ALL_TIME",
+    "LAST_30_DAYS",
+    "CURRENT_MONTH",
+    "CURRENT_YEAR",
+    "CUSTOM",
+  ]);
+
+  if (!allowed.has(clean as StatisticsDatePreset)) {
+    throw new StatisticsDateRangeError(
+      "نطاق التاريخ المحدد غير مدعوم.",
+    );
+  }
+
+  return clean as StatisticsDatePreset;
+}
+
+export function resolveStatisticsDateRange(input: {
+  preset?: unknown;
+  from?: unknown;
+  to?: unknown;
+  now?: Date;
+}): StatisticsDateRange {
+  const preset = normalizePreset(input.preset);
+  const now = input.now || new Date();
+
+  if (preset === "ALL_TIME") {
+    return {
+      preset,
+      from: new Date(2000, 0, 1, 0, 0, 0, 0),
+      to: endOfDay(now),
+      label: "جميع الفترات",
+    };
+  }
+
+  if (preset === "LAST_30_DAYS") {
+    const from = startOfDay(now);
+    from.setDate(from.getDate() - 29);
+
+    return {
+      preset,
+      from,
+      to: endOfDay(now),
+      label: "آخر 30 يومًا",
+    };
+  }
+
+  if (preset === "CURRENT_MONTH") {
+    const from = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+
+    return {
+      preset,
+      from,
+      to: endOfDay(now),
+      label: "الشهر الحالي",
+    };
+  }
+
+  if (preset === "CURRENT_YEAR") {
+    const from = new Date(
+      now.getFullYear(),
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+
+    return {
+      preset,
+      from,
+      to: endOfDay(now),
+      label: "العام الحالي",
+    };
+  }
+
+  const from = parseCustomDate(input.from, "START");
+  const to = parseCustomDate(input.to, "END");
+
+  if (from.getTime() > to.getTime()) {
+    throw new StatisticsDateRangeError(
+      "تاريخ البداية يجب أن يسبق تاريخ النهاية.",
+    );
+  }
+
+  return {
+    preset,
+    from,
+    to,
+    label: `من ${formatDate(from)} إلى ${formatDate(to)}`,
+  };
+}
+
+============================================================
+FILE: lib\statistics\statistics-issued-report-source.ts
+============================================================
+import "server-only";
+
+import type { Prisma } from "@prisma/client";
+
+import type { DashboardContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+
+import type {
+  NormalizedIssuedReport,
+  StatisticsIssuedReportFilters,
+  StatisticsServiceOption,
+} from "./statistics-types";
+
+function buildDateFilter(
+  filters: StatisticsIssuedReportFilters,
+) {
+  return {
+    ...(filters.from ? { gte: filters.from } : {}),
+    ...(filters.to ? { lte: filters.to } : {}),
+  };
+}
+
+function buildGuidanceIssuedDateWhere(
+  filters: StatisticsIssuedReportFilters,
+): Prisma.GuidanceReportWhereInput | null {
+  const issuedAtFilter = buildDateFilter(filters);
+
+  if (Object.keys(issuedAtFilter).length === 0) {
+    return null;
+  }
+
+  return {
+    OR: [
+      {
+        approvedAt: issuedAtFilter,
+      },
+      {
+        approvedAt: null,
+        generatedAt: issuedAtFilter,
+      },
+      {
+        approvedAt: null,
+        generatedAt: null,
+        createdAt: issuedAtFilter,
+      },
+    ],
+  };
+}
+
+function buildCaseScope(
+  context: DashboardContext,
+  filters: StatisticsIssuedReportFilters,
+): Prisma.CaseEntryWhereInput {
+  return {
+    ...(!context.isAdmin
+      ? {
+          schoolAccountId:
+            context.schoolAccountId || "__missing_school_account__",
+          createdById: context.user.id,
+        }
+      : {}),
+    ...(filters.serviceSlug
+      ? {
+          service: {
+            slug: filters.serviceSlug,
+          },
+        }
+      : {}),
+  };
+}
+
+async function listGuidanceReportSources(
+  context: DashboardContext,
+  filters: StatisticsIssuedReportFilters,
+): Promise<NormalizedIssuedReport[]> {
+  const statusWhere: Prisma.GuidanceReportWhereInput = {
+    OR: [
+      {
+        status: {
+          in: ["GENERATED", "APPROVED"],
+        },
+      },
+      {
+        status: "ARCHIVED",
+        OR: [
+          {
+            approvedAt: {
+              not: null,
+            },
+          },
+          {
+            generatedAt: {
+              not: null,
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  const dateWhere = buildGuidanceIssuedDateWhere(filters);
+
+  const reports = await prisma.guidanceReport.findMany({
+    where: {
+      AND: [
+        statusWhere,
+        ...(dateWhere ? [dateWhere] : []),
+      ],
+      caseEntry: buildCaseScope(context, filters),
+    },
+    select: {
+      id: true,
+      title: true,
+      approvedAt: true,
+      generatedAt: true,
+      createdAt: true,
+      caseEntryId: true,
+      caseEntry: {
+        select: {
+          schoolAccountId: true,
+          service: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return reports.map((report) => ({
+    sourceType: "GUIDANCE_REPORT",
+    sourceId: report.id,
+    normalizedId: `guidance:${report.id}`,
+
+    caseEntryId: report.caseEntryId,
+    schoolAccountId: report.caseEntry.schoolAccountId,
+
+    serviceId: report.caseEntry.service.id,
+    serviceSlug: report.caseEntry.service.slug,
+    serviceName: report.caseEntry.service.name,
+
+    title: report.title,
+    issuedAt:
+      report.approvedAt ||
+      report.generatedAt ||
+      report.createdAt,
+  }));
+}
+
+async function listReportSnapshotSources(
+  context: DashboardContext,
+  filters: StatisticsIssuedReportFilters,
+): Promise<NormalizedIssuedReport[]> {
+  if (!context.isAdmin && !context.schoolAccountId) {
+    return [];
+  }
+
+  const approvedAtFilter = buildDateFilter(filters);
+
+  const snapshots = await prisma.reportSnapshot.findMany({
+    where: {
+      ...(Object.keys(approvedAtFilter).length > 0
+        ? {
+            approvedAt: approvedAtFilter,
+          }
+        : {}),
+      ...(filters.serviceSlug
+        ? {
+            serviceSlug: filters.serviceSlug,
+          }
+        : {}),
+      ...(!context.isAdmin
+        ? {
+            OR: [
+              {
+                schoolAccountId: context.schoolAccountId,
+              },
+              {
+                schoolAccountId: null,
+              },
+            ],
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      caseEntryId: true,
+      schoolAccountId: true,
+      reportTitle: true,
+      approvedAt: true,
+    },
+  });
+
+  if (snapshots.length === 0) {
+    return [];
+  }
+
+  const caseIds = Array.from(
+    new Set(
+      snapshots.map((snapshot) => snapshot.caseEntryId),
+    ),
+  );
+
+  const cases = await prisma.caseEntry.findMany({
+    where: {
+      id: {
+        in: caseIds,
+      },
+      ...buildCaseScope(context, filters),
+    },
+    select: {
+      id: true,
+      schoolAccountId: true,
+      service: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  const caseById = new Map(
+    cases.map((caseEntry) => [
+      caseEntry.id,
+      caseEntry,
+    ]),
+  );
+
+  const sources: NormalizedIssuedReport[] = [];
+
+  for (const snapshot of snapshots) {
+    const caseEntry = caseById.get(snapshot.caseEntryId);
+
+    if (!caseEntry) {
+      continue;
+    }
+
+    sources.push({
+      sourceType: "REPORT_SNAPSHOT",
+      sourceId: snapshot.id,
+      normalizedId: `snapshot:${snapshot.id}`,
+
+      caseEntryId: caseEntry.id,
+      schoolAccountId: caseEntry.schoolAccountId,
+
+      serviceId: caseEntry.service.id,
+      serviceSlug: caseEntry.service.slug,
+      serviceName: caseEntry.service.name,
+
+      title: snapshot.reportTitle,
+      issuedAt: snapshot.approvedAt,
+    });
+  }
+
+  return sources;
+}
+
+export async function listIssuedReportSources(
+  context: DashboardContext,
+  filters: StatisticsIssuedReportFilters = {},
+): Promise<NormalizedIssuedReport[]> {
+  if (!context.isAdmin && !context.schoolAccountId) {
+    return [];
+  }
+
+  const [guidanceReports, reportSnapshots] =
+    await Promise.all([
+      listGuidanceReportSources(context, filters),
+      listReportSnapshotSources(context, filters),
+    ]);
+
+  return [...guidanceReports, ...reportSnapshots].sort(
+    (first, second) =>
+      second.issuedAt.getTime() -
+      first.issuedAt.getTime(),
+  );
+}
+
+export function buildStatisticsServiceOptions(
+  sources: NormalizedIssuedReport[],
+): StatisticsServiceOption[] {
+  const grouped = new Map<
+    string,
+    {
+      id: string;
+      slug: string;
+      name: string;
+      caseIds: Set<string>;
+      reportIds: Set<string>;
+    }
+  >();
+
+  for (const source of sources) {
+    const current = grouped.get(source.serviceId) || {
+      id: source.serviceId,
+      slug: source.serviceSlug,
+      name: source.serviceName,
+      caseIds: new Set<string>(),
+      reportIds: new Set<string>(),
+    };
+
+    current.caseIds.add(source.caseEntryId);
+    current.reportIds.add(source.normalizedId);
+
+    grouped.set(source.serviceId, current);
+  }
+
+  return Array.from(grouped.values())
+    .map((service) => ({
+      id: service.id,
+      slug: service.slug,
+      name: service.name,
+      eligibleCaseCount: service.caseIds.size,
+      issuedReportCount: service.reportIds.size,
+    }))
+    .sort((first, second) =>
+      first.name.localeCompare(second.name, "ar"),
+    );
+}
+
+============================================================
+FILE: lib\statistics\statistics-prepare-service.ts
+============================================================
+import "server-only";
+
+import type { DashboardContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+
+import {
+  listIssuedReportSources,
+} from "./statistics-issued-report-source";
+
+import type {
+  StatisticsDateRange,
+  StatisticsPrepareResult,
+} from "./statistics-types";
+
+import {
+  loadResolvedStatisticsCases,
+} from "./statistics-workflow-resolver";
+
+import {
+  buildPreparedWorkflowSteps,
+} from "./statistics-value-counter";
+
+export class StatisticsPrepareError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  constructor(input: {
+    message: string;
+    code: string;
+    status: number;
+  }) {
+    super(input.message);
+    this.name = "StatisticsPrepareError";
+    this.code = input.code;
+    this.status = input.status;
+  }
+}
+
+export async function prepareDeterministicStatistics(
+  input: {
+    context: DashboardContext;
+    serviceSlug: string;
+    range: StatisticsDateRange;
+  },
+): Promise<StatisticsPrepareResult> {
+  const service = await prisma.service.findUnique({
+    where: {
+      slug: input.serviceSlug,
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      status: true,
+    },
+  });
+
+  if (!service || service.status !== "ACTIVE") {
+    throw new StatisticsPrepareError({
+      message: "الخدمة غير موجودة أو غير نشطة.",
+      code: "STATISTICS_SERVICE_NOT_FOUND",
+      status: 404,
+    });
+  }
+
+  const issuedSources =
+    await listIssuedReportSources(
+      input.context,
+      {
+        serviceSlug: service.slug,
+        from: input.range.from,
+        to: input.range.to,
+      },
+    );
+
+  const sourceReportIds = new Set(
+    issuedSources.map(
+      (source) => source.normalizedId,
+    ),
+  );
+
+  const sourceCaseIds = Array.from(
+    new Set(
+      issuedSources.map(
+        (source) => source.caseEntryId,
+      ),
+    ),
+  );
+
+  const resolved =
+    await loadResolvedStatisticsCases({
+      caseIds: sourceCaseIds,
+      serviceId: service.id,
+    });
+
+  const workflowSteps =
+    buildPreparedWorkflowSteps(resolved);
+
+  return {
+    service: {
+      id: service.id,
+      slug: service.slug,
+      name: service.name,
+    },
+
+    dateRange: {
+      preset: input.range.preset,
+      from: input.range.from.toISOString(),
+      to: input.range.to.toISOString(),
+      label: input.range.label,
+    },
+
+    sourceCaseCount: sourceCaseIds.length,
+    sourceReportCount: sourceReportIds.size,
+
+    workflowSteps,
+
+    analysisMode: "DETERMINISTIC",
+    executiveDescription: null,
+  };
+}
+
+============================================================
+FILE: lib\statistics\statistics-report-query.ts
+============================================================
+import "server-only";
+
+import type { DashboardContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+
+function asRecord(
+  value: unknown,
+): Record<string, unknown> {
+  if (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    return value as Record<
+      string,
+      unknown
+    >;
+  }
+
+  return {};
+}
+
+function cleanString(
+  value: unknown,
+) {
+  return typeof value === "string"
+    ? value.trim()
+    : "";
+}
+
+function cleanStringArray(
+  value: unknown,
+) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) =>
+      cleanString(item),
+    )
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+function parseSelectedMetrics(
+  value: unknown,
+) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      const record =
+        asRecord(item);
+
+      const metricId =
+        cleanString(
+          record.metricId,
+        );
+
+      const fieldLabel =
+        cleanString(
+          record.fieldLabel,
+        );
+
+      const valueLabel =
+        cleanString(
+          record.valueLabel,
+        );
+
+      const caseCount =
+        Number(record.caseCount);
+
+      if (
+        !metricId ||
+        !fieldLabel ||
+        !valueLabel ||
+        !Number.isFinite(
+          caseCount,
+        ) ||
+        caseCount < 0
+      ) {
+        return null;
+      }
+
+      return {
+        metricId,
+        fieldLabel,
+        valueLabel,
+        caseCount:
+          Math.floor(caseCount),
+      };
+    })
+    .filter(
+      (
+        item,
+      ): item is {
+        metricId: string;
+        fieldLabel: string;
+        valueLabel: string;
+        caseCount: number;
+      } => Boolean(item),
+    );
+}
+
+export async function getStatisticsReportView(
+  context: DashboardContext,
+  reportId: string,
+) {
+  const report =
+    await prisma.statisticalReport.findFirst({
+      where: {
+        id: reportId,
+
+        ...(!context.isAdmin
+          ? {
+              schoolAccountId:
+                context.schoolAccountId ||
+                "__missing_school__",
+
+              createdById:
+                context.user.id,
+            }
+          : {}),
+      },
+    });
+
+  if (!report) {
+    return null;
+  }
+
+  const [
+    schoolAccount,
+    creator,
+  ] = await Promise.all([
+    report.schoolAccountId
+      ? prisma.schoolAccount.findUnique({
+          where: {
+            id:
+              report.schoolAccountId,
+          },
+
+          select: {
+            name: true,
+
+            profile: {
+              select: {
+                schoolName: true,
+                educationDepartment: true,
+                educationOffice: true,
+                city: true,
+                stage: true,
+                academicYear: true,
+                currentSemester: true,
+                logoUrl: true,
+              },
+            },
+          },
+        })
+      : null,
+
+    prisma.user.findUnique({
+      where: {
+        id: report.createdById,
+      },
+
+      select: {
+        name: true,
+        officialName: true,
+        jobTitle: true,
+      },
+    }),
+  ]);
+
+  const deterministic =
+    asRecord(
+      report
+        .deterministicMetricsJson,
+    );
+
+  const analysis =
+    asRecord(
+      report.aiAnalysisJson,
+    );
+
+  return {
+    id: report.id,
+    title: report.title,
+
+    serviceSlug:
+      report.serviceSlugSnapshot,
+
+    serviceName:
+      report.serviceNameSnapshot,
+
+    dateFrom:
+      report.dateFrom.toISOString(),
+
+    dateTo:
+      report.dateTo.toISOString(),
+
+    sourceCaseCount:
+      report.sourceCaseCount,
+
+    sourceReportCount:
+      report.sourceReportCount,
+
+    analysisMode:
+      report.analysisMode,
+
+    createdAt:
+      report.createdAt.toISOString(),
+
+    metrics:
+      parseSelectedMetrics(
+        deterministic
+          .selectedMetrics,
+      ),
+
+    executiveDescription:
+      cleanString(
+        analysis
+          .executiveDescription,
+      ),
+
+    insights:
+      cleanStringArray(
+        analysis.insights,
+      ),
+
+    recommendations:
+      cleanStringArray(
+        analysis
+          .recommendations,
+      ),
+
+    school: {
+      name:
+        schoolAccount?.profile
+          ?.schoolName ||
+        schoolAccount?.name ||
+        "المدرسة",
+
+      educationDepartment:
+        schoolAccount?.profile
+          ?.educationDepartment ||
+        "",
+
+      educationOffice:
+        schoolAccount?.profile
+          ?.educationOffice ||
+        "",
+
+      city:
+        schoolAccount?.profile
+          ?.city ||
+        "",
+
+      stage:
+        schoolAccount?.profile
+          ?.stage ||
+        "",
+
+      academicYear:
+        schoolAccount?.profile
+          ?.academicYear ||
+        "",
+
+      currentSemester:
+        schoolAccount?.profile
+          ?.currentSemester ||
+        "",
+
+      logoUrl:
+        schoolAccount?.profile
+          ?.logoUrl ||
+        "",
+    },
+
+    creator: {
+      name:
+        creator?.officialName ||
+        creator?.name ||
+        "الموجه الطلابي",
+
+      jobTitle:
+        creator?.jobTitle ||
+        "الموجه الطلابي",
+    },
+  };
+}
+
+============================================================
+FILE: lib\statistics\statistics-report-service.ts
+============================================================
+import "server-only";
+
+import type { Prisma } from "@prisma/client";
+import { z } from "zod";
+
+import type { DashboardContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+
+import {
+  listIssuedReportSources,
+} from "./statistics-issued-report-source";
+
+import {
+  prepareDeterministicStatistics,
+} from "./statistics-prepare-service";
+
+import {
+  selectPreparedStatisticsMetrics,
+} from "./statistics-selection";
+
+import type {
+  StatisticsDateRange,
+  StatisticsValueSelection,
+} from "./statistics-types";
+
+const approvedAnalysisSchema = z.object({
+  executiveDescription: z
+    .string()
+    .trim()
+    .min(
+      20,
+      "الوصف التنفيذي قصير جدًا.",
+    )
+    .max(
+      1800,
+      "الوصف التنفيذي تجاوز الحد المسموح.",
+    ),
+
+  insights: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(5)
+        .max(400),
+    )
+    .max(6)
+    .default([]),
+
+  recommendations: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(5)
+        .max(400),
+    )
+    .max(6)
+    .default([]),
+
+  analysisMode: z.enum([
+    "DEEPSEEK",
+    "FALLBACK",
+  ]),
+});
+
+export class StatisticsReportServiceError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  constructor(input: {
+    message: string;
+    code: string;
+    status?: number;
+  }) {
+    super(input.message);
+    this.name =
+      "StatisticsReportServiceError";
+    this.code = input.code;
+    this.status = input.status || 400;
+  }
+}
+
+function toPrismaJson(
+  value: unknown,
+): Prisma.InputJsonValue {
+  return JSON.parse(
+    JSON.stringify(value),
+  ) as Prisma.InputJsonValue;
+}
+
+function buildReportTitle(input: {
+  serviceName: string;
+  rangeLabel: string;
+}) {
+  return (
+    `تقرير إحصائي - ${input.serviceName} - ${input.rangeLabel}`
+  ).slice(0, 255);
+}
+
+export async function createStatisticsReport(
+  input: {
+    context: DashboardContext;
+    serviceSlug: string;
+    range: StatisticsDateRange;
+    selectedValues: StatisticsValueSelection[];
+
+    analysis: {
+      executiveDescription: unknown;
+      insights: unknown;
+      recommendations: unknown;
+      analysisMode: unknown;
+    };
+  },
+) {
+  const approvedAnalysis =
+    approvedAnalysisSchema.parse(
+      input.analysis,
+    );
+
+  const prepared =
+    await prepareDeterministicStatistics({
+      context: input.context,
+      serviceSlug: input.serviceSlug,
+      range: input.range,
+    });
+
+  if (
+    prepared.sourceCaseCount === 0 ||
+    prepared.sourceReportCount === 0
+  ) {
+    throw new StatisticsReportServiceError({
+      message:
+        "لا توجد حالات تحتوي على تقارير صادرة ضمن الفترة المحددة.",
+      code:
+        "STATISTICS_SOURCE_EMPTY",
+      status: 409,
+    });
+  }
+
+  const selectedMetrics =
+    selectPreparedStatisticsMetrics(
+      prepared,
+      input.selectedValues,
+    );
+
+  if (selectedMetrics.length === 0) {
+    throw new StatisticsReportServiceError({
+      message:
+        "اختر قيمة إحصائية واحدة على الأقل.",
+      code:
+        "STATISTICS_SELECTION_REQUIRED",
+    });
+  }
+
+  const issuedSources =
+    await listIssuedReportSources(
+      input.context,
+      {
+        serviceSlug:
+          prepared.service.slug,
+        from: input.range.from,
+        to: input.range.to,
+      },
+    );
+
+  const sourceReportIds = Array.from(
+    new Set(
+      issuedSources.map(
+        (source) =>
+          source.normalizedId,
+      ),
+    ),
+  );
+
+  const sourceCaseIds = Array.from(
+    new Set(
+      issuedSources.map(
+        (source) =>
+          source.caseEntryId,
+      ),
+    ),
+  );
+
+  if (
+    sourceReportIds.length !==
+      prepared.sourceReportCount ||
+    sourceCaseIds.length !==
+      prepared.sourceCaseCount
+  ) {
+    throw new StatisticsReportServiceError({
+      message:
+        "تغيرت البيانات أثناء التحضير. أعد فتح صفحة التحضير.",
+      code:
+        "STATISTICS_SOURCE_CHANGED",
+      status: 409,
+    });
+  }
+
+  const title = buildReportTitle({
+    serviceName:
+      prepared.service.name,
+    rangeLabel:
+      prepared.dateRange.label,
+  });
+
+  const filtersJson = {
+    serviceSlug:
+      prepared.service.slug,
+
+    dateRange: {
+      preset:
+        input.range.preset,
+      from:
+        input.range.from.toISOString(),
+      to:
+        input.range.to.toISOString(),
+      label:
+        input.range.label,
+    },
+
+    selectedValues:
+      input.selectedValues,
+  };
+
+  const deterministicMetricsJson = {
+    service:
+      prepared.service,
+
+    dateRange:
+      prepared.dateRange,
+
+    sourceCaseCount:
+      sourceCaseIds.length,
+
+    sourceReportCount:
+      sourceReportIds.length,
+
+    selectedMetrics,
+  };
+
+  const aiAnalysisJson = {
+    executiveDescription:
+      approvedAnalysis
+        .executiveDescription,
+
+    insights:
+      approvedAnalysis.insights,
+
+    recommendations:
+      approvedAnalysis
+        .recommendations,
+
+    analysisMode:
+      approvedAnalysis.analysisMode,
+  };
+
+  const report =
+    await prisma.$transaction(
+      async (tx) => {
+        const created =
+          await tx.statisticalReport.create({
+            data: {
+              schoolAccountId:
+                input.context
+                  .schoolAccountId,
+
+              createdById:
+                input.context.user.id,
+
+              serviceId:
+                prepared.service.id,
+
+              serviceSlugSnapshot:
+                prepared.service.slug,
+
+              serviceNameSnapshot:
+                prepared.service.name,
+
+              title,
+
+              dateFrom:
+                input.range.from,
+
+              dateTo:
+                input.range.to,
+
+              filtersJson:
+                toPrismaJson(
+                  filtersJson,
+                ),
+
+              deterministicMetricsJson:
+                toPrismaJson(
+                  deterministicMetricsJson,
+                ),
+
+              aiAnalysisJson:
+                toPrismaJson(
+                  aiAnalysisJson,
+                ),
+
+              sourceCaseCount:
+                sourceCaseIds.length,
+
+              sourceReportCount:
+                sourceReportIds.length,
+
+              sourceReportIdsJson:
+                toPrismaJson(
+                  sourceReportIds,
+                ),
+
+              analysisMode:
+                approvedAnalysis
+                  .analysisMode,
+
+              reportTemplateId:
+                null,
+
+              archivedAt:
+                null,
+            },
+            select: {
+              id: true,
+              title: true,
+              createdAt: true,
+            },
+          });
+
+        await tx.platformActivityLog.create({
+          data: {
+            actorUserId:
+              input.context.user.id,
+
+            targetUserId:
+              input.context.user.id,
+
+            schoolAccountId:
+              input.context
+                .schoolAccountId,
+
+            category: "REPORT",
+
+            action:
+              "statistical-report-created",
+
+            severity: "SUCCESS",
+
+            title:
+              "تم إنشاء تقرير إحصائي",
+
+            details:
+              toPrismaJson({
+                statisticalReportId:
+                  created.id,
+
+                serviceSlug:
+                  prepared.service.slug,
+
+                sourceCaseCount:
+                  sourceCaseIds.length,
+
+                sourceReportCount:
+                  sourceReportIds.length,
+
+                selectedMetricCount:
+                  selectedMetrics.length,
+
+                analysisMode:
+                  approvedAnalysis
+                    .analysisMode,
+              }),
+          },
+        });
+
+        return created;
+      },
+    );
+
+  return {
+    reportId: report.id,
+    title: report.title,
+    createdAt:
+      report.createdAt.toISOString(),
+  };
+}
+
+export async function listStatisticsReports(
+  context: DashboardContext,
+) {
+  const reports =
+    await prisma.statisticalReport.findMany({
+      where: {
+        archivedAt: null,
+
+        ...(!context.isAdmin
+          ? {
+              schoolAccountId:
+                context.schoolAccountId ||
+                "__missing_school__",
+
+              createdById:
+                context.user.id,
+            }
+          : {}),
+      },
+
+      orderBy: {
+        createdAt: "desc",
+      },
+
+      take: 50,
+
+      select: {
+        id: true,
+        title: true,
+
+        serviceSlugSnapshot: true,
+        serviceNameSnapshot: true,
+
+        sourceCaseCount: true,
+        sourceReportCount: true,
+
+        analysisMode: true,
+
+        dateFrom: true,
+        dateTo: true,
+
+        createdAt: true,
+      },
+    });
+
+  return reports.map(
+    (report) => ({
+      id: report.id,
+      title: report.title,
+
+      serviceSlug:
+        report.serviceSlugSnapshot,
+
+      serviceName:
+        report.serviceNameSnapshot,
+
+      sourceCaseCount:
+        report.sourceCaseCount,
+
+      sourceReportCount:
+        report.sourceReportCount,
+
+      analysisMode:
+        report.analysisMode,
+
+      dateFrom:
+        report.dateFrom.toISOString(),
+
+      dateTo:
+        report.dateTo.toISOString(),
+
+      createdAt:
+        report.createdAt.toISOString(),
+    }),
+  );
+}
+
+============================================================
+FILE: lib\statistics\statistics-selection.ts
+============================================================
+import "server-only";
+
+import type {
+  StatisticsPrepareResult,
+  StatisticsSelectedMetric,
+  StatisticsValueSelection,
+} from "./statistics-types";
+
+const MAX_SELECTED_VALUES = 40;
+
+export class StatisticsSelectionError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  constructor(input: {
+    message: string;
+    code: string;
+    status?: number;
+  }) {
+    super(input.message);
+    this.name = "StatisticsSelectionError";
+    this.code = input.code;
+    this.status = input.status || 400;
+  }
+}
+
+function asRecord(
+  value: unknown,
+): Record<string, unknown> | null {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function cleanText(
+  value: unknown,
+  maxLength: number,
+) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().slice(0, maxLength);
+}
+
+function selectionKey(
+  fieldKey: string,
+  value: string,
+) {
+  return JSON.stringify([
+    fieldKey,
+    value,
+  ]);
+}
+
+export function normalizeStatisticsSelections(
+  value: unknown,
+): StatisticsValueSelection[] {
+  if (!Array.isArray(value)) {
+    throw new StatisticsSelectionError({
+      message: "اختر قيمة إحصائية واحدة على الأقل.",
+      code: "STATISTICS_SELECTION_REQUIRED",
+    });
+  }
+
+  if (value.length > MAX_SELECTED_VALUES) {
+    throw new StatisticsSelectionError({
+      message:
+        `يمكن اختيار ${MAX_SELECTED_VALUES} قيمة كحد أقصى في التقرير الواحد.`,
+      code: "STATISTICS_SELECTION_LIMIT_EXCEEDED",
+    });
+  }
+
+  const normalized: StatisticsValueSelection[] = [];
+  const seen = new Set<string>();
+
+  for (const item of value) {
+    const record = asRecord(item);
+
+    if (!record) {
+      throw new StatisticsSelectionError({
+        message: "إحدى القيم المختارة غير صحيحة.",
+        code: "INVALID_STATISTICS_SELECTION",
+      });
+    }
+
+    const fieldKey = cleanText(
+      record.fieldKey,
+      191,
+    );
+
+    const selectedValue = cleanText(
+      record.value,
+      1000,
+    );
+
+    if (!fieldKey || !selectedValue) {
+      throw new StatisticsSelectionError({
+        message: "إحدى القيم المختارة غير مكتملة.",
+        code: "INVALID_STATISTICS_SELECTION",
+      });
+    }
+
+    const key = selectionKey(
+      fieldKey,
+      selectedValue,
+    );
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+
+    normalized.push({
+      fieldKey,
+      value: selectedValue,
+    });
+  }
+
+  if (normalized.length === 0) {
+    throw new StatisticsSelectionError({
+      message: "اختر قيمة إحصائية واحدة على الأقل.",
+      code: "STATISTICS_SELECTION_REQUIRED",
+    });
+  }
+
+  return normalized;
+}
+
+export function selectPreparedStatisticsMetrics(
+  prepared: StatisticsPrepareResult,
+  selections: StatisticsValueSelection[],
+): StatisticsSelectedMetric[] {
+  const availableMetrics = new Map<
+    string,
+    StatisticsSelectedMetric
+  >();
+
+  for (const step of prepared.workflowSteps) {
+    for (const field of step.fields) {
+      for (const item of field.values) {
+        availableMetrics.set(
+          selectionKey(
+            field.key,
+            item.value,
+          ),
+          {
+            metricId: item.metricId,
+
+            fieldKey: field.key,
+            fieldLabel: field.label,
+
+            value: item.value,
+            valueLabel: item.label,
+
+            caseCount: item.caseCount,
+          },
+        );
+      }
+    }
+  }
+
+  const selectedMetrics: StatisticsSelectedMetric[] =
+    [];
+
+  for (const selection of selections) {
+    const metric = availableMetrics.get(
+      selectionKey(
+        selection.fieldKey,
+        selection.value,
+      ),
+    );
+
+    if (!metric) {
+      throw new StatisticsSelectionError({
+        message:
+          "إحدى القيم المختارة لم تعد متاحة ضمن البيانات الحالية.",
+        code: "STATISTICS_SELECTION_NOT_AVAILABLE",
+        status: 409,
+      });
+    }
+
+    selectedMetrics.push(metric);
+  }
+
+  return selectedMetrics;
+}
+
+============================================================
+FILE: lib\statistics\statistics-types.ts
+============================================================
+export type IssuedReportSourceType =
+  | "GUIDANCE_REPORT"
+  | "REPORT_SNAPSHOT";
+
+export type StatisticsIssuedReportFilters = {
+  serviceSlug?: string;
+  from?: Date;
+  to?: Date;
+};
+
+export type NormalizedIssuedReport = {
+  sourceType: IssuedReportSourceType;
+  sourceId: string;
+  normalizedId: string;
+
+  caseEntryId: string;
+  schoolAccountId: string | null;
+
+  serviceId: string;
+  serviceSlug: string;
+  serviceName: string;
+
+  title: string;
+  issuedAt: Date;
+};
+
+export type StatisticsServiceOption = {
+  id: string;
+  slug: string;
+  name: string;
+  eligibleCaseCount: number;
+  issuedReportCount: number;
+};
+
+export type StatisticsDatePreset =
+  | "ALL_TIME"
+  | "LAST_30_DAYS"
+  | "CURRENT_MONTH"
+  | "CURRENT_YEAR"
+  | "CUSTOM";
+
+export type StatisticsDateRange = {
+  preset: StatisticsDatePreset;
+  from: Date;
+  to: Date;
+  label: string;
+};
+
+export type StatisticsFieldOption = {
+  value: string;
+  label: string;
+  order: number;
+  linkedToValue: string | null;
+};
+
+export type StatisticsFieldDefinition = {
+  id: string;
+  key: string;
+  label: string;
+  type: string;
+
+  stepId: string;
+  stepKey: string;
+  stepTitle: string;
+  stepOrder: number;
+  order: number;
+
+  dependsOnFieldKey: string | null;
+  linkedToValue: string | null;
+
+  options: StatisticsFieldOption[];
+};
+
+export type StatisticsFieldValueCount = {
+  metricId: string;
+  value: string;
+  label: string;
+  caseCount: number;
+};
+
+export type StatisticsPreparedField = {
+  id: string;
+  key: string;
+  label: string;
+  type: string;
+
+  stepKey: string;
+  stepTitle: string;
+  stepOrder: number;
+  order: number;
+
+  dependsOnFieldKey: string | null;
+  caseCount: number;
+
+  values: StatisticsFieldValueCount[];
+};
+
+export type StatisticsPreparedWorkflowStep = {
+  key: string;
+  title: string;
+  order: number;
+  fields: StatisticsPreparedField[];
+};
+
+export type StatisticsPrepareResult = {
+  service: {
+    id: string;
+    slug: string;
+    name: string;
+  };
+
+  dateRange: {
+    preset: StatisticsDatePreset;
+    from: string;
+    to: string;
+    label: string;
+  };
+
+  sourceCaseCount: number;
+  sourceReportCount: number;
+
+  workflowSteps: StatisticsPreparedWorkflowStep[];
+
+  analysisMode: "DETERMINISTIC";
+  executiveDescription: null;
+};
+
+export type StatisticsValueSelection = {
+  fieldKey: string;
+  value: string;
+};
+
+export type StatisticsSelectedMetric = {
+  metricId: string;
+
+  fieldKey: string;
+  fieldLabel: string;
+
+  value: string;
+  valueLabel: string;
+
+  caseCount: number;
+};
+
+export type StatisticsAiAnalysis = {
+  executiveDescription: string;
+  insights: string[];
+  recommendations: string[];
+
+  analysisMode:
+    | "DEEPSEEK"
+    | "FALLBACK";
+};
+
+export type StatisticsDescriptionResult = {
+  service: {
+    id: string;
+    slug: string;
+    name: string;
+  };
+
+  dateRange: {
+    preset: StatisticsDatePreset;
+    from: string;
+    to: string;
+    label: string;
+  };
+
+  sourceCaseCount: number;
+  sourceReportCount: number;
+
+  selectedMetrics: StatisticsSelectedMetric[];
+  analysis: StatisticsAiAnalysis;
+};
+
+============================================================
+FILE: lib\statistics\statistics-value-counter.ts
+============================================================
+import "server-only";
+
+import type {
+  StatisticsFieldDefinition,
+  StatisticsFieldOption,
+  StatisticsPreparedField,
+  StatisticsPreparedWorkflowStep,
+} from "./statistics-types";
+
+import type {
+  StatisticsResolvedCase,
+  StatisticsResolvedCases,
+} from "./statistics-workflow-resolver";
+
+const SUPPORTED_FIELD_TYPES = new Set([
+  "SELECT",
+  "MULTI_SELECT",
+  "RADIO",
+  "CHECKBOX",
+]);
+
+function normalizeExpectedParentValue(
+  parentField: StatisticsFieldDefinition,
+  expectedValue: string,
+) {
+  const clean = expectedValue.trim();
+
+  const option = parentField.options.find(
+    (item) =>
+      item.value === clean ||
+      item.label === clean,
+  );
+
+  return option?.value || clean;
+}
+
+function isDependencyPathValid(input: {
+  caseEntry: StatisticsResolvedCase;
+  fieldKey: string;
+  selectedValue: string;
+  visited?: Set<string>;
+}): boolean {
+  const field = input.caseEntry.fields.get(
+    input.fieldKey,
+  );
+
+  if (!field) {
+    return false;
+  }
+
+  if (!field.dependsOnFieldKey) {
+    return true;
+  }
+
+  const visited = new Set(
+    input.visited || [],
+  );
+
+  if (visited.has(field.key)) {
+    return false;
+  }
+
+  visited.add(field.key);
+
+  const parentField =
+    input.caseEntry.fields.get(
+      field.dependsOnFieldKey,
+    );
+
+  if (!parentField) {
+    return false;
+  }
+
+  const parentValues =
+    input.caseEntry.values.get(
+      parentField.key,
+    ) || [];
+
+  if (parentValues.length === 0) {
+    return false;
+  }
+
+  const validParentValues = parentValues.filter(
+    (parentValue) =>
+      isDependencyPathValid({
+        caseEntry: input.caseEntry,
+        fieldKey: parentField.key,
+        selectedValue: parentValue,
+        visited,
+      }),
+  );
+
+  if (validParentValues.length === 0) {
+    return false;
+  }
+
+  const selectedOption = field.options.find(
+    (option) =>
+      option.value === input.selectedValue ||
+      option.label === input.selectedValue,
+  );
+
+  const expectedValues = [
+    field.linkedToValue,
+    selectedOption?.linkedToValue || null,
+  ].filter(
+    (value): value is string =>
+      Boolean(value?.trim()),
+  );
+
+  if (expectedValues.length === 0) {
+    return true;
+  }
+
+  return expectedValues.every(
+    (expectedValue) => {
+      const normalizedExpected =
+        normalizeExpectedParentValue(
+          parentField,
+          expectedValue,
+        );
+
+      return validParentValues.includes(
+        normalizedExpected,
+      );
+    },
+  );
+}
+
+function getValueLabel(input: {
+  field: StatisticsFieldDefinition;
+  value: string;
+  options: Map<string, StatisticsFieldOption>;
+}) {
+  const knownOption = input.options.get(
+    input.value,
+  );
+
+  if (knownOption) {
+    return knownOption.label;
+  }
+
+  if (
+    input.field.type === "CHECKBOX" &&
+    input.value === "true"
+  ) {
+    return "نعم";
+  }
+
+  if (
+    input.field.type === "CHECKBOX" &&
+    input.value === "false"
+  ) {
+    return "لا";
+  }
+
+  return input.value;
+}
+
+function metricId(
+  fieldKey: string,
+  value: string,
+) {
+  return [
+    "field",
+    encodeURIComponent(fieldKey),
+    "value",
+    encodeURIComponent(value),
+  ].join(":");
+}
+
+type FieldCatalog = {
+  definition: StatisticsFieldDefinition;
+  options: Map<string, StatisticsFieldOption>;
+};
+
+function buildFieldCatalog(
+  resolved: StatisticsResolvedCases,
+) {
+  const catalog = new Map<
+    string,
+    FieldCatalog
+  >();
+
+  for (const caseEntry of resolved.cases) {
+    for (const field of caseEntry.fields.values()) {
+      if (
+        !SUPPORTED_FIELD_TYPES.has(field.type)
+      ) {
+        continue;
+      }
+
+      const catalogId = field.id;
+      const current = catalog.get(catalogId);
+
+      if (!current) {
+        catalog.set(catalogId, {
+          definition: field,
+          options: new Map(
+            field.options.map((option) => [
+              option.value,
+              option,
+            ]),
+          ),
+        });
+
+        continue;
+      }
+
+      for (const option of field.options) {
+        if (!current.options.has(option.value)) {
+          current.options.set(
+            option.value,
+            option,
+          );
+        }
+      }
+    }
+  }
+
+  return catalog;
+}
+
+function countField(input: {
+  resolved: StatisticsResolvedCases;
+  catalog: FieldCatalog;
+}): StatisticsPreparedField | null {
+  const field = input.catalog.definition;
+
+  const caseIdsByValue = new Map<
+    string,
+    Set<string>
+  >();
+
+  const casesWithAnyValue = new Set<string>();
+
+  for (const caseEntry of input.resolved.cases) {
+    const caseField =
+      caseEntry.fields.get(field.key);
+
+    if (
+      !caseField ||
+      caseField.type !== field.type
+    ) {
+      continue;
+    }
+
+    const values =
+      caseEntry.values.get(field.key) || [];
+
+    const uniqueValidValues = new Set<string>();
+
+    for (const value of values) {
+      if (
+        !isDependencyPathValid({
+          caseEntry,
+          fieldKey: field.key,
+          selectedValue: value,
+        })
+      ) {
+        continue;
+      }
+
+      uniqueValidValues.add(value);
+    }
+
+    if (uniqueValidValues.size > 0) {
+      casesWithAnyValue.add(caseEntry.id);
+    }
+
+    for (const value of uniqueValidValues) {
+      const caseIds =
+        caseIdsByValue.get(value) ||
+        new Set<string>();
+
+      caseIds.add(caseEntry.id);
+      caseIdsByValue.set(value, caseIds);
+    }
+  }
+
+  const values = Array.from(
+    caseIdsByValue.entries(),
+  )
+    .map(([value, caseIds]) => {
+      const option =
+        input.catalog.options.get(value);
+
+      return {
+        metricId: metricId(
+          field.key,
+          value,
+        ),
+        value,
+        label: getValueLabel({
+          field,
+          value,
+          options: input.catalog.options,
+        }),
+        caseCount: caseIds.size,
+        optionOrder:
+          option?.order ??
+          Number.MAX_SAFE_INTEGER,
+      };
+    })
+    .filter((item) => item.caseCount > 0)
+    .sort(
+      (first, second) =>
+        first.optionOrder -
+          second.optionOrder ||
+        second.caseCount -
+          first.caseCount ||
+        first.label.localeCompare(
+          second.label,
+          "ar",
+        ),
+    )
+    .map(
+      ({
+        optionOrder: _optionOrder,
+        ...item
+      }) => item,
+    );
+
+  if (values.length === 0) {
+    return null;
+  }
+
+  return {
+    id: field.id,
+    key: field.key,
+    label: field.label,
+    type: field.type,
+
+    stepKey: field.stepKey,
+    stepTitle: field.stepTitle,
+    stepOrder: field.stepOrder,
+    order: field.order,
+
+    dependsOnFieldKey:
+      field.dependsOnFieldKey,
+
+    caseCount: casesWithAnyValue.size,
+    values,
+  };
+}
+
+export function buildPreparedWorkflowSteps(
+  resolved: StatisticsResolvedCases,
+): StatisticsPreparedWorkflowStep[] {
+  const catalog = buildFieldCatalog(resolved);
+
+  const preparedFields = Array.from(
+    catalog.values(),
+  )
+    .map((fieldCatalog) =>
+      countField({
+        resolved,
+        catalog: fieldCatalog,
+      }),
+    )
+    .filter(
+      (
+        field,
+      ): field is StatisticsPreparedField =>
+        Boolean(field),
+    )
+    .sort(
+      (first, second) =>
+        first.stepOrder -
+          second.stepOrder ||
+        first.order - second.order ||
+        first.label.localeCompare(
+          second.label,
+          "ar",
+        ),
+    );
+
+  const steps = new Map<
+    string,
+    StatisticsPreparedWorkflowStep
+  >();
+
+  for (const field of preparedFields) {
+    const current = steps.get(
+      field.stepKey,
+    ) || {
+      key: field.stepKey,
+      title: field.stepTitle,
+      order: field.stepOrder,
+      fields: [],
+    };
+
+    current.fields.push(field);
+    steps.set(field.stepKey, current);
+  }
+
+  return Array.from(steps.values()).sort(
+    (first, second) =>
+      first.order - second.order,
+  );
+}
+
+============================================================
+FILE: lib\statistics\statistics-workflow-resolver.ts
+============================================================
+import "server-only";
+
+import type { Prisma } from "@prisma/client";
+
+import { prisma } from "@/lib/prisma";
+
+import type {
+  StatisticsFieldDefinition,
+  StatisticsFieldOption,
+} from "./statistics-types";
+
+export type StatisticsResolvedCase = {
+  id: string;
+  fields: Map<string, StatisticsFieldDefinition>;
+  values: Map<string, string[]>;
+};
+
+export type StatisticsResolvedCases = {
+  cases: StatisticsResolvedCase[];
+};
+
+function cleanString(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+function nullableString(value: unknown) {
+  const clean = cleanString(value);
+  return clean || null;
+}
+
+function positiveNumber(
+  value: unknown,
+  fallback: number,
+) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+
+  return number;
+}
+
+function asRecord(
+  value: unknown,
+): Record<string, unknown> | null {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function normalizeOptions(
+  value: unknown,
+): StatisticsFieldOption[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item, index) => {
+      const record = asRecord(item);
+
+      if (!record) {
+        return null;
+      }
+
+      const optionValue =
+        cleanString(record.value) ||
+        cleanString(record.label);
+
+      if (!optionValue) {
+        return null;
+      }
+
+      return {
+        value: optionValue,
+        label:
+          cleanString(record.label) ||
+          optionValue,
+        order: positiveNumber(
+          record.order,
+          index + 1,
+        ),
+        linkedToValue: nullableString(
+          record.linkedToValue,
+        ),
+      };
+    })
+    .filter(
+      (
+        option,
+      ): option is StatisticsFieldOption =>
+        Boolean(option),
+    )
+    .sort(
+      (first, second) =>
+        first.order - second.order,
+    );
+}
+
+function createFieldDefinition(input: {
+  field: Record<string, unknown>;
+  stepId: string;
+  stepTitle: string;
+  stepOrder: number;
+  fieldIndex: number;
+}) {
+  const key = cleanString(input.field.key);
+  const type = cleanString(input.field.type);
+
+  if (!key || !type) {
+    return null;
+  }
+
+  const stepKey =
+    `${input.stepOrder}:${input.stepTitle}`;
+
+  return {
+    id: `${key}::${type}`,
+    key,
+    label:
+      cleanString(input.field.label) || key,
+    type,
+
+    stepId: input.stepId,
+    stepKey,
+    stepTitle: input.stepTitle,
+    stepOrder: input.stepOrder,
+    order: positiveNumber(
+      input.field.order,
+      input.fieldIndex + 1,
+    ),
+
+    dependsOnFieldKey: nullableString(
+      input.field.dependsOnFieldKey,
+    ),
+    linkedToValue: nullableString(
+      input.field.linkedToValue,
+    ),
+
+    options: normalizeOptions(
+      input.field.options,
+    ),
+  } satisfies StatisticsFieldDefinition;
+}
+
+function normalizeWorkflowSteps(
+  stepsValue: unknown,
+): StatisticsFieldDefinition[] {
+  if (!Array.isArray(stepsValue)) {
+    return [];
+  }
+
+  const definitions: StatisticsFieldDefinition[] =
+    [];
+
+  stepsValue.forEach((stepValue, stepIndex) => {
+    const step = asRecord(stepValue);
+
+    if (!step) {
+      return;
+    }
+
+    const stepOrder = positiveNumber(
+      step.order,
+      stepIndex + 1,
+    );
+
+    const stepTitle =
+      cleanString(step.title) ||
+      `الخطوة ${stepOrder}`;
+
+    const stepId =
+      cleanString(step.id) ||
+      `step:${stepOrder}:${stepTitle}`;
+
+    const fields = Array.isArray(step.fields)
+      ? step.fields
+      : [];
+
+    fields.forEach((fieldValue, fieldIndex) => {
+      const field = asRecord(fieldValue);
+
+      if (!field) {
+        return;
+      }
+
+      const definition = createFieldDefinition({
+        field,
+        stepId,
+        stepTitle,
+        stepOrder,
+        fieldIndex,
+      });
+
+      if (definition) {
+        definitions.push(definition);
+      }
+    });
+  });
+
+  return definitions.sort(
+    (first, second) =>
+      first.stepOrder - second.stepOrder ||
+      first.order - second.order,
+  );
+}
+
+function normalizeWorkflowSnapshot(
+  snapshot: Prisma.JsonValue | null,
+) {
+  const record = asRecord(snapshot);
+
+  if (!record) {
+    return [];
+  }
+
+  return normalizeWorkflowSteps(record.steps);
+}
+
+function normalizeScalarValues(
+  input: unknown,
+): string[] {
+  if (Array.isArray(input)) {
+    return input.flatMap((item) =>
+      normalizeScalarValues(item),
+    );
+  }
+
+  if (
+    typeof input === "string" ||
+    typeof input === "number" ||
+    typeof input === "boolean"
+  ) {
+    const clean = String(input).trim();
+    return clean ? [clean] : [];
+  }
+
+  return [];
+}
+
+function parsePossibleJsonText(value: string) {
+  const clean = value.trim();
+
+  if (
+    !clean.startsWith("[") ||
+    !clean.endsWith("]")
+  ) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(clean) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeChoiceValue(
+  rawValue: string,
+  field: StatisticsFieldDefinition,
+) {
+  const clean = rawValue.trim();
+
+  if (!clean) {
+    return "";
+  }
+
+  if (field.type === "CHECKBOX") {
+    const normalized = clean.toLowerCase();
+
+    if (
+      ["true", "1", "yes", "on", "نعم"].includes(
+        normalized,
+      )
+    ) {
+      return "true";
+    }
+
+    if (
+      ["false", "0", "no", "off", "لا"].includes(
+        normalized,
+      )
+    ) {
+      return "false";
+    }
+  }
+
+  const matchedOption = field.options.find(
+    (option) =>
+      option.value === clean ||
+      option.label === clean,
+  );
+
+  return matchedOption?.value || clean;
+}
+
+function splitMultiSelectText(
+  value: string,
+  field: StatisticsFieldDefinition,
+) {
+  if (field.type !== "MULTI_SELECT") {
+    return [value];
+  }
+
+  const parts = value
+    .split(/[,،]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 1) {
+    return [value];
+  }
+
+  const allPartsAreKnownOptions = parts.every(
+    (part) =>
+      field.options.some(
+        (option) =>
+          option.value === part ||
+          option.label === part,
+      ),
+  );
+
+  return allPartsAreKnownOptions
+    ? parts
+    : [value];
+}
+
+function normalizeStoredCaseValue(input: {
+  value: string | null;
+  jsonValue: Prisma.JsonValue | null;
+  field: StatisticsFieldDefinition;
+}) {
+  let rawValues = normalizeScalarValues(
+    input.jsonValue,
+  );
+
+  if (
+    rawValues.length === 0 &&
+    input.value
+  ) {
+    const parsedJson = parsePossibleJsonText(
+      input.value,
+    );
+
+    rawValues = parsedJson
+      ? normalizeScalarValues(parsedJson)
+      : splitMultiSelectText(
+          input.value,
+          input.field,
+        );
+  }
+
+  return Array.from(
+    new Set(
+      rawValues
+        .map((value) =>
+          normalizeChoiceValue(
+            value,
+            input.field,
+          ),
+        )
+        .filter(Boolean),
+    ),
+  );
+}
+
+export async function loadResolvedStatisticsCases(input: {
+  caseIds: string[];
+  serviceId: string;
+}): Promise<StatisticsResolvedCases> {
+  if (input.caseIds.length === 0) {
+    return {
+      cases: [],
+    };
+  }
+
+  const [caseEntries, activeWorkflow] =
+    await Promise.all([
+      prisma.caseEntry.findMany({
+        where: {
+          id: {
+            in: input.caseIds,
+          },
+          serviceId: input.serviceId,
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+        select: {
+          id: true,
+          workflowSnapshot: true,
+
+          workflow: {
+            select: {
+              steps: {
+                orderBy: {
+                  order: "asc",
+                },
+                select: {
+                  id: true,
+                  title: true,
+                  order: true,
+                  fields: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                    select: {
+                      id: true,
+                      key: true,
+                      label: true,
+                      type: true,
+                      order: true,
+                      dependsOnFieldKey: true,
+                      linkedToValue: true,
+                      options: {
+                        orderBy: {
+                          order: "asc",
+                        },
+                        select: {
+                          value: true,
+                          label: true,
+                          order: true,
+                          linkedToValue: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+
+          values: {
+            select: {
+              fieldKey: true,
+              value: true,
+              jsonValue: true,
+
+              field: {
+                select: {
+                  id: true,
+                  key: true,
+                  label: true,
+                  type: true,
+                  order: true,
+                  dependsOnFieldKey: true,
+                  linkedToValue: true,
+
+                  step: {
+                    select: {
+                      id: true,
+                      title: true,
+                      order: true,
+                    },
+                  },
+
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                    select: {
+                      value: true,
+                      label: true,
+                      order: true,
+                      linkedToValue: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+
+      prisma.workflow.findFirst({
+        where: {
+          serviceId: input.serviceId,
+          status: "ACTIVE",
+          isActive: true,
+        },
+        orderBy: [
+          {
+            version: "desc",
+          },
+          {
+            updatedAt: "desc",
+          },
+        ],
+        select: {
+          steps: {
+            orderBy: {
+              order: "asc",
+            },
+            select: {
+              id: true,
+              title: true,
+              order: true,
+              fields: {
+                orderBy: {
+                  order: "asc",
+                },
+                select: {
+                  id: true,
+                  key: true,
+                  label: true,
+                  type: true,
+                  order: true,
+                  dependsOnFieldKey: true,
+                  linkedToValue: true,
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                    select: {
+                      value: true,
+                      label: true,
+                      order: true,
+                      linkedToValue: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+  const activeDefinitions =
+    normalizeWorkflowSteps(
+      activeWorkflow?.steps || [],
+    );
+
+  const resolvedCases: StatisticsResolvedCase[] =
+    [];
+
+  for (const caseEntry of caseEntries) {
+    const snapshotDefinitions =
+      normalizeWorkflowSnapshot(
+        caseEntry.workflowSnapshot,
+      );
+
+    const relationDefinitions =
+      normalizeWorkflowSteps(
+        caseEntry.workflow?.steps || [],
+      );
+
+    const primaryDefinitions =
+      snapshotDefinitions.length > 0
+        ? snapshotDefinitions
+        : relationDefinitions.length > 0
+          ? relationDefinitions
+          : activeDefinitions;
+
+    const fields = new Map<
+      string,
+      StatisticsFieldDefinition
+    >();
+
+    for (const definition of primaryDefinitions) {
+      fields.set(definition.key, definition);
+    }
+
+    for (const caseValue of caseEntry.values) {
+      if (
+        !caseValue.field ||
+        fields.has(caseValue.fieldKey)
+      ) {
+        continue;
+      }
+
+      const storedField = createFieldDefinition({
+        field: {
+          key:
+            caseValue.field.key ||
+            caseValue.fieldKey,
+          label: caseValue.field.label,
+          type: caseValue.field.type,
+          order: caseValue.field.order,
+          dependsOnFieldKey:
+            caseValue.field.dependsOnFieldKey,
+          linkedToValue:
+            caseValue.field.linkedToValue,
+          options: caseValue.field.options,
+        },
+        stepId: caseValue.field.step.id,
+        stepTitle:
+          caseValue.field.step.title,
+        stepOrder:
+          caseValue.field.step.order,
+        fieldIndex: caseValue.field.order,
+      });
+
+      if (storedField) {
+        fields.set(
+          storedField.key,
+          storedField,
+        );
+      }
+    }
+
+    const values = new Map<string, string[]>();
+
+    for (const caseValue of caseEntry.values) {
+      const field = fields.get(
+        caseValue.fieldKey,
+      );
+
+      if (!field) {
+        continue;
+      }
+
+      const normalizedValues =
+        normalizeStoredCaseValue({
+          value: caseValue.value,
+          jsonValue: caseValue.jsonValue,
+          field,
+        });
+
+      if (normalizedValues.length === 0) {
+        continue;
+      }
+
+      const existing =
+        values.get(caseValue.fieldKey) || [];
+
+      values.set(
+        caseValue.fieldKey,
+        Array.from(
+          new Set([
+            ...existing,
+            ...normalizedValues,
+          ]),
+        ),
+      );
+    }
+
+    resolvedCases.push({
+      id: caseEntry.id,
+      fields,
+      values,
+    });
+  }
+
+  return {
+    cases: resolvedCases,
+  };
+}

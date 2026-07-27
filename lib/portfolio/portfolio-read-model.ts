@@ -150,8 +150,16 @@ export async function getTeacherPortfolioWorkspace(user: PortfolioCurrentUser) {
   }
 
   const portfolio = await ensureTeacherPortfolio(user);
+  const ownedCaseIds = await prisma.caseEntry.findMany({
+    where: {
+      schoolAccountId: user.schoolAccountId,
+      createdById: user.id,
+      service: { slug: { in: TEACHER_PORTFOLIO_SERVICE_SLUGS } },
+    },
+    select: { id: true },
+  });
 
-  const [school, sections, guidanceReports, reportSnapshots] = await Promise.all([
+  const [school, sections, guidanceReports, activeReportTwos, reportSnapshots] = await Promise.all([
     prisma.schoolAccount.findUnique({
       where: { id: user.schoolAccountId },
       include: { profile: true },
@@ -178,6 +186,16 @@ export async function getTeacherPortfolioWorkspace(user: PortfolioCurrentUser) {
         },
       },
       orderBy: [{ generatedAt: "desc" }, { createdAt: "desc" }],
+      take: 200,
+    }),
+
+    prisma.reportTwoActive.findMany({
+      where: {
+        caseEntryId: { in: ownedCaseIds.map((item) => item.id) },
+        schoolAccountId: user.schoolAccountId,
+        serviceSlug: { in: TEACHER_PORTFOLIO_SERVICE_SLUGS },
+      },
+      orderBy: { updatedAt: "desc" },
       take: 200,
     }),
 
@@ -209,7 +227,28 @@ export async function getTeacherPortfolioWorkspace(user: PortfolioCurrentUser) {
     });
   }
 
+  for (const report of activeReportTwos) {
+    if (report.status !== "APPROVED") continue;
+
+    const content = normalizePortfolioReportPayload(report.sourcePayload);
+    pushReport(reportsByServiceSlug, report.serviceSlug, {
+      id: report.id,
+      title: content?.title || report.reportTitle,
+      status: report.status,
+      generatedAt: (report.approvedAt || report.savedAt).toISOString(),
+      createdAt: report.createdAt.toISOString(),
+      evidenceCount: content?.evidenceItems.length || 0,
+      caseTitle: null,
+      serviceName: content?.serviceName || report.serviceName || report.serviceSlug || "تقرير",
+      previewUrl: `/dashboard/report-2/snapshots/${report.id}/preview`,
+      sourceType: "REPORT_SNAPSHOT",
+      content,
+    });
+  }
+
+  const activeReportIds = new Set(activeReportTwos.map((report) => report.id));
   for (const snapshot of reportSnapshots) {
+    if (activeReportIds.has(snapshot.id)) continue;
     const content = normalizePortfolioReportPayload(snapshot.snapshotPayload);
 
     pushReport(reportsByServiceSlug, snapshot.serviceSlug, {

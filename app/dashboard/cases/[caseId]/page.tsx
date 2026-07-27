@@ -23,6 +23,8 @@ export default async function CaseDetailsPage({ params }: PageProps) {
     const caseEntry = await getCaseById(caseId, {
       schoolAccountId: context.schoolAccountId,
       isAdmin: context.isAdmin,
+      userId: context.user.id,
+      userRole: context.user.role,
     });
 
     const snapshot = await getLatestReportTwoSnapshotForCase(context, caseId);
@@ -31,6 +33,13 @@ export default async function CaseDetailsPage({ params }: PageProps) {
       <CaseDetailsView
         caseEntry={caseEntry}
         reportTwoSnapshotId={snapshot?.id || null}
+        reportTwoStatus={
+          snapshot
+            ? (snapshot as { status?: string }).status === "APPROVED" || snapshot.approvedAt
+              ? "APPROVED"
+              : "DRAFT"
+            : null
+        }
       />
     );
   } catch {

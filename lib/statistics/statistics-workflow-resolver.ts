@@ -11,6 +11,8 @@ import type {
 
 export type StatisticsResolvedCase = {
   id: string;
+  serviceSlug: string;
+  workflowId: string | null;
   fields: Map<string, StatisticsFieldDefinition>;
   values: Map<string, string[]>;
 };
@@ -114,6 +116,7 @@ function createFieldDefinition(input: {
   stepTitle: string;
   stepOrder: number;
   fieldIndex: number;
+  workflowId: string | null;
 }) {
   const key = cleanString(input.field.key);
   const type = cleanString(input.field.type);
@@ -131,6 +134,7 @@ function createFieldDefinition(input: {
     label:
       cleanString(input.field.label) || key,
     type,
+    workflowId: input.workflowId,
 
     stepId: input.stepId,
     stepKey,
@@ -156,6 +160,7 @@ function createFieldDefinition(input: {
 
 function normalizeWorkflowSteps(
   stepsValue: unknown,
+  workflowId: string | null = null,
 ): StatisticsFieldDefinition[] {
   if (!Array.isArray(stepsValue)) {
     return [];
@@ -201,6 +206,7 @@ function normalizeWorkflowSteps(
         stepTitle,
         stepOrder,
         fieldIndex,
+        workflowId,
       });
 
       if (definition) {
@@ -225,7 +231,7 @@ function normalizeWorkflowSnapshot(
     return [];
   }
 
-  return normalizeWorkflowSteps(record.steps);
+  return normalizeWorkflowSteps(record.steps, cleanString(record.id) || cleanString(record.workflowId) || null);
 }
 
 function normalizeScalarValues(
@@ -378,6 +384,7 @@ function normalizeStoredCaseValue(input: {
 export async function loadResolvedStatisticsCases(input: {
   caseIds: string[];
   serviceId: string;
+  serviceSlug: string;
 }): Promise<StatisticsResolvedCases> {
   if (input.caseIds.length === 0) {
     return {
@@ -399,6 +406,7 @@ export async function loadResolvedStatisticsCases(input: {
         },
         select: {
           id: true,
+          workflowId: true,
           workflowSnapshot: true,
 
           workflow: {
@@ -498,6 +506,7 @@ export async function loadResolvedStatisticsCases(input: {
           },
         ],
         select: {
+          id: true,
           steps: {
             orderBy: {
               order: "asc",
@@ -540,6 +549,7 @@ export async function loadResolvedStatisticsCases(input: {
   const activeDefinitions =
     normalizeWorkflowSteps(
       activeWorkflow?.steps || [],
+      activeWorkflow?.id || null,
     );
 
   const resolvedCases: StatisticsResolvedCase[] =
@@ -554,6 +564,7 @@ export async function loadResolvedStatisticsCases(input: {
     const relationDefinitions =
       normalizeWorkflowSteps(
         caseEntry.workflow?.steps || [],
+        caseEntry.workflowId,
       );
 
     const primaryDefinitions =
@@ -600,6 +611,7 @@ export async function loadResolvedStatisticsCases(input: {
         stepOrder:
           caseValue.field.step.order,
         fieldIndex: caseValue.field.order,
+        workflowId: caseEntry.workflowId,
       });
 
       if (storedField) {
@@ -648,6 +660,8 @@ export async function loadResolvedStatisticsCases(input: {
 
     resolvedCases.push({
       id: caseEntry.id,
+      serviceSlug: input.serviceSlug,
+      workflowId: caseEntry.workflowId,
       fields,
       values,
     });

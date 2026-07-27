@@ -90,18 +90,17 @@ function toPrismaJson(
 }
 
 function buildReportTitle(input: {
-  serviceName: string;
-  rangeLabel: string;
+  serviceNames: string[];
 }) {
-  return (
-    `تقرير إحصائي - ${input.serviceName} - ${input.rangeLabel}`
-  ).slice(0, 255);
+  return (input.serviceNames.length === 1
+    ? `تقرير إحصائي - ${input.serviceNames[0]}`
+    : "تقرير إحصائي متعدد الخدمات").slice(0, 255);
 }
 
 export async function createStatisticsReport(
   input: {
     context: DashboardContext;
-    serviceSlug: string;
+    serviceSlugs: string[];
     range: StatisticsDateRange;
     selectedValues: StatisticsValueSelection[];
 
@@ -121,7 +120,7 @@ export async function createStatisticsReport(
   const prepared =
     await prepareDeterministicStatistics({
       context: input.context,
-      serviceSlug: input.serviceSlug,
+      serviceSlugs: input.serviceSlugs,
       range: input.range,
     });
 
@@ -157,8 +156,7 @@ export async function createStatisticsReport(
     await listIssuedReportSources(
       input.context,
       {
-        serviceSlug:
-          prepared.service.slug,
+        serviceSlugs: prepared.services.map((service) => service.slug),
         from: input.range.from,
         to: input.range.to,
       },
@@ -198,15 +196,13 @@ export async function createStatisticsReport(
   }
 
   const title = buildReportTitle({
-    serviceName:
-      prepared.service.name,
-    rangeLabel:
-      prepared.dateRange.label,
+    serviceNames: prepared.services.map((service) => service.name),
   });
 
   const filtersJson = {
-    serviceSlug:
-      prepared.service.slug,
+    serviceSlug: prepared.service.slug,
+    serviceSlugs: prepared.services.map((service) => service.slug),
+    services: prepared.services,
 
     dateRange: {
       preset:
@@ -226,6 +222,7 @@ export async function createStatisticsReport(
   const deterministicMetricsJson = {
     service:
       prepared.service,
+    services: prepared.services,
 
     dateRange:
       prepared.dateRange,
@@ -357,6 +354,7 @@ export async function createStatisticsReport(
 
                 serviceSlug:
                   prepared.service.slug,
+                serviceSlugs: prepared.services.map((service) => service.slug),
 
                 sourceCaseCount:
                   sourceCaseIds.length,
@@ -452,10 +450,10 @@ export async function listStatisticsReports(
         report.analysisMode,
 
       dateFrom:
-        report.dateFrom.toISOString(),
+        report.dateFrom?.toISOString() ?? null,
 
       dateTo:
-        report.dateTo.toISOString(),
+        report.dateTo?.toISOString() ?? null,
 
       createdAt:
         report.createdAt.toISOString(),

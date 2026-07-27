@@ -10,6 +10,10 @@ import {
 } from "@/lib/certificates/report-certificate-attachments";
 import { renderLinkedAssessmentAttachmentsHtml } from "@/lib/report-2/report-linked-assessment-attachments";
 import { renderLinkedSurveyAttachmentsHtml } from "@/lib/report-2/report-linked-survey-attachments";
+import { roleHasReportTwoCapability } from "@/lib/report-2/report-two-access";
+import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
+import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -182,6 +186,10 @@ export async function POST(request: Request, context: RouteContext) {
   const current = await requireDashboardUser();
   const { caseId } = await context.params;
 
+  if (!roleHasReportTwoCapability(current.user.role, "REPORT_EXPORT")) {
+    return NextResponse.json({ error: "لا تملك صلاحية تصدير التقرير." }, { status: 403 });
+  }
+
   const access = await buildSmartReportPayloadForCase({
     caseId,
     current,
@@ -198,6 +206,28 @@ export async function POST(request: Request, context: RouteContext) {
       },
     );
   }
+
+  const officialReport = await prisma.reportTwoActive.findFirst({
+    where: {
+      caseEntryId: caseId,
+      status: "APPROVED",
+      ...(current.user.role === "ADMIN"
+        ? {}
+        : { schoolAccountId: current.user.schoolAccountId || "__missing__" }),
+    },
+    select: { id: true },
+  });
+  if (!officialReport) {
+    return NextResponse.json(
+      { error: "يجب اعتماد التقرير قبل الطباعة أو التصدير." },
+      { status: 409 },
+    );
+  }
+
+  const serviceGuard = await requireServiceAccessApi(
+    getActivityProgramsBillingServiceSlug(access.serviceSlug),
+  );
+  if (serviceGuard) return serviceGuard;
 
   const body = await readBody(request);
   const snapshot = sanitizeReportTwoSnapshot(body.snapshot) as any;

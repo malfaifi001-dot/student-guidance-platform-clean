@@ -1,10 +1,13 @@
 import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
+import { ReportTwoActivePreviewRenderer } from "@/components/report-2/report-two-active-preview-renderer";
 
 type SnapshotForDownload = {
   caseEntryId: string;
   reportTitle: string;
   snapshotTemplateJson?: unknown;
   snapshotPagesJson?: unknown;
+  renderContext?: unknown;
+  previewCase?: unknown;
 };
 
 type ReportTwoSnapshotPreviewProps = {
@@ -15,6 +18,10 @@ type ReportTwoSnapshotPreviewProps = {
     serviceSlug?: string | null;
     approvedAt?: string | null;
     approvedByName?: string | null;
+    status?: "DRAFT" | "APPROVED";
+    active?: boolean;
+    renderContext?: unknown;
+    previewCase?: unknown;
     snapshotTemplateJson?: unknown;
     snapshotPagesJson?: unknown;
     snapshotHtml: string;
@@ -40,6 +47,13 @@ export function ReportTwoSnapshotPreview({
   snapshot,
   printMode = false,
 }: ReportTwoSnapshotPreviewProps) {
+  const isApproved = !snapshot.status || snapshot.status === "APPROVED";
+  const canRenderStructured = Boolean(
+    snapshot.active &&
+      snapshot.snapshotTemplateJson &&
+      typeof snapshot.snapshotTemplateJson === "object",
+  );
+
   return (
     <main
       className={printMode ? "bg-white" : "px-6 py-8"}
@@ -69,8 +83,13 @@ export function ReportTwoSnapshotPreview({
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-                التقارير المعتمدة
+              <p className={[
+                "text-xs font-black",
+                isApproved
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-sky-700 dark:text-sky-400",
+              ].join(" ")}>
+                {isApproved ? "التقارير المعتمدة" : "التقارير المحفوظة"}
               </p>
 
               <h1 className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
@@ -80,23 +99,38 @@ export function ReportTwoSnapshotPreview({
               <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-400">
                 {snapshot.serviceName || snapshot.serviceSlug || "خدمة غير محددة"}
                 {" · "}
-                تم اعتماد التقرير {formatDate(snapshot.approvedAt)}
+                {isApproved
+                  ? `تم اعتماد التقرير ${formatDate(snapshot.approvedAt)}`
+                  : "مسودة"}
                 {snapshot.approvedByName ? ` · ${snapshot.approvedByName}` : ""}
               </p>
             </div>
 
-            <ReportTwoPdfDownloadButton
-              snapshot={snapshot as SnapshotForDownload}
-              className="inline-flex items-center justify-center rounded-2xl bg-sky-700 px-5 py-3 text-xs font-black text-white transition hover:bg-sky-800 disabled:opacity-60"
-            />
+            {isApproved ? (
+              <ReportTwoPdfDownloadButton
+                snapshot={snapshot as SnapshotForDownload}
+                className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
+              />
+            ) : (
+              <span className="inline-flex items-center justify-center rounded-2xl bg-sky-50 px-5 py-3 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                مسودة غير رسمية
+              </span>
+            )}
           </div>
         </section>
       ) : null}
 
-      <section
-        className={printMode ? "" : "mx-auto max-w-6xl pb-10"}
-        dangerouslySetInnerHTML={{ __html: snapshot.snapshotHtml }}
-      />
+      <section className={printMode ? "" : "mx-auto max-w-6xl pb-10"}>
+        {canRenderStructured ? (
+          <ReportTwoActivePreviewRenderer
+            template={snapshot.snapshotTemplateJson}
+            context={(snapshot.renderContext || {}) as Record<string, string>}
+            previewCase={snapshot.previewCase || null}
+          />
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: snapshot.snapshotHtml }} />
+        )}
+      </section>
     </main>
   );
 }

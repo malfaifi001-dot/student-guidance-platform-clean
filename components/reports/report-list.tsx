@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ReportActions } from "./report-actions";
 
 type Props = {
@@ -23,7 +22,9 @@ export function ReportList({ reports }: Props) {
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-100 px-8 py-6">
-        <h2 className="text-3xl font-black text-slate-900">التقارير المحفوظة</h2>
+        <h2 className="text-3xl font-black text-slate-900">
+          التقارير المحفوظة
+        </h2>
         <p className="mt-2 text-sm text-slate-500">
           يمكنك فتح التقارير، تعديله، معاينته، اعتماده أو حذفه.
         </p>
@@ -38,12 +39,24 @@ export function ReportList({ reports }: Props) {
           <table className="min-w-full">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">العنوان</th>
-                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">الخدمة</th>
-                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">المستفيد</th>
-                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">الحالة</th>
-                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">التاريخ</th>
-                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">الإجراء</th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  العنوان
+                </th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  الخدمة
+                </th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  المستفيد
+                </th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  الحالة
+                </th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  التاريخ
+                </th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-700">
+                  الإجراء
+                </th>
               </tr>
             </thead>
 
@@ -73,7 +86,11 @@ export function ReportList({ reports }: Props) {
                   </td>
 
                   <td className="px-6 py-5">
-                    <ReportActions reportId={report.id} status={report.status} />
+                    <ReportActions
+                      reportId={report.id}
+                      status={report.status}
+                      title={report.title}
+                    />
                   </td>
                 </tr>
               ))}

@@ -144,6 +144,15 @@ export default async function ReportTwoCaseStudioPage({
     .filter((template) => template.visible)
     .map(({ visible: _visible, ...template }) => template);
 
+  const activeReport = await prisma.reportTwoActive.findFirst({
+    where: {
+      caseEntryId: caseId,
+      ...(current.user.role === "ADMIN"
+        ? {}
+        : { schoolAccountId: current.user.schoolAccountId || "__missing__" }),
+    },
+  });
+
   return (
     <ReportTwoStudioRuntime
       caseId={caseId}
@@ -152,6 +161,14 @@ export default async function ReportTwoCaseStudioPage({
       initialMode={initialMode}
       payload={result.payload}
       templates={templates}
+      initialReport={activeReport ? {
+        id: activeReport.id,
+        status: activeReport.status,
+        version: activeReport.version,
+        approvedAt: activeReport.approvedAt?.toISOString() || null,
+        editorState: activeReport.editorState,
+        previewUrl: `/dashboard/report-2/snapshots/${activeReport.id}/preview`,
+      } : null}
     />
   );
 }

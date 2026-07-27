@@ -1067,6 +1067,11 @@ enum ReportStatus {
   ARCHIVED
 }
 
+enum ReportTwoStatus {
+  DRAFT
+  APPROVED
+}
+
 enum ReportTemplateType {
   SYSTEM
   SCHOOL
@@ -1140,6 +1145,45 @@ model ReportSnapshot {
   @@index([serviceSlug])
   @@index([approvedAt])
   @@index([approvedById])
+}
+
+model ReportTwoActive {
+  id              String  @id @default(cuid())
+  caseEntryId     String  @unique
+  schoolAccountId String
+  serviceSlug     String?
+  serviceName     String?
+
+  status       ReportTwoStatus @default(DRAFT)
+  reportTitle  String
+  templateId   String?
+  templateName String?
+  variantId    String?
+
+  sourcePayload Json
+  editorState   Json?
+  templateJson  Json?
+  pagesJson     Json?
+  renderedHtml  String  @db.LongText
+  renderContext Json?
+  previewCase   Json?
+  pdfUrl        String?
+
+  approvedById   String?
+  approvedByName String?
+  approvedAt     DateTime?
+  savedAt        DateTime  @default(now())
+  lastSyncedAt   DateTime?
+  syncMeta       Json?
+  version        Int       @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolAccountId])
+  @@index([serviceSlug])
+  @@index([status])
+  @@index([approvedAt])
 }
 
 model ReportEvidence {
@@ -1975,8 +2019,8 @@ model StatisticalReport {
   serviceNameSnapshot String @db.VarChar(191)
   title               String @db.VarChar(255)
 
-  dateFrom DateTime
-  dateTo   DateTime
+  dateFrom DateTime?
+  dateTo   DateTime?
 
   filtersJson              Json
   deterministicMetricsJson Json

@@ -1,38 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Trash2 } from "lucide-react";
+import { ReportDeleteAction } from "./report-delete-action";
 
 type Props = {
   reportId: string;
   status: string;
+  title?: string;
 };
 
-export function ReportActions({ reportId, status }: Props) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
-  async function deleteReport() {
-    const confirmed = confirm("هل أنت متأكد من حذف التقارير؟");
-    if (!confirmed) return;
-
-    setLoading(true);
-
-    const response = await fetch(`/api/dashboard/reports/${reportId}/delete`, {
-      method: "DELETE",
-    });
-
-    setLoading(false);
-
-    if (!response.ok) {
-      alert("فشل حذف التقارير.");
-      return;
-    }
-
-    router.refresh();
-  }
-
+export function ReportActions({
+  reportId,
+  status,
+  title = "التقرير المحدد",
+}: Props) {
   return (
     <div className="flex flex-wrap gap-2">
       <Link
@@ -49,14 +31,15 @@ export function ReportActions({ reportId, status }: Props) {
         Preview
       </Link>
 
-      <button
-        type="button"
-        onClick={deleteReport}
-        disabled={loading}
+      <ReportDeleteAction
+        reportId={reportId}
+        reportTitle={title}
+        reportStatus={status}
+        deleteEndpoint={`/api/dashboard/reports/${encodeURIComponent(reportId)}/delete`}
         className="rounded-xl border border-red-200 px-4 py-2 text-sm font-black text-red-600 hover:bg-red-50 disabled:opacity-50"
       >
-        {loading ? "جارٍ الحذف..." : "حذف"}
-      </button>
+        <Trash2 className="inline h-4 w-4" /> حذف
+      </ReportDeleteAction>
     </div>
   );
 }

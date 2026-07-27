@@ -184,6 +184,12 @@ export async function getStatisticsReportView(
     asRecord(
       report.aiAnalysisJson,
     );
+  const storedServices = Array.isArray(deterministic.services)
+    ? deterministic.services
+        .map((item) => asRecord(item))
+        .map((item) => cleanString(item.name))
+        .filter(Boolean)
+    : [];
 
   return {
     id: report.id,
@@ -194,12 +200,13 @@ export async function getStatisticsReportView(
 
     serviceName:
       report.serviceNameSnapshot,
+    serviceNames: storedServices.length ? storedServices : [report.serviceNameSnapshot],
 
     dateFrom:
-      report.dateFrom.toISOString(),
+      report.dateFrom?.toISOString() ?? null,
 
     dateTo:
-      report.dateTo.toISOString(),
+      report.dateTo?.toISOString() ?? null,
 
     sourceCaseCount:
       report.sourceCaseCount,

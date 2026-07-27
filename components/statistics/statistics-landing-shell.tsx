@@ -128,7 +128,7 @@ export function StatisticsLandingShell() {
   }
 
   function startPreparation(input: {
-    serviceSlug: string;
+    serviceSlugs: string[];
     preset: StatisticsDatePreset;
     from?: string;
     to?: string;
@@ -136,10 +136,7 @@ export function StatisticsLandingShell() {
     const params =
       new URLSearchParams();
 
-    params.set(
-      "serviceSlug",
-      input.serviceSlug,
-    );
+    input.serviceSlugs.forEach((serviceSlug) => params.append("serviceSlug", serviceSlug));
 
     params.set(
       "preset",
@@ -206,8 +203,7 @@ export function StatisticsLandingShell() {
           </p>
 
           <p className="mt-2 text-xs leading-5 text-slate-500">
-            خدمات تحتوي على تقارير صادرة
-            ضمن نطاق الحساب.
+            كل الخدمات النشطة المتاحة ضمن الاشتراك.
           </p>
         </article>
 
@@ -255,9 +251,9 @@ export function StatisticsLandingShell() {
           {[
             {
               number: "1",
-              title: "اختيار الخدمة",
+              title: "اختيار الخدمات",
               text:
-                "تظهر الخدمات التي لديها تقارير صادرة فعلية فقط.",
+                "اختر خدمة واحدة أو عدة خدمات متاحة ضمن اشتراك المدرسة.",
             },
             {
               number: "2",

@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 
 import {
   requireActiveSubscriptionForCurrentUser,
-  requireServiceAccessForCurrentUser,
 } from "@/bin/require-auth";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
 import { requireStatisticsRole } from "@/lib/statistics/statistics-access";
 import {
-  buildStatisticsServiceOptions,
   listIssuedReportSources,
 } from "@/lib/statistics/statistics-issued-report-source";
+import { listAllowedStatisticsServices } from "@/lib/statistics/statistics-service-selection";
 
 export const dynamic = "force-dynamic";
 
@@ -39,43 +38,32 @@ export async function GET() {
     );
   }
 
-  const subscriptionResult =
-    await requireActiveSubscriptionForCurrentUser();
-
-  if (subscriptionResult instanceof Response) {
-    return subscriptionResult;
+  if (!context.isAdmin) {
+    const subscriptionResult = await requireActiveSubscriptionForCurrentUser();
+    if (subscriptionResult instanceof Response) return subscriptionResult;
   }
 
   const issuedSources =
     await listIssuedReportSources(context);
 
-  const discoveredServices =
-    buildStatisticsServiceOptions(issuedSources);
-
-  const allowedServices = [];
-
-  for (const service of discoveredServices) {
-    const accessResult =
-      await requireServiceAccessForCurrentUser(
-        service.slug,
-      );
-
-    if (!(accessResult instanceof Response)) {
-      allowedServices.push(service);
-    }
-  }
-
-  const allowedSlugs = new Set(
-    allowedServices.map((service) => service.slug),
-  );
+  const availableServices = await listAllowedStatisticsServices(context);
+  const allowedSlugs = new Set(availableServices.map((service) => service.slug));
 
   const allowedSources = issuedSources.filter(
     (source) => allowedSlugs.has(source.serviceSlug),
   );
+  const services = availableServices.map((service) => {
+    const sources = allowedSources.filter((source) => source.serviceSlug === service.slug);
+    return {
+      ...service,
+      eligibleCaseCount: new Set(sources.map((source) => source.caseEntryId)).size,
+      issuedReportCount: new Set(sources.map((source) => source.normalizedId)).size,
+    };
+  });
 
   return NextResponse.json({
     success: true,
-    services: allowedServices,
+    services,
     totals: {
       eligibleCaseCount: new Set(
         allowedSources.map(

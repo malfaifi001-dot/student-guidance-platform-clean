@@ -40,6 +40,7 @@ type FeedbackState = {
   type: "success" | "error" | "warning" | "info";
   title: string;
   message?: string;
+  confirmation?: "APPROVED_REPORT_SYNC";
 };
 
 type SmartStudent = {
@@ -98,6 +99,7 @@ type Props = {
     key: string;
     label: string;
   }) => void;
+  reportSyncStatus?: "DRAFT" | "APPROVED" | null;
 };
 
 /**
@@ -640,6 +642,7 @@ export function DynamicFormRenderer({
   onValuesChange,
   onEvidenceItemsChange,
   onFieldLabelPersisted,
+  reportSyncStatus = null,
 }: Props) {
   const router = useRouter();
 
@@ -1107,7 +1110,38 @@ export function DynamicFormRenderer({
     return true;
   }
 
+  const pendingApprovedSaveTypeRef = useRef<"draft" | "submit" | null>(null);
+
+  function hasWorkflowChanges() {
+    try {
+      return (
+        JSON.stringify(values) !== JSON.stringify(initialValues ?? {}) ||
+        JSON.stringify(evidenceItems) !==
+          JSON.stringify(initialEvidenceItems ?? [])
+      );
+    } catch {
+      return true;
+    }
+  }
+
   async function handleSave(type: "draft" | "submit") {
+    if (reportSyncStatus === "APPROVED" && hasWorkflowChanges()) {
+      pendingApprovedSaveTypeRef.current = type;
+      setFeedback({
+        open: true,
+        type: "warning",
+        title: "تحديث حالة مرتبطة بتقرير معتمد",
+        message:
+          "سيتم تحديث البيانات المرتبطة داخل التقرير المعتمد، مع بقاء حالة الاعتماد وتاريخ الاعتماد كما هما.",
+        confirmation: "APPROVED_REPORT_SYNC",
+      });
+      return;
+    }
+
+    await performSave(type);
+  }
+
+  async function performSave(type: "draft" | "submit") {
     if (!validateStudentSelection()) return;
     if (type === "submit" && !validateCurrentStep()) return;
 
@@ -1174,6 +1208,8 @@ export function DynamicFormRenderer({
         }
 
         redirectTo = `${caseDetailsBasePath}/${data.caseId}`;
+        feedbackTitle = "تم حفظ بيانات الحالة";
+        feedbackMessage = data.message || data.reportSync?.message || feedbackMessage;
       }
 
       showFeedback("success", feedbackTitle, feedbackMessage);
@@ -1243,6 +1279,27 @@ export function DynamicFormRenderer({
         type={feedback.type}
         title={feedback.title}
         description={feedback.message}
+        primaryActionLabel={
+          feedback.confirmation === "APPROVED_REPORT_SYNC"
+            ? "حفظ وتحديث التقرير"
+            : undefined
+        }
+        secondaryActionLabel={
+          feedback.confirmation === "APPROVED_REPORT_SYNC" ? "إلغاء" : undefined
+        }
+        onPrimaryAction={
+          feedback.confirmation === "APPROVED_REPORT_SYNC"
+            ? () => {
+                const type = pendingApprovedSaveTypeRef.current;
+                pendingApprovedSaveTypeRef.current = null;
+                if (type) void performSave(type);
+              }
+            : undefined
+        }
+        onSecondaryAction={() => {
+          pendingApprovedSaveTypeRef.current = null;
+          setFeedback((current) => ({ ...current, open: false }));
+        }}
         onOpenChange={(open) => setFeedback((current) => ({ ...current, open }))}
       />
 
