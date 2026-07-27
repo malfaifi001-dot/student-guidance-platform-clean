@@ -7,7 +7,9 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function appendSearchParams(searchParams: Record<string, string | string[] | undefined>) {
+function appendSearchParams(
+  searchParams: Record<string, string | string[] | undefined>,
+) {
   const params = new URLSearchParams();
 
   Object.entries(searchParams).forEach(([key, value]) => {
@@ -36,9 +38,13 @@ export default async function GuardianSummonsReportCompatibilityPage({
       Promise.resolve({} as Record<string, string | string[] | undefined>),
   ]);
 
+  const printRequested =
+    query.print === "1" ||
+    (Array.isArray(query.print) && query.print.includes("1"));
+
   redirect(
-    `/print/guardian-summons/${encodeURIComponent(caseId)}${appendSearchParams(
-      query,
-    )}`,
+    printRequested
+      ? `/print/guardian-summons/${encodeURIComponent(caseId)}?print=1`
+      : `/dashboard/guardian-summons/${encodeURIComponent(caseId)}/preview${appendSearchParams(query)}`,
   );
 }

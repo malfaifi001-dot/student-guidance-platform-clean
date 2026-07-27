@@ -1,0 +1,2920 @@
+
+============================================================
+FILE: app\print\guardian-summons\[caseId]\page.tsx
+============================================================
+import { notFound } from "next/navigation";
+
+import {
+  GuardianSummonsTemplate,
+  type GuardianSummonsReasonItem,
+  type GuardianSummonsTemplateData,
+} from "@/components/reports/guardian-summons/guardian-summons-template";
+import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
+import { prisma } from "@/lib/prisma";
+import { repairPotentialUtf8Mojibake } from "@/lib/text/repair-utf8-mojibake";
+
+import { GuardianSummonsPrintController } from "./print-controller";
+
+type PageProps = {
+  params: Promise<{
+    caseId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type WorkflowOptionDefinition = {
+  id?: string | null;
+  label?: string | null;
+  value?: string | null;
+  order?: number | null;
+};
+
+type WorkflowFieldDefinition = {
+  id?: string | null;
+  key?: string | null;
+  label?: string | null;
+  type?: string | null;
+  options?: WorkflowOptionDefinition[] | null;
+};
+
+type WorkflowForDefinitions = {
+  steps?: Array<{
+    fields?: WorkflowFieldDefinition[] | null;
+  }> | null;
+} | null;
+
+type CaseValueRow = {
+  id: string;
+  fieldId: string | null;
+  fieldKey: string;
+  value: string | null;
+  jsonValue: unknown;
+  field: WorkflowFieldDefinition | null;
+};
+
+type WorkflowFieldDefinitionMap = {
+  byId: Map<string, WorkflowFieldDefinition>;
+  byKey: Map<string, WorkflowFieldDefinition>;
+  byNormalizedKey: Map<string, WorkflowFieldDefinition>;
+};
+
+type StoredChoice = {
+  tokens: string[];
+  fallbackLabel: string;
+};
+
+type UserGender = "MALE" | "FEMALE" | "UNKNOWN" | string | null;
+
+type GuardianSummonsCurrentUser = {
+  name: string | null;
+  officialName: string | null;
+  jobTitle: string | null;
+  gender: UserGender;
+} | null;
+
+const DAY_LABELS: Record<string, string> = {
+  sunday: "الأحد",
+  monday: "الاثنين",
+  tuesday: "الثلاثاء",
+  wednesday: "الأربعاء",
+  thursday: "الخميس",
+  friday: "الجمعة",
+  saturday: "السبت",
+};
+
+const PERIOD_LABELS: Record<string, string> = {
+  am: "صباحًا",
+  morning: "صباحًا",
+  pm: "مساءً",
+  evening: "مساءً",
+  p1: "الحصة الأولى",
+  p2: "الحصة الثانية",
+  p3: "الحصة الثالثة",
+  p4: "الحصة الرابعة",
+  p5: "الحصة الخامسة",
+  p6: "الحصة السادسة",
+  p7: "الحصة السابعة",
+};
+
+const LEGACY_REASON_LABELS: Record<string, string> = {
+  frequent_absence: "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.",
+  absence: "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.",
+  morning_lateness: "تأخره الصباحي المتكرر لأكثر من خمسة أيام بدون عذر.",
+  lateness: "تأخره الصباحي المتكرر لأكثر من خمسة أيام بدون عذر.",
+  low_academic_achievement: "ضعف التحصيل الدراسي.",
+  low_achievement: "ضعف التحصيل الدراسي.",
+  academic_weakness: "ضعف التحصيل الدراسي.",
+  low_test_scores: "انخفاض درجات الاختبارات.",
+  behavior_problem: "وجود مشكلة سلوكية.",
+  behavioral_problem: "وجود مشكلة سلوكية.",
+  other: "أخرى",
+  __other__: "أخرى",
+};
+
+function cleanText(value: unknown) {
+  const text = String(repairPotentialUtf8Mojibake(value) ?? "").trim();
+
+  return text && text !== "null" && text !== "undefined" ? text : "";
+}
+
+function normalizeInternalSignatureUrl(value: unknown) {
+  const url = cleanText(value).replace(/\\/g, "/");
+
+  if (!url) return "";
+  if (url.includes("..")) return "";
+  if (/^[a-z]:\//i.test(url)) return "";
+  if (/^(https?:|data:|javascript:|file:|blob:)/i.test(url)) return "";
+  if (!url.startsWith("/uploads/school-signatures/")) return "";
+
+  return url;
+}
+
+function normalizeText(value: unknown) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[_\s-]+/g, "")
+    .trim();
+}
+
+function normalizeLookupKey(value: unknown) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, "_")
+    .replace(/-+/g, "_")
+    .trim();
+}
+
+function isOtherReason(value: unknown) {
+  const lookupKey = normalizeLookupKey(value);
+  const compactKey = normalizeText(value);
+
+  return (
+    lookupKey === "other" ||
+    lookupKey === "__other__" ||
+    compactKey === "اخرى" ||
+    compactKey.includes("اخرى")
+  );
+}
+
+function toArabicDigits(value: string) {
+  const digits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+
+  return value.replace(/\d/g, (digit) => digits[Number(digit)] || digit);
+}
+
+function parsePotentialJson(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) return "";
+
+  if (
+    (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+    (trimmed.startsWith("{") && trimmed.endsWith("}"))
+  ) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed;
+    }
+  }
+
+  return trimmed;
+}
+
+function getRawStoredValue(row: CaseValueRow) {
+  if (row.jsonValue !== null && row.jsonValue !== undefined) {
+    return row.jsonValue;
+  }
+
+  const text = cleanText(row.value);
+
+  return text ? parsePotentialJson(text) : "";
+}
+
+function stringifyRawValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+
+  if (typeof value === "string") return cleanText(value);
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(stringifyRawValue).filter(Boolean).join("، ");
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    return (
+      cleanText(record.label) ||
+      cleanText(record.name) ||
+      cleanText(record.fullName) ||
+      cleanText(record.value) ||
+      cleanText(record.key) ||
+      cleanText(record.id) ||
+      ""
+    );
+  }
+
+  return cleanText(value);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function buildWorkflowFieldDefinitionMap(
+  workflow: WorkflowForDefinitions,
+): WorkflowFieldDefinitionMap {
+  const byId = new Map<string, WorkflowFieldDefinition>();
+  const byKey = new Map<string, WorkflowFieldDefinition>();
+  const byNormalizedKey = new Map<string, WorkflowFieldDefinition>();
+
+  workflow?.steps?.forEach((step) => {
+    step.fields?.forEach((field) => {
+      const id = cleanText(field.id);
+      const key = cleanText(field.key);
+
+      if (id) byId.set(id, field);
+      if (key) {
+        byKey.set(key, field);
+        byNormalizedKey.set(normalizeText(key), field);
+      }
+    });
+  });
+
+  return {
+    byId,
+    byKey,
+    byNormalizedKey,
+  };
+}
+
+function getFieldForRow(
+  row: CaseValueRow,
+  fieldMap: WorkflowFieldDefinitionMap,
+) {
+  const fieldId = cleanText(row.fieldId || row.field?.id);
+  const fieldKey = cleanText(row.field?.key || row.fieldKey);
+  const normalizedFieldKey = normalizeText(fieldKey);
+
+  return (
+    (fieldId ? fieldMap.byId.get(fieldId) : null) ||
+    (fieldKey ? fieldMap.byKey.get(fieldKey) : null) ||
+    (normalizedFieldKey ? fieldMap.byNormalizedKey.get(normalizedFieldKey) : null) ||
+    row.field ||
+    null
+  );
+}
+
+function findValueRow(
+  rows: CaseValueRow[],
+  fieldMap: WorkflowFieldDefinitionMap,
+  aliases: string[],
+) {
+  const normalizedAliases = new Set(aliases.map(normalizeText).filter(Boolean));
+
+  return (
+    rows.find((row) => {
+      const field = getFieldForRow(row, fieldMap);
+      const keys = [row.fieldKey, row.field?.key, field?.key]
+        .map(normalizeText)
+        .filter(Boolean);
+
+      return keys.some((key) => normalizedAliases.has(key));
+    }) || null
+  );
+}
+
+function extractStoredChoices(value: unknown): StoredChoice[] {
+  if (value === null || value === undefined || value === "") {
+    return [];
+  }
+
+  if (typeof value === "string") {
+    const parsed = parsePotentialJson(value);
+
+    if (parsed !== value) {
+      return extractStoredChoices(parsed);
+    }
+
+    return value
+      .split(",")
+      .map((item) => cleanText(item))
+      .filter(Boolean)
+      .map((item) => ({
+        tokens: [item],
+        fallbackLabel: item,
+      }));
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    const text = String(value);
+
+    return [{ tokens: [text], fallbackLabel: text }];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractStoredChoices(item));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const tokens = [
+      record.value,
+      record.label,
+      record.name,
+      record.id,
+      record.key,
+    ]
+      .map(cleanText)
+      .filter(Boolean);
+    const fallbackLabel =
+      cleanText(record.label) ||
+      cleanText(record.name) ||
+      cleanText(record.value) ||
+      cleanText(record.key) ||
+      cleanText(record.id);
+
+    return tokens.length ? [{ tokens, fallbackLabel }] : [];
+  }
+
+  const text = cleanText(value);
+
+  return text ? [{ tokens: [text], fallbackLabel: text }] : [];
+}
+
+function getOtherValueForField(fieldKey: string, rows: CaseValueRow[]) {
+  if (!fieldKey) return "";
+
+  const otherKey = `${fieldKey}__other`;
+
+  const found = rows.find((row) => {
+    const key = row.field?.key || row.fieldKey;
+
+    return key === otherKey || row.fieldKey === otherKey;
+  });
+
+  if (!found) return "";
+
+  return stringifyRawValue(found.jsonValue ?? found.value);
+}
+
+function findOptionByChoice(
+  field: WorkflowFieldDefinition | null,
+  choice: StoredChoice,
+) {
+  const options = field?.options || [];
+  const normalizedTokens = choice.tokens.map(normalizeText).filter(Boolean);
+
+  return (
+    options.find((option) => {
+      const optionValue = normalizeText(option.value);
+      const optionLabel = normalizeText(option.label);
+      const optionId = normalizeText(option.id);
+
+      return normalizedTokens.some(
+        (token) =>
+          token === optionValue || token === optionLabel || token === optionId,
+      );
+    }) || null
+  );
+}
+
+function fallbackLabelForToken(value: string) {
+  const lookupKey = normalizeLookupKey(value);
+
+  return (
+    DAY_LABELS[lookupKey] ||
+    PERIOD_LABELS[lookupKey] ||
+    LEGACY_REASON_LABELS[lookupKey] ||
+    ""
+  );
+}
+
+function resolveSingleWorkflowLabel(
+  field: WorkflowFieldDefinition | null,
+  choice: StoredChoice,
+  otherValue = "",
+) {
+  const matchedOption = findOptionByChoice(field, choice);
+  const rawValue = choice.tokens[0] || choice.fallbackLabel;
+  const optionValue = cleanText(matchedOption?.value);
+  const optionLabel = cleanText(matchedOption?.label);
+  const normalizedValue = normalizeLookupKey(optionValue || rawValue);
+
+  if (normalizedValue === "other" || normalizedValue === "__other__") {
+    return otherValue || optionLabel || "أخرى";
+  }
+
+  return (
+    optionLabel ||
+    fallbackLabelForToken(rawValue) ||
+    cleanText(choice.fallbackLabel) ||
+    rawValue
+  );
+}
+
+function resolveStoredOptionLabels(
+  field: WorkflowFieldDefinition | null,
+  rawValue: unknown,
+  otherValue = "",
+) {
+  const choices = extractStoredChoices(rawValue);
+  const seen = new Set<string>();
+
+  return choices
+    .map((choice) => resolveSingleWorkflowLabel(field, choice, otherValue))
+    .map(cleanText)
+    .filter(Boolean)
+    .filter((label) => {
+      const key = normalizeText(label);
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+
+      return true;
+    });
+}
+
+function resolveWorkflowValue(
+  row: CaseValueRow,
+  fieldMap: WorkflowFieldDefinitionMap,
+  rows: CaseValueRow[],
+) {
+  const field = getFieldForRow(row, fieldMap);
+  const rawValue = getRawStoredValue(row);
+  const fieldKey = cleanText(field?.key || row.fieldKey);
+  const labels = resolveStoredOptionLabels(
+    field,
+    rawValue,
+    getOtherValueForField(fieldKey, rows),
+  );
+
+  if (field?.options?.length || labels.some((label) => label !== stringifyRawValue(rawValue))) {
+    return labels.join("، ");
+  }
+
+  return stringifyRawValue(rawValue);
+}
+
+function findResolvedValue(
+  rows: CaseValueRow[],
+  fieldMap: WorkflowFieldDefinitionMap,
+  aliases: string[],
+) {
+  const row = findValueRow(rows, fieldMap, aliases);
+
+  return row ? cleanText(resolveWorkflowValue(row, fieldMap, rows)) : "";
+}
+
+function getObjectText(
+  value: Record<string, unknown> | null | undefined,
+  keys: string[],
+) {
+  if (!value) return "";
+
+  for (const key of keys) {
+    const text = cleanText(value[key]);
+    if (text) return text;
+  }
+
+  return "";
+}
+
+function formatArabicDate(value: string) {
+  const text = cleanText(value);
+
+  if (!text) return "";
+
+  const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (isoDate) {
+    return toArabicDigits(`${isoDate[3]} / ${isoDate[2]} / ${isoDate[1]}`);
+  }
+
+  const parsed = new Date(text);
+
+  if (!Number.isNaN(parsed.getTime())) {
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const year = String(parsed.getFullYear());
+
+    return toArabicDigits(`${day} / ${month} / ${year}`);
+  }
+
+  return toArabicDigits(text);
+}
+
+function formatTime(value: string) {
+  const text = cleanText(value);
+
+  if (!text) return "";
+
+  return toArabicDigits(text.replace(/:00$/, ":00"));
+}
+
+function buildReasonItems(
+  rows: CaseValueRow[],
+  fieldMap: WorkflowFieldDefinitionMap,
+): GuardianSummonsReasonItem[] {
+  const row = findValueRow(rows, fieldMap, [
+    "summons_reasons",
+    "summonsReasons",
+    "summons_reason",
+    "summonsReason",
+  ]);
+
+  if (!row) return [];
+
+  const field = getFieldForRow(row, fieldMap);
+  const rawValue = getRawStoredValue(row);
+  const choices = extractStoredChoices(rawValue);
+  const otherValue = getOtherValueForField(
+    cleanText(field?.key || row.fieldKey),
+    rows,
+  );
+  const seen = new Set<string>();
+
+  return choices
+    .map((choice, index) => {
+      const matchedOption = findOptionByChoice(field, choice);
+      const optionValue = cleanText(matchedOption?.value);
+      const optionLabel = cleanText(matchedOption?.label);
+      const rawIdentity =
+        optionValue ||
+        choice.tokens[0] ||
+        choice.fallbackLabel;
+
+      const resolvedLabel =
+        optionLabel ||
+        fallbackLabelForToken(rawIdentity) ||
+        resolveSingleWorkflowLabel(field, choice, otherValue) ||
+        rawIdentity;
+
+      const other =
+        normalizeLookupKey(optionValue) === "other" ||
+        normalizeLookupKey(optionValue) === "__other__" ||
+        normalizeLookupKey(rawIdentity) === "other" ||
+        normalizeLookupKey(rawIdentity) === "__other__" ||
+        normalizeText(resolvedLabel).includes("اخرى");
+
+      return {
+        id:
+          cleanText(matchedOption?.id) ||
+          optionValue ||
+          `${row.id}-${index}`,
+        label: other ? "أخرى" : cleanText(resolvedLabel),
+        selected: true,
+        otherText: other ? otherValue || null : null,
+      };
+    })
+    .filter((reason) => {
+      const key =
+        isOtherReason(reason.id) || isOtherReason(reason.label)
+          ? "other"
+          : normalizeText(reason.label);
+
+      if (!key || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+}
+
+function getHijriYear(value: Date | string | null | undefined) {
+  const date = value ? new Date(value) : new Date();
+
+  try {
+    const parts = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+      year: "numeric",
+    }).formatToParts(date);
+
+    return parts.find((part) => part.type === "year")?.value || "";
+  } catch {
+    return "";
+  }
+}
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function getDefaultCounselorTitle(gender: UserGender) {
+  if (gender === "MALE") return "الموجه الطلابي";
+  if (gender === "FEMALE") return "الموجهة الطلابية";
+
+  return "الموجه/ـة الطلابي/ـة";
+}
+
+function buildGuardianSummonsSignatoryData({
+  caseEntry,
+  currentUser,
+}: {
+  caseEntry: Awaited<ReturnType<typeof loadGuardianSummonsCase>>;
+  currentUser: GuardianSummonsCurrentUser;
+}) {
+  const schoolProfile = caseEntry.schoolAccount.profile;
+  const creator = caseEntry.createdBy;
+  const counselorGender = creator?.gender || currentUser?.gender || "UNKNOWN";
+  const counselorJobTitle =
+    cleanText(creator?.jobTitle) ||
+    cleanText(currentUser?.jobTitle) ||
+    getDefaultCounselorTitle(counselorGender);
+
+  return {
+    counselorName:
+      cleanText(creator?.officialName) ||
+      cleanText(creator?.name) ||
+      cleanText(currentUser?.officialName) ||
+      cleanText(currentUser?.name),
+    counselorJobTitle,
+    counselorSignatureUrl: normalizeInternalSignatureUrl(
+      schoolProfile?.counselorSignatureUrl,
+    ),
+    principalName: cleanText(schoolProfile?.principalName),
+    principalJobTitle: "مدير/ة المدرسة",
+    principalSignatureUrl: normalizeInternalSignatureUrl(
+      schoolProfile?.principalSignatureUrl,
+    ),
+  };
+}
+
+async function loadGuardianSummonsCase(
+  caseId: string,
+  context: {
+    isAdmin: boolean;
+    schoolAccountId: string | null;
+  },
+) {
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: {
+      id: caseId,
+      service: {
+        slug: "guardian-summons",
+      },
+      ...(context.isAdmin
+        ? {}
+        : { schoolAccountId: context.schoolAccountId || "__missing__" }),
+    },
+    include: {
+      schoolAccount: {
+        include: {
+          profile: true,
+        },
+      },
+      service: true,
+      workflow: {
+        include: {
+          steps: {
+            orderBy: {
+              order: "asc",
+            },
+            include: {
+              fields: {
+                orderBy: {
+                  order: "asc",
+                },
+                include: {
+                  options: {
+                    orderBy: {
+                      order: "asc",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      student: {
+        include: {
+          guardian: true,
+        },
+      },
+      createdBy: {
+        select: {
+          name: true,
+          officialName: true,
+          jobTitle: true,
+          gender: true,
+        },
+      },
+      values: {
+        include: {
+          field: {
+            include: {
+              options: {
+                orderBy: {
+                  order: "asc",
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  if (!caseEntry) {
+    notFound();
+  }
+
+  return caseEntry;
+}
+
+function buildGuardianSummonsTemplateData({
+  caseEntry,
+  currentUser,
+}: {
+  caseEntry: Awaited<ReturnType<typeof loadGuardianSummonsCase>>;
+  currentUser: GuardianSummonsCurrentUser;
+}): GuardianSummonsTemplateData {
+  const schoolProfile = caseEntry.schoolAccount.profile;
+  const student = caseEntry.student;
+  const guardian = student?.guardian;
+  const values = caseEntry.values as CaseValueRow[];
+  const fieldMap = buildWorkflowFieldDefinitionMap(caseEntry.workflow);
+  const selectedStudent = asRecord(
+    values.find((item) => item.fieldKey === "selectedStudent")?.jsonValue,
+  );
+  const guardianSnapshot = asRecord(
+    values.find((item) => item.fieldKey === "guardianSnapshot")?.jsonValue,
+  );
+  const guardianName =
+    findResolvedValue(values, fieldMap, [
+      "guardian_name",
+      "guardianName",
+      "parent_name",
+      "parentName",
+    ]) ||
+    cleanText(guardian?.name) ||
+    getObjectText(guardianSnapshot, ["name", "fullName", "guardianName"]) ||
+    getObjectText(selectedStudent, ["guardianName"]);
+  const guardianPhone =
+    findResolvedValue(values, fieldMap, [
+      "guardian_phone",
+      "guardianPhone",
+      "parent_phone",
+      "parentPhone",
+      "guardian_mobile",
+      "guardianMobile",
+    ]) ||
+    cleanText(guardian?.phone) ||
+    getObjectText(guardianSnapshot, ["phone", "mobile", "guardianPhone"]) ||
+    getObjectText(selectedStudent, ["guardianPhone"]);
+  const appointmentDate = findResolvedValue(values, fieldMap, [
+    "attendance_date",
+    "attendanceDate",
+    "summons_date",
+    "summonsDate",
+  ]);
+  const notes = findResolvedValue(values, fieldMap, ["notes", "note"]);
+  const signatoryData = buildGuardianSummonsSignatoryData({
+    caseEntry,
+    currentUser,
+  });
+
+  return {
+    schoolName:
+      cleanText(schoolProfile?.schoolName) || cleanText(caseEntry.schoolAccount.name),
+    educationDepartment: cleanText(schoolProfile?.educationDepartment),
+    educationOffice: cleanText(schoolProfile?.educationOffice),
+    hijriYear:
+      cleanText(schoolProfile?.academicYear) ||
+      getHijriYear(caseEntry.submittedAt || caseEntry.createdAt),
+    guardianName,
+    guardianPhone,
+    studentGrade:
+      findResolvedValue(values, fieldMap, [
+        "student_grade",
+        "studentGrade",
+        "grade",
+      ]) ||
+      cleanText(student?.grade) ||
+      getObjectText(selectedStudent, ["grade", "studentGrade"]),
+    studentClassroom:
+      findResolvedValue(values, fieldMap, [
+        "student_classroom",
+        "studentClassroom",
+        "classroom",
+        "class_name",
+        "className",
+        "section",
+      ]) ||
+      cleanText(student?.classroom) ||
+      getObjectText(selectedStudent, ["classroom", "section"]),
+    appointmentDay: findResolvedValue(values, fieldMap, [
+      "attendance_day",
+      "attendanceDay",
+      "summons_day",
+      "summonsDay",
+    ]),
+    appointmentDate: formatArabicDate(appointmentDate),
+    appointmentTime: formatTime(
+      findResolvedValue(values, fieldMap, [
+        "attendance_time",
+        "attendanceTime",
+        "summons_time",
+        "summonsTime",
+      ]),
+    ),
+    period: findResolvedValue(values, fieldMap, ["period"]),
+    reasons: buildReasonItems(values, fieldMap),
+    notes,
+    ...signatoryData,
+  };
+}
+
+export default async function GuardianSummonsStandalonePrintPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const [{ caseId }, query, context] = await Promise.all([
+    params,
+    searchParams ??
+      Promise.resolve({} as Record<string, string | string[] | undefined>),
+    requireDashboardPageContext(),
+  ]);
+  const caseEntry = await loadGuardianSummonsCase(caseId, context);
+  const currentUser = await prisma.user.findUnique({
+    where: {
+      id: context.user.id,
+    },
+    select: {
+      name: true,
+      officialName: true,
+      jobTitle: true,
+      gender: true,
+    },
+  });
+  const data = buildGuardianSummonsTemplateData({
+    caseEntry,
+    currentUser,
+  });
+
+  return (
+    <main dir="rtl" className="guardian-summons-print-shell">
+      <style>{`
+        :root,
+        html,
+        body {
+          color-scheme: light !important;
+          margin: 0 !important;
+          background: #e5e7eb !important;
+        }
+
+        .guardian-summons-print-shell {
+          min-height: 100vh;
+          padding: 24px 0;
+          background: #e5e7eb;
+        }
+
+        @media print {
+          :root,
+          html,
+          body {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+          }
+
+          .guardian-summons-print-shell {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+          }
+        }
+      `}</style>
+      <GuardianSummonsPrintController shouldPrint={firstParam(query.print) === "1"} />
+      <GuardianSummonsTemplate data={data} />
+    </main>
+  );
+}
+
+
+============================================================
+FILE: app\print\guardian-summons\[caseId]\print-controller.tsx
+============================================================
+"use client";
+
+import { useEffect } from "react";
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForWindowLoad() {
+  if (document.readyState === "complete") return;
+
+  await new Promise<void>((resolve) => {
+    window.addEventListener("load", () => resolve(), { once: true });
+  });
+}
+
+async function waitForFonts() {
+  try {
+    const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } })
+      .fonts;
+
+    if (fonts?.ready) {
+      await fonts.ready;
+    }
+  } catch {
+    // Printing should continue even when the browser does not expose font readiness.
+  }
+}
+
+async function waitForImages() {
+  const images = Array.from(document.images);
+
+  await Promise.all(
+    images.map(async (image) => {
+      if (image.complete) return;
+
+      await new Promise<void>((resolve) => {
+        image.addEventListener("load", () => resolve(), { once: true });
+        image.addEventListener("error", () => resolve(), { once: true });
+      });
+    }),
+  );
+}
+
+export function GuardianSummonsPrintController({
+  shouldPrint,
+}: {
+  shouldPrint: boolean;
+}) {
+  useEffect(() => {
+    if (!shouldPrint) return;
+
+    let cancelled = false;
+
+    async function triggerPrint() {
+      await waitForWindowLoad();
+      await waitForFonts();
+      await waitForImages();
+      await sleep(250);
+
+      if (!cancelled) {
+        window.print();
+      }
+    }
+
+    void triggerPrint();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [shouldPrint]);
+
+  return null;
+}
+
+
+============================================================
+FILE: components\report-engine\guardian-summons-letter-preview.tsx
+============================================================
+"use client";
+
+import { useState } from "react";
+import type { RuntimePreviewCaseData } from "@/lib/report-engine/report-template-runtime-types";
+
+type GuardianSummonsLetterPreviewProps = {
+  template?: unknown;
+  previewCaseData?: RuntimePreviewCaseData | null;
+  snippets?: unknown;
+  pdfMode?: boolean;
+  forceOfficialHeader?: boolean;
+  showDynamicFields?: boolean;
+};
+
+type PreviewValue = {
+  fieldKey?: string;
+  fieldLabel?: string;
+  value?: unknown;
+};
+
+type TemplateInfo = {
+  name: string;
+  description: string;
+  sourceLabel: string;
+};
+
+type RolePreviewMode = "identity" | "male" | "female";
+
+type DynamicFieldInfo = {
+  key: string;
+  label: string;
+  description: string;
+};
+
+const MOE_LOGO_SRC = "/uploads/school-logos/MOE.png";
+
+export const guardianSummonsDynamicFields: DynamicFieldInfo[] = [
+  { key: "schoolName", label: "اسم المدرسة", description: "من هوية المدرسة." },
+  { key: "educationDepartment", label: "الإدارة العامة", description: "من هوية المدرسة، وتُنسّق تلقائيًا لو كانت المنطقة فقط." },
+  { key: "educationOffice", label: "مكتب التعليم", description: "من هوية المدرسة، ويُنسّق تلقائيًا لو كان اسم المكتب فقط." },
+  { key: "academicYear", label: "العام الدراسي", description: "من هوية المدرسة." },
+  { key: "counselorName", label: "اسم الموجه/الموجهة", description: "من هوية المستخدم أو هوية المدرسة." },
+  { key: "counselorGender", label: "جنس الموجه", description: "يحدد: الموجه الطلابي أو الموجهة الطلابية." },
+  { key: "schoolLeaderName", label: "اسم القائد/القائدة", description: "من هوية المدرسة." },
+  { key: "schoolLeaderGender", label: "جنس القائد", description: "يحدد: قائد المدرسة أو قائدة المدرسة." },
+  { key: "studentName", label: "اسم الطالب", description: "من الطالب المختار." },
+  { key: "studentClass", label: "الصف / الفصل", description: "من بيانات الطالب." },
+  { key: "guardianName", label: "اسم ولي الأمر", description: "من بيانات ولي الأمر." },
+  { key: "summonDay", label: "يوم الحضور", description: "من Workflow الاستدعاء." },
+  { key: "summonDate", label: "تاريخ الحضور", description: "من Workflow الاستدعاء." },
+  { key: "summonTime", label: "وقت الحضور", description: "من Workflow الاستدعاء." },
+  { key: "summonPeriod", label: "الفترة", description: "صباحًا أو مساءً." },
+  { key: "summonReason", label: "سبب الاستدعاء", description: "سبب أو أسباب الاستدعاء." },
+  { key: "notes", label: "ملاحظات", description: "ملاحظات اختيارية." },
+];
+
+export const guardianSummonsTemplatePreset = {
+  id: "tpl-guardian-summons-letter",
+  name: "خطاب استدعاء ولي أمر",
+  title: "استدعاء ولي أمر طالب",
+  description:
+    "تصميم رسمي ثابت لخطاب استدعاء ولي أمر، مع ربط ديناميكي بهوية المدرسة وبيانات الطالب.",
+  scope: "SUB_WORKFLOW",
+  status: "PUBLISHED",
+  updatedAt: "2026-06-02",
+  documentType: "letter",
+  designPreset: "guardian-summons-letter-v1",
+  previewCaseId: "guardian-summons-preview",
+  pages: [
+    {
+      id: "guardian-summons-page",
+      kind: "letter",
+      title: "خطاب استدعاء ولي أمر",
+      description:
+        "التصميم ثابت، والبيانات تسحب من هوية المدرسة والطالب وWorkflow الاستدعاء.",
+      blocks: [
+        {
+          id: "guardian-hardcoded-letter",
+          kind: "custom-paragraph",
+          title: "خطاب استدعاء ولي أمر",
+          description: "التصميم الرسمي الثابت لخطاب استدعاء ولي أمر.",
+          required: true,
+          source: {
+            source: "caseValues",
+            label: "بيانات الاستدعاء",
+            description: "بيانات الطالب وولي الأمر وموعد الحضور والسبب.",
+            fieldKey: "studentName",
+          },
+        },
+      ],
+    },
+  ],
+} as any;
+
+export const guardianSummonsPreviewCaseData: RuntimePreviewCaseData = {
+  found: true,
+  caseId: "guardian-summons-preview",
+  serviceSlug: "family-school-communication",
+  serviceName: "التواصل بين الأسرة والمدرسة",
+  title: "استدعاء ولي أمر طالب",
+  status: "ISSUED",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  student: {
+    id: "preview-student",
+    name: "اسم الطالب",
+    nationalId: "0000000000",
+    grade: "الثاني الابتدائي",
+    classroom: "أ",
+    stage: "الابتدائية",
+    guardianName: "ولي أمر الطالب",
+    guardianPhone: "05xxxxxxxx",
+  },
+  values: [
+    { fieldKey: "schoolName", fieldLabel: "اسم المدرسة", value: "مدرسة اليرموك" },
+    { fieldKey: "educationDepartment", fieldLabel: "الإدارة العامة", value: "عسير" },
+    { fieldKey: "educationOffice", fieldLabel: "مكتب التعليم", value: "عسير" },
+    { fieldKey: "academicYear", fieldLabel: "العام الدراسي", value: "1447" },
+    { fieldKey: "counselorName", fieldLabel: "اسم الموجه", value: "سلمان المسدي" },
+    { fieldKey: "counselorGender", fieldLabel: "جنس الموجه", value: "MALE" },
+    { fieldKey: "schoolLeaderName", fieldLabel: "اسم القائد", value: "علي القحطاني" },
+    { fieldKey: "schoolLeaderGender", fieldLabel: "جنس القائد", value: "MALE" },
+
+    { fieldKey: "studentName", fieldLabel: "اسم الطالب", value: "اسم الطالب" },
+    { fieldKey: "studentClass", fieldLabel: "الصف / الفصل", value: "الثاني الابتدائي / أ" },
+    { fieldKey: "guardianName", fieldLabel: "ولي الأمر", value: "ولي أمر الطالب" },
+    { fieldKey: "summonDay", fieldLabel: "يوم الحضور", value: "الأحد" },
+    { fieldKey: "summonDate", fieldLabel: "تاريخ الحضور", value: "1440 هـ" },
+    { fieldKey: "summonTime", fieldLabel: "وقت الحضور", value: "09:00" },
+    { fieldKey: "summonPeriod", fieldLabel: "الفترة", value: "صباحًا" },
+    {
+      fieldKey: "summonReason",
+      fieldLabel: "سبب الاستدعاء",
+      value:
+        "غيابه المتكرر لأكثر من خمسة أيام بدون عذر، تأخره المتكرر لأكثر من خمسة أيام بدون عذر",
+    },
+    { fieldKey: "notes", fieldLabel: "ملاحظات", value: "" },
+  ],
+  evidences: [],
+};
+
+export function GuardianSummonsLetterPreview({
+  template,
+  previewCaseData,
+  pdfMode = false,
+  showDynamicFields = false,
+}: GuardianSummonsLetterPreviewProps) {
+  const [rolePreviewMode, setRolePreviewMode] =
+    useState<RolePreviewMode>("identity");
+
+  const data = previewCaseData || guardianSummonsPreviewCaseData;
+  const templateInfo = normalizeTemplateInfo(template);
+
+  const values = applyRolePreviewMode(
+    buildLetterValues(data),
+    pdfMode ? "identity" : rolePreviewMode
+  );
+
+  return (
+    <div
+      dir="rtl"
+      className={
+        pdfMode
+          ? "bg-white"
+          : "rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm"
+      }
+    >
+      {!pdfMode ? (
+        <section className="mb-5 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black text-emerald-700">
+                {templateInfo.sourceLabel}
+              </p>
+
+              <h2 className="mt-1 text-2xl font-black text-slate-900">
+                {templateInfo.name}
+              </h2>
+
+              <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
+                {templateInfo.description}
+              </p>
+            </div>
+
+            <span className="rounded-full bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+              هوية المدرسة + تصميم ثابت
+            </span>
+          </div>
+
+          <RolePreviewSelector
+            value={rolePreviewMode}
+            onChange={setRolePreviewMode}
+            values={values}
+          />
+
+          <IdentityPreviewPanel values={values} />
+
+          {showDynamicFields ? <DynamicFieldsPanel /> : null}
+        </section>
+      ) : null}
+
+      <article
+        className={[
+          "pdf-report-page mx-auto bg-white text-black",
+          pdfMode
+            ? "min-h-[297mm] w-[210mm] px-[18mm] py-[10mm]"
+            : "min-h-[297mm] w-full max-w-[210mm] rounded-[1.5rem] border border-slate-100 px-[18mm] py-[10mm]",
+        ].join(" ")}
+        style={{
+          fontFamily: 'Arial, Tahoma, "Segoe UI", sans-serif',
+          fontVariantNumeric: "tabular-nums",
+          lineHeight: 1.65,
+        }}
+      >
+        <OfficialHeader values={values} />
+
+        <h1 className="mt-7 text-center text-[27px] font-black tracking-tight">
+          استدعاء ولي أمر طالب
+        </h1>
+
+        <StudentGuardianLine values={values} />
+
+        <section className="mt-7 text-center text-[14px] font-bold leading-8">
+          السلام عليكم ورحمة الله وبركاته ،،،
+        </section>
+
+        <section className="mx-auto mt-5 max-w-[172mm] text-center text-[14px] font-semibold leading-[2.05]">
+          نظرًا لأهمية التعاون المستمر والتنسيق بين المدرسة وولي أمر الطالب فيما
+          يخدم مصلحته ويحقق له النجاح بإذن الله.
+        </section>
+
+        <AppointmentLine values={values} />
+
+        <section className="mt-8 text-center text-[17px] font-black">
+          لمناقشة وبحث مشكلة ابنكم وهي:
+        </section>
+
+        <ReasonsBlock reason={values.summonReason} />
+
+        {values.notes ? (
+          <section className="mx-auto mt-6 w-[150mm] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[13px] font-bold leading-7 text-slate-700">
+            <span className="font-black text-slate-900">ملاحظات: </span>
+            {values.notes}
+          </section>
+        ) : null}
+
+        <SignatureBlock values={values} />
+      </article>
+    </div>
+  );
+}
+
+function OfficialHeader({ values }: { values: LetterValues }) {
+  return (
+    <>
+      <div className="text-center text-[12.5px] font-black">
+        بسم الله الرحمن الرحيم
+      </div>
+
+      <table className="mt-3 w-full table-fixed border-collapse">
+        <tbody>
+          <tr>
+            <td className="w-1/3 align-top">
+              <div className="text-right text-[11.5px] font-bold leading-7">
+                <div>المملكة العربية السعودية</div>
+                <div>{values.ministryName}</div>
+                <div>{values.educationDepartment}</div>
+                <div>{values.educationOffice}</div>
+              </div>
+            </td>
+
+            <td className="w-1/3 align-top">
+              <div className="flex flex-col items-center justify-start text-center">
+                <img
+                  src={values.ministryLogoUrl || MOE_LOGO_SRC}
+                  alt="وزارة التعليم"
+                  className="h-[28mm] w-auto object-contain"
+                />
+              </div>
+            </td>
+
+            <td className="w-1/3 align-top">
+              <div className="text-left text-[11.5px] font-bold leading-7">
+                <div>{values.schoolName}</div>
+                <div>{values.academicYear}</div>
+                <div>{values.guidanceUnitName}</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+function StudentGuardianLine({ values }: { values: LetterValues }) {
+  return (
+    <section className="mt-7 text-[14px] font-bold leading-8">
+      <table className="w-full table-fixed border-collapse">
+        <tbody>
+          <tr>
+            <td className="w-[39mm] whitespace-nowrap text-right">
+              المكرم ولي أمر الطالب /
+            </td>
+
+            <td className="border-b border-dotted border-black px-2 text-center text-[15px] font-black">
+              {values.guardianName}
+            </td>
+
+            <td className="w-[12mm] whitespace-nowrap text-center">بالصف</td>
+
+            <td className="w-[45mm] border-b border-dotted border-black px-2 text-center text-[15px] font-black">
+              {values.studentClass}
+            </td>
+
+            <td className="w-[22mm] whitespace-nowrap text-left">سلمه الله</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function AppointmentLine({ values }: { values: LetterValues }) {
+  return (
+    <section className="mt-8 text-[13px] font-bold leading-8">
+      <table className="w-full table-fixed border-collapse">
+        <colgroup>
+          <col style={{ width: "40mm" }} />
+          <col style={{ width: "9mm" }} />
+          <col style={{ width: "27mm" }} />
+          <col style={{ width: "17mm" }} />
+          <col style={{ width: "33mm" }} />
+          <col style={{ width: "14mm" }} />
+          <col style={{ width: "19mm" }} />
+          <col style={{ width: "22mm" }} />
+        </colgroup>
+
+        <tbody>
+          <tr>
+            <td className="whitespace-nowrap text-right">
+              لذا نأمل منكم الحضور
+            </td>
+
+            <td className="whitespace-nowrap text-center">يوم</td>
+
+            <td className="border-b border-dotted border-black px-2 text-center text-[15px] font-black">
+              {values.summonDay}
+            </td>
+
+            <td className="whitespace-nowrap text-center">الموافق</td>
+
+            <td className="border-b border-dotted border-black px-2 text-center text-[15px] font-black">
+              {values.summonDate}
+            </td>
+
+            <td className="whitespace-nowrap text-center">الساعة</td>
+
+            <td className="border-b border-dotted border-black px-2 text-center text-[15px] font-black">
+              {values.summonTime}
+            </td>
+
+            <td className="border-b border-dotted border-black px-2 text-center text-[15px] font-black">
+              {values.summonPeriod}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function ReasonsBlock({ reason }: { reason: string }) {
+  return (
+    <section className="mx-auto mt-5 w-[142mm] space-y-3 text-[14px] font-semibold leading-8">
+      {splitReasons(reason).map((item) => (
+        <div key={item} className="flex items-start justify-start gap-3">
+          <span className="mt-3 h-2 w-2 shrink-0 rounded-full border border-black" />
+          <span>{item}</span>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function SignatureBlock({ values }: { values: LetterValues }) {
+  return (
+    <section className="mt-14">
+      <table className="w-full table-fixed border-collapse text-center text-[14px] font-black">
+        <tbody>
+          <tr>
+            <td className="w-1/2">
+              <div>{values.schoolLeaderTitleDisplay}</div>
+
+              {values.principalName ? (
+                <div className="mt-3 text-[12.5px] font-bold">
+                  {values.principalName}
+                </div>
+              ) : null}
+
+              <div className="mx-auto mt-7 w-[48mm] border-b border-dotted border-black" />
+            </td>
+
+            <td className="w-1/2">
+              <div>{values.counselorTitleDisplay}</div>
+
+              {values.counselorName ? (
+                <div className="mt-3 text-[12.5px] font-bold">
+                  {values.counselorName}
+                </div>
+              ) : null}
+
+              <div className="mx-auto mt-7 w-[48mm] border-b border-dotted border-black" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function RolePreviewSelector({
+  value,
+  onChange,
+  values,
+}: {
+  value: RolePreviewMode;
+  onChange: (value: RolePreviewMode) => void;
+  values: LetterValues;
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-black text-slate-900">
+            خيار المعاينة للألقاب
+          </h3>
+
+          <p className="mt-1 text-xs leading-6 text-slate-500">
+            في PDF الفعلي يتم الاعتماد على هوية المدرسة. هذا الخيار فقط لتجربة
+            شكل الموجه/الموجهة وقائد/قائدة في المعاينة.
+          </p>
+        </div>
+
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value as RolePreviewMode)}
+          className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none"
+        >
+          <option value="identity">حسب هوية المدرسة</option>
+          <option value="male">موجه + قائد</option>
+          <option value="female">موجهة + قائدة</option>
+        </select>
+      </div>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl bg-white px-4 py-3 text-xs font-bold text-slate-600">
+          يظهر في الخطاب:{" "}
+          <span className="font-black text-slate-900">
+            {values.counselorTitleDisplay}
+          </span>
+        </div>
+
+        <div className="rounded-2xl bg-white px-4 py-3 text-xs font-bold text-slate-600">
+          يظهر في الخطاب:{" "}
+          <span className="font-black text-slate-900">
+            {values.schoolLeaderTitleDisplay}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IdentityPreviewPanel({ values }: { values: LetterValues }) {
+  const items = [
+    ["المدرسة", values.schoolName],
+    ["الإدارة", values.educationDepartment],
+    ["المكتب", values.educationOffice],
+    ["العام", values.academicYear],
+    ["الموجه/الموجهة", values.counselorName || "غير محدد"],
+    ["القائد/القائدة", values.principalName || "غير محدد"],
+  ];
+
+  return (
+    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {items.map(([label, item]) => (
+        <div
+          key={label}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+        >
+          <div className="text-[11px] font-black text-slate-400">{label}</div>
+          <div className="mt-1 text-sm font-black text-slate-800">{item}</div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function DynamicFieldsPanel() {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-black text-slate-900">
+            المتغيرات الديناميكية في الخطاب
+          </h3>
+
+          <p className="mt-1 text-xs leading-6 text-slate-500">
+            التصميم ثابت، وهذه المفاتيح تتغير حسب هوية المدرسة والطالب والاستدعاء.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-500">
+          {guardianSummonsDynamicFields.length} متغير
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {guardianSummonsDynamicFields.map((field) => (
+          <div
+            key={field.key}
+            className="rounded-2xl border border-slate-200 bg-white p-3"
+          >
+            <div className="text-xs font-black text-emerald-700">
+              {field.label}
+            </div>
+
+            <code className="mt-1 block rounded-lg bg-slate-100 px-2 py-1 text-left text-[11px] font-bold text-slate-700">
+              {field.key}
+            </code>
+
+            <p className="mt-2 text-[11px] leading-5 text-slate-500">
+              {field.description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+type LetterValues = ReturnType<typeof buildLetterValues>;
+
+function buildLetterValues(data: RuntimePreviewCaseData) {
+  const studentClass =
+    cleanValue(getValue(data, ["studentClass", "student_class"])) ||
+    [data.student?.grade, data.student?.classroom].filter(Boolean).join(" / ") ||
+    "........................";
+
+  const counselorTitleRaw = cleanValue(
+    getValue(data, ["counselorTitle", "guideTitle", "advisorTitle"])
+  );
+
+  const schoolLeaderTitleRaw = cleanValue(
+    getValue(data, [
+      "schoolLeaderTitle",
+      "principalTitle",
+      "leaderTitle",
+      "schoolPrincipalTitle",
+    ])
+  );
+
+  const counselorGender = cleanValue(
+    getValue(data, [
+      "counselorGender",
+      "guideGender",
+      "advisorGender",
+      "studentGuideGender",
+      "mentorGender",
+      "userGender",
+      "gender",
+    ])
+  );
+
+  const schoolLeaderGender = cleanValue(
+    getValue(data, [
+      "schoolLeaderGender",
+      "principalGender",
+      "leaderGender",
+      "schoolPrincipalGender",
+    ])
+  );
+
+  const principalName = cleanValue(
+    getValue(data, [
+      "schoolLeaderName",
+      "principalName",
+      "schoolLeader",
+      "schoolPrincipalName",
+      "leaderName",
+    ])
+  );
+
+  const counselorName = cleanValue(
+    getValue(data, [
+      "counselorName",
+      "guideName",
+      "advisorName",
+      "studentGuideName",
+      "mentorName",
+    ])
+  );
+
+  return {
+    ministryName:
+      cleanValue(getValue(data, ["ministryName", "ministry_name"])) ||
+      "وزارة التعليم",
+
+    ministryLogoUrl:
+      cleanValue(getValue(data, ["ministryLogoUrl", "ministry_logo_url"])) ||
+      MOE_LOGO_SRC,
+
+    schoolLogoUrl:
+      cleanValue(getValue(data, ["schoolLogoUrl", "school_logo_url"])) || "",
+
+    schoolName: formatSchoolName(
+      cleanValue(getValue(data, ["schoolName", "school_name"]))
+    ),
+
+    educationDepartment: formatEducationDepartment(
+      cleanValue(
+        getValue(data, ["educationDepartment", "education_department"])
+      )
+    ),
+
+    educationOffice: formatEducationOffice(
+      cleanValue(getValue(data, ["educationOffice", "education_office"]))
+    ),
+
+    academicYear:
+      cleanValue(getValue(data, ["academicYear", "academic_year"])) ||
+      "١٤٤٠ هـ / ١٤٣٩ هـ",
+
+    guidanceUnitName:
+      cleanValue(
+        getValue(data, [
+          "guidanceUnitName",
+          "guidanceDepartmentName",
+          "guidanceOfficeName",
+        ])
+      ) || "الإرشاد الطلابي",
+
+    studentName:
+      cleanValue(getValue(data, ["studentName", "student_name"])) ||
+      data.student?.name ||
+      "........................",
+
+    studentClass,
+
+    studentNationalId:
+      cleanValue(getValue(data, ["studentNationalId", "nationalId"])) ||
+      data.student?.nationalId ||
+      "",
+
+    guardianName:
+      cleanValue(getValue(data, ["guardianName", "guardian_name", "parentName"])) ||
+      data.student?.guardianName ||
+      "ولي أمر الطالب",
+
+    guardianPhone:
+      cleanValue(
+        getValue(data, ["guardianPhone", "guardian_phone", "parentPhone"])
+      ) ||
+      data.student?.guardianPhone ||
+      "",
+
+    summonDay:
+      cleanValue(
+        getValue(data, ["summonDay", "summonsDay", "attendanceDay", "day"])
+      ) || "........................",
+
+    summonDate: formatDisplayDate(
+      cleanValue(
+        getValue(data, [
+          "summonDate",
+          "summonsDate",
+          "summonsHijriDate",
+          "attendanceDate",
+          "date",
+        ])
+      ) || "........................"
+    ),
+
+    summonTime:
+      cleanValue(
+        getValue(data, ["summonTime", "summonsTime", "attendanceTime", "time"])
+      ) || "09:00",
+
+    summonPeriod: normalizePeriod(
+      cleanValue(getValue(data, ["summonPeriod", "summonsPeriod", "period"])) ||
+        "صباحًا"
+    ),
+
+    summonReason:
+      cleanValue(getValue(data, ["summonReason", "summonsReason", "reason"])) ||
+      "غيابه المتكرر لأكثر من خمسة أيام بدون عذر.",
+
+    notes: cleanValue(getValue(data, ["notes", "printNotes", "summonNotes"])),
+
+    counselorName,
+    counselorGender,
+    counselorTitleDisplay: resolveCounselorTitle(
+      counselorTitleRaw,
+      counselorGender
+    ),
+
+    principalName,
+    schoolLeaderGender,
+    schoolLeaderTitleDisplay: resolveSchoolLeaderTitle(
+      schoolLeaderTitleRaw,
+      schoolLeaderGender
+    ),
+  };
+}
+
+function applyRolePreviewMode(values: LetterValues, mode: RolePreviewMode) {
+  if (mode === "male") {
+    return {
+      ...values,
+      counselorTitleDisplay: "الموجه الطلابي",
+      schoolLeaderTitleDisplay: "قائد المدرسة",
+    };
+  }
+
+  if (mode === "female") {
+    return {
+      ...values,
+      counselorTitleDisplay: "الموجهة الطلابية",
+      schoolLeaderTitleDisplay: "قائدة المدرسة",
+    };
+  }
+
+  return values;
+}
+
+function getValue(data: RuntimePreviewCaseData, keys: string[]) {
+  const values = Array.isArray(data.values)
+    ? (data.values as PreviewValue[])
+    : [];
+
+  for (const key of keys) {
+    const item = values.find((value) => value.fieldKey === key);
+
+    if (
+      item?.value !== undefined &&
+      item.value !== null &&
+      String(item.value).trim()
+    ) {
+      return String(item.value).trim();
+    }
+  }
+
+  return "";
+}
+
+function cleanValue(value: unknown) {
+  if (value === undefined || value === null) return "";
+
+  const cleaned = String(value).trim();
+
+  if (!cleaned || cleaned === "null" || cleaned === "undefined") return "";
+
+  return cleaned;
+}
+
+function formatSchoolName(value: string) {
+  if (!value) return "مدرسة ........................";
+
+  if (value.startsWith("مدرسة")) return value;
+
+  return `مدرسة ${value}`;
+}
+
+function formatEducationDepartment(value: string) {
+  if (!value) return "الإدارة العامة للتعليم بمنطقة ................";
+
+  if (
+    value.startsWith("الإدارة") ||
+    value.startsWith("تعليم") ||
+    value.includes("الإدارة العامة")
+  ) {
+    return value;
+  }
+
+  return `الإدارة العامة للتعليم بمنطقة ${value}`;
+}
+
+function formatEducationOffice(value: string) {
+  if (!value) return "مكتب التعليم بمحافظة ................";
+
+  if (value.startsWith("مكتب")) return value;
+
+  if (value.startsWith("ب")) return `مكتب التعليم ${value}`;
+
+  return `مكتب التعليم ب${value}`;
+}
+
+function formatDisplayDate(value: string) {
+  const cleaned = cleanValue(value);
+
+  if (!cleaned) return "........................";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+    return cleaned.replaceAll("-", "/");
+  }
+
+  return cleaned.replace(/\s+/g, " ");
+}
+
+function normalizePeriod(value: string) {
+  const cleaned = cleanValue(value);
+
+  if (!cleaned) return "صباحًا";
+
+  if (cleaned === "صباحا" || cleaned === "صباح") return "صباحًا";
+
+  if (cleaned === "مساءا" || cleaned === "مساء") return "مساءً";
+
+  return cleaned;
+}
+
+function splitReasons(value: string) {
+  const reasons = value
+    .split(/،|,|\n|;/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return reasons.length ? reasons : [value];
+}
+
+function resolveCounselorTitle(title: string, gender: string) {
+  const cleanedTitle = cleanValue(title);
+
+  if (
+    cleanedTitle &&
+    cleanedTitle !== "الموجه/الموجهة الطلابية" &&
+    cleanedTitle !== "الموجه / الموجهة الطلابية"
+  ) {
+    return cleanedTitle;
+  }
+
+  const normalizedGender = normalizeGender(`${gender} ${cleanedTitle}`);
+
+  if (normalizedGender === "FEMALE") return "الموجهة الطلابية";
+
+  if (normalizedGender === "MALE") return "الموجه الطلابي";
+
+  return "الموجه/الموجهة الطلابية";
+}
+
+function resolveSchoolLeaderTitle(title: string, gender: string) {
+  const cleanedTitle = cleanValue(title);
+
+  if (
+    cleanedTitle &&
+    cleanedTitle !== "قائد/قائدة المدرسة" &&
+    cleanedTitle !== "قائد / قائدة المدرسة"
+  ) {
+    return cleanedTitle;
+  }
+
+  const normalizedGender = normalizeGender(`${gender} ${cleanedTitle}`);
+
+  if (normalizedGender === "FEMALE") return "قائدة المدرسة";
+
+  if (normalizedGender === "MALE") return "قائد المدرسة";
+
+  return "قائد/قائدة المدرسة";
+}
+
+function normalizeGender(value: string) {
+  const cleaned = cleanValue(value).toLowerCase();
+
+  if (
+    cleaned.includes("female") ||
+    cleaned.includes("woman") ||
+    cleaned.includes("أنثى") ||
+    cleaned.includes("انثى") ||
+    cleaned.includes("female") ||
+    cleaned.includes("موجهة") ||
+    cleaned.includes("مرشدة") ||
+    cleaned.includes("قائدة")
+  ) {
+    return "FEMALE";
+  }
+
+  if (
+    cleaned.includes("male") ||
+    cleaned.includes("man") ||
+    cleaned.includes("ذكر") ||
+    cleaned.includes("موجه") ||
+    cleaned.includes("مرشد") ||
+    cleaned.includes("قائد")
+  ) {
+    return "MALE";
+  }
+
+  return "UNKNOWN";
+}
+
+function normalizeTemplateInfo(template: unknown): TemplateInfo {
+  if (!template || typeof template !== "object") {
+    return {
+      name: guardianSummonsTemplatePreset.name,
+      description: guardianSummonsTemplatePreset.description,
+      sourceLabel: "قالب رسمي",
+    };
+  }
+
+  const item = template as {
+    name?: unknown;
+    description?: unknown;
+    status?: unknown;
+  };
+
+  return {
+    name:
+      typeof item.name === "string" && item.name.trim()
+        ? item.name
+        : guardianSummonsTemplatePreset.name,
+
+    description:
+      typeof item.description === "string" && item.description.trim()
+        ? item.description
+        : guardianSummonsTemplatePreset.description,
+
+    sourceLabel: item.status === "PUBLISHED" ? "قالب منشور" : "قالب رسمي",
+  };
+}
+
+
+============================================================
+FILE: components\reports\guardian-summons\guardian-summons-template.tsx
+============================================================
+export type GuardianSummonsReasonItem = {
+  id: string;
+  label: string;
+  selected: boolean;
+  otherText?: string | null;
+};
+
+export type GuardianSummonsTemplateData = {
+  schoolName: string;
+  educationDepartment?: string | null;
+  educationOffice?: string | null;
+  hijriYear?: string | null;
+  guardianName: string;
+  guardianPhone?: string | null;
+  studentGrade?: string | null;
+  studentClassroom?: string | null;
+  appointmentDay?: string | null;
+  appointmentDate?: string | null;
+  appointmentTime?: string | null;
+  period?: string | null;
+  reasons: GuardianSummonsReasonItem[];
+  notes?: string | null;
+  counselorName?: string | null;
+  counselorJobTitle?: string | null;
+  counselorSignatureUrl?: string | null;
+  principalName?: string | null;
+  principalJobTitle?: string | null;
+  principalSignatureUrl?: string | null;
+};
+
+const MINISTRY_LOGO_SRC = "/uploads/school-logos/MOE.png";
+
+function display(value: string | null | undefined) {
+  return value?.trim() || "";
+}
+
+function normalizeArabicText(value: string) {
+  return value
+    .trim()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ");
+}
+
+function stripLeadingPhrases(value: string, phrases: string[]) {
+  let text = normalizeArabicText(value);
+
+  for (const phrase of phrases) {
+    const normalizedPhrase = normalizeArabicText(phrase);
+
+    if (text === normalizedPhrase) {
+      return "";
+    }
+
+    if (text.startsWith(`${normalizedPhrase} `)) {
+      text = text.slice(normalizedPhrase.length).trim();
+    }
+  }
+
+  return text;
+}
+
+function normalizeSchoolNameForOfficialHeader(value?: string | null) {
+  return stripLeadingPhrases(display(value), ["مدرسة"]);
+}
+
+function normalizeEducationDepartment(value?: string | null) {
+  return stripLeadingPhrases(display(value), [
+    "الإدارة العامة للتعليم بمنطقة",
+    "الادارة العامة للتعليم بمنطقة",
+    "الإدارة العامة للتعليم",
+    "الادارة العامة للتعليم",
+    "تعليم منطقة",
+    "منطقة",
+  ]);
+}
+
+function isOtherReason(value: string) {
+  const normalized = normalizeArabicText(value).replace(/[\s:_-]+/g, "");
+
+  return (
+    normalized === "اخرى" ||
+    normalized === "other" ||
+    normalized === "__other__" ||
+    normalized.includes("اخرى")
+  );
+}
+
+function prepareReasonRows(
+  reasons: GuardianSummonsReasonItem[],
+  notes?: string | null,
+) {
+  const seen = new Set<string>();
+
+  return reasons
+    .filter((reason) => reason.selected)
+    .map((reason) => {
+      const other = isOtherReason(reason.id) || isOtherReason(reason.label);
+
+      if (other) {
+        return {
+          ...reason,
+          label: "أخرى",
+          selected: true,
+          otherText: display(reason.otherText) || display(notes) || "",
+        };
+      }
+
+      return {
+        ...reason,
+        label: display(reason.label),
+        selected: true,
+      };
+    })
+    .filter((reason) => {
+      const key =
+        isOtherReason(reason.id) || isOtherReason(reason.label)
+          ? "other"
+          : normalizeArabicText(reason.label).replace(/\s+/g, "");
+
+      if (!key || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+}
+
+function CircleMark({ selected }: { selected: boolean }) {
+  return (
+    <span className="reason-marker" aria-hidden="true">
+      {selected ? <span /> : null}
+    </span>
+  );
+}
+
+function SignatureLine() {
+  return (
+    <p className="signature-line">
+      التوقيع: <span className="signature-space" />
+    </p>
+  );
+}
+
+function SignatureBlock({
+  title,
+  name,
+  signatureUrl,
+}: {
+  title: string;
+  name?: string | null;
+  signatureUrl?: string | null;
+}) {
+  return (
+    <div className="signature-block">
+      <p className="signature-title">{title}</p>
+      <p className="signature-name">{display(name)}</p>
+      <div className="signature-image-slot">
+        {signatureUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={signatureUrl}
+            alt={`توقيع ${title}`}
+            className="signature-image"
+          />
+        ) : (
+          <SignatureLine />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function buildClassroomText(data: GuardianSummonsTemplateData) {
+  return [data.studentGrade, data.studentClassroom]
+    .map(display)
+    .filter(Boolean)
+    .join(" / ");
+}
+
+function getReasonsHeading(reasonCount: number) {
+  if (reasonCount === 1) {
+    return "لمناقشة وحل المشكلة التالية:";
+  }
+
+  if (reasonCount > 1) {
+    return "لمناقشة وحل المشكلات التالية:";
+  }
+
+  return "لمناقشة الموضوع التالي:";
+}
+
+function AppointmentSentence({ data }: { data: GuardianSummonsTemplateData }) {
+  const day = display(data.appointmentDay);
+  const date = display(data.appointmentDate);
+  const time = display(data.appointmentTime);
+  const period = display(data.period);
+
+  return (
+    <>
+      <span>لذا نأمل منكم الحضور</span>
+      {day ? (
+        <>
+          {" "}
+          <span>يوم</span>{" "}
+          <strong className="appointment-emphasis">{day}</strong>
+        </>
+      ) : null}
+      {date ? (
+        <>
+          {" "}
+          <span>الموافق</span>{" "}
+          <strong className="appointment-emphasis">{date}</strong>
+        </>
+      ) : null}
+      {time ? (
+        <>
+          {" "}
+          <span>الساعة {time}</span>
+        </>
+      ) : null}
+      {period ? <> {period}</> : null}
+    </>
+  );
+}
+
+export function GuardianSummonsTemplate({
+  data,
+}: {
+  data: GuardianSummonsTemplateData;
+}) {
+  const schoolName = normalizeSchoolNameForOfficialHeader(data.schoolName);
+  const educationDepartment = normalizeEducationDepartment(
+    data.educationDepartment,
+  );
+  const hijriYear = display(data.hijriYear);
+  const classroom = buildClassroomText(data);
+  const reasonRows = prepareReasonRows(data.reasons, data.notes);
+
+  return (
+    <section dir="rtl" className="guardian-summons-document">
+      <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
+
+        .guardian-summons-document {
+          position: relative;
+          width: 210mm;
+          min-height: 297mm;
+          height: 297mm;
+          overflow: hidden;
+          box-sizing: border-box;
+          margin: 0 auto;
+          padding: 11mm 16mm 13mm;
+          background: #ffffff;
+          color: #111111;
+          font-family: "Times New Roman", "Amiri", "Noto Naskh Arabic", serif;
+          font-size: 16px;
+          line-height: 2;
+          box-shadow: 0 6px 22px rgba(15, 23, 42, 0.12);
+        }
+
+        .guardian-summons-document * {
+          box-sizing: border-box;
+        }
+
+        .official-header {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 58mm minmax(0, 1fr);
+          grid-template-areas: "school center ministry";
+          column-gap: 8mm;
+          align-items: start;
+          min-height: 36mm;
+          direction: ltr;
+        }
+
+        .header-column {
+          position: static;
+          width: 100%;
+          min-width: 0;
+          font-size: 14px;
+          line-height: 1.85;
+          text-align: center;
+          direction: rtl;
+        }
+
+        .header-column div {
+          display: -webkit-box;
+          overflow: hidden;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+        }
+
+        .header-right {
+          grid-area: ministry;
+          text-align: center;
+        }
+
+        .header-left {
+          grid-area: school;
+          text-align: center;
+        }
+
+        .header-center {
+          grid-area: center;
+          width: auto;
+          margin: 0;
+          text-align: center;
+          direction: rtl;
+        }
+
+        .ministry-logo {
+          display: block;
+          width: 45mm;
+          height: 20mm;
+          margin: 0 auto;
+          object-fit: contain;
+        }
+
+        .document-title {
+          margin: 3mm 0 0;
+          text-align: center;
+          font-size: 26px;
+          font-weight: 800;
+          line-height: 1.18;
+        }
+
+        .official-body {
+          margin-top: 10mm;
+        }
+
+        .recipient-line,
+        .appointment-line {
+          margin: 0;
+          font-size: 16.5px;
+          line-height: 2.05;
+          word-spacing: normal;
+        }
+
+        .greeting {
+          margin: 8mm 0 0;
+          text-align: center;
+          font-size: 16.5px;
+        }
+
+        .body-copy {
+          margin: 5mm 0 0;
+          text-align: justify;
+          font-size: 16.5px;
+          line-height: 2.05;
+        }
+
+        .appointment-line {
+          margin-top: 7mm;
+        }
+
+        .appointment-emphasis {
+          font-weight: 800;
+        }
+
+        .reasons-heading {
+          margin: 8mm 0 0;
+          text-align: center;
+          font-size: 17px;
+          font-weight: 700;
+        }
+
+        .reasons-list {
+          width: 141mm;
+          margin: 4mm auto 0;
+          padding: 0;
+          list-style: none;
+          font-size: 16px;
+          line-height: 1.75;
+        }
+
+        .reason-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 7px;
+          min-height: 7mm;
+          break-inside: avoid;
+        }
+
+        .reason-text {
+          font-weight: 800;
+        }
+
+        .reason-marker {
+          position: relative;
+          display: inline-flex;
+          width: 10px;
+          height: 10px;
+          flex: 0 0 10px;
+          align-items: center;
+          justify-content: center;
+          margin-top: 8px;
+          border: 1px solid #111111;
+          border-radius: 999px;
+        }
+
+        .reason-marker span {
+          width: 5px;
+          height: 5px;
+          border-radius: 999px;
+          background: #111111;
+        }
+
+        .signature-footer {
+          position: absolute;
+          right: 16mm;
+          bottom: 17mm;
+          left: 16mm;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32mm;
+          align-items: end;
+        }
+
+        .signature-block {
+          text-align: center;
+          font-size: 15px;
+          line-height: 1.8;
+        }
+
+        .signature-title,
+        .signature-name,
+        .signature-line {
+          margin: 0;
+        }
+
+        .signature-title {
+          font-weight: 700;
+          font-size: 15.5px;
+        }
+
+        .signature-name {
+          font-size: 15px;
+          min-height: 8mm;
+        }
+
+        .signature-image-slot {
+          display: flex;
+          height: 18mm;
+          align-items: center;
+          justify-content: center;
+          margin: 1mm auto 0;
+        }
+
+        .signature-image {
+          display: block;
+          max-width: 50mm;
+          max-height: 17mm;
+          object-fit: contain;
+        }
+
+        .signature-space {
+          display: inline-block;
+          width: 34mm;
+          border-bottom: 1px solid #111111;
+          vertical-align: baseline;
+        }
+
+        @media screen and (max-width: 900px) {
+          .guardian-summons-document {
+            transform: scale(calc((100vw - 24px) / 794));
+            transform-origin: top center;
+            margin-bottom: calc(-297mm + ((100vw - 24px) / 794 * 297mm));
+          }
+        }
+
+        @media print {
+          html,
+          body {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .guardian-summons-document {
+            width: 210mm !important;
+            min-width: 210mm !important;
+            max-width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            max-height: 297mm !important;
+            margin: 0 !important;
+            padding: 11mm 16mm 13mm !important;
+            overflow: hidden !important;
+            box-shadow: none !important;
+            transform: none !important;
+            break-after: avoid;
+            page-break-after: avoid;
+          }
+        }
+      `}</style>
+
+      <header className="official-header">
+        <div className="header-column header-right">
+          <div>المملكة العربية السعودية</div>
+          <div>وزارة التعليم</div>
+          <div>
+            {educationDepartment
+              ? `الإدارة العامة للتعليم بمنطقة ${educationDepartment}`
+              : "الإدارة العامة للتعليم"}
+          </div>
+        </div>
+
+        <div className="header-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={MINISTRY_LOGO_SRC}
+            alt="وزارة التعليم"
+            className="ministry-logo"
+          />
+          <h1 className="document-title">استدعاء ولي أمر طالب</h1>
+        </div>
+
+        <div className="header-column header-left">
+          <div>{schoolName ? `مدرسة ${schoolName}` : "مدرسة"}</div>
+          {hijriYear ? <div>{`العام الدراسي ${hijriYear} هـ`}</div> : null}
+          <div>الإرشاد الطلابي</div>
+        </div>
+      </header>
+
+      <main className="official-body">
+        <p className="recipient-line">
+          {`المكرم ولي أمر الطالب / ${display(data.guardianName)}${
+            classroom ? ` بالصف ${classroom}` : ""
+          } سلّمه الله`}
+        </p>
+
+        <p className="greeting">السلام عليكم ورحمة الله وبركاته ،،،</p>
+
+        <p className="body-copy">
+          نظرًا لأهمية التعاون المستمر والتنسيق بين المدرسة وولي أمر الطالب فيما
+          يخدم مصلحته ويحقق له النجاح بإذن الله.
+        </p>
+
+        <p className="appointment-line">
+          <AppointmentSentence data={data} />
+        </p>
+
+        <p className="reasons-heading">{getReasonsHeading(reasonRows.length)}</p>
+
+        <ul className="reasons-list">
+          {reasonRows.map((reason) => {
+            const isOther = isOtherReason(reason.label);
+            const otherText = display(reason.otherText);
+
+            return (
+              <li key={reason.id} className="reason-row">
+                <CircleMark selected={reason.selected} />
+                <strong className="reason-text">
+                  {isOther
+                    ? `أخرى${otherText ? `: ${otherText}` : ""}`
+                    : reason.label}
+                </strong>
+              </li>
+            );
+          })}
+        </ul>
+      </main>
+
+      <footer className="signature-footer">
+        <SignatureBlock
+          title={display(data.counselorJobTitle) || "الموجه/ـة الطلابي/ـة"}
+          name={data.counselorName}
+          signatureUrl={data.counselorSignatureUrl}
+        />
+        <SignatureBlock
+          title={display(data.principalJobTitle) || "مدير/ة المدرسة"}
+          name={data.principalName}
+          signatureUrl={data.principalSignatureUrl}
+        />
+      </footer>
+    </section>
+  );
+}
+
+
+============================================================
+FILE: lib\report-engine\guardian-summons-template-runtime.ts
+============================================================
+import { prisma } from "@/lib/prisma";
+import { guardianSummonsTemplatePreset } from "@/components/report-engine/guardian-summons-letter-preview";
+
+const DESIGN_PRESET = "guardian-summons-letter-v1";
+const PRESET_ID = "tpl-guardian-summons-letter";
+
+type DbReportTemplateLike = {
+  id?: string;
+  name?: string | null;
+  description?: string | null;
+  serviceSlug?: string | null;
+  isActive?: boolean | null;
+  templateJson?: unknown;
+  content?: unknown;
+  updatedAt?: Date | string | null;
+  createdAt?: Date | string | null;
+};
+
+export async function resolveGuardianSummonsTemplate() {
+  const savedTemplate = await findSavedGuardianSummonsTemplate();
+
+  if (savedTemplate) {
+    return savedTemplate;
+  }
+
+  return guardianSummonsTemplatePreset;
+}
+
+async function findSavedGuardianSummonsTemplate() {
+  try {
+    const prismaAny = prisma as unknown as {
+      reportTemplate?: {
+        findMany: (args: unknown) => Promise<DbReportTemplateLike[]>;
+      };
+    };
+
+    if (!prismaAny.reportTemplate?.findMany) {
+      return null;
+    }
+
+    const rows = await prismaAny.reportTemplate.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+      take: 100,
+    });
+
+    const normalized = rows
+      .map(normalizeSavedTemplate)
+      .filter(Boolean) as Array<typeof guardianSummonsTemplatePreset>;
+
+    const published = normalized.find(
+      (template: any) =>
+        template.designPreset === DESIGN_PRESET &&
+        template.status === "PUBLISHED"
+    );
+
+    if (published) return published;
+
+    const latest = normalized.find(
+      (template: any) => template.designPreset === DESIGN_PRESET
+    );
+
+    return latest || null;
+  } catch (error) {
+    console.error("resolveGuardianSummonsTemplate failed:", error);
+    return null;
+  }
+}
+
+function normalizeSavedTemplate(row: DbReportTemplateLike) {
+  const raw = row.templateJson ?? row.content;
+
+  let parsed = raw;
+
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    return null;
+  }
+
+  const template = parsed as Record<string, unknown>;
+
+  const designPreset = String(template.designPreset || "");
+
+  if (designPreset !== DESIGN_PRESET && row.id !== PRESET_ID) {
+    return null;
+  }
+
+  return {
+    ...guardianSummonsTemplatePreset,
+    ...template,
+    id: String(template.id || row.id || PRESET_ID),
+    name: String(template.name || row.name || guardianSummonsTemplatePreset.name),
+    description: String(
+      template.description ||
+        row.description ||
+        guardianSummonsTemplatePreset.description
+    ),
+    serviceSlug:
+      typeof template.serviceSlug === "string"
+        ? template.serviceSlug
+        : row.serviceSlug || undefined,
+    designPreset: DESIGN_PRESET,
+    updatedAt: String(
+      template.updatedAt ||
+        row.updatedAt ||
+        row.createdAt ||
+        guardianSummonsTemplatePreset.updatedAt
+    ),
+    pages:
+      Array.isArray(template.pages) && template.pages.length
+        ? template.pages
+        : guardianSummonsTemplatePreset.pages,
+  } as any;
+}
+
+
+============================================================
+FILE: lib\workflows\guardian-summons-workflow-template.ts
+============================================================
+export const FAMILY_SCHOOL_COMMUNICATION_SERVICE = {
+  slug: "family-school-communication",
+  name: "التواصل بين الأسرة والمدرسة",
+  description:
+    "توثيق التواصل مع الأسرة وولي الأمر ونتائج التواصل ضمن سجلات الخدمة.",
+};
+
+export const GUARDIAN_SUMMONS_WORKFLOW = {
+  workflowType: "guardian-summons",
+  name: "استدعاء ولي أمر",
+  version: 1,
+  steps: [
+    {
+      title: "اختيار الطالب/الطالبة",
+      description:
+        "اختر الطالب/الطالبة من بيانات الطلاب ليتم ربط الاستدعاء بسجل الطالب وولي الأمر.",
+      order: 1,
+      fields: [
+        {
+          key: "student_picker",
+          label: "اختيار الطالب/الطالبة",
+          type: "STUDENT_PICKER",
+          isRequired: true,
+          order: 1,
+          helpText: "ابحث باسم الطالب/الطالبة أو رقم الهوية.",
+          options: [],
+        },
+      ],
+    },
+    {
+      title: "أسباب الاستدعاء",
+      description: "يمكن اختيار أكثر من سبب للاستدعاء.",
+      order: 2,
+      fields: [
+        {
+          key: "summons_reasons",
+          label: "أسباب استدعاء ولي الأمر",
+          type: "MULTI_SELECT",
+          isRequired: true,
+          order: 1,
+          allowOther: true,
+          helpText:
+            "اختر كل الأسباب المناسبة للحالة. ستظهر الأسباب المختارة في خطاب الاستدعاء.",
+          options: [
+            ["academic_weakness", "ضعف التحصيل الدراسي."],
+            ["low_academic_performance", "تدني مستوى الأداء الأكاديمي."],
+            ["academic_follow_up", "متابعة المستوى الدراسي للطالب."],
+            ["frequent_absence", "كثرة الغياب."],
+            ["morning_late", "التأخر الصباحي المتكرر."],
+            ["irregular_attendance", "عدم الالتزام بالحضور المنتظم."],
+            ["behavior_problem", "وجود مشكلة سلوكية."],
+            ["repeated_behavior_violations", "تكرار المخالفات السلوكية."],
+            ["school_rules", "عدم التقيد بأنظمة المدرسة وتعليماتها."],
+            ["fight_or_abuse", "المشاجرات أو الاعتداء اللفظي/الجسدي."],
+            ["low_motivation", "تدني الدافعية للتعلم."],
+            ["homework_neglect", "إهمال الواجبات والمهام الدراسية."],
+            ["low_test_scores", "انخفاض درجات الاختبارات."],
+            ["academic_plan", "الحاجة إلى وضع خطة علاجية أكاديمية."],
+            ["psych_social", "متابعة حالة الطالب النفسية أو الاجتماعية."],
+            ["teacher_notes", "مناقشة ملاحظات المعلمين حول الطالب."],
+            ["behavior_plan", "متابعة برنامج تعديل السلوك."],
+            ["devices_violation", "التنبيه على مخالفات استخدام الأجهزة أو وسائل التقنية."],
+            ["school_property", "المحافظة على الممتلكات المدرسية."],
+            ["discipline_drop", "دراسة أسباب تدني الانضباط المدرسي."],
+            ["family_cooperation", "تعزيز التعاون بين المدرسة والأسرة لمصلحة الطالب."],
+            ["special_needs", "مناقشة احتياجات الطالب التعليمية أو التربوية الخاصة."],
+            ["bullying", "متابعة حالات التنمر كممارس أو متضرر."],
+            ["student_data_update", "استكمال أو تحديث بيانات الطالب."],
+            ["leaving_during_day", "مناقشة تكرار الاستئذان أو الخروج أثناء اليوم الدراسي."],
+          ],
+        },
+      ],
+    },
+    {
+      title: "موعد وطريقة الاستدعاء",
+      description: "حدد موعد حضور ولي الأمر وطريقة إشعاره.",
+      order: 3,
+      fields: [
+        {
+          key: "summons_day",
+          label: "يوم الحضور",
+          type: "TEXT",
+          isRequired: true,
+          order: 1,
+          placeholder: "مثال: الأحد",
+          options: [],
+        },
+        {
+          key: "summons_date",
+          label: "تاريخ الحضور",
+          type: "DATE",
+          isRequired: true,
+          order: 2,
+          options: [],
+        },
+        {
+          key: "summons_time",
+          label: "وقت الحضور",
+          type: "TEXT",
+          isRequired: true,
+          order: 3,
+          placeholder: "مثال: 09:00",
+          options: [],
+        },
+        {
+          key: "summons_period",
+          label: "الفترة",
+          type: "SELECT",
+          isRequired: true,
+          order: 4,
+          options: [
+            ["morning", "صباحًا"],
+            ["evening", "مساءً"],
+          ],
+        },
+        {
+          key: "notification_method",
+          label: "طريقة إشعار ولي الأمر",
+          type: "SELECT",
+          isRequired: true,
+          order: 5,
+          allowOther: true,
+          options: [
+            ["paper", "خطاب ورقي"],
+            ["phone", "اتصال هاتفي"],
+            ["sms", "رسالة نصية"],
+            ["whatsapp", "واتساب"],
+            ["school_platform", "منصة المدرسة"],
+          ],
+        },
+        {
+          key: "priority",
+          label: "أولوية الاستدعاء",
+          type: "SELECT",
+          isRequired: true,
+          order: 6,
+          options: [
+            ["normal", "عادي"],
+            ["important", "مهم"],
+            ["urgent", "عاجل"],
+          ],
+        },
+      ],
+    },
+    {
+      title: "ما بعد الاستدعاء",
+      description:
+        "توثق هذه البيانات داخل النظام ولا تظهر في خطاب الاستدعاء الرسمي المختصر.",
+      order: 4,
+      fields: [
+        {
+          key: "summons_result",
+          label: "نتيجة الاستدعاء",
+          type: "SELECT",
+          isRequired: true,
+          order: 1,
+          options: [
+            ["pending", "لم يتم بعد"],
+            ["attended", "حضر ولي الأمر"],
+            ["not_attended", "لم يحضر ولي الأمر"],
+            ["phone_contact", "تم التواصل هاتفيًا بدل الحضور"],
+            ["postponed", "تم تأجيل الموعد"],
+            ["closed_without_attendance", "تم إغلاق الاستدعاء بدون حضور"],
+          ],
+        },
+        {
+          key: "discussion_summary",
+          label: "ما تم مناقشته",
+          type: "TEXTAREA",
+          isRequired: false,
+          order: 2,
+          dependsOnFieldKey: "summons_result",
+          linkedToValue: "attended",
+          options: [],
+        },
+        {
+          key: "agreed_actions",
+          label: "الإجراءات المتفق عليها",
+          type: "TEXTAREA",
+          isRequired: false,
+          order: 3,
+          dependsOnFieldKey: "summons_result",
+          linkedToValue: "attended",
+          options: [],
+        },
+        {
+          key: "not_attended_next_action",
+          label: "الإجراء التالي عند عدم الحضور",
+          type: "SELECT",
+          isRequired: false,
+          order: 4,
+          dependsOnFieldKey: "summons_result",
+          linkedToValue: "not_attended",
+          allowOther: true,
+          options: [
+            ["resummon", "إعادة الاستدعاء"],
+            ["phone_contact", "التواصل الهاتفي"],
+            ["escalate_admin", "تصعيد للإدارة"],
+            ["document_only", "الاكتفاء بالتوثيق"],
+          ],
+        },
+        {
+          key: "follow_up_needed",
+          label: "هل يحتاج متابعة لاحقة؟",
+          type: "SELECT",
+          isRequired: false,
+          order: 5,
+          options: [
+            ["yes", "نعم"],
+            ["no", "لا"],
+          ],
+        },
+        {
+          key: "follow_up_date",
+          label: "تاريخ المتابعة القادمة",
+          type: "DATE",
+          isRequired: false,
+          order: 6,
+          dependsOnFieldKey: "follow_up_needed",
+          linkedToValue: "yes",
+          options: [],
+        },
+        {
+          key: "internal_notes",
+          label: "ملاحظات داخلية",
+          type: "TEXTAREA",
+          isRequired: false,
+          order: 7,
+          options: [],
+        },
+      ],
+    },
+    {
+      title: "الشواهد والمرفقات",
+      description: "أرفق أي شواهد داعمة للحالة عند الحاجة.",
+      order: 5,
+      fields: [
+        {
+          key: "case_evidence",
+          label: "الشواهد",
+          type: "FILE_UPLOAD",
+          isRequired: false,
+          order: 1,
+          helpText: "يمكن رفع صورة أو ملف داعم للحالة.",
+          options: [],
+        },
+      ],
+    },
+  ],
+} as const;

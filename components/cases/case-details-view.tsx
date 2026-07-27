@@ -396,7 +396,9 @@ function getReportPreviewUrl(report: any) {
   }
 
   return `/dashboard/report/${report.id}/preview${
-    report.templateId ? `?template=${encodeURIComponent(report.templateId)}` : ""
+    report.templateId
+      ? `?template=${encodeURIComponent(report.templateId)}`
+      : ""
   }`;
 }
 
@@ -496,10 +498,7 @@ function getOptionLabel(field: FieldLookupItem | null, value: unknown) {
   if (!raw || raw === OTHER_VALUE) return "";
 
   const option = field?.options?.find((item: any) => {
-    return (
-      cleanText(item?.value) === raw ||
-      cleanText(item?.label) === raw
-    );
+    return cleanText(item?.value) === raw || cleanText(item?.label) === raw;
   });
 
   return cleanText((option as any)?.label);
@@ -583,10 +582,7 @@ function formatCommitteeMembers(value: unknown): CommitteeMemberRow[] {
 
       return {
         name: cleanText(item.name) || "غير محدد",
-        role:
-          cleanText(item.roleOther) ||
-          cleanText(item.role) ||
-          "غير محدد",
+        role: cleanText(item.roleOther) || cleanText(item.role) || "غير محدد",
         signature: cleanText(item.signature) || "غير مضاف",
       };
     })
@@ -597,7 +593,6 @@ function formatCommitteeMembers(value: unknown): CommitteeMemberRow[] {
         member.signature !== "غير مضاف",
     );
 }
-
 
 type AssessmentStudentSummary = {
   index: number;
@@ -666,7 +661,10 @@ function buildAssessmentStudents(value: unknown): AssessmentStudentSummary[] {
 
       return {
         index: Number(record.index) || index + 1,
-        name: cleanText(record.name) || cleanText(record.fullName) || "طالب غير محدد",
+        name:
+          cleanText(record.name) ||
+          cleanText(record.fullName) ||
+          "طالب غير محدد",
         nationalId: cleanText(record.nationalId) || null,
         grade: cleanText(record.grade) || null,
         classroom: cleanText(record.classroom) || null,
@@ -706,11 +704,13 @@ function buildAssessmentInterventionSummary(
     studentsNamesText,
     subjects: getValueTextByKey(values, "assessment_subjects") || "غير محدد",
     grades: getValueTextByKey(values, "assessment_grades") || "غير محدد",
-    classrooms: getValueTextByKey(values, "assessment_classrooms") || "غير محدد",
+    classrooms:
+      getValueTextByKey(values, "assessment_classrooms") || "غير محدد",
     averagePercentage:
       getValueTextByKey(values, "assessment_average_percentage") || "غير محدد",
     recommendedAction:
-      getValueTextByKey(values, "intervention_recommended_action") || "غير محدد",
+      getValueTextByKey(values, "intervention_recommended_action") ||
+      "غير محدد",
   };
 }
 
@@ -720,7 +720,10 @@ function AssessmentInterventionSummaryCard({
   summary: AssessmentInterventionSummary;
 }) {
   const visibleStudents = summary.students.slice(0, 8);
-  const hiddenStudentsCount = Math.max(summary.students.length - visibleStudents.length, 0);
+  const hiddenStudentsCount = Math.max(
+    summary.students.length - visibleStudents.length,
+    0,
+  );
 
   return (
     <section className="rounded-[2rem] border border-emerald-100 bg-emerald-50/40 p-5 shadow-sm">
@@ -771,9 +774,7 @@ function AssessmentInterventionSummaryCard({
       </div>
 
       <div className="mt-5 rounded-[1.5rem] border border-emerald-100 bg-white p-4">
-        <p className="text-sm font-black text-slate-950">
-          الطلاب المستهدفون
-        </p>
+        <p className="text-sm font-black text-slate-950">الطلاب المستهدفون</p>
 
         {visibleStudents.length ? (
           <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -868,7 +869,8 @@ function SavedReportsPanel({
           </h2>
 
           <p className="mt-2 text-sm font-bold leading-7 text-slate-500">
-            افتح نسخة محفوظة ثابتة، أو أصدر تقريرًا جديدًا من بيانات الحالة الحالية.
+            افتح نسخة محفوظة ثابتة، أو أصدر تقريرًا جديدًا من بيانات الحالة
+            الحالية.
           </p>
         </div>
 
@@ -916,7 +918,8 @@ function SavedReportsPanel({
 
       {reports.length > visibleReports.length ? (
         <p className="mt-3 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-500 ring-1 ring-emerald-100">
-          يوجد {reports.length - visibleReports.length} تقارير أخرى محفوظة لهذه الحالة.
+          يوجد {reports.length - visibleReports.length} تقارير أخرى محفوظة لهذه
+          الحالة.
         </p>
       ) : null}
     </section>
@@ -954,12 +957,18 @@ export function CaseDetailsView({
   const reportTwoSnapshotHref = reportTwoSnapshotId
     ? `/dashboard/report-2/snapshots/${reportTwoSnapshotId}/preview`
     : null;
-  const primaryReportHref = reportTwoSnapshotHref || `/dashboard/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`;
-  const primaryReportLabel = reportTwoSnapshotHref
-    ? reportTwoStatus === "APPROVED"
-      ? "معاينة التقرير المعتمد"
-      : "معاينة مسودة التقرير"
-    : "إصدار تقرير جديد";
+  const isGuardianSummons = caseEntry.service?.slug === "guardian-summons";
+  const primaryReportHref = isGuardianSummons
+    ? `/dashboard/guardian-summons/${encodeURIComponent(caseEntry.id)}/preview`
+    : reportTwoSnapshotHref ||
+      `/dashboard/report-2/cases/${encodeURIComponent(caseEntry.id)}/prepare`;
+  const primaryReportLabel = isGuardianSummons
+    ? "إصدار استدعاء"
+    : reportTwoSnapshotHref
+      ? reportTwoStatus === "APPROVED"
+        ? "معاينة التقرير المعتمد"
+        : "معاينة مسودة التقرير"
+      : "إصدار تقرير جديد";
   const reportIsApproved = reportTwoStatus === "APPROVED";
 
   const isCommitteesCase = caseEntry.service?.slug === COMMITTEE_SERVICE_SLUG;
@@ -1093,12 +1102,14 @@ export function CaseDetailsView({
         </section>
 
         {reportTwoSnapshotHref ? (
-          <section className={[
-            "rounded-[2rem] border px-5 py-4 shadow-sm",
-            reportIsApproved
-              ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-              : "border-sky-200 bg-sky-50 text-sky-950",
-          ].join(" ")}>
+          <section
+            className={[
+              "rounded-[2rem] border px-5 py-4 shadow-sm",
+              reportIsApproved
+                ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+                : "border-sky-200 bg-sky-50 text-sky-950",
+            ].join(" ")}
+          >
             <h2 className="text-base font-black">
               {reportIsApproved
                 ? "هذه الحالة مرتبطة بتقرير معتمد"
@@ -1340,12 +1351,14 @@ export function CaseDetailsView({
       </section>
 
       {reportTwoSnapshotHref ? (
-        <section className={[
-          "rounded-[2rem] border px-5 py-4 shadow-sm",
-          reportIsApproved
-            ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-            : "border-sky-200 bg-sky-50 text-sky-950",
-        ].join(" ")}>
+        <section
+          className={[
+            "rounded-[2rem] border px-5 py-4 shadow-sm",
+            reportIsApproved
+              ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+              : "border-sky-200 bg-sky-50 text-sky-950",
+          ].join(" ")}
+        >
           <h2 className="text-base font-black">
             {reportIsApproved
               ? "هذه الحالة مرتبطة بتقرير معتمد"
@@ -1410,7 +1423,10 @@ export function CaseDetailsView({
           {displayValues.map((value: WorkflowValueLike, index: number) => {
             const key = value.field?.key || value.fieldKey || "";
             const label = getWorkflowFieldLabel(value, index);
-            const displayValue = formatWorkflowDisplayValue(value, workflowValues);
+            const displayValue = formatWorkflowDisplayValue(
+              value,
+              workflowValues,
+            );
 
             return (
               <CaseValueRenderer
