@@ -388,8 +388,17 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
       ].join(" ")
     : disabledIconButtonClass;
 
+  const cardClassName = [
+    "flex h-full flex-col rounded-[1.75rem] border p-4 shadow-sm transition hover:shadow-md",
+    reportStatus === "APPROVED"
+      ? "border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:shadow-emerald-100/60"
+      : persistedReportId
+        ? "border-sky-200 bg-sky-50/40 hover:border-sky-300 hover:shadow-sky-100/60"
+        : "border-slate-200 bg-white hover:border-sky-200",
+  ].join(" ");
+
   return (
-    <article className="flex h-full flex-col rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md">
+    <article className={cardClassName}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span
@@ -475,7 +484,7 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
         {caseItem.title}
       </h2>
 
-      <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+      <div className="mt-3 rounded-2xl border border-slate-100 bg-white/70 px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 ring-1 ring-slate-100">
             <UserRound className="h-4 w-4" />
