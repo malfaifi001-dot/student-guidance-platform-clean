@@ -1,5 +1,6 @@
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import { extractSmartReportTables } from "@/lib/report-engine/report-structured-table-extractor";
 import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
 import {
   applyReportLanguageModeToFieldValue,
@@ -259,6 +260,36 @@ function collectWorkflowSnapshotFieldLabels(snapshot: unknown) {
   }
 
   return labels;
+}
+
+function collectWorkflowSnapshotFields(snapshot: unknown) {
+  const fields = new Map<string, unknown>();
+  let source: Record<string, unknown> | null = null;
+
+  if (typeof snapshot === "string") {
+    try {
+      source = JSON.parse(snapshot) as Record<string, unknown>;
+    } catch {
+      source = null;
+    }
+  } else if (snapshot && typeof snapshot === "object") {
+    source = snapshot as Record<string, unknown>;
+  }
+
+  const steps = Array.isArray(source?.steps) ? source.steps : [];
+  steps.forEach((step) => {
+    if (!step || typeof step !== "object") return;
+    const stepFields = Array.isArray((step as Record<string, unknown>).fields)
+      ? ((step as Record<string, unknown>).fields as unknown[])
+      : [];
+    stepFields.forEach((field) => {
+      if (!field || typeof field !== "object") return;
+      const key = cleanText((field as Record<string, unknown>).key).toLowerCase();
+      if (key) fields.set(key, field);
+    });
+  });
+
+  return fields;
 }
 
 function collectActiveWorkflowFieldKeys(caseEntry: any) {
@@ -1203,7 +1234,18 @@ export async function buildSmartReportPayloadForCase({
   }
 
   const languageMode = getReportLanguageModeFromUserGender(current.user.gender);
-  const values = filterPrivateReportValues(normalizeCaseValues(caseEntry));
+  const workflowFields = (caseEntry.workflow?.steps || []).flatMap(
+    (step: any) => step.fields || [],
+  );
+  const tables = extractSmartReportTables({
+    values: caseEntry.values || [],
+    fields: workflowFields,
+    snapshotFields: collectWorkflowSnapshotFields(caseEntry.workflowSnapshot),
+  });
+  const tableFieldKeys = new Set(tables.map((table) => table.sourceFieldKey));
+  const values = filterPrivateReportValues(normalizeCaseValues(caseEntry)).filter(
+    (item) => !tableFieldKeys.has(cleanText(item.key).toLowerCase()),
+  );
   const title = findTitle(caseEntry, values);
   const serviceSlug = caseEntry.service?.slug || "general";
   const isCustomReport = serviceSlug === "custom-report";
@@ -1373,6 +1415,7 @@ export async function buildSmartReportPayloadForCase({
         }))
       : primaryFields,
     detailFields,
+    ...(tables.length ? { tables } : {}),
     narrative: isCustomReport
       ? {
           title: "ملخص التقرير",

@@ -160,6 +160,31 @@ export type SmartReportCustomBlock = {
   order?: number;
 };
 
+export type SmartReportTableColumn = {
+  key: string;
+  label: string;
+  width?: number;
+};
+
+export type SmartReportTableRow = {
+  id: string;
+  cells: Record<string, string>;
+};
+
+export type SmartReportTable = {
+  id: string;
+  sourceFieldKey: string;
+  title: string;
+  columns: SmartReportTableColumn[];
+  rows: SmartReportTableRow[];
+  settings?: {
+    repeatHeader?: boolean;
+    compact?: boolean;
+    stripedRows?: boolean;
+    highlightFirstColumn?: boolean;
+  };
+};
+
 export type SmartReportPayload = {
   reportType: SmartReportType;
   languageMode: ReportLanguageMode;
@@ -181,6 +206,7 @@ export type SmartReportPayload = {
   };
   signatures: SmartReportSignature[];
   readiness: SmartReportReadiness;
+  tables?: SmartReportTable[];
   evidenceConfig?: ReportEvidenceConfig;
   customBlocks?: SmartReportCustomBlock[];
 };

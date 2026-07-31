@@ -1,3 +1,219 @@
+
+==================================================
+FILE: lib\report-engine\smart-report-types.ts
+==================================================
+import type { ReportLanguageMode } from "@/lib/report-engine/report-language-mode";
+
+export type SmartReportType =
+  | "GENERAL_CASE_REPORT"
+  | "ACTIVITY_REPORT"
+  | "MEETING_REPORT"
+  | "FAMILY_COMMUNICATION_REPORT"
+  | "STUDENT_FOLLOWUP_REPORT"
+  | "EVIDENCE_REPORT"
+  | "SUMMARY_REPORT";
+
+export type SmartReportFieldImportance =
+  | "PRIMARY"
+  | "DETAIL"
+  | "NARRATIVE"
+  | "EVIDENCE_RELATED"
+  | "SIGNATURE_RELATED"
+  | "HIDDEN"
+  | "TECHNICAL";
+
+export type SmartReportReadinessStatus =
+  | "READY"
+  | "NEEDS_REVIEW"
+  | "BLOCKED";
+
+export type SmartReportEvidenceLayout =
+  | "ONE_PER_PAGE"
+  | "TWO_PER_PAGE"
+  | "GRID_2X2"
+  | "ATTACHMENT_LIST";
+
+export type SmartReportField = {
+  key: string;
+  label: string;
+  value: string | string[] | number | boolean | null;
+  importance: SmartReportFieldImportance;
+  group?: string;
+};
+
+export type SmartReportEvidenceItem = {
+  id: string;
+  title: string;
+  url?: string;
+  caption?: string;
+  type?: "IMAGE" | "FILE";
+};
+
+export type SmartReportSignature = {
+  key: string;
+  label: string;
+  signerName?: string | null;
+  signerTitle?: string | null;
+  signedAt?: string | null;
+  imageUrl?: string | null;
+  required?: boolean;
+};
+
+export type SmartReportIdentity = {
+  ministryName?: string;
+  educationDepartment?: string;
+  educationOffice?: string;
+  schoolName?: string;
+  schoolLogoUrl?: string;
+  academicYear?: string;
+  currentSemester?: string;
+  counselorName?: string;
+  counselorSignatureUrl?: string;
+  principalName?: string;
+  principalSignatureUrl?: string;
+  activityLeaderName?: string;
+  activityLeaderSignatureUrl?: string;
+  schoolLeaderName?: string;
+  schoolLeaderSignatureUrl?: string;
+  userName?: string;
+  userSignatureUrl?: string;
+};
+
+export type SmartReportCaseInfo = {
+  id: string;
+  title: string;
+  status?: string;
+  createdAt?: string;
+  issuedAt?: string;
+  issuedBy?: string;
+};
+
+export type SmartReportServiceInfo = {
+  slug: string;
+  name: string;
+};
+
+export type SmartReportStudentInfo = {
+  name?: string;
+  nationalId?: string;
+  grade?: string;
+  classroom?: string;
+  stage?: string;
+  guardianName?: string;
+  guardianPhone?: string;
+};
+
+export type SmartReportReadiness = {
+  status: SmartReportReadinessStatus;
+  percentage: number;
+  missingItems: string[];
+  notes: string[];
+};
+
+export type ReportEvidenceImageSize =
+  | "large-square"
+  | "small-squares"
+  | "portrait"
+  | "landscape";
+
+export type ReportEvidenceConfig = {
+  visible: boolean;
+  itemsPerPage: 1 | 2 | 4;
+  showCaptions: boolean;
+  imageSize: ReportEvidenceImageSize;
+};
+
+export type SmartReportCustomBlockType = "PARAGRAPH" | "BULLET_LIST" | "TABLE" | "PAGE_BREAK";
+
+export type SmartReportCustomTableData = {
+  settings: {
+    highlightHeaderRow: boolean;
+    highlightFirstColumn: boolean;
+    repeatHeaderOnPageBreak: boolean;
+    rounded: boolean;
+    compact: boolean;
+  };
+  columns: Array<{
+    id: string;
+    title: string;
+    width?: number;
+  }>;
+  rows: Array<{
+    id: string;
+    cells: Array<{
+      id: string;
+      value: string;
+    }>;
+  }>;
+};
+
+export type SmartReportCustomBlockZone =
+  | "PAGE_TOP"
+  | "BEFORE_EVIDENCE"
+  | "AFTER_EVIDENCE"
+  | "BEFORE_SIGNATURES";
+
+export type SmartReportCustomBlock = {
+  id: string;
+  type: SmartReportCustomBlockType;
+  title: string;
+  body: string;
+  table?: SmartReportCustomTableData;
+  targetPageIndex?: number;
+  targetZone?: SmartReportCustomBlockZone;
+  order?: number;
+};
+
+export type SmartReportPayload = {
+  reportType: SmartReportType;
+  languageMode: ReportLanguageMode;
+  title: string;
+  identity: SmartReportIdentity;
+  caseInfo: SmartReportCaseInfo;
+  service: SmartReportServiceInfo;
+  student?: SmartReportStudentInfo | null;
+  primaryFields: SmartReportField[];
+  detailFields: SmartReportField[];
+  narrative: {
+    title: string;
+    body: string;
+    visible?: boolean;
+  };
+  evidence: {
+    layout: SmartReportEvidenceLayout;
+    items: SmartReportEvidenceItem[];
+  };
+  signatures: SmartReportSignature[];
+  readiness: SmartReportReadiness;
+  evidenceConfig?: ReportEvidenceConfig;
+  customBlocks?: SmartReportCustomBlock[];
+};
+
+export type ReportDraftAdjustments = {
+  title?: string;
+  narrative?: {
+    title?: string;
+    body?: string;
+  };
+  primaryFields?: Array<{
+    key: string;
+    value: string;
+  }>;
+  detailFields?: Array<{
+    key: string;
+    value: string;
+  }>;
+  caseInfo?: {
+    issuedAt?: string;
+    issuedBy?: string;
+  };
+  evidenceConfig?: ReportEvidenceConfig;
+  customBlocks?: SmartReportCustomBlock[];
+};
+
+==================================================
+FILE: components\report-engine\design-renderers\report-design-renderer.tsx
+==================================================
 "use client";
 
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
@@ -2330,7 +2546,7 @@ function DesignBlock({
     );
   }
 
-  if (block.kind === "report-one-table" || block.kind === "structured-table") {
+  if (block.kind === "report-one-table") {
     const columns = Array.isArray(block.columns) && block.columns.length
       ? block.columns
       : ["المجال", "الإجراء", "ملاحظات"];
@@ -2346,7 +2562,6 @@ function DesignBlock({
     const highlightFirstColumn = Boolean(tableSettings.highlightFirstColumn);
     const stripedRows = Boolean(tableSettings.stripedRows);
     const colorTheme = tableSettings.colorTheme || "light-gray";
-    const columnWidths = Array.isArray(block.columnWidths) ? block.columnWidths : [];
 
     const themeColors: Record<string, { border: string; headerBg: string; firstColBg: string; stripedBg: string; headerText: string; cellText: string; firstColText: string }> = {
       "light-gray": { border: "border-slate-200", headerBg: "bg-slate-50", firstColBg: "bg-slate-50", stripedBg: "bg-slate-50/40", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
@@ -2355,29 +2570,14 @@ function DesignBlock({
       "none": { border: "border-slate-200", headerBg: "bg-white", firstColBg: "bg-white", stripedBg: "bg-white", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
     };
     const tc = themeColors[colorTheme] || themeColors["light-gray"];
-    const isMeetingAgendaTable =
-      block.kind === "structured-table" &&
-      block.sourceFieldKey === "committee_items";
 
     return (
-      <section
-        dir="rtl"
-        data-report-structured-table={block.kind === "structured-table" ? block.sourceTableId || "true" : undefined}
-        className={
-          isMeetingAgendaTable
-            ? `mb-3 mt-5 break-inside-avoid ${textAlign}`
-            : getBlockShellClass(designId, block.variant, textAlign)
-        }
-        style={{ breakInside: "avoid" }}
-      >
+      <section className={getBlockShellClass(designId, block.variant, textAlign)}>
         {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
 
         <div className={rounded ? `overflow-hidden rounded-2xl border ${tc.border}` : `overflow-hidden border ${tc.border}`}>
-          <table className="w-full table-fixed border-collapse text-xs">
-            <thead
-              className={highlightHeader ? tc.headerBg : "bg-white"}
-              style={{ display: tableSettings.repeatHeader === false ? undefined : "table-header-group" }}
-            >
+          <table className="w-full border-collapse text-xs">
+            <thead className={highlightHeader ? tc.headerBg : "bg-white"}>
               <tr>
                 {columns.map((column: string, columnIndex: number) => (
                   <th
@@ -2386,11 +2586,6 @@ function DesignBlock({
                       `border ${tc.border} text-center font-black ${tc.headerText}`,
                       compact ? "px-2 py-2" : "px-3 py-3",
                     ].join(" ")}
-                    style={
-                      Number(columnWidths[columnIndex]) > 0
-                        ? { width: `${Number(columnWidths[columnIndex])}%` }
-                        : undefined
-                    }
                   >
                     {column}
                   </th>
@@ -2403,13 +2598,12 @@ function DesignBlock({
                 <tr
                   key={`row-${rowIndex}`}
                   className={stripedRows && rowIndex % 2 === 1 ? tc.stripedBg : "bg-white"}
-                  style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
                 >
                   {columns.map((_: string, columnIndex: number) => (
                     <td
                       key={`cell-${rowIndex}-${columnIndex}`}
                       className={[
-                        `break-words whitespace-pre-wrap border ${tc.border} text-center font-bold leading-6 ${tc.cellText}`,
+                        `border ${tc.border} text-center font-bold leading-6 ${tc.cellText}`,
                         compact ? "px-2 py-2" : "px-3 py-3",
                         highlightFirstColumn && columnIndex === 0
                           ? `${tc.firstColBg} font-black ${tc.firstColText}`
