@@ -22,6 +22,40 @@ type ReportIdentityUser = {
   } | null;
 } | null;
 
+function cleanOrganizationValue(value: string | null | undefined) {
+  const clean = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return clean === "null" || clean === "undefined" ? "" : clean;
+}
+
+function stripEducationOfficePrefix(value: string) {
+  return value
+    .replace(/^مكتب\s+(?:ال)?تعليم\s*/u, "")
+    .replace(/^مكتب\s+التعليم\s*/u, "")
+    .replace(/^إدارة\s+(?:ال)?تعليم\s*/u, "")
+    .replace(/^الإدارة\s+العامة\s+للتعليم\s*(?:ب)?/u, "")
+    .replace(/^ب(?=منطقة\s|محافظة\s)/u, "")
+    .replace(/^(منطقة|محافظة)\s+\1\s+/u, "$1 ")
+    .trim();
+}
+
+export function formatEducationOfficeDisplay(params: {
+  educationOffice?: string | null;
+  educationDepartment?: string | null;
+}) {
+  const office = stripEducationOfficePrefix(
+    cleanOrganizationValue(params.educationOffice),
+  );
+  const department = stripEducationOfficePrefix(
+    cleanOrganizationValue(params.educationDepartment),
+  );
+  const location = office || department;
+
+  return location ? `مكتب تعليم ${location}` : "";
+}
+
 export function buildReportIdentityFromCurrentUser(
   user: ReportIdentityUser
 ): ReportIdentity {

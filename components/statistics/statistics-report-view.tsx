@@ -1,10 +1,5 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-} from "react";
-
 import Link from "next/link";
 
 import {
@@ -14,6 +9,14 @@ import {
 import {
   usePrintExportAction,
 } from "@/components/print-export/use-print-export-action";
+
+import {
+  StatisticsPrintController,
+} from "@/components/statistics/statistics-print-controller";
+
+import {
+  formatEducationOfficeDisplay,
+} from "@/lib/report-engine/report-identity-runtime";
 
 export type StatisticsReportViewData = {
   id: string;
@@ -63,7 +66,10 @@ export type StatisticsReportViewData = {
 type Props = {
   data: StatisticsReportViewData;
   autoPrint: boolean;
+  showControls?: boolean;
 };
+
+const MINISTRY_OF_EDUCATION_LOGO_SRC = "/uploads/school-logos/MOE.png";
 
 function formatDate(
   value: string | null,
@@ -85,9 +91,12 @@ function formatDate(
 export function StatisticsReportView({
   data,
   autoPrint,
+  showControls = true,
 }: Props) {
-  const printedRef =
-    useRef(false);
+  const educationOfficeLabel = formatEducationOfficeDisplay({
+    educationOffice: data.school.educationOffice,
+    educationDepartment: data.school.educationDepartment,
+  });
 
   const {
     status: printExportStatus,
@@ -97,31 +106,10 @@ export function StatisticsReportView({
     closeModal,
   } = usePrintExportAction();
 
-  useEffect(() => {
-    if (
-      !autoPrint ||
-      printedRef.current
-    ) {
-      return;
-    }
-
-    printedRef.current = true;
-
-    const timeout = setTimeout(
-      () => {
-        window.print();
-      },
-      500,
-    );
-
-    return () =>
-      clearTimeout(timeout);
-  }, [autoPrint]);
-
   async function openPrintReport() {
     await runPrintExport({
       printUrl:
-        `/dashboard/statistics/${data.id}?print=1`,
+        `/print/statistics/${encodeURIComponent(data.id)}?print=1`,
 
       blockedTitle:
         "معاينة طباعة التقرير الإحصائي",
@@ -142,7 +130,12 @@ export function StatisticsReportView({
       className="min-h-screen bg-slate-100 px-3 py-6 print:bg-white print:p-0"
       dir="rtl"
     >
-      {!autoPrint ? (
+      <StatisticsPrintController
+        enabled={autoPrint}
+        serviceNames={data.serviceNames}
+      />
+
+      {showControls && !autoPrint ? (
         <section className="statistics-print-controls mx-auto mb-5 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <Link
             href="/dashboard/statistics"
@@ -170,100 +163,47 @@ export function StatisticsReportView({
         </section>
       ) : null}
 
-      <article className="statistics-report-sheet mx-auto min-h-[297mm] w-full max-w-[210mm] overflow-hidden bg-white shadow-xl print:min-h-0 print:max-w-none print:shadow-none">
-        <header className="border-b-[3px] border-cyan-800 px-[14mm] pb-6 pt-[12mm]">
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex items-center gap-4">
-              {data.school.logoUrl ? (
-                <img
-                  src={
-                    data.school.logoUrl
-                  }
-                  alt="شعار المدرسة"
-                  className="h-20 w-20 object-contain"
-                />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-center text-xs font-black text-slate-500">
-                  شعار
-                  <br />
-                  المدرسة
-                </div>
-              )}
-
-              <div>
-                <p className="text-sm font-bold text-slate-500">
-                  المملكة العربية السعودية
-                </p>
-
-                <p className="mt-1 text-sm font-bold text-slate-500">
-                  وزارة التعليم
-                </p>
-
-                {data.school
-                  .educationDepartment ? (
-                  <p className="mt-1 text-sm font-bold text-slate-500">
-                    {
-                      data.school
-                        .educationDepartment
-                    }
-                  </p>
-                ) : null}
-
-                <h2 className="mt-2 text-xl font-black text-slate-950">
-                  {data.school.name}
-                </h2>
-              </div>
+      <div className="statistics-a4-preview w-full overflow-x-auto pb-2">
+      <article className="statistics-report-sheet mx-auto flex min-h-[297mm] w-[210mm] min-w-[210mm] flex-col bg-white shadow-xl print:shadow-none">
+        <header className="break-inside-avoid border-b-2 border-cyan-700 px-[14mm] pb-[6mm] pt-[8mm]">
+          <div className="grid min-h-[34mm] grid-cols-[repeat(3,minmax(0,1fr))] items-center gap-[6mm]">
+            <div className="flex min-h-[34mm] flex-col items-center justify-center space-y-0.5 text-center text-sm font-bold leading-6 text-slate-600">
+              <p>المملكة العربية السعودية</p>
+              <p>وزارة التعليم</p>
+              {educationOfficeLabel ? <p>{educationOfficeLabel}</p> : null}
             </div>
 
-            <div className="text-left text-xs font-bold leading-6 text-slate-500">
-              {data.school
-                .academicYear ? (
-                <p>
-                  العام الدراسي:{" "}
-                  {
-                    data.school
-                      .academicYear
-                  }
-                </p>
+            <div className="flex min-h-[34mm] min-w-0 flex-col items-center justify-center text-center">
+              <img
+                src={MINISTRY_OF_EDUCATION_LOGO_SRC}
+                alt="شعار وزارة التعليم"
+                data-statistics-ministry-logo="true"
+                className="h-[18mm] w-auto max-w-[42mm] object-contain"
+              />
+              {data.school.name ? (
+                <h2 className="mt-2 text-base font-black leading-6 text-slate-950">
+                  {data.school.name}
+                </h2>
               ) : null}
+            </div>
 
-              {data.school
-                .currentSemester ? (
-                <p>
-                  الفصل:{" "}
-                  {
-                    data.school
-                      .currentSemester
-                  }
-                </p>
+            <div className="flex min-h-[34mm] flex-col items-center justify-center space-y-0.5 text-center text-sm font-bold leading-6 text-slate-600">
+              <p>تاريخ الإنشاء: {formatDate(data.createdAt)}</p>
+              {data.serviceNames.length ? (
+                <p className="break-words">{data.serviceNames.join("، ")}</p>
               ) : null}
-
-              <p>
-                تاريخ الإنشاء:{" "}
-                {formatDate(
-                  data.createdAt,
-                )}
-              </p>
             </div>
           </div>
 
-          <div className="mt-8 text-center">
-            <p className="text-sm font-black tracking-wide text-cyan-700">
-              تقرير رسمي
-            </p>
-
-            <h1 className="mt-2 text-3xl font-black text-slate-950">
+          <div className="mt-[5mm] text-center">
+            <h1 className="text-3xl font-black text-slate-950">
               تقرير إحصائي
             </h1>
-
-            <p className="mt-3 text-lg font-bold text-slate-600">
-              {data.serviceNames.join("، ")}
-            </p>
           </div>
         </header>
 
-        <div className="space-y-7 px-[14mm] py-[10mm]">
-          <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="statistics-report-content flex-1 space-y-7 px-[14mm] py-[10mm]">
+          <section className="grid break-inside-avoid grid-cols-4 gap-3">
             <div className="rounded-xl border border-slate-200 p-4 text-center">
               <p className="text-xs font-bold text-slate-500">
                 الحالات المؤهلة
@@ -313,8 +253,8 @@ export function StatisticsReportView({
             </div>
           </section>
 
-          <section className="break-inside-avoid">
-            <h2 className="border-r-4 border-cyan-700 pr-3 text-xl font-black text-slate-950">
+          <section>
+            <h2 className="break-after-avoid border-r-4 border-cyan-700 pr-3 text-xl font-black text-slate-950">
               الوصف التنفيذي
             </h2>
 
@@ -324,91 +264,10 @@ export function StatisticsReportView({
               }
             </p>
           </section>
-
-
-          {data.insights.length ? (
-            <section className="break-inside-avoid">
-              <h2 className="border-r-4 border-cyan-700 pr-3 text-xl font-black text-slate-950">
-                أبرز الاستنتاجات
-              </h2>
-
-              <ol className="mt-4 space-y-3">
-                {data.insights.map(
-                  (
-                    insight,
-                    index,
-                  ) => (
-                    <li
-                      key={`${index}-${insight}`}
-                      className="flex gap-3 text-sm font-semibold leading-7 text-slate-700"
-                    >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-xs font-black text-cyan-800">
-                        {index + 1}
-                      </span>
-
-                      <span>
-                        {insight}
-                      </span>
-                    </li>
-                  ),
-                )}
-              </ol>
-            </section>
-          ) : null}
-
-          {data.recommendations
-            .length ? (
-            <section className="break-inside-avoid">
-              <h2 className="border-r-4 border-cyan-700 pr-3 text-xl font-black text-slate-950">
-                التوصيات
-              </h2>
-
-              <ol className="mt-4 space-y-3">
-                {data.recommendations.map(
-                  (
-                    recommendation,
-                    index,
-                  ) => (
-                    <li
-                      key={`${index}-${recommendation}`}
-                      className="flex gap-3 text-sm font-semibold leading-7 text-slate-700"
-                    >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-black text-emerald-800">
-                        {index + 1}
-                      </span>
-
-                      <span>
-                        {
-                          recommendation
-                        }
-                      </span>
-                    </li>
-                  ),
-                )}
-              </ol>
-            </section>
-          ) : null}
-
-          <section className="break-inside-avoid rounded-xl border border-slate-200 bg-slate-50 p-5">
-            <h2 className="text-base font-black text-slate-950">
-              منهجية التقرير
-            </h2>
-
-            <p className="mt-3 text-xs font-semibold leading-6 text-slate-600">
-              تم احتساب كل حالة مرة واحدة
-              لكل قيمة مختارة، واقتصر
-              المصدر على الحالات المرتبطة
-              بتقارير صادرة ضمن الفترة
-              المحددة. تمت صياغة النص
-              التنفيذي بعد اكتمال الحساب
-              الرقمي، ولم تدخل الشواهد أو
-              البيانات الشخصية في التحليل.
-            </p>
-          </section>
         </div>
 
-        <footer className="mt-auto border-t border-slate-200 px-[14mm] py-6">
-          <div className="flex flex-wrap items-end justify-between gap-6">
+        <footer className="mt-auto break-inside-avoid border-t border-slate-200 px-[14mm] py-6">
+          <div className="flex items-end justify-start">
             <div>
               <p className="text-xs font-bold text-slate-500">
                 أعد التقرير
@@ -422,32 +281,27 @@ export function StatisticsReportView({
                 {data.creator.jobTitle}
               </p>
             </div>
-
-            <div className="text-left text-xs font-bold leading-6 text-slate-500">
-              <p>
-                رقم التقرير:
-              </p>
-
-              <p className="font-mono text-[10px]">
-                {data.id}
-              </p>
-            </div>
           </div>
         </footer>
       </article>
+      </div>
 
-      <PrintExportPopCard
-        modal={printExportModal}
-        onClose={closeModal}
-        onOpenFallback={
-          openFallbackPrintUrl
-        }
-      />
+      {showControls ? (
+        <PrintExportPopCard
+          modal={printExportModal}
+          onClose={closeModal}
+          onOpenFallback={openFallbackPrintUrl}
+        />
+      ) : null}
 
       <style jsx global>{`
         @page {
-          size: A4;
+          size: A4 portrait;
           margin: 0;
+        }
+
+        .statistics-report-sheet {
+          box-sizing: border-box;
         }
 
         @media print {
@@ -456,14 +310,26 @@ export function StatisticsReportView({
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
+            overflow: visible !important;
+          }
+
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
           .statistics-print-controls {
             display: none !important;
           }
 
+          .statistics-a4-preview {
+            overflow: visible !important;
+            padding: 0 !important;
+          }
+
           .statistics-report-sheet {
             width: 210mm !important;
+            min-width: 210mm !important;
             max-width: 210mm !important;
             min-height: 297mm !important;
             margin: 0 !important;
@@ -471,10 +337,16 @@ export function StatisticsReportView({
             box-shadow: none !important;
           }
 
-          .statistics-report-sheet section,
           .statistics-report-sheet table,
           .statistics-report-sheet tr {
             break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
+          .statistics-report-sheet header,
+          .statistics-report-sheet footer {
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
         }
       `}</style>

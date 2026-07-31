@@ -26,6 +26,7 @@ import {
   normalizeWorkflowEvidenceMode,
   normalizeWorkflowStudentPickerMode,
 } from "@/lib/workflows/workflow-runtime-settings";
+import { SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA } from "@/lib/workflow-values/structured-value-metadata";
 
 export type EvidenceItem = {
   id: string;
@@ -1532,7 +1533,7 @@ function buildSelectedStudentsValues(students: SmartStudent[]) {
     selected_students_names_text: serializedStudents.length
       ? serializedStudents.map((student) => student.fullName).join("، ")
       : null,
-    selected_students_json: serializedStudents,
+    [SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA.fieldKey]: serializedStudents,
     primary_student_id: primaryStudent?.id ?? null,
   };
 }

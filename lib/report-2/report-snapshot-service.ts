@@ -57,6 +57,7 @@ function toPrismaJson(value: unknown, fallback: unknown = null) {
 }
 
 function serializeSnapshot(snapshot: any) {
+  const payload = snapshot.snapshotPayload || {};
   return {
     id: snapshot.id,
     caseEntryId: snapshot.caseEntryId,
@@ -72,6 +73,8 @@ function serializeSnapshot(snapshot: any) {
     snapshotTemplateJson: snapshot.snapshotTemplateJson,
     snapshotPagesJson: snapshot.snapshotPagesJson,
     snapshotHtml: snapshot.snapshotHtml,
+    renderContext: buildReportTwoRenderContext(payload as any),
+    previewCase: buildReportTwoPreviewCase(payload as any),
     pdfUrl: snapshot.pdfUrl,
     approvedById: snapshot.approvedById,
     approvedByName: snapshot.approvedByName,

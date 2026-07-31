@@ -179,6 +179,7 @@ type StudioBlock = {
   kind: StudioBlockKind;
   title: string;
   content: string;
+  visible?: boolean;
   variant?: string;
   source?: string;
   showTitle?: boolean;
@@ -1392,12 +1393,29 @@ function getStructuredTableBlock(
   sourceBlock?: StudioBlock,
 ): StudioBlock {
   const settings = table.settings || {};
+  const savedTitle = cleanText(sourceBlock?.title);
+  const normalizedSavedTitle = savedTitle
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/^selected_/, "")
+    .replace(/_(?:json|values?)$/, "")
+    .replace(/^_|_$/g, "");
+  const normalizedSourceKey = cleanText(table.sourceFieldKey)
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/^selected_/, "")
+    .replace(/_(?:json|values?)$/, "")
+    .replace(/^_|_$/g, "");
+  const title =
+    !savedTitle || normalizedSavedTitle === normalizedSourceKey ? table.title : savedTitle;
 
   return {
     ...(sourceBlock || createBlock("structured-table")),
     id: sourceBlock?.id || `structured-table-${table.id.replace(/[^a-z0-9_-]/gi, "-")}`,
     kind: "structured-table",
-    title: sourceBlock?.title || table.title,
+    title,
+    visible: sourceBlock?.visible !== false,
     showTitle: sourceBlock?.showTitle !== false,
     source: sourceBlock?.source || "payload-table",
     sourceTableId: table.id,
@@ -1431,16 +1449,20 @@ function withReportTwoStructuredTables(
   const boundTableIds = new Set<string>();
   let pages = template.pages.map((page) => ({
     ...page,
-    blocks: page.blocks.map((block) => {
-      if (block.kind !== "structured-table") return block;
+    blocks: page.blocks.flatMap((block) => {
+      const canBindStructuredTable =
+        block.kind === "structured-table" ||
+        Boolean(cleanText(block.sourceTableId) || cleanText(block.sourceFieldKey));
+      if (!canBindStructuredTable) return [block];
       const sourceTableId = cleanText(block.sourceTableId);
       const sourceFieldKey = cleanText(block.sourceFieldKey);
       const table =
         tableById.get(sourceTableId) ||
         tables.find((item) => item.sourceFieldKey === sourceFieldKey);
-      if (!table) return block;
+      if (!table) return [block];
+      if (boundTableIds.has(table.id)) return [];
       boundTableIds.add(table.id);
-      return getStructuredTableBlock(table, block);
+      return [getStructuredTableBlock(table, block)];
     }),
   }));
 
@@ -2007,6 +2029,10 @@ function buildReportTwoRuntimeTemplate(
     }
 
     sourcePage.blocks.forEach((originalBlock) => {
+      if (originalBlock.visible === false) {
+        return;
+      }
+
       if (
         originalBlock.kind === "evidence-gallery" &&
         previewCase.evidences.length === 0
@@ -3168,14 +3194,23 @@ export function ReportTwoStudioRuntime({
     useState("");
 
   const [template, setTemplate] = useState<StudioTemplate>(() =>
-    hydrateTemplate(initialTemplateOption),
+    withReportTwoStructuredTables(
+      applyReportTwoPreparedExecutionSummary(
+        hydrateTemplate(initialTemplateOption),
+        payload,
+      ),
+      payload,
+    ),
   );
 
 
   // report-two-sync-prepared-execution-summary
   useEffect(() => {
     setTemplate((current) =>
-      applyReportTwoPreparedExecutionSummary(current, preparedPayload),
+      withReportTwoStructuredTables(
+        applyReportTwoPreparedExecutionSummary(current, preparedPayload),
+        preparedPayload,
+      ),
     );
   }, [preparedPayload]);
   const [protectedPageIds, setProtectedPageIds] = useState<string[]>(() =>
@@ -3279,14 +3314,9 @@ export function ReportTwoStudioRuntime({
 
   const previewCase = useMemo(() => getPreviewCase(preparedPayload), [preparedPayload]);
 
-  const tableBoundTemplate = useMemo(
-    () => withReportTwoStructuredTables(template, preparedPayload),
-    [template, preparedPayload],
-  );
-
   const previewTemplate = useMemo(
-    () => buildReportTwoRuntimeTemplate(tableBoundTemplate, previewCase),
-    [tableBoundTemplate, previewCase],
+    () => buildReportTwoRuntimeTemplate(template, previewCase),
+    [template, previewCase],
   );
 
   const visiblePreviewPages = useMemo(() => {
@@ -3340,8 +3370,11 @@ export function ReportTwoStudioRuntime({
   const editableActivePage = useMemo(
     () =>
       template.pages.find((page) => page.id === activePageId) ||
+      template.pages.find(
+        (page) => page.id === cleanText((activePage as any)?.sourceTemplatePageId),
+      ) ||
       template.pages[0],
-    [template.pages, activePageId],
+    [template.pages, activePageId, activePage],
   );
 
   useEffect(() => {
@@ -4113,7 +4146,11 @@ export function ReportTwoStudioRuntime({
     setSelectedTemplateOptionId(snapshot.selectedTemplateOptionId || selectedTemplateOptionId);
     setActiveSavedRuntimeTemplateId(snapshot.activeSavedRuntimeTemplateId || "");
     setRuntimeTemplateName(snapshot.runtimeTemplateName || "");
-    setTemplate(cloneReportTwoTemplate(snapshot.template));
+    const restoredTemplate = withReportTwoStructuredTables(
+      cloneReportTwoTemplate(snapshot.template),
+      preparedPayload,
+    );
+    setTemplate(restoredTemplate);
     setHeaderValues(snapshot.headerValues || null);
     setHeaderAlignments(snapshot.headerAlignments || null);
     setLogoSettings(snapshot.logoSettings || null);
@@ -4121,7 +4158,7 @@ export function ReportTwoStudioRuntime({
     setRuntimePageOrder(snapshot.runtimePageOrder || []);
     setActivePageId(
       resolveReportTwoEquivalentPageId(
-        snapshot.template.pages,
+        restoredTemplate.pages,
         snapshot.activePageId || activePageId,
       ),
     );
@@ -4275,7 +4312,11 @@ export function ReportTwoStudioRuntime({
 
     if (!saved) return;
 
-    setTemplate(cloneReportTwoTemplate(saved.template));
+    const restoredTemplate = withReportTwoStructuredTables(
+      cloneReportTwoTemplate(saved.template),
+      preparedPayload,
+    );
+    setTemplate(restoredTemplate);
     setSelectedTemplateOptionId(saved.sourceTemplateId || selectedTemplateOptionId);
     setHeaderValues(saved.headerValues || null);
     setHeaderAlignments(saved.headerAlignments || null);
@@ -4287,7 +4328,7 @@ export function ReportTwoStudioRuntime({
     setRuntimeTemplateName(saved.name);
 
     setActivePageId(
-      resolveReportTwoEquivalentPageId(saved.template.pages, activePageId),
+      resolveReportTwoEquivalentPageId(restoredTemplate.pages, activePageId),
     );
     setSelectedBlockId("");
   }
@@ -4322,7 +4363,12 @@ export function ReportTwoStudioRuntime({
     setActiveSavedRuntimeTemplateId("");
     setSelectedQuickSavedTemplateId("");
     setRuntimeTemplateName("");
-    setTemplate(applyReportTwoPreparedExecutionSummary(nextTemplate, preparedPayload));
+    setTemplate(
+      withReportTwoStructuredTables(
+        applyReportTwoPreparedExecutionSummary(nextTemplate, preparedPayload),
+        preparedPayload,
+      ),
+    );
     setProtectedPageIds(nextTemplate.pages.map((page) => page.id));
     setHiddenRuntimePageIds([]);
     setRuntimePageOrder([]);
@@ -4576,9 +4622,14 @@ export function ReportTwoStudioRuntime({
   }
 
   function moveBlock(direction: "up" | "down") {
-    if (!selectedBlock || !activePage) return;
+    if (!selectedBlock) return;
 
-    const index = activePage.blocks.findIndex(
+    const sourcePage = template.pages.find((page) =>
+      page.blocks.some((block) => block.id === selectedBlock.id),
+    );
+    if (!sourcePage) return;
+
+    const index = sourcePage.blocks.findIndex(
       (block) => block.id === selectedBlock.id,
     );
 
@@ -4586,13 +4637,13 @@ export function ReportTwoStudioRuntime({
 
     const targetIndex = direction === "up" ? index - 1 : index + 1;
 
-    if (targetIndex < 0 || targetIndex >= activePage.blocks.length) return;
+    if (targetIndex < 0 || targetIndex >= sourcePage.blocks.length) return;
 
-    const nextBlocks = [...activePage.blocks];
+    const nextBlocks = [...sourcePage.blocks];
     const [block] = nextBlocks.splice(index, 1);
     nextBlocks.splice(targetIndex, 0, block);
 
-    updatePage(activePage.id, (page) => ({
+    updatePage(sourcePage.id, (page) => ({
       ...page,
       blocks: nextBlocks,
     }));
@@ -5849,7 +5900,7 @@ export function ReportTwoStudioRuntime({
             </h2>
 
             <div className="mt-3 space-y-2">
-              {(activePage?.blocks || []).map((block, index) => {
+              {(editableActivePage?.blocks || []).map((block, index) => {
                 const active = block.id === selectedBlockId;
 
                 return (
@@ -5861,6 +5912,8 @@ export function ReportTwoStudioRuntime({
                       "w-full rounded-2xl border px-3 py-3 text-right text-xs font-black transition",
                       active
                         ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+                        : block.visible === false
+                          ? "border-slate-200 bg-slate-50 text-slate-400 opacity-70"
                         : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
                     ].join(" ")}
                   >
@@ -5897,30 +5950,46 @@ export function ReportTwoStudioRuntime({
                     ↓
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const writablePageId = getWritableReportTwoPageId(activePageId, activePage, template);
-                      const sourcePage = template.pages.find((p) => p.id === writablePageId);
-                      if (sourcePage && sourcePage.blocks.length <= 1) {
-                        removeSelectedBlock();
-                        return;
-                      }
-                      setPopup({
-                        type: "confirm",
-                        title: "حذف البلوك",
-                        message: "هل أنت متأكد من حذف هذا البلوك؟",
-                        onConfirm: removeSelectedBlock,
-                      });
-                    }}
-                    className="rounded-xl bg-red-50 px-2 py-1 text-xs font-black text-red-600"
-                  >
-                    حذف البلوك
-                  </button>
+                  {selectedBlock.kind !== "structured-table" ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const writablePageId = getWritableReportTwoPageId(activePageId, activePage, template);
+                        const sourcePage = template.pages.find((p) => p.id === writablePageId);
+                        if (sourcePage && sourcePage.blocks.length <= 1) {
+                          removeSelectedBlock();
+                          return;
+                        }
+                        setPopup({
+                          type: "confirm",
+                          title: "حذف البلوك",
+                          message: "هل أنت متأكد من حذف هذا البلوك؟",
+                          onConfirm: removeSelectedBlock,
+                        });
+                      }}
+                      className="rounded-xl bg-red-50 px-2 py-1 text-xs font-black text-red-600"
+                    >
+                      حذف البلوك
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
               <div className="mt-4 space-y-3">
+                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={selectedBlock.visible !== false}
+                    onChange={(event) =>
+                      updateBlock(selectedBlock.id, (block) => ({
+                        ...block,
+                        visible: event.target.checked,
+                      }))
+                    }
+                  />
+                  إظهار البلوك في التقرير
+                </label>
+
                 <label className="block">
                   <span className="text-xs font-black text-slate-500 dark:text-slate-400">
                     عنوان البلوك
@@ -6057,6 +6126,7 @@ export function ReportTwoStudioRuntime({
                 {selectedBlock.kind !== "dynamic-fields" &&
                 selectedBlock.kind !== "evidence-gallery" &&
                 selectedBlock.kind !== "report-one-table" &&
+                selectedBlock.kind !== "structured-table" &&
                 selectedBlock.kind !== "signature-grid" ? (
                   <label className="block">
                     <span className="text-xs font-black text-slate-500 dark:text-slate-400">
@@ -6235,6 +6305,55 @@ export function ReportTwoStudioRuntime({
                           خلايا
                         </div>
                       </div>
+                    </div>
+                  </section>
+                ) : null}
+
+                {selectedBlock.kind === "structured-table" ? (
+                  <section className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/40 p-3">
+                    <div>
+                      <h3 className="text-xs font-black text-slate-900">
+                        إعدادات جدول البيانات
+                      </h3>
+                      <p className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
+                        تُحدَّث بيانات الجدول من الحالة، بينما تُحفظ إعدادات العرض وترتيب البلوك في التقرير.
+                      </p>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {[
+                        ["repeatHeader", "تكرار رأس الجدول"],
+                        ["stripedRows", "تظليل الصفوف بالتناوب"],
+                        ["highlightFirstColumn", "تمييز العمود الأول"],
+                        ["compact", "عرض مضغوط"],
+                        ["rounded", "حواف مستديرة"],
+                      ].map(([settingKey, label]) => (
+                        <label
+                          key={settingKey}
+                          className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-[11px] font-black text-slate-600"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={
+                              settingKey === "repeatHeader" ||
+                              settingKey === "stripedRows" ||
+                              settingKey === "rounded"
+                                ? selectedBlock.tableSettings?.[settingKey] !== false
+                                : Boolean(selectedBlock.tableSettings?.[settingKey])
+                            }
+                            onChange={(event) =>
+                              updateBlock(selectedBlock.id, (block) => ({
+                                ...block,
+                                tableSettings: {
+                                  ...(block.tableSettings || {}),
+                                  [settingKey]: event.target.checked,
+                                },
+                              }))
+                            }
+                          />
+                          {label}
+                        </label>
+                      ))}
                     </div>
                   </section>
                 ) : null}

@@ -3,6 +3,8 @@ import type {
   SmartReportTableColumn,
   SmartReportTableRow,
 } from "@/lib/report-engine/smart-report-types";
+import { getStructuredValueTableMetadata } from "@/lib/workflow-values/structured-value-metadata";
+import { resolveStructuredTableDisplayMetadata } from "@/lib/report-engine/report-structured-table-display";
 
 export type StructuredTableOptionLike = {
   id?: string | null;
@@ -150,21 +152,36 @@ function readConfig(source: unknown): StructuredTableConfig {
     record(root.settings)?.table;
   const config = record(nested) || root;
 
-  return {
-    tableTitle: text(config.tableTitle || config.title),
-    tableColumns: config.tableColumns,
-    columns: config.columns,
-    hiddenColumns: config.hiddenColumns,
-    repeatHeader:
-      typeof config.repeatHeader === "boolean" ? config.repeatHeader : undefined,
-    compact: typeof config.compact === "boolean" ? config.compact : undefined,
-    stripedRows:
-      typeof config.stripedRows === "boolean" ? config.stripedRows : undefined,
-    highlightFirstColumn:
-      typeof config.highlightFirstColumn === "boolean"
-        ? config.highlightFirstColumn
-        : undefined,
-  };
+  const schema = record(config.schema) || record(config.jsonSchema) || config;
+  const itemSchema = record(schema.items) || schema;
+  const properties = record(itemSchema.properties);
+  const schemaColumns = properties
+    ? Object.entries(properties).map(([key, definition]) => {
+        const property = record(definition);
+        return {
+          key,
+          label: text(property?.label || property?.title),
+          hidden: property?.hidden === true,
+          width: property?.width,
+          optionLabels: property?.optionLabels,
+        };
+      })
+    : undefined;
+
+  const result: StructuredTableConfig = {};
+  const tableTitle = text(config.tableTitle || config.title);
+  if (tableTitle) result.tableTitle = tableTitle;
+  if (config.tableColumns !== undefined) result.tableColumns = config.tableColumns;
+  else if (config.columns !== undefined) result.columns = config.columns;
+  else if (schemaColumns?.length) result.columns = schemaColumns;
+  if (config.hiddenColumns !== undefined) result.hiddenColumns = config.hiddenColumns;
+  if (typeof config.repeatHeader === "boolean") result.repeatHeader = config.repeatHeader;
+  if (typeof config.compact === "boolean") result.compact = config.compact;
+  if (typeof config.stripedRows === "boolean") result.stripedRows = config.stripedRows;
+  if (typeof config.highlightFirstColumn === "boolean") {
+    result.highlightFirstColumn = config.highlightFirstColumn;
+  }
+  return result;
 }
 
 function mergeConfigs(...sources: unknown[]): StructuredTableConfig {
@@ -183,6 +200,13 @@ function humanizeColumnKey(key: string) {
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function humanizeTableTitle(key: string) {
+  const withoutTechnicalAffixes = normalizeKey(key)
+    .replace(/^selected_/, "")
+    .replace(/_(?:json|values?)$/, "");
+  return humanizeColumnKey(withoutTechnicalAffixes || key) || "جدول بيانات";
 }
 
 function isHelperKey(key: string, availableKeys: Set<string>) {
@@ -224,6 +248,15 @@ function getConfiguredColumns(config: StructuredTableConfig): SmartReportTableCo
         key,
         label: text(sourceColumn?.label || sourceColumn?.title) || humanizeColumnKey(key),
         ...(Number.isFinite(width) && width > 0 ? { width } : {}),
+        ...(record(sourceColumn?.optionLabels)
+          ? {
+              optionLabels: Object.fromEntries(
+                Object.entries(record(sourceColumn?.optionLabels)!)
+                  .map(([value, label]) => [text(value), text(label)])
+                  .filter(([value, label]) => Boolean(value && label)),
+              ),
+            }
+          : {}),
       };
     })
     .filter((item): item is SmartReportTableColumn => Boolean(item));
@@ -232,6 +265,7 @@ function getConfiguredColumns(config: StructuredTableConfig): SmartReportTableCo
 function inferColumns(
   rows: Array<Record<string, unknown>>,
   config: StructuredTableConfig,
+  fields: StructuredTableFieldLike[],
 ): SmartReportTableColumn[] {
   const configured = getConfiguredColumns(config);
   if (configured.length) return configured;
@@ -253,7 +287,16 @@ function inferColumns(
     });
   });
 
-  return firstSeen.map((key) => ({ key, label: humanizeColumnKey(key) }));
+  const configuredLabels = new Map(
+    fields
+      .map((field) => [normalizeKey(field.key), text(field.label)] as const)
+      .filter(([key, label]) => Boolean(key && label)),
+  );
+
+  return firstSeen.map((key) => ({
+    key,
+    label: configuredLabels.get(key) || humanizeColumnKey(key),
+  }));
 }
 
 function optionLabel(option: StructuredTableOptionLike) {
@@ -302,9 +345,10 @@ function getCompanionValue(row: Record<string, unknown>, key: string, suffix: st
 
 function resolveCell(
   row: Record<string, unknown>,
-  columnKey: string,
+  column: SmartReportTableColumn,
   resolvers: ReturnType<typeof buildOptionResolvers>,
 ) {
+  const columnKey = column.key;
   const other = getCompanionValue(row, columnKey, "Other");
   if (other) return other;
 
@@ -322,6 +366,9 @@ function resolveCell(
 
   const value = text(raw);
   if (!value || value === "OTHER" || value === "other" || value === "أخرى") return "";
+
+  const configuredOptionLabel = column.optionLabels?.[value];
+  if (configuredOptionLabel) return configuredOptionLabel;
 
   const matchingField = Array.from(resolvers.byField.entries()).find(([fieldKey]) =>
     fieldKey === columnKey || fieldKey.includes(columnKey) || columnKey.includes(fieldKey),
@@ -349,20 +396,25 @@ export function extractSmartReportTable({
   const rows = getRowRecords(value.jsonValue ?? value.value);
   if (!rows.length) return null;
 
-  const config = mergeConfigs(
+  const domainConfig = getStructuredValueTableMetadata(sourceFieldKey);
+  const sourceConfig = mergeConfigs(
     snapshotField,
     value.field?.defaultJson,
     value.field?.settings,
     value.field?.metadata,
   );
-  const columns = inferColumns(rows, config);
+  const config = mergeConfigs(
+    domainConfig,
+    sourceConfig,
+  );
+  const columns = inferColumns(rows, config, fields);
   if (!columns.length) return null;
 
   const resolvers = buildOptionResolvers(fields);
   const normalizedRows: SmartReportTableRow[] = rows
     .map((row, index) => {
       const cells = Object.fromEntries(
-        columns.map((column) => [column.key, resolveCell(row, column.key, resolvers)]),
+        columns.map((column) => [column.key, resolveCell(row, column, resolvers)]),
       );
       return {
         id: text(row.id) || `${sourceFieldKey}-row-${index + 1}`,
@@ -373,14 +425,16 @@ export function extractSmartReportTable({
 
   if (!normalizedRows.length) return null;
 
-  return {
+  return resolveStructuredTableDisplayMetadata({
     id: `table:${sourceFieldKey}`,
     sourceFieldKey,
     title:
-      config.tableTitle ||
-      TABLE_TITLE_FALLBACKS[sourceFieldKey] ||
+      sourceConfig.tableTitle ||
       text(value.field?.label) ||
-      humanizeColumnKey(sourceFieldKey),
+      text(record(snapshotField)?.label) ||
+      domainConfig?.tableTitle ||
+      TABLE_TITLE_FALLBACKS[sourceFieldKey] ||
+      humanizeTableTitle(sourceFieldKey),
     columns,
     rows: normalizedRows,
     settings: {
@@ -389,7 +443,7 @@ export function extractSmartReportTable({
       stripedRows: config.stripedRows ?? true,
       highlightFirstColumn: config.highlightFirstColumn ?? false,
     },
-  };
+  });
 }
 
 export function extractSmartReportTables({

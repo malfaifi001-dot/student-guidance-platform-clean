@@ -25,6 +25,7 @@ type ReportTwoSnapshotPreviewProps = {
     active?: boolean;
     renderContext?: unknown;
     previewCase?: unknown;
+    snapshotPayload?: unknown;
     snapshotTemplateJson?: unknown;
     snapshotPagesJson?: unknown;
     snapshotHtml: string;
@@ -54,8 +55,7 @@ export function ReportTwoSnapshotPreview({
 }: ReportTwoSnapshotPreviewProps) {
   const isApproved = !snapshot.status || snapshot.status === "APPROVED";
   const canRenderStructured = Boolean(
-    snapshot.active &&
-      snapshot.snapshotTemplateJson &&
+    snapshot.snapshotTemplateJson &&
       typeof snapshot.snapshotTemplateJson === "object",
   );
 
@@ -153,6 +153,7 @@ export function ReportTwoSnapshotPreview({
             template={snapshot.snapshotTemplateJson}
             context={(snapshot.renderContext || {}) as Record<string, string>}
             previewCase={snapshot.previewCase || null}
+            sourcePayload={snapshot.snapshotPayload}
           />
         ) : (
           <div dangerouslySetInnerHTML={{ __html: snapshot.snapshotHtml }} />

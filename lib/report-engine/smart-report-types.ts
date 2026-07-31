@@ -164,6 +164,7 @@ export type SmartReportTableColumn = {
   key: string;
   label: string;
   width?: number;
+  optionLabels?: Record<string, string>;
 };
 
 export type SmartReportTableRow = {

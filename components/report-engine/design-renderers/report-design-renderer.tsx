@@ -2123,7 +2123,7 @@ function PageBlocks({
   designId: ReportDesignId;
   className: string;
 }) {
-  const blocks = page?.blocks || [];
+  const blocks = (page?.blocks || []).filter((block: any) => block.visible !== false);
   const flowBlocks = blocks.filter((block: any) => (block.placement || "flow") === "flow");
   const fixedBlocks = blocks.filter((block: any) => (block.placement || "flow") !== "flow");
 
