@@ -204,7 +204,7 @@ export function ReportTwoArchiveClient({
       </section>
 
       {filtered.length > 0 ? (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3 2xl:grid-cols-2">
           {filtered.map((snapshot) => (
             <article
               key={snapshot.id}

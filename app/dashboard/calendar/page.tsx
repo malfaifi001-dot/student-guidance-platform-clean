@@ -120,7 +120,7 @@ export default async function DashboardCalendarPage() {
   ]);
 
   return (
-    <main className="space-y-6 px-6 py-8" dir="rtl">
+    <main className="space-y-5" dir="rtl">
       <section className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-sky-900 to-sky-600 p-8 text-white shadow-xl">
         <h1 className="text-4xl font-black">التقويم والتنبيهات</h1>
       </section>
