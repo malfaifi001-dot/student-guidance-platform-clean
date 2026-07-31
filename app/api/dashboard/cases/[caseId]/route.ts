@@ -5,7 +5,11 @@ import {
 } from "@/engine/cases/case-runtime-engine";
 import { logCaseSavedEvent } from "@/lib/admin/activity-events";
 import { requireDashboardApiContext } from "@/lib/auth/dashboard-context";
-import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
+import {
+  buildCaseEntryWhereForUser,
+  roleCanDeleteCase,
+} from "@/lib/cases/case-access-scope";
+import { deleteEvidenceFiles } from "@/lib/evidence/delete-evidence-files";
 import { prisma } from "@/lib/prisma";
 import { requireServiceAccessApi } from "@/lib/subscription/subscription-api-guard";
 import { getActivityProgramsBillingServiceSlug } from "@/lib/activity-programs/activity-program-catalog";
@@ -255,6 +259,150 @@ export async function PATCH(request: Request, context: RouteContext) {
             : "حدث خطأ أثناء تحديث الحالة.",
       },
       { status: 400 }
+    );
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const authResult = await requireDashboardApiContext();
+
+  if (authResult instanceof Response) return authResult;
+
+  if (!roleCanDeleteCase(authResult.user.role)) {
+    return NextResponse.json(
+      { success: false, code: "CASE_DELETE_FORBIDDEN", error: "لا تملك صلاحية حذف الحالة." },
+      { status: 403 },
+    );
+  }
+
+  const { caseId } = await context.params;
+  const accessWhere = buildCaseEntryWhereForUser({
+    id: authResult.user.id,
+    role: authResult.user.role,
+    schoolAccountId: authResult.schoolAccountId,
+  });
+
+  const caseEntry = await prisma.caseEntry.findFirst({
+    where: { AND: [{ id: caseId }, accessWhere] },
+    select: {
+      id: true,
+      title: true,
+      schoolAccountId: true,
+      service: { select: { slug: true } },
+      evidences: { select: { fileUrl: true } },
+      caseEvidences: { select: { fileUrl: true } },
+    },
+  });
+
+  if (!caseEntry) {
+    return NextResponse.json(
+      { success: false, code: "CASE_NOT_FOUND", error: "الحالة غير موجودة أو لا تملك صلاحية حذفها." },
+      { status: 404 },
+    );
+  }
+
+  try {
+    const deletion = await prisma.$transaction(async (tx) => {
+      const current = await tx.caseEntry.findFirst({
+        where: { AND: [{ id: caseId }, accessWhere] },
+        select: { id: true },
+      });
+
+      if (!current) throw new Error("CASE_ALREADY_DELETED");
+
+      const [activeReports, snapshots, guidanceReports] = await Promise.all([
+        tx.reportTwoActive.findMany({ where: { caseEntryId: caseId }, select: { id: true } }),
+        tx.reportSnapshot.findMany({ where: { caseEntryId: caseId }, select: { id: true } }),
+        tx.guidanceReport.findMany({ where: { caseEntryId: caseId }, select: { id: true } }),
+      ]);
+      const reportIds = [
+        ...activeReports.map((item) => item.id),
+        ...snapshots.map((item) => item.id),
+        ...guidanceReports.map((item) => item.id),
+      ];
+      const linkedResourceIds = [caseId, ...reportIds];
+
+      await tx.dashboardResourceLink.deleteMany({
+        where: {
+          schoolAccountId: caseEntry.schoolAccountId,
+          OR: [
+            { sourceId: { in: linkedResourceIds } },
+            { targetId: { in: linkedResourceIds } },
+          ],
+        },
+      });
+      await tx.reportTwoActive.deleteMany({ where: { caseEntryId: caseId } });
+      await tx.reportSnapshot.deleteMany({ where: { caseEntryId: caseId } });
+      await tx.caseEvidence.deleteMany({ where: { caseEntryId: caseId } });
+      await tx.calendarReminder.deleteMany({ where: { caseEntryId: caseId } });
+      await tx.activityAssignment.updateMany({
+        where: { caseEntryId: caseId },
+        data: { caseEntryId: null },
+      });
+      await tx.reportTemplate.updateMany({
+        where: { caseEntryId: caseId },
+        data: { caseEntryId: null },
+      });
+      await tx.caseEntry.delete({ where: { id: caseId } });
+
+      await tx.platformActivityLog.create({
+        data: {
+          actorUserId: authResult.user.id,
+          schoolAccountId: caseEntry.schoolAccountId,
+          category: "CASE",
+          action: "CASE_DELETED",
+          severity: "WARNING",
+          title: "تم حذف حالة",
+          details: {
+            caseEntryId: caseId,
+            caseTitle: caseEntry.title || "حالة بدون عنوان",
+            serviceSlug: caseEntry.service.slug,
+            hadLinkedReports: reportIds.length > 0,
+            deletedReportCount: reportIds.length,
+            deletedAt: new Date().toISOString(),
+          },
+        },
+      });
+
+      return { deletedReportCount: reportIds.length };
+    });
+
+    const fileDeletionFailures = await deleteEvidenceFiles([
+      ...caseEntry.evidences.map((item) => item.fileUrl),
+      ...caseEntry.caseEvidences.map((item) => item.fileUrl),
+    ]);
+    if (fileDeletionFailures) {
+      console.error("case evidence file cleanup failed", {
+        caseId,
+        failureCount: fileDeletionFailures,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "تم حذف الحالة بنجاح.",
+      deletedCase: {
+        id: caseEntry.id,
+        title: caseEntry.title,
+        serviceSlug: caseEntry.service.slug,
+        deletedReportCount: deletion.deletedReportCount,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "CASE_ALREADY_DELETED") {
+      return NextResponse.json(
+        { success: false, code: "CASE_NOT_FOUND", error: "تم حذف الحالة مسبقًا." },
+        { status: 404 },
+      );
+    }
+    console.error("case deletion failed", {
+      caseId,
+      actorUserId: authResult.user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { success: false, code: "CASE_DELETE_FAILED", error: "تعذر حذف الحالة. حاول مرة أخرى." },
+      { status: 500 },
     );
   }
 }

@@ -3,9 +3,13 @@ import { redirect } from "next/navigation";
 
 import { CasesSearchTable } from "@/components/cases/cases-search-table";
 import { requireDashboardPageContext } from "@/lib/auth/dashboard-context";
-import { buildCaseEntryWhereForUser } from "@/lib/cases/case-access-scope";
+import {
+  buildCaseEntryWhereForUser,
+  roleCanDeleteCase,
+} from "@/lib/cases/case-access-scope";
 import { prisma } from "@/lib/prisma";
 import { listLatestReportTwoSnapshotsForCases } from "@/lib/report-2/report-snapshot-service";
+import { roleHasReportTwoCapability } from "@/lib/report-2/report-two-access";
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) return "غير محدد";
@@ -408,6 +412,11 @@ export default async function CasesPage() {
     context,
     cases.map((c) => c.id),
   );
+  const roleCanDeleteReportTwo = roleHasReportTwoCapability(
+    context.user.role,
+    "REPORT_DELETE",
+  );
+  const canDeleteCases = roleCanDeleteCase(viewerRole);
 
   const rows = cases.map((caseItem) => {
     const latestReportTwoSnapshot = snapshotMap.get(caseItem.id) || null;
@@ -483,11 +492,16 @@ export default async function CasesPage() {
       valuesCount: caseItem._count.values,
       evidencesCount: caseItem._count.evidences,
       reportsCount: caseItem._count.guidanceReports,
-      reportTwoSnapshotId: latestReportTwoSnapshot?.id || null,
-      reportTwoSnapshotStatus: latestReportTwoSnapshot?.status || null,
-      reportTwoSnapshotApprovedAt:
-        latestReportTwoSnapshot?.approvedAt || null,
-      reportTwoSnapshotTitle: latestReportTwoSnapshot?.reportTitle || null,
+      canDeleteCase: canDeleteCases,
+      reportTwoReport: latestReportTwoSnapshot
+        ? {
+            id: latestReportTwoSnapshot.id,
+            status: latestReportTwoSnapshot.status,
+            title: latestReportTwoSnapshot.reportTitle,
+            previewUrl: `/dashboard/report-2/snapshots/${encodeURIComponent(latestReportTwoSnapshot.id)}/preview`,
+            canDeleteReport: roleCanDeleteReportTwo,
+          }
+        : null,
 
       latestReport: latestReport
         ? {

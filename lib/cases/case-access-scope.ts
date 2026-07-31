@@ -53,6 +53,18 @@ export function buildCaseEntryWhereForUser(
   };
 }
 
+const CASE_DELETE_ROLES = new Set([
+  "ADMIN",
+  "COUNSELOR",
+  "ACTIVITY_LEADER",
+  "SCHOOL_OWNER",
+  "STAFF",
+]);
+
+export function roleCanDeleteCase(role: string) {
+  return CASE_DELETE_ROLES.has(role);
+}
+
 export function getCaseCenterScopeLabel(role: string) {
   if (role === "ADMIN") return "كل الحالات";
   if (role === "ACTIVITY_LEADER") return "حالات برامج النشاط";

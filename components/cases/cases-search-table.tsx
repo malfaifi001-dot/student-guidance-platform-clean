@@ -9,8 +9,9 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+import { CaseDeleteAction } from "@/components/cases/case-delete-action";
 
 type CaseRow = {
   id: string;
@@ -52,10 +53,14 @@ type CaseRow = {
   valuesCount: number;
   evidencesCount: number;
   reportsCount: number;
-  reportTwoSnapshotId: string | null;
-  reportTwoSnapshotStatus?: "DRAFT" | "APPROVED" | null;
-  reportTwoSnapshotApprovedAt?: string | null;
-  reportTwoSnapshotTitle?: string | null;
+  canDeleteCase: boolean;
+  reportTwoReport?: {
+    id: string;
+    status: "DRAFT" | "APPROVED";
+    title: string;
+    previewUrl: string;
+    canDeleteReport: boolean;
+  } | null;
   latestReport?: {
     id: string;
     status: string;
@@ -111,7 +116,7 @@ function getDisplayStatus(caseItem: CaseRow) {
   if (
     caseItem.status === "SUBMITTED" &&
     caseItem.reportsCount === 0 &&
-    !caseItem.reportTwoSnapshotId
+    !caseItem.reportTwoReport?.id
   ) {
     return {
       label: "جاهزة للتقرير",
@@ -139,7 +144,7 @@ function getNextActionText(caseItem: CaseRow) {
     return "استكمال المتابعة";
   }
 
-  if (caseItem.reportTwoSnapshotId) {
+  if (caseItem.reportTwoReport?.id) {
     return "معاينة التقرير";
   }
 
@@ -151,10 +156,10 @@ function getNextActionText(caseItem: CaseRow) {
 }
 
 function getReportAction(caseItem: CaseRow) {
-  if (caseItem.reportTwoSnapshotId) {
+  if (caseItem.reportTwoReport?.id) {
     return {
       label: "معاينة التقرير",
-      href: `/dashboard/report-2/snapshots/${caseItem.reportTwoSnapshotId}/preview`,
+      href: caseItem.reportTwoReport.previewUrl,
       className: "bg-emerald-700 text-white hover:bg-emerald-800",
     };
   }
@@ -182,6 +187,7 @@ function getReportAction(caseItem: CaseRow) {
 }
 
 export function CasesSearchTable({ cases }: CasesSearchTableProps) {
+  const [visibleCases, setVisibleCases] = useState(cases);
   const [query, setQuery] = useState("");
   const [selectedService, setSelectedService] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -190,7 +196,7 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
   const services = useMemo(() => {
     const map = new Map<string, string>();
 
-    for (const caseItem of cases) {
+    for (const caseItem of visibleCases) {
       map.set(caseItem.service.slug, caseItem.service.name);
     }
 
@@ -198,12 +204,16 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
       slug,
       name,
     }));
+  }, [visibleCases]);
+
+  useEffect(() => {
+    setVisibleCases(cases);
   }, [cases]);
 
   const filteredCases = useMemo(() => {
     const keyword = normalizeText(query);
 
-    return cases.filter((caseItem) => {
+    return visibleCases.filter((caseItem) => {
       if (
         selectedService !== "all" &&
         caseItem.service.slug !== selectedService
@@ -220,7 +230,7 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
         !(
           caseItem.status === "SUBMITTED" &&
           caseItem.reportsCount === 0 &&
-          !caseItem.reportTwoSnapshotId
+          !caseItem.reportTwoReport?.id
         )
       ) {
         return false;
@@ -230,7 +240,7 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
         selectedStatus === "SUBMITTED" &&
         !(
           caseItem.status === "SUBMITTED" &&
-          (caseItem.reportsCount > 0 || Boolean(caseItem.reportTwoSnapshotId))
+          (caseItem.reportsCount > 0 || Boolean(caseItem.reportTwoReport?.id))
         )
       ) {
         return false;
@@ -242,14 +252,14 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
 
       if (
         selectedReportState === "hasReport" &&
-        !caseItem.reportTwoSnapshotId
+        !caseItem.reportTwoReport?.id
       ) {
         return false;
       }
 
       if (
         selectedReportState === "missingReport" &&
-        caseItem.reportTwoSnapshotId
+        caseItem.reportTwoReport?.id
       ) {
         return false;
       }
@@ -275,7 +285,7 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
 
       return searchableText.includes(keyword);
     });
-  }, [cases, query, selectedReportState, selectedService, selectedStatus]);
+  }, [visibleCases, query, selectedReportState, selectedService, selectedStatus]);
 
   return (
     <div className="space-y-4">
@@ -330,7 +340,13 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
 
       <section className="grid gap-3 2xl:grid-cols-2">
         {filteredCases.map((caseItem) => (
-          <CaseFollowUpCard key={caseItem.id} caseItem={caseItem} />
+          <CaseFollowUpCard
+            key={caseItem.id}
+            caseItem={caseItem}
+            onCaseDeleted={(caseId) =>
+              setVisibleCases((current) => current.filter((item) => item.id !== caseId))
+            }
+          />
         ))}
 
         {filteredCases.length === 0 ? (
@@ -351,17 +367,21 @@ export function CasesSearchTable({ cases }: CasesSearchTableProps) {
   );
 }
 
-function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
+function CaseFollowUpCard({
+  caseItem,
+  onCaseDeleted,
+}: {
+  caseItem: CaseRow;
+  onCaseDeleted: (caseId: string) => void;
+}) {
   const displayStatus = getDisplayStatus(caseItem);
   const reportAction = getReportAction(caseItem);
-  const reportStatus = caseItem.reportTwoSnapshotId
-    ? caseItem.reportTwoSnapshotStatus ||
-      (caseItem.reportTwoSnapshotApprovedAt ? "APPROVED" : "DRAFT")
-    : caseItem.latestReport?.status || null;
+  const reportStatus =
+    caseItem.reportTwoReport?.status || caseItem.latestReport?.status || null;
   const persistedReportId =
-    caseItem.reportTwoSnapshotId || caseItem.latestReport?.id || null;
-  const deleteEndpoint = caseItem.reportTwoSnapshotId
-    ? `/api/dashboard/report-2/snapshots/${encodeURIComponent(caseItem.reportTwoSnapshotId)}`
+    caseItem.reportTwoReport?.id || caseItem.latestReport?.id || null;
+  const deleteEndpoint = caseItem.reportTwoReport?.id
+    ? `/api/dashboard/report-2/snapshots/${encodeURIComponent(caseItem.reportTwoReport.id)}`
     : caseItem.latestReport
       ? `/api/dashboard/reports/${encodeURIComponent(caseItem.latestReport.id)}/delete`
       : null;
@@ -369,7 +389,7 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
     reportStatus === "APPROVED"
       ? "معتمد"
       : reportStatus === "DRAFT"
-        ? "مسودة"
+        ? "مسودة تقرير"
         : null;
 
   const baseIconButtonClass =
@@ -467,15 +487,16 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
             </span>
           )}
 
-          {persistedReportId && deleteEndpoint ? (
+          {persistedReportId && deleteEndpoint &&
+          (!caseItem.reportTwoReport || caseItem.reportTwoReport.canDeleteReport) ? (
             <ReportDeleteAction
               reportId={persistedReportId}
-              reportTitle={caseItem.reportTwoSnapshotTitle || caseItem.title}
+              reportTitle={caseItem.reportTwoReport?.title || caseItem.title}
               caseTitle={caseItem.title}
               reportStatus={reportStatus || "DRAFT"}
               deleteEndpoint={deleteEndpoint}
               reportTwoDraftStorage={
-                caseItem.reportTwoSnapshotId
+                caseItem.reportTwoReport?.id
                   ? { caseId: caseItem.id, serviceSlug: caseItem.service.slug }
                   : undefined
               }
@@ -483,6 +504,18 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
             >
               <Trash2 className="h-4 w-4" />
             </ReportDeleteAction>
+          ) : null}
+
+          {caseItem.canDeleteCase ? (
+            <CaseDeleteAction
+              caseId={caseItem.id}
+              caseTitle={caseItem.title}
+              serviceName={caseItem.service.name}
+              serviceSlug={caseItem.service.slug}
+              studentName={caseItem.student?.fullName}
+              hasLinkedReports={Boolean(persistedReportId || caseItem.reportsCount)}
+              onDeleted={onCaseDeleted}
+            />
           ) : null}
         </div>
       </div>
