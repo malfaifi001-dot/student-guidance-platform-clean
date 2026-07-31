@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useMemo,
   useState,
 } from "react";
 
@@ -51,25 +50,6 @@ export function StatisticsLandingShell() {
     useState<
       StatisticsServiceOption[]
     >([]);
-
-  const totals = useMemo(
-    () => ({
-      cases: services.reduce(
-        (sum, service) =>
-          sum +
-          service.eligibleCaseCount,
-        0,
-      ),
-
-      reports: services.reduce(
-        (sum, service) =>
-          sum +
-          service.issuedReportCount,
-        0,
-      ),
-    }),
-    [services],
-  );
 
   async function loadServices() {
     if (loading) {
@@ -187,104 +167,6 @@ export function StatisticsLandingShell() {
           >
             إنشاء تقرير إحصائي
           </button>
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">
-            الخدمات المتاحة
-          </p>
-
-          <p className="mt-3 text-3xl font-black text-slate-950">
-            {loaded
-              ? services.length
-              : "—"}
-          </p>
-
-          <p className="mt-2 text-xs leading-5 text-slate-500">
-            كل الخدمات النشطة المتاحة ضمن الاشتراك.
-          </p>
-        </article>
-
-        <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">
-            الحالات المؤهلة
-          </p>
-
-          <p className="mt-3 text-3xl font-black text-slate-950">
-            {loaded
-              ? totals.cases
-              : "—"}
-          </p>
-
-          <p className="mt-2 text-xs leading-5 text-slate-500">
-            كل حالة تُحسب مرة واحدة داخل
-            كل قيمة.
-          </p>
-        </article>
-
-        <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">
-            التقارير الصادرة
-          </p>
-
-          <p className="mt-3 text-3xl font-black text-slate-950">
-            {loaded
-              ? totals.reports
-              : "—"}
-          </p>
-
-          <p className="mt-2 text-xs leading-5 text-slate-500">
-            عدد مستقل عن عدد الحالات
-            المؤهلة.
-          </p>
-        </article>
-      </section>
-
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-black text-slate-900">
-          آلية التقرير
-        </h2>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          {[
-            {
-              number: "1",
-              title: "اختيار الخدمات",
-              text:
-                "اختر خدمة واحدة أو عدة خدمات متاحة ضمن اشتراك المدرسة.",
-            },
-            {
-              number: "2",
-              title: "تحديد القيم",
-              text:
-                "اختر الحقول والقيم وشاهد العدد المباشر لكل قيمة.",
-            },
-            {
-              number: "3",
-              title: "صياغة الوصف",
-              text:
-                "يصيغ DeepSeek الوصف التنفيذي دون تغيير الأرقام.",
-            },
-          ].map((item) => (
-            <article
-              key={item.number}
-              className="rounded-2xl bg-slate-50 p-5"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-700 text-sm font-black text-white">
-                {item.number}
-              </span>
-
-              <h3 className="mt-4 font-black text-slate-900">
-                {item.title}
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {item.text}
-              </p>
-            </article>
-          ))}
         </div>
       </section>
 
