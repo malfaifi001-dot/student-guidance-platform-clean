@@ -65,11 +65,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
       { success: false, error: "التقرير غير موجود." },
       { status: 404 },
     );
-  const serviceGuard = await requireServiceAccessApi(
-    getActivityProgramsBillingServiceSlug(authorized.caseEntry.service.slug),
-  );
-  if (serviceGuard) return serviceGuard;
-
   const active = authorized.kind === "ACTIVE" ? authorized.report : null;
   const historical = authorized.kind === "SNAPSHOT" ? authorized.report : null;
   const status = active?.status || "APPROVED";
@@ -77,49 +72,119 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const approvedAt = active?.approvedAt || historical?.approvedAt || null;
   const deletedAt = new Date();
 
-  await prisma.$transaction(async (tx) => {
-    await tx.platformActivityLog.create({
-      data: {
-        actorUserId: dashboardContext.user.id,
-        schoolAccountId: authorized.caseEntry.schoolAccountId,
-        category: "REPORT",
-        action:
-          status === "APPROVED" ? "APPROVED_REPORT_DELETED" : "REPORT_DELETED",
-        severity: "WARNING",
-        title: status === "APPROVED" ? "تم حذف تقرير معتمد" : "تم حذف تقرير",
-        details: {
-          reportId: snapshotId,
-          caseEntryId: authorized.caseEntry.id,
-          serviceSlug: authorized.caseEntry.service.slug,
-          reportTitle: title,
-          reportStatus: status,
+  try {
+    await prisma.$transaction(async (tx) => {
+      const activeReport = active
+        ? await tx.reportTwoActive.findFirst({
+            where: {
+              id: snapshotId,
+              caseEntryId: authorized.caseEntry.id,
+              schoolAccountId: authorized.caseEntry.schoolAccountId,
+            },
+            select: { id: true, status: true, approvedAt: true },
+          })
+        : null;
+      const historicalReport = historical
+        ? await tx.reportSnapshot.findFirst({
+            where: {
+              id: snapshotId,
+              caseEntryId: authorized.caseEntry.id,
+              OR: [
+                { schoolAccountId: authorized.caseEntry.schoolAccountId },
+                { schoolAccountId: null },
+              ],
+            },
+            select: { id: true },
+          })
+        : null;
+
+      if (!activeReport && !historicalReport) {
+        throw new Error("REPORT_TWO_ALREADY_DELETED");
+      }
+
+      const ownedSnapshotIds = new Set<string>();
+      if (historicalReport) ownedSnapshotIds.add(historicalReport.id);
+
+      if (activeReport?.status === "APPROVED" && activeReport.approvedAt) {
+        const approvalSnapshot = await tx.reportSnapshot.findFirst({
+          where: {
+            caseEntryId: authorized.caseEntry.id,
+            approvedAt: activeReport.approvedAt,
+            OR: [
+              { schoolAccountId: authorized.caseEntry.schoolAccountId },
+              { schoolAccountId: null },
+            ],
+          },
+          select: { id: true },
+        });
+        if (approvalSnapshot) ownedSnapshotIds.add(approvalSnapshot.id);
+      }
+
+      const reportOwnedIds = Array.from(
+        new Set([snapshotId, ...ownedSnapshotIds]),
+      );
+
+      await tx.platformActivityLog.create({
+        data: {
           actorUserId: dashboardContext.user.id,
-          approvedAt: approvedAt?.toISOString() || null,
-          deletedAt: deletedAt.toISOString(),
+          schoolAccountId: authorized.caseEntry.schoolAccountId,
+          category: "REPORT",
+          action:
+            status === "APPROVED"
+              ? "APPROVED_REPORT_DELETED"
+              : "REPORT_DELETED",
+          severity: "WARNING",
+          title:
+            status === "APPROVED" ? "تم حذف تقرير معتمد" : "تم حذف تقرير",
+          details: {
+            reportId: snapshotId,
+            deletedSnapshotIds: Array.from(ownedSnapshotIds),
+            caseEntryId: authorized.caseEntry.id,
+            schoolAccountId: authorized.caseEntry.schoolAccountId,
+            serviceSlug: authorized.caseEntry.service.slug,
+            reportTitle: title,
+            reportStatus: status,
+            actorUserId: dashboardContext.user.id,
+            approvedAt: approvedAt?.toISOString() || null,
+            deletedAt: deletedAt.toISOString(),
+          },
         },
-      },
+      });
+      await tx.dashboardResourceLink.deleteMany({
+        where: {
+          OR: [
+            { sourceId: { in: reportOwnedIds } },
+            { targetId: { in: reportOwnedIds } },
+          ],
+        },
+      });
+      if (activeReport) {
+        await tx.reportTwoActive.delete({ where: { id: activeReport.id } });
+      }
+      if (ownedSnapshotIds.size) {
+        await tx.reportSnapshot.deleteMany({
+          where: { id: { in: Array.from(ownedSnapshotIds) } },
+        });
+      }
     });
-    await tx.dashboardResourceLink.deleteMany({
-      where: { OR: [{ sourceId: snapshotId }, { targetId: snapshotId }] },
+  } catch (error) {
+    if (error instanceof Error && error.message === "REPORT_TWO_ALREADY_DELETED") {
+      return NextResponse.json(
+        { success: false, code: "REPORT_ALREADY_DELETED", error: "تم حذف التقرير مسبقًا." },
+        { status: 404 },
+      );
+    }
+    console.error("REPORT_TWO_DELETE_FAILED", {
+      reportId: snapshotId,
+      caseEntryId: authorized.caseEntry.id,
+      actorUserId: dashboardContext.user.id,
+      error: error instanceof Error ? error.message : "UNKNOWN_ERROR",
     });
-    await tx.reportTwoActive.deleteMany({
-      where: {
-        id: snapshotId,
-        caseEntryId: authorized.caseEntry.id,
-        schoolAccountId: authorized.caseEntry.schoolAccountId,
-      },
-    });
-    await tx.reportSnapshot.deleteMany({
-      where: {
-        id: snapshotId,
-        caseEntryId: authorized.caseEntry.id,
-        OR: [
-          { schoolAccountId: authorized.caseEntry.schoolAccountId },
-          { schoolAccountId: null },
-        ],
-      },
-    });
-  });
+    return NextResponse.json(
+      { success: false, code: "REPORT_DELETE_FAILED", error: "تعذر حذف التقرير. حاول مرة أخرى." },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json({
     success: true,

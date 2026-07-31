@@ -343,7 +343,7 @@ export function ReportsDashboard({ reports, stats }: ReportsDashboardProps) {
 
       {pendingAction?.type === "DELETE" ? (
         <ReportDeleteModal
-          title={pendingAction.report.title}
+          reportTitle={pendingAction.report.title}
           status={pendingAction.report.status}
           loading={isPending}
           error={actionError}

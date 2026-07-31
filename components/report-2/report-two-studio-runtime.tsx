@@ -10,6 +10,7 @@ import {
 } from "@/components/report-engine/design-renderers/report-design-renderer";
 import { PrintExportPopCard } from "@/components/print-export/print-export-pop-card";
 import { usePrintExportAction } from "@/components/print-export/use-print-export-action";
+import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 import type {
   SmartReportPayload,
   SmartReportTable,
@@ -4871,6 +4872,26 @@ export function ReportTwoStudioRuntime({
             >
               العودة لاختيار الحقول
             </button>
+
+            {persistedReport?.id ? (
+              <ReportDeleteAction
+                reportId={persistedReport.id}
+                reportTitle={getReportTwoSnapshotTitle()}
+                caseTitle={cleanText((preparedPayload as any)?.caseInfo?.title)}
+                reportStatus={persistedReport.status || "DRAFT"}
+                deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(persistedReport.id)}`}
+                redirectAfterDelete={`/dashboard/cases/${encodeURIComponent(caseId)}`}
+                reportTwoDraftStorage={{
+                  caseId,
+                  serviceSlug: serviceSlugForSavedTemplates,
+                }}
+                className="rounded-2xl border border-rose-200 bg-white px-4 py-2 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+              >
+                {persistedReport.status === "APPROVED"
+                  ? "حذف التقرير المعتمد"
+                  : "حذف مسودة التقرير"}
+              </ReportDeleteAction>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -5198,6 +5219,26 @@ export function ReportTwoStudioRuntime({
               <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-700">
                 تم اعتماد التقرير
               </span>
+            ) : null}
+
+            {persistedReport?.id ? (
+              <ReportDeleteAction
+                reportId={persistedReport.id}
+                reportTitle={getReportTwoSnapshotTitle()}
+                caseTitle={cleanText((preparedPayload as any)?.caseInfo?.title)}
+                reportStatus={persistedReport.status || "DRAFT"}
+                deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(persistedReport.id)}`}
+                redirectAfterDelete={`/dashboard/cases/${encodeURIComponent(caseId)}`}
+                reportTwoDraftStorage={{
+                  caseId,
+                  serviceSlug: serviceSlugForSavedTemplates,
+                }}
+                className="rounded-2xl border border-rose-200 bg-white px-3 py-2 text-[11px] font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+              >
+                {persistedReport.status === "APPROVED"
+                  ? "حذف التقرير المعتمد"
+                  : "حذف مسودة التقرير"}
+              </ReportDeleteAction>
             ) : null}
 
             {finalCheckConfirmedAt ? (

@@ -1,5 +1,7 @@
 import { ReportTwoPdfDownloadButton } from "@/components/report-2/report-two-pdf-download-button";
 import { ReportTwoActivePreviewRenderer } from "@/components/report-2/report-two-active-preview-renderer";
+import { ReportDeleteAction } from "@/components/reports/report-delete-action";
+import { Trash2 } from "lucide-react";
 
 type SnapshotForDownload = {
   caseEntryId: string;
@@ -12,6 +14,7 @@ type SnapshotForDownload = {
 
 type ReportTwoSnapshotPreviewProps = {
   snapshot: {
+    id: string;
     caseEntryId: string;
     reportTitle: string;
     serviceName?: string | null;
@@ -27,6 +30,7 @@ type ReportTwoSnapshotPreviewProps = {
     snapshotHtml: string;
     pdfUrl?: string | null;
   };
+  caseTitle?: string | null;
   printMode?: boolean;
 };
 
@@ -45,6 +49,7 @@ function formatDate(value: string | null | undefined) {
 
 export function ReportTwoSnapshotPreview({
   snapshot,
+  caseTitle,
   printMode = false,
 }: ReportTwoSnapshotPreviewProps) {
   const isApproved = !snapshot.status || snapshot.status === "APPROVED";
@@ -106,16 +111,38 @@ export function ReportTwoSnapshotPreview({
               </p>
             </div>
 
-            {isApproved ? (
-              <ReportTwoPdfDownloadButton
-                snapshot={snapshot as SnapshotForDownload}
-                className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
-              />
-            ) : (
-              <span className="inline-flex items-center justify-center rounded-2xl bg-sky-50 px-5 py-3 text-xs font-black text-sky-700 ring-1 ring-sky-100">
-                مسودة غير رسمية
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {isApproved ? (
+                <ReportTwoPdfDownloadButton
+                  snapshot={snapshot as SnapshotForDownload}
+                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-xs font-black text-white transition hover:bg-emerald-800 disabled:opacity-60"
+                />
+              ) : (
+                <span className="inline-flex items-center justify-center rounded-2xl bg-sky-50 px-5 py-3 text-xs font-black text-sky-700 ring-1 ring-sky-100">
+                  مسودة غير رسمية
+                </span>
+              )}
+              <ReportDeleteAction
+                reportId={snapshot.id}
+                reportTitle={snapshot.reportTitle}
+                caseTitle={caseTitle || undefined}
+                reportStatus={snapshot.status || "APPROVED"}
+                deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(snapshot.id)}`}
+                redirectAfterDelete={`/dashboard/cases/${encodeURIComponent(snapshot.caseEntryId)}`}
+                reportTwoDraftStorage={
+                  snapshot.active
+                    ? {
+                        caseId: snapshot.caseEntryId,
+                        serviceSlug: snapshot.serviceSlug || "general",
+                      }
+                    : undefined
+                }
+                className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-3 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isApproved ? "حذف التقرير المعتمد" : "حذف مسودة التقرير"}
+              </ReportDeleteAction>
+            </div>
           </div>
         </section>
       ) : null}

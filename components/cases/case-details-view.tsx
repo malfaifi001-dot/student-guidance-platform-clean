@@ -11,12 +11,14 @@ import {
   ImageIcon,
   PencilLine,
   Table2,
+  Trash2,
   UserRound,
   UsersRound,
 } from "lucide-react";
 
 import { CaseValueRenderer } from "@/components/cases/case-value-renderer";
 import { EvidencePreviewGrid } from "@/components/evidence/evidence-preview-grid";
+import { ReportDeleteAction } from "@/components/reports/report-delete-action";
 import {
   formatWorkflowDisplayValue,
   getWorkflowFieldLabel,
@@ -28,6 +30,7 @@ type CaseDetailsViewProps = {
   caseEntry: any;
   reportTwoSnapshotId?: string | null;
   reportTwoStatus?: "DRAFT" | "APPROVED" | null;
+  reportTwoTitle?: string | null;
 };
 
 type FieldLookupItem = WorkflowFieldLike & {
@@ -819,6 +822,7 @@ export function CaseDetailsView({
   caseEntry,
   reportTwoSnapshotId = null,
   reportTwoStatus = null,
+  reportTwoTitle = null,
 }: CaseDetailsViewProps) {
   const displayTitle = getSmartCaseDisplayTitle(caseEntry);
   const fieldMap = buildFieldMap(caseEntry);
@@ -860,6 +864,23 @@ export function CaseDetailsView({
         : "معاينة مسودة التقرير"
       : "إصدار تقرير جديد";
   const reportIsApproved = reportTwoStatus === "APPROVED";
+  const reportDeleteAction = reportTwoSnapshotId ? (
+    <ReportDeleteAction
+      reportId={reportTwoSnapshotId}
+      reportTitle={reportTwoTitle || displayTitle || "تقرير الحالة"}
+      caseTitle={displayTitle || caseEntry.title || "الحالة"}
+      reportStatus={reportTwoStatus || "DRAFT"}
+      deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(reportTwoSnapshotId)}`}
+      reportTwoDraftStorage={{
+        caseId: caseEntry.id,
+        serviceSlug: caseEntry.service?.slug || "general",
+      }}
+      className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-3 text-xs font-black text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+    >
+      <Trash2 className="h-4 w-4" />
+      {reportIsApproved ? "حذف التقرير المعتمد" : "حذف مسودة التقرير"}
+    </ReportDeleteAction>
+  ) : null;
 
   const isCommitteesCase = caseEntry.service?.slug === COMMITTEE_SERVICE_SLUG;
 
@@ -988,6 +1009,7 @@ export function CaseDetailsView({
                 <FileText className="h-4 w-4" />
                 {primaryReportLabel}
               </Link>
+              {reportDeleteAction}
             </div>
           </div>
         </section>
@@ -1237,6 +1259,7 @@ export function CaseDetailsView({
               <FileText className="h-4 w-4" />
               {primaryReportLabel}
             </Link>
+            {reportDeleteAction}
           </div>
         </div>
       </section>

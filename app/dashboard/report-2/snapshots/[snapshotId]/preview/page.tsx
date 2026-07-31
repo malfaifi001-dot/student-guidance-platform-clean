@@ -232,6 +232,7 @@ export default async function ReportTwoSnapshotPreviewPage({
 
       <ReportTwoSnapshotPreview
         snapshot={snapshot}
+        caseTitle={authorized.caseEntry.title}
         printMode={printMode}
       />
 

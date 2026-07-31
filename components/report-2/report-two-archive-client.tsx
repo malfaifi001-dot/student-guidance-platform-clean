@@ -12,6 +12,7 @@ type SnapshotItem = {
   serviceSlug: string | null;
   serviceName: string | null;
   reportTitle: string;
+  caseTitle?: string | null;
   templateId: string | null;
   templateName: string | null;
   snapshotTemplateJson: unknown;
@@ -24,6 +25,7 @@ type SnapshotItem = {
   createdAt: string;
   updatedAt: string;
   status?: "DRAFT" | "APPROVED";
+  active?: boolean;
 };
 
 type ReportTwoArchiveClientProps = {
@@ -249,8 +251,17 @@ export function ReportTwoArchiveClient({
                   <ReportDeleteAction
                     reportId={snapshot.id}
                     reportTitle={snapshot.reportTitle}
+                    caseTitle={snapshot.caseTitle || undefined}
                     reportStatus={snapshot.status || "APPROVED"}
                     deleteEndpoint={`/api/dashboard/report-2/snapshots/${encodeURIComponent(snapshot.id)}`}
+                    reportTwoDraftStorage={
+                      snapshot.active
+                        ? {
+                            caseId: snapshot.caseEntryId,
+                            serviceSlug: snapshot.serviceSlug || "general",
+                          }
+                        : undefined
+                    }
                     onDeleted={() =>
                       setItems((current) =>
                         current.filter((item) => item.id !== snapshot.id),

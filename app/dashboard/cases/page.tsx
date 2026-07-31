@@ -487,6 +487,7 @@ export default async function CasesPage() {
       reportTwoSnapshotStatus: latestReportTwoSnapshot?.status || null,
       reportTwoSnapshotApprovedAt:
         latestReportTwoSnapshot?.approvedAt || null,
+      reportTwoSnapshotTitle: latestReportTwoSnapshot?.reportTitle || null,
 
       latestReport: latestReport
         ? {

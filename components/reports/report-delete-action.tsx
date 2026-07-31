@@ -9,8 +9,13 @@ import { ReportDeleteModal } from "@/components/reports/report-delete-modal";
 type ReportDeleteActionProps = {
   reportId: string;
   reportTitle: string;
+  caseTitle?: string;
   reportStatus: string;
   deleteEndpoint: string;
+  reportTwoDraftStorage?: {
+    caseId: string;
+    serviceSlug: string;
+  };
   onDeleted?: (deletedReport: unknown) => void;
   redirectAfterDelete?: string;
   className?: string;
@@ -20,8 +25,10 @@ type ReportDeleteActionProps = {
 export function ReportDeleteAction({
   reportId,
   reportTitle,
+  caseTitle,
   reportStatus,
   deleteEndpoint,
+  reportTwoDraftStorage,
   onDeleted,
   redirectAfterDelete,
   className,
@@ -31,6 +38,13 @@ export function ReportDeleteAction({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const deleteLabel =
+    reportStatus === "APPROVED"
+      ? "حذف التقرير المعتمد"
+      : reportStatus === "DRAFT"
+        ? "حذف مسودة التقرير"
+        : "حذف التقرير";
 
   async function deleteReport() {
     if (!reportId || loading) return;
@@ -46,7 +60,14 @@ export function ReportDeleteAction({
         throw new Error(payload.error || "تعذر حذف التقرير.");
       }
 
-      setOpen(false);
+      if (reportTwoDraftStorage && typeof window !== "undefined") {
+        window.localStorage.removeItem(
+          `report-2:draft:${reportTwoDraftStorage.serviceSlug || "general"}:${reportTwoDraftStorage.caseId}`,
+        );
+      }
+
+      setSuccess(payload.message || "تم حذف التقرير بنجاح.");
+      await new Promise((resolve) => window.setTimeout(resolve, 650));
       onDeleted?.(payload.deletedReport);
 
       if (redirectAfterDelete) {
@@ -69,11 +90,12 @@ export function ReportDeleteAction({
     <>
       <button
         type="button"
-        aria-label="حذف التقرير"
-        title="حذف التقرير"
+        aria-label={deleteLabel}
+        title={deleteLabel}
         disabled={!reportId || loading}
         onClick={() => {
           setError("");
+          setSuccess("");
           setOpen(true);
         }}
         className={className}
@@ -83,12 +105,17 @@ export function ReportDeleteAction({
 
       {open ? (
         <ReportDeleteModal
-          title={reportTitle}
+          reportTitle={reportTitle}
+          caseTitle={caseTitle}
           status={reportStatus}
           loading={loading}
           error={error}
+          success={success}
           onCancel={() => {
-            if (!loading) setOpen(false);
+            if (!loading) {
+              setOpen(false);
+              setSuccess("");
+            }
           }}
           onConfirm={deleteReport}
         />

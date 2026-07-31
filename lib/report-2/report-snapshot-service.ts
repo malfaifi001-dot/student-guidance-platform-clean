@@ -363,10 +363,13 @@ export async function listReportTwoSnapshots(context: DashboardContext) {
       role: context.user.role,
       schoolAccountId: context.schoolAccountId,
     }),
-    select: { id: true },
+    select: { id: true, title: true },
     take: 500,
   });
   const allowedCaseIds = allowedCases.map((item) => item.id);
+  const caseTitleById = new Map(
+    allowedCases.map((item) => [item.id, item.title || "الحالة"]),
+  );
   const activeReports = await prisma.reportTwoActive.findMany({
     where: { caseEntryId: { in: allowedCaseIds } },
     orderBy: { updatedAt: "desc" },
@@ -381,10 +384,16 @@ export async function listReportTwoSnapshots(context: DashboardContext) {
 
   const activeIds = new Set(activeReports.map((item) => item.id));
   return [
-    ...activeReports.map(serializeActiveReport),
+    ...activeReports.map((report) => ({
+      ...serializeActiveReport(report),
+      caseTitle: caseTitleById.get(report.caseEntryId) || "الحالة",
+    })),
     ...snapshots
       .filter((item) => !activeIds.has(item.id))
-      .map(serializeSnapshot),
+      .map((snapshot) => ({
+        ...serializeSnapshot(snapshot),
+        caseTitle: caseTitleById.get(snapshot.caseEntryId) || "الحالة",
+      })),
   ];
 }
 
@@ -446,6 +455,7 @@ export async function listLatestReportTwoSnapshotsForCases(
         status: "DRAFT" | "APPROVED";
         approvedAt: string | null;
         createdAt: string;
+        reportTitle: string;
       }
     >();
   }
@@ -481,6 +491,7 @@ export async function listLatestReportTwoSnapshotsForCases(
       status: "DRAFT" | "APPROVED";
       approvedAt: string | null;
       createdAt: string;
+      reportTitle: string;
     }
   >();
 
@@ -490,6 +501,7 @@ export async function listLatestReportTwoSnapshotsForCases(
       status: report.status,
       approvedAt: report.approvedAt?.toISOString() || null,
       createdAt: report.createdAt.toISOString(),
+      reportTitle: report.reportTitle,
     });
   }
 
@@ -506,6 +518,7 @@ export async function listLatestReportTwoSnapshotsForCases(
           (snapshot.approvedAt ? String(snapshot.approvedAt) : null),
         createdAt:
           snapshot.createdAt?.toISOString?.() || String(snapshot.createdAt),
+        reportTitle: snapshot.reportTitle,
       });
     }
   }

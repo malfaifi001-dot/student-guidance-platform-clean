@@ -40,6 +40,7 @@ export default async function CaseDetailsPage({ params }: PageProps) {
               : "DRAFT"
             : null
         }
+        reportTwoTitle={snapshot?.reportTitle || null}
       />
     );
   } catch {

@@ -55,6 +55,7 @@ type CaseRow = {
   reportTwoSnapshotId: string | null;
   reportTwoSnapshotStatus?: "DRAFT" | "APPROVED" | null;
   reportTwoSnapshotApprovedAt?: string | null;
+  reportTwoSnapshotTitle?: string | null;
   latestReport?: {
     id: string;
     status: string;
@@ -469,9 +470,15 @@ function CaseFollowUpCard({ caseItem }: { caseItem: CaseRow }) {
           {persistedReportId && deleteEndpoint ? (
             <ReportDeleteAction
               reportId={persistedReportId}
-              reportTitle={caseItem.title}
+              reportTitle={caseItem.reportTwoSnapshotTitle || caseItem.title}
+              caseTitle={caseItem.title}
               reportStatus={reportStatus || "DRAFT"}
               deleteEndpoint={deleteEndpoint}
+              reportTwoDraftStorage={
+                caseItem.reportTwoSnapshotId
+                  ? { caseId: caseItem.id, serviceSlug: caseItem.service.slug }
+                  : undefined
+              }
               className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
             >
               <Trash2 className="h-4 w-4" />
