@@ -2,6 +2,7 @@
 
 import { filterPrivateReportValues } from "@/lib/report-engine/report-private-fields";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
+import { normalizeStructuredTableBlockPresentation } from "@/lib/report-engine/report-structured-table-display";
 
 export type ReportDesignId =
   | "ministry-form"
@@ -2331,22 +2332,29 @@ function DesignBlock({
   }
 
   if (block.kind === "report-one-table" || block.kind === "structured-table") {
-    const columns = Array.isArray(block.columns) && block.columns.length
-      ? block.columns
-      : ["المجال", "الإجراء", "ملاحظات"];
+    const tableBlock = block.kind === "structured-table"
+      ? normalizeStructuredTableBlockPresentation(block)
+      : block;
+    const columns = tableBlock.kind === "structured-table"
+      ? (Array.isArray(tableBlock.columns) ? tableBlock.columns : [])
+      : Array.isArray(tableBlock.columns) && tableBlock.columns.length
+        ? tableBlock.columns
+        : ["المجال", "الإجراء", "ملاحظات"];
 
-    const rows = Array.isArray(block.rows) && block.rows.length
-      ? block.rows
-      : [["", "", ""]];
+    const rows = tableBlock.kind === "structured-table"
+      ? (Array.isArray(tableBlock.rows) ? tableBlock.rows : [])
+      : Array.isArray(tableBlock.rows) && tableBlock.rows.length
+        ? tableBlock.rows
+        : [["", "", ""]];
 
-    const tableSettings = block.tableSettings || {};
+    const tableSettings = tableBlock.tableSettings || {};
     const compact = Boolean(tableSettings.compact);
     const rounded = tableSettings.rounded !== false;
     const highlightHeader = tableSettings.highlightHeader !== false;
     const highlightFirstColumn = Boolean(tableSettings.highlightFirstColumn);
     const stripedRows = Boolean(tableSettings.stripedRows);
     const colorTheme = tableSettings.colorTheme || "light-gray";
-    const columnWidths = Array.isArray(block.columnWidths) ? block.columnWidths : [];
+    const columnWidths = Array.isArray(tableBlock.columnWidths) ? tableBlock.columnWidths : [];
 
     const themeColors: Record<string, { border: string; headerBg: string; firstColBg: string; stripedBg: string; headerText: string; cellText: string; firstColText: string }> = {
       "light-gray": { border: "border-slate-200", headerBg: "bg-slate-50", firstColBg: "bg-slate-50", stripedBg: "bg-slate-50/40", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
@@ -2355,22 +2363,18 @@ function DesignBlock({
       "none": { border: "border-slate-200", headerBg: "bg-white", firstColBg: "bg-white", stripedBg: "bg-white", headerText: "text-slate-800", cellText: "text-slate-600", firstColText: "text-slate-900" },
     };
     const tc = themeColors[colorTheme] || themeColors["light-gray"];
-    const isMeetingAgendaTable =
-      block.kind === "structured-table" &&
-      block.sourceFieldKey === "committee_items";
-
     return (
       <section
         dir="rtl"
-        data-report-structured-table={block.kind === "structured-table" ? block.sourceTableId || "true" : undefined}
+        data-report-structured-table={tableBlock.kind === "structured-table" ? tableBlock.sourceTableId || "true" : undefined}
         className={
-          isMeetingAgendaTable
+          tableBlock.kind === "structured-table"
             ? `mb-3 mt-5 break-inside-avoid ${textAlign}`
-            : getBlockShellClass(designId, block.variant, textAlign)
+            : getBlockShellClass(designId, tableBlock.variant, textAlign)
         }
         style={{ breakInside: "avoid" }}
       >
-        {block.showTitle ? <BlockTitle title={block.title} fontSize={getBlockSetting(block, "titleFontSize")} /> : null}
+        {tableBlock.showTitle ? <BlockTitle title={tableBlock.title} fontSize={getBlockSetting(tableBlock, "titleFontSize")} /> : null}
 
         <div className={rounded ? `overflow-hidden rounded-2xl border ${tc.border}` : `overflow-hidden border ${tc.border}`}>
           <table className="w-full table-fixed border-collapse text-xs">

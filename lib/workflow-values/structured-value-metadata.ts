@@ -9,6 +9,7 @@ export type StructuredValueColumnMetadata = {
 export type StructuredValueTableMetadata = {
   fieldKey: string;
   tableTitle: string;
+  semanticType?: "student-data";
   tableColumns: StructuredValueColumnMetadata[];
   repeatHeader?: boolean;
   compact?: boolean;
@@ -23,6 +24,7 @@ export type StructuredValueTableMetadata = {
  */
 export const SELECTED_STUDENTS_STRUCTURED_VALUE_METADATA = {
   fieldKey: "selected_students_json",
+  semanticType: "student-data",
   tableTitle: "الطلاب المختارون",
   tableColumns: [
     { key: "fullName", label: "الاسم الكامل" },
@@ -55,4 +57,44 @@ function normalizeFieldKey(value: string) {
 
 export function getStructuredValueTableMetadata(fieldKey: string) {
   return STRUCTURED_VALUE_TABLE_METADATA.get(normalizeFieldKey(fieldKey));
+}
+
+type StudentDataTableLike = {
+  sourceFieldKey?: unknown;
+  sourceTableId?: unknown;
+  columns?: unknown;
+};
+
+export function isStudentDataTable(table: StudentDataTableLike) {
+  const sourceFieldKey = normalizeFieldKey(String(table.sourceFieldKey ?? ""));
+  const sourceTableId = normalizeFieldKey(
+    String(table.sourceTableId ?? "").replace(/^table:/i, ""),
+  );
+  const metadata =
+    getStructuredValueTableMetadata(sourceFieldKey) ||
+    getStructuredValueTableMetadata(sourceTableId);
+  if (metadata?.semanticType === "student-data") return true;
+
+  const columnKeys = Array.isArray(table.columns)
+    ? table.columns
+        .map((column) =>
+          normalizeFieldKey(
+            typeof column === "string"
+              ? column
+              : String((column as { key?: unknown } | null)?.key ?? ""),
+          ),
+        )
+        .filter(Boolean)
+    : [];
+  const keys = new Set(columnKeys);
+  const hasIdentity = keys.has("full_name") && keys.has("national_id");
+  const hasStudentContext = [
+    "grade",
+    "classroom",
+    "stage",
+    "guardian_name",
+    "guardian_phone",
+  ].some((key) => keys.has(key));
+
+  return hasIdentity && hasStudentContext;
 }

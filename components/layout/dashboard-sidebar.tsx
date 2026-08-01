@@ -52,6 +52,8 @@ type SidebarLinkItem = {
 };
 
 const COLLAPSED_STORAGE_KEY = "student-guidance-sidebar-collapsed";
+const SIDEBAR_SCROLL_AREA_CLASS =
+  "dashboard-sidebar-scroll mt-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-1 pb-4";
 
 const counselorImportantLinks: SidebarLinkItem[] = [
   { label: "الرئيسية", href: "/dashboard", icon: Home },
@@ -389,7 +391,7 @@ useEffect(() => {
       >
         <div
           className={[
-            "flex items-center gap-2 border-b border-slate-100 pb-3 dark:border-slate-800",
+            "flex shrink-0 items-center gap-2 border-b border-slate-100 pb-3 dark:border-slate-800",
             collapsed ? "justify-center" : "justify-between",
           ].join(" ")}
         >
@@ -472,7 +474,7 @@ function AdminSidebar({
     <>
       <nav
         className={[
-          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          SIDEBAR_SCROLL_AREA_CLASS,
           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
@@ -557,7 +559,7 @@ function ActivityLeaderSidebar({
     <>
       <nav
         className={[
-          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          SIDEBAR_SCROLL_AREA_CLASS,
           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
@@ -637,7 +639,7 @@ function TeacherSidebar({
     <>
       <nav
         className={[
-          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          SIDEBAR_SCROLL_AREA_CLASS,
           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >
@@ -738,7 +740,7 @@ function CounselorSidebar({
     <>
       <nav
         className={[
-          "mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          SIDEBAR_SCROLL_AREA_CLASS,
           collapsed ? "space-y-1.5 px-1" : "space-y-5 pr-1",
         ].join(" ")}
       >

@@ -170,6 +170,9 @@ export type SmartReportTableColumn = {
 export type SmartReportTableRow = {
   id: string;
   cells: Record<string, string>;
+  metadata?: {
+    gender?: string | null;
+  };
 };
 
 export type SmartReportTable = {

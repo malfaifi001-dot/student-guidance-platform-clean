@@ -23,6 +23,7 @@ import {
   getWorkflowFieldLabel,
   type WorkflowValueLike,
 } from "@/lib/workflow-values/workflow-display-value";
+import { isStudentDataTable } from "@/lib/workflow-values/structured-value-metadata";
 
 type CurrentUserLike = {
   user: {
@@ -1237,11 +1238,49 @@ export async function buildSmartReportPayloadForCase({
   const workflowFields = (caseEntry.workflow?.steps || []).flatMap(
     (step: any) => step.fields || [],
   );
-  const tables = extractSmartReportTables({
+  let tables = extractSmartReportTables({
     values: caseEntry.values || [],
     fields: workflowFields,
     snapshotFields: collectWorkflowSnapshotFields(caseEntry.workflowSnapshot),
   });
+  const studentTableRowIds = Array.from(
+    new Set(
+      tables
+        .filter(isStudentDataTable)
+        .flatMap((table) => table.rows.map((row) => cleanText(row.id)))
+        .filter(Boolean),
+    ),
+  );
+  if (studentTableRowIds.length) {
+    const studentGenders = await prisma.student.findMany({
+      where: {
+        id: { in: studentTableRowIds },
+        schoolAccountId: caseEntry.schoolAccountId,
+      },
+      select: { id: true, gender: true },
+    });
+    const genderByStudentId = new Map(
+      studentGenders.map((student) => [student.id, student.gender]),
+    );
+    tables = tables.map((table) =>
+      isStudentDataTable(table)
+        ? {
+            ...table,
+            rows: table.rows.map((row) => ({
+              ...row,
+              metadata: {
+                ...row.metadata,
+                gender:
+                  genderByStudentId.get(row.id) ||
+                  (row.id === caseEntry.studentId
+                    ? caseEntry.student?.gender || null
+                    : null),
+              },
+            })),
+          }
+        : table,
+    );
+  }
   const tableFieldKeys = new Set(tables.map((table) => table.sourceFieldKey));
   const values = filterPrivateReportValues(normalizeCaseValues(caseEntry)).filter(
     (item) => !tableFieldKeys.has(cleanText(item.key).toLowerCase()),

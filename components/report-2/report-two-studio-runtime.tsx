@@ -16,6 +16,11 @@ import type {
   SmartReportTable,
 } from "@/lib/report-engine/smart-report-types";
 import { paginateSmartReportTable } from "@/lib/report-engine/report-structured-table-extractor";
+import {
+  normalizeSmartReportTablePresentation,
+  normalizeStudentDataTableBlockOrder,
+} from "@/lib/report-engine/report-structured-table-display";
+import { isStudentDataTable } from "@/lib/workflow-values/structured-value-metadata";
 import { filterValidReportEvidenceItems } from "@/lib/report-engine/report-evidence-utils";
 import { applyReportFlowPreparationToPayload } from "@/lib/report-flow/report-flow-payload";
 import { loadReportFlowPreparation } from "@/lib/report-flow/report-flow-storage";
@@ -199,6 +204,7 @@ type StudioBlock = {
   evidenceEmptyBehavior?: string;
   columns?: string[];
   rows?: string[][];
+  rowMetadata?: Array<{ gender?: string | null }>;
   tableSettings?: Record<string, any>;
   sourceTableId?: string;
   sourceFieldKey?: string;
@@ -1409,14 +1415,20 @@ function getStructuredTableBlock(
     .replace(/^_|_$/g, "");
   const title =
     !savedTitle || normalizedSavedTitle === normalizedSourceKey ? table.title : savedTitle;
+  const studentDataTable = isStudentDataTable({
+    sourceFieldKey: table.sourceFieldKey,
+    sourceTableId: table.id,
+    columns: table.columns,
+  });
 
   return {
     ...(sourceBlock || createBlock("structured-table")),
     id: sourceBlock?.id || `structured-table-${table.id.replace(/[^a-z0-9_-]/gi, "-")}`,
     kind: "structured-table",
-    title,
+    title: studentDataTable ? table.title : title,
+    ...(studentDataTable ? { studentTableTitle: table.title } : {}),
     visible: sourceBlock?.visible !== false,
-    showTitle: sourceBlock?.showTitle !== false,
+    showTitle: studentDataTable ? true : sourceBlock?.showTitle !== false,
     source: sourceBlock?.source || "payload-table",
     sourceTableId: table.id,
     sourceFieldKey: table.sourceFieldKey,
@@ -1425,6 +1437,9 @@ function getStructuredTableBlock(
     rows: table.rows.map((row) =>
       table.columns.map((column) => cleanText(row.cells[column.key])),
     ),
+    rowMetadata: table.rows.map((row) => ({
+      gender: row.metadata?.gender || null,
+    })),
     tableSettings: {
       highlightHeader: true,
       rounded: true,
@@ -1442,8 +1457,12 @@ function withReportTwoStructuredTables(
   template: StudioTemplate,
   payload: SmartReportPayload,
 ): StudioTemplate {
-  const tables = Array.isArray(payload.tables) ? payload.tables : [];
-  if (!tables.length) return template;
+  const tables = Array.isArray(payload.tables)
+    ? payload.tables.map(normalizeSmartReportTablePresentation)
+    : [];
+  if (!tables.length) {
+    return normalizeStudentDataTableBlockOrder(template) as StudioTemplate;
+  }
 
   const tableById = new Map(tables.map((table) => [table.id, table]));
   const boundTableIds = new Set<string>();
@@ -1467,7 +1486,9 @@ function withReportTwoStructuredTables(
   }));
 
   const missingTables = tables.filter((table) => !boundTableIds.has(table.id));
-  if (!missingTables.length) return { ...template, pages };
+  if (!missingTables.length) {
+    return normalizeStudentDataTableBlockOrder({ ...template, pages }) as StudioTemplate;
+  }
 
   let targetPageIndex = -1;
   for (let index = pages.length - 1; index >= 0; index -= 1) {
@@ -1497,7 +1518,7 @@ function withReportTwoStructuredTables(
     };
   });
 
-  return { ...template, pages };
+  return normalizeStudentDataTableBlockOrder({ ...template, pages }) as StudioTemplate;
 }
 
 function getReportTwoTextLineCount(content: string) {
@@ -1783,6 +1804,9 @@ function splitReportTwoBlockForPagination(
             cleanText(Array.isArray(row) ? row[columnIndex] : ""),
           ]),
         ),
+        metadata: {
+          gender: block.rowMetadata?.[rowIndex]?.gender || null,
+        },
       })),
       settings: {
         repeatHeader: block.tableSettings?.repeatHeader !== false,
@@ -1799,6 +1823,9 @@ function splitReportTwoBlockForPagination(
       rows: table.rows.map((row) =>
         table.columns.map((column) => row.cells[column.key] || ""),
       ),
+      rowMetadata: table.rows.map((row) => ({
+        gender: row.metadata?.gender || null,
+      })),
       reportTwoVirtualBlock: index > 0,
       sourceBlockId: cleanText((block as any).sourceBlockId) || block.id,
     })) as StudioBlock[];
@@ -4635,9 +4662,25 @@ export function ReportTwoStudioRuntime({
 
     if (index < 0) return;
 
+    const selectedIsStudentTable =
+      selectedBlock.kind === "structured-table" && isStudentDataTable(selectedBlock);
+    if (selectedIsStudentTable) {
+      setPageSafePlacementNotice("جدول بيانات الطلاب يظهر دائمًا في بداية التقرير.");
+      return;
+    }
+
     const targetIndex = direction === "up" ? index - 1 : index + 1;
 
     if (targetIndex < 0 || targetIndex >= sourcePage.blocks.length) return;
+    const targetBlock = sourcePage.blocks[targetIndex];
+    if (
+      direction === "up" &&
+      targetBlock.kind === "structured-table" &&
+      isStudentDataTable(targetBlock)
+    ) {
+      setPageSafePlacementNotice("جدول بيانات الطلاب يظهر دائمًا في بداية التقرير.");
+      return;
+    }
 
     const nextBlocks = [...sourcePage.blocks];
     const [block] = nextBlocks.splice(index, 1);
@@ -5937,7 +5980,17 @@ export function ReportTwoStudioRuntime({
                   <button
                     type="button"
                     onClick={() => moveBlock("up")}
-                    className="rounded-xl bg-slate-100 px-2 py-1 text-xs font-black"
+                    disabled={
+                      selectedBlock.kind === "structured-table" &&
+                      isStudentDataTable(selectedBlock)
+                    }
+                    title={
+                      selectedBlock.kind === "structured-table" &&
+                      isStudentDataTable(selectedBlock)
+                        ? "جدول بيانات الطلاب يظهر دائمًا في بداية التقرير."
+                        : "تحريك إلى أعلى"
+                    }
+                    className="rounded-xl bg-slate-100 px-2 py-1 text-xs font-black disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     ↑
                   </button>
@@ -5945,7 +5998,17 @@ export function ReportTwoStudioRuntime({
                   <button
                     type="button"
                     onClick={() => moveBlock("down")}
-                    className="rounded-xl bg-slate-100 px-2 py-1 text-xs font-black"
+                    disabled={
+                      selectedBlock.kind === "structured-table" &&
+                      isStudentDataTable(selectedBlock)
+                    }
+                    title={
+                      selectedBlock.kind === "structured-table" &&
+                      isStudentDataTable(selectedBlock)
+                        ? "جدول بيانات الطلاب يظهر دائمًا في بداية التقرير."
+                        : "تحريك إلى أسفل"
+                    }
+                    className="rounded-xl bg-slate-100 px-2 py-1 text-xs font-black disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     ↓
                   </button>
@@ -6319,6 +6382,12 @@ export function ReportTwoStudioRuntime({
                         تُحدَّث بيانات الجدول من الحالة، بينما تُحفظ إعدادات العرض وترتيب البلوك في التقرير.
                       </p>
                     </div>
+
+                    {isStudentDataTable(selectedBlock) ? (
+                      <p className="mt-3 rounded-xl bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700">
+                        جدول بيانات الطلاب يظهر دائمًا في بداية التقرير.
+                      </p>
+                    ) : null}
 
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {[
