@@ -2535,8 +2535,14 @@ function DesignBlock({
 
         <div
           className={[
-            "flex w-full items-end gap-6",
-            signatures.length === 1 ? "justify-center" : "justify-between",
+            signatures.length === 2
+              ? "mx-auto grid w-[72%] max-w-[132mm] grid-cols-2 items-end gap-x-[8mm]"
+              : "flex w-full items-end gap-6",
+            signatures.length === 1
+              ? "justify-center"
+              : signatures.length >= 3
+                ? "justify-between"
+                : "",
           ].join(" ")}
         >
           {signatures.map((signature: any) => (
@@ -2547,7 +2553,7 @@ function DesignBlock({
                 signatures.length >= 3
                   ? "w-[31%]"
                   : signatures.length === 2
-                    ? "w-[58mm]"
+                    ? "min-w-0 w-full"
                     : "w-[58mm]",
               ].join(" ")}
             >
